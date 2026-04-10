@@ -1,0 +1,171 @@
+/**
+ * CollectorMessages.tsx
+ *
+ * A messaging panel in the Route & Map section where the collector can
+ * see messages from the admin and reply directly.
+ */
+
+import { useState, useRef, useEffect } from "react";
+import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+export interface Message {
+  id: string;
+  sender: "admin" | "collector";
+  senderName: string;
+  text: string;
+  timestamp: Date;
+}
+
+const mockMessages: Message[] = [
+  {
+    id: "m1",
+    sender: "admin",
+    senderName: "Admin Office",
+    text: "Please prioritize Brgy. Pahinga Norte â€” residents reported a missed collection last week.",
+    timestamp: new Date(Date.now() - 45 * 60 * 1000),
+  },
+  {
+    id: "m2",
+    sender: "admin",
+    senderName: "Admin Office",
+    text: "Traffic reported on the national highway near Malabanban. Consider alternate route.",
+    timestamp: new Date(Date.now() - 20 * 60 * 1000),
+  },
+  {
+    id: "m3",
+    sender: "collector",
+    senderName: "You",
+    text: "Copy that. Taking the barangay road instead.",
+    timestamp: new Date(Date.now() - 18 * 60 * 1000),
+  },
+];
+
+const formatTime = (date: Date) =>
+  date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+const CollectorMessages = () => {
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [newMessage, setNewMessage] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const unreadCount = messages.filter((m) => m.sender === "admin").length;
+
+  useEffect(() => {
+    if (expanded) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, expanded]);
+
+  const handleSend = () => {
+    if (!newMessage.trim()) return;
+    const msg: Message = {
+      id: `m-${Date.now()}`,
+      sender: "collector",
+      senderName: "You",
+      text: newMessage.trim(),
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, msg]);
+    setNewMessage("");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Header â€” always visible */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-display font-semibold text-foreground">
+              Messages
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {messages.length} message{messages.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!expanded && unreadCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+
+      {/* Expandable body */}
+      {expanded && (
+        <>
+          {/* Message list */}
+          <div className="max-h-60 overflow-y-auto px-4 py-2 space-y-2 border-t border-border">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex flex-col max-w-[85%] rounded-xl px-3 py-2",
+                  msg.sender === "admin"
+                    ? "self-start bg-muted"
+                    : "self-end ml-auto bg-primary/10",
+                )}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold",
+                      msg.sender === "admin"
+                        ? "text-foreground"
+                        : "text-primary",
+                    )}
+                  >
+                    {msg.senderName}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">
+                    {formatTime(msg.timestamp)}
+                  </span>
+                </div>
+                <p className="text-xs text-foreground leading-relaxed">
+                  {msg.text}
+                </p>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Reply input */}
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
+            <Input
+              className="h-9 text-xs flex-1"
+              placeholder="Type a reply..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            />
+            <Button
+              size="sm"
+              className="h-9 px-3"
+              onClick={handleSend}
+              disabled={!newMessage.trim()}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default CollectorMessages;
