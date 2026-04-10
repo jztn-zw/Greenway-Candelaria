@@ -106,7 +106,6 @@ const mapDetails = (details: ResidentDetailsRow, reports: ResidentReportRow[]): 
 const AdminResidents = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [residents, setResidents] = useState<Resident[]>([]);
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [barangayFilter, setBarangayFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -262,14 +261,6 @@ const AdminResidents = () => {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      setCurrentPage(1);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  useEffect(() => {
     let mounted = true;
     const run = async () => {
       await loadResidents();
@@ -348,8 +339,8 @@ const AdminResidents = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, username, or email..."
-              value={searchInput}
-              onChange={e => { setSearchInput(e.target.value); }}
+              value={search}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               className="pl-9 bg-background"
             />
           </div>
