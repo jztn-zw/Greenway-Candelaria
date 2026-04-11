@@ -28,6 +28,8 @@ interface UseLiveTrackingOptions {
   truckId: string | null;
   /** Whether the route has ended — stops all tracking */
   isRouteEnded: boolean;
+  /** Enable live ping/poll only when route is actually running */
+  isTrackingEnabled?: boolean;
 }
 
 interface UseLiveTrackingReturn {
@@ -42,6 +44,7 @@ interface UseLiveTrackingReturn {
 export const useLiveTracking = ({
   truckId,
   isRouteEnded,
+  isTrackingEnabled = true,
 }: UseLiveTrackingOptions): UseLiveTrackingReturn => {
   const [truckCoords, setTruckCoords] = useState<[number, number] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -85,7 +88,7 @@ export const useLiveTracking = ({
 
   // ─── SEND: Ping the driver's GPS location to backend ────────────────────
   useEffect(() => {
-    if (!truckId || isRouteEnded) return;
+    if (!truckId || isRouteEnded || !isTrackingEnabled) return;
 
     const sendPing = async () => {
       if (!navigator.geolocation) return;
@@ -121,11 +124,11 @@ export const useLiveTracking = ({
     sendPing();
     const id = setInterval(sendPing, PING_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [truckId, isRouteEnded, isOffline]);
+  }, [truckId, isRouteEnded, isOffline, isTrackingEnabled]);
 
   // ─── RECEIVE: Poll /tracking/live for this truck's latest coords ─────────
   useEffect(() => {
-    if (!truckId || isRouteEnded) return;
+    if (!truckId || isRouteEnded || !isTrackingEnabled) return;
 
     const poll = async () => {
       try {
@@ -146,7 +149,7 @@ export const useLiveTracking = ({
     poll();
     const id = setInterval(poll, RECEIVE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [truckId, isRouteEnded]);
+  }, [truckId, isRouteEnded, isTrackingEnabled]);
 
   return { truckCoords, isOffline, pendingSync };
 };

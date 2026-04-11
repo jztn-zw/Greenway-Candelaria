@@ -1,5 +1,25 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
+
+const getTodayRouteContext = () => {
+  const now = new Date();
+  const weekday = now
+    .toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: APP_TIME_ZONE,
+    })
+    .toUpperCase();
+  const currentTime = now.toLocaleTimeString("en-GB", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: APP_TIME_ZONE,
+  });
+
+  return { weekday, currentTime };
+};
 
 // ─── Helper: group flat SQL rows into nested JSON ──────────────────────────
 const formatRouteData = (rows) => {
@@ -223,9 +243,7 @@ const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
 
 // ─── Get today's route for the authenticated driver ───────────────────────
 const getMyRouteToday = async (userId) => {
-  const today = new Date()
-    .toLocaleDateString("en-US", { weekday: "long" })
-    .toUpperCase();
+  const { weekday: today } = getTodayRouteContext();
 
   const [rows] = await pool.query(
     `SELECT
@@ -270,9 +288,7 @@ const getMyRouteToday = async (userId) => {
 
 // ─── Get all active routes today (Admin) ─────────────────────────────────
 const getAllRoutesToday = async () => {
-  const today = new Date()
-    .toLocaleDateString("en-US", { weekday: "long" })
-    .toUpperCase();
+  const { weekday: today } = getTodayRouteContext();
 
   const [rows] = await pool.query(
     `SELECT
@@ -310,10 +326,7 @@ const getAllRoutesToday = async () => {
 };
 
 const autoActivateScheduledRoutes = async () => {
-  const today = new Date()
-    .toLocaleDateString("en-US", { weekday: "long" })
-    .toUpperCase();
-  const currentTime = new Date().toTimeString().slice(0, 8);
+  const { weekday: today, currentTime } = getTodayRouteContext();
 
   const [routes] = await pool.query(
     `SELECT r.id, r.truck_id

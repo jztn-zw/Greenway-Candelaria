@@ -172,10 +172,14 @@ const CollectorRouteMap = () => {
   // â”€â”€â”€ Data hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const { stops, routeInfo, isLoading, error, refresh, updateStopLocally } =
     useRouteData();
+  const isScheduledRoute = Boolean(
+    routeInfo?.startedAt && routeInfo.startedAt.getTime() > Date.now(),
+  );
 
   const { truckCoords, isOffline, pendingSync } = useLiveTracking({
     truckId: routeInfo?.truckId ?? null,
     isRouteEnded,
+    isTrackingEnabled: !isScheduledRoute,
   });
 
   // â”€â”€â”€ Auto-route: sort remaining stops by proximity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -271,7 +275,21 @@ const CollectorRouteMap = () => {
       });
     }
 
-    if (activeStop) {
+    if (isScheduledRoute && routeInfo) {
+      messages.push({
+        id: `scheduled-${routeInfo.routeId}`,
+        sender: "admin",
+        senderName: "Route System",
+        text: `Route is scheduled and will start at ${routeInfo.startedAt.toLocaleTimeString(
+          "en-US",
+          {
+            hour: "numeric",
+            minute: "2-digit",
+          },
+        )}.`,
+        timestamp: new Date(now - 2 * 60 * 1000),
+      });
+    } else if (activeStop) {
       messages.push({
         id: `active-${activeStop.id}`,
         sender: "admin",
@@ -550,6 +568,11 @@ const CollectorRouteMap = () => {
           <MapPin className="w-3 h-3" />
           {routeInfo.totalStops} stops
         </div>
+        {isScheduledRoute && (
+          <Badge className="text-[10px] sm:text-xs bg-yellow-500/15 text-yellow-700 border-yellow-500/30">
+            Scheduled
+          </Badge>
+        )}
         <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground ml-auto">
           <Clock className="w-3 h-3" />
           <span className="font-mono tabular-nums">{elapsed}</span>
@@ -633,6 +656,23 @@ const CollectorRouteMap = () => {
                 </Button>
               </div>
             </div>
+          ) : isScheduledRoute ? (
+            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 sm:p-5 text-center space-y-2 shrink-0">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-yellow-500/10 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+              <p className="text-sm font-display font-bold text-foreground">
+                Route is scheduled
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Tracking starts at{" "}
+                {routeInfo.startedAt.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+                .
+              </p>
+            </div>
           ) : (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 sm:p-5 text-center space-y-2 shrink-0">
               <div className="w-12 h-12 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -683,7 +723,7 @@ const CollectorRouteMap = () => {
             <Button
               variant="outline"
               onClick={() => setShowEndModal(true)}
-              disabled={mutating === "end"}
+              disabled={mutating === "end" || isScheduledRoute}
               className="w-full h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-semibold border-destructive/30 text-destructive hover:bg-destructive/5"
             >
               {mutating === "end" ? (

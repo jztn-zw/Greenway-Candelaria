@@ -82,6 +82,16 @@ const mapStatus = (backendStatus: string): RouteStop["status"] => {
   }
 };
 
+const isTerminalStopStatus = (raw?: string) => {
+  const key = String(raw || "").toUpperCase();
+  return key === "DONE" || key === "MISSED" || key === "SKIPPED";
+};
+
+const isRouteFinished = (route: TruckRouteRow) => {
+  if (!route?.stops?.length) return false;
+  return route.stops.every((stop) => isTerminalStopStatus(stop.status));
+};
+
 // Map backend stops → frontend RouteStop[]
 const mapStops = (
   raw: TruckRouteRow["stops"],
@@ -181,12 +191,19 @@ export const useRouteData = (): UseRouteDataReturn => {
         ]);
         if (cancelled) return;
 
-        const isActiveRoute =
-          String(route?.route_status ?? "ACTIVE").toUpperCase() === "ACTIVE";
         const routeStartAt = route ? parseRouteStartedAt(route.started_at) : null;
-        const isScheduleUnlocked = routeStartAt ? routeStartAt.getTime() <= Date.now() : true;
+        const isScheduleUnlocked = routeStartAt
+          ? routeStartAt.getTime() <= Date.now()
+          : true;
 
-        if (!route || !isActiveRoute) {
+        if (!route) {
+          setError("No active route assigned for today.");
+          setStops([]);
+          setRouteInfo(null);
+          return;
+        }
+
+        if (isRouteFinished(route)) {
           setError("No active route assigned for today.");
           setStops([]);
           setRouteInfo(null);
@@ -194,11 +211,18 @@ export const useRouteData = (): UseRouteDataReturn => {
         }
 
         if (!isScheduleUnlocked) {
+          const scheduleDate = routeStartAt.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          });
+          const scheduleTime = routeStartAt.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
           setError(
-            `Route tracking will be available at ${routeStartAt.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}.`,
+            `Collection is scheduled on ${scheduleDate} at ${scheduleTime}.`,
           );
           setStops([]);
           setRouteInfo(null);

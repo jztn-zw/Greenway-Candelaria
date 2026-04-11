@@ -278,12 +278,16 @@ const isTerminalStopStatus = (raw?: string) => {
 const isRouteFinished = (route?: TruckRouteRow) => {
   if (!route) return false;
 
-  if (String(route.route_status || "").toUpperCase() === "INACTIVE") {
-    return true;
-  }
-
   if (!route.stops || route.stops.length === 0) return false;
-  return route.stops.every((stop) => isTerminalStopStatus(stop.status));
+  const allStopsTerminal = route.stops.every((stop) =>
+    isTerminalStopStatus(stop.status),
+  );
+  if (allStopsTerminal) return true;
+
+  return (
+    Number(route.total_stops) > 0 &&
+    Number(route.completed_stops) >= Number(route.total_stops)
+  );
 };
 
 const resolveTrackedTruckStatus = ({
