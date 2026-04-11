@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Plus, Truck } from "lucide-react";
+import { Plus, Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -165,6 +165,10 @@ const AdminDrivers = () => {
   const [resetPwResult, setResetPwResult] = useState<{ name: string; password: string } | null>(null);
   const [driverActivities, setDriverActivities] = useState<Record<string, Driver["activityLog"]>>({});
   const [isActivityLoading, setIsActivityLoading] = useState(false);
+  const [isSavingDriver, setIsSavingDriver] = useState(false);
+  const [isSavingTruck, setIsSavingTruck] = useState(false);
+  const [isDeletingDriver, setIsDeletingDriver] = useState(false);
+  const [isDeletingTruck, setIsDeletingTruck] = useState(false);
 
   const [truckSearch, setTruckSearch] = useState("");
   const [truckStatusFilter, setTruckStatusFilter] = useState("all");
@@ -272,33 +276,39 @@ const AdminDrivers = () => {
     licenseNumber: string;
     truckId: string | null;
   }) => {
-    if (!editingDriver) {
-      if (!data.email || !data.username || !data.password) {
-        toast.error("Email, username, and password are required");
-        return;
+    setIsSavingDriver(true);
+    try {
+      if (!editingDriver) {
+        if (!data.email || !data.username || !data.password) {
+          toast.error("Email, username, and password are required");
+          return null;
+        }
+
+        await createDriver({
+          full_name: data.fullName,
+          username: data.username,
+          email: data.email,
+          phone: data.contactNumber,
+          password: data.password,
+          ...(data.truckId ? { truck_id: data.truckId } : {}),
+        });
+
+        await loadData();
+        return { username: data.username, password: data.password };
       }
 
-      await createDriver({
+      await updateDriver(editingDriver.id, {
         full_name: data.fullName,
-        username: data.username,
-        email: data.email,
         phone: data.contactNumber,
-        password: data.password,
-        ...(data.truckId ? { truck_id: data.truckId } : {}),
+        truck_id: data.truckId,
       });
 
       await loadData();
-      return { username: data.username, password: data.password };
+      toast.success("Driver updated");
+      return {};
+    } finally {
+      setIsSavingDriver(false);
     }
-
-    await updateDriver(editingDriver.id, {
-      full_name: data.fullName,
-      phone: data.contactNumber,
-      truck_id: data.truckId,
-    });
-
-    await loadData();
-    toast.success("Driver updated");
   };
 
   const toggleDriverStatus = async (d: Driver) => {
@@ -324,11 +334,16 @@ const AdminDrivers = () => {
   const deleteDriver = async () => {
     if (!deleteDriverTarget) return;
 
-    await deleteDriverApi(deleteDriverTarget.id);
-    await loadData();
-    toast.success(`${deleteDriverTarget.fullName} deleted`);
-    setDeleteDriverTarget(null);
-    if (selectedDriverId === deleteDriverTarget.id) setSelectedDriverId(null);
+    setIsDeletingDriver(true);
+    try {
+      await deleteDriverApi(deleteDriverTarget.id);
+      await loadData();
+      toast.success(`${deleteDriverTarget.fullName} deleted`);
+      setDeleteDriverTarget(null);
+      if (selectedDriverId === deleteDriverTarget.id) setSelectedDriverId(null);
+    } finally {
+      setIsDeletingDriver(false);
+    }
   };
 
   const openTruckEditor = (truck?: TruckType) => {
@@ -349,9 +364,23 @@ const AdminDrivers = () => {
     assignedDriverId: string | null;
     wasteType: string;
     status: string;
-  }) => {
-    if (!editingTruck) {
-      await createTruck({
+  }): Promise<boolean> => {
+    setIsSavingTruck(true);
+    try {
+      if (!editingTruck) {
+        await createTruck({
+          name: data.name,
+          plate_number: data.plateNumber,
+          truck_model: data.model,
+          availability_status: toAvailabilityStatus(data.status as TruckType["status"]),
+        });
+
+        await loadData();
+        toast.success("Truck added");
+        return true;
+      }
+
+      await updateTruck(editingTruck.id, {
         name: data.name,
         plate_number: data.plateNumber,
         truck_model: data.model,
@@ -359,19 +388,16 @@ const AdminDrivers = () => {
       });
 
       await loadData();
-      toast.success("Truck added");
-      return;
+      toast.success("Truck updated");
+      return true;
+    } catch (err) {
+      toast.error("Failed to save truck", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+      return false;
+    } finally {
+      setIsSavingTruck(false);
     }
-
-    await updateTruck(editingTruck.id, {
-      name: data.name,
-      plate_number: data.plateNumber,
-      truck_model: data.model,
-      availability_status: toAvailabilityStatus(data.status as TruckType["status"]),
-    });
-
-    await loadData();
-    toast.success("Truck updated");
   };
 
   const toggleTruckStatus = async (t: TruckType) => {
@@ -388,11 +414,16 @@ const AdminDrivers = () => {
   const deleteTruck = async () => {
     if (!deleteTruckTarget) return;
 
-    await deleteTruckApi(deleteTruckTarget.id);
-    await loadData();
-    toast.success(`${deleteTruckTarget.name} deleted`);
-    setDeleteTruckTarget(null);
-    if (selectedTruckId === deleteTruckTarget.id) setSelectedTruckId(null);
+    setIsDeletingTruck(true);
+    try {
+      await deleteTruckApi(deleteTruckTarget.id);
+      await loadData();
+      toast.success(`${deleteTruckTarget.name} deleted`);
+      setDeleteTruckTarget(null);
+      if (selectedTruckId === deleteTruckTarget.id) setSelectedTruckId(null);
+    } finally {
+      setIsDeletingTruck(false);
+    }
   };
 
   if (selectedDriver) {
@@ -513,6 +544,7 @@ const AdminDrivers = () => {
         editingDriver={editingDriver}
         trucks={trucks}
         drivers={drivers}
+        isSaving={isSavingDriver}
         onSave={async (data) => {
           try {
             return await handleSaveDriver(data);
@@ -531,13 +563,8 @@ const AdminDrivers = () => {
         editingTruck={editingTruck}
         trucks={trucks}
         drivers={drivers}
-        onSave={(data) => {
-          void handleSaveTruck(data).catch((err) => {
-            toast.error("Failed to save truck", {
-              description: err instanceof Error ? err.message : "Please try again.",
-            });
-          });
-        }}
+        isSaving={isSavingTruck}
+        onSave={handleSaveTruck}
       />
 
       <AlertDialog open={!!deleteDriverTarget} onOpenChange={() => setDeleteDriverTarget(null)}>
@@ -549,8 +576,9 @@ const AdminDrivers = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingDriver}>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeletingDriver}
               onClick={() => {
                 void deleteDriver().catch((err) => {
                   toast.error("Failed to delete driver", {
@@ -560,7 +588,14 @@ const AdminDrivers = () => {
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeletingDriver ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting...
+                </span>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -575,8 +610,9 @@ const AdminDrivers = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingTruck}>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeletingTruck}
               onClick={() => {
                 void deleteTruck().catch((err) => {
                   toast.error("Failed to delete truck", {
@@ -586,7 +622,14 @@ const AdminDrivers = () => {
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeletingTruck ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting...
+                </span>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

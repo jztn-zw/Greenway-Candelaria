@@ -8,6 +8,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Driver, Truck } from "../types";
 
@@ -17,6 +18,7 @@ interface DriverEditorModalProps {
   editingDriver: Driver | null;
   trucks: Truck[];
   drivers: Driver[];
+  isSaving?: boolean;
   onSave: (data: {
     fullName: string;
     email?: string;
@@ -32,7 +34,7 @@ interface DriverEditorModalProps {
     | Promise<{ username?: string; password?: string } | void | null>;
 }
 
-const DriverEditorModal = ({ open, onOpenChange, editingDriver, trucks, drivers, onSave }: DriverEditorModalProps) => {
+const DriverEditorModal = ({ open, onOpenChange, editingDriver, trucks, drivers, isSaving = false, onSave }: DriverEditorModalProps) => {
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formUsername, setFormUsername] = useState("");
@@ -81,6 +83,7 @@ const DriverEditorModal = ({ open, onOpenChange, editingDriver, trucks, drivers,
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     if (!formName.trim() || !formContact.trim()) {
       toast.error("Please fill in all required fields.");
       return;
@@ -186,8 +189,11 @@ const DriverEditorModal = ({ open, onOpenChange, editingDriver, trucks, drivers,
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => { void handleSave(); }}>{isEditing ? "Save Changes" : "Add Driver"}</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>Cancel</Button>
+          <Button onClick={() => { void handleSave(); }} disabled={isSaving} className="gap-2">
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Driver"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

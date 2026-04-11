@@ -60,6 +60,8 @@ interface RouteFormPanelProps {
   onDuplicate: () => void;
   onToggleActive: (route: RouteData) => void;
   onDelete: (route: RouteData) => void;
+  isTogglingRoute?: boolean;
+  isDeletingRoute?: boolean;
 }
 
 const RouteFormPanel = ({
@@ -83,6 +85,8 @@ const RouteFormPanel = ({
   onDuplicate,
   onToggleActive,
   onDelete,
+  isTogglingRoute = false,
+  isDeletingRoute = false,
 }: RouteFormPanelProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const waste = WASTE_MAP[form.day];
@@ -229,23 +233,35 @@ const RouteFormPanel = ({
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
           <Button
             onClick={onSave}
-            disabled={!form.truckId || form.barangays.length === 0 || isSaving}
+            disabled={
+              !form.truckId ||
+              form.barangays.length === 0 ||
+              isSaving ||
+              isLoadingTrucks ||
+              isLoadingDrivers ||
+              isLoadingBarangays ||
+              isDeletingRoute ||
+              isTogglingRoute
+            }
             className="gap-2"
           >
-            <Save className="w-4 h-4" />
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isSaving ? "Saving..." : isCreating ? "Save Route" : "Save Changes"}
           </Button>
           {!isCreating && selectedRoute && (
             <>
-              <Button variant="outline" className="gap-2" onClick={onDuplicate}>
-                <Copy className="w-4 h-4" /> Duplicate
+              <Button variant="outline" className="gap-2" onClick={onDuplicate} disabled={isSaving || isDeletingRoute || isTogglingRoute}>
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />} Duplicate
               </Button>
               <Button
                 variant="outline"
                 className={cn("gap-2", !selectedRoute.active && "border-primary/30 text-primary hover:bg-primary/5")}
                 onClick={() => onToggleActive(selectedRoute)}
+                disabled={isTogglingRoute || isSaving || isDeletingRoute}
               >
-                {selectedRoute.active ? (
+                {isTogglingRoute ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</>
+                ) : selectedRoute.active ? (
                   <><Pause className="w-4 h-4" /> Deactivate</>
                 ) : (
                   <><Play className="w-4 h-4" /> Reactivate</>
@@ -259,10 +275,10 @@ const RouteFormPanel = ({
                   "gap-2 ml-auto border-destructive/40 text-destructive hover:bg-destructive/10",
                   selectedRoute.active && "opacity-35 pointer-events-none"
                 )}
-                disabled={selectedRoute.active}
+                disabled={selectedRoute.active || isDeletingRoute || isSaving || isTogglingRoute}
                 onClick={() => setDeleteDialogOpen(true)}
               >
-                <Trash2 className="w-4 h-4" /> Delete
+                {isDeletingRoute ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete
               </Button>
             </>
           )}
@@ -278,14 +294,21 @@ const RouteFormPanel = ({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isDeletingRoute}>Cancel</AlertDialogCancel>
               <AlertDialogAction
+                disabled={isDeletingRoute}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => {
                   if (selectedRoute) onDelete(selectedRoute);
                 }}
               >
-                Delete permanently
+                {isDeletingRoute ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
+                  </span>
+                ) : (
+                  "Delete permanently"
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, User, Clock, MapPin, ChevronRight } from "lucide-react";
+import { Truck, User, Clock, MapPin, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
@@ -8,11 +8,12 @@ import type { Truck as TruckType } from "../hooks/useTrucks";
 interface RouteCardProps {
   route: RouteData;
   truck?: TruckType;
+  isLoadingTruck?: boolean;
   isSelected: boolean;
   onClick: () => void;
 }
 
-const RouteCard = ({ route, truck, isSelected, onClick }: RouteCardProps) => (
+const RouteCard = ({ route, truck, isLoadingTruck = false, isSelected, onClick }: RouteCardProps) => (
   <Card
     onClick={onClick}
     className={cn(
@@ -28,10 +29,16 @@ const RouteCard = ({ route, truck, isSelected, onClick }: RouteCardProps) => (
         <div className="flex items-center gap-2">
           <Truck className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold text-foreground">
-            {truck?.name ?? route.truckName}
+            {isLoadingTruck ? "Loading truck..." : (truck?.name ?? route.truckName)}
           </span>
           <span className="text-[10px] text-muted-foreground">
-            {truck?.plate_number ?? route.truckPlate}
+            {isLoadingTruck ? (
+              <span className="inline-flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> fetching
+              </span>
+            ) : (
+              truck?.plate_number ?? route.truckPlate
+            )}
           </span>
         </div>
         <div className="flex items-center gap-1.5">

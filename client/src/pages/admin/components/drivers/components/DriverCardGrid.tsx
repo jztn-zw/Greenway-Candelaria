@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, UserX, UserCheck, KeyRound,
-  Truck, Phone, Clock, MoreHorizontal, IdCard,
+  Truck, Phone, Clock, MoreHorizontal, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,7 +109,7 @@ const DriverCardGrid = ({
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /> {d.contactNumber}</div>
-                <div className="flex items-center gap-2 text-muted-foreground"><IdCard className="w-3.5 h-3.5" /> {d.licenseNumber}</div>
+                <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /> {d.email}</div>
                 {truck ? (
                   <div className="flex items-center gap-2 text-muted-foreground"><Truck className="w-3.5 h-3.5" /> {truck.name} — {truck.model} · {truck.plateNumber}</div>
                 ) : (

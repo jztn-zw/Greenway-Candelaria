@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 import { DAYS, WASTE_MAP } from "../constants";
 import type { Day } from "../hooks/useRoutes";
 
@@ -55,9 +55,9 @@ const DuplicateDialog = ({
         </Select>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
         <Button onClick={onDuplicate} disabled={isSaving} className="gap-2">
-          <Copy className="w-4 h-4" />
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
           {isSaving ? "Duplicating..." : "Duplicate"}
         </Button>
       </DialogFooter>

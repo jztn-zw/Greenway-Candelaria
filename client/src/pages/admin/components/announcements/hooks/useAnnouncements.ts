@@ -204,18 +204,35 @@ export const useAnnouncements = () => {
   const toggleArchive = useCallback(
     async (ann: Announcement): Promise<boolean> => {
       const isArchived = ann.status === "Archived";
-      const newStatus = isArchived ? "ACTIVE" : "ARCHIVED";
+      const nextStatus = isArchived ? ("Active" as AnnouncementStatus) : ("Archived" as AnnouncementStatus);
+      const previous = announcements;
+
+      // Optimistic local update to avoid full module reload.
+      setAnnouncements((prev) =>
+        prev.map((a) =>
+          a.id === ann.id
+            ? {
+                ...a,
+                status: nextStatus,
+                pinned: isArchived ? a.pinned : false,
+              }
+            : a,
+        ),
+      );
+
       try {
-        await updateAnnouncement(ann.id, { status: newStatus });
-        await loadInitialData();
+        await updateAnnouncement(ann.id, {
+          status: isArchived ? "ACTIVE" : "ARCHIVED",
+        });
         toast.success(isArchived ? "Restored" : "Archived");
         return true;
       } catch (err) {
+        setAnnouncements(previous);
         toast.error("Action failed.");
         return false;
       }
     },
-    [loadInitialData],
+    [announcements],
   );
 
   const duplicate = useCallback(async (ann: Announcement): Promise<boolean> => {

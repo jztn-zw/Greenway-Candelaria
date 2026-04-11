@@ -106,6 +106,10 @@ const AnnouncementCard = ({
             <DropdownMenuItem onClick={() => onCancelSchedule(ann)}>
               <Clock className="w-3.5 h-3.5 mr-2" /> Cancel Schedule
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(ann)}>
+              <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+            </DropdownMenuItem>
           </>
         );
       case "Active":
@@ -126,6 +130,10 @@ const AnnouncementCard = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onArchive(ann)}>
               <Archive className="w-3.5 h-3.5 mr-2" /> Archive
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(ann)}>
+              <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
             </DropdownMenuItem>
           </>
         );

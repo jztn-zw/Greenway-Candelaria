@@ -34,6 +34,8 @@ const AdminRouteManager = () => {
   const [filterDay, setFilterDay] = useState<Day | "all">("all");
   const [barangaySearch, setBarangaySearch] = useState("");
   const [form, setForm] = useState<RouteForm>(DEFAULT_FORM);
+  const [deletingRouteId, setDeletingRouteId] = useState<string | null>(null);
+  const [togglingRouteId, setTogglingRouteId] = useState<string | null>(null);
 
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? null;
   const filteredRoutes =
@@ -123,10 +125,24 @@ const AdminRouteManager = () => {
   };
 
   const handleDelete = async (route: RouteData) => {
-    const success = await remove(route.id);
-    if (success) {
-      setSelectedRouteId(null);
-      setIsCreating(false);
+    setDeletingRouteId(route.id);
+    try {
+      const success = await remove(route.id);
+      if (success) {
+        setSelectedRouteId(null);
+        setIsCreating(false);
+      }
+    } finally {
+      setDeletingRouteId(null);
+    }
+  };
+
+  const handleToggleActive = async (route: RouteData) => {
+    setTogglingRouteId(route.id);
+    try {
+      await toggleActive(route);
+    } finally {
+      setTogglingRouteId(null);
     }
   };
 
@@ -168,6 +184,7 @@ const AdminRouteManager = () => {
           selectedRouteId={selectedRouteId}
           isCreating={isCreating}
           trucks={trucks}
+          isLoadingTrucks={isLoadingTrucks}
           onSelectRoute={startEdit}
         />
 
@@ -194,8 +211,10 @@ const AdminRouteManager = () => {
               onMoveBarangay={moveBarangay}
               onSave={handleSave}
               onDuplicate={() => setDuplicateDialogOpen(true)}
-              onToggleActive={toggleActive}
+              onToggleActive={handleToggleActive}
               onDelete={handleDelete}
+              isDeletingRoute={selectedRoute ? deletingRouteId === selectedRoute.id : false}
+              isTogglingRoute={selectedRoute ? togglingRouteId === selectedRoute.id : false}
             />
           )}
         </div>

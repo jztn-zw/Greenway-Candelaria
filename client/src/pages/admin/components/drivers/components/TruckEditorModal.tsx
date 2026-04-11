@@ -8,6 +8,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Truck, TruckOperationalStatus, Driver } from "../types";
 
@@ -17,6 +18,7 @@ interface TruckEditorModalProps {
   editingTruck: Truck | null;
   drivers: Driver[];
   trucks: Truck[];
+  isSaving?: boolean;
   onSave: (data: {
     name: string;
     model: string;
@@ -24,10 +26,10 @@ interface TruckEditorModalProps {
     assignedDriverId: string | null;
     wasteType: string;
     status: TruckOperationalStatus;
-  }) => void;
+  }) => Promise<boolean> | boolean;
 }
 
-const TruckEditorModal = ({ open, onOpenChange, editingTruck, drivers, trucks, onSave }: TruckEditorModalProps) => {
+const TruckEditorModal = ({ open, onOpenChange, editingTruck, drivers, trucks, isSaving = false, onSave }: TruckEditorModalProps) => {
   const [formName, setFormName] = useState("");
   const [formModel, setFormModel] = useState("");
   const [formPlate, setFormPlate] = useState("");
@@ -61,12 +63,13 @@ const TruckEditorModal = ({ open, onOpenChange, editingTruck, drivers, trucks, o
     onOpenChange(v);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return;
     if (!formName.trim() || !formModel.trim() || !formPlate.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
-    onSave({
+    const saved = await onSave({
       name: formName.trim(),
       model: formModel.trim(),
       plateNumber: formPlate.trim(),
@@ -74,7 +77,7 @@ const TruckEditorModal = ({ open, onOpenChange, editingTruck, drivers, trucks, o
       wasteType: "Biodegradable",
       status: formStatus,
     });
-    handleOpenChange(false);
+    if (saved) handleOpenChange(false);
   };
 
   return (
@@ -111,8 +114,11 @@ const TruckEditorModal = ({ open, onOpenChange, editingTruck, drivers, trucks, o
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{isEditing ? "Save Changes" : "Add Truck"}</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>Cancel</Button>
+          <Button onClick={() => { void handleSave(); }} disabled={isSaving} className="gap-2">
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Truck"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

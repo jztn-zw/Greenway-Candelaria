@@ -115,9 +115,50 @@ const update = async (id, data) => {
 const remove = async (id) => {
   await getById(id);
 
-  await pool.query("DELETE FROM trucks WHERE id = ?", [id]);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
 
-  return { message: "Truck deleted successfully" };
+    const [routeRefs] = await connection.query(
+      "SELECT COUNT(*) AS total FROM routes WHERE truck_id = ?",
+      [id],
+    );
+    const routeCount = Number(routeRefs?.[0]?.total || 0);
+    if (routeCount > 0) {
+      throw {
+        statusCode: 409,
+        message:
+          "Truck cannot be deleted because it is already used by route records. Remove/archive related routes first.",
+      };
+    }
+
+    // Remove direct references so hard-delete can succeed without orphan records.
+    await connection.query("UPDATE drivers SET truck_id = NULL WHERE truck_id = ?", [
+      id,
+    ]);
+    await connection.query("DELETE FROM tracking_logs WHERE truck_id = ?", [id]);
+    await connection.query("DELETE FROM trucks WHERE id = ?", [id]);
+
+    await connection.commit();
+    return { message: "Truck deleted successfully" };
+  } catch (error) {
+    await connection.rollback();
+
+    if (error?.statusCode) throw error;
+
+    // Fallback for DB-level FK restrictions not explicitly checked above.
+    if (error?.code === "ER_ROW_IS_REFERENCED_2" || error?.errno === 1451) {
+      throw {
+        statusCode: 409,
+        message:
+          "Truck cannot be deleted because it is referenced by other records. Remove related references first.",
+      };
+    }
+
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
 
 module.exports = { getAll, getById, create, update, remove };

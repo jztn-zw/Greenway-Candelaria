@@ -115,7 +115,12 @@ const create = async ({
     }
 
     const [assignedTruck] = await pool.query(
-      "SELECT id FROM drivers WHERE truck_id = ? LIMIT 1",
+      `SELECT d.id
+         FROM drivers d
+         JOIN users u ON u.id = d.user_id
+        WHERE d.truck_id = ?
+          AND u.deleted_at IS NULL
+        LIMIT 1`,
       [truck_id],
     );
     if (assignedTruck.length > 0) {
@@ -189,7 +194,13 @@ const update = async (id, data) => {
       }
 
       const [assignedTruck] = await pool.query(
-        "SELECT id FROM drivers WHERE truck_id = ? AND id <> ? LIMIT 1",
+        `SELECT d.id
+           FROM drivers d
+           JOIN users u ON u.id = d.user_id
+          WHERE d.truck_id = ?
+            AND d.id <> ?
+            AND u.deleted_at IS NULL
+          LIMIT 1`,
         [data.truck_id, id],
       );
       if (assignedTruck.length > 0) {
@@ -234,7 +245,13 @@ const assignTruck = async (id, truck_id) => {
     }
 
     const [assignedTruck] = await pool.query(
-      "SELECT id FROM drivers WHERE truck_id = ? AND id <> ? LIMIT 1",
+      `SELECT d.id
+         FROM drivers d
+         JOIN users u ON u.id = d.user_id
+        WHERE d.truck_id = ?
+          AND d.id <> ?
+          AND u.deleted_at IS NULL
+        LIMIT 1`,
       [truck_id, id],
     );
     if (assignedTruck.length > 0) {
@@ -481,10 +498,25 @@ const getActivityLog = async (driverId, limit = 30) => {
 const remove = async (id) => {
   const driver = await getById(id);
 
-  // Soft delete the user — sets deleted_at
-  await pool.query("UPDATE users SET deleted_at = NOW() WHERE id = ?", [
-    driver.user_id,
-  ]);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Release truck assignment first so this truck can be reassigned later.
+    await connection.query("UPDATE drivers SET truck_id = NULL WHERE id = ?", [id]);
+
+    // Soft delete the user — sets deleted_at.
+    await connection.query("UPDATE users SET deleted_at = NOW() WHERE id = ?", [
+      driver.user_id,
+    ]);
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 
   return { message: "Driver removed successfully" };
 };

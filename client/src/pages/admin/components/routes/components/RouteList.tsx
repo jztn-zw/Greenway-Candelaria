@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DAYS, WASTE_MAP } from "../constants";
 import RouteCard from "./RouteCard";
@@ -19,6 +20,7 @@ interface RouteListProps {
   selectedRouteId: string | null;
   isCreating: boolean;
   trucks: Truck[];
+  isLoadingTrucks: boolean;
   onSelectRoute: (route: RouteData) => void;
 }
 
@@ -30,6 +32,7 @@ const RouteList = ({
   selectedRouteId,
   isCreating,
   trucks,
+  isLoadingTrucks,
   onSelectRoute,
 }: RouteListProps) => {
   const getTruck = (id: string) => trucks.find((t) => t.id === id);
@@ -37,7 +40,14 @@ const RouteList = ({
   return (
     <div className="lg:col-span-2 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-display font-semibold text-foreground">Routes by Day</h2>
+        <h2 className="text-sm font-display font-semibold text-foreground inline-flex items-center gap-2">
+          Routes by Day
+          {isLoadingTrucks ? (
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground font-normal">
+              <Loader2 className="w-3 h-3 animate-spin" /> Trucks loading
+            </span>
+          ) : null}
+        </h2>
         <Select value={filterDay} onValueChange={(v) => setFilterDay(v as Day | "all")}>
           <SelectTrigger className="w-32 h-8 text-xs">
             <SelectValue />
@@ -71,6 +81,7 @@ const RouteList = ({
                   key={route.id}
                   route={route}
                   truck={getTruck(route.truckId)}
+                  isLoadingTruck={isLoadingTrucks && !getTruck(route.truckId)}
                   isSelected={selectedRouteId === route.id && !isCreating}
                   onClick={() => onSelectRoute(route)}
                 />

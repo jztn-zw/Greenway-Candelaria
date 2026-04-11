@@ -389,18 +389,25 @@ const AdminAnnouncements = () => {
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditor(ann)}>
-                          <Edit2 className="mr-2 w-4 h-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleArchive(ann)}>
-                          <Archive className="mr-2 w-4 h-4" /> Archive
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+                       <DropdownMenuContent align="end">
+                         <DropdownMenuItem onClick={() => openEditor(ann)}>
+                           <Edit2 className="mr-2 w-4 h-4" /> Edit
+                         </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => toggleArchive(ann)}>
+                           <Archive className="mr-2 w-4 h-4" /> Archive
+                         </DropdownMenuItem>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem
+                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                           onClick={() => setDeleteTarget(ann)}
+                         >
+                           <Trash2 className="mr-2 w-4 h-4" /> Delete
+                         </DropdownMenuItem>
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   </TableCell>
+                 </TableRow>
+               ))}
             </TableBody>
           </Table>
         </div>
@@ -504,7 +511,10 @@ const AdminAnnouncements = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => remove(deleteTarget!.id)}
+              onClick={async () => {
+                const ok = await remove(deleteTarget!.id);
+                if (ok) setDeleteTarget(null);
+              }}
               className="bg-destructive text-white"
             >
               Delete

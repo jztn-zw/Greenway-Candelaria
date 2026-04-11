@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, Truck, Phone, Clock, CheckCircle2, MessageSquare, Edit2, KeyRound, UserX, UserCheck, IdCard, CalendarDays,
+  ArrowLeft, Truck, Phone, Clock, CheckCircle2, MessageSquare, Edit2, KeyRound, UserX, UserCheck, Mail, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ const DriverDetailView = ({
             <p className="text-sm font-medium">{driver.contactNumber}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><IdCard className="w-3 h-3" /> Email</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email</p>
             <p className="text-sm font-medium">{driver.email}</p>
           </div>
           <div className="space-y-1">
