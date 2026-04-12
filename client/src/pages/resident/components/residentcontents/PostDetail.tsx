@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type SyntheticEvent } from "react";
 import {
   ArrowLeft, Heart, MessageCircle, Bookmark, Share2, Clock, Calendar, Send, User,
   Trash2, Edit2, X, CornerDownRight, MoreHorizontal,
@@ -33,6 +33,20 @@ interface PostDetailProps {
 }
 
 const CURRENT_USER = "You";
+const PLACEHOLDER_POST_IMAGE = "/placeholder.svg";
+
+const getPrimaryImage = (images?: string[]) =>
+  images?.find((img) => typeof img === "string" && img.trim().length > 0) ??
+  PLACEHOLDER_POST_IMAGE;
+
+const handleImageFallback = (
+  event: SyntheticEvent<HTMLImageElement, Event>,
+) => {
+  const img = event.currentTarget;
+  if (img.dataset.fallbackApplied === "1") return;
+  img.dataset.fallbackApplied = "1";
+  img.src = PLACEHOLDER_POST_IMAGE;
+};
 
 function formatRelativeDate(dateStr: string): string {
   try {
@@ -61,6 +75,7 @@ const PostDetail = ({
 }: PostDetailProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const readingTime = estimateReadingTime(post.body);
+  const heroImage = getPrimaryImage(post.images);
 
   // Comments state
   const [comments, setComments] = useState<PostComment[]>(() => {
@@ -279,21 +294,18 @@ const PostDetail = ({
 
       {/* Hero image */}
       <div className="rounded-2xl overflow-hidden relative bg-card">
-        {post.images.length > 0 ? (
-          <div className="relative w-full min-h-[280px] max-h-[520px]">
-            <div
-              className="absolute inset-0 bg-cover bg-center blur-2xl scale-110 opacity-60"
-              style={{ backgroundImage: `url(${post.images[0]})` }}
-            />
-            <img
-              src={post.images[0]}
-              alt={post.title}
-              className="relative w-full h-full object-contain max-h-[520px] z-10"
-            />
-          </div>
-        ) : (
-          <div className="w-full h-56 bg-gradient-to-br from-muted/50 to-muted" />
-        )}
+        <div className="relative w-full min-h-[280px] max-h-[520px]">
+          <div
+            className="absolute inset-0 bg-cover bg-center blur-2xl scale-110 opacity-60"
+            style={{ backgroundImage: `url(${heroImage})` }}
+          />
+          <img
+            src={heroImage}
+            alt={post.title}
+            onError={handleImageFallback}
+            className="relative w-full h-full object-contain max-h-[520px] z-10"
+          />
+        </div>
         <div className="absolute top-3 left-3 z-20">
           <Badge className="text-xs font-semibold bg-background/90 backdrop-blur-sm text-foreground border-border shadow-sm">
             {post.badge}

@@ -39,6 +39,14 @@ const PostCard = ({
   const readingTime = estimateReadingTime(post.body);
   const isPast = isEventPast(post.eventDate);
   const evtDate = post.eventDate ? formatEventDate(post.eventDate) : null;
+  const [imageFailed, setImageFailed] = useState(false);
+  const previewImage = post.images.find(
+    (img) => typeof img === "string" && img.trim().length > 0,
+  );
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [post.id, post.images]);
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 group relative">
@@ -61,10 +69,11 @@ const PostCard = ({
 
       {/* Image area */}
       <button onClick={onClick} className="relative h-40 sm:h-44 overflow-hidden cursor-pointer">
-        {post.images.length > 0 ? (
+        {previewImage && !imageFailed ? (
           <img
-            src={post.images[0]}
+            src={previewImage}
             alt={post.title}
+            onError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
@@ -229,6 +238,14 @@ const ResidentContents = () => {
 
   const featured = featuredPosts[featuredIndex];
   const featuredReadTime = estimateReadingTime(featured.body);
+  const [featuredImageFailed, setFeaturedImageFailed] = useState(false);
+  const featuredImage = featured.images.find(
+    (img) => typeof img === "string" && img.trim().length > 0,
+  );
+
+  useEffect(() => {
+    setFeaturedImageFailed(false);
+  }, [featured.id, featured.images, featuredIndex]);
 
   // Filter & sort posts
   const allPosts = activeTab === "Saved" ? [...normalPosts, ...featuredPosts] : [...normalPosts];
@@ -408,9 +425,14 @@ const ResidentContents = () => {
               {/* Background */}
               <div className="h-56 sm:h-72 md:h-80 relative flex flex-col justify-end p-5 sm:p-8">
                 {/* Background: image or gradient */}
-                {featured.images && featured.images.length > 0 ? (
+                {featuredImage && !featuredImageFailed ? (
                   <>
-                    <img src={featured.images[0]} alt={featured.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={featuredImage}
+                      alt={featured.title}
+                      onError={() => setFeaturedImageFailed(true)}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
                   </>
                 ) : (
