@@ -7,7 +7,7 @@ const authorize = require("../../middleware/role");
 router.get(
   "/list/all",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getBarangayList,
 );
 
@@ -18,21 +18,21 @@ router.get("/:id", controller.getById);
 router.post(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.update,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.remove,
 );
 
@@ -43,7 +43,7 @@ router.post("/:id/read", authenticate, controller.markAsRead);
 router.get(
   "/:id/receipts",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getReceipts,
 );
 

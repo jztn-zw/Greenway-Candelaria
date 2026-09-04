@@ -1,10 +1,18 @@
 const { registerTrackingSocket } = require("./tracking.socket");
+const { registerNotificationsSocket } = require("./notifications.socket");
 
 const initSockets = (io) => {
-  // Register tracking events
-  registerTrackingSocket(io);
+  try {
+    registerTrackingSocket(io);
+  } catch (err) {
+    console.error("[Socket] ❌ Failed to initialize Tracking socket:", err.message);
+  }
 
-  // You can easily add more socket modules here later (e.g., chat, notifications)
+  try {
+    registerNotificationsSocket(io);
+  } catch (err) {
+    console.error("[Socket] ❌ Failed to initialize Notifications socket:", err.message);
+  }
 };
 
 module.exports = { initSockets };

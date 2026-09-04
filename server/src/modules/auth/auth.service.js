@@ -2,9 +2,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const queryWithRetry = require("../../utils/queryWithRetry");
 const generateId = require("../../utils/generateId");
-
-// 🌟 IMPORT OUR NEW SESSION SERVICE
 const SessionService = require("../sessions/sessions.service");
+const auditService = require("../audit/audit.service");
 
 const register = async ({
   full_name,
@@ -94,6 +93,14 @@ const login = async ({ identifier, password }, req) => {
   // Verify password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
+    auditService.log({
+      user_id: user.id,
+      action: "FAILED_LOGIN",
+      module: "auth",
+      record_id: user.id,
+      ip_address: req?.ip,
+      new_value: { identifier, reason: "Invalid password" },
+    }).catch(() => {});
     throw { statusCode: 401, message: "Invalid email or password" };
   }
 
@@ -108,13 +115,22 @@ const login = async ({ identifier, password }, req) => {
   await SessionService.createSession({
     userId: user.id,
     token,
-    device: req.headers["user-agent"],
-    ip: req.ip,
+    device: req?.headers ? req.headers["user-agent"] : null,
+    ip: req?.ip,
     expiresAt,
   });
   await queryWithRetry("UPDATE users SET last_login_at = NOW() WHERE id = ?", [
     user.id,
   ]);
+
+  auditService.log({
+    user_id: user.id,
+    action: "USER_LOGIN",
+    module: "auth",
+    record_id: user.id,
+    ip_address: req?.ip,
+    new_value: { role: user.role, email: user.email },
+  }).catch(() => {});
 
   return {
     token,
@@ -138,38 +154,63 @@ const logout = async (token, userId) => {
   if (!userId) return;
 
   const [driverRows] = await queryWithRetry(
-    "SELECT truck_id FROM drivers WHERE user_id = ?",
+    "SELECT id, truck_id FROM drivers WHERE user_id = ?",
     [userId],
   );
 
-  const truckId = driverRows[0]?.truck_id;
-  if (!truckId) return;
-
-  await queryWithRetry("UPDATE trucks SET status = 'OFFLINE' WHERE id = ?", [truckId]);
+  if (driverRows.length > 0 && driverRows[0].truck_id) {
+    await queryWithRetry("UPDATE trucks SET status = 'OFFLINE' WHERE id = ?", [
+      driverRows[0].truck_id,
+    ]);
+  }
 };
 
-const getMe = async (userId) => {
+const changePassword = async (userId, { current_password, new_password }) => {
   const [users] = await queryWithRetry(
-    `SELECT
-      u.id, u.full_name, u.username, u.email, u.phone, u.role, u.status,
-      u.avatar_url, u.barangay_id, b.name AS barangay_name, u.two_factor, u.created_at
-     FROM users u
-     LEFT JOIN barangays b ON b.id = u.barangay_id
-     WHERE u.id = ?`,
+    "SELECT password FROM users WHERE id = ?",
     [userId],
   );
-
   if (users.length === 0) {
     throw { statusCode: 404, message: "User not found" };
   }
 
-  return users[0];
+  const isMatch = await bcrypt.compare(current_password, users[0].password);
+  if (!isMatch) {
+    throw { statusCode: 400, message: "Current password is incorrect" };
+  }
+
+  const hashedPassword = await bcrypt.hash(new_password, 12);
+  await queryWithRetry("UPDATE users SET password = ? WHERE id = ?", [
+    hashedPassword,
+    userId,
+  ]);
+
+  auditService.log({
+    user_id: userId,
+    action: "CHANGE_PASSWORD",
+    module: "auth",
+    record_id: userId,
+    new_value: { changed: true },
+  }).catch(() => {});
 };
 
-module.exports = {
-  register,
-  login,
-  logout,
-  getMe,
+const getMe = async (userId) => {
+  const [rows] = await queryWithRetry(
+    `SELECT u.id, u.full_name, u.username, u.email, u.role, u.status,
+            u.avatar_url, u.phone, u.barangay_id, u.last_login_at,
+            b.name AS barangay_name
+     FROM users u
+     LEFT JOIN barangays b ON b.id = u.barangay_id
+     WHERE u.id = ? AND u.deleted_at IS NULL`,
+    [userId],
+  );
+
+  if (rows.length === 0) {
+    throw { statusCode: 404, message: "User not found" };
+  }
+
+  return rows[0];
 };
+
+module.exports = { register, login, logout, changePassword, getMe };
 

@@ -40,7 +40,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+    if (user.role === "ADMIN") {
       return <Navigate to="/admin" replace />;
     }
     if (user.role === "DRIVER") {

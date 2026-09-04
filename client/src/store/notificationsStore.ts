@@ -1,0 +1,155 @@
+import { create } from "zustand";
+import notificationsService, {
+  NotificationRow,
+} from "@/services/notificationsService";
+import { getSocket } from "@/lib/socket";
+import { toast } from "sonner";
+
+interface UserInfo {
+  id: string;
+  role?: string;
+  barangay_id?: string;
+}
+
+interface NotificationsState {
+  notifications: NotificationRow[];
+  unreadCount: number;
+  total: number;
+  isLoading: boolean;
+  initialized: boolean;
+
+  fetchNotifications: (params?: { limit?: number; offset?: number; type?: string }) => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearAll: () => Promise<void>;
+  addNotification: (notification: NotificationRow) => void;
+  initSocket: (user: UserInfo) => () => void;
+}
+
+let socketListenerRegistered = false;
+
+export const useNotificationsStore = create<NotificationsState>((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+  total: 0,
+  isLoading: false,
+  initialized: false,
+
+  fetchNotifications: async (params = {}) => {
+    try {
+      set({ isLoading: true });
+      const [data, unread] = await Promise.all([
+        notificationsService.fetchMyNotifications(params),
+        notificationsService.fetchUnreadCount(),
+      ]);
+
+      set({
+        notifications: data.notifications || [],
+        total: data.total || 0,
+        unreadCount: unread,
+        isLoading: false,
+        initialized: true,
+      });
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+      set({ isLoading: false });
+    }
+  },
+
+  markAsRead: async (id: string) => {
+    // Optimistic UI update across all components immediately
+    const existing = get().notifications.find((n) => n.id === id);
+    const wasUnread = existing && !existing.is_read;
+
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, is_read: true } : n,
+      ),
+      unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+    }));
+
+    try {
+      await notificationsService.markNotificationAsRead(id);
+    } catch (err) {
+      console.error("Failed to mark notification as read in API:", err);
+    }
+  },
+
+  markAllAsRead: async () => {
+    // Optimistic UI update
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
+      unreadCount: 0,
+    }));
+
+    try {
+      await notificationsService.markAllNotificationsAsRead();
+      toast.success("All notifications marked as read");
+    } catch (err) {
+      console.error("Failed to mark all as read in API:", err);
+    }
+  },
+
+  clearAll: async () => {
+    // Optimistic UI update
+    set({
+      notifications: [],
+      unreadCount: 0,
+      total: 0,
+    });
+
+    try {
+      await notificationsService.clearAllNotifications();
+      toast.success("Notification history cleared");
+    } catch (err) {
+      console.error("Failed to clear notifications in API:", err);
+    }
+  },
+
+  addNotification: (newNotif: NotificationRow) => {
+    set((state) => {
+      // Deduplicate: if notification with same ID is already present, do not add duplicate
+      if (state.notifications.some((n) => n.id === newNotif.id)) {
+        return state;
+      }
+
+      toast(newNotif.title, {
+        description: newNotif.body,
+        duration: 5000,
+      });
+
+      return {
+        notifications: [newNotif, ...state.notifications],
+        unreadCount: state.unreadCount + 1,
+        total: state.total + 1,
+      };
+    });
+  },
+
+  initSocket: (user: UserInfo) => {
+    if (!user || !user.id) return () => {};
+
+    const socket = getSocket();
+
+    // Join appropriate socket rooms
+    socket.emit("notifications:join_user", user.id);
+    if (user.barangay_id) {
+      socket.emit("notifications:join_barangay", user.barangay_id);
+    }
+    if (user.role === "ADMIN") {
+      socket.emit("notifications:join_admins");
+    }
+
+    if (!socketListenerRegistered) {
+      socketListenerRegistered = true;
+
+      socket.on("notification:new", (newNotif: NotificationRow) => {
+        get().addNotification(newNotif);
+      });
+    }
+
+    return () => {};
+  },
+}));
+
+export default useNotificationsStore;

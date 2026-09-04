@@ -1,5 +1,10 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const {
+  notifyAllResidents,
+  notifyBarangayResidents,
+} = require("../notifications/notifications.service");
+const auditService = require("../audit/audit.service");
 
 // ─── Base fetch ────────────────────────────────────────────
 
@@ -24,7 +29,7 @@ const getById = async (id) => {
 
   // Attach targeted barangays
   const [barangays] = await pool.query(
-    `SELECT b.id, b.name, b.zone
+    `SELECT b.id, b.name, NULL AS zone
      FROM announcement_barangays ab
      JOIN barangays b ON b.id = ab.barangay_id
      WHERE ab.announcement_id = ?`,
@@ -76,7 +81,7 @@ const getAll = async (filters = {}) => {
   // Attach barangays to each
   for (const a of announcements) {
     const [barangays] = await pool.query(
-      `SELECT b.id, b.name, b.zone
+      `SELECT b.id, b.name, NULL AS zone
        FROM announcement_barangays ab
        JOIN barangays b ON b.id = ab.barangay_id
        WHERE ab.announcement_id = ?`,
@@ -139,13 +144,46 @@ const create = async (adminId, data) => {
     }
   }
 
-  return getById(id);
+  const created = await getById(id);
+
+  await auditService.log({
+    user_id: adminId,
+    action: "CREATE_ANNOUNCEMENT",
+    module: "announcements",
+    record_id: created.id,
+    new_value: { title: created.title, type: created.type, priority: created.priority, status: created.status },
+  }).catch(() => {});
+
+  if (created.status === "ACTIVE") {
+    if (created.target_all) {
+      notifyAllResidents({
+        type: "ANNOUNCEMENT",
+        title: created.priority === "URGENT" ? `🚨 ${created.title}` : created.title,
+        body: created.body,
+        ref_id: created.id,
+        ref_module: "announcements",
+      }).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
+    } else if (barangay_ids.length > 0) {
+      for (const bId of barangay_ids) {
+        notifyBarangayResidents({
+          barangay_id: bId,
+          type: "ANNOUNCEMENT",
+          title: created.priority === "URGENT" ? `🚨 ${created.title}` : created.title,
+          body: created.body,
+          ref_id: created.id,
+          ref_module: "announcements",
+        }).catch((err) => console.error("[Notify] ❌ Barangay announcement failed:", err.message));
+      }
+    }
+  }
+
+  return created;
 };
 
 // ─── Update ────────────────────────────────────────────────
 
 const update = async (id, data) => {
-  await getById(id);
+  const existing = await getById(id);
 
   const fields = [];
   const params = [];
@@ -170,7 +208,7 @@ const update = async (id, data) => {
   }
 
   // Auto set sent_at when activating
-  if (data.status === "ACTIVE") {
+  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") {
     fields.push("sent_at = ?");
     params.push(new Date());
   }
@@ -201,15 +239,57 @@ const update = async (id, data) => {
     }
   }
 
-  return getById(id);
+  const updated = await getById(id);
+
+  auditService.log({
+    user_id: updated.created_by,
+    action: "UPDATE_ANNOUNCEMENT",
+    module: "announcements",
+    record_id: updated.id,
+    old_value: { title: existing.title, status: existing.status, priority: existing.priority },
+    new_value: { title: updated.title, status: updated.status, priority: updated.priority },
+  }).catch(() => {});
+
+  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") {
+    if (updated.target_all) {
+      notifyAllResidents({
+        type: "ANNOUNCEMENT",
+        title: updated.priority === "URGENT" ? `🚨 ${updated.title}` : updated.title,
+        body: updated.body,
+        ref_id: updated.id,
+        ref_module: "announcements",
+      }).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
+    } else if (updated.barangays && updated.barangays.length > 0) {
+      for (const b of updated.barangays) {
+        notifyBarangayResidents({
+          barangay_id: b.id,
+          type: "ANNOUNCEMENT",
+          title: updated.priority === "URGENT" ? `🚨 ${updated.title}` : updated.title,
+          body: updated.body,
+          ref_id: updated.id,
+          ref_module: "announcements",
+        }).catch((err) => console.error("[Notify] ❌ Barangay announcement failed:", err.message));
+      }
+    }
+  }
+
+  return updated;
 };
 
 // ─── Delete ────────────────────────────────────────────────
 
 const remove = async (id) => {
-  await getById(id);
+  const existing = await getById(id);
 
   await pool.query("DELETE FROM announcements WHERE id = ?", [id]);
+
+  auditService.log({
+    user_id: existing.created_by,
+    action: "DELETE_ANNOUNCEMENT",
+    module: "announcements",
+    record_id: id,
+    old_value: { title: existing.title },
+  }).catch(() => {});
 
   return { message: "Announcement deleted successfully" };
 };

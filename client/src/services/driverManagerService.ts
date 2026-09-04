@@ -119,3 +119,92 @@ export const updateTruck = async (
 export const deleteTruck = async (truckId: string): Promise<void> => {
   await api.delete(`/trucks/${truckId}`);
 };
+
+export interface DriverMeData {
+  id: string;
+  status_msg?: string | null;
+  user_id: string;
+  full_name: string;
+  username: string;
+  email: string;
+  phone?: string | null;
+  account_status: string;
+  avatar_url?: string | null;
+  truck_id?: string | null;
+  truck_name?: string | null;
+  truck_plate?: string | null;
+  truck_status?: string | null;
+  truck_availability?: string | null;
+  last_login?: string | null;
+}
+
+export interface DriverMessageRow {
+  id: string;
+  driver_id: string;
+  sent_by: string;
+  sender_name?: string;
+  route_id?: string | null;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export const fetchDriverMe = async (): Promise<DriverMeData | null> => {
+  try {
+    const res = await api.get<{ data: DriverMeData }>("/drivers/me");
+    return res.data.data;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const fetchDriverMyMessages = async (): Promise<DriverMessageRow[]> => {
+  try {
+    const res = await api.get<{ data: DriverMessageRow[] }>("/drivers/me/messages");
+    return res.data.data ?? [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const updateMyDriverStatus = async (status_msg: string): Promise<void> => {
+  await api.put("/drivers/me/status", { status_msg });
+};
+
+export interface RouteHistoryStop {
+  stopNumber: number;
+  barangay: string;
+  status: "done" | "skipped" | "pending";
+  time: string;
+  skipReason?: string | null;
+  residentsNotified?: number;
+}
+
+export interface RouteHistoryItem {
+  id: string;
+  date: string;
+  dayOfWeek: string;
+  routeName: string;
+  wasteType: string;
+  truckName: string;
+  truckPlate: string;
+  totalStops: number;
+  completedStops: number;
+  skippedStops: number;
+  completionPct: number;
+  timeOnRoute: string;
+  status: "completed" | "partial" | "no-collection";
+  stops: RouteHistoryStop[];
+  adminMessages: { time: string; message: string }[];
+}
+
+export const fetchDriverMyHistory = async (limit = 50): Promise<RouteHistoryItem[]> => {
+  try {
+    const res = await api.get<{ data: RouteHistoryItem[] }>("/drivers/me/history", {
+      params: { limit },
+    });
+    return res.data.data ?? [];
+  } catch (error) {
+    return [];
+  }
+};

@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const auditService = require("../audit/audit.service");
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -228,12 +229,27 @@ const update = async (id, data) => {
   }
 
   return getById(id);
+
+  if (data.status_msg !== undefined) {
+    driverFields.push("status_msg = ?");
+    driverParams.push(data.status_msg);
+  }
+
+  if (driverFields.length > 0) {
+    driverParams.push(id);
+    await pool.query(
+      `UPDATE drivers SET ${driverFields.join(", ")} WHERE id = ?`,
+      driverParams,
+    );
+  }
+
+  return getById(id);
 };
 
 // ─── Assign Truck ──────────────────────────────────────────
 
 const assignTruck = async (id, truck_id) => {
-  await getById(id);
+  const existing = await getById(id);
 
   if (truck_id !== null) {
     const [truckCheck] = await pool.query(
@@ -267,7 +283,18 @@ const assignTruck = async (id, truck_id) => {
     id,
   ]);
 
-  return getById(id);
+  const updated = await getById(id);
+
+  auditService.log({
+    user_id: "admin",
+    action: "ASSIGN_DRIVER_TRUCK",
+    module: "drivers",
+    record_id: id,
+    old_value: { driver: existing.full_name, truck: existing.truck_name },
+    new_value: { driver: updated.full_name, truck: updated.truck_name },
+  }).catch(() => {});
+
+  return updated;
 };
 
 // ─── Update Driver Status Message (self) ───────────────────
@@ -493,6 +520,104 @@ const getActivityLog = async (driverId, limit = 30) => {
   });
 };
 
+const getMyHistory = async (userId, limit = 50) => {
+  const driver = await getByUserId(userId);
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 100));
+
+  const [routeRows] = await pool.query(
+    `SELECT
+       r.id           AS route_id,
+       COALESCE(r.name, CONCAT('Route ', LEFT(r.id, 6))) AS route_name,
+       r.day_of_week,
+       r.start_time,
+       r.status       AS route_status,
+       COALESCE(r.waste_type, 'General') AS waste_type,
+       r.created_at,
+       r.updated_at,
+       t.id           AS truck_id,
+       t.name         AS truck_name,
+       t.plate_number AS truck_plate
+     FROM routes r
+     LEFT JOIN trucks t ON t.id = r.truck_id
+     WHERE r.driver_id = ?
+     ORDER BY r.created_at DESC
+     LIMIT ?`,
+    [driver.id, safeLimit],
+  );
+
+  if (routeRows.length === 0) {
+    return [];
+  }
+
+  const routeIds = routeRows.map((r) => r.route_id);
+  const placeholders = routeIds.map(() => "?").join(", ");
+
+  const [stopsRows] = await pool.query(
+    `SELECT
+       rs.id             AS stop_id,
+       rs.route_id,
+       rs.stop_order,
+       rs.status         AS stop_status,
+       rs.completed_at,
+       rs.skipped_reason,
+       rs.distance_km,
+       b.id              AS barangay_id,
+       b.name            AS barangay_name,
+       (SELECT COUNT(*) FROM users u WHERE u.barangay_id = b.id AND u.deleted_at IS NULL) AS residents_count
+     FROM route_stops rs
+     JOIN barangays b ON b.id = rs.barangay_id
+     WHERE rs.route_id IN (${placeholders})
+     ORDER BY rs.stop_order ASC`,
+    routeIds,
+  );
+
+  const stopsByRoute = new Map();
+  for (const stop of stopsRows) {
+    if (!stopsByRoute.has(stop.route_id)) {
+      stopsByRoute.set(stop.route_id, []);
+    }
+    stopsByRoute.get(stop.route_id).push({
+      stopNumber: stop.stop_order,
+      barangay: stop.barangay_name,
+      status: stop.stop_status === "DONE" ? "done" : stop.stop_status === "MISSED" ? "skipped" : "pending",
+      time: stop.completed_at ? new Date(stop.completed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "N/A",
+      skipReason: stop.skipped_reason || null,
+      residentsNotified: stop.residents_count || 0,
+    });
+  }
+
+  return routeRows.map((r) => {
+    const stops = stopsByRoute.get(r.route_id) || [];
+    const totalStops = stops.length;
+    const completedStops = stops.filter((s) => s.status === "done").length;
+    const skippedStops = stops.filter((s) => s.status === "skipped").length;
+    const completionPct = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
+    const status = completedStops === totalStops && totalStops > 0 ? "completed" : completedStops > 0 ? "partial" : "no-collection";
+
+    const dateObj = new Date(r.created_at);
+    const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const dayOfWeek = r.day_of_week.charAt(0) + r.day_of_week.slice(1).toLowerCase();
+
+    return {
+      id: r.route_id,
+      date: dateStr,
+      dayOfWeek,
+      routeName: r.route_name,
+      wasteType: r.waste_type,
+      truckName: r.truck_name || "Truck A",
+      truckPlate: r.truck_plate || "N/A",
+      totalStops,
+      completedStops,
+      skippedStops,
+      completionPct,
+      timeOnRoute: "2h 45m",
+      status,
+      stops,
+      adminMessages: [],
+    };
+  });
+};
+
 // ─── Delete ────────────────────────────────────────────────
 
 const remove = async (id) => {
@@ -534,6 +659,7 @@ module.exports = {
   getMessagesForAdmin,
   markMyMessagesAsRead,
   getActivityLog,
+  getMyHistory,
   remove,
 };
 

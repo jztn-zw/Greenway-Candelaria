@@ -4,7 +4,7 @@ const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 
 // All analytics — admin only
-router.use(authenticate, authorize("ADMIN", "SUPER_ADMIN"));
+router.use(authenticate, authorize("ADMIN"));
 
 router.get("/overview", controller.getOverview);
 router.get("/reports", controller.getReportsAnalytics);

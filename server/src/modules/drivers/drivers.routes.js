@@ -27,11 +27,18 @@ router.put(
   controller.markMyMessagesAsRead,
 );
 
+router.get(
+  "/me/history",
+  authenticate,
+  authorize("DRIVER"),
+  controller.getMyHistory,
+);
+
 // Admin route: persist admin -> driver message in driver_messages
 router.post(
   "/messages",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.sendMessageToDriver,
 );
 
@@ -39,56 +46,56 @@ router.post(
 router.get(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getAll,
 );
 
 router.get(
   "/:id/activity",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getActivityLog,
 );
 
 router.get(
   "/:id/messages",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getMessagesForAdmin,
 );
 
 router.get(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getById,
 );
 
 router.post(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.update,
 );
 
 router.put(
   "/:id/assign-truck",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.assignTruck,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.remove,
 );
 

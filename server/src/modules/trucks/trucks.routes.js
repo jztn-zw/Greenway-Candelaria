@@ -11,21 +11,21 @@ router.get("/:id", controller.getById);
 router.post(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.update,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.remove,
 );
 

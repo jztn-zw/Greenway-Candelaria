@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { Announcement } from "../pages/admin/components/announcements/types";
+import type { Announcement } from "@/features/admin/announcements/types";
 
 export interface GetAllFilters {
   status?: string;

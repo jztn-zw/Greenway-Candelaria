@@ -3,7 +3,6 @@ const { upload } = require("../../config/cloudinary");
 const {
   createPostSchema,
   updatePostSchema,
-  addCommentSchema,
 } = require("./posts.schema");
 const { success } = require("../../utils/apiResponse");
 
@@ -20,11 +19,11 @@ const getAll = async (req, res, next) => {
 const getById = async (req, res, next) => {
   try {
     const userId = req.user?.id || null;
-    const ip = req.ip || req.headers["x-forwarded-for"]; // Support proxies
-    const post = await service.getById(req.params.id, userId);
-
-    // Pass both for the unique check
+    const userRole = req.user?.role || null;
+    const ip = req.ip || req.headers["x-forwarded-for"] || "0.0.0.0";
     await service.incrementView(req.params.id, userId, ip);
+
+    const post = await service.getById(req.params.id, userId, userRole);
 
     return success(res, post, "Post fetched successfully");
   } catch (err) {
@@ -90,44 +89,6 @@ const unlikePost = async (req, res, next) => {
   }
 };
 
-const addComment = async (req, res, next) => {
-  try {
-    const { body, parent_id } = addCommentSchema.parse(req.body);
-    const comment = await service.addComment(
-      req.params.id,
-      req.user.id,
-      body,
-      parent_id ?? null,
-    );
-    return success(res, comment, "Comment added", 201);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const getComments = async (req, res, next) => {
-  try {
-    const comments = await service.getComments(req.params.id);
-    return success(res, comments, "Comments fetched successfully");
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deleteComment = async (req, res, next) => {
-  try {
-    const result = await service.deleteComment(
-      req.params.id,
-      req.params.commentId,
-      req.user.id,
-      req.user.role,
-    );
-    return success(res, result, "Comment deleted");
-  } catch (err) {
-    next(err);
-  }
-};
-
 const bookmarkPost = async (req, res, next) => {
   try {
     const result = await service.bookmarkPost(req.params.id, req.user.id);
@@ -163,9 +124,6 @@ module.exports = {
   remove,
   likePost,
   unlikePost,
-  addComment,
-  getComments,
-  deleteComment,
   bookmarkPost,
   unbookmarkPost,
   getBookmarks,

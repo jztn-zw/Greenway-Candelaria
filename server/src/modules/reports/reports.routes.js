@@ -2,20 +2,46 @@ const router = require("express").Router();
 const controller = require("./reports.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
+const { uploadReports } = require("../../config/cloudinary");
+
+// Resident — upload report photos to Cloudinary (must be before /:id)
+router.post(
+  "/upload-photos",
+  authenticate,
+  uploadReports.array("photos", 5),
+  controller.uploadPhotos,
+);
+
+// Resident — get own report stats (must be before /my and /:id)
+router.get(
+  "/my/stats",
+  authenticate,
+  authorize("RESIDENT", "ADMIN"),
+  controller.getMyStats,
+);
 
 // Resident — view own reports (must be before /:id)
 router.get(
   "/my",
   authenticate,
-  authorize("RESIDENT", "ADMIN", "SUPER_ADMIN"),
+  authorize("RESIDENT", "ADMIN"),
   controller.getMyReports,
 );
+
+// Resident — view a single owned report (must be before /:id)
+router.get(
+  "/my/:id",
+  authenticate,
+  authorize("RESIDENT", "ADMIN"),
+  controller.getMyReportById,
+);
+
 
 // Admin — get all reports with filters
 router.get(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getAll,
 );
 
@@ -26,7 +52,7 @@ router.post("/", authenticate, controller.create);
 router.get(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getById,
 );
 
@@ -34,7 +60,7 @@ router.get(
 router.put(
   "/:id/status",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.updateStatus,
 );
 
@@ -42,7 +68,7 @@ router.put(
 router.put(
   "/:id/flag",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.flagReport,
 );
 
@@ -50,7 +76,7 @@ router.put(
 router.put(
   "/:id/priority",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.updatePriority,
 );
 
@@ -58,14 +84,14 @@ router.put(
 router.post(
   "/:id/notes",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.addNote,
 );
 
 router.get(
   "/:id/notes",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getNotes,
 );
 
@@ -73,8 +99,15 @@ router.get(
 router.get(
   "/:id/history",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getStatusHistory,
+);
+
+// Admin or Resident (pending only) — soft-delete report
+router.delete(
+  "/:id",
+  authenticate,
+  controller.softDelete,
 );
 
 module.exports = router;

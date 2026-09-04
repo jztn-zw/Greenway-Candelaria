@@ -35,6 +35,15 @@ const getMe = async (req, res, next) => {
   }
 };
 
+const getMyHistory = async (req, res, next) => {
+  try {
+    const history = await service.getMyHistory(req.user.id, req.query.limit);
+    return success(res, history, "Driver route history fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const create = async (req, res, next) => {
   try {
     const data = createDriverSchema.parse(req.body);
@@ -159,6 +168,7 @@ module.exports = {
   markMyMessagesAsRead,
   sendMessageToDriver,
   getActivityLog,
+  getMyHistory,
   remove,
 };
 

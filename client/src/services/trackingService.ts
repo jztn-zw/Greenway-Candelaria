@@ -78,6 +78,24 @@ export interface HistoryRow {
   driver_name: string;
 }
 
+export interface RouteStopHistoryItem {
+  stop_id: string;
+  route_id: string;
+  stop_order: number;
+  stop_status: string;
+  completed_at?: string | null;
+  skipped_reason?: string | null;
+  barangay_id: string;
+  barangay_name: string;
+  latitude: number | string;
+  longitude: number | string;
+}
+
+export interface TruckHistoryData {
+  logs: HistoryRow[];
+  stops: RouteStopHistoryItem[];
+}
+
 export interface MissedCollectionRow {
   id: string;
   status: "MISSED" | "SKIPPED";
@@ -104,6 +122,14 @@ export interface DriverMessageRow {
   created_at: string;
 }
 
+export interface AdminTrackingOverview {
+  trucks: TruckRow[];
+  routes: TruckRouteRow[];
+  live: LiveRow[];
+  drivers: DriverRow[];
+  messages: DriverMessageRow[];
+}
+
 // ─── Existing API calls ───────────────────────────────────────────────────────
 
 /**
@@ -113,6 +139,13 @@ export interface DriverMessageRow {
 export const fetchLiveTrucks = async (): Promise<LiveRow[]> => {
   const res = await api.get<{ data: LiveRow[] } | LiveRow[]>("/tracking/live");
   return Array.isArray(res.data) ? res.data : (res.data.data ?? []);
+};
+
+export const fetchAdminTrackingOverview = async (): Promise<AdminTrackingOverview> => {
+  const res = await api.get<{ data: AdminTrackingOverview }>(
+    "/tracking/admin/overview",
+  );
+  return res.data.data;
 };
 
 /**
@@ -140,11 +173,19 @@ export const fetchAllDrivers = async (): Promise<DriverRow[]> => {
  */
 export const fetchTruckHistory = async (
   truckId: string,
-): Promise<HistoryRow[]> => {
-  const res = await api.get<{ data: HistoryRow[] }>(
-    `/tracking/${truckId}/history`,
-  );
-  return res.data.data ?? [];
+  date?: string,
+): Promise<TruckHistoryData> => {
+  const res = await api.get(`/tracking/${truckId}/history`, {
+    params: { date, limit: 5000 },
+  });
+  const data = res.data?.data;
+  if (Array.isArray(data)) {
+    return { logs: data, stops: [] };
+  }
+  return {
+    logs: Array.isArray(data?.logs) ? data.logs : [],
+    stops: Array.isArray(data?.stops) ? data.stops : [],
+  };
 };
 
 /**

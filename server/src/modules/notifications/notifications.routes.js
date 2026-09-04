@@ -21,7 +21,7 @@ router.delete("/clear", authenticate, controller.clearAll);
 router.post(
   "/send",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.sendNotification,
 );
 

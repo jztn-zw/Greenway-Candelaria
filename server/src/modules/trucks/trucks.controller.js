@@ -1,6 +1,7 @@
 const service = require("./trucks.service");
 const { createTruckSchema, updateTruckSchema } = require("./trucks.schema");
 const { success } = require("../../utils/apiResponse");
+const { broadcastLiveUpdate } = require("../../sockets/tracking.socket");
 
 const getAll = async (req, res, next) => {
   try {
@@ -33,7 +34,10 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const data = updateTruckSchema.parse(req.body);
-    const truck = await service.update(req.params.id, data);
+    const truck = await service.update(req.params.id, data, req.user.id);
+    if (data.status) {
+      void broadcastLiveUpdate(req.app.get("io"));
+    }
     return success(res, truck, "Truck updated successfully");
   } catch (err) {
     next(err);

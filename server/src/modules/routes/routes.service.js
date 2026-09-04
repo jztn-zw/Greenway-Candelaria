@@ -465,7 +465,7 @@ const getById = async (id) => {
     `SELECT
        rs.*,
        b.name AS barangay_name,
-       b.zone
+       NULL   AS zone
      FROM route_stops rs
      JOIN barangays b ON b.id = rs.barangay_id
      WHERE rs.route_id = ?
@@ -510,7 +510,7 @@ const getAll = async (filters = {}) => {
 
   for (const route of routes) {
     const [stops] = await pool.query(
-      `SELECT rs.*, b.name AS barangay_name, b.zone
+      `SELECT rs.*, b.name AS barangay_name, NULL AS zone
        FROM route_stops rs
        JOIN barangays b ON b.id = rs.barangay_id
        WHERE rs.route_id = ?

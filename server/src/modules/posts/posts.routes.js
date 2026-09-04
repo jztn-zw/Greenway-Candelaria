@@ -9,7 +9,7 @@ const { upload } = require("../../config/cloudinary");
 router.post(
   "/upload-image",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   upload.single("file"),
   controller.uploadImage,
 );
@@ -25,34 +25,25 @@ router.get("/:id", optionalAuth, controller.getById);
 router.post(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.create,
-); // ← KEEP THIS
+);
 router.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.update,
 );
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.remove,
 );
 
 // ─── Likes ────────────────────────────────────────────────
 router.post("/:id/like", authenticate, controller.likePost);
 router.delete("/:id/like", authenticate, controller.unlikePost);
-
-// ─── Comments ─────────────────────────────────────────────
-router.get("/:id/comments", optionalAuth, controller.getComments);
-router.post("/:id/comments", authenticate, controller.addComment);
-router.delete(
-  "/:id/comments/:commentId",
-  authenticate,
-  controller.deleteComment,
-);
 
 // ─── Bookmarks ────────────────────────────────────────────
 router.post("/:id/bookmark", authenticate, controller.bookmarkPost);

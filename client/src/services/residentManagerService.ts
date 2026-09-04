@@ -50,7 +50,6 @@ export interface ResidentReportRow {
   violation_type: string;
   status: string;
   priority: string;
-  is_anonymous: boolean;
   created_at: string;
   barangay_name: string | null;
 }
@@ -59,6 +58,7 @@ export interface FetchResidentsParams {
   search?: string;
   barangay_id?: string;
   status?: ResidentAccountStatus;
+  role?: string;
   page?: number;
   limit?: number;
 }
@@ -67,7 +67,10 @@ export const fetchResidents = async (
   params: FetchResidentsParams,
 ): Promise<ResidentListResponse> => {
   const { data } = await api.get<{ data: ResidentListResponse }>("/users", {
-    params,
+    params: {
+      role: "RESIDENT",
+      ...params,
+    },
   });
 
   return data.data ?? { data: [], pagination: { total: 0, page: 1, limit: 12, total_pages: 1 } };

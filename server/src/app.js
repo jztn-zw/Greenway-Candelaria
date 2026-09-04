@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Health check
 app.get("/health", (req, res) => {
-  res.json({ status: "GreenWay API is running ✅" });
+  res.json({ status: "GreenWay API is running" });
 });
 
 // Routes
@@ -47,10 +47,6 @@ app.use("/api/posts", require("./modules/posts/posts.routes"));
 app.use("/api/analytics", require("./modules/analytics/analytics.routes"));
 app.use("/api/audit", require("./modules/audit/audit.routes"));
 app.use("/api/sessions", require("./modules/sessions/sessions.routes"));
-app.use(
-  "/api/landing",
-  require("./modules/landing/landing.routes"),
-);
 app.use(
   "/api/announcements",
   require("./modules/announcements/announcements.routes"),

@@ -41,11 +41,12 @@ const changePassword = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
   try {
-    const { search, barangay_id, status, page, limit } = req.query;
+    const { search, barangay_id, status, role, page, limit } = req.query;
     const result = await service.getAll({
       search,
       barangay_id,
       status,
+      role,
       page,
       limit,
     });
@@ -103,13 +104,48 @@ const getReportHistory = async (req, res, next) => {
   }
 };
 
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next({ statusCode: 400, message: "No image file provided" });
+    }
+    const avatarUrl = req.file.path; // Cloudinary URL
+    const user = await service.updateProfile(req.user.id, { avatar_url: avatarUrl });
+    return success(res, { avatar_url: avatarUrl, user }, "Avatar updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getSettings = async (req, res, next) => {
+  try {
+    const settings = await service.getUserSettings(req.user.id);
+    return success(res, settings, "Settings fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateSettings = async (req, res, next) => {
+  try {
+    const settings = await service.updateUserSettings(req.user.id, req.body);
+    return success(res, settings, "Settings updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   changePassword,
+  uploadAvatar,
   getAll,
   getById,
   updateStatus,
   softDelete,
   getReportHistory,
+  getSettings,
+  updateSettings,
 };
+

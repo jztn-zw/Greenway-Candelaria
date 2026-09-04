@@ -1,19 +1,20 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const { notifyAllResidents } = require("../notifications/notifications.service");
+const auditService = require("../audit/audit.service");
 
 // ─── Base fetch ────────────────────────────────────────────
 
-const getById = async (id, userId = null) => {
+const getById = async (id, userId = null, userRole = null, bypassStatusCheck = false) => {
   const [rows] = await pool.query(
     `SELECT
        p.*,
        u.full_name   AS author_name,
        u.avatar_url  AS author_avatar,
-       (SELECT COUNT(*) FROM post_likes     WHERE post_id = p.id) AS like_count,
-       (SELECT COUNT(*) FROM post_comments  WHERE post_id = p.id AND deleted_at IS NULL) AS comment_count,
+       (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
        (SELECT COUNT(*) FROM post_bookmarks WHERE post_id = p.id) AS bookmark_count
      FROM posts p
-     JOIN users u ON u.id = p.created_by
+     LEFT JOIN users u ON u.id = p.created_by
      WHERE p.id = ? AND p.deleted_at IS NULL`,
     [id],
   );
@@ -23,6 +24,15 @@ const getById = async (id, userId = null) => {
   }
 
   const post = rows[0];
+
+  if (
+    !bypassStatusCheck &&
+    post.status !== "PUBLISHED" &&
+    userRole !== "ADMIN" &&
+    post.created_by !== userId
+  ) {
+    throw { statusCode: 404, message: "Post not found" };
+  }
 
   // Attach images
   const [imageRows] = await pool.query(
@@ -50,6 +60,9 @@ const getById = async (id, userId = null) => {
       [id, userId],
     );
     post.is_bookmarked = bookmarked.length > 0;
+  } else {
+    post.is_liked = false;
+    post.is_bookmarked = false;
   }
 
   return post;
@@ -58,22 +71,45 @@ const getById = async (id, userId = null) => {
 // ─── Get All (Optimized) ───────────────────────────────────
 
 const getAll = async (filters = {}, userId = null) => {
+  // Auto-activate any scheduled posts whose scheduled_at has arrived
+  await pool
+    .query(
+      "UPDATE posts SET status = 'PUBLISHED', published_at = COALESCE(scheduled_at, NOW()) WHERE status = 'SCHEDULED' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()",
+    )
+    .catch(() => {});
+
+  const params = [];
+  let isLikedField = "FALSE AS is_liked";
+  if (userId) {
+    isLikedField = "EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) AS is_liked";
+    params.push(userId);
+  }
+
   let query = `
     SELECT
-      p.*,
+      p.id,
+      p.title,
+      p.body,
+      p.source,
+      p.category,
+      p.status,
+      p.is_featured,
+      p.view_count,
+      p.scheduled_at,
+      p.published_at,
+      p.created_at,
+      p.updated_at,
       u.full_name  AS author_name,
       u.avatar_url AS author_avatar,
-      (SELECT COUNT(*) FROM post_likes     WHERE post_id = p.id) AS like_count,
-      (SELECT COUNT(*) FROM post_comments  WHERE post_id = p.id AND deleted_at IS NULL) AS comment_count,
-      (SELECT COUNT(*) FROM post_bookmarks WHERE post_id = p.id) AS bookmark_count,
+      (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
+      ${isLikedField},
       (SELECT GROUP_CONCAT(url ORDER BY stop_order ASC) FROM post_images WHERE post_id = p.id) AS image_list,
       (SELECT GROUP_CONCAT(tag) FROM post_tags WHERE post_id = p.id) AS tag_list
     FROM posts p
-    JOIN users u ON u.id = p.created_by
+    LEFT JOIN users u ON u.id = p.created_by
     WHERE p.deleted_at IS NULL
   `;
 
-  const params = [];
   if (filters.category) {
     query += " AND p.category = ?";
     params.push(filters.category);
@@ -86,8 +122,14 @@ const getAll = async (filters = {}, userId = null) => {
     query += " AND p.status = 'PUBLISHED'";
   }
 
-  if (filters.is_featured) {
-    query += " AND p.is_featured = TRUE";
+  if (filters.is_featured !== undefined && filters.is_featured !== "") {
+    const isFeat =
+      filters.is_featured === true ||
+      filters.is_featured === "true" ||
+      filters.is_featured === 1 ||
+      filters.is_featured === "1";
+    query += " AND p.is_featured = ?";
+    params.push(isFeat ? 1 : 0);
   }
 
   if (filters.tag) {
@@ -96,12 +138,19 @@ const getAll = async (filters = {}, userId = null) => {
     params.push(filters.tag);
   }
 
-  query += " ORDER BY p.created_at DESC";
+  if (filters.search) {
+    query += " AND (p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ?)";
+    const s = `%${filters.search}%`;
+    params.push(s, s, s);
+  }
+
+  query += " ORDER BY p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
 
   const [rows] = await pool.query(query, params);
 
   return rows.map((post) => ({
     ...post,
+    is_liked: Boolean(post.is_liked),
     images: post.image_list ? post.image_list.split(",") : [],
     tags: post.tag_list ? post.tag_list.split(",") : [],
   }));
@@ -169,7 +218,27 @@ const create = async (adminId, data) => {
     }
 
     await connection.commit();
-    return getById(postId);
+    const createdPost = await getById(postId, adminId, "ADMIN", true);
+
+    await auditService.log({
+      user_id: adminId,
+      action: createdPost.status === "PUBLISHED" ? "PUBLISH_POST" : "CREATE_POST",
+      module: "posts",
+      record_id: createdPost.id,
+      new_value: { title: createdPost.title, category: createdPost.category, status: createdPost.status },
+    }).catch(() => {});
+
+    if (createdPost.status === "PUBLISHED") {
+      notifyAllResidents({
+        type: "NEW_POST",
+        title: "New Content Published",
+        body: `"${createdPost.title}" is now available in Contents.`,
+        ref_id: createdPost.id,
+        ref_module: "posts",
+      }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
+    }
+
+    return createdPost;
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -181,7 +250,7 @@ const create = async (adminId, data) => {
 // ─── Update ────────────────────────────────────────────────
 
 const update = async (id, data) => {
-  await getById(id);
+  const existing = await getById(id, null, null, true);
 
   const fields = [];
   const params = [];
@@ -202,7 +271,7 @@ const update = async (id, data) => {
     }
   }
 
-  if (data.status === "PUBLISHED") {
+  if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
     fields.push("published_at = ?");
     params.push(new Date());
   }
@@ -251,7 +320,29 @@ const update = async (id, data) => {
     }
 
     await connection.commit();
-    return getById(id);
+    const updatedPost = await getById(id, null, null, true);
+
+    await auditService.log({
+      user_id: updatedPost.created_by,
+      action: data.status === "PUBLISHED" && existing.status !== "PUBLISHED" ? "PUBLISH_POST" : "UPDATE_POST",
+      module: "posts",
+      record_id: updatedPost.id,
+      old_value: { title: existing.title, category: existing.category, status: existing.status },
+      new_value: { title: updatedPost.title, category: updatedPost.category, status: updatedPost.status },
+    }).catch(() => {});
+
+    // Trigger notification if newly published
+    if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+      notifyAllResidents({
+        type: "NEW_POST",
+        title: "New Content Published",
+        body: `"${updatedPost.title}" is now available in Contents.`,
+        ref_id: updatedPost.id,
+        ref_module: "posts",
+      }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
+    }
+
+    return updatedPost;
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -263,8 +354,25 @@ const update = async (id, data) => {
 // ─── Soft delete ───────────────────────────────────────────
 
 const remove = async (id) => {
-  await getById(id);
-  await pool.query("UPDATE posts SET deleted_at = NOW() WHERE id = ?", [id]);
+  const existing = await getById(id, null, null, true).catch(() => null);
+  const [result] = await pool.query(
+    "UPDATE posts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL",
+    [id],
+  );
+  if (result.affectedRows === 0) {
+    throw { statusCode: 404, message: "Post not found or already deleted" };
+  }
+
+  if (existing) {
+    await auditService.log({
+      user_id: existing.created_by,
+      action: "DELETE_POST",
+      module: "posts",
+      record_id: id,
+      old_value: { title: existing.title, category: existing.category, status: existing.status },
+    }).catch(() => {});
+  }
+
   return { message: "Post deleted successfully" };
 };
 
@@ -318,75 +426,6 @@ const unlikePost = async (postId, userId) => {
   return { liked: false };
 };
 
-// ─── Comments ──────────────────────────────────────────────
-
-const addComment = async (postId, userId, body, parentId = null) => {
-  await getById(postId);
-  const commentId = generateId();
-
-  await pool.query(
-    "INSERT INTO post_comments (id, post_id, user_id, body, parent_id) VALUES (?, ?, ?, ?, ?)",
-    [commentId, postId, userId, body, parentId],
-  );
-
-  const [rows] = await pool.query(
-    `SELECT c.*, u.full_name AS author_name, u.avatar_url AS author_avatar
-     FROM post_comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.id = ?`,
-    [commentId],
-  );
-
-  return { ...rows[0], created_at: new Date().toISOString() };
-};
-
-const getComments = async (postId) => {
-  await getById(postId);
-  const [rows] = await pool.query(
-    `SELECT 
-       c.id, 
-       c.post_id, 
-       c.user_id, 
-       c.body, 
-       c.parent_id, 
-       c.created_at, 
-       c.deleted_at,
-       u.full_name  AS author_name, 
-       u.avatar_url AS author_avatar
-     FROM post_comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.post_id = ? AND c.deleted_at IS NULL
-     ORDER BY c.created_at ASC`,
-    [postId],
-  );
-
-  return rows;
-};
-
-const deleteComment = async (postId, commentId, userId, userRole) => {
-  const [rows] = await pool.query(
-    "SELECT * FROM post_comments WHERE id = ? AND post_id = ?",
-    [commentId, postId],
-  );
-
-  if (rows.length === 0)
-    throw { statusCode: 404, message: "Comment not found" };
-
-  const comment = rows[0];
-  if (
-    comment.user_id !== userId &&
-    !["ADMIN", "SUPER_ADMIN"].includes(userRole)
-  ) {
-    throw { statusCode: 403, message: "Not authorized to delete this comment" };
-  }
-
-  await pool.query(
-    "UPDATE post_comments SET deleted_at = NOW() WHERE id = ? OR parent_id = ?",
-    [commentId, commentId],
-  );
-  return { message: "Comment deleted" };
-};
-
 // ─── Bookmarks ─────────────────────────────────────────────
 
 const bookmarkPost = async (postId, userId) => {
@@ -419,7 +458,6 @@ const getBookmarks = async (userId) => {
   const [rows] = await pool.query(
     `SELECT p.*, u.full_name AS author_name, u.avatar_url AS author_avatar, pb.created_at AS bookmarked_at,
             (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
-            (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id AND deleted_at IS NULL) AS comment_count
      FROM post_bookmarks pb
      JOIN posts p ON p.id = pb.post_id
      JOIN users u ON u.id = p.created_by
@@ -439,9 +477,6 @@ module.exports = {
   incrementView,
   likePost,
   unlikePost,
-  addComment,
-  getComments,
-  deleteComment,
   bookmarkPost,
   unbookmarkPost,
   getBookmarks,

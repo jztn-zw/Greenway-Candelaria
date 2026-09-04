@@ -85,25 +85,6 @@ const postsService = {
     return data.data;
   },
 
-  // ─── Comments
-  getComments: async (id: string) => {
-    const { data } = await api.get(`/posts/${id}/comments`);
-    return data.data;
-  },
-
-  addComment: async (id: string, body: string, parentId?: string) => {
-    const { data } = await api.post(`/posts/${id}/comments`, {
-      body,
-      parent_id: parentId ?? null,
-    });
-    return data.data;
-  },
-
-  deleteComment: async (postId: string, commentId: string) => {
-    const { data } = await api.delete(`/posts/${postId}/comments/${commentId}`);
-    return data;
-  },
-
   // ─── Bookmarks
   getBookmarks: async () => {
     const { data } = await api.get("/posts/bookmarks");

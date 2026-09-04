@@ -32,7 +32,7 @@ const getOverview = async () => {
     "SELECT COUNT(*) AS total FROM users WHERE role = 'DRIVER' AND deleted_at IS NULL",
   );
   const [[admins]] = await pool.query(
-    "SELECT COUNT(*) AS total FROM users WHERE role IN ('ADMIN','SUPER_ADMIN') AND deleted_at IS NULL",
+    "SELECT COUNT(*) AS total FROM users WHERE role = 'ADMIN' AND deleted_at IS NULL",
   );
   const [[reports]] = await pool.query("SELECT COUNT(*) AS total FROM reports");
   const [[resolved]] = await pool.query(
@@ -106,12 +106,11 @@ const getReportsAnalytics = async (filters = {}) => {
   const [byBarangay] = await pool.query(
     `SELECT
        b.name AS barangay_name,
-       b.zone,
        COUNT(r.id) AS count
      FROM reports r
      JOIN barangays b ON b.id = r.barangay_id
      ${where}
-     GROUP BY r.barangay_id, b.name, b.zone
+     GROUP BY r.barangay_id, b.name
      ORDER BY count DESC
      LIMIT 10`,
     params,
@@ -231,12 +230,11 @@ const getUsersAnalytics = async () => {
   const [perBarangay] = await pool.query(
     `SELECT
        b.name AS barangay_name,
-       b.zone,
        COUNT(u.id) AS user_count
      FROM users u
      JOIN barangays b ON b.id = u.barangay_id
      WHERE u.deleted_at IS NULL
-     GROUP BY u.barangay_id, b.name, b.zone
+     GROUP BY u.barangay_id, b.name
      ORDER BY user_count DESC
      LIMIT 10`,
   );
@@ -292,30 +290,12 @@ const getPostsAnalytics = async () => {
      LIMIT 5`,
   );
 
-  // Top 5 most commented
-  const [mostCommented] = await pool.query(
-    `SELECT
-       p.id,
-       p.title,
-       p.category,
-       COUNT(pc.id) AS comment_count
-     FROM posts p
-     LEFT JOIN post_comments pc ON pc.post_id = p.id AND pc.deleted_at IS NULL
-     WHERE p.deleted_at IS NULL AND p.status = 'PUBLISHED'
-     GROUP BY p.id, p.title, p.category
-     ORDER BY comment_count DESC
-     LIMIT 5`,
-  );
-
   // Total engagement
   const [[totalViews]] = await pool.query(
     "SELECT SUM(view_count) AS total FROM posts WHERE deleted_at IS NULL AND status = 'PUBLISHED'",
   );
   const [[totalLikes]] = await pool.query(
     "SELECT COUNT(*) AS total FROM post_likes",
-  );
-  const [[totalComments]] = await pool.query(
-    "SELECT COUNT(*) AS total FROM post_comments WHERE deleted_at IS NULL",
   );
   const [[totalBookmarks]] = await pool.query(
     "SELECT COUNT(*) AS total FROM post_bookmarks",
@@ -326,11 +306,9 @@ const getPostsAnalytics = async () => {
     by_status: byStatus,
     most_viewed: mostViewed,
     most_liked: mostLiked,
-    most_commented: mostCommented,
     engagement: {
       total_views: totalViews.total || 0,
       total_likes: totalLikes.total || 0,
-      total_comments: totalComments.total || 0,
       total_bookmarks: totalBookmarks.total || 0,
     },
   };
@@ -344,12 +322,10 @@ const getBarangaysAnalytics = async () => {
     `SELECT
        b.id,
        b.name,
-       b.zone,
-       b.is_priority,
        COUNT(r.id) AS report_count
      FROM barangays b
      LEFT JOIN reports r ON r.barangay_id = b.id
-     GROUP BY b.id, b.name, b.zone, b.is_priority
+     GROUP BY b.id, b.name
      ORDER BY report_count DESC`,
   );
 
@@ -358,11 +334,10 @@ const getBarangaysAnalytics = async () => {
     `SELECT
        b.id,
        b.name,
-       b.zone,
        COUNT(u.id) AS user_count
      FROM barangays b
      LEFT JOIN users u ON u.barangay_id = b.id AND u.deleted_at IS NULL
-     GROUP BY b.id, b.name, b.zone
+     GROUP BY b.id, b.name
      ORDER BY user_count DESC`,
   );
 
@@ -370,12 +345,11 @@ const getBarangaysAnalytics = async () => {
   const [unresolved] = await pool.query(
     `SELECT
        b.name,
-       b.zone,
        COUNT(r.id) AS unresolved_count
      FROM reports r
      JOIN barangays b ON b.id = r.barangay_id
      WHERE r.status != 'RESOLVED'
-     GROUP BY r.barangay_id, b.name, b.zone
+     GROUP BY r.barangay_id, b.name
      ORDER BY unresolved_count DESC
      LIMIT 10`,
   );

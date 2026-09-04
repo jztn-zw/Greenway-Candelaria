@@ -8,7 +8,7 @@ const ping = async (req, res, next) => {
     const data = pingSchema.parse(req.body);
     const log = await service.ping(req.user.id, data);
 
-    // ✅ Trigger real-time broadcast to all connected Admins
+    // Broadcast to authenticated tracking subscribers.
     const io = req.app.get("io");
     broadcastLiveUpdate(io);
 
@@ -27,17 +27,27 @@ const getLive = async (req, res, next) => {
   }
 };
 
-// ✅ Added missing getHistory function
 const getHistory = async (req, res, next) => {
   try {
-    const logs = await service.getHistory(req.params.truckId);
+    const logs = await service.getHistory(req.params.truckId, {
+      date: req.query.date,
+      limit: req.query.limit,
+    });
     return success(res, logs, "Tracking history fetched successfully");
   } catch (err) {
     next(err);
   }
 };
 
-// ✅ Added missing clearHistory function
+const getAdminOverview = async (req, res, next) => {
+  try {
+    const overview = await service.getAdminOverview();
+    return success(res, overview, "Admin tracking overview fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const clearHistory = async (req, res, next) => {
   try {
     const result = await service.clearHistory(req.params.truckId);
@@ -47,5 +57,17 @@ const clearHistory = async (req, res, next) => {
   }
 };
 
-// Now all functions are defined and can be exported safely
-module.exports = { ping, getLive, getHistory, clearHistory };
+const getRoadRoute = async (req, res, next) => {
+  try {
+    const { fromLng, fromLat, toLng, toLat } = req.query;
+    if (!fromLng || !fromLat || !toLng || !toLat) {
+      return res.status(400).json({ success: false, message: "Missing coordinates" });
+    }
+    const route = await service.fetchRoadRoute(fromLng, fromLat, toLng, toLat);
+    return success(res, route, "Road route fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { ping, getLive, getHistory, clearHistory, getAdminOverview, getRoadRoute };

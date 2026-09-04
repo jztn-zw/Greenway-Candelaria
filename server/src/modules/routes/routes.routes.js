@@ -16,7 +16,7 @@ router.get("/today", authenticate, controller.getAllRoutesToday);
 router.get(
   "/missed-collections",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.getMissedCollections,
 );
 
@@ -26,19 +26,19 @@ router.get(
 router.get("/", controller.getAll);
 router.get("/:id", controller.getById);
 
-// Driver — mark stop progress
+// Driver / Admin — mark stop progress
 router.put(
   "/:id/stops/:stopId/status",
   authenticate,
-  authorize("DRIVER", "ADMIN", "SUPER_ADMIN"),
+  authorize("DRIVER", "ADMIN"),
   controller.updateStopStatus,
 );
 
-// ✅ FIX: Driver — end their route (marks all remaining stops as MISSED)
+// Driver / Admin — end their route (marks all remaining stops as MISSED)
 router.put(
   "/:id/end",
   authenticate,
-  authorize("DRIVER", "ADMIN", "SUPER_ADMIN"),
+  authorize("DRIVER", "ADMIN"),
   controller.endRoute,
 );
 
@@ -46,21 +46,21 @@ router.put(
 router.post(
   "/",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.update,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "SUPER_ADMIN"),
+  authorize("ADMIN"),
   controller.remove,
 );
 

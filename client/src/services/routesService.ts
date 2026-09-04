@@ -79,3 +79,12 @@ export const deleteRoute = async (id: string): Promise<{ message: string }> => {
   const { data } = await api.delete<{ message: string }>(`/routes/${id}`);
   return data;
 };
+
+export const fetchMyRouteToday = async (): Promise<any> => {
+  try {
+    const { data } = await api.get<{ data: any }>("/routes/today/mine");
+    return data.data;
+  } catch (error) {
+    return null;
+  }
+};

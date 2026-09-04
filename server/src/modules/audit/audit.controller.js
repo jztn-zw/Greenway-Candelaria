@@ -3,8 +3,8 @@ const { success } = require("../../utils/apiResponse");
 
 const getAll = async (req, res, next) => {
   try {
-    const logs = await service.getAll(req.query);
-    return success(res, logs, "Audit logs fetched successfully");
+    const data = await service.getAll(req.query);
+    return success(res, data, "Audit logs fetched successfully");
   } catch (err) {
     next(err);
   }
@@ -19,6 +19,15 @@ const getById = async (req, res, next) => {
   }
 };
 
+const getFilterOptions = async (req, res, next) => {
+  try {
+    const filters = await service.getFilterOptions();
+    return success(res, filters, "Filter options fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const clearAll = async (req, res, next) => {
   try {
     const result = await service.clearAll();
@@ -28,4 +37,4 @@ const clearAll = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getById, clearAll };
+module.exports = { getAll, getById, getFilterOptions, clearAll };

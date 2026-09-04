@@ -13,7 +13,6 @@ const createReportSchema = z.object({
   ]),
   landmark: z.string().optional(),
   description: z.string().min(5, "Description is required"),
-  is_anonymous: z.boolean().optional().default(false),
   pin_lat: z.number().optional(),
   pin_lng: z.number().optional(),
   photos: z.array(z.string().url()).optional(),

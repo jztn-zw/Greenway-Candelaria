@@ -8,17 +8,48 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
+// ─── Posts storage (greenway/posts) ────────────────────────
+const postStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "greenway",
+    folder: "greenway/posts",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
   },
 });
 
 const upload = multer({
-  storage,
+  storage: postStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
 });
 
-module.exports = { cloudinary, upload };
+// ─── Reports storage (greenway/reports) ────────────────────
+const reportStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "greenway/reports",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+});
+
+const uploadReports = multer({
+  storage: reportStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
+
+// ─── Avatar storage (greenway/avatars) ─────────────────────
+const avatarStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "greenway/avatars",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 400, height: 400, crop: "fill", gravity: "face" }],
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+});
+
+module.exports = { cloudinary, upload, uploadReports, uploadAvatar };
+

@@ -8,6 +8,20 @@ const {
 } = require("./reports.schema");
 const { success } = require("../../utils/apiResponse");
 
+// ─── Upload Photos ──────────────────────────────────────────
+
+const uploadPhotos = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No photos uploaded" });
+    }
+    const urls = req.files.map((f) => f.path);
+    return success(res, { urls }, "Photos uploaded successfully", 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getAll = async (req, res, next) => {
   try {
     const reports = await service.getAll(req.query);
@@ -28,8 +42,17 @@ const getById = async (req, res, next) => {
 
 const getMyReports = async (req, res, next) => {
   try {
-    const reports = await service.getMyReports(req.user.id);
-    return success(res, reports, "Your reports fetched successfully");
+    const result = await service.getMyReports(req.user.id, req.query);
+    return success(res, result, "Your reports fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getMyReportById = async (req, res, next) => {
+  try {
+    const report = await service.getMyReportById(req.params.id, req.user.id);
+    return success(res, report, "Report fetched successfully");
   } catch (err) {
     next(err);
   }
@@ -103,10 +126,35 @@ const getStatusHistory = async (req, res, next) => {
   }
 };
 
+const getMyStats = async (req, res, next) => {
+  try {
+    const stats = await service.getMyStats(req.user.id);
+    return success(res, stats, "Report stats fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const softDelete = async (req, res, next) => {
+  try {
+    const result = await service.softDelete(
+      req.params.id,
+      req.user,
+      req.ip,
+    );
+    return success(res, result, "Report deleted successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
+  uploadPhotos,
   getAll,
   getById,
   getMyReports,
+  getMyReportById,
+  getMyStats,
   create,
   updateStatus,
   flagReport,
@@ -114,4 +162,6 @@ module.exports = {
   addNote,
   getNotes,
   getStatusHistory,
+  softDelete,
 };
+

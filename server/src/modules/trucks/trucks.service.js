@@ -1,5 +1,6 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const auditService = require("../audit/audit.service");
 
 const getAll = async () => {
   const [trucks] = await pool.query(
@@ -58,11 +59,21 @@ const create = async ({
     [id, name, plate_number, truck_model, availability_status],
   );
 
-  return getById(id);
+  const created = await getById(id);
+
+  auditService.log({
+    user_id: "admin",
+    action: "CREATE_TRUCK",
+    module: "trucks",
+    record_id: id,
+    new_value: { name, plate_number, truck_model, availability_status },
+  }).catch(() => {});
+
+  return created;
 };
 
-const update = async (id, data) => {
-  await getById(id);
+const update = async (id, data, actorUserId = "admin") => {
+  const existing = await getById(id);
 
   const fields = [];
   const params = [];
@@ -74,11 +85,11 @@ const update = async (id, data) => {
 
   if (data.plate_number) {
     // Check duplicate plate excluding current truck
-    const [existing] = await pool.query(
+    const [existingPlate] = await pool.query(
       "SELECT id FROM trucks WHERE plate_number = ? AND id != ?",
       [data.plate_number, id],
     );
-    if (existing.length > 0) {
+    if (existingPlate.length > 0) {
       throw { statusCode: 409, message: "Plate number already exists" };
     }
     fields.push("plate_number = ?");
@@ -109,11 +120,22 @@ const update = async (id, data) => {
     params,
   );
 
-  return getById(id);
+  const updated = await getById(id);
+
+  auditService.log({
+    user_id: actorUserId,
+    action: "UPDATE_TRUCK",
+    module: "trucks",
+    record_id: id,
+    old_value: { name: existing.name, plate_number: existing.plate_number, status: existing.status },
+    new_value: { name: updated.name, plate_number: updated.plate_number, status: updated.status },
+  }).catch(() => {});
+
+  return updated;
 };
 
 const remove = async (id) => {
-  await getById(id);
+  const existing = await getById(id);
 
   const connection = await pool.getConnection();
   try {
@@ -140,6 +162,15 @@ const remove = async (id) => {
     await connection.query("DELETE FROM trucks WHERE id = ?", [id]);
 
     await connection.commit();
+
+    auditService.log({
+      user_id: "admin",
+      action: "DELETE_TRUCK",
+      module: "trucks",
+      record_id: id,
+      old_value: { name: existing.name, plate_number: existing.plate_number },
+    }).catch(() => {});
+
     return { message: "Truck deleted successfully" };
   } catch (error) {
     await connection.rollback();

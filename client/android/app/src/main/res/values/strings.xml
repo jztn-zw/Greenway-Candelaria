@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GreenWay</string>
+    <string name="title_activity_main">GreenWay</string>
+    <string name="package_name">com.greenway.resident</string>
+    <string name="custom_url_scheme">com.greenway.resident</string>
+</resources>
