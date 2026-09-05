@@ -80,7 +80,7 @@ const AdminPostDetail = ({
       ref={contentRef}
       className="w-full max-w-[1000px] mx-auto space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-300"
     >
-      {/* ── Top Back Navigation (Admin view only; preview uses banner button) ── */}
+      {/* ── Top Back Navigation (Admin view only) ── */}
       {!isPreview && (
         <div>
           <BackButton label="Back to Posts" onClick={onBack} />

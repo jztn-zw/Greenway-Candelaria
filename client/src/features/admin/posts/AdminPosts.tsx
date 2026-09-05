@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -54,6 +54,7 @@ import PostCard from "./PostCard";
 import PostListView from "./PostListView";
 import PostEditor, { EditorForm } from "./PostEditor";
 import AdminPostDetail from "./AdminPostDetail";
+import { BackButton } from "@/components/common";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,
@@ -154,8 +155,26 @@ const AdminPosts = () => {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [previewPost, setPreviewPost] = useState<Post | null>(null);
+  const [previewPost, setPreviewPost] = useState<Post | null>(() => {
+    try {
+      const saved = sessionStorage.getItem("admin_preview_post");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [previewActiveImageIndex, setPreviewActiveImageIndex] = useState(0);
+  const wasPreviewRef = useRef(false);
+
+  // Listen for user returning from preview via topbar breadcrumb (or browser back)
+  useEffect(() => {
+    const isPreviewParam = searchParams.get("preview") === "true";
+    if (wasPreviewRef.current && !isPreviewParam) {
+      setPreviewPost(null);
+      sessionStorage.removeItem("admin_preview_post");
+    }
+    wasPreviewRef.current = isPreviewParam;
+  }, [searchParams]);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -466,14 +485,37 @@ const AdminPosts = () => {
     });
   };
 
+  const handleReturnFromPreview = () => {
+    try {
+      sessionStorage.removeItem("admin_preview_post");
+    } catch {
+      // ignore
+    }
+    wasPreviewRef.current = false;
+    setPreviewPost(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("preview");
+      return next;
+    });
+  };
+
   const closeEditor = () => {
+    try {
+      sessionStorage.removeItem("admin_preview_post");
+    } catch {
+      // ignore
+    }
+    wasPreviewRef.current = false;
     setEditorOpen(false);
     setEditingPost(null);
+    setPreviewPost(null);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete("action");
       next.delete("edit");
       next.delete("title");
+      next.delete("preview");
       return next;
     });
   };
@@ -523,10 +565,10 @@ const AdminPosts = () => {
       id: "preview",
       title: form.title || "Untitled Announcement",
       body: form.body || "No content provided yet...",
-      source: form.source,
-      category: form.category,
-      status: form.status,
-      featured: form.featured,
+      source: form.source || "",
+      category: form.category || "Waste Tip",
+      status: form.status || "Draft",
+      featured: Boolean(form.featured),
       author:
         editingPost?.author ||
         useAuthStore.getState().user?.full_name ||
@@ -541,14 +583,25 @@ const AdminPosts = () => {
       lastEdited: "Just now",
       views: 0,
       likes: 0,
-      tags: form.tags
+      tags: (form.tags || "")
         .split(",")
         .map((t) => t.trim().replace(/^#/, ""))
         .filter(Boolean),
-      images: form.images,
+      images: form.images || [],
       scheduledDate: form.scheduledDate || null,
     };
+    try {
+      sessionStorage.setItem("admin_preview_post", JSON.stringify(preview));
+    } catch {
+      // ignore
+    }
+    wasPreviewRef.current = true;
     setPreviewPost(preview);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("preview", "true");
+      return next;
+    });
   };
 
   if (isInitialSync) {
@@ -617,34 +670,17 @@ const AdminPosts = () => {
 
         {previewPost && (
           <div className="w-full max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
-            {/* Resident Preview Mode Top Banner */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
-                  <Eye className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-primary">
-                    Resident Preview Mode
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    This is the exact full-page layout residents will see when viewing this post.
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setPreviewPost(null)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/20 bg-background/50 cursor-pointer active:scale-95 shrink-0"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Return to Editor
-              </Button>
+            {/* Top Navigation: Just Back Button */}
+            <div>
+              <BackButton
+                label="Back to Editor"
+                onClick={handleReturnFromPreview}
+              />
             </div>
 
             <AdminPostDetail
               post={previewPost}
-              onBack={() => setPreviewPost(null)}
+              onBack={handleReturnFromPreview}
               isPreview={true}
             />
           </div>

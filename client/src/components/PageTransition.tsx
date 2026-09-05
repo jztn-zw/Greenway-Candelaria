@@ -8,16 +8,16 @@ interface PageTransitionProps {
 const PageTransition = ({ children }: PageTransitionProps) => {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
-  const [displayKey, setDisplayKey] = useState(location.key);
+  const [displayKey, setDisplayKey] = useState(location.pathname);
 
   useEffect(() => {
     setIsVisible(false);
     const raf = requestAnimationFrame(() => {
-      setDisplayKey(location.key);
+      setDisplayKey(location.pathname);
       requestAnimationFrame(() => setIsVisible(true));
     });
     return () => cancelAnimationFrame(raf);
-  }, [location.key]);
+  }, [location.pathname]);
 
   return (
     <div

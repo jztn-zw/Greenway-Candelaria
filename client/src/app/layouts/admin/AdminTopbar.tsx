@@ -86,10 +86,11 @@ const AdminTopBar = () => {
   const postTitle = searchParams.get("title");
   const editParam = searchParams.get("edit");
   const isCreateAction = searchParams.get("action") === "create";
+  const isPreview = searchParams.get("preview") === "true";
 
   const isPostSubView =
     location.pathname.startsWith("/admin/posts") &&
-    (Boolean(postParam) || Boolean(editParam) || isCreateAction);
+    (Boolean(postParam) || Boolean(editParam) || isCreateAction || isPreview);
 
   const subViewTitle = isCreateAction
     ? "Create Article"
@@ -164,6 +165,7 @@ const AdminTopBar = () => {
                     next.delete("title");
                     next.delete("edit");
                     next.delete("action");
+                    next.delete("preview");
                     return next;
                   });
                 }}
@@ -172,9 +174,31 @@ const AdminTopBar = () => {
                 News & Articles
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
-                {subViewTitle}
-              </span>
+              {isPreview ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchParams((prev) => {
+                        const next = new URLSearchParams(prev);
+                        next.delete("preview");
+                        return next;
+                      });
+                    }}
+                    className="hover:underline text-muted-foreground font-medium truncate shrink-0 cursor-pointer max-w-[120px] sm:max-w-[180px]"
+                  >
+                    {subViewTitle}
+                  </button>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                  <span className="font-bold text-foreground truncate tracking-tight">
+                    Preview
+                  </span>
+                </>
+              ) : (
+                <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
+                  {subViewTitle}
+                </span>
+              )}
             </>
           ) : (
             <span className="font-bold text-foreground truncate tracking-tight">
