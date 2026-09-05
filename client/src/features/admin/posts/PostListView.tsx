@@ -19,6 +19,7 @@ interface PostListViewProps {
   onDuplicate: (post: Post) => void;
   onArchive: (post: Post) => void;
   onTogglePublish: (post: Post) => void;
+  onToggleFeatured?: (post: Post) => void;
   onDelete: (post: Post) => void;
 }
 
@@ -29,6 +30,7 @@ const PostListView = ({
   onDuplicate,
   onArchive,
   onTogglePublish,
+  onToggleFeatured,
   onDelete,
 }: PostListViewProps) => {
   return (
@@ -193,6 +195,7 @@ const PostListView = ({
                         onDuplicate={onDuplicate}
                         onArchive={onArchive}
                         onTogglePublish={onTogglePublish}
+                        onToggleFeatured={onToggleFeatured}
                         onDelete={onDelete}
                       />
                     </div>

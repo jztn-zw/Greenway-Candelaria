@@ -3,12 +3,13 @@ import { useSearchParams } from "react-router-dom";
 import {
   History, MapPin, SkipForward, Target,
   ChevronRight, Leaf, Droplet, Clock,
-  ArrowLeft, CheckCircle2, AlertTriangle, Users,
+  CheckCircle2, AlertTriangle, Users,
   Truck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { BackButton } from "@/components/common";
 import {
   fetchDriverMyHistory,
   RouteHistoryItem,
@@ -236,14 +237,10 @@ const CollectorRouteHistory = () => {
     const r = selectedRoute;
     return (
       <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8 animate-in fade-in duration-300">
-        <button
-          type="button"
+        <BackButton
+          label="Back to Route History"
           onClick={() => { setSearchParams({}); setSelectedRoute(null); }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/70 dark:bg-muted/50 hover:bg-primary/10 border border-border/70 hover:border-primary/30 text-muted-foreground hover:text-primary text-xs font-semibold shadow-2xs transition-all duration-200 cursor-pointer active:scale-95 group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
-          Back to Route History
-        </button>
+        />
 
         {/* Header Summary */}
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">

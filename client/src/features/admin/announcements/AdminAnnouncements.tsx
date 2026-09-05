@@ -203,6 +203,7 @@ const AdminAnnouncements = () => {
       setEditingAnn(ann);
       setEditorForm({
         ...ann,
+        targetBarangays: ann.targetBarangayIds,
         scheduledDate: ann.scheduledDate ?? "",
         expiryDate: ann.expiryDate ?? "",
       });
@@ -362,7 +363,7 @@ const AdminAnnouncements = () => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-10 pr-9 h-10 bg-background/70 border-border/90 rounded-xl text-xs shadow-inner shadow-black/5 focus-visible:ring-primary/30"
+              className="pl-10 pr-9 h-10 bg-background border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary"
             />
             {search && (
               <button

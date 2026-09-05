@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Heart, Calendar, User, ArrowRight, FileText, Share2, Check } from "lucide-react";
+import { Heart, Calendar, User, MapPin, ArrowRight, FileText, Share2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/common";
 import { toast } from "sonner";
 import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
@@ -121,14 +122,7 @@ const PostDetail = ({
     >
       {/* ── Top Back Navigation ── */}
       <div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-muted/60 dark:bg-muted/40 hover:bg-muted hover:dark:bg-muted/70 border border-border/70 hover:border-border text-muted-foreground hover:text-foreground text-xs font-semibold shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer active:scale-95 group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200 ease-out text-muted-foreground group-hover:text-foreground" />
-          <span>Back to Community Updates</span>
-        </button>
+        <BackButton label="Back to Community Updates" onClick={onBack} />
       </div>
 
       {/* ── Main Post (Unboxed Natural Layout) ── */}
@@ -218,8 +212,17 @@ const PostDetail = ({
             <span>•</span>
             <span className="flex items-center gap-1.5 font-medium">
               <User className="w-4 h-4 text-primary" />
-              {post.author_name || post.source || "MENRO Candelaria"}
+              {post.author_name || "MENRO Candelaria"}
             </span>
+            {post.source && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  {post.source}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

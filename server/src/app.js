@@ -45,6 +45,7 @@ app.use("/api/tracking", require("./modules/tracking/tracking.routes"));
 app.use("/api/reports", require("./modules/reports/reports.routes"));
 app.use("/api/posts", require("./modules/posts/posts.routes"));
 app.use("/api/analytics", require("./modules/analytics/analytics.routes"));
+app.use("/api/dashboard", require("./modules/dashboard/dashboard.routes"));
 app.use("/api/audit", require("./modules/audit/audit.routes"));
 app.use("/api/sessions", require("./modules/sessions/sessions.routes"));
 app.use(

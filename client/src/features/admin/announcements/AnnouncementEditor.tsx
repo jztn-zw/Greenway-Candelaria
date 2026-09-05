@@ -741,7 +741,13 @@ const AnnouncementEditor = ({
             <Button
               type="button"
               onClick={onSave}
-              disabled={isSaving || !form.title.trim() || !form.body.trim()}
+              disabled={
+                isSaving ||
+                !form.title.trim() ||
+                !form.body.trim() ||
+                (form.status === "Scheduled" && !form.scheduledDate) ||
+                (form.targetAudience !== "All Residents" && form.targetBarangays.length === 0)
+              }
               className="h-10 px-6 rounded-xl font-semibold text-xs gap-1.5 shadow-xs cursor-pointer active:scale-95"
             >
               {isSaving ? (

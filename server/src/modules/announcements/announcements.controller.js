@@ -8,7 +8,7 @@ const { success } = require("../../utils/apiResponse");
 
 const getAll = async (req, res, next) => {
   try {
-    const announcements = await service.getAll(req.query);
+    const announcements = await service.getAll(req.query, req.user);
     return success(res, announcements, "Announcements fetched successfully");
   } catch (err) {
     next(err);
@@ -17,7 +17,7 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
-    const announcement = await service.getById(req.params.id);
+    const announcement = await service.getById(req.params.id, req.user);
     return success(res, announcement, "Announcement fetched successfully");
   } catch (err) {
     next(err);
@@ -55,7 +55,7 @@ const remove = async (req, res, next) => {
 
 const markAsRead = async (req, res, next) => {
   try {
-    const result = await service.markAsRead(req.params.id, req.user.id);
+    const result = await service.markAsRead(req.params.id, req.user);
     return success(res, result, "Marked as read");
   } catch (err) {
     next(err);

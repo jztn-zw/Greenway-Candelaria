@@ -18,6 +18,7 @@ export interface Announcement {
   status: AnnouncementStatus;
   targetAudience: TargetAudience;
   targetBarangays: string[];
+  targetBarangayIds: string[];
   targetPreset: string | null;
   pinned: boolean;
   featured: boolean;

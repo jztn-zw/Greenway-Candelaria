@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lightbulb, Megaphone, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import postsService from "@/services/postsService";
+import { fetchAnnouncements } from "@/services/announcementsService";
 
 const defaultTips = [
   { id: "tip-1", excerpt: "Reduce food waste by meal planning and storing leftovers properly." },
@@ -28,16 +28,15 @@ const AnnouncementAndTip = () => {
 
   useEffect(() => {
     let mounted = true;
-    const fetchLatestPost = async () => {
+    const fetchLatestAnnouncement = async () => {
       try {
-        const res = await postsService.getAll({ status: "PUBLISHED" });
-        const list = Array.isArray(res) ? res : res?.data || [];
+        const list = await fetchAnnouncements({ status: "ACTIVE" });
         if (mounted && list.length > 0) {
-          const featured = list.find((p: any) => p.is_featured) || list[0];
+          const featured = list.find((item: any) => item.is_featured) || list[0];
           setAnnouncement({
             id: featured.id,
             title: featured.title,
-            body: featured.body || featured.excerpt || "Read official updates from MENRO Candelaria.",
+            body: featured.body || "Read official updates from MENRO Candelaria.",
             isReal: true,
           });
         }
@@ -46,7 +45,7 @@ const AnnouncementAndTip = () => {
       }
     };
 
-    void fetchLatestPost();
+    void fetchLatestAnnouncement();
 
     const interval = setInterval(() => {
       setTipIndex((prev) => (prev + 1) % defaultTips.length);
@@ -86,7 +85,7 @@ const AnnouncementAndTip = () => {
             <button
               onClick={() => {
                 if (announcement.id) {
-                  navigate(`/resident/contents?post=${announcement.id}`);
+                  navigate("/resident/notifications");
                 } else {
                   navigate("/resident/contents");
                 }

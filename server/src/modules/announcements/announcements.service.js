@@ -8,7 +8,7 @@ const auditService = require("../audit/audit.service");
 
 // ─── Base fetch ────────────────────────────────────────────
 
-const getById = async (id) => {
+const getById = async (id, viewer = null) => {
   const [rows] = await pool.query(
     `SELECT
        a.*,
@@ -37,12 +37,20 @@ const getById = async (id) => {
   );
   announcement.barangays = barangays;
 
+  if (viewer && viewer.role !== "ADMIN") {
+    const expired = announcement.expires_at && new Date(announcement.expires_at) <= new Date();
+    const isTargeted = announcement.target_all || barangays.some((b) => b.id === viewer.barangay_id);
+    if (announcement.status !== "ACTIVE" || expired || !isTargeted) {
+      throw { statusCode: 404, message: "Announcement not found" };
+    }
+  }
+
   return announcement;
 };
 
 // ─── Get All ───────────────────────────────────────────────
 
-const getAll = async (filters = {}) => {
+const getAll = async (filters = {}, viewer = null) => {
   let query = `
     SELECT
       a.*,
@@ -74,6 +82,12 @@ const getAll = async (filters = {}) => {
     query += " AND a.is_featured = TRUE";
   }
 
+  if (viewer?.role !== "ADMIN") {
+    query += " AND a.status = 'ACTIVE' AND (a.expires_at IS NULL OR a.expires_at > NOW())";
+    query += " AND (a.target_all = TRUE OR EXISTS (SELECT 1 FROM announcement_barangays visible_ab WHERE visible_ab.announcement_id = a.id AND visible_ab.barangay_id = ?))";
+    params.push(viewer?.barangay_id || "");
+  }
+
   query += " ORDER BY a.created_at DESC";
 
   const [announcements] = await pool.query(query, params);
@@ -91,6 +105,39 @@ const getAll = async (filters = {}) => {
   }
 
   return announcements;
+};
+
+const notifyRecipients = async (announcement) => {
+  const payload = {
+    type: "ANNOUNCEMENT",
+    title: announcement.priority === "URGENT" ? `🚨 ${announcement.title}` : announcement.title,
+    body: announcement.body,
+    ref_id: announcement.id,
+    ref_module: "announcements",
+  };
+  if (announcement.target_all) return notifyAllResidents(payload);
+  return Promise.all(announcement.barangays.map((barangay) =>
+    notifyBarangayResidents({ ...payload, barangay_id: barangay.id }),
+  ));
+};
+
+const activateDueAnnouncements = async () => {
+  await pool.query(
+    "UPDATE announcements SET status = 'ARCHIVED' WHERE status = 'ACTIVE' AND expires_at IS NOT NULL AND expires_at <= NOW()",
+  );
+  const [due] = await pool.query(
+    "SELECT id FROM announcements WHERE status = 'SCHEDULED' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()",
+  );
+  for (const row of due) {
+    const [result] = await pool.query(
+      "UPDATE announcements SET status = 'ACTIVE', sent_at = COALESCE(sent_at, scheduled_at, NOW()) WHERE id = ? AND status = 'SCHEDULED'",
+      [row.id],
+    );
+    if (result.affectedRows === 1) {
+      const announcement = await getById(row.id);
+      notifyRecipients(announcement).catch((err) => console.error("[Notify] ❌ Scheduled announcement failed:", err.message));
+    }
+  }
 };
 
 // ─── Create ────────────────────────────────────────────────
@@ -154,28 +201,7 @@ const create = async (adminId, data) => {
     new_value: { title: created.title, type: created.type, priority: created.priority, status: created.status },
   }).catch(() => {});
 
-  if (created.status === "ACTIVE") {
-    if (created.target_all) {
-      notifyAllResidents({
-        type: "ANNOUNCEMENT",
-        title: created.priority === "URGENT" ? `🚨 ${created.title}` : created.title,
-        body: created.body,
-        ref_id: created.id,
-        ref_module: "announcements",
-      }).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
-    } else if (barangay_ids.length > 0) {
-      for (const bId of barangay_ids) {
-        notifyBarangayResidents({
-          barangay_id: bId,
-          type: "ANNOUNCEMENT",
-          title: created.priority === "URGENT" ? `🚨 ${created.title}` : created.title,
-          body: created.body,
-          ref_id: created.id,
-          ref_module: "announcements",
-        }).catch((err) => console.error("[Notify] ❌ Barangay announcement failed:", err.message));
-      }
-    }
-  }
+  if (created.status === "ACTIVE") notifyRecipients(created).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
 
   return created;
 };
@@ -250,28 +276,7 @@ const update = async (id, data) => {
     new_value: { title: updated.title, status: updated.status, priority: updated.priority },
   }).catch(() => {});
 
-  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") {
-    if (updated.target_all) {
-      notifyAllResidents({
-        type: "ANNOUNCEMENT",
-        title: updated.priority === "URGENT" ? `🚨 ${updated.title}` : updated.title,
-        body: updated.body,
-        ref_id: updated.id,
-        ref_module: "announcements",
-      }).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
-    } else if (updated.barangays && updated.barangays.length > 0) {
-      for (const b of updated.barangays) {
-        notifyBarangayResidents({
-          barangay_id: b.id,
-          type: "ANNOUNCEMENT",
-          title: updated.priority === "URGENT" ? `🚨 ${updated.title}` : updated.title,
-          body: updated.body,
-          ref_id: updated.id,
-          ref_module: "announcements",
-        }).catch((err) => console.error("[Notify] ❌ Barangay announcement failed:", err.message));
-      }
-    }
-  }
+  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") notifyRecipients(updated).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
 
   return updated;
 };
@@ -296,12 +301,12 @@ const remove = async (id) => {
 
 // ─── Mark as Read ──────────────────────────────────────────
 
-const markAsRead = async (announcementId, userId) => {
-  await getById(announcementId);
+const markAsRead = async (announcementId, user) => {
+  await getById(announcementId, user);
 
   const [existing] = await pool.query(
     "SELECT id FROM announcement_read_receipts WHERE announcement_id = ? AND user_id = ?",
-    [announcementId, userId],
+    [announcementId, user.id],
   );
 
   if (existing.length > 0) {
@@ -311,7 +316,7 @@ const markAsRead = async (announcementId, userId) => {
   await pool.query(
     `INSERT INTO announcement_read_receipts (id, announcement_id, user_id)
      VALUES (?, ?, ?)`,
-    [generateId(), announcementId, userId],
+    [generateId(), announcementId, user.id],
   );
 
   return { read: true };
@@ -342,6 +347,7 @@ const getReceipts = async (announcementId) => {
 
 
 module.exports = {
+  activateDueAnnouncements,
   getAll,
   getById,
   create,

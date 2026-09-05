@@ -58,6 +58,7 @@ const ResidentSettings = () => {
     collectionReminders: true,
     truckNear: true,
     reportUpdates: true,
+    newContent: true,
     announcements: true,
   });
 
@@ -107,6 +108,7 @@ const ResidentSettings = () => {
           collectionReminders: Boolean(settings.notif_collection_reminders),
           truckNear: Boolean(settings.notif_truck_near),
           reportUpdates: Boolean(settings.notif_report_updates),
+          newContent: Boolean(settings.notif_new_content),
           announcements: Boolean(settings.notif_announcements),
         });
 
@@ -149,6 +151,7 @@ const ResidentSettings = () => {
       collectionReminders: "notif_collection_reminders",
       truckNear: "notif_truck_near",
       reportUpdates: "notif_report_updates",
+      newContent: "notif_new_content",
       announcements: "notif_announcements",
     };
     saveSettings({ [dbKeyMap[key]]: value });
@@ -286,6 +289,12 @@ const ResidentSettings = () => {
             description="Updates whenever MENRO reviews or resolves your waste report"
             checked={notifs.reportUpdates}
             onCheckedChange={(v) => toggleNotif("reportUpdates", v)}
+          />
+          <ToggleRow
+            label="New Posts & Waste Tips" icon={FileText}
+            description="Alerts when MENRO publishes new waste tips, articles, or community events"
+            checked={notifs.newContent}
+            onCheckedChange={(v) => toggleNotif("newContent", v)}
           />
           <ToggleRow
             label="MENRO Announcements" icon={Megaphone}

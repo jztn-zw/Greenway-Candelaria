@@ -20,6 +20,22 @@ const createAnnouncementSchema = z.object({
   scheduled_at: z.string().optional().nullable(),
   expires_at: z.string().optional().nullable(),
   barangay_ids: z.array(z.string()).optional().default([]),
+}).superRefine((data, ctx) => {
+  if (!data.target_all && data.barangay_ids.length === 0) {
+    ctx.addIssue({ code: "custom", path: ["barangay_ids"], message: "Select at least one barangay" });
+  }
+  if (data.status === "SCHEDULED" && !data.scheduled_at) {
+    ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "A broadcast time is required" });
+  }
+  if (data.scheduled_at) {
+    const scheduledAt = new Date(data.scheduled_at);
+    if (Number.isNaN(scheduledAt.getTime()) || (data.status === "SCHEDULED" && scheduledAt <= new Date())) {
+      ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Broadcast time must be in the future" });
+    }
+  }
+  if (data.expires_at && Number.isNaN(new Date(data.expires_at).getTime())) {
+    ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry time is invalid" });
+  }
 });
 
 const updateAnnouncementSchema = z.object({

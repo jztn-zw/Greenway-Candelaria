@@ -1,3 +1,5 @@
+import { useState, useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -8,12 +10,10 @@ import {
   LogOut,
   Settings,
   UserCircle,
-  
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -27,60 +27,171 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useState } from "react";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
-
-const navGroups = [
-  {
-    label: "OVERVIEW",
-    items: [{ title: "Dashboard", url: "/resident", icon: LayoutDashboard }],
-  },
-  {
-    label: "INFORMATION",
-    items: [
-      {
-        title: "Contents",
-        url: "/resident/contents",
-        icon: FileText,
-        badge: 2,
-      },
-      { title: "Truck Tracking", url: "/resident/tracking", icon: Truck },
-    ],
-  },
-  {
-    label: "REPORT WASTE ISSUES",
-    items: [
-      { title: "Submit Report", url: "/resident/report", icon: AlertTriangle },
-      { title: "My Reports", url: "/resident/my-reports", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "NOTIFICATION",
-    items: [
-      { title: "Notifications", url: "/resident/notifications", icon: Bell },
-    ],
-  },
-];
+import useNotifications from "@/hooks/useNotifications";
+import postsService from "@/services/postsService";
 
 const ResidentSidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = authService.getCurrentUser();
   const fullName = currentUser?.full_name?.trim() || "Unknown User";
-  const initials = fullName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "RS";
+  const initials =
+    fullName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "RS";
+
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+
   const [showGearMenu, setShowGearMenu] = useState(false);
   const [settingsRotation, setSettingsRotation] = useState(0);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
+
+  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const [hasNewPost, setHasNewPost] = useState(false);
+
+  const lastSeenKey = currentUser?.id
+    ? `greenway_last_seen_post_${currentUser.id}`
+    : "greenway_last_seen_post";
+  const lastSeenTimeKey = currentUser?.id
+    ? `greenway_last_seen_post_time_${currentUser.id}`
+    : "greenway_last_seen_post_time";
+
+  // Check for new posts & handle clearing when resident views Contents
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkNewPosts = async () => {
+      // If resident is currently on Contents, clear badge and mark seen
+      if (location.pathname.startsWith("/resident/contents")) {
+        if (isMounted) setHasNewPost(false);
+
+        // Mark any unread post notifications as read
+        const unreadPostNotifs = notifications.filter(
+          (n) => !n.is_read && (n.type === "NEW_POST" || n.ref_module === "posts")
+        );
+        if (unreadPostNotifs.length > 0) {
+          unreadPostNotifs.forEach((n) => void markAsRead(n.id));
+        }
+
+        try {
+          const list = await postsService.getAll({ status: "PUBLISHED" });
+          const posts = Array.isArray(list) ? list : list?.posts || [];
+          if (posts.length > 0) {
+            const latest = posts[0];
+            localStorage.setItem(lastSeenKey, String(latest.id));
+            localStorage.setItem(lastSeenTimeKey, new Date().toISOString());
+          }
+        } catch {
+          // ignore network errors silently
+        }
+        return;
+      }
+
+      // 1. Check if there is an unread NEW_POST notification in the notifications store
+      const hasUnreadPostNotif = notifications.some(
+        (n) => !n.is_read && (n.type === "NEW_POST" || n.ref_module === "posts")
+      );
+      if (hasUnreadPostNotif) {
+        if (isMounted) setHasNewPost(true);
+        return;
+      }
+
+      // 2. Fetch latest published post to check if there is a new post since last visit
+      try {
+        const list = await postsService.getAll({ status: "PUBLISHED" });
+        const posts = Array.isArray(list) ? list : list?.posts || [];
+        if (!isMounted) return;
+
+        if (posts.length === 0) {
+          setHasNewPost(false);
+          return;
+        }
+
+        const latest = posts[0];
+        const lastSeenId = localStorage.getItem(lastSeenKey);
+        const lastSeenTime = localStorage.getItem(lastSeenTimeKey);
+
+        if (!lastSeenId && !lastSeenTime) {
+          // First time opening app: treat existing posts as seen to prevent stale indicator
+          localStorage.setItem(lastSeenKey, String(latest.id));
+          localStorage.setItem(lastSeenTimeKey, new Date().toISOString());
+          setHasNewPost(false);
+          return;
+        }
+
+        if (lastSeenId && String(latest.id) !== lastSeenId) {
+          if (lastSeenTime && latest.created_at) {
+            const isNewer =
+              new Date(latest.created_at).getTime() >
+              new Date(lastSeenTime).getTime();
+            setHasNewPost(isNewer);
+          } else {
+            setHasNewPost(true);
+          }
+        } else {
+          setHasNewPost(false);
+        }
+      } catch {
+        if (isMounted) setHasNewPost(false);
+      }
+    };
+
+    void checkNewPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname, notifications, currentUser?.id]);
+
+  const hasUnreadNotifications = unreadCount > 0;
+
+  const navGroups = useMemo(
+    () => [
+      {
+        label: "OVERVIEW",
+        items: [{ title: "Dashboard", url: "/resident", icon: LayoutDashboard }],
+      },
+      {
+        label: "INFORMATION",
+        items: [
+          {
+            title: "Contents",
+            url: "/resident/contents",
+            icon: FileText,
+            showDot: hasNewPost,
+          },
+          { title: "Truck Tracking", url: "/resident/tracking", icon: Truck },
+        ],
+      },
+      {
+        label: "REPORT WASTE ISSUES",
+        items: [
+          { title: "Submit Report", url: "/resident/report", icon: AlertTriangle },
+          { title: "My Reports", url: "/resident/my-reports", icon: ClipboardList },
+        ],
+      },
+      {
+        label: "NOTIFICATION",
+        items: [
+          {
+            title: "Notifications",
+            url: "/resident/notifications",
+            icon: Bell,
+            showDot: hasUnreadNotifications,
+          },
+        ],
+      },
+    ],
+    [hasNewPost, hasUnreadNotifications]
+  );
 
   const isActive = (path: string) =>
     path === "/resident"
@@ -159,25 +270,29 @@ const ResidentSidebar = () => {
                             />
                           )}
 
-                          <item.icon
-                            className={`h-[18px] w-[18px] shrink-0 ${
-                              active ? "text-primary" : "text-muted-foreground"
-                            }`}
-                          />
+                          <div className="relative flex items-center justify-center shrink-0">
+                            <item.icon
+                              className={`h-[18px] w-[18px] shrink-0 ${
+                                active ? "text-primary" : "text-muted-foreground"
+                              }`}
+                            />
+                            {item.showDot && (
+                              <span
+                                className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive
+                                  hidden group-data-[collapsible=icon]:block"
+                              />
+                            )}
+                          </div>
 
                           <span className="truncate flex-1 ml-3 group-data-[collapsible=icon]:hidden">
                             {item.title}
                           </span>
 
-                          {item.badge && (
+                          {item.showDot && (
                             <span
-                              className="ml-auto bg-destructive text-destructive-foreground
-                                text-[10px] font-bold rounded-full w-5 h-5
-                                flex items-center justify-center
+                              className="ml-auto w-2 h-2 rounded-full bg-destructive shrink-0
                                 group-data-[collapsible=icon]:hidden"
-                            >
-                              {item.badge}
-                            </span>
+                            />
                           )}
                         </NavLink>
                       </SidebarMenuButton>
@@ -192,7 +307,6 @@ const ResidentSidebar = () => {
 
       {/* ── Footer ── */}
       <SidebarFooter className="p-3">
-        {/* Card Container matching exact requested layout */}
         <div
           className="rounded-2xl border border-border/80 bg-card/60 p-2.5 shadow-sm
             group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"

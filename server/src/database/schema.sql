@@ -610,7 +610,7 @@ CREATE TABLE `user_settings` (
   `notif_collection_reminders` tinyint(1) DEFAULT '1',
   `notif_truck_near` tinyint(1) DEFAULT '1',
   `notif_report_updates` tinyint(1) DEFAULT '1',
-  `notif_new_content` tinyint(1) DEFAULT '0',
+  `notif_new_content` tinyint(1) DEFAULT '1',
   `notif_announcements` tinyint(1) DEFAULT '1',
   `primary_barangay_id` varchar(36) DEFAULT NULL,
   `reminder_on` tinyint(1) DEFAULT '1',

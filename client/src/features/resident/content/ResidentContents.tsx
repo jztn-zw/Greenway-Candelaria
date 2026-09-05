@@ -285,14 +285,9 @@ const ResidentContents = () => {
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-foreground tracking-tight">
-                Community Updates & Guides
-              </h1>
-              <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {posts.length} published
-              </span>
-            </div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-display text-foreground tracking-tight">
+              Community Updates & Guides
+            </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Official MENRO guidelines, collection updates, and eco tips.
             </p>
@@ -401,7 +396,7 @@ const ResidentContents = () => {
             <div className="absolute right-0 bottom-0 w-80 h-80 bg-teal-500/15 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-primary/15 dark:bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-5 sm:p-7 md:p-8 lg:p-10">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-6 sm:p-8 md:p-10 lg:p-11 pb-10 sm:pb-12 md:pb-12">
               {/* Left Column: Post Details */}
               <div className="md:col-span-7 lg:col-span-7 flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
@@ -446,11 +441,11 @@ const ResidentContents = () => {
                   </p>
                 </div>
 
-                {/* Footer Controls: Read Article + Carousel Dots */}
-                <div className="pt-3 flex items-center justify-between gap-4 flex-wrap">
+                {/* Footer Controls: Read Article */}
+                <div className="pt-3">
                   <Button
                     size="sm"
-                    className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-5 py-2.5 h-auto shadow-md shadow-primary/25 gap-2 group/btn active:scale-95 transition-all"
+                    className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-5 py-2.5 h-auto shadow-md shadow-primary/25 gap-2 group/btn active:scale-95 transition-all cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenPost(featured);
@@ -458,25 +453,6 @@ const ResidentContents = () => {
                   >
                     Read article <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Button>
-
-                  {/* Carousel Dots */}
-                  {featuredPosts.length > 1 && (
-                    <div className="flex items-center gap-1.5">
-                      {featuredPosts.map((_, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFeaturedIndex(idx);
-                          }}
-                          className={`h-1.5 rounded-full transition-all duration-300 ${
-                            idx === featuredIndex ? "bg-primary w-6" : "bg-muted-foreground/30 hover:bg-muted-foreground/50 w-1.5"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -523,6 +499,61 @@ const ResidentContents = () => {
                 </div>
               </div>
             </div>
+
+            {/* ── Carousel Side Navigation Arrows (Left & Right) ── */}
+            {featuredPosts.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFeaturedIndex((prev) =>
+                      prev === 0 ? featuredPosts.length - 1 : prev - 1,
+                    );
+                  }}
+                  aria-label="Previous featured post"
+                  className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-background/60 dark:bg-black/50 hover:bg-background/90 dark:hover:bg-black/75 text-foreground hover:text-primary backdrop-blur-md border border-border/70 hover:border-primary/60 shadow-md hover:shadow-lg flex items-center justify-center transition-all duration-300 cursor-pointer opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto hover:scale-110 active:scale-95"
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextFeatured();
+                  }}
+                  aria-label="Next featured post"
+                  className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-background/60 dark:bg-black/50 hover:bg-background/90 dark:hover:bg-black/75 text-foreground hover:text-primary backdrop-blur-md border border-border/70 hover:border-primary/60 shadow-md hover:shadow-lg flex items-center justify-center transition-all duration-300 cursor-pointer opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto hover:scale-110 active:scale-95"
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                {/* ── Center-Down Indicator Dots ── */}
+                <div
+                  className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-border/60 shadow-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {featuredPosts.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFeaturedIndex(idx);
+                      }}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        idx === featuredIndex
+                          ? "bg-primary w-6"
+                          : "bg-muted-foreground/30 hover:bg-muted-foreground/60 w-1.5"
+                      }`}
+                      title={`Go to slide ${idx + 1}`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
       )}

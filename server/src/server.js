@@ -6,6 +6,8 @@ const app = require("./app");
 const { testConnection } = require("./config/db");
 const { initSockets } = require("./sockets");
 const { startRouteScheduler } = require("./modules/routes/routeScheduler");
+const { startPostScheduler } = require("./modules/posts/posts.scheduler");
+const { startAnnouncementScheduler } = require("./modules/announcements/announcements.scheduler");
 
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -45,6 +47,8 @@ const start = async () => {
 
     initSockets(io);
     startRouteScheduler(io);
+    startPostScheduler();
+    startAnnouncementScheduler();
 
     server.listen(PORT, () => {
       console.log(`🚀 GreenWay API running on port ${PORT}`);

@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  ArrowLeft,
   Image as ImageIcon,
   Tag,
   Eye,
@@ -12,17 +11,13 @@ import {
   Check,
   Sparkles,
   UploadCloud,
-  Globe,
-  Lock,
-  Archive,
-  Leaf,
-  Calendar,
   Send,
   X,
   FileText,
   Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/common";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -121,8 +116,16 @@ const CustomDateTimePicker = ({
     if (period === "AM" && h24 === 12) h24 = 0;
     const hourFormatted = String(h24).padStart(2, "0");
 
-    const isoString = `${year}-${month}-${date}T${hourFormatted}:${minStr}`;
-    onChange(isoString);
+    // Convert the date/time selected in the administrator's local timezone to
+    // an unambiguous UTC instant before it is sent to the API.
+    const localDate = new Date(
+      year,
+      Number.parseInt(month, 10) - 1,
+      Number.parseInt(date, 10),
+      h24,
+      Number.parseInt(minStr, 10),
+    );
+    onChange(localDate.toISOString());
   };
 
   const handleDaySelect = (day: Date | undefined) => {
@@ -132,14 +135,104 @@ const CustomDateTimePicker = ({
     }
   };
 
-  const handleHourChange = (newHour: string) => {
-    setSelectedHour(newHour);
-    updateDateTime(selectedDay, newHour, selectedMinute, selectedPeriod);
+  useEffect(() => {
+    if (!parsedDate) return;
+    setSelectedDay(parsedDate);
+    const h = parsedDate.getHours();
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    setSelectedHour(String(h12).padStart(2, "0"));
+    setSelectedMinute(String(parsedDate.getMinutes()).padStart(2, "0"));
+    setSelectedPeriod(h >= 12 ? "PM" : "AM");
+  }, [value]);
+
+  const handleHourInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (raw === "") {
+      setSelectedHour("");
+      return;
+    }
+    const num = parseInt(raw, 10);
+    if (num > 12) {
+      setSelectedHour("12");
+      updateDateTime(selectedDay, "12", selectedMinute || "00", selectedPeriod);
+      return;
+    }
+    setSelectedHour(raw);
+    if (num >= 1 && num <= 12) {
+      updateDateTime(selectedDay, String(num).padStart(2, "0"), selectedMinute || "00", selectedPeriod);
+    }
   };
 
-  const handleMinuteChange = (newMin: string) => {
-    setSelectedMinute(newMin);
-    updateDateTime(selectedDay, selectedHour, newMin, selectedPeriod);
+  const handleHourBlur = () => {
+    let num = parseInt(selectedHour, 10);
+    if (isNaN(num) || num < 1) num = 12;
+    if (num > 12) num = 12;
+    const formatted = String(num).padStart(2, "0");
+    setSelectedHour(formatted);
+    updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
+  };
+
+  const handleMinuteInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (raw === "") {
+      setSelectedMinute("");
+      return;
+    }
+    const num = parseInt(raw, 10);
+    if (num > 59) {
+      setSelectedMinute("59");
+      updateDateTime(selectedDay, selectedHour || "12", "59", selectedPeriod);
+      return;
+    }
+    setSelectedMinute(raw);
+    if (num >= 0 && num <= 59) {
+      updateDateTime(selectedDay, selectedHour || "12", String(num).padStart(2, "0"), selectedPeriod);
+    }
+  };
+
+  const handleMinuteBlur = () => {
+    let num = parseInt(selectedMinute, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > 59) num = 59;
+    const formatted = String(num).padStart(2, "0");
+    setSelectedMinute(formatted);
+    updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
+  };
+
+  const handleHourKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const current = parseInt(selectedHour, 10) || 12;
+      const next = current >= 12 ? 1 : current + 1;
+      const formatted = String(next).padStart(2, "0");
+      setSelectedHour(formatted);
+      updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const current = parseInt(selectedHour, 10) || 12;
+      const prev = current <= 1 ? 12 : current - 1;
+      const formatted = String(prev).padStart(2, "0");
+      setSelectedHour(formatted);
+      updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
+    }
+  };
+
+  const handleMinuteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const current = parseInt(selectedMinute, 10) || 0;
+      const next = current >= 59 ? 0 : current + 1;
+      const formatted = String(next).padStart(2, "0");
+      setSelectedMinute(formatted);
+      updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const current = parseInt(selectedMinute, 10) || 0;
+      const prev = current <= 0 ? 59 : current - 1;
+      const formatted = String(prev).padStart(2, "0");
+      setSelectedMinute(formatted);
+      updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
+    }
   };
 
   const handlePeriodChange = (newPeriod: "AM" | "PM") => {
@@ -179,7 +272,7 @@ const CustomDateTimePicker = ({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="w-full h-11 flex items-center justify-between px-3.5 rounded-xl border border-border bg-background hover:bg-muted/50 text-sm transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full h-10 flex items-center justify-between px-3.5 rounded-xl border border-input/80 bg-background hover:border-primary/50 text-sm shadow-2xs transition-colors cursor-pointer text-left focus:outline-none focus:border-primary"
         >
           <span className="flex items-center gap-2.5 truncate">
             <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -221,46 +314,46 @@ const CustomDateTimePicker = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
-              <Select value={selectedHour} onValueChange={handleHourChange}>
-                <SelectTrigger className="w-16 h-8 text-xs rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 rounded-lg">
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const h = String(i + 1).padStart(2, "0");
-                    return (
-                      <SelectItem key={h} value={h} className="text-xs">
-                        {h}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <div className="flex flex-col items-center gap-0.5">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={selectedHour}
+                  onChange={handleHourInput}
+                  onBlur={handleHourBlur}
+                  onKeyDown={handleHourKeyDown}
+                  placeholder="12"
+                  className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
+                  aria-label="Hour (1-12)"
+                />
+                <span className="text-[10px] text-muted-foreground font-medium">hr</span>
+              </div>
 
-              <span className="text-muted-foreground font-bold">:</span>
+              <span className="text-muted-foreground font-bold text-base pb-3.5">:</span>
 
-              <Select value={selectedMinute} onValueChange={handleMinuteChange}>
-                <SelectTrigger className="w-16 h-8 text-xs rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 rounded-lg">
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const m = String(i * 5).padStart(2, "0");
-                    return (
-                      <SelectItem key={m} value={m} className="text-xs">
-                        {m}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col items-center gap-0.5">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={selectedMinute}
+                  onChange={handleMinuteInput}
+                  onBlur={handleMinuteBlur}
+                  onKeyDown={handleMinuteKeyDown}
+                  placeholder="00"
+                  className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
+                  aria-label="Minute (0-59)"
+                />
+                <span className="text-[10px] text-muted-foreground font-medium">min</span>
+              </div>
 
-              <div className="flex rounded-lg border border-border overflow-hidden">
+              <div className="flex rounded-xl border border-input/80 overflow-hidden shadow-2xs h-9 mb-3.5">
                 <button
                   type="button"
                   onClick={() => handlePeriodChange("AM")}
-                  className={`px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     selectedPeriod === "AM"
                       ? "bg-primary text-primary-foreground"
                       : "bg-background text-muted-foreground hover:bg-muted"
@@ -271,7 +364,7 @@ const CustomDateTimePicker = ({
                 <button
                   type="button"
                   onClick={() => handlePeriodChange("PM")}
-                  className={`px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     selectedPeriod === "PM"
                       ? "bg-primary text-primary-foreground"
                       : "bg-background text-muted-foreground hover:bg-muted"
@@ -391,14 +484,7 @@ const PostEditor = ({
     <div className="w-full max-w-[1000px] mx-auto space-y-5 pb-16 animate-in fade-in duration-300">
       {/* ── Top Bar: Back Pill & Page Header ── */}
       <div className="space-y-1.5">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-muted/60 dark:bg-muted/40 hover:bg-muted hover:dark:bg-muted/70 border border-border/70 hover:border-border text-muted-foreground hover:text-foreground text-xs font-semibold shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer active:scale-95 group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200 ease-out text-muted-foreground group-hover:text-foreground" />
-          <span>Back to Posts</span>
-        </button>
+        <BackButton label="Back to Posts" onClick={onBack} />
 
         <div className="pt-0.5">
           <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
@@ -436,7 +522,6 @@ const PostEditor = ({
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="e.g., Household Waste Segregation Guidelines for 2026"
-              className="h-11 rounded-xl bg-background border border-border px-3.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20"
             />
           </div>
 
@@ -449,7 +534,6 @@ const PostEditor = ({
               value={form.source}
               onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
               placeholder="e.g., MENRO Candelaria · Office of the Municipal Environment"
-              className="h-11 rounded-xl bg-background border border-border px-3.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20"
             />
           </div>
 
@@ -468,7 +552,7 @@ const PostEditor = ({
               onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
               placeholder="Write the full post announcement, guidelines, or event details here. Separate paragraphs with an empty line..."
               rows={10}
-              className="rounded-xl bg-background border border-border p-3.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20 resize-y"
+              className="resize-y"
             />
           </div>
         </div>
@@ -647,27 +731,21 @@ const PostEditor = ({
                 setForm((f) => ({ ...f, category: val }))
               }
             >
-              <SelectTrigger className="h-11 rounded-xl bg-background border border-border text-sm text-foreground focus-visible:ring-2 focus-visible:ring-primary/20">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="Waste Tip" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Leaf className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    Waste Tip
-                  </span>
+                  Waste Tip
                 </SelectItem>
                 <SelectItem value="Event" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    Community Event
-                  </span>
+                  Community Event
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Status Dropdown (NO EMOJIS, Clean Lucide Icons) */}
+          {/* Status Dropdown */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-foreground">
               Status *
@@ -678,33 +756,21 @@ const PostEditor = ({
                 setForm((f) => ({ ...f, status: val }))
               }
             >
-              <SelectTrigger className="h-11 rounded-xl bg-background border border-border text-sm text-foreground focus-visible:ring-2 focus-visible:ring-primary/20">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="Published" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    Published
-                  </span>
+                  Published
                 </SelectItem>
                 <SelectItem value="Draft" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                    Draft
-                  </span>
+                  Draft
                 </SelectItem>
                 <SelectItem value="Scheduled" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    Scheduled
-                  </span>
+                  Scheduled
                 </SelectItem>
                 <SelectItem value="Archived" className="text-sm cursor-pointer">
-                  <span className="flex items-center gap-2">
-                    <Archive className="w-4 h-4 text-muted-foreground" />
-                    Archived
-                  </span>
+                  Archived
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -733,12 +799,12 @@ const PostEditor = ({
             Tags (Optional)
           </Label>
           <div className="relative">
-            <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               value={form.tags}
               onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
               placeholder="e.g., composting, recycling, clean-up (comma-separated)"
-              className="h-11 pl-10 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/20"
+              className="pl-10"
             />
           </div>
           {parsedTags.length > 0 && (
@@ -821,7 +887,11 @@ const PostEditor = ({
             type="button"
             onClick={() => onSave(getFormWithImages())}
             disabled={
-              !form.title.trim() || !form.body.trim() || isUploading || isSaving
+              !form.title.trim() ||
+              !form.body.trim() ||
+              (form.status === "Scheduled" && !form.scheduledDate) ||
+              isUploading ||
+              isSaving
             }
             className="h-11 px-5 rounded-xl text-xs sm:text-sm font-semibold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all cursor-pointer active:scale-95"
           >

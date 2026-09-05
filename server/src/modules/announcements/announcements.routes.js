@@ -3,7 +3,7 @@ const controller = require("./announcements.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 
-// Public — residents and guests can view active announcements
+// Announcement content is account-scoped so barangay-targeted notices cannot leak.
 router.get(
   "/list/all",
   authenticate,
@@ -11,8 +11,8 @@ router.get(
   controller.getBarangayList,
 );
 
-router.get("/", controller.getAll);
-router.get("/:id", controller.getById);
+router.get("/", authenticate, controller.getAll);
+router.get("/:id", authenticate, controller.getById);
 
 // Admin — create, update, delete
 router.post(

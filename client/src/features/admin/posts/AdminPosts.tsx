@@ -19,6 +19,8 @@ import {
   SlidersHorizontal,
   RotateCcw,
   ArrowUpDown,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,7 @@ import {
   AdminPostDetailSkeleton,
 } from "@/components/PageLoadingSkeletons";
 import postsService from "@/services/postsService";
+import useAuthStore from "@/store/authStore";
 
 const POSTS_PER_PAGE_GRID = 6;
 const POSTS_PER_PAGE_TABLE = 10;
@@ -85,6 +88,17 @@ const mapStatusToApi = (status: PostStatus): string => {
     Archived: "ARCHIVED",
   };
   return map[status];
+};
+
+// TiDB stores DATETIME values without timezone metadata. Scheduled post times
+// are stored in UTC, so restore that metadata before the browser displays them
+// in the administrator's local timezone.
+const toUtcIsoString = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const normalized = value.replace(" ", "T");
+  return /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized)
+    ? normalized
+    : `${normalized}Z`;
 };
 
 const mapApiPost = (p: any): Post => ({
@@ -116,7 +130,7 @@ const mapApiPost = (p: any): Post => ({
   images:
     p.images?.map((img: any) => (typeof img === "string" ? img : img.url)) ||
     [],
-  scheduledDate: p.scheduled_at || null,
+  scheduledDate: toUtcIsoString(p.scheduled_at),
 });
 
 const mapApiPosts = (data: any[]): Post[] => data.map(mapApiPost);
@@ -139,6 +153,7 @@ const AdminPosts = () => {
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [previewPost, setPreviewPost] = useState<Post | null>(null);
   const [previewActiveImageIndex, setPreviewActiveImageIndex] = useState(0);
 
@@ -262,6 +277,27 @@ const AdminPosts = () => {
     }
   };
 
+  const toggleFeatured = async (post: Post) => {
+    try {
+      const nextFeatured = !post.featured;
+      const updated = await postsService.update(post.id, {
+        is_featured: nextFeatured,
+      });
+      const mapped = mapApiPost(updated);
+      setPosts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
+      if (viewingPost?.id === mapped.id) {
+        setViewingPost(mapped);
+      }
+      toast.success(
+        nextFeatured
+          ? "Post featured on resident carousel"
+          : "Post unfeatured from resident carousel",
+      );
+    } catch {
+      toast.error("Failed to update featured status");
+    }
+  };
+
   const archivePost = async (post: Post) => {
     try {
       const isArchived = post.status === "Archived";
@@ -299,8 +335,9 @@ const AdminPosts = () => {
   };
 
   const deletePost = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
     try {
+      setIsDeleting(true);
       await postsService.delete(deleteTarget.id);
       setPosts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       if (viewingPost?.id === deleteTarget.id) {
@@ -310,6 +347,8 @@ const AdminPosts = () => {
       setDeleteTarget(null);
     } catch {
       toast.error("Failed to delete post");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -484,11 +523,14 @@ const AdminPosts = () => {
       id: "preview",
       title: form.title || "Untitled Announcement",
       body: form.body || "No content provided yet...",
-      source: form.source || "MENRO Candelaria",
+      source: form.source,
       category: form.category,
       status: form.status,
       featured: form.featured,
-      author: "MENRO Candelaria",
+      author:
+        editingPost?.author ||
+        useAuthStore.getState().user?.full_name ||
+        "Admin",
       publishedDate: form.scheduledDate
         ? new Date(form.scheduledDate).toLocaleDateString("en-US", {
             month: "short",
@@ -533,44 +575,6 @@ const AdminPosts = () => {
       </div>
     );
 
-  if (previewPost) {
-    return (
-      <div className="w-full max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
-        {/* Resident Preview Mode Top Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
-              <Eye className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-primary">
-                Resident Preview Mode
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                This is the exact full-page layout residents will see when viewing this post.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setPreviewPost(null)}
-            className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/20 bg-background/50 cursor-pointer active:scale-95 shrink-0"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Return to Editor
-          </Button>
-        </div>
-
-        {/* 100% Accurate Post Detail View */}
-        <AdminPostDetail
-          post={previewPost}
-          onBack={() => setPreviewPost(null)}
-          isPreview={true}
-        />
-      </div>
-    );
-  }
-
   if (viewingPost) {
     return (
       <div className="w-full max-w-[1600px] mx-auto">
@@ -584,6 +588,7 @@ const AdminPosts = () => {
           onDuplicate={duplicatePost}
           onArchive={archivePost}
           onTogglePublish={togglePublish}
+          onToggleFeatured={toggleFeatured}
           onDelete={(post) => {
             setDeleteTarget(post);
           }}
@@ -592,17 +597,59 @@ const AdminPosts = () => {
     );
   }
 
-  if (editorOpen) {
+  // Keep the editor mounted while previewing.  PostEditor owns the unsaved form
+  // state, so unmounting it here would erase the post when returning from Preview.
+  if (editorOpen || previewPost) {
     return (
-      <div className="w-full max-w-[1000px] mx-auto">
-        <PostEditor
-          editingPost={editingPost}
-          onBack={closeEditor}
-          onSave={handleSave}
-          onPreview={handlePreview}
-          isSaving={isSaving}
-        />
-      </div>
+      <>
+        <div
+          className={previewPost ? "hidden" : "w-full max-w-[1000px] mx-auto"}
+          aria-hidden={!!previewPost}
+        >
+          <PostEditor
+            editingPost={editingPost}
+            onBack={closeEditor}
+            onSave={handleSave}
+            onPreview={handlePreview}
+            isSaving={isSaving}
+          />
+        </div>
+
+        {previewPost && (
+          <div className="w-full max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
+            {/* Resident Preview Mode Top Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-primary">
+                    Resident Preview Mode
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    This is the exact full-page layout residents will see when viewing this post.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPreviewPost(null)}
+                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/20 bg-background/50 cursor-pointer active:scale-95 shrink-0"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Return to Editor
+              </Button>
+            </div>
+
+            <AdminPostDetail
+              post={previewPost}
+              onBack={() => setPreviewPost(null)}
+              isPreview={true}
+            />
+          </div>
+        )}
+      </>
     );
   }
 
@@ -685,7 +732,7 @@ const AdminPosts = () => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-10 pr-9 h-10 bg-background/70 border-border/90 rounded-xl text-xs shadow-inner shadow-black/5 focus-visible:ring-primary/30"
+              className="pl-10 pr-9 h-10 bg-background border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary"
             />
             {search && (
               <button
@@ -809,6 +856,7 @@ const AdminPosts = () => {
               onDuplicate={duplicatePost}
               onArchive={archivePost}
               onTogglePublish={togglePublish}
+              onToggleFeatured={toggleFeatured}
               onDelete={setDeleteTarget}
             />
           ))}
@@ -821,6 +869,7 @@ const AdminPosts = () => {
           onDuplicate={duplicatePost}
           onArchive={archivePost}
           onTogglePublish={togglePublish}
+          onToggleFeatured={toggleFeatured}
           onDelete={setDeleteTarget}
         />
       )}
@@ -860,25 +909,65 @@ const AdminPosts = () => {
         </div>
       )}
 
-      {/* ── Delete Confirmation ── */}
+      {/* ── Delete Confirmation Modal ── */}
       <AlertDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl border border-border/80 p-5 sm:p-6 shadow-2xl sm:max-w-md [&>button:last-child]:hidden">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Post</AlertDialogTitle>
-            <AlertDialogDescription>
-              Permanently delete "{deleteTarget?.title}"? This cannot be undone.
+            <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
+                  Delete Post?
+                </AlertDialogTitle>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isDeleting && setDeleteTarget(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-2.5">
+              Permanently delete{" "}
+              <strong className="text-foreground font-semibold">
+                &ldquo;{deleteTarget?.title}&rdquo;
+              </strong>
+              ? This action cannot be undone and will remove it from all resident feeds.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={deletePost}
-              className="bg-destructive text-destructive-foreground"
+          <AlertDialogFooter className="gap-2.5 pt-3.5 border-t border-border/60 mt-1">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="h-10 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
             >
-              Delete
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void deletePost();
+              }}
+              disabled={isDeleting}
+              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Post</span>
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

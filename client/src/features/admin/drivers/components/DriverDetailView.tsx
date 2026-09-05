@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   Truck,
   Phone,
   Clock,
@@ -15,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { BackButton } from "@/components/common";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
 
 interface DriverDetailViewProps {
@@ -49,14 +49,7 @@ const DriverDetailView = ({
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       {/* ── Top Navigation & Page Header ── */}
       <div className="space-y-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/70 dark:bg-muted/50 hover:bg-primary/10 border border-border/70 hover:border-primary/30 text-muted-foreground hover:text-primary text-xs font-semibold shadow-2xs transition-all duration-200 cursor-pointer active:scale-95 group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
-          Back to Collectors
-        </button>
+        <BackButton label="Back to Collectors" onClick={onBack} />
 
         <div>
           <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">

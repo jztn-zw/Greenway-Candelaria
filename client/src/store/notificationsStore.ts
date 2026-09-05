@@ -27,6 +27,8 @@ interface NotificationsState {
 }
 
 let socketListenerRegistered = false;
+let activeNotificationUserId: string | null = null;
+let joinNotificationRooms: (() => void) | null = null;
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   notifications: [],
@@ -38,10 +40,24 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   fetchNotifications: async (params = {}) => {
     try {
       set({ isLoading: true });
-      const [data, unread] = await Promise.all([
-        notificationsService.fetchMyNotifications(params),
+      const requestedLimit = params.limit ?? 100;
+      const [initialData, unread] = await Promise.all([
+        notificationsService.fetchMyNotifications({ ...params, limit: requestedLimit }),
         notificationsService.fetchUnreadCount(),
       ]);
+
+      // The Notifications page filters and paginates locally. Fetch the full
+      // history rather than silently treating the first API page as the whole list.
+      const data =
+        params.offset === undefined &&
+        params.type === undefined &&
+        initialData.total > initialData.notifications.length
+          ? await notificationsService.fetchMyNotifications({
+              ...params,
+              limit: initialData.total,
+              offset: 0,
+            })
+          : initialData;
 
       set({
         notifications: data.notifications || [],
@@ -59,7 +75,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   markAsRead: async (id: string) => {
     // Optimistic UI update across all components immediately
     const existing = get().notifications.find((n) => n.id === id);
-    const wasUnread = existing && !existing.is_read;
+    const wasUnread = Boolean(existing && !existing.is_read);
+    const previousUnreadCount = get().unreadCount;
 
     set((state) => ({
       notifications: state.notifications.map((n) =>
@@ -72,11 +89,20 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       await notificationsService.markNotificationAsRead(id);
     } catch (err) {
       console.error("Failed to mark notification as read in API:", err);
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === id && existing ? { ...n, is_read: existing.is_read } : n,
+        ),
+        unreadCount: previousUnreadCount,
+      }));
+      toast.error("Could not mark notification as read");
     }
   },
 
   markAllAsRead: async () => {
     // Optimistic UI update
+    const previousNotifications = get().notifications;
+    const previousUnreadCount = get().unreadCount;
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
       unreadCount: 0,
@@ -87,11 +113,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       toast.success("All notifications marked as read");
     } catch (err) {
       console.error("Failed to mark all as read in API:", err);
+      set({ notifications: previousNotifications, unreadCount: previousUnreadCount });
+      toast.error("Could not mark all notifications as read");
     }
   },
 
   clearAll: async () => {
     // Optimistic UI update
+    const previousNotifications = get().notifications;
+    const previousUnreadCount = get().unreadCount;
+    const previousTotal = get().total;
     set({
       notifications: [],
       unreadCount: 0,
@@ -103,6 +134,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       toast.success("Notification history cleared");
     } catch (err) {
       console.error("Failed to clear notifications in API:", err);
+      set({
+        notifications: previousNotifications,
+        unreadCount: previousUnreadCount,
+        total: previousTotal,
+      });
+      toast.error("Could not clear notification history");
     }
   },
 
@@ -129,15 +166,49 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   initSocket: (user: UserInfo) => {
     if (!user || !user.id) return () => {};
 
-    const socket = getSocket();
-
-    // Join appropriate socket rooms
-    socket.emit("notifications:join_user", user.id);
-    if (user.barangay_id) {
-      socket.emit("notifications:join_barangay", user.barangay_id);
+    // This store is shared for the whole browser profile. Clear the previous
+    // account's in-memory notifications when a different user logs in.
+    if (activeNotificationUserId !== user.id) {
+      activeNotificationUserId = user.id;
+      set({
+        notifications: [],
+        unreadCount: 0,
+        total: 0,
+        initialized: false,
+      });
     }
-    if (user.role === "ADMIN") {
-      socket.emit("notifications:join_admins");
+
+    const socket = getSocket();
+    const token = localStorage.getItem("token");
+    const previousToken = (socket.auth as { token?: string } | undefined)?.token;
+
+    // A Socket.IO connection keeps its handshake token. Refresh it after a
+    // logout/login, then rejoin after every reconnect because socket rooms are
+    // cleared by the server whenever a connection drops.
+    socket.auth = { token };
+    const joinRooms = () => {
+      socket.emit("notifications:join_user");
+      if (user.barangay_id) {
+        socket.emit("notifications:join_barangay", user.barangay_id);
+      }
+      if (user.role === "ADMIN") {
+        socket.emit("notifications:join_admins");
+      }
+    };
+
+    if (joinNotificationRooms) {
+      socket.off("connect", joinNotificationRooms);
+    }
+    joinNotificationRooms = joinRooms;
+    socket.on("connect", joinRooms);
+
+    if (previousToken !== token) {
+      socket.disconnect();
+      socket.connect();
+    } else if (socket.connected) {
+      joinRooms();
+    } else {
+      socket.connect();
     }
 
     if (!socketListenerRegistered) {

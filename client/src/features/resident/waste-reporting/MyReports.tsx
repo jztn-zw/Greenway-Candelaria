@@ -23,7 +23,6 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  ArrowLeft,
   MapPin,
   Camera,
   EyeOff,
@@ -35,6 +34,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { BackButton } from "@/components/common";
 import {
   Dialog,
   DialogContent,
@@ -792,14 +792,7 @@ const ReportDetail = ({
       {/* Header */}
       <div className="space-y-3">
         {/* Back pill */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/70 dark:bg-muted/50 hover:bg-primary/10 border border-border/70 hover:border-primary/30 text-muted-foreground hover:text-primary text-xs font-semibold shadow-2xs transition-all duration-200 cursor-pointer active:scale-95 group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
-          My Waste Reports
-        </button>
+        <BackButton label="My Waste Reports" onClick={onBack} />
 
         {/* Title row */}
         <div className="flex items-start justify-between gap-3">

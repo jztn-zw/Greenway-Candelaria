@@ -1,5 +1,5 @@
 import {
-  MoreHorizontal, Eye, Edit2, Copy, Archive, ArchiveRestore, Globe, GlobeLock, Trash2,
+  MoreHorizontal, Eye, Edit2, Copy, Archive, ArchiveRestore, Globe, GlobeLock, Trash2, Star, StarOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +15,12 @@ interface PostActionsDropdownProps {
   onDuplicate: (post: Post) => void;
   onArchive: (post: Post) => void;
   onTogglePublish: (post: Post) => void;
+  onToggleFeatured?: (post: Post) => void;
   onDelete: (post: Post) => void;
 }
 
 const PostActionsDropdown = ({
-  post, onView, onEdit, onDuplicate, onArchive, onTogglePublish, onDelete,
+  post, onView, onEdit, onDuplicate, onArchive, onTogglePublish, onToggleFeatured, onDelete,
 }: PostActionsDropdownProps) => {
   const isArchived = post.status === "Archived";
   const isPublished = post.status === "Published";
@@ -41,6 +42,19 @@ const PostActionsDropdown = ({
         <DropdownMenuItem onClick={() => onDuplicate(post)} className="gap-2 text-xs">
           <Copy className="w-3.5 h-3.5" /> Duplicate
         </DropdownMenuItem>
+        {onToggleFeatured && !isArchived && (
+          <DropdownMenuItem onClick={() => onToggleFeatured(post)} className="gap-2 text-xs">
+            {post.featured ? (
+              <>
+                <StarOff className="w-3.5 h-3.5" /> Unfeature
+              </>
+            ) : (
+              <>
+                <Star className="w-3.5 h-3.5" /> Feature Post
+              </>
+            )}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onArchive(post)} className="gap-2 text-xs">
           {isArchived ? (

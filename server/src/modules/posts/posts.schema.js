@@ -13,6 +13,18 @@ const createPostSchema = z.object({
   scheduled_at: z.string().nullable().optional(),
   images: z.array(z.string()).optional().default([]),
   tags: z.array(z.string()).optional().default([]),
+}).superRefine((data, ctx) => {
+  if (data.status !== "SCHEDULED") return;
+
+  if (!data.scheduled_at) {
+    ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "A scheduled publish time is required" });
+    return;
+  }
+
+  const scheduledAt = new Date(data.scheduled_at);
+  if (Number.isNaN(scheduledAt.getTime()) || scheduledAt <= new Date()) {
+    ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Scheduled publish time must be in the future" });
+  }
 });
 
 const updatePostSchema = z.object({
@@ -25,6 +37,16 @@ const updatePostSchema = z.object({
   scheduled_at: z.string().nullable().optional(),
   images: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+  if (data.status === "SCHEDULED" && data.scheduled_at === null) {
+    ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "A scheduled publish time is required" });
+  }
+  if (data.scheduled_at) {
+    const scheduledAt = new Date(data.scheduled_at);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Scheduled publish time is invalid" });
+    }
+  }
 });
 
 module.exports = {

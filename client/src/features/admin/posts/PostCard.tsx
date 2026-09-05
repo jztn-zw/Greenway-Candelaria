@@ -12,6 +12,7 @@ interface PostCardProps {
   onDuplicate: (post: Post) => void;
   onArchive: (post: Post) => void;
   onTogglePublish: (post: Post) => void;
+  onToggleFeatured?: (post: Post) => void;
   onDelete: (post: Post) => void;
 }
 
@@ -22,6 +23,7 @@ const PostCard = ({
   onDuplicate,
   onArchive,
   onTogglePublish,
+  onToggleFeatured,
   onDelete,
 }: PostCardProps) => {
   const isEvent = post.category === "Event";
@@ -192,6 +194,7 @@ const PostCard = ({
             onDuplicate={onDuplicate}
             onArchive={onArchive}
             onTogglePublish={onTogglePublish}
+            onToggleFeatured={onToggleFeatured}
             onDelete={onDelete}
           />
         </div>

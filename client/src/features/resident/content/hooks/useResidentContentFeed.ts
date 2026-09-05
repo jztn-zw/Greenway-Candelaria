@@ -28,8 +28,7 @@ export const useResidentContentFeed = ({
   currentPage,
 }: UseResidentContentFeedOptions) => {
   const featuredPosts = useMemo(() => {
-    const featured = posts.filter((post) => Boolean(post.is_featured));
-    return featured.length > 0 ? featured : posts.slice(0, 2);
+    return posts.filter((post) => Boolean(post.is_featured));
   }, [posts]);
 
   const filteredPosts = useMemo(

@@ -103,8 +103,10 @@ const sendToMany = async ({
 // ─── Notify All Active Residents ───────────────────────────
 
 const notifyAllResidents = async ({ type, title, body, ref_id, ref_module }) => {
+  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : null;
+  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
-    "SELECT id FROM users WHERE role = 'RESIDENT' AND status = 'ACTIVE' AND deleted_at IS NULL",
+    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
   );
   const userIds = residents.map((r) => r.id);
   return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module });
@@ -120,8 +122,10 @@ const notifyBarangayResidents = async ({
   ref_id,
   ref_module,
 }) => {
+  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : null;
+  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
-    "SELECT id FROM users WHERE barangay_id = ? AND role = 'RESIDENT' AND status = 'ACTIVE' AND deleted_at IS NULL",
+    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ? AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
     [barangay_id],
   );
   const userIds = residents.map((r) => r.id);

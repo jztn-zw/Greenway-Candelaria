@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  ArrowLeft,
   Calendar,
   User,
+  MapPin,
   Eye,
   Heart,
   FileText,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/common";
 import { Post, statusStyles, categoryStyles } from "./types";
 import PostImagePlaceholder from "./PostImagePlaceholder";
 
@@ -29,6 +30,7 @@ interface AdminPostDetailProps {
   onDuplicate?: (post: Post) => void;
   onArchive?: (post: Post) => void;
   onTogglePublish?: (post: Post) => void;
+  onToggleFeatured?: (post: Post) => void;
   onDelete?: (post: Post) => void;
   isPreview?: boolean;
 }
@@ -40,6 +42,7 @@ const AdminPostDetail = ({
   onDuplicate,
   onArchive,
   onTogglePublish,
+  onToggleFeatured,
   onDelete,
   isPreview = false,
 }: AdminPostDetailProps) => {
@@ -80,14 +83,7 @@ const AdminPostDetail = ({
       {/* ── Top Back Navigation (Admin view only; preview uses banner button) ── */}
       {!isPreview && (
         <div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-muted/60 dark:bg-muted/40 hover:bg-muted hover:dark:bg-muted/70 border border-border/70 hover:border-border text-muted-foreground hover:text-foreground text-xs font-semibold shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer active:scale-95 group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200 ease-out text-muted-foreground group-hover:text-foreground" />
-            <span>Back to Posts</span>
-          </button>
+          <BackButton label="Back to Posts" onClick={onBack} />
         </div>
       )}
 
@@ -204,8 +200,17 @@ const AdminPostDetail = ({
             <span>•</span>
             <span className="flex items-center gap-1.5 font-medium">
               <User className="w-4 h-4 text-primary" />
-              {post.author || post.source || "MENRO Candelaria"}
+              {post.author || "MENRO Candelaria"}
             </span>
+            {post.source && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  {post.source}
+                </span>
+              </>
+            )}
             {!isPreview && (
               <>
                 <span>•</span>
@@ -280,6 +285,25 @@ const AdminPostDetail = ({
                 ) : (
                   <>
                     <Globe className="w-3.5 h-3.5 text-emerald-500" /> Publish
+                  </>
+                )}
+              </Button>
+            )}
+
+            {!isArchived && onToggleFeatured && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onToggleFeatured(post)}
+                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
+              >
+                {post.featured ? (
+                  <>
+                    <Star className="w-3.5 h-3.5" /> Unfeature
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-3.5 h-3.5" /> Feature
                   </>
                 )}
               </Button>

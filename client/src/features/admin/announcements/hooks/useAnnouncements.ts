@@ -96,6 +96,7 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
       raw.status) as AnnouncementStatus,
     targetAudience: raw.target_all ? "All Residents" : "Specific Barangays",
     targetBarangays: barangays.map((b) => b.name),
+    targetBarangayIds: barangays.map((b) => b.id),
     targetPreset: null,
     pinned: Boolean(raw.is_featured),
     featured: Boolean(raw.is_featured),
@@ -308,14 +309,14 @@ export const useAnnouncements = () => {
     [],
   );
 
-  const togglePin = useCallback((ann: Announcement) => {
-    setAnnouncements((prev) =>
-      prev.map((a) => {
-        if (a.id === ann.id) return { ...a, pinned: !a.pinned };
-        if (!ann.pinned && a.pinned) return { ...a, pinned: false };
-        return a;
-      }),
-    );
+  const togglePin = useCallback(async (ann: Announcement) => {
+    try {
+      const raw = await updateAnnouncement(ann.id, { is_featured: !ann.pinned });
+      const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
+      setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? mapped : a)));
+    } catch {
+      toast.error("Could not update the pinned notice");
+    }
   }, []);
 
   const bulkArchive = useCallback(

@@ -3,6 +3,16 @@ const generateId = require("../../utils/generateId");
 const { notifyAllResidents } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
 
+// Scheduled times arrive as ISO 8601 instants (for example,
+// 2026-09-05T05:30:00.000Z). Store their UTC value in TiDB's timezone-less
+// DATETIME column so comparison with NOW() is reliable on every host.
+const toUtcDatabaseDateTime = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toISOString().slice(0, 19).replace("T", " ");
+};
+
 // ─── Base fetch ────────────────────────────────────────────
 
 const getById = async (id, userId = null, userRole = null, bypassStatusCheck = false) => {
@@ -70,13 +80,45 @@ const getById = async (id, userId = null, userRole = null, bypassStatusCheck = f
 
 // ─── Get All (Optimized) ───────────────────────────────────
 
+const publishDueScheduledPosts = async () => {
+  const [duePosts] = await pool.query(
+    `SELECT id, title
+     FROM posts
+     WHERE status = 'SCHEDULED'
+       AND scheduled_at IS NOT NULL
+       AND scheduled_at <= NOW()
+       AND deleted_at IS NULL`,
+  );
+
+  for (const post of duePosts) {
+    // The status condition makes this safe if two requests reach this code at once:
+    // only the request that actually publishes the post sends the notification.
+    const [result] = await pool.query(
+      `UPDATE posts
+       SET status = 'PUBLISHED', published_at = COALESCE(scheduled_at, NOW())
+       WHERE id = ? AND status = 'SCHEDULED'`,
+      [post.id],
+    );
+
+    if (result.affectedRows === 1) {
+      notifyAllResidents({
+        type: "NEW_POST",
+        title: "New Content Published",
+        body: `"${post.title}" is now available in Contents.`,
+        ref_id: post.id,
+        ref_module: "posts",
+      }).catch((err) =>
+        console.error("[Notify] ❌ Scheduled post notification failed:", err.message),
+      );
+    }
+  }
+};
+
 const getAll = async (filters = {}, userId = null) => {
-  // Auto-activate any scheduled posts whose scheduled_at has arrived
-  await pool
-    .query(
-      "UPDATE posts SET status = 'PUBLISHED', published_at = COALESCE(scheduled_at, NOW()) WHERE status = 'SCHEDULED' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()",
-    )
-    .catch(() => {});
+  // Auto-activate due posts and notify residents exactly once per post.
+  await publishDueScheduledPosts().catch((err) =>
+    console.error("[Posts] ❌ Failed to publish due scheduled posts:", err.message),
+  );
 
   const params = [];
   let isLikedField = "FALSE AS is_liked";
@@ -191,7 +233,7 @@ const create = async (adminId, data) => {
         category,
         status,
         is_featured,
-        scheduled_at || null,
+        toUtcDatabaseDateTime(scheduled_at),
         publishedAt,
         adminId,
       ],
@@ -267,7 +309,11 @@ const update = async (id, data) => {
   for (const [key, col] of Object.entries(map)) {
     if (data[key] !== undefined) {
       fields.push(`${col} = ?`);
-      params.push(data[key]);
+      params.push(
+        key === "scheduled_at"
+          ? toUtcDatabaseDateTime(data[key])
+          : data[key],
+      );
     }
   }
 
@@ -469,6 +515,7 @@ const getBookmarks = async (userId) => {
 };
 
 module.exports = {
+  publishDueScheduledPosts,
   getAll,
   getById,
   create,
