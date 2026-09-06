@@ -49,6 +49,12 @@ const postsService = {
     return data.data;
   },
 
+  // ─── Duplicate post (admin only) ─────────────────────────────────────────
+  duplicate: async (id: string) => {
+    const { data } = await api.post(`/posts/${id}/duplicate`);
+    return data.data;
+  },
+
   // ─── Update post (admin only)
   update: async (
     id: string,

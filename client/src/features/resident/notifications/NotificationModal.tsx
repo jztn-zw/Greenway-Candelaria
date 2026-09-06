@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Truck, CheckCircle2, AlertTriangle, Megaphone, CircleAlert } from "lucide-react";
+import { CalendarClock, Truck, CheckCircle2, AlertTriangle, Megaphone, CircleAlert, Bell } from "lucide-react";
 import type { ResidentNotification } from "./types";
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,8 @@ const typeConfig: Record<string, { icon: React.ElementType; accent: string; labe
   "collection-done": { icon: CheckCircle2, accent: "text-leaf", label: "Collection Complete" },
   "schedule-change": { icon: AlertTriangle, accent: "text-earth-dark", label: "Schedule Change" },
   "system-announcement": { icon: Megaphone, accent: "text-primary", label: "MENRO Announcement" },
+  "announcement": { icon: Megaphone, accent: "text-primary", label: "MENRO Announcement" },
+  "system": { icon: Bell, accent: "text-primary", label: "System Notification" },
   "missed-collection": { icon: CircleAlert, accent: "text-destructive", label: "Missed Collection" },
 };
 
@@ -24,8 +26,11 @@ const NotificationModal = ({ notification, open, onOpenChange }: NotificationMod
 
   if (!notification) return null;
 
-  const config = typeConfig[notification.type];
-  if (!config) return null;
+  const config = typeConfig[notification.type] || {
+    icon: Bell,
+    accent: "text-primary",
+    label: "Notification",
+  };
 
   const Icon = config.icon;
 

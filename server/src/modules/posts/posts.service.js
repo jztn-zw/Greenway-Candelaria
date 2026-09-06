@@ -289,6 +289,29 @@ const create = async (adminId, data) => {
   }
 };
 
+// ─── Duplicate ─────────────────────────────────────────────
+
+const duplicate = async (postId, adminId) => {
+  const original = await getById(postId, null, null, true);
+  const copySuffix = " (Copy)";
+  const title = `${original.title.slice(0, 255 - copySuffix.length)}${copySuffix}`;
+
+  // Create through the normal path so images, tags, audit history, and all
+  // future post rules stay consistent. A duplicate is deliberately a draft:
+  // it never publishes or sends a resident notification automatically.
+  return create(adminId, {
+    title,
+    body: original.body,
+    source: original.source,
+    category: original.category,
+    status: "DRAFT",
+    is_featured: false,
+    scheduled_at: null,
+    images: original.images,
+    tags: original.tags,
+  });
+};
+
 // ─── Update ────────────────────────────────────────────────
 
 const update = async (id, data) => {
@@ -519,6 +542,7 @@ module.exports = {
   getAll,
   getById,
   create,
+  duplicate,
   update,
   remove,
   incrementView,

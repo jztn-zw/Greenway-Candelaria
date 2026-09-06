@@ -335,21 +335,14 @@ const AdminPosts = () => {
 
   const duplicatePost = async (post: Post) => {
     try {
-      const created = await postsService.create({
-        title: `${post.title} (Copy)`,
-        body: post.body,
-        source: post.source,
-        category: post.category === "Waste Tip" ? "WASTE_TIP" : "EVENT",
-        status: "DRAFT",
-        is_featured: false,
-        tags: post.tags,
-        images: post.images,
-      });
+      const created = await postsService.duplicate(post.id);
       const mapped = mapApiPost(created);
       setPosts((prev) => [mapped, ...prev]);
       toast.success("Post duplicated as draft");
-    } catch {
-      toast.error("Failed to duplicate post");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to duplicate post",
+      );
     }
   };
 

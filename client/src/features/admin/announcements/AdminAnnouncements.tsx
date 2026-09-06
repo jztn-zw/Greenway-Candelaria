@@ -64,6 +64,27 @@ import { Announcement, EditorForm, announcementTypeStyles, announcementPriorityS
 const ITEMS_PER_PAGE_GRID = 6;
 const ITEMS_PER_PAGE_TABLE = 10;
 
+const formatDateTime = (dateStr?: string | null) => {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr.includes("Z") ? dateStr : dateStr.replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return dateStr;
+    const datePart = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const timePart = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return `${datePart} at ${timePart}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 const DEFAULT_FORM: EditorForm = {
   title: "",
   body: "",
@@ -672,9 +693,9 @@ const AdminAnnouncements = () => {
           </div>
 
           {previewAnn && (
-            <div className="p-4 sm:p-5 space-y-4 text-left">
+            <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left">
               {/* Notice Card simulating resident feed item */}
-              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-2xs">
+              <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
                 {/* Badges row */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge
@@ -710,10 +731,10 @@ const AdminAnnouncements = () => {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60">
                   <Send className="w-3.5 h-3.5 text-primary" />
                   <span>
-                    {previewAnn.sentDate
-                      ? `Broadcast on ${previewAnn.sentDate}`
+                    {previewAnn.sentAt || previewAnn.sentDate
+                      ? `Broadcast on ${formatDateTime(previewAnn.sentAt || previewAnn.sentDate)}`
                       : previewAnn.scheduledDate
-                        ? `Scheduled for ${new Date(previewAnn.scheduledDate).toLocaleString()}`
+                        ? `Scheduled for ${formatDateTime(previewAnn.scheduledDate)}`
                         : "Draft Notice (Not Sent)"}
                   </span>
                 </div>
@@ -721,20 +742,31 @@ const AdminAnnouncements = () => {
 
               {/* Delivery Metadata Strip */}
               <div className="rounded-xl bg-muted/40 border border-border/60 p-3 text-xs text-muted-foreground space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Target Audience:</span>
-                  <span className="text-foreground/80 font-medium">
-                    {previewAnn.targetAudience === "All Residents"
-                      ? "All Residents (Municipality-wide)"
-                      : previewAnn.targetPreset ||
-                        `${previewAnn.targetBarangays.length} Barangays`}
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-foreground shrink-0">Target Audience:</span>
+                  <div
+                    className="flex items-center gap-1.5 min-w-0 max-w-[240px] justify-end"
+                    title={previewAnn.targetAudience === "All Residents" ? "All Residents" : previewAnn.targetBarangays.join(", ")}
+                  >
+                    <span className="text-foreground/80 font-medium truncate">
+                      {previewAnn.targetAudience === "All Residents"
+                        ? "All Residents"
+                        : previewAnn.targetBarangays.length <= 2
+                          ? previewAnn.targetBarangays.join(", ")
+                          : previewAnn.targetBarangays.slice(0, 2).join(", ")}
+                    </span>
+                    {previewAnn.targetAudience !== "All Residents" && previewAnn.targetBarangays.length > 2 && (
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0 leading-none shadow-2xs">
+                        +{previewAnn.targetBarangays.length - 2}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {previewAnn.expiryDate && (
                   <div className="flex items-center justify-between pt-1 border-t border-border/40">
                     <span className="font-semibold text-foreground">Auto-Expiry:</span>
                     <span className="text-foreground/80 font-medium">
-                      {new Date(previewAnn.expiryDate).toLocaleString()}
+                      {formatDateTime(previewAnn.expiryDate)}
                     </span>
                   </div>
                 )}
@@ -746,31 +778,54 @@ const AdminAnnouncements = () => {
 
       {/* ── Confirm Send Now Modal ── */}
       <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
-        <AlertDialogContent className="rounded-2xl border border-border/80 p-6 shadow-2xl sm:max-w-md">
-          <AlertDialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-1">
-              <Send className="w-5 h-5" />
+        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <Send className="w-4 h-4" />
+              </div>
+              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
+                Confirm Immediate Broadcast
+              </AlertDialogTitle>
             </div>
-            <AlertDialogTitle className="text-lg font-bold font-display text-foreground">
-              Confirm Immediate Broadcast
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              Are you sure you want to broadcast &quot;{pendingSend?.title}&quot; to all
-              targeted residents immediately? A real-time notification will be sent.
+            <button
+              type="button"
+              onClick={() => setConfirmSend(false)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-4 sm:px-5 py-3.5">
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to broadcast{" "}
+              <strong className="text-foreground font-semibold">
+                &ldquo;{pendingSend?.title}&rdquo;
+              </strong>{" "}
+              to all targeted residents immediately? A real-time notification will be sent.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-2">
-            <AlertDialogCancel className="h-10 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer">
+          </div>
+
+          {/* Footer Bar */}
+          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
+            <AlertDialogCancel
+              onClick={() => setConfirmSend(false)}
+              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleSendConfirm}
-              className="h-10 px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
+              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
             >
               <Send className="w-3.5 h-3.5" />
-              Confirm & Send Now
+              <span>Confirm & Send Now</span>
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -779,21 +834,44 @@ const AdminAnnouncements = () => {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
       >
-        <AlertDialogContent className="rounded-2xl border border-border/80 p-6 shadow-2xl sm:max-w-md">
-          <AlertDialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center mb-1">
-              <Trash2 className="w-5 h-5" />
+        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4" />
+              </div>
+              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
+                Delete Announcement?
+              </AlertDialogTitle>
             </div>
-            <AlertDialogTitle className="text-lg font-bold font-display text-foreground">
-              Delete Announcement
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              Are you sure you want to delete &quot;{deleteTarget?.title}&quot;? This action
-              cannot be undone and will remove it from resident feeds.
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-4 sm:px-5 py-3.5">
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-foreground font-semibold">
+                &ldquo;{deleteTarget?.title}&rdquo;
+              </strong>
+              ? This action cannot be undone and will remove it from resident feeds.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-2">
-            <AlertDialogCancel className="h-10 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer">
+          </div>
+
+          {/* Footer Bar */}
+          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
+            <AlertDialogCancel
+              onClick={() => setDeleteTarget(null)}
+              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -801,11 +879,12 @@ const AdminAnnouncements = () => {
                 const ok = await remove(deleteTarget!.id);
                 if (ok) setDeleteTarget(null);
               }}
-              className="h-10 px-5 rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white cursor-pointer shadow-xs"
+              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all"
             >
-              Delete Notice
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Notice</span>
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -814,30 +893,54 @@ const AdminAnnouncements = () => {
         open={!!resendTarget}
         onOpenChange={() => setResendTarget(null)}
       >
-        <AlertDialogContent className="rounded-2xl border border-border/80 p-6 shadow-2xl sm:max-w-md">
-          <AlertDialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-1">
-              <Send className="w-5 h-5" />
+        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-4 h-4" />
+              </div>
+              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
+                Resend Announcement?
+              </AlertDialogTitle>
             </div>
-            <AlertDialogTitle className="text-lg font-bold font-display text-foreground">
-              Resend to Unread Residents
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              This will re-issue a notification for &quot;{resendTarget?.title}&quot; only to
-              residents who have not yet read or opened this notice.
+            <button
+              type="button"
+              onClick={() => setResendTarget(null)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-4 sm:px-5 py-3.5">
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              This will re-issue a real-time notification for{" "}
+              <strong className="text-foreground font-semibold">
+                &ldquo;{resendTarget?.title}&rdquo;
+              </strong>{" "}
+              only to residents who have not yet read or opened this notice.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 pt-2">
-            <AlertDialogCancel className="h-10 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer">
+          </div>
+
+          {/* Footer Bar */}
+          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
+            <AlertDialogCancel
+              onClick={() => setResendTarget(null)}
+              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleResendConfirm}
-              className="h-10 px-5 rounded-xl text-xs font-semibold cursor-pointer shadow-xs"
+              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
             >
-              Confirm & Resend
+              <Send className="w-3.5 h-3.5" />
+              <span>Confirm & Resend</span>
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

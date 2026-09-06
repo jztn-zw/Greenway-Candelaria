@@ -52,6 +52,15 @@ const create = async (req, res, next) => {
   }
 };
 
+const duplicate = async (req, res, next) => {
+  try {
+    const post = await service.duplicate(req.params.id, req.user.id);
+    return success(res, post, "Post duplicated as draft", 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const update = async (req, res, next) => {
   try {
     const data = updatePostSchema.parse(req.body);
@@ -120,6 +129,7 @@ module.exports = {
   getAll,
   getById,
   create,
+  duplicate,
   update,
   remove,
   likePost,

@@ -201,7 +201,16 @@ const create = async (adminId, data) => {
     new_value: { title: created.title, type: created.type, priority: created.priority, status: created.status },
   }).catch(() => {});
 
-  if (created.status === "ACTIVE") notifyRecipients(created).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
+  // Finish persisting recipient notifications before returning success. Keeping this
+  // work in the background allowed a server restart/request teardown to leave a
+  // targeted announcement active without creating any recipient notifications.
+  if (created.status === "ACTIVE") {
+    try {
+      await notifyRecipients(created);
+    } catch (err) {
+      console.error("[Notify] ❌ Announcement broadcast failed:", err.message);
+    }
+  }
 
   return created;
 };
@@ -276,7 +285,13 @@ const update = async (id, data) => {
     new_value: { title: updated.title, status: updated.status, priority: updated.priority },
   }).catch(() => {});
 
-  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") notifyRecipients(updated).catch((err) => console.error("[Notify] ❌ Announcement broadcast failed:", err.message));
+  if (data.status === "ACTIVE" && existing.status !== "ACTIVE") {
+    try {
+      await notifyRecipients(updated);
+    } catch (err) {
+      console.error("[Notify] ❌ Announcement broadcast failed:", err.message);
+    }
+  }
 
   return updated;
 };

@@ -368,8 +368,7 @@ const AnnouncementCard = ({
             <span className="truncate font-medium">
               {ann.targetAudience === "All Residents"
                 ? "All Residents"
-                : ann.targetPreset ||
-                  `${ann.targetBarangays.length} Barangay${
+                : `${ann.targetBarangays.length} Barangay${
                     ann.targetBarangays.length !== 1 ? "s" : ""
                   }`}
             </span>

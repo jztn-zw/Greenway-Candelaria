@@ -9,7 +9,7 @@ const QuickActionsAndContact = () => {
   return (
     <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden h-full flex flex-col justify-between">
       <div>
-        <CardHeader className="pb-3 px-4 sm:px-6">
+        <CardHeader className="pb-2 px-4 sm:px-6">
           <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 font-display">
             <ShieldCheck className="w-4 h-4 text-primary" />
             MENRO Candelaria Office
@@ -18,8 +18,8 @@ const QuickActionsAndContact = () => {
             Municipal Environment & Natural Resources
           </p>
         </CardHeader>
-        <CardContent className="px-4 sm:px-6 pb-4 space-y-3">
-          <div className="space-y-2 text-xs">
+        <CardContent className="px-4 sm:px-6 pb-3 space-y-2.5">
+          <div className="space-y-1.5 text-xs">
             <div className="flex items-center gap-2.5 p-2 rounded-xl bg-muted/40 border border-border/50">
               <Phone className="w-4 h-4 text-primary shrink-0" />
               <div>
@@ -59,12 +59,12 @@ const QuickActionsAndContact = () => {
         </CardContent>
       </div>
 
-      <div className="px-4 sm:px-6 pb-4">
+      <div className="px-4 sm:px-6 pb-3.5">
         <Button
           variant="outline"
           size="sm"
           onClick={() => navigate("/resident/my-reports")}
-          className="w-full text-xs font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 rounded-xl h-10 cursor-pointer"
+          className="w-full text-xs font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 rounded-xl h-9 cursor-pointer"
         >
           <ClipboardList className="w-3.5 h-3.5" />
           Track My Reports

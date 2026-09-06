@@ -142,22 +142,38 @@ const notifyAdmins = async ({ type, title, body, ref_id, ref_module }) => {
   return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module });
 };
 
+// Keep notification history in the database, but do not show an announcement
+// notification after its linked announcement has reached its expiry time.
+const excludeExpiredAnnouncementNotifications = `
+  AND NOT (
+    n.ref_module = 'announcements'
+    AND EXISTS (
+      SELECT 1
+      FROM announcements a
+      WHERE a.id = n.ref_id
+        AND a.expires_at IS NOT NULL
+        AND a.expires_at <= NOW()
+    )
+  )
+`;
+
 // ─── Get My Notifications (Paginated) ──────────────────────
 
 const getMyNotifications = async (userId, filters = {}) => {
   let query = `
-    SELECT * FROM notifications
-    WHERE user_id = ?
+    SELECT n.* FROM notifications n
+    WHERE n.user_id = ?
+    ${excludeExpiredAnnouncementNotifications}
   `;
   const params = [userId];
 
   if (filters.type) {
-    query += " AND type = ?";
+    query += " AND n.type = ?";
     params.push(filters.type);
   }
 
   if (filters.is_read !== undefined && filters.is_read !== "all") {
-    query += " AND is_read = ?";
+    query += " AND n.is_read = ?";
     params.push(filters.is_read === "true" || filters.is_read === "1" ? 1 : 0);
   }
 
@@ -171,7 +187,10 @@ const getMyNotifications = async (userId, filters = {}) => {
   const [rows] = await pool.query(query, params);
 
   const [countResult] = await pool.query(
-    "SELECT COUNT(*) AS total FROM notifications WHERE user_id = ?",
+    `SELECT COUNT(*) AS total
+     FROM notifications n
+     WHERE n.user_id = ?
+     ${excludeExpiredAnnouncementNotifications}`,
     [userId],
   );
 
@@ -187,7 +206,11 @@ const getMyNotifications = async (userId, filters = {}) => {
 
 const getUnreadCount = async (userId) => {
   const [rows] = await pool.query(
-    "SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND is_read = FALSE",
+    `SELECT COUNT(*) AS count
+     FROM notifications n
+     WHERE n.user_id = ?
+       AND n.is_read = FALSE
+     ${excludeExpiredAnnouncementNotifications}`,
     [userId],
   );
 

@@ -32,6 +32,8 @@ const CollectionCalendar = () => {
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
+  const numRows = Math.ceil(cells.length / 7);
+
   const selectedDayInfo = selectedDay
     ? (() => {
         const dow = new Date(year, month, selectedDay).getDay();
@@ -41,31 +43,35 @@ const CollectionCalendar = () => {
     : null;
 
   return (
-    <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-3 px-4 sm:px-6">
+    <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden h-full flex flex-col">
+      <CardHeader className="pb-2 px-4 sm:px-6 shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 font-display">
             <CalendarDays className="w-4 h-4 text-primary" />
             Collection Calendar
           </CardTitle>
-          <span className="text-xs text-muted-foreground font-semibold bg-muted/60 px-2.5 py-1 rounded-lg">
+          <span className="text-xs text-muted-foreground font-semibold bg-muted/60 px-2.5 py-0.5 rounded-lg">
             {monthName} {year}
           </span>
         </div>
       </CardHeader>
-      <CardContent className="px-4 sm:px-6 pb-4">
+      <CardContent className="px-4 sm:px-6 pb-3 flex-1 flex flex-col justify-between">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-1.5">
+        <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
           {dayLabels.map((d, i) => (
-            <div key={i} className="text-center text-[11px] font-bold text-muted-foreground py-1">
+            <div key={i} className="text-center text-[11px] font-bold text-muted-foreground py-0.5">
               {d}
             </div>
           ))}
         </div>
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+
+        {/* Calendar grid — fills all remaining height with even row heights */}
+        <div
+          className="grid grid-cols-7 gap-1.5 sm:gap-2 flex-1 mt-1 mb-3.5 sm:mb-4"
+          style={{ gridTemplateRows: `repeat(${numRows}, minmax(0, 1fr))` }}
+        >
           {cells.map((day, i) => {
-            if (day === null) return <div key={`e-${i}`} className="min-h-[38px] sm:min-h-[44px]" />;
+            if (day === null) return <div key={`e-${i}`} />;
             const dow = new Date(year, month, day).getDay();
             const type = getWasteType(dow);
             const info = wasteInfo[type];
@@ -76,7 +82,7 @@ const CollectionCalendar = () => {
               <button
                 key={day}
                 onClick={() => setSelectedDay(isSelected ? null : day)}
-                className={`relative flex flex-col items-center justify-center rounded-xl min-h-[38px] sm:min-h-[44px] p-1 sm:p-2 text-xs sm:text-sm transition-all active:scale-95
+                className={`relative flex flex-col items-center justify-center rounded-xl w-full h-full p-1 sm:p-1.5 text-xs sm:text-sm transition-all active:scale-95
                   ${isToday
                     ? "bg-primary text-primary-foreground font-bold shadow-md ring-2 ring-primary/40"
                     : isSelected
@@ -95,7 +101,7 @@ const CollectionCalendar = () => {
 
         {/* Day detail tooltip */}
         {selectedDayInfo && (
-          <div className="mt-3.5 p-3 rounded-xl bg-muted/60 border border-border/80 flex items-center justify-between animate-fade-in">
+          <div className="mb-2 p-2.5 rounded-xl bg-muted/60 border border-border/80 flex items-center justify-between animate-fade-in shrink-0">
             <div>
               <p className="text-xs font-bold text-foreground">
                 {selectedDayInfo.dayName}, {monthName} {selectedDayInfo.date}
@@ -114,7 +120,7 @@ const CollectionCalendar = () => {
         )}
 
         {/* Legend + View Calendar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-border/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-border/50 shrink-0">
           <div className="flex items-center gap-3 sm:gap-4 text-[11px] text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-primary" />

@@ -20,7 +20,9 @@ import {
   FileText,
   Trash2,
   X,
+  CheckCheck,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -44,6 +46,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   Announcement,
   EditorForm,
@@ -51,7 +55,6 @@ import {
   AnnouncementPriority,
   AnnouncementStatus,
   TargetAudience,
-  BARANGAY_PRESETS,
   BODY_CHAR_LIMIT,
 } from "./types";
 
@@ -78,9 +81,6 @@ const AnnouncementEditor = ({
 }: Props) => {
   const [barangaySearch, setBarangaySearch] = useState("");
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-
-  const timeInputClassName =
-    "h-9 px-3 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary appearance-none";
 
   const getTimeFromDate = (dateStr: string) => {
     if (!dateStr) return "00:00";
@@ -174,6 +174,13 @@ const AnnouncementEditor = ({
     }));
   };
 
+  const isAllSelected = useMemo(() => {
+    return (
+      (barangayOptions || []).length > 0 &&
+      barangayOptions.every((b) => form.targetBarangays.includes(b.id))
+    );
+  }, [barangayOptions, form.targetBarangays]);
+
   const selectAllBarangays = () => {
     setForm((prev) => ({
       ...prev,
@@ -185,18 +192,6 @@ const AnnouncementEditor = ({
     setForm((prev) => ({
       ...prev,
       targetBarangays: [],
-    }));
-  };
-
-  const applyPreset = (presetName: string) => {
-    const brgyNames = BARANGAY_PRESETS[presetName] || [];
-    const brgyIds = (barangayOptions || [])
-      .filter((b) => brgyNames.includes(b.name))
-      .map((b) => b.id);
-    setForm((prev) => ({
-      ...prev,
-      targetPreset: presetName,
-      targetBarangays: brgyIds,
     }));
   };
 
@@ -271,7 +266,7 @@ const AnnouncementEditor = ({
             {/* Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground/90">
-                Notice Title <span className="text-destructive">*</span>
+                Notice Title
               </Label>
               <Input
                 value={form.title}
@@ -287,7 +282,7 @@ const AnnouncementEditor = ({
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <Label className="text-xs font-semibold text-foreground/90">
-                  Message Content <span className="text-destructive">*</span>
+                  Message Content
                 </Label>
                 <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md tabular-nums border border-border/40">
                   {form.body.length} / {BODY_CHAR_LIMIT}
@@ -373,6 +368,7 @@ const AnnouncementEditor = ({
                   setForm((p) => ({
                     ...p,
                     targetAudience: v as TargetAudience,
+                    targetBarangays: v === "All Residents" ? [] : p.targetBarangays,
                   }))
                 }
               >
@@ -386,57 +382,39 @@ const AnnouncementEditor = ({
                   <SelectItem value="Specific Barangays" className="text-xs font-medium">
                     Specific Barangays
                   </SelectItem>
-                  <SelectItem value="Barangay Group Preset" className="text-xs font-medium">
-                    Barangay Group Preset
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Preset Selector */}
-            {form.targetAudience === "Barangay Group Preset" && (
-              <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/70">
-                <Label className="text-xs font-semibold text-foreground/90">
-                  Select Preset Group
-                </Label>
-                <Select
-                  value={form.targetPreset || ""}
-                  onValueChange={applyPreset}
-                >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3">
-                    <SelectValue placeholder="Choose a preset group..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
-                    {Object.keys(BARANGAY_PRESETS).map((p) => (
-                      <SelectItem key={p} value={p} className="text-xs font-medium">
-                        {p} ({BARANGAY_PRESETS[p].length} barangays)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* Specific Barangays Picker */}
-            {form.targetAudience !== "All Residents" && (
-              <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/70">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-foreground/90">
-                    Select Barangays ({form.targetBarangays.length} selected)
-                  </Label>
-                  <div className="flex items-center gap-2">
+            {form.targetAudience === "Specific Barangays" && (
+              <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border/70">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Label className="text-xs font-semibold text-foreground/90 shrink-0">
+                      Target Barangays
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-semibold h-5 px-2 rounded-full bg-primary/10 text-primary border-primary/25 shrink-0"
+                    >
+                      {form.targetBarangays.length} / {barangayOptions.length}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={selectAllBarangays}
-                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-primary hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none"
                     >
                       Select All
                     </button>
-                    <span className="text-muted-foreground/40">•</span>
+                    <span className="text-muted-foreground/40 text-xs select-none">•</span>
                     <button
                       type="button"
                       onClick={clearAllBarangays}
-                      className="text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none"
                     >
                       Clear
                     </button>
@@ -460,8 +438,10 @@ const AnnouncementEditor = ({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-[300px] p-0 rounded-xl border border-border shadow-xl"
+                    className="w-[320px] p-0 rounded-xl border border-border shadow-xl z-[70]"
                     align="start"
+                    onWheel={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="p-2.5 border-b border-border">
                       <div className="relative">
@@ -470,47 +450,103 @@ const AnnouncementEditor = ({
                           placeholder="Search barangays..."
                           value={barangaySearch}
                           onChange={(e) => setBarangaySearch(e.target.value)}
-                          className="h-8 pl-8 text-xs rounded-lg bg-muted/30 border-border"
+                          className="h-8 pl-8 pr-7 text-xs rounded-lg bg-muted/30 border-border"
                         />
+                        {barangaySearch && (
+                          <button
+                            type="button"
+                            onClick={() => setBarangaySearch("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="max-h-[200px] overflow-y-auto p-1.5 space-y-0.5 overscroll-contain">
-                      {filteredBarangays.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-4">
-                          No barangays found.
-                        </p>
-                      ) : (
-                        filteredBarangays.map((b) => {
-                          const isChecked = form.targetBarangays.includes(b.id);
-                          return (
-                            <label
-                              key={b.id}
-                              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors text-xs font-medium ${
-                                isChecked
-                                  ? "bg-primary/10 text-primary"
-                                  : "hover:bg-muted text-foreground"
-                              }`}
-                            >
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={() => toggleBarangay(b.id)}
-                                className="rounded-sm border-border"
-                              />
-                              <span>{b.name}</span>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
+
+                    <ScrollArea
+                      className="h-[220px] p-1.5"
+                      onWheel={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                    >
+                      <div className="space-y-0.5 pr-2">
+                        {filteredBarangays.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">
+                            No barangays found.
+                          </p>
+                        ) : (
+                          filteredBarangays.map((b) => {
+                            const isChecked = form.targetBarangays.includes(b.id);
+                            return (
+                              <label
+                                key={b.id}
+                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors text-xs font-medium select-none ${
+                                  isChecked
+                                    ? "bg-primary/10 text-primary font-semibold"
+                                    : "hover:bg-muted text-foreground"
+                                }`}
+                              >
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={() => toggleBarangay(b.id)}
+                                  className="rounded-sm border-border"
+                                />
+                                <span>{b.name}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ScrollArea>
                   </PopoverContent>
                 </Popover>
+
+                {/* Selected barangays chips preview */}
+                {form.targetBarangays.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {isAllSelected ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary font-semibold">
+                        <CheckCheck className="w-3.5 h-3.5" />
+                        All {barangayOptions.length} Barangays Selected
+                      </span>
+                    ) : (
+                      <>
+                        {form.targetBarangays.slice(0, 4).map((id) => {
+                          const bName =
+                            barangayOptions.find((b) => b.id === id)?.name || id;
+                          return (
+                            <span
+                              key={id}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-background border border-border/80 text-xs text-foreground font-medium shadow-2xs"
+                            >
+                              <span className="truncate max-w-[120px]">{bName}</span>
+                              <button
+                                type="button"
+                                onClick={() => toggleBarangay(id)}
+                                className="text-muted-foreground hover:text-destructive transition-colors cursor-pointer ml-0.5"
+                                title={`Remove ${bName}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                        {form.targetBarangays.length > 4 && (
+                          <span className="text-[11px] font-medium text-muted-foreground px-1 self-center">
+                            +{form.targetBarangays.length - 4} more
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Publishing Status & Pin Toggle */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 items-start">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90">
+                <Label className="text-xs font-semibold text-foreground/90 h-5 flex items-center">
                   Publishing Status
                 </Label>
                 <Select
@@ -519,49 +555,52 @@ const AnnouncementEditor = ({
                     setForm((p) => ({ ...p, status: v as AnnouncementStatus }))
                   }
                 >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
+                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20 shadow-2xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-border">
                     <SelectItem value="Active" className="text-xs font-medium">
-                      Active (Send Immediately)
+                      Active
                     </SelectItem>
                     <SelectItem value="Scheduled" className="text-xs font-medium">
-                      Scheduled (Automated)
+                      Scheduled
                     </SelectItem>
                     <SelectItem value="Draft" className="text-xs font-medium">
-                      Draft (Save for Later)
+                      Draft
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Pin Toggle */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/80 bg-muted/20">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Pin className="w-3.5 h-3.5 text-primary" />
-                    <Label className="text-xs font-semibold text-foreground cursor-pointer">
-                      Pin Notice
-                    </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground/90 h-5 flex items-center gap-1.5">
+                  <Pin className="w-3.5 h-3.5 text-primary" />
+                  Pin Notice
+                </Label>
+                <div
+                  onClick={() => setForm((p) => ({ ...p, featured: !p.featured }))}
+                  className="h-10 px-3 rounded-xl border border-border bg-background flex items-center justify-between cursor-pointer hover:border-border/80 transition-colors shadow-2xs select-none"
+                >
+                  <span className="text-xs font-medium text-foreground/90 truncate mr-2">
+                    {form.featured ? "Pinned to Top" : "Pin to Top"}
+                  </span>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={form.featured}
+                      onCheckedChange={(v) => setForm((p) => ({ ...p, featured: v }))}
+                    />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Pin to top of resident feed
-                  </p>
                 </div>
-                <Switch
-                  checked={form.featured}
-                  onCheckedChange={(v) => setForm((p) => ({ ...p, featured: v }))}
-                />
               </div>
             </div>
 
             {/* Scheduled Date/Time Picker */}
             {form.status === "Scheduled" && (
-              <div className="space-y-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+              <div className="space-y-3 p-3 rounded-xl bg-muted/40 border border-border/70">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-foreground/90 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                     Broadcast Date & Time
                   </Label>
                   <Popover>
@@ -573,7 +612,7 @@ const AnnouncementEditor = ({
                           !form.scheduledDate && "text-muted-foreground",
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         {form.scheduledDate
                           ? format(new Date(form.scheduledDate), "PPP p")
                           : "Pick broadcast date..."}
@@ -599,17 +638,15 @@ const AnnouncementEditor = ({
                         initialFocus
                         className="p-3"
                       />
-                      <div className="border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
-                        <span className="text-xs font-medium text-muted-foreground">
+                      <div className="relative border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+                        <span className="text-xs font-medium text-muted-foreground shrink-0">
                           Time:
                         </span>
-                        <Input
-                          type="time"
+                        <TimePicker
                           value={getTimeFromDate(form.scheduledDate)}
-                          onChange={(e) =>
-                            setTimeForField("scheduledDate", e.target.value)
+                          onChange={(val) =>
+                            setTimeForField("scheduledDate", val)
                           }
-                          className={timeInputClassName}
                         />
                       </div>
                     </PopoverContent>
@@ -656,17 +693,15 @@ const AnnouncementEditor = ({
                         initialFocus
                         className="p-3"
                       />
-                      <div className="border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
-                        <span className="text-xs font-medium text-muted-foreground">
+                      <div className="relative border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+                        <span className="text-xs font-medium text-muted-foreground shrink-0">
                           Time:
                         </span>
-                        <Input
-                          type="time"
+                        <TimePicker
                           value={getTimeFromDate(form.expiryDate)}
-                          onChange={(e) =>
-                            setTimeForField("expiryDate", e.target.value)
+                          onChange={(val) =>
+                            setTimeForField("expiryDate", val)
                           }
-                          className={timeInputClassName}
                         />
                       </div>
                     </PopoverContent>
@@ -717,17 +752,15 @@ const AnnouncementEditor = ({
                       initialFocus
                       className="p-3"
                     />
-                    <div className="border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
-                      <span className="text-xs font-medium text-muted-foreground">
+                    <div className="relative border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+                      <span className="text-xs font-medium text-muted-foreground shrink-0">
                         Time:
                       </span>
-                      <Input
-                        type="time"
+                      <TimePicker
                         value={getTimeFromDate(form.expiryDate)}
-                        onChange={(e) =>
-                          setTimeForField("expiryDate", e.target.value)
+                        onChange={(val) =>
+                          setTimeForField("expiryDate", val)
                         }
-                        className={timeInputClassName}
                       />
                     </div>
                   </PopoverContent>

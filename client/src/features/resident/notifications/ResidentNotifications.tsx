@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
   CheckCheck,
@@ -19,6 +19,10 @@ import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
 import { formatRelativeTime } from "@/utils/date";
 import NotificationModal from "./NotificationModal";
+import ResidentAnnouncementModal from "../announcements/ResidentAnnouncementModal";
+import type { AnnouncementDetail } from "../announcements/ResidentAnnouncementModal";
+import { fetchAnnouncementById } from "@/services/announcementsService";
+import { toast } from "sonner";
 import {
   PageHeaderSkeleton,
   NotificationsPageSkeleton,
@@ -75,10 +79,14 @@ const ResidentNotifications = () => {
     notifications,
     unreadCount,
     isLoading,
+    fetchNotifications,
     markAsRead,
     markAllAsRead,
     clearAll,
   } = useNotifications();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const announcementParam = searchParams.get("announcement");
 
   const [activeTab, setActiveTab] = useState<NotificationCategory>("all");
   const [modalNotification, setModalNotification] = useState<{
@@ -90,7 +98,61 @@ const ResidentNotifications = () => {
     details?: string;
   } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<{
+    id?: string | null;
+    notification?: NotificationRow | null;
+    detail?: AnnouncementDetail | null;
+  } | null>(null);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Refresh when this page opens so notifications whose announcements expired
+  // while the resident kept the app open are removed immediately.
+  useEffect(() => {
+    void fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Sync ?announcement=<id> query parameter from URL
+  useEffect(() => {
+    if (announcementParam) {
+      const match = notifications.find(
+        (n) => n.ref_id === announcementParam || n.id === announcementParam
+      );
+      let cancelled = false;
+      void (async () => {
+        try {
+          const detail = await fetchAnnouncementById(announcementParam);
+          if (!cancelled) {
+            setSelectedAnnouncement({
+              id: announcementParam,
+              notification: match || null,
+              detail: detail as AnnouncementDetail,
+            });
+            setAnnouncementModalOpen(true);
+          }
+        } catch {
+          if (!cancelled) toast.info("This announcement has expired and is no longer available.");
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [announcementParam, notifications]);
+
+  const handleAnnouncementModalChange = (open: boolean) => {
+    setAnnouncementModalOpen(open);
+    if (!open) {
+      setSelectedAnnouncement(null);
+      if (searchParams.has("announcement")) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("announcement");
+        setSearchParams(nextParams, { replace: true });
+      }
+    }
+  };
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -160,7 +222,33 @@ const ResidentNotifications = () => {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
-    } else if (n.type === "ANNOUNCEMENT" || n.type === "SYSTEM") {
+    } else if (n.type === "ANNOUNCEMENT" || n.ref_module === "announcements") {
+      // Check availability before opening the modal. Expired announcements are
+      // intentionally unavailable to residents, so show only a clear message.
+      if (n.ref_id) {
+        try {
+          const detail = await fetchAnnouncementById(n.ref_id);
+          setSelectedAnnouncement({
+            id: n.ref_id,
+            notification: n,
+            detail: detail as AnnouncementDetail,
+          });
+          setAnnouncementModalOpen(true);
+        } catch {
+          toast.info("This announcement has expired and is no longer available.");
+          void fetchNotifications();
+          return;
+        }
+        return;
+      }
+
+      setSelectedAnnouncement({
+        id: n.ref_id || n.id,
+        notification: n,
+        detail: null,
+      });
+      setAnnouncementModalOpen(true);
+    } else if (n.type === "SYSTEM" || n.type === "MISSED_COLLECTION") {
       setModalNotification({
         id: n.id,
         title: n.title,
@@ -336,7 +424,17 @@ const ResidentNotifications = () => {
       {/* ── Pagination ── */}
       <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} />
 
-      {/* ── Modal for Announcements & System Details ── */}
+      {/* ── Modal for Announcements ── */}
+      <ResidentAnnouncementModal
+        open={announcementModalOpen}
+        onOpenChange={handleAnnouncementModalChange}
+        announcementId={selectedAnnouncement?.id}
+        initialAnnouncement={selectedAnnouncement?.detail}
+        notification={selectedAnnouncement?.notification}
+        onMarkRead={markAsRead}
+      />
+
+      {/* ── Modal for Generic & System Details ── */}
       {modalNotification && (
         <NotificationModal
           open={modalOpen}

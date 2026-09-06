@@ -102,8 +102,9 @@ const ResidentTopBar = () => {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
-    } else if (n.ref_module === "announcements") {
-      navigate("/resident/notifications");
+    } else if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+      const targetId = n.ref_id || n.id;
+      navigate(`/resident/notifications?announcement=${targetId}`);
     } else {
       navigate("/resident/notifications");
     }

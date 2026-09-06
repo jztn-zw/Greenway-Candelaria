@@ -101,6 +101,8 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     pinned: Boolean(raw.is_featured),
     featured: Boolean(raw.is_featured),
     sentDate: formatDate(raw.sent_at as string | null),
+    sentAt: (raw.sent_at as string | null) ?? null,
+    createdAt: (raw.created_at as string | null) ?? null,
     scheduledDate: (raw.scheduled_at as string | null) ?? null,
     expiryDate: formatDate(raw.expires_at as string | null),
     readCount: Number(raw.read_count ?? 0),

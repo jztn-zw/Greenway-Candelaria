@@ -28,6 +28,12 @@ router.post(
   authorize("ADMIN"),
   controller.create,
 );
+router.post(
+  "/:id/duplicate",
+  authenticate,
+  authorize("ADMIN"),
+  controller.duplicate,
+);
 router.put(
   "/:id",
   authenticate,

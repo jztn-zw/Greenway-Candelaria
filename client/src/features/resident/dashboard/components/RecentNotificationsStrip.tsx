@@ -27,9 +27,19 @@ const RecentNotificationsStrip = () => {
     void load();
   }, []);
 
-  if (!isLoading && notifications.length === 0) {
-    return null;
-  }
+  const handleItemClick = (n: NotificationRow) => {
+    if (n.ref_module === "posts" && n.ref_id) {
+      navigate(`/resident/contents?post=${n.ref_id}`);
+    } else if (n.ref_module === "reports" && n.ref_id) {
+      navigate(`/resident/my-reports?report=${n.ref_id}`);
+    } else if (n.ref_module === "tracking") {
+      navigate("/resident/schedule");
+    } else if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+      navigate(`/resident/notifications?announcement=${n.ref_id || n.id}`);
+    } else {
+      navigate("/resident/notifications");
+    }
+  };
 
   return (
     <div className="space-y-2.5">
@@ -62,8 +72,8 @@ const RecentNotificationsStrip = () => {
           return (
             <button
               key={n.id}
-              onClick={() => navigate("/resident/notifications")}
-              className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all text-left group active:scale-[0.99] ${
+              onClick={() => handleItemClick(n)}
+              className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all text-left group active:scale-[0.99] cursor-pointer ${
                 isUnread
                   ? "bg-card/90 border-primary/30 shadow-xs"
                   : "bg-card/60 border-border/70 hover:border-border"

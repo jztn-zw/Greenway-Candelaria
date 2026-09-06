@@ -1,7 +1,7 @@
 export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Emergency Advisory" | "General Notice" | "System Maintenance";
 export type AnnouncementPriority = "Normal" | "Urgent" | "Emergency";
 export type AnnouncementStatus = "Draft" | "Scheduled" | "Active" | "Archived";
-export type TargetAudience = "All Residents" | "Specific Barangays" | "Barangay Group Preset";
+export type TargetAudience = "All Residents" | "Specific Barangays";
 
 export interface BarangayReadStat {
   name: string;
@@ -23,6 +23,8 @@ export interface Announcement {
   pinned: boolean;
   featured: boolean;
   sentDate: string | null;
+  sentAt?: string | null;
+  createdAt?: string | null;
   scheduledDate: string | null;
   expiryDate: string | null;
   readCount: number;
@@ -64,13 +66,6 @@ export const BARANGAYS = [
   "San Antonio", "San Bartolome", "San Carlos", "San Francisco",
   "San Nicolas", "Santiago", "Villa Esperanza",
 ];
-
-export const BARANGAY_PRESETS: Record<string, string[]> = {
-  "Coastal Barangays": ["Sapa", "Pahinga Norte", "Pahinga Sur", "Bucal", "Buenavista"],
-  "Zone A": ["Poblacion", "Rizal", "San Miguel", "Santa Cruz", "Mabini"],
-  "Zone B": ["Bukal Norte", "Bukal Sur", "Kinatihan I", "Kinatihan II", "Masalukot I"],
-  "Upland Barangays": ["Mataas na Lupa", "Masin", "Isabang", "Cigaras"],
-};
 
 export const BODY_CHAR_LIMIT = 500;
 export const ITEMS_PER_PAGE = 6;
