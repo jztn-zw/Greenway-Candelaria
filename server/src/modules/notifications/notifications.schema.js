@@ -16,6 +16,7 @@ const sendNotificationSchema = z.object({
   body: z.string().min(1, "Body is required"),
   ref_id: z.string().optional().nullable(),
   ref_module: z.string().optional().nullable(),
+  metadata: z.record(z.unknown()).optional().nullable(),
 });
 
 module.exports = { sendNotificationSchema };

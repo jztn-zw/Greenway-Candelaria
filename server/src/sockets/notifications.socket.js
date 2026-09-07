@@ -140,10 +140,18 @@ const emitNotificationToAdmins = (notification) => {
   }
 };
 
+// Remove an in-memory notification immediately when its source is no longer
+// available (for example, an archived or expired announcement).
+const emitNotificationReferenceRemoved = (ref_module, ref_id) => {
+  if (!ioInstance || !ref_module || !ref_id) return;
+  ioInstance.emit("notification:remove_ref", { ref_module, ref_id });
+};
+
 module.exports = {
   registerNotificationsSocket,
   getIO,
   emitNotificationToUser,
   emitNotificationToBarangay,
   emitNotificationToAdmins,
+  emitNotificationReferenceRemoved,
 };

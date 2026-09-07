@@ -21,9 +21,10 @@ const getById = async (req, res, next) => {
     const userId = req.user?.id || null;
     const userRole = req.user?.role || null;
     const ip = req.ip || req.headers["x-forwarded-for"] || "0.0.0.0";
-    await service.incrementView(req.params.id, userId, ip);
-
     const post = await service.getById(req.params.id, userId, userRole);
+    // Only count a view after access has been authorized. This prevents hidden
+    // drafts and archived posts from gaining views through direct URL requests.
+    await service.incrementView(req.params.id, userId, ip);
 
     return success(res, post, "Post fetched successfully");
   } catch (err) {

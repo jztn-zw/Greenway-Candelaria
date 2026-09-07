@@ -4,14 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import {
   CalendarIcon,
   ChevronDown,
   Megaphone,
-  Pin,
   Clock,
   Send,
   Loader2,
@@ -82,9 +80,17 @@ const AnnouncementEditor = ({
   const [barangaySearch, setBarangaySearch] = useState("");
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
+  // Database DATETIME values are UTC but arrive without a timezone suffix.
+  const parseStoredDate = (value: string) => {
+    const normalized = /^\d{4}-\d{2}-\d{2}/.test(value) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
+      ? `${value.replace(" ", "T")}Z`
+      : value;
+    return new Date(normalized);
+  };
+
   const getTimeFromDate = (dateStr: string) => {
     if (!dateStr) return "00:00";
-    const d = new Date(dateStr);
+    const d = parseStoredDate(dateStr);
     return `${String(d.getHours()).padStart(2, "0")}:${String(
       d.getMinutes(),
     ).padStart(2, "0")}`;
@@ -95,11 +101,20 @@ const AnnouncementEditor = ({
     time: string,
   ) => {
     setForm((prev) => {
-      const current = prev[field] ? new Date(prev[field]) : new Date();
+      const current = prev[field] ? parseStoredDate(prev[field]) : new Date();
       const [h, m] = time.split(":").map(Number);
+      // An announcement expires exactly at the time selected by the admin.
       current.setHours(h, m, 0, 0);
       return { ...prev, [field]: current.toISOString() };
     });
+  };
+
+  const expiryAtEndOfDay = (date?: Date) => {
+    if (!date) return "";
+    const expiry = new Date(date);
+    // When an admin chooses only a date, expire at the end of that local day.
+    expiry.setHours(23, 59, 59, 0);
+    return expiry.toISOString();
   };
 
   if (!form) return null;
@@ -114,7 +129,6 @@ const AnnouncementEditor = ({
         form.priority !== editingAnnouncement.priority ||
         form.status !== editingAnnouncement.status ||
         form.targetAudience !== editingAnnouncement.targetAudience ||
-        form.featured !== editingAnnouncement.featured ||
         form.scheduledDate !== (editingAnnouncement.scheduledDate ?? "") ||
         form.expiryDate !== (editingAnnouncement.expiryDate ?? "")
       );
@@ -543,8 +557,8 @@ const AnnouncementEditor = ({
               </div>
             )}
 
-            {/* Publishing Status & Pin Toggle */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 items-start">
+            {/* Publishing Status */}
+            <div className="pt-1">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground/90 h-5 flex items-center">
                   Publishing Status
@@ -571,31 +585,7 @@ const AnnouncementEditor = ({
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Pin Toggle */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90 h-5 flex items-center gap-1.5">
-                  <Pin className="w-3.5 h-3.5 text-primary" />
-                  Pin Notice
-                </Label>
-                <div
-                  onClick={() => setForm((p) => ({ ...p, featured: !p.featured }))}
-                  className="h-10 px-3 rounded-xl border border-border bg-background flex items-center justify-between cursor-pointer hover:border-border/80 transition-colors shadow-2xs select-none"
-                >
-                  <span className="text-xs font-medium text-foreground/90 truncate mr-2">
-                    {form.featured ? "Pinned to Top" : "Pin to Top"}
-                  </span>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      checked={form.featured}
-                      onCheckedChange={(v) => setForm((p) => ({ ...p, featured: v }))}
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
-
-            {/* Scheduled Date/Time Picker */}
             {form.status === "Scheduled" && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/40 border border-border/70">
                 <div className="space-y-1.5">
@@ -614,7 +604,7 @@ const AnnouncementEditor = ({
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         {form.scheduledDate
-                          ? format(new Date(form.scheduledDate), "PPP p")
+                          ? format(parseStoredDate(form.scheduledDate), "PPP p")
                           : "Pick broadcast date..."}
                       </Button>
                     </PopoverTrigger>
@@ -626,7 +616,7 @@ const AnnouncementEditor = ({
                         mode="single"
                         selected={
                           form.scheduledDate
-                            ? new Date(form.scheduledDate)
+                            ? parseStoredDate(form.scheduledDate)
                             : undefined
                         }
                         onSelect={(date) =>
@@ -669,7 +659,7 @@ const AnnouncementEditor = ({
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         {form.expiryDate
-                          ? format(new Date(form.expiryDate), "PPP p")
+                          ? format(parseStoredDate(form.expiryDate), "PPP p")
                           : "Never expires"}
                       </Button>
                     </PopoverTrigger>
@@ -681,13 +671,13 @@ const AnnouncementEditor = ({
                         mode="single"
                         selected={
                           form.expiryDate
-                            ? new Date(form.expiryDate)
+                            ? parseStoredDate(form.expiryDate)
                             : undefined
                         }
                         onSelect={(date) =>
                           setForm((p) => ({
                             ...p,
-                            expiryDate: date ? date.toISOString() : "",
+                            expiryDate: expiryAtEndOfDay(date),
                           }))
                         }
                         initialFocus
@@ -728,7 +718,7 @@ const AnnouncementEditor = ({
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {form.expiryDate
-                        ? format(new Date(form.expiryDate), "PPP p")
+                        ? format(parseStoredDate(form.expiryDate), "PPP p")
                         : "Never expires (stays visible until manually archived)"}
                     </Button>
                   </PopoverTrigger>
@@ -740,13 +730,13 @@ const AnnouncementEditor = ({
                       mode="single"
                       selected={
                         form.expiryDate
-                          ? new Date(form.expiryDate)
+                          ? parseStoredDate(form.expiryDate)
                           : undefined
                       }
                       onSelect={(date) =>
                         setForm((p) => ({
                           ...p,
-                          expiryDate: date ? date.toISOString() : "",
+                          expiryDate: expiryAtEndOfDay(date),
                         }))
                       }
                       initialFocus

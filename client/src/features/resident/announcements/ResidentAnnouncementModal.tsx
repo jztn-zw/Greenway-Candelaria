@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Megaphone, Send, X, Pin } from "lucide-react";
+import { Megaphone, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatRelativeTime } from "@/utils/date";
 import {
@@ -73,12 +73,16 @@ const mapToAnnouncementPriority = (rawPriority?: string): AnnouncementPriority =
 const formatDateOnly = (dateStr?: string | null) => {
   if (!dateStr) return "";
   try {
-    const d = new Date(dateStr.includes("Z") ? dateStr : dateStr.replace(" ", "T"));
+    const normalized = /^\d{4}-\d{2}-\d{2}/.test(dateStr) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateStr)
+      ? `${dateStr.replace(" ", "T")}Z`
+      : dateStr;
+    const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "Asia/Manila",
     });
   } catch {
     return dateStr;
@@ -127,7 +131,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
         } catch {
           if (cancelled) return;
           setAnnouncement(null);
-          toast.info("This announcement has expired and is no longer available.");
+          toast.info("This announcement is no longer available.");
           onOpenChange(false);
         }
       })();
@@ -143,13 +147,11 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   if (!open) return null;
 
   // Resolve display values
-  const title = (displayAnnouncement?.title || notification?.title || "Official Announcement").replace(
-    /^🚨\s*/,
-    "",
-  );
+  const title = (displayAnnouncement?.title || notification?.title || "Official Announcement")
+    .replace(/[🚨⚠️]/g, "")
+    .trim();
   const body = displayAnnouncement?.body || notification?.body || "";
   const createdAt = displayAnnouncement?.sent_at || displayAnnouncement?.created_at || notification?.created_at;
-  const isPinned = Boolean(displayAnnouncement?.pinned);
 
   // A notification has no announcement category. Do not temporarily label it
   // as "General Notice" while the full announcement is loading.
@@ -158,14 +160,14 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
     ? mapToAnnouncementType(displayAnnouncement?.type)
     : null;
   const mappedPriority = mapToAnnouncementPriority(
-    displayAnnouncement?.priority || (notification?.title.includes("🚨") ? "URGENT" : "NORMAL"),
+    displayAnnouncement?.priority ||
+      (notification?.title.match(/[🚨⚠️]/) ? "URGENT" : "NORMAL"),
   );
 
   const formattedSent = formatDateOnly(createdAt);
   const relativeTime = formatRelativeTime(createdAt, {
     dateOptions: { month: "short", day: "numeric", year: "numeric" },
   });
-  const formattedExpiry = displayAnnouncement?.expires_at ? formatDateOnly(displayAnnouncement.expires_at) : null;
 
   const formatTargetAudience = (
     targetAll?: boolean,
@@ -209,9 +211,9 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
         {/* Header - Identical to Admin Announcement Modal */}
-        <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left">
+        <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
               <Megaphone className="w-5 h-5" />
@@ -235,9 +237,9 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
           </button>
         </div>
 
-        <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left">
+        <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin">
             {/* Notice Card simulating resident feed item */}
-            <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
+            <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs min-w-0 overflow-hidden break-words">
               {/* Badges row */}
               <div className="flex items-center gap-2 flex-wrap">
                 {mappedType && (
@@ -262,27 +264,22 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
                   </Badge>
                 )}
 
-                {isPinned && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                    <Pin className="w-3 h-3 fill-primary" /> Pinned
-                  </span>
-                )}
               </div>
 
               {/* Title & Body */}
-              <h3 className="text-base sm:text-lg font-bold font-display text-foreground leading-snug">
+              <h3 className="text-base sm:text-lg font-bold font-display text-foreground leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
                 {title}
               </h3>
-              <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] max-h-[45vh] overflow-y-auto scrollbar-thin">
                 {body}
               </p>
 
               {/* Sent Timestamp */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60">
-                <Send className="w-3.5 h-3.5 text-primary" />
-                <span>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60 min-w-0">
+                <Send className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="truncate">
                   {formattedSent
-                    ? `${formattedSent}${relativeTime && relativeTime !== formattedSent ? ` • ${relativeTime}` : ""}`
+                    ? `Broadcast on ${formattedSent}${relativeTime ? ` • ${relativeTime}` : ""}`
                     : "Official Broadcast"}
                 </span>
               </div>
@@ -306,14 +303,6 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
                   )}
                 </div>
               </div>
-              {formattedExpiry && (
-                <div className="flex items-center justify-between pt-1 border-t border-border/40">
-                  <span className="font-semibold text-foreground">Auto-Expiry:</span>
-                  <span className="text-foreground/80 font-medium">
-                    {formattedExpiry}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Close Button */}

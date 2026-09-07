@@ -82,7 +82,7 @@ const getById = async (id, userId = null, userRole = null, bypassStatusCheck = f
 
 const publishDueScheduledPosts = async () => {
   const [duePosts] = await pool.query(
-    `SELECT id, title
+    `SELECT id, title, category
      FROM posts
      WHERE status = 'SCHEDULED'
        AND scheduled_at IS NOT NULL
@@ -107,6 +107,7 @@ const publishDueScheduledPosts = async () => {
         body: `"${post.title}" is now available in Contents.`,
         ref_id: post.id,
         ref_module: "posts",
+        metadata: { category: post.category },
       }).catch((err) =>
         console.error("[Notify] ❌ Scheduled post notification failed:", err.message),
       );
@@ -277,6 +278,7 @@ const create = async (adminId, data) => {
         body: `"${createdPost.title}" is now available in Contents.`,
         ref_id: createdPost.id,
         ref_module: "posts",
+        metadata: { category: createdPost.category },
       }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
     }
 
@@ -408,6 +410,7 @@ const update = async (id, data) => {
         body: `"${updatedPost.title}" is now available in Contents.`,
         ref_id: updatedPost.id,
         ref_module: "posts",
+        metadata: { category: updatedPost.category },
       }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
     }
 

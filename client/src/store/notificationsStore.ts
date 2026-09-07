@@ -23,6 +23,7 @@ interface NotificationsState {
   markAllAsRead: () => Promise<void>;
   clearAll: () => Promise<void>;
   addNotification: (notification: NotificationRow) => void;
+  removeNotificationsByReference: (reference: { ref_module: string; ref_id: string }) => void;
   initSocket: (user: UserInfo) => () => void;
 }
 
@@ -163,6 +164,23 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     });
   },
 
+  removeNotificationsByReference: ({ ref_module, ref_id }) => {
+    set((state) => {
+      const removed = state.notifications.filter(
+        (notification) => notification.ref_module === ref_module && notification.ref_id === ref_id,
+      );
+      if (removed.length === 0) return state;
+      const unreadRemoved = removed.filter((notification) => !notification.is_read).length;
+      return {
+        notifications: state.notifications.filter(
+          (notification) => notification.ref_module !== ref_module || notification.ref_id !== ref_id,
+        ),
+        unreadCount: Math.max(0, state.unreadCount - unreadRemoved),
+        total: Math.max(0, state.total - removed.length),
+      };
+    });
+  },
+
   initSocket: (user: UserInfo) => {
     if (!user || !user.id) return () => {};
 
@@ -216,6 +234,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
       socket.on("notification:new", (newNotif: NotificationRow) => {
         get().addNotification(newNotif);
+      });
+      socket.on("notification:remove_ref", (reference: { ref_module: string; ref_id: string }) => {
+        get().removeNotificationsByReference(reference);
       });
     }
 

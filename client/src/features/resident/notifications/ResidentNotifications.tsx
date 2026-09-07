@@ -11,6 +11,9 @@ import {
   FileText,
   Newspaper,
   Trash2,
+  Lightbulb,
+  CalendarDays,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,6 +76,153 @@ const typeLabels: Record<string, string> = {
   SYSTEM: "System",
 };
 
+const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
+  if (!notification.metadata) return {};
+  if (typeof notification.metadata === "string") {
+    try {
+      return JSON.parse(notification.metadata) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return notification.metadata;
+};
+
+const getNotificationHeadline = (n: NotificationRow) => {
+  const metadata = getMetadata(n);
+  const cleanTitle = (n.title || "").replace(/[🚨⚠️]/g, "").trim();
+  const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+    return {
+      prefix: "MENRO Candelaria",
+      connector: "posted an announcement:",
+      highlight: cleanTitle || "Official Notice",
+    };
+  }
+
+  if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
+    return {
+      prefix: "Report Status Update:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.ref_module === "tracking" || n.type === "TRUCK_IS_NEAR") {
+    return {
+      prefix: "Collection Truck Alert:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "COLLECTION_REMINDER") {
+    return {
+      prefix: "Collection Reminder:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "COLLECTION_DONE") {
+    return {
+      prefix: "Collection Completed:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (category === "WASTE_TIP") {
+    return {
+      prefix: "Eco Tip:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (category === "SCHEDULE_CHANGE") {
+    return {
+      prefix: "Schedule Notice:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "NEW_POST" || n.ref_module === "posts") {
+    return {
+      prefix: "Community Content:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  return {
+    prefix: cleanTitle || "System Notification",
+    connector: "",
+    highlight: "",
+  };
+};
+
+const getNotificationIconAndStyle = (n: NotificationRow) => {
+  const metadata = getMetadata(n);
+  const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+    return {
+      Icon: Megaphone,
+      style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    };
+  }
+
+  if (n.type === "TRUCK_IS_NEAR" || n.ref_module === "tracking") {
+    return {
+      Icon: Truck,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
+
+  if (n.type === "COLLECTION_REMINDER" || category === "SCHEDULE_CHANGE") {
+    return {
+      Icon: CalendarDays,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
+
+  if (n.type === "COLLECTION_DONE") {
+    return {
+      Icon: CheckCircle2,
+      style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    };
+  }
+
+  if (category === "WASTE_TIP") {
+    return {
+      Icon: Lightbulb,
+      style: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    };
+  }
+
+  if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
+    return {
+      Icon: FileText,
+      style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    };
+  }
+
+  if (n.type === "NEW_POST" || n.ref_module === "posts") {
+    return {
+      Icon: Newspaper,
+      style: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    };
+  }
+
+  return {
+    Icon: Bell,
+    style: "bg-primary/10 text-primary border-primary/20",
+  };
+};
+
 const ResidentNotifications = () => {
   const navigate = useNavigate();
   const {
@@ -133,7 +283,7 @@ const ResidentNotifications = () => {
             setAnnouncementModalOpen(true);
           }
         } catch {
-          if (!cancelled) toast.info("This announcement has expired and is no longer available.");
+          if (!cancelled) toast.info("This announcement is no longer available.");
         }
       })();
       return () => {
@@ -235,7 +385,7 @@ const ResidentNotifications = () => {
           });
           setAnnouncementModalOpen(true);
         } catch {
-          toast.info("This announcement has expired and is no longer available.");
+          toast.info("This announcement is no longer available.");
           void fetchNotifications();
           return;
         }
@@ -358,52 +508,67 @@ const ResidentNotifications = () => {
         </div>
       )}
 
-      {/* ── Notification List ── */}
+      {/* ── Notification List (Facebook-style feed) ── */}
       {paginated.length > 0 ? (
-        <Card className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60">
+        <Card className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60 bg-card shadow-2xs">
           {paginated.map((n) => {
-            const Icon = typeIcons[n.type] || Bell;
+            const headline = getNotificationHeadline(n);
+            const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
             const isUnread = !n.is_read;
+            const timeAgo = formatRelativeTime(n.created_at, {
+              dateOptions: { month: "short", day: "numeric", year: "numeric" },
+            });
+
             return (
               <div
                 key={n.id}
                 onClick={() => handleClick(n)}
-                className={`p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-muted/40 transition-colors cursor-pointer ${
-                  isUnread ? "bg-primary/[0.03]" : ""
+                className={`group p-4 sm:p-4.5 flex items-start gap-3.5 sm:gap-4 hover:bg-muted/40 transition-all duration-200 cursor-pointer ${
+                  isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                {/* Left Thematic Avatar Icon */}
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 group-hover:scale-105 ${avatarStyle}`}
+                >
                   <Icon className="w-5 h-5" />
                 </div>
 
+                {/* Main Content Area */}
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                        {typeLabels[n.type] || "Alert"}
-                      </span>
-                      <h3
-                        className={`text-sm font-semibold truncate ${
-                          isUnread
-                            ? "text-foreground font-bold"
-                            : "text-foreground/90"
-                        }`}
-                      >
-                        {n.title}
-                      </h3>
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } })}
+                  {/* Primary text with bold focal points */}
+                  <p className="text-sm text-foreground/90 leading-snug break-words">
+                    <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                      {headline.prefix}
                     </span>
-                  </div>
+                    {headline.connector && (
+                      <span className="text-foreground/80"> {headline.connector} </span>
+                    )}
+                    {headline.highlight && (
+                      <span className="font-bold text-foreground">
+                        {headline.highlight}
+                      </span>
+                    )}
+                  </p>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {n.body}
+                  {/* Secondary Subtext (Facebook-style preview snippet) */}
+                  {n.body && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed break-words pt-0.5">
+                      {n.body}
+                    </p>
+                  )}
+
+                  {/* Relative Timestamp */}
+                  <p className="text-[11px] text-muted-foreground/80 font-medium pt-0.5">
+                    {timeAgo}
                   </p>
                 </div>
 
+                {/* Unread indicator dot */}
                 {isUnread && (
-                  <span className="w-2.5 h-2.5 bg-primary rounded-full shrink-0 mt-3" />
+                  <div className="flex items-center self-center shrink-0 pl-1" title="Unread notification">
+                    <span className="w-2.5 h-2.5 bg-primary rounded-full ring-4 ring-primary/15 shadow-xs" />
+                  </div>
                 )}
               </div>
             );

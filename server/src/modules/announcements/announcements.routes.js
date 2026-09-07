@@ -30,10 +30,24 @@ router.put(
 );
 
 router.delete(
+  "/:id/permanent",
+  authenticate,
+  authorize("ADMIN"),
+  controller.destroyArchived,
+);
+
+router.delete(
   "/:id",
   authenticate,
   authorize("ADMIN"),
   controller.remove,
+);
+
+router.post(
+  "/:id/resend",
+  authenticate,
+  authorize("ADMIN"),
+  controller.resendToUnread,
 );
 
 // Resident — mark as read

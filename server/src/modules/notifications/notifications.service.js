@@ -15,14 +15,15 @@ const sendToUser = async ({
   body,
   ref_id = null,
   ref_module = null,
+  metadata = null,
 }) => {
   const id = generateId();
 
   await pool.query(
     `INSERT INTO notifications
-       (id, user_id, type, title, body, ref_id, ref_module, is_read, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
-    [id, user_id, type, title, body, ref_id, ref_module],
+       (id, user_id, type, title, body, ref_id, ref_module, metadata, is_read, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+    [id, user_id, type, title, body, ref_id, ref_module, metadata ? JSON.stringify(metadata) : null],
   );
 
   const payload = {
@@ -33,6 +34,7 @@ const sendToUser = async ({
     body,
     ref_id,
     ref_module,
+    metadata,
     is_read: 0,
     created_at: new Date().toISOString(),
   };
@@ -51,6 +53,7 @@ const sendToMany = async ({
   body,
   ref_id = null,
   ref_module = null,
+  metadata = null,
 }) => {
   if (!user_ids || user_ids.length === 0) return { sent: 0, ids: [] };
 
@@ -61,11 +64,14 @@ const sendToMany = async ({
   const ids = [];
   const rows = [];
   const now = new Date();
+  // The database stores timestamps as UTC. mysql serializes Date instances in
+  // the machine's local timezone, so send an explicit UTC SQL datetime value.
+  const utcNow = now.toISOString().slice(0, 19).replace("T", " ");
 
   for (const uid of uniqueUserIds) {
     const id = generateId();
     ids.push(id);
-    rows.push([id, uid, type, title, body, ref_id, ref_module, 0, now]);
+    rows.push([id, uid, type, title, body, ref_id, ref_module, metadata ? JSON.stringify(metadata) : null, 0, utcNow]);
   }
 
   // Efficient batch insert in chunks of 500
@@ -74,7 +80,7 @@ const sendToMany = async ({
     const chunk = rows.slice(i, i + CHUNK_SIZE);
     await pool.query(
       `INSERT INTO notifications
-         (id, user_id, type, title, body, ref_id, ref_module, is_read, created_at)
+          (id, user_id, type, title, body, ref_id, ref_module, metadata, is_read, created_at)
        VALUES ?`,
       [chunk],
     );
@@ -92,6 +98,7 @@ const sendToMany = async ({
       body,
       ref_id,
       ref_module,
+      metadata,
       is_read: 0,
       created_at: now.toISOString(),
     });
@@ -102,14 +109,14 @@ const sendToMany = async ({
 
 // ─── Notify All Active Residents ───────────────────────────
 
-const notifyAllResidents = async ({ type, title, body, ref_id, ref_module }) => {
+const notifyAllResidents = async ({ type, title, body, ref_id, ref_module, metadata = null }) => {
   const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : null;
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
     `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
   );
   const userIds = residents.map((r) => r.id);
-  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module });
+  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata });
 };
 
 // ─── Notify Barangay Residents ─────────────────────────────
@@ -121,6 +128,7 @@ const notifyBarangayResidents = async ({
   body,
   ref_id,
   ref_module,
+  metadata = null,
 }) => {
   const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : null;
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
@@ -129,7 +137,7 @@ const notifyBarangayResidents = async ({
     [barangay_id],
   );
   const userIds = residents.map((r) => r.id);
-  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module });
+  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata });
 };
 
 // ─── Notify All Admins ─────────────────────────────────────
@@ -143,7 +151,7 @@ const notifyAdmins = async ({ type, title, body, ref_id, ref_module }) => {
 };
 
 // Keep notification history in the database, but do not show an announcement
-// notification after its linked announcement has reached its expiry time.
+// notification after its linked announcement has expired or been archived.
 const excludeExpiredAnnouncementNotifications = `
   AND NOT (
     n.ref_module = 'announcements'
@@ -151,8 +159,10 @@ const excludeExpiredAnnouncementNotifications = `
       SELECT 1
       FROM announcements a
       WHERE a.id = n.ref_id
-        AND a.expires_at IS NOT NULL
-        AND a.expires_at <= NOW()
+        AND (
+          a.status = 'ARCHIVED'
+          OR (a.expires_at IS NOT NULL AND a.expires_at <= NOW())
+        )
     )
   )
 `;

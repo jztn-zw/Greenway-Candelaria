@@ -1,4 +1,4 @@
-import {
+﻿import {
   MoreHorizontal,
   Edit2,
   Trash2,
@@ -7,15 +7,12 @@ import {
   ArchiveRestore,
   Send,
   Clock,
-  Pin,
-  PinOff,
   RotateCcw,
   BarChart3,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -39,6 +36,7 @@ import {
   AnnouncementStatus,
   announcementTypeStyles,
   announcementPriorityStyles,
+  isAnnouncementExpired,
 } from "./types";
 
 const typeBadges: Record<AnnouncementType, string> = announcementTypeStyles;
@@ -56,15 +54,24 @@ const statusBadges: Record<AnnouncementStatus, string> = {
     "bg-background/95 dark:bg-zinc-900/90 text-muted-foreground border-border/80 backdrop-blur-md shadow-2xs",
 };
 
+const formatScheduledDateTime = (value: string) => {
+  const normalized = /^\d{4}-\d{2}-\d{2}/.test(value) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
+    ? `${value.replace(" ", "T")}Z`
+    : value;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+    timeZone: "Asia/Manila",
+  });
+};
+
 interface AnnouncementListViewProps {
   announcements: Announcement[];
-  selectedIds: Set<string>;
-  onToggleSelect: (id: string) => void;
-  onToggleSelectAll: () => void;
   onPreview: (ann: Announcement) => void;
   onEdit: (ann: Announcement) => void;
   onDuplicate: (ann: Announcement) => void;
-  onTogglePin: (ann: Announcement) => void;
   onResend: (ann: Announcement) => void;
   onSendNow: (ann: Announcement) => void;
   onArchive: (ann: Announcement) => void;
@@ -75,13 +82,9 @@ interface AnnouncementListViewProps {
 
 const AnnouncementListView = ({
   announcements,
-  selectedIds,
-  onToggleSelect,
-  onToggleSelectAll,
   onPreview,
   onEdit,
   onDuplicate,
-  onTogglePin,
   onResend,
   onSendNow,
   onArchive,
@@ -89,22 +92,12 @@ const AnnouncementListView = ({
   onCancelSchedule,
   onReadReceipt,
 }: AnnouncementListViewProps) => {
-  const isAllSelected =
-    announcements.length > 0 && selectedIds.size === announcements.length;
-
   return (
     <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
-              <TableHead className="w-12 pl-4">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={onToggleSelectAll}
-                  className="rounded-md border-border"
-                />
-              </TableHead>
               <TableHead className="w-[34%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Notice Details
               </TableHead>
@@ -133,49 +126,28 @@ const AnnouncementListView = ({
           </TableHeader>
           <TableBody>
             {announcements.map((ann) => {
-              const isSelected = selectedIds.has(ann.id);
               const readPct =
                 ann.totalRecipients > 0
                   ? Math.round((ann.readCount / ann.totalRecipients) * 100)
                   : 0;
+              const needsExpiryUpdateBeforeRestore =
+                ann.status === "Archived" && isAnnouncementExpired(ann.expiryDate);
 
               return (
                 <TableRow
                   key={ann.id}
                   onClick={() => onPreview(ann)}
-                  className={`cursor-pointer hover:bg-muted/40 dark:hover:bg-muted/25 transition-colors group border-b border-border/50 last:border-0 ${
-                    isSelected ? "bg-primary/5" : ""
-                  }`}
+                  className="cursor-pointer hover:bg-muted/40 dark:hover:bg-muted/25 transition-colors group border-b border-border/50 last:border-0"
                 >
-                  {/* Selection Checkbox */}
-                  <TableCell
-                    className="pl-4 py-3"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => onToggleSelect(ann.id)}
-                      className="rounded-md border-border"
-                    />
-                  </TableCell>
-
                   {/* Title & Preview */}
                   <TableCell className="py-3">
                     <div className="space-y-0.5 min-w-0 max-w-[340px]">
                       <div className="flex items-center gap-1.5">
-                        <p className="font-semibold text-foreground text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                        <p className="font-semibold text-foreground text-sm line-clamp-1 break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                           {ann.title}
                         </p>
-                        {ann.pinned && (
-                          <div
-                            className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0"
-                            title="Pinned Notice"
-                          >
-                            <Pin className="w-2.5 h-2.5 fill-primary text-primary" />
-                          </div>
-                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-1">
+                      <p className="text-xs text-muted-foreground line-clamp-1 break-words [overflow-wrap:anywhere]">
                         {ann.body}
                       </p>
                     </div>
@@ -249,12 +221,7 @@ const AnnouncementListView = ({
                   {/* Date */}
                   <TableCell className="py-3 text-xs text-muted-foreground whitespace-nowrap">
                     {ann.sentDate ||
-                      (ann.scheduledDate
-                        ? new Date(ann.scheduledDate).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric" },
-                          )
-                        : "—")}
+                      (ann.scheduledDate ? formatScheduledDateTime(ann.scheduledDate) : "—")}
                   </TableCell>
 
                   {/* Status Pill */}
@@ -309,10 +276,10 @@ const AnnouncementListView = ({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+                                className="gap-2 text-xs"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                                <Archive className="w-3.5 h-3.5" /> Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -340,10 +307,10 @@ const AnnouncementListView = ({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+                                className="gap-2 text-xs"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                                <Archive className="w-3.5 h-3.5" /> Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -361,21 +328,6 @@ const AnnouncementListView = ({
                               >
                                 <Copy className="w-3.5 h-3.5" /> Duplicate
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => onTogglePin(ann)}
-                                className="gap-2 text-xs"
-                              >
-                                {ann.pinned ? (
-                                  <>
-                                    <PinOff className="w-3.5 h-3.5" /> Unpin
-                                    from Top
-                                  </>
-                                ) : (
-                                  <>
-                                    <Pin className="w-3.5 h-3.5" /> Pin to Top
-                                  </>
-                                )}
-                              </DropdownMenuItem>
                               {ann.readCount < ann.totalRecipients && (
                                 <DropdownMenuItem
                                   onClick={() => onResend(ann)}
@@ -387,17 +339,10 @@ const AnnouncementListView = ({
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => onArchive(ann)}
                                 className="gap-2 text-xs"
-                              >
-                                <Archive className="w-3.5 h-3.5" /> Archive
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                                <Archive className="w-3.5 h-3.5" /> Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -410,14 +355,18 @@ const AnnouncementListView = ({
                                 <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => onArchive(ann)}
+                                onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
                                 className="gap-2 text-xs"
                               >
-                                <ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice
+                                {needsExpiryUpdateBeforeRestore ? (
+                                  <><Edit2 className="w-3.5 h-3.5" /> Edit &amp; Restore</>
+                                ) : (
+                                  <><ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice</>
+                                )}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+                                className="gap-2 text-xs"
                                 onClick={() => onDelete(ann)}
                               >
                                 <Trash2 className="w-3.5 h-3.5" /> Delete

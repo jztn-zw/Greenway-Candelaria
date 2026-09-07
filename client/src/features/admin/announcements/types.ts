@@ -20,13 +20,13 @@ export interface Announcement {
   targetBarangays: string[];
   targetBarangayIds: string[];
   targetPreset: string | null;
-  pinned: boolean;
-  featured: boolean;
   sentDate: string | null;
   sentAt?: string | null;
   createdAt?: string | null;
+  archivedAt?: string | null;
   scheduledDate: string | null;
   expiryDate: string | null;
+  expiryLabel?: string | null;
   readCount: number;
   totalRecipients: number;
   archived: boolean;
@@ -45,10 +45,24 @@ export interface EditorForm {
   targetAudience: TargetAudience;
   targetBarangays: string[];
   targetPreset: string | null;
-  featured: boolean;
   scheduledDate: string;
   expiryDate: string;
 }
+
+/**
+ * Database timestamps are stored as UTC.  Treat timestamp strings without a
+ * timezone as UTC too, so the archive action is consistent in every browser.
+ */
+export const isAnnouncementExpired = (expiryDate?: string | null): boolean => {
+  if (!expiryDate) return false;
+
+  const normalized = /^\d{4}-\d{2}-\d{2}/.test(expiryDate) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(expiryDate)
+    ? `${expiryDate.replace(" ", "T")}Z`
+    : expiryDate;
+  const expiryTime = new Date(normalized).getTime();
+
+  return !Number.isNaN(expiryTime) && expiryTime <= Date.now();
+};
 
 export const BARANGAYS = [
   "Bukal Norte", "Bukal Sur", "Kinatihan I", "Kinatihan II", "Malabanban Norte",

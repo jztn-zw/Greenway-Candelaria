@@ -14,21 +14,159 @@ import {
   Newspaper,
   CheckCheck,
   ChevronRight,
+  Lightbulb,
+  CalendarDays,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 
-const typeIcons: Record<string, React.ElementType> = {
-  COLLECTION_REMINDER: CalendarClock,
-  TRUCK_IS_NEAR: Truck,
-  COLLECTION_DONE: CheckCircle2,
-  MISSED_COLLECTION: AlertTriangle,
-  ANNOUNCEMENT: Megaphone,
-  REPORT_UPDATE: FileText,
-  NEW_POST: Newspaper,
-  SYSTEM: Bell,
+const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
+  if (!notification.metadata) return {};
+  if (typeof notification.metadata === "string") {
+    try {
+      return JSON.parse(notification.metadata) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return notification.metadata;
+};
+
+const getNotificationHeadline = (n: NotificationRow) => {
+  const metadata = getMetadata(n);
+  const cleanTitle = (n.title || "").replace(/[🚨⚠️]/g, "").trim();
+  const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+    return {
+      prefix: "MENRO Candelaria",
+      connector: "posted an announcement:",
+      highlight: cleanTitle || "Official Notice",
+    };
+  }
+
+  if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
+    return {
+      prefix: "Report Status Update:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.ref_module === "tracking" || n.type === "TRUCK_IS_NEAR") {
+    return {
+      prefix: "Collection Truck Alert:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "COLLECTION_REMINDER") {
+    return {
+      prefix: "Collection Reminder:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "COLLECTION_DONE") {
+    return {
+      prefix: "Collection Completed:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (category === "WASTE_TIP") {
+    return {
+      prefix: "Eco Tip:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (category === "SCHEDULE_CHANGE") {
+    return {
+      prefix: "Schedule Notice:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  if (n.type === "NEW_POST" || n.ref_module === "posts") {
+    return {
+      prefix: "Community Content:",
+      connector: "",
+      highlight: cleanTitle,
+    };
+  }
+
+  return {
+    prefix: cleanTitle || "System Notification",
+    connector: "",
+    highlight: "",
+  };
+};
+
+const getNotificationIconAndStyle = (n: NotificationRow) => {
+  const metadata = getMetadata(n);
+  const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
+    return {
+      Icon: Megaphone,
+      style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    };
+  }
+
+  if (n.type === "TRUCK_IS_NEAR" || n.ref_module === "tracking") {
+    return {
+      Icon: Truck,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
+
+  if (n.type === "COLLECTION_REMINDER" || category === "SCHEDULE_CHANGE") {
+    return {
+      Icon: CalendarDays,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
+
+  if (n.type === "COLLECTION_DONE") {
+    return {
+      Icon: CheckCircle2,
+      style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    };
+  }
+
+  if (category === "WASTE_TIP") {
+    return {
+      Icon: Lightbulb,
+      style: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    };
+  }
+
+  if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
+    return {
+      Icon: FileText,
+      style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    };
+  }
+
+  if (n.type === "NEW_POST" || n.ref_module === "posts") {
+    return {
+      Icon: Newspaper,
+      style: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    };
+  }
+
+  return {
+    Icon: Bell,
+    style: "bg-primary/10 text-primary border-primary/20",
+  };
 };
 
 const formatTimeAgo = (dateString: string) => {
@@ -221,37 +359,59 @@ const ResidentTopBar = () => {
               )}
             </div>
 
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-border">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-border/60">
               {recentNotifications.length > 0 ? (
                 recentNotifications.map((n) => {
-                  const Icon = typeIcons[n.type] || Bell;
+                  const headline = getNotificationHeadline(n);
+                  const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
+                  const isUnread = !n.is_read;
+
                   return (
                     <button
                       key={n.id}
                       type="button"
                       onClick={() => void handleNotificationClick(n)}
-                      className={`w-full p-3.5 text-left flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer ${
-                        !n.is_read ? "bg-primary/5" : ""
+                      className={`w-full p-3 sm:p-3.5 text-left flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer group ${
+                        isUnread ? "bg-primary/[0.04]" : ""
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                      {/* Avatar Icon */}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 group-hover:scale-105 ${avatarStyle}`}>
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold text-foreground truncate">
-                            {n.title}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {formatTimeAgo(n.created_at)}
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <p className="text-xs text-foreground/90 leading-snug break-words">
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                            {headline.prefix}
                           </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                          {n.body}
+                          {headline.connector && (
+                            <span className="text-foreground/80"> {headline.connector} </span>
+                          )}
+                          {headline.highlight && (
+                            <span className="font-bold text-foreground">
+                              {headline.highlight}
+                            </span>
+                          )}
+                        </p>
+
+                        {n.body && (
+                          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed break-words">
+                            {n.body}
+                          </p>
+                        )}
+
+                        <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
+                          {formatTimeAgo(n.created_at)}
                         </p>
                       </div>
-                      {!n.is_read && (
-                        <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
+
+                      {/* Unread dot */}
+                      {isUnread && (
+                        <div className="flex items-center self-center shrink-0 pl-1" title="Unread">
+                          <span className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/15 shrink-0" />
+                        </div>
                       )}
                     </button>
                   );

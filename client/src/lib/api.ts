@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
 // ─── Response: Normalize Errors ───────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string }>) => {
+  (error: AxiosError<{ message?: string; errors?: Array<{ field?: string; message?: string }> }>) => {
     const isAuthRoute =
       error.config?.url?.includes("/auth/login") ||
       error.config?.url?.includes("/auth/register");
@@ -35,10 +35,22 @@ api.interceptors.response.use(
     }
 
     // Normalize error message for all other cases
+    const validationMessage = error.response?.data?.errors
+      ?.map((item) => item.message)
+      .filter(Boolean)
+      .join(" ");
     const message =
+      validationMessage ??
       error.response?.data?.message ??
       error.message ??
       "An unexpected error occurred.";
+
+    // Developer diagnostics only: no token, request body, or server stack is
+    // exposed here. This applies to every module that uses the shared client.
+    console.error(`[API ${status ?? "NETWORK"}] ${error.config?.method?.toUpperCase() ?? "REQUEST"} ${error.config?.url ?? "unknown route"}`, {
+      message,
+      validation: error.response?.data?.errors?.map(({ field, message: detail }) => ({ field, message: detail })),
+    });
 
     return Promise.reject(new Error(message));
   },

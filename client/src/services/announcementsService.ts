@@ -5,7 +5,6 @@ export interface GetAllFilters {
   status?: string;
   type?: string;
   priority?: string;
-  is_featured?: boolean;
 }
 
 export interface CreatePayload {
@@ -14,7 +13,6 @@ export interface CreatePayload {
   type: string;
   priority?: string;
   status?: string;
-  is_featured?: boolean;
   target_all?: boolean;
   scheduled_at?: string | null;
   expires_at?: string | null;
@@ -23,13 +21,15 @@ export interface CreatePayload {
 
 export type UpdatePayload = Partial<CreatePayload>;
 
-export interface ReadReceipt {
-  id: string;
-  read_at: string;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  user_avatar: string | null;
+export interface AnnouncementAnalytics {
+  recipients: number;
+  read_count: number;
+  unread_count: number;
+  barangays: Array<{
+    name: string;
+    received: number;
+    read: number;
+  }>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -43,7 +43,6 @@ const buildQuery = (filters: GetAllFilters): string => {
   if (filters.status) params.set("status", filters.status);
   if (filters.type) params.set("type", filters.type);
   if (filters.priority) params.set("priority", filters.priority);
-  if (filters.is_featured) params.set("is_featured", "true");
   const query = params.toString();
   return query ? `?${query}` : "";
 };
@@ -65,13 +64,19 @@ export const updateAnnouncement = (id: string, payload: UpdatePayload) =>
 export const deleteAnnouncement = (id: string) =>
   api.delete<{ message: string }>(`/announcements/${id}`).then((r) => r.data);
 
+export const permanentlyDeleteArchivedAnnouncement = (id: string) =>
+  api.delete<{ message: string }>(`/announcements/${id}/permanent`).then((r) => r.data);
+
+export const resendAnnouncementToUnread = (id: string) =>
+  api.post(`/announcements/${id}/resend`).then(unwrap<{ sent: number }>);
+
 export const markAsRead = (id: string) =>
   api
     .post(`/announcements/${id}/read`)
     .then(unwrap<{ read: boolean; already_read?: boolean }>);
 
 export const fetchReadReceipts = (id: string) =>
-  api.get(`/announcements/${id}/receipts`).then(unwrap<ReadReceipt[]>);
+  api.get(`/announcements/${id}/receipts`).then(unwrap<AnnouncementAnalytics>);
 
 export const fetchBarangayList = () =>
   api

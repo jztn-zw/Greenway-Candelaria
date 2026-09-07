@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Calendar,
   Clock,
@@ -6,8 +6,6 @@ import {
   AlertTriangle,
   Megaphone,
   Shield,
-  Pin,
-  PinOff,
   Edit2,
   Trash2,
   Copy,
@@ -23,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +35,7 @@ import {
   AnnouncementStatus,
   announcementTypeStyles,
   announcementPriorityStyles,
+  isAnnouncementExpired,
 } from "./types";
 
 /* ─── Type Configuration ─── */
@@ -113,14 +111,24 @@ const statusConfig: Record<
   },
 };
 
+const formatScheduledDateTime = (value: string) => {
+  const normalized = /^\d{4}-\d{2}-\d{2}/.test(value) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
+    ? `${value.replace(" ", "T")}Z`
+    : value;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+    timeZone: "Asia/Manila",
+  });
+};
+
 interface Props {
   ann: Announcement;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
   onPreview: (ann: Announcement) => void;
   onEdit: (ann: Announcement) => void;
   onDuplicate: (ann: Announcement) => void;
-  onTogglePin: (ann: Announcement) => void;
   onResend: (ann: Announcement) => void;
   onSendNow: (ann: Announcement) => void;
   onArchive: (ann: Announcement) => void;
@@ -131,12 +139,9 @@ interface Props {
 
 const AnnouncementCard = ({
   ann,
-  isSelected,
-  onSelect,
   onPreview,
   onEdit,
   onDuplicate,
-  onTogglePin,
   onResend,
   onSendNow,
   onArchive,
@@ -152,6 +157,8 @@ const AnnouncementCard = ({
     ann.totalRecipients > 0
       ? Math.round((ann.readCount / ann.totalRecipients) * 100)
       : 0;
+  const needsExpiryUpdateBeforeRestore =
+    ann.status === "Archived" && isAnnouncementExpired(ann.expiryDate);
 
   const renderMenuItems = () => {
     switch (ann.status) {
@@ -169,10 +176,10 @@ const AnnouncementCard = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+              className="gap-2 text-xs"
               onClick={() => onDelete(ann)}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              <Archive className="w-3.5 h-3.5" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -191,10 +198,10 @@ const AnnouncementCard = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+              className="gap-2 text-xs"
               onClick={() => onDelete(ann)}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              <Archive className="w-3.5 h-3.5" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -202,7 +209,7 @@ const AnnouncementCard = ({
         return (
           <>
             <DropdownMenuItem onClick={() => onReadReceipt(ann)} className="gap-2 text-xs">
-              <BarChart3 className="w-3.5 h-3.5 text-primary" /> Read Analytics
+              <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(ann)} className="gap-2 text-xs">
               <Edit2 className="w-3.5 h-3.5" /> Edit
@@ -210,32 +217,17 @@ const AnnouncementCard = ({
             <DropdownMenuItem onClick={() => onDuplicate(ann)} className="gap-2 text-xs">
               <Copy className="w-3.5 h-3.5" /> Duplicate
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onTogglePin(ann)} className="gap-2 text-xs">
-              {ann.pinned ? (
-                <>
-                  <PinOff className="w-3.5 h-3.5" /> Unpin from Top
-                </>
-              ) : (
-                <>
-                  <Pin className="w-3.5 h-3.5" /> Pin to Top
-                </>
-              )}
-            </DropdownMenuItem>
             {ann.readCount < ann.totalRecipients && (
               <DropdownMenuItem onClick={() => onResend(ann)} className="gap-2 text-xs">
                 <RotateCcw className="w-3.5 h-3.5" /> Resend to Unread
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onArchive(ann)} className="gap-2 text-xs">
-              <Archive className="w-3.5 h-3.5" /> Archive
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
+              className="gap-2 text-xs"
               onClick={() => onDelete(ann)}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              <Archive className="w-3.5 h-3.5" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -243,16 +235,20 @@ const AnnouncementCard = ({
         return (
           <>
             <DropdownMenuItem onClick={() => onReadReceipt(ann)} className="gap-2 text-xs">
-              <BarChart3 className="w-3.5 h-3.5 text-primary" /> Read Analytics
+              <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onArchive(ann)} className="gap-2 text-xs">
-              <ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice
+            <DropdownMenuItem
+              onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
+              className="gap-2 text-xs"
+            >
+              {needsExpiryUpdateBeforeRestore ? (
+                <><Edit2 className="w-3.5 h-3.5" /> Edit &amp; Restore</>
+              ) : (
+                <><ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice</>
+              )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs"
-              onClick={() => onDelete(ann)}
-            >
+            <DropdownMenuItem className="gap-2 text-xs" onClick={() => onDelete(ann)}>
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </DropdownMenuItem>
           </>
@@ -265,11 +261,7 @@ const AnnouncementCard = ({
   return (
     <div
       onClick={() => onPreview(ann)}
-      className={`bg-card border rounded-2xl overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-300 cursor-pointer shadow-2xs ${
-        ann.pinned
-          ? "border-primary/40 ring-1 ring-primary/20"
-          : "border-border/80 hover:border-primary/30"
-      } ${isSelected ? "ring-2 ring-primary/60" : ""}`}
+      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:shadow-xl hover:border-primary/30 transition-all duration-300 cursor-pointer shadow-2xs"
     >
       {/* ── Top Ambient Visual Band ── */}
       <div className="h-28 relative overflow-hidden select-none border-b border-border/40">
@@ -319,11 +311,8 @@ const AnnouncementCard = ({
           )}
         </div>
 
-        {/* Top-right Status Pill, Pin, Checkbox */}
-        <div
-          className="absolute top-3 right-3 flex items-center gap-2 z-10"
-          onClick={(e) => e.stopPropagation()}
-        >
+        {/* Top-right Status Pill */}
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
           <Badge
             variant="outline"
             className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md gap-1 pointer-events-none ${statusStyle.badge}`}
@@ -332,31 +321,17 @@ const AnnouncementCard = ({
             <span>{ann.status}</span>
           </Badge>
 
-          {ann.pinned && (
-            <div
-              className="w-6 h-6 rounded-full bg-primary/20 text-primary border border-primary/30 flex items-center justify-center backdrop-blur-md"
-              title="Pinned Notice"
-            >
-              <Pin className="w-3 h-3 fill-primary text-primary" />
-            </div>
-          )}
-
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onSelect(ann.id)}
-            className="w-5 h-5 rounded-md bg-background/90 border-border/80 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-          />
         </div>
       </div>
 
       {/* ── Card Body ── */}
       <div className="p-4 sm:p-5 flex flex-col flex-1 space-y-3.5">
         {/* Title & Body */}
-        <div className="space-y-1 flex-1">
-          <h3 className="font-display text-base font-bold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="space-y-1 flex-1 min-w-0">
+          <h3 className="font-display text-base font-bold text-foreground leading-snug line-clamp-2 break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
             {ann.title}
           </h3>
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 break-words [overflow-wrap:anywhere]">
             {ann.body}
           </p>
         </div>
@@ -393,28 +368,25 @@ const AnnouncementCard = ({
           className="flex items-center justify-between text-[11px] text-muted-foreground pt-2.5 mt-auto border-t border-border/60"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-3 truncate">
+          <div className="flex items-center gap-3 min-w-0 truncate">
             {ann.sentDate && (
               <span className="flex items-center gap-1">
                 <Send className="w-3 h-3 text-primary shrink-0" /> {ann.sentDate}
               </span>
             )}
-            {ann.scheduledDate && (
-              <span className="flex items-center gap-1">
+            {ann.status === "Scheduled" && ann.scheduledDate && (
+              <span className="flex items-center gap-1 min-w-0 truncate" title={formatScheduledDateTime(ann.scheduledDate)}>
                 <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />{" "}
-                {new Date(ann.scheduledDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatScheduledDateTime(ann.scheduledDate)}
               </span>
             )}
             {ann.expiryDate && (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-muted-foreground shrink-0" /> Exp:{" "}
-                {ann.expiryDate}
+                {ann.expiryLabel || ann.expiryDate}
               </span>
             )}
-            {!ann.sentDate && !ann.scheduledDate && !ann.expiryDate && (
+            {!ann.sentDate && !(ann.status === "Scheduled" && ann.scheduledDate) && !ann.expiryDate && (
               <span className="text-muted-foreground">Draft Notice</span>
             )}
           </div>

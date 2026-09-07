@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,10 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { Announcement } from "./types";
+import {
+  fetchReadReceipts,
+  type AnnouncementAnalytics,
+} from "@/services/announcementsService";
 
 interface Props {
   announcement: Announcement;
@@ -27,10 +31,39 @@ interface Props {
 
 const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
   const [search, setSearch] = useState("");
+  const [analytics, setAnalytics] = useState<AnnouncementAnalytics | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    setSearch("");
+    setIsLoading(true);
+    setLoadError(null);
+    setAnalytics(null);
+
+    fetchReadReceipts(announcement.id)
+      .then((data) => {
+        if (!cancelled) setAnalytics(data);
+      })
+      .catch((error) => {
+        console.error("[Read analytics] Failed to load", error);
+        if (!cancelled) setLoadError("Analytics could not be loaded. Please try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [announcement.id, open]);
 
   // Filter & sort by lowest read rate first
   const filteredAndSortedStats = useMemo(() => {
-    return [...(announcement.barangayReadStats || [])]
+    return [...(analytics?.barangays || [])]
       .filter((stat) =>
         stat.name.toLowerCase().includes(search.trim().toLowerCase()),
       )
@@ -39,16 +72,12 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
         const rateB = b.received > 0 ? b.read / b.received : 0;
         return rateA - rateB;
       });
-  }, [announcement.barangayReadStats, search]);
+  }, [analytics?.barangays, search]);
 
-  const readPct =
-    announcement.totalRecipients > 0
-      ? Math.round((announcement.readCount / announcement.totalRecipients) * 100)
-      : 0;
-  const unreadCount = Math.max(
-    0,
-    announcement.totalRecipients - announcement.readCount,
-  );
+  const recipientCount = analytics?.recipients ?? 0;
+  const readCount = analytics?.read_count ?? 0;
+  const unreadCount = analytics?.unread_count ?? 0;
+  const readPct = recipientCount > 0 ? Math.round((readCount / recipientCount) * 100) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,7 +114,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
             <div className="grid grid-cols-3 gap-2.5 text-center">
               <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
                 <p className="text-xl sm:text-2xl font-extrabold font-display text-foreground tabular-nums">
-                  {announcement.totalRecipients.toLocaleString()}
+                  {recipientCount.toLocaleString()}
                 </p>
                 <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Delivered
@@ -94,7 +123,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
               <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
                 <p className="text-xl sm:text-2xl font-extrabold font-display text-primary tabular-nums">
-                  {announcement.readCount.toLocaleString()}
+                  {readCount.toLocaleString()}
                 </p>
                 <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Confirmed Read
@@ -114,7 +143,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
             {/* Overall Progress Bar */}
             <div className="space-y-1 pt-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-                <span>Overall Delivery Progress</span>
+                <span>Overall Read Progress</span>
                 <span className="tabular-nums font-semibold text-foreground">
                   {unreadCount.toLocaleString()} unread
                 </span>
@@ -131,7 +160,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                   Barangay Engagement Breakdown
                 </h4>
                 <span className="text-[11px] font-medium text-muted-foreground">
-                  ({announcement.barangayReadStats?.length || 0})
+                  ({analytics?.barangays.length || 0})
                 </span>
               </div>
               <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
@@ -154,9 +183,15 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
             {/* Barangay List */}
             <ScrollArea className="h-56 rounded-xl border border-border/70 p-2 bg-background/50">
               <div className="space-y-2">
-                {filteredAndSortedStats.length === 0 ? (
+                {isLoading ? (
                   <p className="text-xs text-muted-foreground text-center py-6">
-                    No barangay read records match your search.
+                    Loading read analytics...
+                  </p>
+                ) : loadError ? (
+                  <p className="text-xs text-destructive text-center py-6">{loadError}</p>
+                ) : filteredAndSortedStats.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    No delivered recipients match your search.
                   </p>
                 ) : (
                   filteredAndSortedStats.map((stat) => {

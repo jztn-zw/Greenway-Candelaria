@@ -47,7 +47,25 @@ const update = async (req, res, next) => {
 const remove = async (req, res, next) => {
   try {
     const result = await service.remove(req.params.id);
-    return success(res, result, "Announcement deleted successfully");
+    return success(res, result, "Announcement archived successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const destroyArchived = async (req, res, next) => {
+  try {
+    const result = await service.destroyArchived(req.params.id);
+    return success(res, result, "Archived announcement permanently deleted");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resendToUnread = async (req, res, next) => {
+  try {
+    const result = await service.resendToUnread(req.params.id);
+    return success(res, result, "Announcement resent to unread residents");
   } catch (err) {
     next(err);
   }
@@ -93,6 +111,8 @@ module.exports = {
   create,
   update,
   remove,
+  destroyArchived,
+  resendToUnread,
   markAsRead,
   getReceipts,
   getBarangayList,

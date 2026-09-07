@@ -17,6 +17,7 @@ export interface NotificationRow {
   is_read: boolean | number;
   ref_id?: string | null;
   ref_module?: string | null;
+  metadata?: Record<string, unknown> | string | null;
   created_at: string;
 }
 
@@ -34,6 +35,7 @@ export interface SendNotificationPayload {
   body: string;
   ref_id?: string | null;
   ref_module?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export const fetchMyNotifications = async (

@@ -13,7 +13,13 @@ export const formatRelativeTime = (
 ): string => {
   if (!value) return emptyLabel || "";
 
-  const normalizedValue = value.includes("Z") ? value : value.replace(" ", "T");
+  // API database timestamps are UTC DATETIME values without a timezone suffix.
+  // Treat them as UTC so relative labels (for example, "8h ago") are correct.
+  const normalizedValue = value.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(value)
+    ? value
+    : /^\d{4}-\d{2}-\d{2}/.test(value)
+      ? `${value.replace(" ", "T")}Z`
+      : value;
   const date = new Date(normalizedValue);
 
   if (Number.isNaN(date.getTime())) return value;

@@ -5,6 +5,8 @@ import {
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
+  permanentlyDeleteArchivedAnnouncement,
+  resendAnnouncementToUnread,
   fetchBarangayList,
 } from "@/services/announcementsService";
 import { Announcement, AnnouncementStatus, EditorForm } from "../types";
@@ -39,7 +41,6 @@ const formToPayload = (form: EditorForm) => {
     type: typeMap[form.type] || "GENERAL_NOTICE",
     priority: priorityMap[form.priority] ?? "NORMAL",
     status: statusMap[form.status] ?? "DRAFT",
-    is_featured: form.featured,
     target_all: form.targetAudience === "All Residents",
     scheduled_at:
       form.status === "Scheduled" && form.scheduledDate
@@ -75,7 +76,10 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
 
   const formatDate = (iso: string | null): string | null => {
     if (!iso) return null;
-    return new Date(iso).toLocaleDateString("en-US", {
+    const normalized = /^\d{4}-\d{2}-\d{2}/.test(iso) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso)
+      ? `${iso.replace(" ", "T")}Z`
+      : iso;
+    return new Date(normalized).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -98,13 +102,13 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     targetBarangays: barangays.map((b) => b.name),
     targetBarangayIds: barangays.map((b) => b.id),
     targetPreset: null,
-    pinned: Boolean(raw.is_featured),
-    featured: Boolean(raw.is_featured),
     sentDate: formatDate(raw.sent_at as string | null),
     sentAt: (raw.sent_at as string | null) ?? null,
     createdAt: (raw.created_at as string | null) ?? null,
+    archivedAt: (raw.archived_at as string | null) ?? null,
     scheduledDate: (raw.scheduled_at as string | null) ?? null,
-    expiryDate: formatDate(raw.expires_at as string | null),
+    expiryDate: (raw.expires_at as string | null) ?? null,
+    expiryLabel: formatDate(raw.expires_at as string | null),
     readCount: Number(raw.read_count ?? 0),
     totalRecipients: 0,
     archived: raw.status === "ARCHIVED",
@@ -190,14 +194,20 @@ export const useAnnouncements = () => {
   const remove = useCallback(
     async (id: string): Promise<boolean> => {
       const previous = announcements;
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      setAnnouncements((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? { ...a, status: "Archived" as AnnouncementStatus, archived: true, archivedAt: new Date().toISOString() }
+            : a,
+        ),
+      );
       try {
         await deleteAnnouncement(id);
-        toast.success("Announcement deleted");
+        toast.success("Announcement archived. It can be restored within 30 days.");
         return true;
       } catch (err) {
         setAnnouncements(previous);
-        toast.error(err instanceof Error ? err.message : "Failed to delete.");
+        toast.error(err instanceof Error ? err.message : "Failed to archive.");
         return false;
       }
     },
@@ -210,28 +220,34 @@ export const useAnnouncements = () => {
       const nextStatus = isArchived ? ("Active" as AnnouncementStatus) : ("Archived" as AnnouncementStatus);
       const previous = announcements;
 
-      // Optimistic local update to avoid full module reload.
-      setAnnouncements((prev) =>
-        prev.map((a) =>
-          a.id === ann.id
-            ? {
-                ...a,
-                status: nextStatus,
-                pinned: isArchived ? a.pinned : false,
-              }
-            : a,
-        ),
-      );
-
       try {
-        await updateAnnouncement(ann.id, {
+        const raw = await updateAnnouncement(ann.id, {
           status: isArchived ? "ACTIVE" : "ARCHIVED",
         });
-        toast.success(isArchived ? "Restored" : "Archived");
+        const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
+        setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? mapped : a)));
+        toast.success(isArchived ? "Announcement restored" : "Announcement archived");
         return true;
       } catch (err) {
         setAnnouncements(previous);
-        toast.error("Action failed.");
+        toast.error(err instanceof Error ? err.message : "Action failed.");
+        return false;
+      }
+    },
+    [announcements],
+  );
+
+  const permanentlyDelete = useCallback(
+    async (id: string): Promise<boolean> => {
+      const previous = announcements;
+      setAnnouncements((prev) => prev.filter((announcement) => announcement.id !== id));
+      try {
+        await permanentlyDeleteArchivedAnnouncement(id);
+        toast.success("Archived announcement permanently deleted");
+        return true;
+      } catch (err) {
+        setAnnouncements(previous);
+        toast.error(err instanceof Error ? err.message : "Could not permanently delete the announcement.");
         return false;
       }
     },
@@ -241,22 +257,23 @@ export const useAnnouncements = () => {
   const duplicate = useCallback(async (ann: Announcement): Promise<boolean> => {
     try {
       setIsSaving(true);
-      const payload = {
+      const payload = formToPayload({
+        ...ann,
         title: `${ann.title} (Copy)`,
-        body: ann.body,
-        type: ann.type.toUpperCase().replace(/ /g, "_"),
-        priority: ann.priority.toUpperCase(),
-        status: "DRAFT",
-        is_featured: ann.featured,
-        target_all: ann.targetAudience === "All Residents",
-      };
-      const raw = await createAnnouncement(payload as any);
+        status: "Draft",
+        // Announcement cards keep names for display and IDs for requests.
+        // The API requires IDs when this is a barangay-targeted announcement.
+        targetBarangays: ann.targetBarangayIds,
+        scheduledDate: "",
+        expiryDate: "",
+      });
+      const raw = await createAnnouncement(payload);
       const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
       setAnnouncements((prev) => [mapped, ...prev]);
       toast.success("Duplicated as draft");
       return true;
     } catch (err) {
-      toast.error("Failed to duplicate.");
+      toast.error(err instanceof Error ? err.message : "Failed to duplicate.");
       return false;
     } finally {
       setIsSaving(false);
@@ -274,9 +291,9 @@ export const useAnnouncements = () => {
       );
       toast.success("Announcement sent!");
       return true;
-    } catch (err) {
-      toast.error("Failed to send announcement.");
-      return false;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to send announcement.");
+        return false;
     }
   }, []);
 
@@ -311,38 +328,23 @@ export const useAnnouncements = () => {
     [],
   );
 
-  const togglePin = useCallback(async (ann: Announcement) => {
+  const resendToUnread = useCallback(async (ann: Announcement): Promise<boolean> => {
     try {
-      const raw = await updateAnnouncement(ann.id, { is_featured: !ann.pinned });
-      const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-      setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? mapped : a)));
-    } catch {
-      toast.error("Could not update the pinned notice");
+      setIsSaving(true);
+      const result = await resendAnnouncementToUnread(ann.id);
+      if (result.sent === 0) {
+        toast.info("All delivered recipients have already read this announcement.");
+      } else {
+        toast.success(`Resent to ${result.sent} unread resident${result.sent === 1 ? "" : "s"}.`);
+      }
+      return true;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend the announcement.");
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   }, []);
-
-  const bulkArchive = useCallback(
-    async (ids: Set<string>): Promise<void> => {
-      const idArray = [...ids];
-      setAnnouncements((prev) =>
-        prev.map((a) =>
-          idArray.includes(a.id)
-            ? { ...a, status: "Archived" as AnnouncementStatus, pinned: false }
-            : a,
-        ),
-      );
-      try {
-        await Promise.all(
-          idArray.map((id) => updateAnnouncement(id, { status: "ARCHIVED" })),
-        );
-        toast.success(`${idArray.length} items archived`);
-      } catch (err) {
-        await loadInitialData();
-        toast.error("Some items failed. Data refreshed.");
-      }
-    },
-    [loadInitialData],
-  );
 
   return {
     announcements,
@@ -354,11 +356,11 @@ export const useAnnouncements = () => {
     createNew,
     updateExisting,
     remove,
+    permanentlyDelete,
     toggleArchive,
     duplicate,
     sendNow, // Added back
     cancelSchedule, // Added back
-    togglePin, // Added back
-    bulkArchive, // Added back
+    resendToUnread,
   };
 };

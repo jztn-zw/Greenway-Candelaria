@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchMyNotifications, NotificationRow } from "@/services/notificationsService";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeTime } from "@/utils/date";
 
 const RecentNotificationsStrip = () => {
   const navigate = useNavigate();
@@ -60,12 +60,10 @@ const RecentNotificationsStrip = () => {
 
       <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-3">
         {notifications.map((n) => {
-          let timeAgo = "Just now";
-          try {
-            timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true });
-          } catch {
-            timeAgo = "Recently";
-          }
+          const timeAgo = formatRelativeTime(n.created_at, {
+            emptyLabel: "Recently",
+            dateOptions: { month: "short", day: "numeric", year: "numeric" },
+          });
 
           const isUnread = !n.is_read;
 
@@ -89,7 +87,7 @@ const RecentNotificationsStrip = () => {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
                   <p className={`text-xs font-semibold truncate ${isUnread ? "text-foreground font-bold" : "text-foreground/90"}`}>
-                    {n.title}
+                    {n.title.replace(/[🚨⚠️]/g, "").trim()}
                   </p>
                   {isUnread && (
                     <span className="w-2 h-2 rounded-full bg-primary shrink-0" />

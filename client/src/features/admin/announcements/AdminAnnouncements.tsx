@@ -18,7 +18,6 @@ import {
   Check,
   Send,
   Clock,
-  Pin,
   X,
   SlidersHorizontal,
   RotateCcw,
@@ -59,7 +58,7 @@ import AnnouncementListView from "./AnnouncementListView";
 import AnnouncementEditor from "./AnnouncementEditor";
 import ReadReceiptModal from "./ReadReceiptModal";
 import { AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
-import { Announcement, EditorForm, announcementTypeStyles, announcementPriorityStyles } from "./types";
+import { Announcement, EditorForm, announcementTypeStyles, announcementPriorityStyles, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
 const ITEMS_PER_PAGE_TABLE = 10;
@@ -67,17 +66,22 @@ const ITEMS_PER_PAGE_TABLE = 10;
 const formatDateTime = (dateStr?: string | null) => {
   if (!dateStr) return "";
   try {
-    const d = new Date(dateStr.includes("Z") ? dateStr : dateStr.replace(" ", "T"));
+    const normalized = /^\d{4}-\d{2}-\d{2}/.test(dateStr) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateStr)
+      ? `${dateStr.replace(" ", "T")}Z`
+      : dateStr;
+    const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return dateStr;
     const datePart = d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "Asia/Manila",
     });
     const timePart = d.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Manila",
     });
     return `${datePart} at ${timePart}`;
   } catch {
@@ -94,7 +98,6 @@ const DEFAULT_FORM: EditorForm = {
   targetAudience: "All Residents",
   targetBarangays: [],
   targetPreset: null,
-  featured: false,
   scheduledDate: "",
   expiryDate: "",
 };
@@ -109,18 +112,17 @@ const AdminAnnouncements = () => {
     createNew,
     updateExisting,
     remove,
+    permanentlyDelete,
     toggleArchive,
     duplicate,
     sendNow,
     cancelSchedule,
-    togglePin,
-    bulkArchive,
+    resendToUnread,
   } = useAnnouncements();
 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -184,7 +186,6 @@ const AdminAnnouncements = () => {
         return matchesSearch && matchesType && matchesPriority && matchesStatus;
       })
       .sort((a, b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         if (sortBy === "newest") {
           return (
             new Date(b.sentDate || b.scheduledDate || 0).getTime() -
@@ -221,9 +222,15 @@ const AdminAnnouncements = () => {
 
   const openEditor = (ann?: Announcement) => {
     if (ann) {
-      setEditingAnn(ann);
+      const needsExpiryUpdateBeforeRestore =
+        ann.status === "Archived" && isAnnouncementExpired(ann.expiryDate);
+      const editorAnnouncement = needsExpiryUpdateBeforeRestore
+        ? { ...ann, status: "Active" as const }
+        : ann;
+
+      setEditingAnn(editorAnnouncement);
       setEditorForm({
-        ...ann,
+        ...editorAnnouncement,
         targetBarangays: ann.targetBarangayIds,
         scheduledDate: ann.scheduledDate ?? "",
         expiryDate: ann.expiryDate ?? "",
@@ -256,36 +263,8 @@ const AdminAnnouncements = () => {
 
   const handleResendConfirm = async () => {
     if (!resendTarget) return;
-    await updateExisting(resendTarget.id, {
-      ...resendTarget,
-      status: "Active",
-      scheduledDate: resendTarget.scheduledDate ?? "",
-      expiryDate: resendTarget.expiryDate ?? "",
-    });
-    toast.success("Resent to unread residents");
+    await resendToUnread(resendTarget);
     setResendTarget(null);
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === paginated.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(paginated.map((a) => a.id)));
-    }
-  };
-
-  const handleBulkArchive = async () => {
-    if (selectedIds.size === 0) return;
-    await bulkArchive(selectedIds);
-    setSelectedIds(new Set());
   };
 
   const activeFilterCount =
@@ -518,29 +497,6 @@ const AdminAnnouncements = () => {
         </div>
       </section>
 
-      {/* ── Bulk Actions Bar (when items selected) ── */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground pt-1">
-          <span className="font-semibold text-primary">{selectedIds.size} selected</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBulkArchive}
-            className="h-7 px-2.5 rounded-lg text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer"
-          >
-            <Archive className="w-3 h-3" />
-            Archive Selected
-          </Button>
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            className="text-muted-foreground hover:text-foreground underline text-[11px] cursor-pointer"
-          >
-            Clear
-          </button>
-        </div>
-      )}
-
       {/* ── Content View (Grid or Table) ── */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-12 text-center space-y-4">
@@ -571,12 +527,9 @@ const AdminAnnouncements = () => {
             <AnnouncementCard
               key={ann.id}
               ann={ann}
-              isSelected={selectedIds.has(ann.id)}
-              onSelect={toggleSelect}
               onPreview={setPreviewAnn}
               onEdit={openEditor}
               onDuplicate={duplicate}
-              onTogglePin={togglePin}
               onResend={setResendTarget}
               onSendNow={initiateSend}
               onArchive={toggleArchive}
@@ -589,13 +542,9 @@ const AdminAnnouncements = () => {
       ) : (
         <AnnouncementListView
           announcements={paginated}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
           onPreview={setPreviewAnn}
           onEdit={openEditor}
           onDuplicate={duplicate}
-          onTogglePin={togglePin}
           onResend={setResendTarget}
           onSendNow={initiateSend}
           onArchive={toggleArchive}
@@ -666,9 +615,9 @@ const AdminAnnouncements = () => {
         open={!!previewAnn}
         onOpenChange={(open) => !open && setPreviewAnn(null)}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background [&>button:last-child]:hidden">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background [&>button:last-child]:hidden">
           {/* Header */}
-          <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left">
+          <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                 <Megaphone className="w-5 h-5" />
@@ -693,9 +642,9 @@ const AdminAnnouncements = () => {
           </div>
 
           {previewAnn && (
-            <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left">
+            <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin">
               {/* Notice Card simulating resident feed item */}
-              <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
+              <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs min-w-0 overflow-hidden break-words">
                 {/* Badges row */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge
@@ -712,25 +661,20 @@ const AdminAnnouncements = () => {
                       {previewAnn.priority}
                     </Badge>
                   )}
-                  {previewAnn.pinned && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                      <Pin className="w-3 h-3 fill-primary" /> Pinned
-                    </span>
-                  )}
                 </div>
 
                 {/* Title & Body */}
-                <h3 className="text-base sm:text-lg font-bold font-display text-foreground leading-snug">
+                <h3 className="text-base sm:text-lg font-bold font-display text-foreground leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
                   {previewAnn.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] max-h-[45vh] overflow-y-auto scrollbar-thin">
                   {previewAnn.body}
                 </p>
 
                 {/* Sent / Scheduled Timestamp */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60">
-                  <Send className="w-3.5 h-3.5 text-primary" />
-                  <span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60 min-w-0">
+                  <Send className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="truncate">
                     {previewAnn.sentAt || previewAnn.sentDate
                       ? `Broadcast on ${formatDateTime(previewAnn.sentAt || previewAnn.sentDate)}`
                       : previewAnn.scheduledDate
@@ -811,7 +755,7 @@ const AdminAnnouncements = () => {
           </div>
 
           {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
+          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-background">
             <AlertDialogCancel
               onClick={() => setConfirmSend(false)}
               className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
@@ -829,7 +773,7 @@ const AdminAnnouncements = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* ── Archive Confirmation Modal ── */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
@@ -838,11 +782,11 @@ const AdminAnnouncements = () => {
           {/* Header Bar */}
           <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4" />
+              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${deleteTarget?.status === "Archived" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/10 text-primary border-primary/20"}`}>
+                {deleteTarget?.status === "Archived" ? <Trash2 className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
               </div>
               <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Delete Announcement?
+                {deleteTarget?.status === "Archived" ? "Delete Permanently?" : "Archive Announcement?"}
               </AlertDialogTitle>
             </div>
             <button
@@ -858,16 +802,18 @@ const AdminAnnouncements = () => {
           {/* Body */}
           <div className="px-4 sm:px-5 py-3.5">
             <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to permanently delete{" "}
+              {deleteTarget?.status === "Archived" ? "Permanently delete" : "Archive"}{" "}
               <strong className="text-foreground font-semibold">
                 &ldquo;{deleteTarget?.title}&rdquo;
               </strong>
-              ? This action cannot be undone and will remove it from resident feeds.
+              ? {deleteTarget?.status === "Archived"
+                ? "This cannot be undone. The announcement and its linked notifications will be removed now."
+                : "It will be hidden from resident feeds and notifications. You can restore it from Archive within 30 days."}
             </AlertDialogDescription>
           </div>
 
           {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
+          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60">
             <AlertDialogCancel
               onClick={() => setDeleteTarget(null)}
               className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
@@ -876,13 +822,15 @@ const AdminAnnouncements = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                const ok = await remove(deleteTarget!.id);
+                const ok = deleteTarget!.status === "Archived"
+                  ? await permanentlyDelete(deleteTarget!.id)
+                  : await remove(deleteTarget!.id);
                 if (ok) setDeleteTarget(null);
               }}
-              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all"
+               className={`h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all ${deleteTarget?.status === "Archived" ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Notice</span>
+              {deleteTarget?.status === "Archived" ? <Trash2 className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+              <span>{deleteTarget?.status === "Archived" ? "Delete Permanently" : "Archive Notice"}</span>
             </AlertDialogAction>
           </div>
         </AlertDialogContent>

@@ -15,7 +15,6 @@ const createAnnouncementSchema = z.object({
     .enum(["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"])
     .optional()
     .default("DRAFT"),
-  is_featured: z.boolean().optional().default(false),
   target_all: z.boolean().optional().default(true),
   scheduled_at: z.string().optional().nullable(),
   expires_at: z.string().optional().nullable(),
@@ -33,8 +32,15 @@ const createAnnouncementSchema = z.object({
       ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Broadcast time must be in the future" });
     }
   }
-  if (data.expires_at && Number.isNaN(new Date(data.expires_at).getTime())) {
-    ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry time is invalid" });
+  if (data.expires_at) {
+    const expiresAt = new Date(data.expires_at);
+    if (Number.isNaN(expiresAt.getTime())) {
+      ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry time is invalid" });
+    } else if (data.status !== "DRAFT" && expiresAt <= new Date()) {
+      ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry time must be in the future" });
+    } else if (data.scheduled_at && expiresAt <= new Date(data.scheduled_at)) {
+      ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry must be after the broadcast time" });
+    }
   }
 });
 
@@ -52,7 +58,6 @@ const updateAnnouncementSchema = z.object({
     .optional(),
   priority: z.enum(["NORMAL", "URGENT"]).optional(),
   status: z.enum(["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"]).optional(),
-  is_featured: z.boolean().optional(),
   target_all: z.boolean().optional(),
   scheduled_at: z.string().nullable().optional(),
   expires_at: z.string().nullable().optional(),
