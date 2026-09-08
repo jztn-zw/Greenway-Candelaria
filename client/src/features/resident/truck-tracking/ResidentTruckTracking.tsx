@@ -28,6 +28,7 @@ import {
   normaliseId,
   parseCoordinate,
 } from "./truckTracking.utils";
+import type { RoadRouteResult } from "@/services/roadRoutingService";
 
 const REFRESH_MS = 4_000;
 const FALLBACK_RESIDENT_COORDS: [number, number] = [14.0424, 121.4234];
@@ -361,6 +362,16 @@ const ResidentTruckTracking = () => {
         : residentCoords;
 
     const liveByTruckId = new Map(liveRows.map((row) => [row.truck_id, row]));
+    const barangayCoordsById = new Map(
+      barangays.flatMap((barangay) => {
+        const latitude = parseCoordinate(barangay.latitude);
+        const longitude = parseCoordinate(barangay.longitude);
+        const id = normaliseId(barangay.id);
+        return id && latitude !== null && longitude !== null
+          ? [[id, [latitude, longitude] as [number, number]] as const]
+          : [];
+      }),
+    );
     const todayRouteByTruckId = new Map<string, TruckRouteRow>();
     for (const route of todayRoutes) {
       const current = todayRouteByTruckId.get(route.truck_id);
@@ -371,7 +382,12 @@ const ResidentTruckTracking = () => {
       const live = liveByTruckId.get(truck.id);
       const route = todayRouteByTruckId.get(truck.id);
 
-      const coords = live ? ([live.latitude, live.longitude] as [number, number]) : null;
+      const liveLatitude = parseCoordinate(live?.latitude);
+      const liveLongitude = parseCoordinate(live?.longitude);
+      const coords =
+        liveLatitude !== null && liveLongitude !== null
+          ? ([liveLatitude, liveLongitude] as [number, number])
+          : null;
       const distanceKm = coords ? calculateDistanceInKilometers(coords, effectiveResidentCoords) : null;
       const eta = distanceKm !== null ? Math.max(1, Math.round((distanceKm / 20) * 60)) : null;
 
@@ -388,6 +404,14 @@ const ResidentTruckTracking = () => {
         .map((stop: TruckRouteRow["stops"][number]) => ({
           barangay: stop.barangay_name,
           status: normaliseStopStatus(stop.status),
+          coords:
+            (() => {
+              const latitude = parseCoordinate(stop.latitude);
+              const longitude = parseCoordinate(stop.longitude);
+              return latitude !== null && longitude !== null
+                ? [latitude, longitude] as [number, number]
+                : barangayCoordsById.get(normaliseId(stop.barangay_id) ?? "") ?? null;
+            })(),
           completedAt: stop.completed_at ? formatCollectionTime(stop.completed_at) : undefined,
           skippedReason: stop.skipped_reason ?? undefined,
           isResidentBarangay: normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
@@ -567,6 +591,25 @@ const ResidentTruckTracking = () => {
     setLockedToBarangay(true);
   };
 
+  const handleRoadRouteCalculated = useCallback(
+    (truckId: string, roadRoute: RoadRouteResult) => {
+      setTrucks((currentTrucks) =>
+        currentTrucks.map((truck) =>
+          truck.id === truckId &&
+          (truck.eta !== roadRoute.durationMinutes ||
+            truck.roadDistanceKm !== roadRoute.distanceKm)
+            ? {
+                ...truck,
+                eta: roadRoute.durationMinutes,
+                roadDistanceKm: roadRoute.distanceKm,
+              }
+            : truck,
+        ),
+      );
+    },
+    [],
+  );
+
   const activeResidentTruck = useMemo(
     () => residentTrucks.find((t) => t.id === focusedTruckId) || residentTrucks[0] || null,
     [focusedTruckId, residentTrucks]
@@ -649,6 +692,7 @@ const ResidentTruckTracking = () => {
             lockedToBarangay={lockedToBarangay}
             collectionDayStatus={collectionDayStatus}
             nextCollectionInfo={nextCollectionInfo}
+            onRouteCalculated={handleRoadRouteCalculated}
             onSelectTruck={(truckId) => {
               handleTruckClick(truckId);
             }}

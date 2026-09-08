@@ -1,5 +1,6 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const { notifyBarangayResidents } = require("../notifications/notifications.service");
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
 
 const getTodayRouteContext = () => {
@@ -210,9 +211,12 @@ const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
   if (isNextCycleReset) {
     await connection.query(
       `UPDATE route_stops
-       SET status = 'NOT_STARTED',
-           completed_at = NULL,
-           skipped_reason = NULL
+        SET status = 'NOT_STARTED',
+            completed_at = NULL,
+            skipped_reason = NULL,
+            notified_at = NULL,
+            collection_done_notified_at = NULL,
+            collection_skipped_notified_at = NULL
        WHERE route_id = ?`,
       [routeId],
     );
@@ -232,7 +236,10 @@ const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
     `UPDATE route_stops
      SET status = 'NOT_STARTED',
          completed_at = NULL,
-         skipped_reason = NULL
+          skipped_reason = NULL,
+          notified_at = NULL,
+          collection_done_notified_at = NULL,
+          collection_skipped_notified_at = NULL
      WHERE route_id = ?
        AND status IN ('MISSED', 'SKIPPED', 'IN_PROGRESS')`,
     [routeId],
@@ -354,7 +361,10 @@ const autoActivateScheduledRoutes = async () => {
         `UPDATE route_stops
          SET status = 'NOT_STARTED',
              completed_at = NULL,
-             skipped_reason = NULL
+             skipped_reason = NULL,
+             notified_at = NULL,
+             collection_done_notified_at = NULL,
+             collection_skipped_notified_at = NULL
          WHERE route_id = ?`,
         [route.id],
       );
@@ -711,9 +721,12 @@ const update = async (id, data) => {
 };
 
 // ─── Update Stop Status ───────────────────────────────────────────────────
-const updateStopStatus = async (routeId, stopId, status) => {
+const updateStopStatus = async (routeId, stopId, status, skippedReason = null) => {
   const [rows] = await pool.query(
-    "SELECT id FROM route_stops WHERE id = ? AND route_id = ?",
+    `SELECT rs.id, rs.status, rs.barangay_id, b.name AS barangay_name
+     FROM route_stops rs
+     JOIN barangays b ON b.id = rs.barangay_id
+     WHERE rs.id = ? AND rs.route_id = ?`,
     [stopId, routeId],
   );
 
@@ -722,10 +735,59 @@ const updateStopStatus = async (routeId, stopId, status) => {
   const completedAt =
     status === "DONE" || status === "MISSED" ? new Date() : null;
 
+  const stop = rows[0];
+  const reason = status === "MISSED" ? skippedReason || null : null;
+
   await pool.query(
-    "UPDATE route_stops SET status = ?, completed_at = ? WHERE id = ?",
-    [status, completedAt, stopId],
+    "UPDATE route_stops SET status = ?, completed_at = ?, skipped_reason = ? WHERE id = ?",
+    [status, completedAt, reason, stopId],
   );
+
+  const notification = status === "DONE"
+    ? {
+        column: "collection_done_notified_at",
+        type: "COLLECTION_DONE",
+        title: "Collection Completed",
+        body: `Waste collection in ${stop.barangay_name} has been completed.`,
+      }
+    : status === "MISSED"
+      ? {
+          column: "collection_skipped_notified_at",
+          type: "MISSED_COLLECTION",
+          title: "Collection Skipped",
+          body: reason
+            ? `Waste collection in ${stop.barangay_name} was skipped. Reason: ${reason}.`
+            : `Waste collection in ${stop.barangay_name} was skipped.`,
+        }
+      : null;
+
+  if (notification) {
+    const [claimResult] = await pool.query(
+      `UPDATE route_stops SET ${notification.column} = NOW()
+       WHERE id = ? AND ${notification.column} IS NULL`,
+      [stopId],
+    );
+
+    if (claimResult.affectedRows > 0) {
+      try {
+        await notifyBarangayResidents({
+          barangay_id: stop.barangay_id,
+          type: notification.type,
+          title: notification.title,
+          body: notification.body,
+          ref_id: routeId,
+          ref_module: "tracking",
+          metadata: { route_id: routeId, stop_id: stopId, barangay_id: stop.barangay_id },
+        });
+      } catch (err) {
+        await pool.query(
+          `UPDATE route_stops SET ${notification.column} = NULL WHERE id = ?`,
+          [stopId],
+        );
+        console.error("[Routes] Stop notification error:", err.message);
+      }
+    }
+  }
 
   return getById(routeId);
 };

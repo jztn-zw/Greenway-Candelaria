@@ -29,7 +29,7 @@ const EndRouteModal = ({
           <AlertTriangle className="w-5 h-5 text-destructive" />
           End Route?
         </DialogTitle>
-        {/* ✅ FIX: Required by Radix UI for accessibility */}
+        {/* Radix UI accessibility description */}
         <DialogDescription>
           {remaining > 0
             ? `You still have ${remaining} stop${remaining > 1 ? "s" : ""} remaining. Are you sure you want to end this route?`

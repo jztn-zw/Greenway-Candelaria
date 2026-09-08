@@ -14,9 +14,6 @@ router.post(
   controller.uploadImage,
 );
 
-// ─── Bookmarks (must be before /:id) ──────────────────────
-router.get("/bookmarks", authenticate, controller.getBookmarks);
-
 // ─── Public ───────────────────────────────────────────────
 router.get("/", optionalAuth, controller.getAll);
 router.get("/:id", optionalAuth, controller.getById);
@@ -50,9 +47,5 @@ router.delete(
 // ─── Likes ────────────────────────────────────────────────
 router.post("/:id/like", authenticate, controller.likePost);
 router.delete("/:id/like", authenticate, controller.unlikePost);
-
-// ─── Bookmarks ────────────────────────────────────────────
-router.post("/:id/bookmark", authenticate, controller.bookmarkPost);
-router.delete("/:id/bookmark", authenticate, controller.unbookmarkPost);
 
 module.exports = router;

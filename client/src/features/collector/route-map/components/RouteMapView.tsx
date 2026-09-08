@@ -11,6 +11,7 @@ interface RouteMapViewProps {
   truckCoords: [number, number];
   isOffline: boolean;
   activeStopCoords?: [number, number] | null;
+  onActiveRouteChange?: (route: RoadRouteResult | null) => void;
 }
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -128,7 +129,7 @@ const createCollectorTruckPinIcon = () => {
   });
 };
 
-const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords }: RouteMapViewProps) => {
+const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords, onActiveRouteChange }: RouteMapViewProps) => {
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -186,15 +187,19 @@ const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords }: Route
 
     if (!truckCoords || !activeStopCoords) {
       setActiveRoute(null);
+      onActiveRouteChange?.(null);
       return;
     }
 
     let isCurrent = true;
+    setActiveRoute(null);
+    onActiveRouteChange?.(null);
 
     getRoadRoute(truckCoords, activeStopCoords)
       .then((result) => {
         if (!isCurrent) return;
         setActiveRoute(result);
+        onActiveRouteChange?.(result);
 
         if (result.coordinates && result.coordinates.length > 1) {
           // Route glow outer casing
@@ -217,7 +222,10 @@ const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords }: Route
         }
       })
       .catch(() => {
-        if (isCurrent) setActiveRoute(null);
+        if (isCurrent) {
+          setActiveRoute(null);
+          onActiveRouteChange?.(null);
+        }
       });
 
     return () => {
@@ -228,6 +236,7 @@ const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords }: Route
     truckCoords[1],
     activeStopCoords?.[0],
     activeStopCoords?.[1],
+    onActiveRouteChange,
   ]);
 
   // Update markers

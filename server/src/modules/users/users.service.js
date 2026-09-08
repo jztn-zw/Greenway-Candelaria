@@ -293,6 +293,8 @@ const updateUserSettings = async (userId, data) => {
   const allowed = [
     "notif_collection_reminders",
     "notif_truck_near",
+    "notif_collection_done",
+    "notif_collection_skipped",
     "notif_report_updates",
     "notif_new_content",
     "notif_announcements",

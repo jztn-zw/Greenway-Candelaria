@@ -348,9 +348,11 @@ export const completeStop = async (
 export const skipStop = async (
   routeId: string,
   stopId: string,
+  reason?: string,
 ): Promise<void> => {
   await api.put(`/routes/${routeId}/stops/${stopId}/status`, {
     status: "MISSED",
+    skipped_reason: reason,
   });
 };
 

@@ -19,7 +19,7 @@ const calculateHaversineDistanceKm = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Check if truck is approaching any active route stops (<= 750m) and notify residents
+// Check the next scheduled active route stop (<= 750m) and notify its residents.
 const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
   try {
     const [stops] = await pool.query(
@@ -37,41 +37,47 @@ const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
        WHERE r.truck_id = ?
          AND r.status = 'ACTIVE'
          AND rs.status IN ('NOT_STARTED', 'IN_PROGRESS')
-         AND rs.notified_at IS NULL
          AND b.latitude IS NOT NULL
-         AND b.longitude IS NOT NULL`,
+         AND b.longitude IS NOT NULL
+       ORDER BY rs.stop_order ASC
+       LIMIT 1`,
       [truckId],
     );
 
-    for (const stop of stops) {
-      const distKm = calculateHaversineDistanceKm(
-        parseFloat(truckLat),
-        parseFloat(truckLng),
-        parseFloat(stop.barangay_lat),
-        parseFloat(stop.barangay_lng),
+    const stop = stops[0];
+    if (!stop || stop.notified_at) return;
+
+    const distanceKm = calculateHaversineDistanceKm(
+      Number(truckLat),
+      Number(truckLng),
+      Number(stop.barangay_lat),
+      Number(stop.barangay_lng),
+    );
+    if (!Number.isFinite(distanceKm) || distanceKm > 0.75) return;
+
+    // Claim the alert atomically so simultaneous GPS pings cannot duplicate it.
+    const [claimResult] = await pool.query(
+      "UPDATE route_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL",
+      [stop.stop_id],
+    );
+    if (claimResult.affectedRows === 0) return;
+
+    try {
+      await notifyBarangayResidents({
+        barangay_id: stop.barangay_id,
+        type: "TRUCK_IS_NEAR",
+        title: "Collection Truck Approaching",
+        body: `The collection truck is approaching ${stop.barangay_name}. Please prepare your segregated waste for pickup.`,
+        ref_id: stop.route_id,
+        ref_module: "tracking",
+      });
+    } catch (err) {
+      // Release the claim so a later GPS ping can retry a failed delivery.
+      await pool.query(
+        "UPDATE route_stops SET notified_at = NULL WHERE id = ?",
+        [stop.stop_id],
       );
-
-      // Proximity threshold: 750 meters (0.75 km)
-      if (distKm <= 0.75) {
-        // Atomic single-fire update
-        const [updateResult] = await pool.query(
-          "UPDATE route_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL",
-          [stop.stop_id],
-        );
-
-        if (updateResult.affectedRows > 0) {
-          notifyBarangayResidents({
-            barangay_id: stop.barangay_id,
-            type: "TRUCK_IS_NEAR",
-            title: "Collection Truck Approaching",
-            body: `The collection truck is approaching ${stop.barangay_name}. Please prepare your segregated waste for pickup.`,
-            ref_id: stop.route_id,
-            ref_module: "tracking",
-          }).catch((err) =>
-            console.error("[Notify]  Proximity notification failed:", err.message),
-          );
-        }
-      }
+      throw err;
     }
   } catch (err) {
     console.error("[Tracking]  Proximity check error:", err.message);

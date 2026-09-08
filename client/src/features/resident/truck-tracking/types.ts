@@ -5,6 +5,7 @@ export type RouteStopStatus = "done" | "in-progress" | "not-started" | "skipped"
 export interface RouteStopInfo {
   barangay: string;
   status: RouteStopStatus;
+  coords?: [number, number] | null;
   completedAt?: string;
   skippedReason?: string;
   isResidentBarangay?: boolean;
@@ -22,6 +23,7 @@ export interface Truck {
   totalBarangays: number;
   coords: [number, number] | null;
   eta: number | null; // minutes
+  roadDistanceKm?: number | null;
   driverMessage: string | null;
   isResidentTruck: boolean;
   barangaysAway: number | null;

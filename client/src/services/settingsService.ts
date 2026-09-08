@@ -12,6 +12,8 @@ export interface UserSettings {
   // Notifications (simple on/off)
   notif_collection_reminders: boolean;
   notif_truck_near: boolean;
+  notif_collection_done: boolean;
+  notif_collection_skipped: boolean;
   notif_report_updates: boolean;
   notif_new_content: boolean;
   notif_announcements: boolean;

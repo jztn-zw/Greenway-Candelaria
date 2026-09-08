@@ -216,25 +216,6 @@ CREATE TABLE `notifications` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `post_bookmarks`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `post_bookmarks` (
-  `id` varchar(36) NOT NULL,
-  `post_id` varchar(36) NOT NULL,
-  `user_id` varchar(36) NOT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `unique_bookmark` (`post_id`,`user_id`),
-  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
-  KEY `fk_2` (`user_id`),
-  CONSTRAINT `fk_1` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `post_images`
 --
 
@@ -468,6 +449,8 @@ CREATE TABLE `route_stops` (
   `status` enum('NOT_STARTED','IN_PROGRESS','DONE','MISSED') DEFAULT 'NOT_STARTED',
   `completed_at` timestamp NULL DEFAULT NULL,
   `notified_at` timestamp NULL DEFAULT NULL,
+  `collection_done_notified_at` timestamp NULL DEFAULT NULL,
+  `collection_skipped_notified_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `skipped_reason` varchar(255) DEFAULT NULL,
   `distance_km` decimal(8,2) DEFAULT '0',
@@ -611,6 +594,8 @@ CREATE TABLE `user_settings` (
   `user_id` varchar(36) NOT NULL,
   `notif_collection_reminders` tinyint(1) DEFAULT '1',
   `notif_truck_near` tinyint(1) DEFAULT '1',
+  `notif_collection_done` tinyint(1) DEFAULT '1',
+  `notif_collection_skipped` tinyint(1) DEFAULT '1',
   `notif_report_updates` tinyint(1) DEFAULT '1',
   `notif_new_content` tinyint(1) DEFAULT '1',
   `notif_announcements` tinyint(1) DEFAULT '1',

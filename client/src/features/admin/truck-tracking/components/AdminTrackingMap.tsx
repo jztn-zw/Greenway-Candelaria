@@ -18,7 +18,6 @@ import {
   getRoadRoute,
   type RoadRouteResult,
 } from "@/services/roadRoutingService";
-import { useAutoRoute } from "@/features/collector/route-map/hooks/useAutoRoute";
 import type { RouteStop } from "@/features/collector/route-map/types";
 
 export interface ReplayTargetStopInfo {
@@ -147,10 +146,18 @@ const createAdminStopTeardropIcon = (
   });
 };
 
-const createAdminTruckPinIcon = (isFocused = false, isLive = true) => {
+const createAdminTruckPinIcon = (
+  isFocused = false,
+  state: "live" | "delayed" | "idle" = "live",
+) => {
   const width = isFocused ? 42 : 36;
   const height = isFocused ? 54 : 48;
-  const color = isLive ? "hsl(145, 63%, 32%)" : "hsl(215, 14%, 45%)";
+  const color =
+    state === "live"
+      ? "hsl(145, 63%, 32%)"
+      : state === "delayed"
+        ? "hsl(38, 92%, 42%)"
+        : "hsl(215, 14%, 45%)";
   const scale = isFocused ? 1.16 : 1;
   const cx = width / 2;
   const cy = isFocused ? 21 : 18;
@@ -173,7 +180,7 @@ const createAdminTruckPinIcon = (isFocused = false, isLive = true) => {
           </g>
         </svg>
         ${
-          isFocused
+           isFocused && state === "live"
             ? `<div style="position:absolute;top:-1px;right:-1px;display:flex;width:12px;height:12px;pointer-events:none;">
                  <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#10b981;opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
                  <span style="position:relative;width:100%;height:100%;border-radius:50%;background:#10b981;border:2px solid white;"></span>
@@ -295,7 +302,13 @@ const AdminTrackingMap = ({
   const hasAutoFittedRef = useRef(false);
 
   const visibleTrucks = useMemo(
-    () => trucks.filter((t) => Boolean(t.coords) && t.status === "on-the-way"),
+    () =>
+      trucks.filter(
+        (truck) =>
+          Boolean(truck.coords) &&
+          (truck.status === "on-the-way" ||
+            (truck.status === "offline" && Boolean(truck.lastPingIso))),
+      ),
     [trucks],
   );
 
@@ -341,10 +354,12 @@ const AdminTrackingMap = ({
       }));
   }, [passedAutoRoutedStops, activeTruck?.id, activeTruck?.route]);
 
-  const autoRoutedStops = useAutoRoute(rawStops, activeTruckCoords);
+  // The parent supplies the selected truck's scheduled stop order. This map
+  // only renders that target; it never changes the collector's queue.
+  const scheduledStops = passedAutoRoutedStops ?? rawStops;
   const activeStop = passedActiveStop !== undefined
     ? passedActiveStop
-    : (autoRoutedStops.find((s) => s.status === "in-progress") ?? null);
+    : (scheduledStops.find((s) => s.status === "in-progress") ?? null);
 
   const activeStopCoords = passedActiveStopCoords !== undefined
     ? passedActiveStopCoords
@@ -402,6 +417,14 @@ const AdminTrackingMap = ({
     (replayLegPath && replayLegPath.length > 0) ||
     (replayPath && replayPath.length > 0)
   );
+  const gpsState =
+    activeTruck?.status === "on-the-way"
+      ? { label: "Live GPS", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20" }
+      : activeTruck?.status === "offline" && activeTruck.lastPingIso
+        ? { label: "GPS Delayed", className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20" }
+        : activeTruck?.status === "scheduled"
+          ? { label: "Scheduled", className: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20" }
+          : { label: "Not Live", className: "bg-muted text-muted-foreground border-border" };
 
   // Compute and render single-leg road route from truck to current active stop
   useEffect(() => {
@@ -469,7 +492,7 @@ const AdminTrackingMap = ({
 
     if (isReplayMode) return;
 
-    autoRoutedStops.forEach((stop) => {
+    scheduledStops.forEach((stop) => {
       const isTarget = stop.status === "in-progress";
       const mappedState = stop.status === "not-yet" ? "not-started" : stop.status;
       const stopIcon = createAdminStopTeardropIcon(stop.stopNumber, mappedState);
@@ -507,7 +530,7 @@ const AdminTrackingMap = ({
 
       marker.addTo(layer);
     });
-  }, [autoRoutedStops, isReplayMode]);
+  }, [scheduledStops, isReplayMode]);
 
   // Update truck markers
   useEffect(() => {
@@ -521,9 +544,17 @@ const AdminTrackingMap = ({
       const isNear = truck.barangaysAway !== null && truck.barangaysAway <= 3;
       const isFocused = (focusedTruckId ?? activeTruck?.id) === truck.id;
       const isLive = truck.status === "on-the-way";
-      const markerBg = isLive ? "hsl(145,63%,32%)" : "hsl(215, 14%, 45%)";
+      const isDelayed = truck.status === "offline" && Boolean(truck.lastPingIso);
+      const markerBg = isLive
+        ? "hsl(145,63%,32%)"
+        : isDelayed
+          ? "hsl(38, 92%, 42%)"
+          : "hsl(215, 14%, 45%)";
 
-      const truckIcon = createAdminTruckPinIcon(isFocused, isLive);
+      const truckIcon = createAdminTruckPinIcon(
+        isFocused,
+        isLive ? "live" : isDelayed ? "delayed" : "idle",
+      );
 
       const marker = L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
 
@@ -552,7 +583,7 @@ const AdminTrackingMap = ({
               <div style="font-size:11px;opacity:0.6;font-family:monospace">${safePlateNumber}</div>
             </div>
             <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:${markerBg};color:white;text-transform:uppercase;letter-spacing:0.04em">
-              ${truck.status === "on-the-way" ? "EN ROUTE" : truck.status.toUpperCase()}
+              ${isLive ? "EN ROUTE" : isDelayed ? "GPS DELAYED" : truck.status.toUpperCase()}
             </span>
           </div>
 
@@ -795,7 +826,7 @@ const AdminTrackingMap = ({
 
     // 4. Moving Truck Marker - ORIGINAL FLEET TEARDROP PIN
     if (currentPoint) {
-      const originalTruckIcon = createAdminTruckPinIcon(false, true);
+      const originalTruckIcon = createAdminTruckPinIcon(false, "live");
 
       L.marker(currentPoint, {
         icon: originalTruckIcon,
@@ -893,8 +924,8 @@ const AdminTrackingMap = ({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <div className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                    Live Fleet
+                  <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${gpsState.className}`}>
+                    {gpsState.label}
                   </div>
                   <button
                     type="button"
@@ -935,7 +966,7 @@ const AdminTrackingMap = ({
                   <span className="truncate">Target: {activeStop.barangay}</span>
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/80 font-medium text-foreground/80 shrink-0">
-                  {routeData ? "Road Snapped" : "Route stop"}
+                  {routeData ? "Road route" : "Route stop"}
                 </span>
               </div>
             </div>

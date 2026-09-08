@@ -38,6 +38,7 @@ const updateRouteSchema = z.object({
 
 const updateStopStatusSchema = z.object({
   status: z.enum(["NOT_STARTED", "IN_PROGRESS", "DONE", "MISSED"]),
+  skipped_reason: z.string().trim().max(255).nullable().optional(),
 });
 
 module.exports = {

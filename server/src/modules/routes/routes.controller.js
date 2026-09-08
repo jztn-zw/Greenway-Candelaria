@@ -96,11 +96,12 @@ const update = async (req, res, next) => {
 
 const updateStopStatus = async (req, res, next) => {
   try {
-    const { status } = updateStopStatusSchema.parse(req.body);
+    const { status, skipped_reason } = updateStopStatusSchema.parse(req.body);
     const route = await service.updateStopStatus(
       req.params.id,
       req.params.stopId,
       status,
+      skipped_reason,
     );
 
     const io = req.app.get("io");

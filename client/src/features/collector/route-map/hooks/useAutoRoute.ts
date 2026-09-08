@@ -1,71 +1,83 @@
 /**
  * useAutoRoute.ts
  *
- * Automatically reorders the unfinished queue based on proximity to the
- * truck's current GPS coordinates. The nearest unfinished barangay becomes
- * the active stop, and the rest of the pending queue follows by distance.
- * Settled stops (done / skipped) are kept after the live queue.
+ * Keeps the admin's scheduled stop order intact. The first unfinished
+ * barangay is the active stop; the collector advances only by completing or
+ * skipping that stop.
  */
 
 import { useMemo } from "react";
 import type { RouteStop } from "../types";
 
-/** Haversine distance in km between two [lat, lng] points */
-const haversineKm = (
-  [lat1, lng1]: [number, number],
-  [lat2, lng2]: [number, number],
-): number => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+export const useScheduledRouteOrder = (stops: RouteStop[]): RouteStop[] => {
+  return useMemo(() => {
+    if (stops.length === 0) return stops;
+
+    const firstUnfinishedIndex = stops.findIndex(
+      (stop) => stop.status !== "done" && stop.status !== "skipped",
+    );
+
+    return stops.map((stop, index) => ({
+      ...stop,
+      status:
+        stop.status === "done" || stop.status === "skipped"
+          ? stop.status
+          : index === firstUnfinishedIndex
+            ? "in-progress"
+            : "not-yet",
+    }));
+  }, [stops]);
 };
 
+/**
+ * Kept for the admin tracking/replay map, which has its own proximity-based
+ * preview. Collector navigation uses useScheduledRouteOrder above.
+ */
 export const useAutoRoute = (
   stops: RouteStop[],
   truckCoords: [number, number] | null,
 ): RouteStop[] => {
   return useMemo(() => {
-    if (stops.length === 0) return stops;
+    const distanceKm = (
+      [latitude1, longitude1]: [number, number],
+      [latitude2, longitude2]: [number, number],
+    ) => {
+      const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+      const latitudeDifference = toRadians(latitude2 - latitude1);
+      const longitudeDifference = toRadians(longitude2 - longitude1);
+      const haversine =
+        Math.sin(latitudeDifference / 2) ** 2 +
+        Math.cos(toRadians(latitude1)) *
+          Math.cos(toRadians(latitude2)) *
+          Math.sin(longitudeDifference / 2) ** 2;
+      return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+    };
 
     const settled = stops.filter(
-      (s) => s.status === "done" || s.status === "skipped",
+      (stop) => stop.status === "done" || stop.status === "skipped",
     );
     const unfinished = stops.filter(
-      (s) => s.status === "not-yet" || s.status === "in-progress",
+      (stop) => stop.status === "not-yet" || stop.status === "in-progress",
     );
+    const queued = truckCoords
+      ? [...unfinished].sort(
+          (first, second) =>
+            distanceKm(truckCoords, first.coords) - distanceKm(truckCoords, second.coords),
+        )
+      : unfinished;
 
-    if (unfinished.length === 0) {
-      return [...settled].map((stop, idx) => ({
-        ...stop,
-        stopNumber: idx + 1,
-      }));
-    }
-
-    const sortedUnfinished = truckCoords
-      ? [...unfinished].sort((a, b) => {
-          const distA = haversineKm(truckCoords, a.coords);
-          const distB = haversineKm(truckCoords, b.coords);
-          return distA - distB;
-        })
-      : [...unfinished];
-
-    const queued = sortedUnfinished.map((stop, idx) => ({
+    return [...queued, ...settled].map((stop, index) => ({
       ...stop,
-      status: idx === 0 ? ("in-progress" as const) : ("not-yet" as const),
+      status:
+        stop.status === "done" || stop.status === "skipped"
+          ? stop.status
+          : index === 0
+            ? "in-progress"
+            : "not-yet",
       distanceKm: truckCoords
-        ? Math.round(haversineKm(truckCoords, stop.coords) * 10) / 10
+        ? Math.round(distanceKm(truckCoords, stop.coords) * 10) / 10
         : stop.distanceKm,
-    }));
-
-    return [...queued, ...settled].map((stop, idx) => ({
-      ...stop,
-      stopNumber: idx + 1,
+      stopNumber: index + 1,
     }));
   }, [stops, truckCoords]);
 };

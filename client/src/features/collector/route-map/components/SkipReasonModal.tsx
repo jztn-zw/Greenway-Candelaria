@@ -51,7 +51,7 @@ const SkipReasonModal = ({
             <AlertTriangle className="w-5 h-5 text-yellow-500" />
             Skip Stop
           </DialogTitle>
-          {/* ✅ FIX: Required by Radix UI for accessibility */}
+          {/* Radix UI accessibility description */}
           <DialogDescription>
             Select a reason for skipping{" "}
             <span className="font-semibold text-foreground">{barangay}</span>.

@@ -30,7 +30,7 @@ import AdminTrackingMap, {
   type ReplayTargetStopInfo,
   type ReplayCompletedStopInfo,
 } from "./components/AdminTrackingMap";
-import { useAutoRoute } from "@/features/collector/route-map/hooks/useAutoRoute";
+import { useScheduledRouteOrder } from "@/features/collector/route-map/hooks/useAutoRoute";
 import type { RouteStop } from "@/features/collector/route-map/types";
 import AdminTruckCard from "./components/AdminTruckCard";
 import RouteReplay from "./components/RouteReplay";
@@ -74,7 +74,7 @@ const SOCKET_URL =
   String(import.meta.env.VITE_API_URL || "").replace(/\/api\/?$/, "") ||
   "http://localhost:3000";
 const FALLBACK_SYNC_INTERVAL = 8_000;
-const RECONCILE_INTERVAL = 60_000;
+const RECONCILE_INTERVAL = 15_000;
 const DRIVER_STALE_MS = 120_000;
 
 const buildRouteMap = (routes: TruckRouteRow[]) => {
@@ -617,6 +617,7 @@ const AdminTruckTracking = () => {
   const mapTheme = useThemeMode();
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const routeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trucksRef = useRef<AdminTruck[]>([]);
   trucksRef.current = trucks;
 
@@ -742,6 +743,10 @@ const AdminTruckTracking = () => {
 
     socket.on("routes:update", () => {
       void refreshTrackingData().catch(() => {});
+      if (routeRefreshTimerRef.current) clearTimeout(routeRefreshTimerRef.current);
+      routeRefreshTimerRef.current = setTimeout(() => {
+        void refreshTrackingData().catch(() => {});
+      }, 750);
     });
 
     socket.on("live:error", (err: { code?: string; message: string }) => {
@@ -756,6 +761,7 @@ const AdminTruckTracking = () => {
       socket.emit("tracking:leave");
       socket.disconnect();
       stopFallbackSync();
+      if (routeRefreshTimerRef.current) clearTimeout(routeRefreshTimerRef.current);
     };
   }, [refreshTrackingData]);
 
@@ -972,10 +978,10 @@ const AdminTruckTracking = () => {
       }));
   }, [activeTruck?.id, activeTruck?.route]);
 
-  const autoRoutedStops = useAutoRoute(rawStops, activeTruckCoords);
+  const scheduledStops = useScheduledRouteOrder(rawStops);
   const activeStop = useMemo(
-    () => autoRoutedStops.find((s) => s.status === "in-progress") ?? null,
-    [autoRoutedStops]
+    () => scheduledStops.find((s) => s.status === "in-progress") ?? null,
+    [scheduledStops]
   );
   const activeStopCoords = activeStop?.coords ?? null;
 
@@ -1140,7 +1146,7 @@ const AdminTruckTracking = () => {
             activeTruckCoords={activeTruckCoords}
             activeStop={activeStop}
             activeStopCoords={activeStopCoords}
-            autoRoutedStops={autoRoutedStops}
+            autoRoutedStops={scheduledStops}
             onMarkerClick={handleMarkerClick}
             replayPath={replayPath}
             replayIndex={replayIndex}

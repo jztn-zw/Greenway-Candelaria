@@ -31,6 +31,7 @@ interface TrackingMapProps {
   collectionDayStatus: CollectionDayStatus;
   nextCollectionInfo?: string;
   onSelectTruck?: (truckId: string) => void;
+  onRouteCalculated?: (truckId: string, route: RoadRouteResult) => void;
 }
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -151,6 +152,7 @@ const TrackingMap = ({
   collectionDayStatus,
   nextCollectionInfo,
   onSelectTruck,
+  onRouteCalculated,
 }: TrackingMapProps) => {
   const navigate = useNavigate();
   const mapElementRef = useRef<HTMLDivElement | null>(null);
@@ -198,6 +200,16 @@ const TrackingMap = ({
     if (residentActiveTruck) return residentActiveTruck;
     return activeTrucks[0] ?? null;
   }, [activeTrucks, focusedTruckId]);
+
+  const stopsBeforeResident = useMemo(() => {
+    if (!targetTruck) return 0;
+    const residentStopIndex = targetTruck.routeStops.findIndex(
+      (stop) => stop.isResidentBarangay,
+    );
+    return targetTruck.routeStops
+      .slice(0, residentStopIndex >= 0 ? residentStopIndex : 0)
+      .filter((stop) => stop.status !== "done" && stop.status !== "skipped").length;
+  }, [targetTruck]);
 
   useEffect(() => {
     if (!mapElementRef.current || mapRef.current) return;
@@ -288,6 +300,7 @@ const TrackingMap = ({
       .then((result) => {
         if (!isMounted) return;
         setRouteData(result);
+        onRouteCalculated?.(targetTruck.id, result);
 
         if (result.coordinates && result.coordinates.length > 1) {
           // Outer glow road line
@@ -320,10 +333,12 @@ const TrackingMap = ({
       isMounted = false;
     };
   }, [
+    targetTruck?.id,
     targetTruck?.coords?.[0],
     targetTruck?.coords?.[1],
     residentBarangayCoords[0],
     residentBarangayCoords[1],
+    onRouteCalculated,
   ]);
 
   useEffect(() => {
@@ -627,10 +642,14 @@ const TrackingMap = ({
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
                 <span className="flex items-center gap-1 truncate">
                   <RouteIcon className="w-3 h-3 text-primary shrink-0" />
-                  <span className="truncate">Heading to {residentAreaName}</span>
+                  <span className="truncate">
+                    {stopsBeforeResident > 0
+                      ? `${stopsBeforeResident} collection stop${stopsBeforeResident === 1 ? "" : "s"} before ${residentAreaName}`
+                      : `Heading to ${residentAreaName}`}
+                  </span>
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/80 font-medium text-foreground/80 shrink-0">
-                  Road Snapped
+                  {routeData.source === "osrm" ? "Road route" : "Approx. route"}
                 </span>
               </div>
             </div>

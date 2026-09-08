@@ -21,8 +21,7 @@ const getById = async (id, userId = null, userRole = null, bypassStatusCheck = f
        p.*,
        u.full_name   AS author_name,
        u.avatar_url  AS author_avatar,
-       (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
-       (SELECT COUNT(*) FROM post_bookmarks WHERE post_id = p.id) AS bookmark_count
+       (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count
      FROM posts p
      LEFT JOIN users u ON u.id = p.created_by
      WHERE p.id = ? AND p.deleted_at IS NULL`,
@@ -65,14 +64,8 @@ const getById = async (id, userId = null, userRole = null, bypassStatusCheck = f
     );
     post.is_liked = liked.length > 0;
 
-    const [bookmarked] = await pool.query(
-      "SELECT id FROM post_bookmarks WHERE post_id = ? AND user_id = ?",
-      [id, userId],
-    );
-    post.is_bookmarked = bookmarked.length > 0;
   } else {
     post.is_liked = false;
-    post.is_bookmarked = false;
   }
 
   return post;
@@ -498,48 +491,6 @@ const unlikePost = async (postId, userId) => {
   return { liked: false };
 };
 
-// ─── Bookmarks ─────────────────────────────────────────────
-
-const bookmarkPost = async (postId, userId) => {
-  await getById(postId);
-  const [existing] = await pool.query(
-    "SELECT id FROM post_bookmarks WHERE post_id = ? AND user_id = ?",
-    [postId, userId],
-  );
-
-  if (existing.length > 0)
-    throw { statusCode: 409, message: "Already bookmarked" };
-
-  await pool.query(
-    "INSERT INTO post_bookmarks (id, post_id, user_id) VALUES (?, ?, ?)",
-    [generateId(), postId, userId],
-  );
-  return { bookmarked: true };
-};
-
-const unbookmarkPost = async (postId, userId) => {
-  await getById(postId);
-  await pool.query(
-    "DELETE FROM post_bookmarks WHERE post_id = ? AND user_id = ?",
-    [postId, userId],
-  );
-  return { bookmarked: false };
-};
-
-const getBookmarks = async (userId) => {
-  const [rows] = await pool.query(
-    `SELECT p.*, u.full_name AS author_name, u.avatar_url AS author_avatar, pb.created_at AS bookmarked_at,
-            (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
-     FROM post_bookmarks pb
-     JOIN posts p ON p.id = pb.post_id
-     JOIN users u ON u.id = p.created_by
-     WHERE pb.user_id = ? AND p.deleted_at IS NULL
-     ORDER BY pb.created_at DESC`,
-    [userId],
-  );
-  return rows;
-};
-
 module.exports = {
   publishDueScheduledPosts,
   getAll,
@@ -551,7 +502,4 @@ module.exports = {
   incrementView,
   likePost,
   unlikePost,
-  bookmarkPost,
-  unbookmarkPost,
-  getBookmarks,
 };

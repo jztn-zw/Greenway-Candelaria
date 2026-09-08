@@ -20,12 +20,13 @@ import {
   Clock,
   MapPin,
   SkipForward,
-  Square,
+  Flag,
   WifiOff,
   AlertCircle,
   RefreshCw,
   CheckCircle2,
   Radio,
+  Navigation,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -623,14 +624,14 @@ const CollectorRouteMap = () => {
         <div className="lg:col-span-2 flex flex-col gap-3 lg:h-[580px] min-w-0">
           {/* Active Stop Card */}
           {activeStop ? (
-            <div className={`bg-card shadow-xs rounded-xl p-3.5 sm:p-4 space-y-3 shrink-0 transition-all ${
+            <div className={`shadow-sm rounded-2xl p-3.5 sm:p-4 space-y-3 shrink-0 transition-all border ${
               isWithinGeofence
-                ? "border-2 border-emerald-500 bg-emerald-500/5 shadow-emerald-500/10"
-                : "border-2 border-blue-500/30"
+                ? "border-emerald-500/50 bg-gradient-to-b from-emerald-500/10 via-card to-card ring-1 ring-emerald-500/20 shadow-emerald-500/10"
+                : "border-blue-500/30 bg-gradient-to-b from-blue-500/10 via-card to-card ring-1 ring-blue-500/15"
             }`}>
               {/* Geofence Arrival Alert */}
               {isWithinGeofence && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold animate-pulse">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold animate-pulse">
                   <Radio className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Arrived at destination zone (within 150m)</span>
                 </div>
@@ -638,15 +639,23 @@ const CollectorRouteMap = () => {
 
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
-                    isWithinGeofence ? "bg-emerald-600" : "bg-blue-600"
+                  <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center text-xs font-extrabold shrink-0 shadow-2xs ${
+                    isWithinGeofence ? "bg-emerald-600 shadow-emerald-600/25" : "bg-blue-600 shadow-blue-600/25"
                   }`}>
                     {activeStop.stopNumber}
                   </div>
                   <div className="min-w-0">
-                    <span className={`text-[10px] uppercase tracking-wider font-bold block ${
+                    <span className={`text-[10px] uppercase tracking-wider font-extrabold flex items-center gap-1.5 ${
                       isWithinGeofence ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
                     }`}>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                          isWithinGeofence ? "bg-emerald-400" : "bg-blue-400"
+                        }`}></span>
+                        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                          isWithinGeofence ? "bg-emerald-500" : "bg-blue-500"
+                        }`}></span>
+                      </span>
                       {isWithinGeofence ? "Arrived - Current Target" : "Current Target Stop"}
                     </span>
                     <p className="text-sm sm:text-base font-display font-bold text-foreground leading-tight truncate">
@@ -655,24 +664,25 @@ const CollectorRouteMap = () => {
                   </div>
                 </div>
                 {activeStop.distanceKm > 0 && (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums shrink-0 ${
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums shrink-0 border ${
                     isWithinGeofence
-                      ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 font-bold"
-                      : "bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 shadow-2xs"
+                      : "bg-muted/80 border-border/80 text-foreground shadow-2xs"
                   }`}>
+                    <Navigation className="w-3 h-3 text-primary shrink-0" />
                     {activeStop.distanceKm} km
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-1">
                 <Button
                   onClick={handleMarkDone}
                   disabled={mutating !== null}
-                  className={`h-11 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] transition-all ${
+                  className={`flex-1 h-11 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 ${
                     isWithinGeofence
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-short"
-                      : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
                   }`}
                 >
                   {mutating === "done" ? (
@@ -686,16 +696,19 @@ const CollectorRouteMap = () => {
                       Complete & Next
                     </span>
                   ) : (
-                    "Mark as Done"
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Mark as Done
+                    </span>
                   )}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowSkipModal(true)}
                   disabled={mutating !== null}
-                  className="h-11 rounded-xl text-xs sm:text-sm font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 active:scale-[0.98] transition-all"
+                  className="h-11 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold border-amber-500/35 bg-amber-500/5 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 active:scale-[0.98] transition-all flex items-center gap-1 shrink-0"
                 >
-                  <SkipForward className="w-4 h-4 mr-1 shrink-0" />
+                  <SkipForward className="w-4 h-4 mr-0.5 shrink-0" />
                   Skip Stop
                 </Button>
               </div>
@@ -745,12 +758,31 @@ const CollectorRouteMap = () => {
 
           {/* Stop List Header */}
           <div className="flex items-center justify-between px-1 shrink-0 pt-0.5">
-            <h2 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
-              Route Stop List
-            </h2>
-            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium tabular-nums">
-              {completed} done · {skipped} skipped · {remaining} left
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight truncate">
+                Route Stop List
+              </h2>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-semibold tabular-nums shrink-0">
+                {autoRoutedStops.length} stops
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tabular-nums shrink-0">
+              {completed > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  {completed} Done
+                </span>
+              )}
+              {skipped > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <SkipForward className="w-2.5 h-2.5" />
+                  {skipped} Skipped
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                {remaining} Left
+              </span>
+            </div>
           </div>
 
           {/* Scrollable Stop List */}
@@ -765,12 +797,13 @@ const CollectorRouteMap = () => {
           </div>
 
           {/* End Route Action (Pinned at Bottom of Panel) */}
-          <div className="shrink-0 pt-1">
+          <div className="shrink-0 pt-2 border-t border-border/60">
             <Button
-              variant="outline"
+              type="button"
+              variant="destructive"
               onClick={() => setShowEndModal(true)}
               disabled={mutating === "end" || isScheduledRoute}
-              className="w-full h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-semibold border-destructive/30 text-destructive hover:bg-destructive/5 active:scale-[0.98] transition-all"
+              className="w-full h-11 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-sm hover:shadow-rose-600/25 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border-0"
             >
               {mutating === "end" ? (
                 <span className="flex items-center gap-2">
@@ -779,8 +812,8 @@ const CollectorRouteMap = () => {
                 </span>
               ) : (
                 <>
-                  <Square className="w-4 h-4 mr-2 shrink-0" />
-                  End Route
+                  <Flag className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                  <span>End Route</span>
                 </>
               )}
             </Button>

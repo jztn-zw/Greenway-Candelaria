@@ -99,33 +99,6 @@ const unlikePost = async (req, res, next) => {
   }
 };
 
-const bookmarkPost = async (req, res, next) => {
-  try {
-    const result = await service.bookmarkPost(req.params.id, req.user.id);
-    return success(res, result, "Post bookmarked");
-  } catch (err) {
-    next(err);
-  }
-};
-
-const unbookmarkPost = async (req, res, next) => {
-  try {
-    const result = await service.unbookmarkPost(req.params.id, req.user.id);
-    return success(res, result, "Bookmark removed");
-  } catch (err) {
-    next(err);
-  }
-};
-
-const getBookmarks = async (req, res, next) => {
-  try {
-    const posts = await service.getBookmarks(req.user.id);
-    return success(res, posts, "Bookmarks fetched successfully");
-  } catch (err) {
-    next(err);
-  }
-};
-
 module.exports = {
   getAll,
   getById,
@@ -135,8 +108,5 @@ module.exports = {
   remove,
   likePost,
   unlikePost,
-  bookmarkPost,
-  unbookmarkPost,
-  getBookmarks,
   uploadImage,
 };

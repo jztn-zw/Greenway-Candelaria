@@ -2,6 +2,7 @@
 
 - `schema.sql` contains the TiDB table structure required by GreenWay.
 - `seed.sql` is reserved for safe development-only `INSERT` statements. It is intentionally empty until a sanitized data export is available.
+- `migrations/` contains ordered SQL changes for databases that already exist. Run each new migration once, in filename order, before deploying the matching server code.
 
 ## Import order
 

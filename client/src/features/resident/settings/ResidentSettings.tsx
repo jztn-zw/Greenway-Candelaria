@@ -57,6 +57,8 @@ const ResidentSettings = () => {
   const [notifs, setNotifs] = useState({
     collectionReminders: true,
     truckNear: true,
+    collectionDone: true,
+    collectionSkipped: true,
     reportUpdates: true,
     newContent: true,
     announcements: true,
@@ -107,6 +109,8 @@ const ResidentSettings = () => {
         setNotifs({
           collectionReminders: Boolean(settings.notif_collection_reminders),
           truckNear: Boolean(settings.notif_truck_near),
+          collectionDone: Boolean(settings.notif_collection_done),
+          collectionSkipped: Boolean(settings.notif_collection_skipped),
           reportUpdates: Boolean(settings.notif_report_updates),
           newContent: Boolean(settings.notif_new_content),
           announcements: Boolean(settings.notif_announcements),
@@ -150,6 +154,8 @@ const ResidentSettings = () => {
     const dbKeyMap: Record<keyof typeof notifs, keyof UpdateSettingsPayload> = {
       collectionReminders: "notif_collection_reminders",
       truckNear: "notif_truck_near",
+      collectionDone: "notif_collection_done",
+      collectionSkipped: "notif_collection_skipped",
       reportUpdates: "notif_report_updates",
       newContent: "notif_new_content",
       announcements: "notif_announcements",
@@ -277,6 +283,18 @@ const ResidentSettings = () => {
             description="Alerts when the garbage truck is approaching your area"
             checked={notifs.truckNear}
             onCheckedChange={(v) => toggleNotif("truckNear", v)}
+          />
+          <ToggleRow
+            label="Collection Completed" icon={Calendar}
+            description="Alerts when collection in your barangay has been completed"
+            checked={notifs.collectionDone}
+            onCheckedChange={(v) => toggleNotif("collectionDone", v)}
+          />
+          <ToggleRow
+            label="Collection Skipped" icon={Bell}
+            description="Alerts when collection in your barangay is skipped, including the reason"
+            checked={notifs.collectionSkipped}
+            onCheckedChange={(v) => toggleNotif("collectionSkipped", v)}
           />
           <ToggleRow
             label="Collection Reminders" icon={Calendar}

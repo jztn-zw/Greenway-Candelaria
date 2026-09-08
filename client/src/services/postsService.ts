@@ -91,21 +91,6 @@ const postsService = {
     return data.data;
   },
 
-  // ─── Bookmarks
-  getBookmarks: async () => {
-    const { data } = await api.get("/posts/bookmarks");
-    return data.data;
-  },
-
-  bookmark: async (id: string) => {
-    const { data } = await api.post(`/posts/${id}/bookmark`);
-    return data.data;
-  },
-
-  unbookmark: async (id: string) => {
-    const { data } = await api.delete(`/posts/${id}/bookmark`);
-    return data.data;
-  },
 };
 
 export default postsService;

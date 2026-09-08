@@ -297,10 +297,6 @@ const getPostsAnalytics = async () => {
   const [[totalLikes]] = await pool.query(
     "SELECT COUNT(*) AS total FROM post_likes",
   );
-  const [[totalBookmarks]] = await pool.query(
-    "SELECT COUNT(*) AS total FROM post_bookmarks",
-  );
-
   return {
     by_category: byCategory,
     by_status: byStatus,
@@ -309,7 +305,6 @@ const getPostsAnalytics = async () => {
     engagement: {
       total_views: totalViews.total || 0,
       total_likes: totalLikes.total || 0,
-      total_bookmarks: totalBookmarks.total || 0,
     },
   };
 };
