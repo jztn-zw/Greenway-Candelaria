@@ -1,14 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
-import { Truck as TruckIcon, Map as MapIcon, List as ListIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Truck as TruckIcon } from "lucide-react";
 import TrackingMap from "./TrackingMap";
-import TruckCard from "./TruckCard";
 import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
-import CollectionHistory from "./CollectionHistory";
-import type { Truck, CollectionDayStatus, CollectionHistoryEntry, CollectionSchedule } from "./types";
-import { PageHeaderSkeleton, MapPanelSkeleton, CollectionHistorySkeleton } from "@/components/PageLoadingSkeletons";
-import { cn } from "@/lib/utils";
+import type { Truck, CollectionDayStatus, CollectionSchedule } from "./types";
+import { PageHeaderSkeleton, MapPanelSkeleton } from "@/components/PageLoadingSkeletons";
 import authService from "@/services/authService";
 import { fetchBarangays } from "@/services/barangaysService";
 import { fetchRoutes, type ApiRoute } from "@/services/routesService";
@@ -23,7 +20,6 @@ import {
 } from "@/services/trackingService";
 import {
   calculateDistanceInKilometers,
-  formatCollectionDate,
   formatCollectionTime,
   normaliseId,
   parseCoordinate,
@@ -50,6 +46,7 @@ const DAY_ORDER = [
 const STATUS_LABEL: Record<string, Truck["status"]> = {
   ON_THE_WAY: "on-the-way",
   SCHEDULED: "scheduled",
+  PAUSED: "paused",
   DONE: "done",
   OFFLINE: "offline",
 };
@@ -134,6 +131,10 @@ const resolveResidentTruckStatus = (
   const hasFreshPing = live ? isPingFresh(live.last_ping, now) : false;
   const persistedTruckStatus = normaliseTruckStatus(truckStatus);
 
+  if (String(route?.route_status || "").toUpperCase() === "PAUSED") {
+    return "paused";
+  }
+
   if (route && isRouteFinished(route)) {
     return persistedTruckStatus === "offline" ? "offline" : "done";
   }
@@ -153,6 +154,7 @@ const getRoutePriority = (route?: TruckRouteRow) => {
   if (!route) return -1;
 
   const status = String(route.route_status || "").toUpperCase();
+  if (status === "PAUSED") return 4;
   if (status === "ACTIVE") return 3;
   if (status === "IN_PROGRESS") return 2;
   if (status === "SCHEDULED") return 1;
@@ -257,45 +259,6 @@ const buildSchedule = (
   };
 };
 
-const buildHistory = (
-  routes: ApiRoute[],
-  residentBarangayId: string | null,
-): CollectionHistoryEntry[] => {
-  if (!residentBarangayId) return [];
-
-  const entries = routes
-    .map((route) => {
-      const stop = route.stops.find(
-        (s) => normaliseId(s.barangay_id) === normaliseId(residentBarangayId),
-      );
-      if (!stop) return null;
-
-      const statusKey = String(stop.status || "").toUpperCase();
-      if (statusKey !== "DONE" && statusKey !== "MISSED" && statusKey !== "SKIPPED") {
-        return null;
-      }
-
-      return {
-        sortDate: stop.completed_at || route.updated_at || route.created_at || null,
-        entry: {
-          date: formatCollectionDate(stop.completed_at || route.updated_at || route.created_at),
-          wasteType: route.waste_type || "Collection",
-          status: statusKey === "DONE" ? "completed" : "missed",
-        } as CollectionHistoryEntry,
-      };
-    })
-    .filter((row): row is { sortDate: string | null; entry: CollectionHistoryEntry } => Boolean(row))
-    .sort((a, b) => {
-      const aTime = a.sortDate ? new Date(a.sortDate).getTime() : 0;
-      const bTime = b.sortDate ? new Date(b.sortDate).getTime() : 0;
-      return bTime - aTime;
-    })
-    .slice(0, 5)
-    .map((row) => row.entry);
-
-  return entries;
-};
-
 const hasRouteCollectionCompleted = (truck: Truck) =>
   truck.routeStops.length > 0 &&
   truck.routeStops.every(
@@ -306,7 +269,6 @@ const ResidentTruckTracking = () => {
   const currentUser = authService.getCurrentUser();
   const [isLoading, setIsLoading] = useState(true);
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [collectionHistory, setCollectionHistory] = useState<CollectionHistoryEntry[]>([]);
   const [schedule, setSchedule] = useState<CollectionSchedule>({
     nextCollectionDay: "soon",
     nextCollectionTime: "TBD",
@@ -320,8 +282,6 @@ const ResidentTruckTracking = () => {
     normaliseId(currentUser?.barangay_id),
   );
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
-  const [lockedToBarangay, setLockedToBarangay] = useState(false);
-  const [mobileView, setMobileView] = useState<"map" | "vehicles">("map");
 
   const loadDynamicData = useCallback(async () => {
     const [barangaysResult, allTrucksResult, liveResult, todayRoutesResult, routesResult] =
@@ -449,7 +409,6 @@ const ResidentTruckTracking = () => {
 
     setTrucks(mappedTrucks);
     setSchedule(buildSchedule(allRoutes, residentBarangayId));
-    setCollectionHistory(buildHistory(allRoutes, residentBarangayId));
   }, [residentBarangayId, residentCoords]);
 
   useEffect(() => {
@@ -560,6 +519,20 @@ const ResidentTruckTracking = () => {
   const allDone =
     residentTrucks.length > 0 &&
     residentTrucks.every((truck) => hasRouteCollectionCompleted(truck));
+  const residentCollectionFinalized = residentTrucks.some(
+    (truck) =>
+      truck.residentStopStatus === "done" ||
+      truck.residentStopStatus === "skipped",
+  );
+  const residentOutcomeTruck = residentTrucks.find(
+    (truck) =>
+      truck.residentStopStatus === "done" ||
+      truck.residentStopStatus === "skipped",
+  );
+  const residentCollectionMissed =
+    residentOutcomeTruck?.residentStopStatus === "skipped";
+  const hasLiveTrackingForResident =
+    hasActiveTrucks && !residentCollectionFinalized;
 
   const proximityTruck = residentTrucks.find(
     (t) =>
@@ -569,26 +542,24 @@ const ResidentTruckTracking = () => {
   );
 
   const collectionDayStatus: CollectionDayStatus = useMemo(() => {
+    // A completed stop is final for this resident, even if the collector pauses
+    // before finishing the rest of the route for other barangays.
+    if (residentCollectionFinalized) return "completed";
     if (hasActiveTrucks) return "active";
     if (allDone) return "completed";
+    if (residentTrucks.some((t) => t.status === "paused")) return "paused";
     if (residentTrucks.some((t) => t.status === "scheduled")) {
       return "scheduled-not-started";
     }
     return "not-collection-day";
-  }, [allDone, hasActiveTrucks, residentTrucks]);
+  }, [allDone, hasActiveTrucks, residentCollectionFinalized, residentTrucks]);
 
   const nextCollectionInfo = `Your next collection day is ${schedule.nextCollectionDay}${
     schedule.wasteType ? ` - ${schedule.wasteType}` : ""
   }.`;
 
   const handleTruckClick = (truckId: string) => {
-    setLockedToBarangay(false);
     setFocusedTruckId((prev) => (prev === truckId ? null : truckId));
-  };
-
-  const handleLockToBarangay = () => {
-    setFocusedTruckId(null);
-    setLockedToBarangay(true);
   };
 
   const handleRoadRouteCalculated = useCallback(
@@ -610,17 +581,11 @@ const ResidentTruckTracking = () => {
     [],
   );
 
-  const activeResidentTruck = useMemo(
-    () => residentTrucks.find((t) => t.id === focusedTruckId) || residentTrucks[0] || null,
-    [focusedTruckId, residentTrucks]
-  );
-
   if (isLoading) {
     return (
       <div className="w-full max-w-[1600px] mx-auto space-y-3.5 sm:space-y-4 px-2 sm:px-4">
         <PageHeaderSkeleton />
         <MapPanelSkeleton />
-        <CollectionHistorySkeleton />
       </div>
     );
   }
@@ -643,129 +608,59 @@ const ResidentTruckTracking = () => {
         </div>
       </div>
 
-      {proximityTruck && <ProximityAlert truck={proximityTruck} />}
-      <CountdownBanner schedule={schedule} hasActiveTrucks={hasActiveTrucks} />
-
-      {/* ── Mobile View Switcher (Segmented Tab Control on Mobile) ── */}
-      <div className="lg:hidden flex items-center p-1 bg-muted/60 rounded-xl border border-border/80 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setMobileView("map")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[36px]",
-            mobileView === "map"
-              ? "bg-card text-foreground shadow-xs border border-border/60"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <MapIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="truncate">Live Map</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileView("vehicles")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[36px]",
-            mobileView === "vehicles"
-              ? "bg-card text-foreground shadow-xs border border-border/60"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <ListIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="truncate">Trucks</span>
-        </button>
-      </div>
-
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 items-start">
-        {/* Map View (Left 2 Cols on Desktop, Tabbed on Mobile) */}
-        <div
-          className={cn(
-            "lg:col-span-2 h-[390px] sm:h-[480px] lg:h-[580px]",
-            mobileView === "vehicles" && "hidden lg:block"
-          )}
-        >
-          <TrackingMap
-            trucks={residentTrucks}
-            focusedTruckId={focusedTruckId}
-            residentBarangayCoords={residentCoords}
-            residentAreaName={residentArea}
-            lockedToBarangay={lockedToBarangay}
-            collectionDayStatus={collectionDayStatus}
-            nextCollectionInfo={nextCollectionInfo}
-            onRouteCalculated={handleRoadRouteCalculated}
-            onSelectTruck={(truckId) => {
-              handleTruckClick(truckId);
-            }}
-          />
-        </div>
-
-        {/* Assigned Vehicles List (Right 1 Col on Desktop, Tabbed on Mobile) */}
-        <div
-          className={cn(
-            "space-y-3 lg:max-h-[580px] lg:overflow-y-auto lg:pr-1",
-            mobileView === "map" && "hidden lg:block"
-          )}
-        >
-          <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-display">
-              Assigned Vehicles
-            </h2>
-            <span className="text-[11px] font-bold text-foreground bg-muted/80 px-2 py-0.5 rounded-full border border-border/60">
-              {residentTrucks.length} truck{residentTrucks.length !== 1 ? "s" : ""}
-            </span>
+      {hasLiveTrackingForResident && proximityTruck && (
+        <ProximityAlert truck={proximityTruck} />
+      )}
+      {residentOutcomeTruck ? (
+        <div className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border shadow-2xs ${
+          residentCollectionMissed
+            ? "bg-destructive/5 border-destructive/25"
+            : "bg-emerald-500/5 border-emerald-500/25"
+        }`}>
+          <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
+            residentCollectionMissed
+              ? "bg-destructive/10 text-destructive border-destructive/20"
+              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+          }`}>
+            {residentCollectionMissed ? <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" /> : <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />}
           </div>
-
-          {residentTrucks.length === 0 ? (
-            <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-border/80 bg-muted/20 text-xs text-muted-foreground">
-              No collection vehicles currently scheduled for your barangay.
-            </div>
-          ) : (
-            residentTrucks.map((truck) => (
-              <TruckCard
-                key={truck.id}
-                truck={truck}
-                isSelected={focusedTruckId === truck.id}
-                onClick={() => {
-                  handleTruckClick(truck.id);
-                  setMobileView("map");
-                }}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Quick Mobile Active Vehicle Summary below Map */}
-      {mobileView === "map" && activeResidentTruck && (
-        <div className="lg:hidden flex items-center justify-between p-3 rounded-2xl bg-card border border-border/80 shadow-2xs">
-          <div className="min-w-0 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <TruckIcon className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-foreground truncate">
-                {activeResidentTruck.name}
-              </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {activeResidentTruck.assignedArea || "Assigned Vehicle"}
-              </p>
-            </div>
+          <div className="min-w-0 pt-0.5">
+            <h3 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
+              {residentCollectionMissed ? "Collection missed today" : "Collection completed today"}
+            </h3>
+            <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+              {residentCollectionMissed
+                ? `Waste collection in ${residentArea} was not completed today.`
+                : `Waste collection in ${residentArea} was completed${residentOutcomeTruck.residentStopCompletedAt ? ` at ${residentOutcomeTruck.residentStopCompletedAt}` : ""}.`}
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileView("vehicles")}
-            className="text-xs text-primary font-bold hover:underline px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 shrink-0 cursor-pointer"
-          >
-            View Stops
-          </button>
         </div>
+      ) : (
+        <CountdownBanner
+          schedule={schedule}
+          hasActiveTrucks={hasLiveTrackingForResident}
+        />
       )}
 
-      <CollectionHistory history={collectionHistory} />
+      <div className="h-[390px] sm:h-[480px] lg:h-[580px]">
+        <TrackingMap
+          trucks={residentTrucks}
+          focusedTruckId={focusedTruckId}
+          residentBarangayCoords={residentCoords}
+          residentAreaName={residentArea}
+          lockedToBarangay={false}
+          collectionDayStatus={collectionDayStatus}
+          nextCollectionInfo={nextCollectionInfo}
+          onRouteCalculated={handleRoadRouteCalculated}
+          onSelectTruck={handleTruckClick}
+        />
+      </div>
 
-      <p className="text-[11px] text-muted-foreground text-center pt-1 pb-2">
-        GPS updates transmitted live · Click a vehicle card to track on the map
-      </p>
+      {hasLiveTrackingForResident && (
+        <p className="text-[11px] text-muted-foreground text-center pt-1 pb-2">
+          GPS updates transmitted live
+        </p>
+      )}
     </div>
   );
 };

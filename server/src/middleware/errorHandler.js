@@ -1,3 +1,5 @@
+const { randomUUID } = require("crypto");
+
 const errorHandler = (err, req, res, next) => {
   if (err.name === "ZodError") {
     // Zod v4 exposes validation entries as `issues` (v3 used `errors`).
@@ -19,7 +21,9 @@ const errorHandler = (err, req, res, next) => {
 
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal server error";
+  const errorId = randomUUID();
   const log = {
+    errorId,
     message,
     ...(process.env.NODE_ENV !== "production" && err.stack ? { stack: err.stack } : {}),
   };
@@ -32,6 +36,8 @@ const errorHandler = (err, req, res, next) => {
     success: false,
     // Do not expose internal implementation errors to the browser.
     message: statusCode >= 500 ? "Something went wrong. Please try again." : message,
+    // Lets support match a user report to a server log without exposing internals.
+    ...(statusCode >= 500 ? { errorId } : {}),
   });
 };
 

@@ -62,6 +62,7 @@ export interface TruckRouteRow {
   driver_name?: string;
   route_name?: string;
   started_at?: string;
+  collection_started_at?: string | null;
   stops: RouteStopRow[];
   completed_stops: number;
   total_stops: number;
@@ -263,6 +264,22 @@ export const pingLocation = async (
   }
 
   await api.post("/tracking/ping", { truck_id: truckId, latitude, longitude });
+};
+
+/** Pause or resume the authenticated collector's current route. */
+export const setMyRoutePaused = async (
+  routeId: string,
+  paused: boolean,
+): Promise<{ routeId: string; status: "PAUSED" | "ACTIVE" }> => {
+  const res = await api.put<{ data: { routeId: string; status: "PAUSED" | "ACTIVE" } }>(
+    `/routes/${routeId}/pause`,
+    { paused },
+  );
+  return res.data.data;
+};
+
+export const startMyRoute = async (routeId: string): Promise<void> => {
+  await api.put(`/routes/${routeId}/start`);
 };
 
 /**

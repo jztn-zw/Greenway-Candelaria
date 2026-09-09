@@ -42,6 +42,20 @@ router.put(
   controller.endRoute,
 );
 
+router.put(
+  "/:id/pause",
+  authenticate,
+  authorize("DRIVER"),
+  controller.setRoutePaused,
+);
+
+router.put(
+  "/:id/start",
+  authenticate,
+  authorize("DRIVER"),
+  controller.startRoute,
+);
+
 // Admin only
 router.post(
   "/",

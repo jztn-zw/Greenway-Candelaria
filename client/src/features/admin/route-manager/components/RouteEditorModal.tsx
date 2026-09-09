@@ -63,9 +63,9 @@ interface RouteEditorModalProps {
   onSave: () => void;
 }
 
-// 30-minute intervals for Start Time selection
-const TIME_OPTIONS = Array.from({ length: 25 }, (_, index) => {
-  const totalMinutes = 5 * 60 + index * 30;
+// Full-day 30-minute intervals for Start Time selection (12:00 AM–11:30 PM).
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const totalMinutes = index * 30;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   const value = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;

@@ -143,6 +143,37 @@ const endRoute = async (req, res, next) => {
     next(err);
   }
 };
+
+const setRoutePaused = async (req, res, next) => {
+  try {
+    const result = await service.setRoutePaused(
+      req.params.id,
+      req.user.id,
+      Boolean(req.body?.paused),
+    );
+    const io = req.app.get("io");
+    broadcastLiveUpdate(io);
+    broadcastRouteUpdate(io, {
+      type: result.status === "PAUSED" ? "route-paused" : "route-resumed",
+      routeId: result.routeId,
+      status: result.status,
+    });
+    return success(res, result, result.status === "PAUSED" ? "Route paused" : "Route resumed");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const startRoute = async (req, res, next) => {
+  try {
+    const route = await service.startRoute(req.params.id, req.user.id);
+    const io = req.app.get("io");
+    broadcastRouteUpdate(io, { type: "route-started", routeId: req.params.id, status: "ACTIVE" });
+    return success(res, route, "Route started");
+  } catch (err) {
+    next(err);
+  }
+};
 // ── ADDED NEW FUNCTIONS TO EXPORTS ──
 module.exports = {
   getAll,
@@ -155,4 +186,6 @@ module.exports = {
   getAllRoutesToday,
   getMissedCollections,
   endRoute,
+  setRoutePaused,
+  startRoute,
 };

@@ -1,4 +1,4 @@
-export type TruckStatus = "scheduled" | "on-the-way" | "done" | "offline";
+export type TruckStatus = "scheduled" | "on-the-way" | "paused" | "done" | "offline";
 
 export type RouteStopStatus = "done" | "in-progress" | "not-started" | "skipped";
 
@@ -40,7 +40,7 @@ export interface CollectionSchedule {
   wasteType?: string;
 }
 
-export type CollectionDayStatus = "not-collection-day" | "scheduled-not-started" | "active" | "completed";
+export type CollectionDayStatus = "not-collection-day" | "scheduled-not-started" | "active" | "paused" | "completed";
 
 export interface CollectionHistoryEntry {
   date: string;

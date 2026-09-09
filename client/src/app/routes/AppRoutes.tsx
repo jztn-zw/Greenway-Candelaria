@@ -35,7 +35,12 @@ import ResidentSubmitReport from "@/features/resident/waste-reporting/ResidentSu
 import NotFound from "./NotFound";
 
 const AppRoutes = () => (
-  <BrowserRouter>
+  <BrowserRouter
+    future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    }}
+  >
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage />} />

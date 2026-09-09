@@ -39,6 +39,7 @@ const formatRouteData = (rows) => {
         route_name: row.route_name ?? null,
         waste_type: row.waste_type ?? null,
         started_at: row.started_at,
+        collection_started_at: row.collection_started_at ?? null,
         stops: [],
         total_stops: 0,
         completed_stops: 0,
@@ -264,6 +265,7 @@ const getMyRouteToday = async (userId) => {
        r.name         AS route_name,
        r.waste_type,
        r.start_time   AS started_at,
+       r.collection_started_at,
        rs.id          AS stop_id,
        rs.barangay_id,
        b.name         AS barangay_name,
@@ -309,6 +311,7 @@ const getAllRoutesToday = async () => {
        r.name         AS route_name,
        r.waste_type,
        r.start_time   AS started_at,
+       r.collection_started_at,
        rs.id          AS stop_id,
        rs.barangay_id,
        b.name         AS barangay_name,
@@ -371,7 +374,8 @@ const autoActivateScheduledRoutes = async () => {
 
       await connection.query(
         `UPDATE routes
-         SET status = 'ACTIVE'
+         SET status = 'ACTIVE',
+             collection_started_at = NULL
          WHERE id = ?`,
         [route.id],
       );
@@ -447,6 +451,55 @@ const endRoute = async (routeId) => {
   }
 
   return { message: "Route ended successfully", routeId };
+};
+
+// Persist a collector's pause so every tracking view shares the same state.
+const setRoutePaused = async (routeId, userId, paused) => {
+  const [rows] = await pool.query(
+    `SELECT r.id, r.status, r.truck_id
+     FROM routes r
+     JOIN drivers d ON d.id = r.driver_id
+     WHERE r.id = ? AND d.user_id = ?`,
+    [routeId, userId],
+  );
+
+  if (rows.length === 0) {
+    throw { statusCode: 404, message: "Route not found for this collector" };
+  }
+
+  const route = rows[0];
+  const currentStatus = String(route.status || "").toUpperCase();
+  const nextStatus = paused ? "PAUSED" : "ACTIVE";
+
+  if (currentStatus === "INACTIVE") {
+    throw { statusCode: 409, message: "A completed route cannot be paused or resumed" };
+  }
+
+  if (currentStatus !== nextStatus) {
+    await pool.query("UPDATE routes SET status = ? WHERE id = ?", [nextStatus, routeId]);
+  }
+
+  return { routeId, status: nextStatus, truckId: route.truck_id };
+};
+
+const startRoute = async (routeId, userId) => {
+  const [rows] = await pool.query(
+    `SELECT r.id, r.status
+     FROM routes r
+     JOIN drivers d ON d.id = r.driver_id
+     WHERE r.id = ? AND d.user_id = ?`,
+    [routeId, userId],
+  );
+  if (rows.length === 0) throw { statusCode: 404, message: "Route not found for this collector" };
+  if (String(rows[0].status || "").toUpperCase() !== "ACTIVE") {
+    throw { statusCode: 409, message: "Only an active route can be started" };
+  }
+
+  await pool.query(
+    "UPDATE routes SET collection_started_at = COALESCE(collection_started_at, UTC_TIMESTAMP()) WHERE id = ?",
+    [routeId],
+  );
+  return getById(routeId);
 };
 
 // ─── Get by ID ────────────────────────────────────────────────────────────
@@ -707,6 +760,10 @@ const update = async (id, data) => {
          WHERE id = ?`,
         [resolvedTruckId || existingRoute.truck_id],
       );
+      await connection.query(
+        "UPDATE routes SET collection_started_at = NULL WHERE id = ?",
+        [id],
+      );
     }
 
     await connection.commit();
@@ -722,6 +779,12 @@ const update = async (id, data) => {
 
 // ─── Update Stop Status ───────────────────────────────────────────────────
 const updateStopStatus = async (routeId, stopId, status, skippedReason = null) => {
+  const [routeRows] = await pool.query("SELECT status FROM routes WHERE id = ?", [routeId]);
+  if (routeRows.length === 0) throw { statusCode: 404, message: "Route not found" };
+  if (String(routeRows[0].status || "").toUpperCase() === "PAUSED") {
+    throw { statusCode: 409, message: "Resume the route before updating collection stops" };
+  }
+
   const [rows] = await pool.query(
     `SELECT rs.id, rs.status, rs.barangay_id, b.name AS barangay_name
      FROM route_stops rs
@@ -868,5 +931,7 @@ module.exports = {
   getAllRoutesToday,
   autoActivateScheduledRoutes,
   endRoute, // ✅ exported
+  setRoutePaused,
+  startRoute,
 };
 

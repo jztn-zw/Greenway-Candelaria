@@ -1,4 +1,4 @@
-export type TruckStatus = "scheduled" | "on-the-way" | "done" | "offline";
+export type TruckStatus = "scheduled" | "on-the-way" | "paused" | "done" | "offline";
 
 export interface BarangayStop {
   name: string;

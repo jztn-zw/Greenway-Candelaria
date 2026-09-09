@@ -3,13 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteStop } from "../types";
-import { Crosshair, Maximize2 } from "lucide-react";
+import { Crosshair, Maximize2, Plus, Minus } from "lucide-react";
 import { getRoadRoute, type RoadRouteResult } from "@/services/roadRoutingService";
 
 interface RouteMapViewProps {
   stops: RouteStop[];
   truckCoords: [number, number];
-  isOffline: boolean;
   activeStopCoords?: [number, number] | null;
   onActiveRouteChange?: (route: RoadRouteResult | null) => void;
 }
@@ -129,7 +128,7 @@ const createCollectorTruckPinIcon = () => {
   });
 };
 
-const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords, onActiveRouteChange }: RouteMapViewProps) => {
+const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChange }: RouteMapViewProps) => {
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -152,7 +151,6 @@ const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords, onActiv
       worldCopyJump: false,
     }).setView(truckCoords, 14);
 
-    L.control.zoom({ position: "topright" }).addTo(map);
     L.tileLayer(OSM_URL, {
       maxZoom: MAX_ZOOM,
     }).addTo(map);
@@ -371,45 +369,66 @@ const RouteMapView = ({ stops, truckCoords, isOffline, activeStopCoords, onActiv
     }
   };
 
+  const handleZoomIn = () => {
+    mapRef.current?.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    mapRef.current?.zoomOut();
+  };
+
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden border border-border bg-card [&_.leaflet-control-attribution]:!hidden shadow-xs">
       <div ref={mapElRef} className="h-full w-full z-0" />
 
-      {isOffline && (
-        <div className="absolute top-3 left-3 right-3 z-[400] flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-amber-500/90 text-white text-xs sm:text-sm font-medium shadow-lg backdrop-blur-sm">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 11-12.728 0M12 9v4m0 4h.01" />
-          </svg>
-          <span className="truncate">Offline - progress will sync when reconnected.</span>
-        </div>
-      )}
+      {/* Floating Zoom Controls (Top-Right) */}
+      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[400] flex flex-col bg-card/75 backdrop-blur-md rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          title="Zoom In"
+          aria-label="Zoom in"
+        >
+          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+        <div className="h-px bg-border/60 mx-1" />
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          title="Zoom Out"
+          aria-label="Zoom out"
+        >
+          <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+      </div>
 
       {/* Floating Map Action Controls (Bottom-Right) */}
-      <div className="absolute bottom-3 right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/95 backdrop-blur-sm p-1 rounded-xl border border-border/80 shadow-md">
+      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs">
         <button
           type="button"
           onClick={handleRecenter}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Recenter on Truck"
         >
-          <Crosshair className="w-3.5 h-3.5 text-primary shrink-0" />
+          <Crosshair className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Truck</span>
         </button>
 
         <button
           type="button"
           onClick={handleFitRoute}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Fit All Stops"
         >
-          <Maximize2 className="w-3.5 h-3.5 text-primary shrink-0" />
+          <Maximize2 className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Fit Route</span>
         </button>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-[400] bg-card/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-border/80 shadow-xs flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span className="text-[11px] font-display font-semibold text-foreground">
+      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
+        <span className="text-[10px] sm:text-[11px] font-display font-semibold text-foreground truncate">
           Candelaria, Quezon
         </span>
       </div>

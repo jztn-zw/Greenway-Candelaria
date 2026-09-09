@@ -13,11 +13,11 @@ import {
   Send,
   Clock,
   CheckCircle2,
-  Circle,
   Loader2,
   AlertTriangle,
   Radio,
   Settings2,
+  Route as RouteIcon,
 } from "lucide-react";
 import AnimatedList from "@/components/AnimatedList";
 import {
@@ -138,6 +138,7 @@ interface AdminTruckCardProps {
 const statusConfig: Record<TruckStatus, { label: string; className: string }> = {
   scheduled: { label: "Scheduled", className: "bg-blue-500/15 text-blue-600 border-blue-500/25 dark:text-blue-400" },
   "on-the-way": { label: "On The Way", className: "bg-primary/15 text-primary border-primary/25" },
+  paused: { label: "Paused", className: "bg-amber-500/15 text-amber-700 border-amber-500/25 dark:text-amber-300" },
   done: { label: "Done", className: "bg-leaf/15 text-leaf border-leaf/25" },
   offline: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
 };
@@ -215,14 +216,14 @@ const MessageThread = ({
       </button>
 
       {expanded && (
-        <div className="px-4 pb-3 space-y-2">
+        <div className="px-4 pb-3 space-y-2.5">
           <div
             ref={scrollRef}
-            className="h-[168px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin"
+            className="max-h-[168px] overflow-y-auto space-y-2 pr-1 scrollbar-thin"
           >
             {sorted.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-[11px] text-muted-foreground">No messages yet</p>
+              <div className="min-h-16 rounded-xl border border-dashed border-border/70 bg-muted/15 flex items-center justify-center px-3 text-center">
+                <p className="text-[11px] text-muted-foreground">No messages yet. Send the driver a quick update.</p>
               </div>
             ) : (
               sorted.map((msg) => {
@@ -234,10 +235,10 @@ const MessageThread = ({
                   >
                     <div
                       className={cn(
-                        "max-w-[80%] px-3 py-2 rounded-xl text-xs shadow-2xs",
+                        "max-w-[84%] px-3 py-2 rounded-xl border text-xs shadow-2xs",
                         isAdmin
-                          ? "bg-primary text-primary-foreground rounded-br-xs"
-                          : "bg-muted text-foreground rounded-bl-xs"
+                          ? "bg-primary text-primary-foreground border-primary rounded-br-xs"
+                          : "bg-muted/70 text-foreground border-border/60 rounded-bl-xs"
                       )}
                     >
                       <div
@@ -263,10 +264,10 @@ const MessageThread = ({
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
             <Input
-              className="h-8 text-xs rounded-xl"
-              placeholder="Type message..."
+              className="h-7 min-w-0 flex-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0"
+              placeholder="Message driver..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void handleSend()}
@@ -274,7 +275,7 @@ const MessageThread = ({
             />
             <Button
               size="sm"
-              className="h-8 px-3 rounded-xl cursor-pointer"
+              className="h-7 w-7 rounded-lg p-0 cursor-pointer shrink-0"
               onClick={() => void handleSend()}
               disabled={!messageText.trim() || isSending}
             >
@@ -367,7 +368,7 @@ const AdminTruckCard = ({
                 <PopoverContent className="w-48 p-2 rounded-xl shadow-lg border border-border" align="end">
                   <p className="text-[10px] text-muted-foreground mb-1.5 font-medium px-1">Manual status override</p>
                   <div className="space-y-0.5">
-                    {(["scheduled", "on-the-way", "done", "offline"] as TruckStatus[]).map((s) => (
+                    {(["scheduled", "on-the-way", "paused", "done", "offline"] as TruckStatus[]).map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -389,50 +390,65 @@ const AdminTruckCard = ({
             </div>
           </div>
 
-          {/* Structured Key-Value Metadata Grid */}
-          <div className="mt-3 grid grid-cols-1 gap-1.5 text-xs">
-            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
-              <MapPin className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
-              <span className="text-muted-foreground/80 font-medium text-[11px] shrink-0">Current:</span>
-              <span className={cn(
-                "truncate",
-                truck.currentBarangay ? "text-foreground font-semibold" : "italic text-muted-foreground/60 text-[11px]"
-              )}>
-                {truck.currentBarangay || "No route assigned"}
-              </span>
+          {!isSelected && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  {truck.currentBarangay || "No route assigned"}
+                </span>
+              </div>
+              {truck.totalBarangays > 0 && (
+                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-foreground">
+                  {truck.completedBarangays}/{truck.totalBarangays}
+                </span>
+              )}
+            </div>
+          )}
+
+          {isSelected && (
+            <>
+          {/* Essential operational details */}
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="col-span-2 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-2.5 py-2 min-w-0">
+              <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground">Current stop</p>
+                <p className={cn(
+                  "truncate text-xs font-semibold",
+                  truck.currentBarangay ? "text-foreground" : "italic text-muted-foreground/60"
+                )}>
+                  {truck.currentBarangay || "No route assigned"}
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
-              <User className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
-              <span className="text-muted-foreground/80 font-medium text-[11px] shrink-0">Driver:</span>
-              <span className={cn(
-                "truncate",
-                truck.driver ? "text-foreground font-semibold" : "italic text-muted-foreground/60 text-[11px]"
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
+              <p className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                <User className="w-3 h-3 shrink-0" /> Driver
+              </p>
+              <p className={cn(
+                "mt-0.5 truncate text-xs font-semibold",
+                truck.driver ? "text-foreground" : "italic text-muted-foreground/60"
               )}>
                 {truck.driver || "Unassigned"}
-              </span>
+              </p>
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-muted-foreground/80 font-medium text-[11px] shrink-0">Waste:</span>
-                {truck.wasteType && truck.wasteType !== "Not assigned" ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    {truck.wasteType}
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-muted-foreground/60 italic">
-                    Not assigned
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
-                <Clock className="w-3 h-3 text-muted-foreground/70" />
-                <span>{truck.lastGpsUpdate}</span>
-              </div>
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
+              <p className="text-[10px] font-medium text-muted-foreground">Waste type</p>
+              <p className={cn(
+                "mt-0.5 truncate text-xs font-semibold",
+                truck.wasteType && truck.wasteType !== "Not assigned" ? "text-primary" : "italic text-muted-foreground/60"
+              )}>
+                {truck.wasteType || "Not assigned"}
+              </p>
             </div>
+          </div>
+
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>Updated {truck.lastGpsUpdate}</span>
           </div>
 
           {/* Progress Bar */}
@@ -461,24 +477,30 @@ const AdminTruckCard = ({
               </p>
             </div>
           )}
+            </>
+          )}
         </div>
 
-        <MessageThread truck={truck} onSendMessage={onSendMessage} />
+        {isSelected && <MessageThread truck={truck} onSendMessage={onSendMessage} />}
 
         {/* Route Details Accordion */}
-        <div className="border-t border-border/60">
+        {isSelected && <div className="border-t border-border/60">
           <button
             type="button"
             className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={(e) => { e.stopPropagation(); setRouteExpanded(!routeExpanded); }}
           >
-            <span className="font-semibold">Route Details ({truck.route.length} stops)</span>
+            <span className="flex items-center gap-2 font-semibold">
+              <RouteIcon className="w-3.5 h-3.5 text-primary" />
+              Route Details
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">{truck.route.length}</span>
+            </span>
             {routeExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
           </button>
 
           {routeExpanded && (
-            <div className="px-4 pb-3.5 max-h-48 overflow-y-auto">
-              <div className="border border-border/80 rounded-xl overflow-hidden bg-card divide-y divide-border/60">
+            <div className="px-4 pb-3.5 max-h-52 overflow-y-auto">
+              <div className="rounded-xl border border-border/70 bg-muted/15 p-1.5 space-y-0.5">
                 <AnimatedList
                   items={truck.route}
                   getKey={(stop) => stop.name}
@@ -486,14 +508,21 @@ const AdminTruckCard = ({
                 >
                   {(stop) => (
                     <div className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 text-xs",
+                      "flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs transition-colors",
                       stop.state === "skipped" && "bg-destructive/5",
-                      stop.state === "done" && "bg-primary/5"
+                      stop.state === "done" && "bg-primary/5",
+                      stop.state === "in-progress" && "bg-primary/10",
+                      stop.state === "not-started" && "hover:bg-muted/60",
                     )}>
-                      {stop.state === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
-                      {stop.state === "in-progress" && <Loader2 className="w-3.5 h-3.5 text-primary shrink-0 animate-spin" />}
-                      {stop.state === "skipped" && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-                      {stop.state === "not-started" && <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />}
+                      <span className={cn(
+                        "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold tabular-nums",
+                        stop.state === "done" && "border-primary/30 bg-primary text-primary-foreground",
+                        stop.state === "in-progress" && "border-primary bg-primary/15 text-primary",
+                        stop.state === "skipped" && "border-destructive/30 bg-destructive/10 text-destructive",
+                        stop.state === "not-started" && "border-border text-muted-foreground",
+                      )}>
+                        {stop.state === "done" ? <CheckCircle2 className="w-3 h-3" /> : stop.state === "in-progress" ? <Loader2 className="w-3 h-3 animate-spin" /> : stop.state === "skipped" ? <AlertTriangle className="w-3 h-3" /> : stop.stopNumber}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <span className={cn(
                           "block truncate",
@@ -529,7 +558,7 @@ const AdminTruckCard = ({
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </CardContent>
       <AlertDialog
         open={pendingStatus !== null}

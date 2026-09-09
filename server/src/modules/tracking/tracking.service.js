@@ -108,6 +108,14 @@ const ping = async (userId, { latitude, longitude, truck_id }) => {
     };
   }
 
+  const [pausedRoutes] = await pool.query(
+    "SELECT id FROM routes WHERE truck_id = ? AND driver_id = ? AND status = 'PAUSED' LIMIT 1",
+    [truck_id, driver.id],
+  );
+  if (pausedRoutes.length > 0) {
+    throw { statusCode: 409, message: "Route is paused. Resume it before sending GPS updates" };
+  }
+
   const logId = generateId();
 
   //  Use a transaction for robustness

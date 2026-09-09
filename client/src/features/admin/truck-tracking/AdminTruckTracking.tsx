@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   X,
   Radio,
+  PanelRightClose,
 } from "lucide-react";
 import AdminTrackingMap, {
   type ReplayTargetStopInfo,
@@ -120,6 +121,7 @@ const buildRouteMap = (routes: TruckRouteRow[]) => {
 const normaliseStatus = (raw: string): TruckStatus => {
   const map: Record<string, TruckStatus> = {
     ON_THE_WAY: "on-the-way",
+    PAUSED: "paused",
     OFFLINE: "offline",
     SCHEDULED: "scheduled",
     DONE: "done",
@@ -211,6 +213,7 @@ const resolveTruckStatus = (
   const status =
     rawStatus === "scheduled" ||
     rawStatus === "on-the-way" ||
+    rawStatus === "paused" ||
     rawStatus === "done" ||
     rawStatus === "offline"
       ? (rawStatus as TruckStatus)
@@ -298,6 +301,10 @@ const resolveTrackedTruckStatus = ({
     : null;
   const hasFreshPing = live ? isPingFresh(live.last_ping, now) : false;
   const persistedTruckStatus = normaliseStatus(truckStatus);
+
+  if (String(route?.route_status || "").toUpperCase() === "PAUSED") {
+    return "paused";
+  }
 
   // A fresh GPS ping is the source of truth for a truck that has just resumed
   // tracking. This prevents a previously cached OFFLINE value from masking a
@@ -394,7 +401,7 @@ const buildRouteSnapshotFromTruck = (
     route_id: truck.routeId,
     truck_id: truck.id,
     truck_name: truck.name,
-    route_status: truck.status === "done" ? "INACTIVE" : "ACTIVE",
+    route_status: truck.status === "done" ? "INACTIVE" : truck.status === "paused" ? "PAUSED" : "ACTIVE",
     stops: truck.route.map((stop, index) => ({
       id: `${truck.id}-${index}`,
       barangay_id: "",
@@ -608,6 +615,7 @@ const AdminTruckTracking = () => {
   const [lastSyncSuccess, setLastSyncSuccess] = useState(true);
   const [mobileView, setMobileView] = useState<"MAP" | "LIST">("MAP");
   const [sidebarTab, setSidebarTab] = useState<TrackingSidebarTab>("FLEET");
+  const [isFleetPanelMinimized, setIsFleetPanelMinimized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingStatusOverride, setPendingStatusOverride] = useState<{
     truckId: string;
@@ -688,6 +696,10 @@ const AdminTruckTracking = () => {
       transports: ["websocket", "polling"],
       withCredentials: true,
       auth: { token: authService.getToken() },
+      // In React development Strict Mode, the first effect is immediately
+      // cleaned up. Delaying the connection prevents a websocket handshake
+      // that would otherwise be opened and closed in the same render cycle.
+      autoConnect: false,
       timeout: 10_000,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
@@ -757,7 +769,10 @@ const AdminTruckTracking = () => {
       }
     });
 
+    const connectTimer = window.setTimeout(() => socket.connect(), 0);
+
     return () => {
+      window.clearTimeout(connectTimer);
       socket.emit("tracking:leave");
       socket.disconnect();
       stopFallbackSync();
@@ -939,17 +954,14 @@ const AdminTruckTracking = () => {
     }
   };
 
-  // Resolve active/focused truck and its target stop directly in parent (matching Collector pattern)
+  // Keep the shared map neutral until an admin deliberately selects a truck.
+  // A selected truck alone owns the displayed stop pins and route corridor.
   const activeTruck = useMemo(() => {
     if (focusedTruckId) {
       const match = displayTrucks.find((t) => t.id === focusedTruckId);
       if (match) return match;
     }
-    return (
-      displayTrucks.find((t) => t.status === "on-the-way" && Boolean(t.coords)) ??
-      displayTrucks.find((t) => Boolean(t.coords)) ??
-      null
-    );
+    return null;
   }, [displayTrucks, focusedTruckId]);
 
   const activeTruckCoords = activeTruck?.coords ?? null;
@@ -1131,11 +1143,15 @@ const AdminTruckTracking = () => {
       </div>
 
       {/* -- Main Workspace: Map + Control Sidebar -- */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 items-start">
+      <div className={cn(
+        "relative grid gap-4 grid-cols-1 items-start",
+        isFleetPanelMinimized ? "lg:grid-cols-1" : "lg:grid-cols-3",
+      )}>
         {/* Left 2 Cols: Map View */}
         <div
           className={cn(
-            "lg:col-span-2 h-[460px] sm:h-[560px] lg:h-[700px]",
+            "h-[460px] sm:h-[560px] lg:h-[700px]",
+            isFleetPanelMinimized ? "lg:col-span-full" : "lg:col-span-2",
             mobileView === "LIST" ? "hidden lg:block" : "block",
           )}
         >
@@ -1153,6 +1169,7 @@ const AdminTruckTracking = () => {
             replayTargetStop={replayTargetStop}
             replayLegPath={replayLegPath}
             replayCompletedStops={replayCompletedStops}
+            fleetControlCollapsed={isFleetPanelMinimized}
             theme={mapTheme}
           />
         </div>
@@ -1160,12 +1177,31 @@ const AdminTruckTracking = () => {
         {/* Right 1 Col: Tabbed Control Center */}
         <div
           className={cn(
-            "rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs h-[600px] sm:h-[680px] lg:h-[700px] flex flex-col overflow-hidden",
+            isFleetPanelMinimized
+              ? "hidden lg:flex absolute top-3 right-3 z-20"
+              : "rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs h-auto max-h-[600px] sm:max-h-[680px] lg:max-h-[700px] lg:self-start flex flex-col overflow-hidden",
             mobileView === "MAP" ? "hidden lg:flex" : "flex",
           )}
         >
+          {isFleetPanelMinimized ? (
+            <button
+              type="button"
+              onClick={() => setIsFleetPanelMinimized(false)}
+              className="h-9 px-2.5 rounded-xl border border-border/70 bg-card/90 backdrop-blur-md text-foreground shadow-md flex items-center gap-1.5 hover:bg-muted/90 hover:border-border active:scale-[0.98] transition-colors cursor-pointer"
+              title={`Open Fleet controls (${displayTrucks.length} truck${displayTrucks.length === 1 ? "" : "s"})`}
+              aria-label="Open Fleet controls"
+            >
+              <Truck className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-semibold">Fleet</span>
+              <span className="min-w-4 h-4 px-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] leading-[14px] font-bold">
+                {displayTrucks.length}
+              </span>
+            </button>
+          ) : (
+            <>
           {/* Top Tab Switcher */}
-          <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/60 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex-1 flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/60">
             {[
               { id: "FLEET" as const, label: "Fleet", icon: Truck, count: displayTrucks.length },
               { id: "REPLAY" as const, label: "Replay", icon: RotateCcw },
@@ -1211,6 +1247,16 @@ const AdminTruckTracking = () => {
               );
             })}
           </div>
+            <button
+              type="button"
+              onClick={() => setIsFleetPanelMinimized(true)}
+              className="w-9 h-9 rounded-xl border border-border/60 text-muted-foreground flex items-center justify-center hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0"
+              title="Minimize Fleet panel"
+              aria-label="Minimize Fleet panel"
+            >
+              <PanelRightClose className="w-4 h-4" />
+            </button>
+          </div>
 
           {/* Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto pt-3 pr-1 space-y-3">
@@ -1253,6 +1299,8 @@ const AdminTruckTracking = () => {
               />
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
 

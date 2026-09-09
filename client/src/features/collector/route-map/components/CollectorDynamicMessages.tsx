@@ -58,7 +58,7 @@ const CollectorDynamicMessages = ({
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
       <button
         onClick={() => {
           if (!expanded) {
@@ -68,12 +68,12 @@ const CollectorDynamicMessages = ({
         }}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
             <MessageSquare className="w-4 h-4 text-primary" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-display font-semibold text-foreground">
+            <p className="text-xs sm:text-sm font-display font-semibold text-foreground">
               Messages
             </p>
             <p className="text-[10px] text-muted-foreground">
@@ -83,7 +83,7 @@ const CollectorDynamicMessages = ({
         </div>
         <div className="flex items-center gap-2">
           {!expanded && unreadCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow-2xs">
               {unreadCount}
             </span>
           )}
@@ -97,15 +97,15 @@ const CollectorDynamicMessages = ({
 
       {expanded && (
         <>
-          <div className="max-h-60 overflow-y-auto px-4 py-2 space-y-2 border-t border-border">
+          <div className="max-h-60 overflow-y-auto px-4 py-2 space-y-2 border-t border-border/70">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={cn(
-                  "flex flex-col max-w-[85%] rounded-xl px-3 py-2",
+                  "flex flex-col max-w-[85%] rounded-xl px-3 py-2 text-xs",
                   msg.sender === "admin"
-                    ? "self-start bg-muted"
-                    : "self-end ml-auto bg-primary/10",
+                    ? "self-start bg-muted/70 text-foreground"
+                    : "self-end ml-auto bg-primary/10 text-primary border border-primary/20",
                 )}
               >
                 <div className="flex items-center gap-2 mb-0.5">
@@ -131,9 +131,9 @@ const CollectorDynamicMessages = ({
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-border/70">
             <Input
-              className="h-9 text-xs flex-1"
+              className="h-9 text-xs flex-1 rounded-xl border-border/80"
               placeholder="Type a reply..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -142,7 +142,7 @@ const CollectorDynamicMessages = ({
             />
             <Button
               size="sm"
-              className="h-9 px-3"
+              className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
               onClick={() => void handleSend()}
               disabled={!newMessage.trim() || isSending}
             >

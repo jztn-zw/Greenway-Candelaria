@@ -7,20 +7,20 @@ interface StopListItemProps {
 }
 
 const statusConfig = {
-  "done": {
+  done: {
     label: "Done",
     icon: CheckCircle2,
-    badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    badgeClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
   },
   "in-progress": {
-    label: "In Progress",
+    label: "Target",
     icon: Navigation,
-    badgeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/25 animate-pulse",
+    badgeClass: "bg-primary/10 text-primary border-primary/20",
   },
-  "skipped": {
+  skipped: {
     label: "Skipped",
     icon: AlertTriangle,
-    badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
   },
   "not-yet": {
     label: "Upcoming",
@@ -38,32 +38,32 @@ const StopListItem = ({ stop }: StopListItemProps) => {
 
   return (
     <div
-      className={`group flex items-center gap-3 px-3.5 py-2.5 sm:py-3 rounded-xl transition-all ${
+      className={`group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all border ${
         isActive
-          ? "bg-blue-500/10 border-2 border-blue-500/40 shadow-xs ring-1 ring-blue-500/20"
+          ? "bg-primary/[0.06] border-primary/40 shadow-xs"
           : isDone
-          ? "bg-card border border-emerald-500/25 hover:border-emerald-500/40"
+          ? "bg-card border-border/60 opacity-80 hover:opacity-100"
           : isSkipped
-          ? "bg-card border border-amber-500/25 hover:border-amber-500/40"
-          : "bg-card/60 border border-border/70 hover:bg-muted/30"
+          ? "bg-card border-amber-500/20 opacity-80 hover:opacity-100"
+          : "bg-card/60 border-border/60 hover:bg-muted/30"
       }`}
     >
       {/* Stop number badge */}
       <div
-        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-transform shadow-2xs ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-transform shadow-2xs ${
           isActive
-            ? "bg-blue-600 text-white ring-2 ring-blue-500/30 ring-offset-2 ring-offset-background"
+            ? "bg-primary text-primary-foreground font-extrabold shadow-primary/20"
             : isDone
-            ? "bg-emerald-600 text-white"
+            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25"
             : isSkipped
-            ? "bg-amber-600/90 text-white"
+            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25"
             : "bg-muted text-muted-foreground border border-border/80"
         }`}
       >
         {isDone ? (
-          <CheckCircle2 className="w-4 h-4 text-white" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
         ) : isSkipped ? (
-          <AlertTriangle className="w-3.5 h-3.5 text-white" />
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
         ) : (
           stop.stopNumber
         )}
@@ -91,7 +91,7 @@ const StopListItem = ({ stop }: StopListItemProps) => {
             {config.label}
           </Badge>
           {stop.completedAt && (
-            <span className="text-[10px] text-muted-foreground tabular-nums font-mono">
+            <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
               at {stop.completedAt}
             </span>
           )}

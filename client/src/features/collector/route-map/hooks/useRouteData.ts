@@ -144,6 +144,10 @@ const mapRouteInfo = (raw: TruckRouteRow): RouteInfo => ({
   wasteType: (raw.waste_type as RouteInfo["wasteType"]) ?? "Biodegradable",
   totalStops: raw.total_stops,
   startedAt: parseRouteStartedAt(raw.started_at),
+  collectionStartedAt: raw.collection_started_at
+    ? parseRouteStartedAt(raw.collection_started_at)
+    : null,
+  routeStatus: String(raw.route_status || "ACTIVE").toUpperCase() as RouteInfo["routeStatus"],
 });
 
 // ─── Hook ────────────────────────────────────────────────────────────────────

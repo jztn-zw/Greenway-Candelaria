@@ -21,6 +21,8 @@ export interface RouteInfo {
   wasteType: "Biodegradable" | "Non-Biodegradable";
   totalStops: number;
   startedAt: Date;
+  collectionStartedAt: Date | null;
+  routeStatus: "ACTIVE" | "PAUSED" | "INACTIVE";
 }
 
 export type SkipReason =
