@@ -7,6 +7,7 @@ const {
   adminDriverMessageSchema,
 } = require("./drivers.schema");
 const { success } = require("../../utils/apiResponse");
+const { notifyAdmins } = require("../notifications/notifications.service");
 
 const getAll = async (req, res, next) => {
   try {
@@ -78,6 +79,13 @@ const updateMyStatus = async (req, res, next) => {
   try {
     const { status_msg, route_id } = driverStatusSchema.parse(req.body);
     const driver = await service.updateStatusMsg(req.user.id, status_msg, route_id);
+    await notifyAdmins({
+      type: "SYSTEM",
+      title: "New collector message",
+      body: `${driver.full_name || driver.name || "A collector"}: ${status_msg}`,
+      ref_id: route_id || driver.id,
+      ref_module: "tracking",
+    }).catch((err) => console.error("[Drivers] Admin message notification error:", err.message));
     return success(res, driver, "Status updated successfully");
   } catch (err) {
     next(err);

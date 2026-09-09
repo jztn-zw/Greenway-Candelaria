@@ -25,6 +25,10 @@ api.interceptors.response.use(
       error.config?.url?.includes("/auth/register");
 
     const status = error.response?.status;
+    const requestId =
+      error.response?.headers?.["x-request-id"] ||
+      error.response?.data?.requestId ||
+      "unavailable";
 
     // Session expired → clear storage and redirect to login
     if (status === 401 && !isAuthRoute) {
@@ -47,7 +51,8 @@ api.interceptors.response.use(
 
     // Developer diagnostics only: no token, request body, or server stack is
     // exposed here. This applies to every module that uses the shared client.
-    console.error(`[API ${status ?? "NETWORK"}] ${error.config?.method?.toUpperCase() ?? "REQUEST"} ${error.config?.url ?? "unknown route"}`, {
+    console.error(`[API ${status ?? "NETWORK"}] ${error.config?.method?.toUpperCase() ?? "REQUEST"} ${error.config?.url ?? "unknown route"} [${requestId}]`, {
+      requestId,
       message,
       validation: error.response?.data?.errors?.map(({ field, message: detail }) => ({ field, message: detail })),
     });

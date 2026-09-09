@@ -23,7 +23,7 @@ import {
   PRIORITY_TO_LABEL,
   PRIORITY_LABEL_TO_BACKEND,
 } from "./types";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,

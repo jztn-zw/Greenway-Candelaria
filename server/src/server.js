@@ -6,6 +6,7 @@ const app = require("./app");
 const { testConnection } = require("./config/db");
 const { initSockets } = require("./sockets");
 const { startRouteScheduler } = require("./modules/routes/routeScheduler");
+const { startTrackingMonitor } = require("./modules/tracking/trackingMonitor");
 const { startPostScheduler } = require("./modules/posts/posts.scheduler");
 const { startAnnouncementScheduler } = require("./modules/announcements/announcements.scheduler");
 
@@ -47,6 +48,7 @@ const start = async () => {
 
     initSockets(io);
     startRouteScheduler(io);
+    startTrackingMonitor();
     startPostScheduler();
     startAnnouncementScheduler();
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Heart, Calendar, User, MapPin, ArrowRight, FileText, Share2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/common";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";

@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { AdminTruck, TruckStatus } from "./types";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
 import {
   PageHeaderSkeleton,
@@ -624,6 +624,20 @@ const AdminTruckTracking = () => {
   } | null>(null);
   const mapTheme = useThemeMode();
 
+  // The compact Fleet shortcut belongs only to the wide, side-by-side workspace.
+  // Reset it when crossing into the single-view tablet/mobile layout so no
+  // hidden panel state or duplicate control carries across breakpoints.
+  useEffect(() => {
+    const wideLayout = window.matchMedia("(min-width: 1280px)");
+    const resetCompactFleet = () => {
+      if (!wideLayout.matches) setIsFleetPanelMinimized(false);
+    };
+
+    resetCompactFleet();
+    wideLayout.addEventListener("change", resetCompactFleet);
+    return () => wideLayout.removeEventListener("change", resetCompactFleet);
+  }, []);
+
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trucksRef = useRef<AdminTruck[]>([]);
@@ -1110,8 +1124,8 @@ const AdminTruckTracking = () => {
         })}
       </div>
 
-      {/* -- Mobile View Switcher (Visible only on < lg) -- */}
-      <div className="flex lg:hidden justify-center pt-0.5 pb-1">
+      {/* -- Single-view switcher for tablet and mobile -- */}
+      <div className="flex xl:hidden justify-center pt-0.5 pb-1">
         <div className="bg-muted/70 p-1 rounded-xl border border-border/80 flex items-center gap-1 w-full max-w-xs shadow-2xs">
           <button
             type="button"
@@ -1145,14 +1159,14 @@ const AdminTruckTracking = () => {
       {/* -- Main Workspace: Map + Control Sidebar -- */}
       <div className={cn(
         "relative grid gap-4 grid-cols-1 items-start",
-        isFleetPanelMinimized ? "lg:grid-cols-1" : "lg:grid-cols-3",
+        isFleetPanelMinimized ? "xl:grid-cols-1" : "xl:grid-cols-3",
       )}>
         {/* Left 2 Cols: Map View */}
         <div
           className={cn(
-            "h-[460px] sm:h-[560px] lg:h-[700px]",
-            isFleetPanelMinimized ? "lg:col-span-full" : "lg:col-span-2",
-            mobileView === "LIST" ? "hidden lg:block" : "block",
+            "h-[430px] sm:h-[560px] xl:h-[700px]",
+            isFleetPanelMinimized ? "xl:col-span-full" : "xl:col-span-2",
+            mobileView === "LIST" ? "hidden xl:block" : "block",
           )}
         >
           <AdminTrackingMap
@@ -1178,9 +1192,9 @@ const AdminTruckTracking = () => {
         <div
           className={cn(
             isFleetPanelMinimized
-              ? "hidden lg:flex absolute top-3 right-3 z-20"
-              : "rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs h-auto max-h-[600px] sm:max-h-[680px] lg:max-h-[700px] lg:self-start flex flex-col overflow-hidden",
-            mobileView === "MAP" ? "hidden lg:flex" : "flex",
+              ? "hidden xl:flex absolute top-3 right-3 z-20"
+              : "rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs h-auto max-h-[600px] sm:max-h-[680px] xl:max-h-[700px] xl:self-start flex flex-col overflow-hidden",
+            mobileView === "MAP" ? "hidden xl:flex" : "flex",
           )}
         >
           {isFleetPanelMinimized ? (
@@ -1250,7 +1264,7 @@ const AdminTruckTracking = () => {
             <button
               type="button"
               onClick={() => setIsFleetPanelMinimized(true)}
-              className="w-9 h-9 rounded-xl border border-border/60 text-muted-foreground flex items-center justify-center hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0"
+              className="hidden xl:flex w-9 h-9 rounded-xl border border-border/60 text-muted-foreground items-center justify-center hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0"
               title="Minimize Fleet panel"
               aria-label="Minimize Fleet panel"
             >

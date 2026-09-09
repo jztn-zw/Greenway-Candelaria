@@ -23,7 +23,7 @@ import {
   UserProfile,
   ReportStats,
 } from "@/services/profileService";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,
@@ -223,13 +223,48 @@ const AdminRouteManager: React.FC = () => {
     });
   };
 
+  // A truck and a barangay may appear in only one live schedule for a day.
+  // The route currently being edited is excluded so its own selections remain valid.
+  const scheduledRoutesForFormDay = useMemo(
+    () => routes.filter(
+      (route) =>
+        route.day === form.day &&
+        route.id !== selectedRouteId &&
+        route.status !== "INACTIVE",
+    ),
+    [routes, form.day, selectedRouteId],
+  );
+
+  const availableTrucks = useMemo(() => {
+    const scheduledTruckIds = new Set(
+      scheduledRoutesForFormDay.map((route) => route.truckId),
+    );
+    return trucks.filter((truck) => !scheduledTruckIds.has(truck.id));
+  }, [trucks, scheduledRoutesForFormDay]);
+
   const availableBarangays = useMemo(() => {
+    const scheduledBarangayIds = new Set(
+      scheduledRoutesForFormDay.flatMap((route) =>
+        route.stops.map((stop) => stop.barangayId),
+      ),
+    );
+
     return barangays.filter(
       (b) =>
         !form.barangays.find((x) => x.id === b.id) &&
+        !scheduledBarangayIds.has(b.id) &&
         b.name.toLowerCase().includes(barangaySearch.toLowerCase())
     );
-  }, [barangays, form.barangays, barangaySearch]);
+  }, [barangays, form.barangays, barangaySearch, scheduledRoutesForFormDay]);
+
+  // Changing the day can make the current truck unavailable. Clear it rather
+  // than silently allowing an invalid assignment to be submitted.
+  useEffect(() => {
+    if (!isEditorOpen || !form.truckId) return;
+    if (availableTrucks.some((truck) => truck.id === form.truckId)) return;
+
+    setForm((previous) => ({ ...previous, truckId: "", driverId: "" }));
+  }, [isEditorOpen, form.truckId, availableTrucks, setForm]);
 
   // ── CRUD handlers ──
   const handleSave = async () => {
@@ -477,7 +512,7 @@ const AdminRouteManager: React.FC = () => {
         form={form}
         setForm={setForm}
         isSaving={isSaving}
-        trucks={trucks}
+        trucks={availableTrucks}
         drivers={drivers}
         isLoadingTrucks={isLoadingTrucks}
         isLoadingDrivers={isLoadingDrivers}

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Megaphone, ArrowRight, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   fetchAnnouncementById,
   fetchAnnouncements,

@@ -29,7 +29,7 @@ import {
   Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import RouteProgressBar from "./components/RouteProgressBar";
@@ -227,11 +227,34 @@ const CollectorRouteMap = () => {
     }
   }, [routeInfo, routeStartMs]);
 
+  // Freeze elapsed collection time while paused. This is intentionally kept
+  // separate from GPS status so a resumed route continues from the same active
+  // work duration instead of counting the break.
+  useEffect(() => {
+    if (!routeStartMs) return;
+
+    if (isPaused) {
+      if (pauseStartMsRef.current === null) pauseStartMsRef.current = Date.now();
+      return;
+    }
+
+    if (pauseStartMsRef.current !== null) {
+      totalPausedMsRef.current += Date.now() - pauseStartMsRef.current;
+      pauseStartMsRef.current = null;
+    }
+  }, [isPaused, routeStartMs]);
+
   const handleStartRoute = useCallback(async () => {
     if (!routeInfo || isStartingRoute) return;
     setIsStartingRoute(true);
     try {
       await startMyRoute(routeInfo.routeId);
+      // Show a clean zero-based timer immediately. The next route refresh
+      // replaces this with the server's UTC start timestamp.
+      activeRouteIdRef.current = routeInfo.routeId;
+      setRouteStartMs(Date.now());
+      totalPausedMsRef.current = 0;
+      pauseStartMsRef.current = null;
       refresh();
       toast.success("Route started", {
         description: "GPS tracking and route timing are now active.",

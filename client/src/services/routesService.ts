@@ -23,7 +23,7 @@ export interface ApiRoute {
   driver_id: string | null;
   driver_name: string | null;
   start_time: string; // "06:00:00"
-  status: "ACTIVE" | "INACTIVE";
+  status: "ACTIVE" | "PAUSED" | "INACTIVE";
   name?: string | null;
   waste_type?: string | null;
   created_at?: string;

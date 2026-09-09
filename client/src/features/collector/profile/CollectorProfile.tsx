@@ -25,7 +25,7 @@ import {
   DriverMeData,
   updateMyDriverStatus,
 } from "@/services/driverManagerService";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const ProfileSkeleton = () => (
   <div className="max-w-3xl mx-auto space-y-6 pb-8 animate-in fade-in duration-300">

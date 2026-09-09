@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { pool } = require("../config/db");
+const hashSessionToken = require("../utils/hashSessionToken");
 
 const getHandshakeToken = (socket) => {
   const handshakeToken = socket.handshake?.auth?.token;
@@ -35,12 +36,12 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
          s.expires_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id
-       WHERE s.token = ?
+       WHERE s.token IN (?, ?)
          AND s.expires_at > NOW()
          AND u.id = ?
          AND u.deleted_at IS NULL
        LIMIT 1`,
-      [token, decoded.id],
+      [hashSessionToken(token), token, decoded.id],
     );
     const user = rows[0];
     if (!user || user.status === "DEACTIVATED" || user.status === "BANNED") {

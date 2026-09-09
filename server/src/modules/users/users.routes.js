@@ -3,12 +3,13 @@ const controller = require("./users.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 const { uploadAvatar } = require("../../config/cloudinary");
+const { uploadLimiter } = require("../../middleware/rateLimits");
 
 // Resident routes
 router.get("/profile", authenticate, controller.getProfile);
 router.put("/profile", authenticate, controller.updateProfile);
 router.put("/change-password", authenticate, controller.changePassword);
-router.post("/avatar", authenticate, uploadAvatar.single("avatar"), controller.uploadAvatar);
+router.post("/avatar", authenticate, uploadLimiter, uploadAvatar.single("avatar"), controller.uploadAvatar);
 router.get("/settings", authenticate, controller.getSettings);
 router.put("/settings", authenticate, controller.updateSettings);
 

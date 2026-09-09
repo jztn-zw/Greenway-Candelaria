@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   Search,
   Plus,

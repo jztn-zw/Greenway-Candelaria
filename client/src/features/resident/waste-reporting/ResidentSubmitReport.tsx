@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Send, AlertTriangle } from "lucide-react";
 import ViolationTypeSelector from "./ViolationTypeSelector";
 import LocationSection from "./LocationSection";

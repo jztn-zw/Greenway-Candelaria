@@ -43,7 +43,7 @@ import {
 } from "@/services/scheduleService";
 import { BarangayLocationRow } from "@/services/barangaysService";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 interface EventModalProps {

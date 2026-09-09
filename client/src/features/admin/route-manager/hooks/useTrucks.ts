@@ -1,6 +1,6 @@
 // src/pages/admin/hooks/useTrucks.ts
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import api from "@/lib/api";
 
 export interface Truck {

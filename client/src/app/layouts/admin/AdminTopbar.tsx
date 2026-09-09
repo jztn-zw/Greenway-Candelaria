@@ -240,7 +240,7 @@ const AdminTopBar = () => {
           <PopoverContent align="end" className="w-80 sm:w-96 p-0 shadow-2xl rounded-2xl border-border">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">Admin Notifications</span>
+                <span className="font-semibold text-sm">Notifications</span>
                 {unreadCount > 0 && (
                   <span className="bg-primary/15 text-primary text-[10px] font-bold rounded-full px-2 py-0.5">
                     {unreadCount} new
@@ -258,7 +258,7 @@ const AdminTopBar = () => {
               )}
             </div>
 
-            <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-border/60">
               {recentNotifications.length > 0 ? (
                 recentNotifications.map((n) => {
                   const Icon = typeIcons[n.type] || Bell;
@@ -268,34 +268,35 @@ const AdminTopBar = () => {
                       key={n.id}
                       type="button"
                       onClick={() => handleNotificationClick(n)}
-                      className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left cursor-pointer ${
+                      className={`w-full p-3 sm:p-3.5 text-left flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer group ${
                         isUnread ? "bg-primary/[0.04]" : ""
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border border-primary/20 bg-primary/10 text-primary shadow-2xs transition-transform duration-200 group-hover:scale-105">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className={`text-xs font-semibold truncate ${isUnread ? "text-foreground font-bold" : "text-foreground/80"}`}>
-                            {n.title}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {formatTimeAgo(n.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <p className="text-xs text-foreground/90 leading-snug break-words">
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{n.title}</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed break-words">
                           {n.body}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
+                          {formatTimeAgo(n.created_at)}
                         </p>
                       </div>
                       {isUnread && (
-                        <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-2" />
+                        <div className="flex items-center self-center shrink-0 pl-1" title="Unread">
+                          <span className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/15 shrink-0" />
+                        </div>
                       )}
                     </button>
                   );
                 })
               ) : (
                 <div className="p-8 text-center text-muted-foreground text-xs">
+                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   No notifications yet
                 </div>
               )}
@@ -310,7 +311,7 @@ const AdminTopBar = () => {
                 }}
                 className="w-full text-center text-xs text-primary hover:underline font-semibold cursor-pointer"
               >
-                View all notifications →
+                View all notifications
               </button>
             </div>
           </PopoverContent>

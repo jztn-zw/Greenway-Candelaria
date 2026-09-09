@@ -3,7 +3,6 @@ import notificationsService, {
   NotificationRow,
 } from "@/services/notificationsService";
 import { getSocket } from "@/lib/socket";
-import { toast } from "sonner";
 
 interface UserInfo {
   id: string;
@@ -150,11 +149,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (state.notifications.some((n) => n.id === newNotif.id)) {
         return state;
       }
-
-      toast(newNotif.title, {
-        description: newNotif.body,
-        duration: 5000,
-      });
 
       return {
         notifications: [newNotif, ...state.notifications],

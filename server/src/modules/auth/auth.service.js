@@ -86,7 +86,9 @@ const login = async ({ identifier, password }, req) => {
   if (user.status === "BANNED") {
     throw {
       statusCode: 403,
-      message: `Account is banned. Reason: ${user.ban_reason}`,
+      // Keep account-management notes private; the admin can still see the
+      // reason in the back office, but it must not be exposed at login.
+      message: "Account unavailable",
     };
   }
 
@@ -213,4 +215,3 @@ const getMe = async (userId) => {
 };
 
 module.exports = { register, login, logout, changePassword, getMe };
-

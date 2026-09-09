@@ -1,17 +1,21 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const hashSessionToken = require("../../utils/hashSessionToken");
 
 const createSession = async ({ userId, token, device, ip, expiresAt }) => {
   const id = generateId();
   await pool.query(
     `INSERT INTO sessions (id, user_id, token, device, ip_address, expires_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, userId, token, device || null, ip || null, expiresAt],
+    [id, userId, hashSessionToken(token), device || null, ip || null, expiresAt],
   );
 };
 
 const revokeSession = async (token) => {
-  await pool.query("DELETE FROM sessions WHERE token = ?", [token]);
+  const hashedToken = hashSessionToken(token);
+  // Raw-token matching keeps sessions issued before this change valid until
+  // they naturally expire. All sessions created from now on are hashed.
+  await pool.query("DELETE FROM sessions WHERE token IN (?, ?)", [hashedToken, token]);
 };
 
 const getMySessions = async (userId) => {
@@ -39,8 +43,10 @@ const deleteOne = async (sessionId, userId) => {
 };
 
 const deleteAll = async (userId, currentToken) => {
-  await pool.query("DELETE FROM sessions WHERE user_id = ? AND token != ?", [
+  const hashedToken = hashSessionToken(currentToken);
+  await pool.query("DELETE FROM sessions WHERE user_id = ? AND token NOT IN (?, ?)", [
     userId,
+    hashedToken,
     currentToken,
   ]);
 };

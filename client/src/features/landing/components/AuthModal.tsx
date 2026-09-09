@@ -2,7 +2,12 @@ import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
 import { Eye, EyeOff, Mail, Phone, User, Lock, X, Leaf } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const BARANGAYS = [
   "Buenavista East", "Buenavista West", "Bukal Norte", "Bukal Sur",
@@ -270,15 +275,15 @@ const AuthModal = ({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <h2 className="font-display text-2xl sm:text-[1.7rem] font-bold text-foreground leading-tight">
+              <DialogTitle className="font-display text-2xl sm:text-[1.7rem] font-bold text-foreground leading-tight">
                 {tab === "login" ? "Welcome back" : "Create an account"}
                 <span className="text-primary">.</span>
-              </h2>
-              <p className="text-muted-foreground text-sm mt-1.5">
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground text-sm mt-1.5">
                 {tab === "login"
                   ? "Log in to access your Resident Portal"
                   : "Sign up and join the green movement in your community"}
-              </p>
+              </DialogDescription>
 
               {/* Tab switcher */}
               <div className="flex mt-5 bg-muted/60 rounded-xl p-1 gap-1">

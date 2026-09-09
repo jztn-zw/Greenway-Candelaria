@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Truck,
   MapPin,
@@ -24,7 +22,6 @@ interface TruckCardProps {
   truck: TruckType;
   isSelected: boolean;
   onClick: () => void;
-  onReportMissed?: (truckId: string) => void;
 }
 
 const statusConfig = {
@@ -50,7 +47,6 @@ const statusConfig = {
 };
 
 const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
-  const navigate = useNavigate();
   const [routeExpanded, setRouteExpanded] = useState(false);
   const status = statusConfig[truck.status] || statusConfig.offline;
   const hasDriver = Boolean(truck.driver && truck.driver.trim().length > 0);
@@ -401,32 +397,6 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           </div>
         )}
 
-        {/* Integrated Report Missed Collection */}
-        {truck.isResidentTruck &&
-          (truck.status === "done" ||
-            truck.residentStopStatus === "done" ||
-            truck.residentStopStatus === "skipped") && (
-            <div className="pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 text-xs gap-2 rounded-xl transition-all h-9 cursor-pointer touch-manipulation"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onReportMissed) {
-                    onReportMissed(truck.id);
-                  } else {
-                    navigate("/resident/report", {
-                      state: { type: "missed-collection", truckId: truck.id },
-                    });
-                  }
-                }}
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Report Missed Collection
-              </Button>
-            </div>
-          )}
       </CardContent>
     </Card>
   );

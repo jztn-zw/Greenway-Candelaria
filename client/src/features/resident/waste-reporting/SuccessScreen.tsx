@@ -2,7 +2,7 @@ import { CheckCircle, Copy, ArrowRight, Bell, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface SuccessScreenProps {
   referenceNumber: string;

@@ -35,7 +35,7 @@ import {
   safeFormatDate,
 } from "./types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface ReportListTableProps {
   reports: WasteReport[];

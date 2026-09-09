@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/popover";
 import type { AdminTruck, TruckStatus } from "../types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   AlertDialog,
   AlertDialogAction,

@@ -2,7 +2,10 @@ const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const {
   notifyBarangayResidents,
+  notifyAdmins,
 } = require("../notifications/notifications.service");
+
+const STALE_GPS_SECONDS = 120;
 
 // Calculate distance in kilometers between two GPS coordinates
 const calculateHaversineDistanceKm = (lat1, lon1, lat2, lon2) => {
@@ -186,6 +189,62 @@ const getLive = async () => {
   );
 
   return rows;
+};
+
+// Notify dispatchers once when an active route has no GPS ping for two minutes.
+// Paused routes are intentionally excluded because their GPS is expected to stop.
+const notifyStaleGpsRoutes = async () => {
+  const [rows] = await pool.query(
+    `SELECT
+       r.id AS route_id,
+       t.id AS truck_id,
+       t.name AS truck_name,
+       COALESCE(MAX(tl.created_at), r.collection_started_at) AS last_ping,
+       TIMESTAMPDIFF(
+         SECOND,
+         COALESCE(MAX(tl.created_at), r.collection_started_at),
+         UTC_TIMESTAMP()
+       ) AS seconds_since_ping
+     FROM routes r
+     JOIN trucks t ON t.id = r.truck_id
+     LEFT JOIN tracking_logs tl ON tl.truck_id = t.id
+     WHERE r.status = 'ACTIVE'
+       AND r.collection_started_at IS NOT NULL
+     GROUP BY r.id, t.id, t.name, r.collection_started_at
+     HAVING seconds_since_ping >= ?`,
+    [STALE_GPS_SECONDS],
+  );
+
+  for (const route of rows) {
+    const [existing] = await pool.query(
+      `SELECT id FROM notifications
+       WHERE type = 'SYSTEM'
+         AND ref_module = 'tracking-stale-gps'
+         AND ref_id = ?
+       LIMIT 1`,
+      [route.route_id],
+    );
+    if (existing.length > 0) continue;
+
+    // The route may have ended while this monitor pass was preparing the
+    // alert. Verify it is still actively collecting before notifying admins.
+    const [activeRoute] = await pool.query(
+      "SELECT id FROM routes WHERE id = ? AND status = 'ACTIVE' AND collection_started_at IS NOT NULL LIMIT 1",
+      [route.route_id],
+    );
+    if (activeRoute.length === 0) continue;
+
+    const minutes = Math.max(2, Math.floor(Number(route.seconds_since_ping) / 60));
+    await notifyAdmins({
+      type: "SYSTEM",
+      title: "GPS signal lost",
+      body: `${route.truck_name} has not sent a GPS update for ${minutes} minutes.`,
+      ref_id: route.route_id,
+      ref_module: "tracking-stale-gps",
+    });
+  }
+
+  return rows.length;
 };
 
 // --- Get history for a specific truck ---------------------
@@ -449,5 +508,6 @@ module.exports = {
   clearHistory,
   calculateHaversineDistanceKm,
   checkProximityAndNotify,
+  notifyStaleGpsRoutes,
   fetchRoadRoute,
 };

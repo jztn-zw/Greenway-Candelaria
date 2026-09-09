@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { pool } = require("../config/db");
 const { error } = require("../utils/apiResponse");
+const hashSessionToken = require("../utils/hashSessionToken");
 
 const authenticate = async (req, res, next) => {
   try {
@@ -17,8 +18,8 @@ const authenticate = async (req, res, next) => {
     // Check if session exists and not expired
     const [sessions] = await pool.query(
       `SELECT * FROM sessions 
-       WHERE token = ? AND expires_at > NOW()`,
-      [token],
+       WHERE token IN (?, ?) AND expires_at > NOW()`,
+      [hashSessionToken(token), token],
     );
 
     if (sessions.length === 0) {
@@ -43,7 +44,7 @@ const authenticate = async (req, res, next) => {
     }
 
     if (user.status === "BANNED") {
-      return error(res, `Account is banned. Reason: ${user.ban_reason}`, 403);
+      return error(res, "Account unavailable", 403);
     }
 
     req.user = user;

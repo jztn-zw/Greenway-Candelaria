@@ -50,7 +50,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useAnnouncements } from "./hooks/useAnnouncements";
 import AnnouncementKPIs from "./AnnouncementKPIs";
 import AnnouncementCard from "./AnnouncementCard";

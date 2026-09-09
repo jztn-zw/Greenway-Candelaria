@@ -25,7 +25,7 @@ import NotificationModal from "./NotificationModal";
 import ResidentAnnouncementModal from "../announcements/ResidentAnnouncementModal";
 import type { AnnouncementDetail } from "../announcements/ResidentAnnouncementModal";
 import { fetchAnnouncementById } from "@/services/announcementsService";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PageHeaderSkeleton,
   NotificationsPageSkeleton,

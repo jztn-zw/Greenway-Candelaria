@@ -39,7 +39,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Driver, Truck as TruckType } from "./types";
 import {
   PageHeaderSkeleton,

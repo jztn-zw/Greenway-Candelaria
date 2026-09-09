@@ -47,7 +47,7 @@ import {
   fetchReminderSettings,
 } from "@/services/scheduleService";
 import { fetchBarangays, BarangayLocationRow } from "@/services/barangaysService";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ScheduleKPIs } from "./ScheduleKPIs";
 import { CalendarGrid } from "./CalendarGrid";
 import { SelectedDayPanel } from "./SelectedDayPanel";

@@ -52,7 +52,7 @@ import {
   STATUS_REVERSE_MAP,
 } from "./types";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { MyReportsSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   fetchMyReports,

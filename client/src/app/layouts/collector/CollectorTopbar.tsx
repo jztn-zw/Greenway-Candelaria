@@ -174,7 +174,7 @@ const CollectorTopBar = () => {
           <PopoverContent align="end" className="w-80 sm:w-96 p-0 shadow-2xl rounded-2xl border-border">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">Driver Notifications</span>
+                <span className="font-semibold text-sm">Notifications</span>
                 {unreadCount > 0 && (
                   <span className="bg-primary/15 text-primary text-[10px] font-bold rounded-full px-2 py-0.5">
                     {unreadCount} new
@@ -188,14 +188,14 @@ const CollectorTopBar = () => {
                   className="text-xs text-primary hover:underline flex items-center gap-1 font-medium cursor-pointer"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  Mark all read
+                  Mark all as read
                 </button>
               )}
             </div>
 
-            <div className="max-h-80 overflow-y-auto divide-y divide-border">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-border/60">
               {recentNotifications.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
+                <div className="p-8 text-center text-muted-foreground text-xs">
                   <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   No notifications yet
                 </div>
@@ -203,44 +203,47 @@ const CollectorTopBar = () => {
                 recentNotifications.map((n) => {
                   const Icon = typeIcons[n.type] || Bell;
                   return (
-                    <div
-                      key={n.id}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`p-3 text-left hover:bg-muted/50 transition-colors flex items-start gap-3 cursor-pointer ${
-                        !n.is_read ? "bg-primary/5" : ""
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${!n.is_read ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
-                          {n.title}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                          {n.body}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-1">
-                          {formatTimeAgo(n.created_at)}
-                        </p>
-                      </div>
-                      {!n.is_read && (
-                        <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
-                      )}
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => handleNotificationClick(n)}
+                    className={`w-full p-3 sm:p-3.5 text-left flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer group ${
+                      !n.is_read ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border border-primary/20 bg-primary/10 text-primary shadow-2xs transition-transform duration-200 group-hover:scale-105">
+                      <Icon className="w-4 h-4" />
                     </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs text-foreground/90 leading-snug break-words">
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{n.title}</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed break-words">
+                        {n.body}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
+                        {formatTimeAgo(n.created_at)}
+                      </p>
+                    </div>
+                    {!n.is_read && (
+                      <div className="flex items-center self-center shrink-0 pl-1" title="Unread">
+                        <span className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/15 shrink-0" />
+                      </div>
+                    )}
+                  </button>
                   );
                 })
               )}
             </div>
 
-            <div className="p-2 border-t border-border bg-muted/20">
+            <div className="border-t border-border px-4 py-2.5 bg-muted/20">
               <button
                 type="button"
                 onClick={() => {
                   setBellOpen(false);
                   navigate("/collector/notifications");
                 }}
-                className="w-full py-1.5 text-center text-xs font-semibold text-primary hover:underline cursor-pointer"
+                className="w-full text-center text-xs text-primary hover:underline font-semibold cursor-pointer"
               >
                 View all notifications
               </button>

@@ -4,7 +4,7 @@ import { Download, ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import AuditLogKPIs from "./AuditLogKPIs";
 import AuditLogFilters from "./AuditLogFilters";
 import AuditLogTable from "./AuditLogTable";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,

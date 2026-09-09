@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, X, UserPlus, UserCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Driver, Truck } from "../types";
 

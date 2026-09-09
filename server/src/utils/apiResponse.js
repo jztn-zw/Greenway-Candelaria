@@ -16,6 +16,7 @@ const error = (
     success: false,
     message,
     errors,
+    requestId: res.locals?.requestId,
   });
 };
 

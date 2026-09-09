@@ -26,9 +26,9 @@ const normalizeBarangayName = (value: string) =>
 const parseRouteStartedAt = (value: string | null | undefined): Date => {
   if (!value) return new Date();
 
-  const direct = new Date(value);
-  if (!Number.isNaN(direct.getTime())) return direct;
-
+  // MySQL DATETIME values from the API are UTC. Parse this format before the
+  // browser's Date parser, which otherwise treats it as local time and can
+  // make a new route appear several hours old in the Philippines.
   const dateTimeMatch = value.match(
     /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/,
   );
@@ -47,6 +47,9 @@ const parseRouteStartedAt = (value: string | null | undefined): Date => {
       ),
     );
   }
+
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
 
   const timeOnlyMatch = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (timeOnlyMatch) {

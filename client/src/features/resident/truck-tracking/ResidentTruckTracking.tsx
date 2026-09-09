@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { AlertTriangle, CheckCircle2, Truck as TruckIcon } from "lucide-react";
 import TrackingMap from "./TrackingMap";
@@ -411,18 +411,29 @@ const ResidentTruckTracking = () => {
     setSchedule(buildSchedule(allRoutes, residentBarangayId));
   }, [residentBarangayId, residentCoords]);
 
+  // Keep socket event handlers current without recreating a connection when
+  // location/profile data changes during the page's initial load.
+  const loadDynamicDataRef = useRef(loadDynamicData);
+  useEffect(() => {
+    loadDynamicDataRef.current = loadDynamicData;
+  }, [loadDynamicData]);
+
   useEffect(() => {
     const socket: Socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
       withCredentials: true,
       auth: { token: authService.getToken() },
+      // React development Strict Mode immediately cleans up the first effect.
+      // Delay the handshake so that cleanup can cancel it instead of closing an
+      // in-progress WebSocket connection.
+      autoConnect: false,
       timeout: 10_000,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
     });
 
     const syncResidentTracking = () => {
-      void loadDynamicData();
+      void loadDynamicDataRef.current();
     };
 
     socket.on("connect", () => {
@@ -434,11 +445,14 @@ const ResidentTruckTracking = () => {
     socket.on("live:update", syncResidentTracking);
     socket.on("routes:update", syncResidentTracking);
 
+    const connectTimer = window.setTimeout(() => socket.connect(), 0);
+
     return () => {
+      window.clearTimeout(connectTimer);
       socket.emit("tracking:leave");
       socket.disconnect();
     };
-  }, [loadDynamicData]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

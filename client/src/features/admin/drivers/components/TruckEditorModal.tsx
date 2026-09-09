@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, X, Truck as TruckIcon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Truck, TruckOperationalStatus, Driver } from "../types";
 
 interface TruckEditorModalProps {

@@ -1,6 +1,6 @@
 // src/pages/admin/hooks/useRoutes.ts
 import { useState, useEffect, useCallback, useRef } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   fetchRoutes,
   createRoute,
@@ -42,6 +42,7 @@ export interface RouteData {
   stops: RouteStop[];
   barangays: string[]; // ordered barangay names for display
   active: boolean;
+  status: ApiRoute["status"];
 }
 
 // ─── Form shape (what the editor works with) ──────────────────────────────────
@@ -99,6 +100,7 @@ const mapRoute = (raw: ApiRoute): RouteData => {
     })),
     barangays: sortedStops.map((s) => s.barangay_name),
     active: raw.status === "ACTIVE",
+    status: raw.status,
   };
 };
 

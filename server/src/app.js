@@ -1,10 +1,17 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const errorHandler = require("./middleware/errorHandler");
+const requestContext = require("./middleware/requestContext");
 
 const app = express();
+app.disable("x-powered-by");
 
 // Middlewares
+app.use(requestContext);
+// API-only server: use protective headers without applying an HTML CSP that
+// could interfere with the separate Vite/Capacitor client.
+app.use(helmet({ contentSecurityPolicy: false }));
 // Read the URLs from the .env file
 const allowedOrigins = [
   process.env.CLIENT_URL,
@@ -24,10 +31,11 @@ app.use(
       }
     },
     credentials: true,
+    exposedHeaders: ["X-Request-ID"],
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "200kb" }));
+app.use(express.urlencoded({ extended: true, limit: "200kb", parameterLimit: 100 }));
 // Health check
 app.get("/health", (req, res) => {
   res.json({ status: "GreenWay API is running" });

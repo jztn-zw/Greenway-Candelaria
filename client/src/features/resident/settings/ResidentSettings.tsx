@@ -14,7 +14,7 @@ import { SettingsSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchBarangays, BarangayLocationRow } from "@/services/barangaysService";
 import { fetchUserSettings, updateUserSettings, UpdateSettingsPayload } from "@/services/settingsService";
 import useAuthStore from "@/store/authStore";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 /* ─── Section Wrapper ─── */
 const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (

@@ -14,7 +14,7 @@ import {
   fetchDriverMyHistory,
   RouteHistoryItem,
 } from "@/services/driverManagerService";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export type StatusFilter = "all" | "completed" | "partial";
 export type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable";

@@ -255,7 +255,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       driverId: driver?.id ?? "",
                     }));
                   }}
-                  disabled={isLoadingTrucks}
+                  disabled={isLoadingTrucks || trucks.length === 0}
                 >
                   <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs focus:ring-primary/20">
                     <div className="flex items-center gap-2 truncate">
@@ -264,7 +264,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     </div>
                   </SelectTrigger>
                   <SelectContent className="max-h-56 rounded-xl">
-                    {trucks.map((t) => (
+                    {trucks.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-muted-foreground">
+                        No trucks are available for {form.day}.
+                      </div>
+                    ) : trucks.map((t) => (
                       <SelectItem key={t.id} value={t.id} className="text-xs">
                         <div className="flex items-center justify-between gap-3 w-full">
                           <span>{t.name}</span>
@@ -372,6 +376,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             <p className="mr-auto hidden sm:block text-[11px] text-muted-foreground" aria-live="polite">
               {!form.truckId
                 ? "Select a truck to continue"
+                : trucks.length === 0
+                  ? `No trucks are available for ${form.day}`
                 : form.barangays.length === 0
                   ? "Add at least one collection stop"
                   : assignedDriver
@@ -393,7 +399,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 isSaving ||
                 !form.truckId ||
                 form.barangays.length === 0 ||
-                isLoadingTrucks
+                isLoadingTrucks ||
+                trucks.length === 0
               }
               className="h-9 text-xs rounded-xl px-5 font-bold shadow-sm gap-1.5 cursor-pointer"
             >

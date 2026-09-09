@@ -4,12 +4,14 @@ const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 const optionalAuth = require("../../middleware/optionalAuth");
 const { upload } = require("../../config/cloudinary");
+const { uploadLimiter } = require("../../middleware/rateLimits");
 
 // ─── Image Upload ──────────────────────────────────────────
 router.post(
   "/upload-image",
   authenticate,
   authorize("ADMIN"),
+  uploadLimiter,
   upload.single("file"),
   controller.uploadImage,
 );

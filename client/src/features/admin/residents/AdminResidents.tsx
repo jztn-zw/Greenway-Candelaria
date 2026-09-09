@@ -49,7 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Resident, ResidentReport } from "./types";
 import ResidentProfileView from "./ResidentProfile";
