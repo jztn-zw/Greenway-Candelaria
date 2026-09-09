@@ -3,6 +3,7 @@ import notificationsService, {
   NotificationRow,
 } from "@/services/notificationsService";
 import { getSocket } from "@/lib/socket";
+import { toast } from "@/lib/toast";
 
 interface UserInfo {
   id: string;

@@ -8,16 +8,12 @@ import LocationSection from "./LocationSection";
 import DescriptionSection from "./DescriptionSection";
 import PhotoUploadSection from "./PhotoUploadSection";
 import FormProgressSidebar from "./FormProgressSidebar";
-import DuplicateWarning from "./DuplicateWarning";
 import SuccessScreen from "./SuccessScreen";
 import ReviewModal from "./ReviewModal";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
 import { ReportFormSkeleton } from "@/components/PageLoadingSkeletons";
 import { uploadReportPhotos, submitReport } from "@/services/reportsService";
-
-// Barangay names known to have duplicate reports — used to show DuplicateWarning
-const DUPLICATE_BARANGAY_NAMES = ["Candelaria Proper", "Pahinga Norte"];
 const DRAFT_STORAGE_KEY = "greenway_report_draft_v1";
 
 const ResidentSubmitReport = () => {
@@ -112,14 +108,6 @@ const ResidentSubmitReport = () => {
       setForm((prev) => ({ ...prev, barangayId: id, barangayName: name }));
     },
     [],
-  );
-
-  const showDuplicate = useMemo(
-    () =>
-      form.violationType &&
-      form.barangayName &&
-      DUPLICATE_BARANGAY_NAMES.includes(form.barangayName),
-    [form.violationType, form.barangayName],
   );
 
   const canSubmit =
@@ -253,59 +241,23 @@ const ResidentSubmitReport = () => {
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
         {/* Main Form */}
         <div className="flex-1 w-full space-y-4 sm:space-y-5">
-          {/* Section 1: Violation Type */}
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <ViolationTypeSelector
-              value={form.violationType}
-              onChange={(v) => update("violationType", v)}
-            />
+          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
+            <ViolationTypeSelector value={form.violationType} onChange={(v) => update("violationType", v)} />
+          </div>
+          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
+            <LocationSection barangayId={form.barangayId} barangayName={form.barangayName} streetOrLandmark={form.streetOrLandmark} onBarangayChange={handleBarangayChange} onStreetChange={(v) => update("streetOrLandmark", v)} />
+          </div>
+          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
+            <DescriptionSection value={form.description} onChange={(v) => update("description", v)} violationType={form.violationType} />
+          </div>
+          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
+            <PhotoUploadSection photos={form.photos} onPhotosChange={(v) => update("photos", v)} />
           </div>
 
-          {/* Section 2: Location */}
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <LocationSection
-              barangayId={form.barangayId}
-              barangayName={form.barangayName}
-              streetOrLandmark={form.streetOrLandmark}
-              onBarangayChange={handleBarangayChange}
-              onStreetChange={(v) => update("streetOrLandmark", v)}
-            />
-          </div>
-
-          {/* Duplicate Warning */}
-          {showDuplicate && <DuplicateWarning barangay={form.barangayName} />}
-
-          {/* Section 3: Description */}
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <DescriptionSection
-              value={form.description}
-              onChange={(v) => update("description", v)}
-            />
-          </div>
-
-          {/* Section 4: Photos */}
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
-            <PhotoUploadSection
-              photos={form.photos}
-              onPhotosChange={(v) => update("photos", v)}
-            />
-          </div>
-
-          {/* Submit buttons */}
           <div className="space-y-3 pb-6 pt-2">
-            <Button
-              onClick={handleReview}
-              disabled={!canSubmit || isSubmitting}
-              className="w-full min-h-[52px] sm:min-h-[56px] py-3.5 px-6 rounded-2xl text-sm sm:text-base font-bold gap-2.5 shadow-xl shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              size="lg"
-            >
-              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Review and Submit</span>
+            <Button onClick={handleReview} disabled={!canSubmit || isSubmitting} className="w-full min-h-[52px] rounded-2xl text-sm font-bold gap-2 shadow-xl shadow-primary/20" size="lg">
+              <Send className="w-4 h-4" /> Review and Submit
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Your report will be reviewed by MENRO staff. False reports may
-              result in account penalties.
-            </p>
           </div>
         </div>
 

@@ -135,6 +135,16 @@ export const fetchMyReportById = async (id: string): Promise<MyReportRow> => {
   return data.data;
 };
 
+export const checkSimilarReport = async (
+  barangayId: string,
+  violationType: string,
+): Promise<boolean> => {
+  const { data } = await api.get<{ data: { similar: boolean } }>("/reports/similar", {
+    params: { barangay_id: barangayId, violation_type: violationType },
+  });
+  return data.data.similar;
+};
+
 // ─── Fetch report stats for current user ───────────────────
 
 export interface ReportStats {
@@ -195,6 +205,13 @@ export interface AdminReportItem {
   is_false: boolean;
   is_duplicate: boolean;
   duplicate_of_id: string | null;
+  duplicate_of_reference?: string | null;
+  duplicate_reason: string | null;
+  false_reason: string | null;
+  duplicate_flagged_by: string | null;
+  false_flagged_by: string | null;
+  duplicate_flagged_at: string | null;
+  false_flagged_at: string | null;
   pin_lat: number | null;
   pin_lng: number | null;
   created_at: string;
@@ -289,7 +306,11 @@ export const flagAdminReport = async (
   payload: {
     is_false?: boolean;
     is_duplicate?: boolean;
-    duplicate_of_id?: string;
+    duplicate_of_reference?: string;
+    duplicate_reason?: string;
+    false_reason?: string;
+    resolve?: boolean;
+    admin_response?: string;
   },
 ): Promise<AdminReportItem> => {
   const { data } = await api.put<{ data: AdminReportItem }>(
@@ -320,5 +341,3 @@ export const deleteReport = async (id: string): Promise<{ id: string; reference_
   );
   return data.data;
 };
-
-

@@ -38,6 +38,14 @@ router.get(
   controller.getMyReportById,
 );
 
+// Resident — check for a recent active report with the same issue and barangay
+router.get(
+  "/similar",
+  authenticate,
+  authorize("RESIDENT", "ADMIN"),
+  controller.checkSimilar,
+);
+
 
 // Admin — get all reports with filters
 router.get(

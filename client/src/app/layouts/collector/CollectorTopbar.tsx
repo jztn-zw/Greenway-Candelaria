@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
+import { formatRelativeTime } from "@/utils/date";
 
 const typeIcons: Record<string, React.ElementType> = {
   SYSTEM: Shield,
@@ -28,23 +29,6 @@ const typeIcons: Record<string, React.ElementType> = {
   MISSED_COLLECTION: SkipForward,
   COLLECTION_DONE: CheckCircle2,
   REPORT_UPDATE: MessageSquareText,
-};
-
-const formatTimeAgo = (dateString: string) => {
-  try {
-    const d = new Date(
-      dateString.includes("Z") ? dateString : dateString.replace(" ", "T"),
-    );
-    const now = new Date();
-    const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
-    if (diffSec < 60) return "Just now";
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-    if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  } catch {
-    return dateString;
-  }
 };
 
 const COLLECTOR_PAGE_TITLES: Record<string, string> = {
@@ -222,7 +206,7 @@ const CollectorTopBar = () => {
                         {n.body}
                       </p>
                       <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
-                        {formatTimeAgo(n.created_at)}
+                        {formatRelativeTime(n.created_at)}
                       </p>
                     </div>
                     {!n.is_read && (

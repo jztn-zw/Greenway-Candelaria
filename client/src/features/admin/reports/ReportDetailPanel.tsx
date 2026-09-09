@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -49,6 +51,7 @@ import {
 } from "./types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { fetchAdminReports, type AdminReportItem } from "@/services/reportsService";
 
 interface ReportDetailPanelProps {
   report: WasteReport | null;
@@ -57,7 +60,16 @@ interface ReportDetailPanelProps {
   onUpdateStatus?: (status: string, officialResponse?: string) => Promise<void>;
   onUpdatePriority?: (priority: "LOW" | "MEDIUM" | "HIGH") => Promise<void>;
   onAddNote?: (note: string) => Promise<void>;
-  onFlagReport?: (payload: { is_false?: boolean; is_duplicate?: boolean }) => Promise<void>;
+  onFlagReport?: (payload: {
+    is_false?: boolean;
+    is_duplicate?: boolean;
+    duplicate_of_reference?: string;
+    duplicate_reason?: string;
+    false_reason?: string;
+    resolve?: boolean;
+    admin_response?: string;
+  }) => Promise<void>;
+  onFlagDialogOpenChange?: (open: boolean) => void;
   onDeleteReport?: (id: string) => Promise<void>;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -76,6 +88,7 @@ const ReportDetailPanel = ({
   onUpdatePriority,
   onAddNote,
   onFlagReport,
+  onFlagDialogOpenChange,
   onDeleteReport,
   onPrevious,
   onNext,
@@ -91,6 +104,14 @@ const ReportDetailPanel = ({
   const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
+  const [flagType, setFlagType] = useState<"duplicate" | "false" | null>(null);
+  const [flagReason, setFlagReason] = useState("");
+  const [duplicateReference, setDuplicateReference] = useState("");
+  const [resolveOnFlag, setResolveOnFlag] = useState(true);
+  const [flagResponse, setFlagResponse] = useState("");
+  const [falseVerified, setFalseVerified] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<AdminReportItem[]>([]);
+  const [isSearchingDuplicates, setIsSearchingDuplicates] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
@@ -103,6 +124,31 @@ const ReportDetailPanel = ({
       setInternalNote("");
     }
   }, [report?.id, report?.status, report?.priority, report?.officialResponse]);
+
+  useEffect(() => {
+    if (flagType !== "duplicate" || duplicateReference.trim().length < 2) {
+      setDuplicateMatches([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setIsSearchingDuplicates(true);
+      try {
+        const result = await fetchAdminReports({ search: duplicateReference.trim(), limit: 8, sort: "date-desc" });
+        if (active) {
+          setDuplicateMatches(result.reports.filter((candidate) => candidate.id !== report?.id && candidate.status !== "RESOLVED"));
+        }
+      } catch {
+        if (active) setDuplicateMatches([]);
+      } finally {
+        if (active) setIsSearchingDuplicates(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [duplicateReference, flagType, report?.id]);
 
   if (!report) {
     return (
@@ -182,16 +228,52 @@ const ReportDetailPanel = ({
     }
   };
 
-  const handleFlag = async (payload: { is_false?: boolean; is_duplicate?: boolean }) => {
-    if (!onFlagReport || isFlagging) return;
+  const handleFlag = async (payload: Parameters<NonNullable<ReportDetailPanelProps["onFlagReport"]>>[0]) => {
+    if (!onFlagReport || isFlagging) return false;
     setIsFlagging(true);
     try {
       await onFlagReport(payload);
       toast.success("Report flag updated");
+      return true;
     } catch {
       toast.error("Failed to update flag");
+      return false;
     } finally {
       setIsFlagging(false);
+    }
+  };
+
+  const openFlagDialog = (type: "duplicate" | "false") => {
+    setFlagType(type);
+    setFlagReason(type === "duplicate" ? report.duplicateReason || "" : report.falseReason || "");
+    setDuplicateReference(type === "duplicate" ? report.duplicateOfReference || "" : "");
+    setResolveOnFlag(true);
+    setFlagResponse("");
+    setFalseVerified(false);
+    onFlagDialogOpenChange?.(true);
+  };
+
+  const submitFlagDecision = async () => {
+    if (!flagType || !flagReason.trim()) {
+      toast.error("Please provide the review reason.");
+      return;
+    }
+    if (flagType === "duplicate" && !duplicateReference.trim()) {
+      toast.error("Enter the original report reference number.");
+      return;
+    }
+    if (flagType === "false" && !falseVerified) {
+      toast.error("Confirm that you verified this report before flagging it as false.");
+      return;
+    }
+    const saved = await handleFlag(
+      flagType === "duplicate"
+        ? { is_duplicate: true, duplicate_of_reference: duplicateReference.trim(), duplicate_reason: flagReason.trim(), resolve: resolveOnFlag, admin_response: flagResponse.trim() || undefined }
+        : { is_false: true, false_reason: flagReason.trim(), resolve: resolveOnFlag, admin_response: flagResponse.trim() || undefined },
+    );
+    if (saved) {
+      setFlagType(null);
+      onFlagDialogOpenChange?.(false);
     }
   };
 
@@ -202,7 +284,7 @@ const ReportDetailPanel = ({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-foreground">
+              <span className="text-xs font-sans tabular-nums font-bold text-foreground">
                 {report.referenceNumber}
               </span>
               <button
@@ -250,6 +332,20 @@ const ReportDetailPanel = ({
                 </Badge>
               )}
             </div>
+            {(report.duplicateReason || report.falseReason) && (
+              <div className="mt-2 space-y-1.5 text-[11px] leading-relaxed max-w-md">
+                {report.isDuplicate && report.duplicateReason && (
+                  <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-muted-foreground">
+                    <span className="font-semibold text-foreground">Duplicate of {report.duplicateOfReference || "linked report"}:</span> {report.duplicateReason}
+                  </p>
+                )}
+                {report.isFalseReport && report.falseReason && (
+                  <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-1.5 text-muted-foreground">
+                    <span className="font-semibold text-foreground">False-report review:</span> {report.falseReason}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -301,10 +397,10 @@ const ReportDetailPanel = ({
                   key={st}
                   type="button"
                   onClick={() => handleStatusSubmit(st)}
-                  disabled={isUpdatingStatus}
+                  disabled={isUpdatingStatus || isCurrent}
                   className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-all cursor-pointer ${
                     isCurrent
-                      ? "bg-primary text-primary-foreground font-bold shadow-xs shadow-primary/20"
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs shadow-primary/20 cursor-default"
                       : isPastOrCurrent
                       ? "bg-primary/10 text-primary hover:bg-primary/20 font-medium"
                       : "bg-background/60 text-muted-foreground hover:bg-background hover:text-foreground"
@@ -496,33 +592,51 @@ const ReportDetailPanel = ({
 
         {/* ── Flag & Action Bar ── */}
         <div className="pt-2 border-t border-border/60 flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isFlagging || report.isDuplicate}
-            onClick={() => handleFlag({ is_duplicate: !report.isDuplicate })}
-            className={cn(
-              "h-8 text-xs rounded-xl gap-1.5 cursor-pointer",
-              report.isDuplicate && "bg-amber-500/10 text-amber-600 border-amber-500/30",
-            )}
-          >
-            <Copy className="w-3 h-3" />
-            {report.isDuplicate ? "Duplicate Flagged" : "Flag Duplicate"}
-          </Button>
+          {!report.isFalseReport && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isFlagging}
+                onClick={() => openFlagDialog("duplicate")}
+                className={cn(
+                  "h-8 text-xs rounded-xl gap-1.5 cursor-pointer",
+                  report.isDuplicate && "bg-amber-500/10 text-amber-600 border-amber-500/30",
+                )}
+              >
+                <Copy className="w-3 h-3" />
+                {report.isDuplicate ? "Edit Duplicate Flag" : "Flag Duplicate"}
+              </Button>
+              {report.isDuplicate && (
+                <Button variant="ghost" size="sm" disabled={isFlagging} onClick={() => handleFlag({ is_duplicate: false })} className="h-8 text-xs rounded-xl text-muted-foreground hover:text-destructive">
+                  Clear duplicate
+                </Button>
+              )}
+            </>
+          )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isFlagging || report.isFalseReport}
-            onClick={() => handleFlag({ is_false: !report.isFalseReport })}
-            className={cn(
-              "h-8 text-xs rounded-xl gap-1.5 cursor-pointer text-destructive border-destructive/30 hover:bg-destructive/10",
-              report.isFalseReport && "bg-destructive/10 text-destructive",
-            )}
-          >
-            <Flag className="w-3 h-3" />
-            {report.isFalseReport ? "False Report Flagged" : "Flag False"}
-          </Button>
+          {!report.isDuplicate && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isFlagging}
+                onClick={() => openFlagDialog("false")}
+                className={cn(
+                  "h-8 text-xs rounded-xl gap-1.5 cursor-pointer text-destructive border-destructive/30 hover:bg-destructive/10",
+                  report.isFalseReport && "bg-destructive/10 text-destructive",
+                )}
+              >
+                <Flag className="w-3 h-3" />
+                {report.isFalseReport ? "Edit False Flag" : "Flag False"}
+              </Button>
+              {report.isFalseReport && (
+                <Button variant="ghost" size="sm" disabled={isFlagging} onClick={() => handleFlag({ is_false: false })} className="h-8 text-xs rounded-xl text-muted-foreground hover:text-destructive">
+                  Clear false flag
+                </Button>
+              )}
+            </>
+          )}
 
           {onDeleteReport && (
             <Button
@@ -563,6 +677,67 @@ const ReportDetailPanel = ({
                 className="w-full max-h-[70vh] object-contain rounded-xl bg-muted/40"
               />
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!flagType} onOpenChange={(open) => {
+        if (!open) setFlagType(null);
+        onFlagDialogOpenChange?.(open);
+      }}>
+        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border-border/80 shadow-2xl [&>button:last-child]:hidden">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+            <DialogTitle className="text-base font-bold font-display">
+              {flagType === "duplicate" ? "Flag as Duplicate" : "Flag as False Report"}
+            </DialogTitle>
+            <button type="button" onClick={() => { setFlagType(null); onFlagDialogOpenChange?.(false); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-4 py-4">
+            {flagType === "duplicate" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Original report reference</label>
+                <Input value={duplicateReference} onChange={(e) => setDuplicateReference(e.target.value)} placeholder="e.g. RPT-2026-00012" className="h-10 rounded-xl" />
+                {isSearchingDuplicates && <p className="text-[11px] text-muted-foreground">Searching active reports...</p>}
+                {duplicateMatches.length > 0 && (
+                  <div className="max-h-36 overflow-y-auto rounded-xl border border-border/70 bg-muted/20 divide-y divide-border/60">
+                    {duplicateMatches.map((candidate) => (
+                      <button key={candidate.id} type="button" onClick={() => { setDuplicateReference(candidate.reference_number); setDuplicateMatches([]); }} className="w-full px-3 py-2 text-left hover:bg-primary/5 transition-colors">
+                        <span className="block text-xs font-bold text-foreground">{candidate.reference_number}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{candidate.barangay_name} · {candidate.violation_type.replaceAll("_", " ")}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Review reason</label>
+              <Textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} placeholder="Explain the verification decision for the audit record..." className="min-h-[88px] rounded-xl resize-none" />
+            </div>
+            {flagType === "false" && (
+              <label className="flex items-start gap-2.5 text-xs font-medium text-foreground cursor-pointer leading-relaxed">
+                <Checkbox checked={falseVerified} onCheckedChange={(checked) => setFalseVerified(checked === true)} className="mt-0.5" />
+                I verified this report and confirm that it is invalid or false.
+              </label>
+            )}
+            <label className="flex items-center gap-2.5 text-xs font-medium text-foreground cursor-pointer">
+              <Checkbox checked={resolveOnFlag} onCheckedChange={(checked) => setResolveOnFlag(checked === true)} />
+              Resolve this report and notify the resident
+            </label>
+            {resolveOnFlag && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Resident response <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <Textarea value={flagResponse} onChange={(e) => setFlagResponse(e.target.value)} placeholder="A clear default response will be sent if left blank." className="min-h-[70px] rounded-xl resize-none" />
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border/60 pt-3.5">
+            <Button variant="outline" onClick={() => { setFlagType(null); onFlagDialogOpenChange?.(false); }} className="rounded-xl">Cancel</Button>
+            <Button onClick={submitFlagDecision} disabled={isFlagging} variant={flagType === "false" ? "destructive" : "default"} className="rounded-xl">
+              {isFlagging ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Decision"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

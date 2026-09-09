@@ -148,7 +148,7 @@ const ReportListTable = ({
                     <div className="flex items-center gap-1.5">
                       <span
                         onClick={(e) => handleCopyRef(e, report.referenceNumber)}
-                        className="text-xs font-mono font-bold text-foreground hover:text-primary transition-colors cursor-copy"
+                        className="text-xs font-sans tabular-nums font-bold text-foreground hover:text-primary transition-colors cursor-copy"
                         title="Click to copy reference"
                       >
                         {report.referenceNumber}
@@ -271,23 +271,6 @@ const ReportListTable = ({
                           </>
                         )}
 
-                        {onFlagReport && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onFlagReport(report.id, { is_duplicate: true })}
-                              className="text-xs gap-2 cursor-pointer"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-amber-500" /> Flag as Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onFlagReport(report.id, { is_false: true })}
-                              className="text-xs gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                            >
-                              <AlertOctagon className="w-3.5 h-3.5" /> Flag as False Report
-                            </DropdownMenuItem>
-                          </>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

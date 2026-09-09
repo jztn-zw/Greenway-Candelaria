@@ -76,6 +76,9 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   })),
   isDuplicate: Boolean(r.is_duplicate),
   duplicateOfId: r.duplicate_of_id || undefined,
+  duplicateOfReference: r.duplicate_of_reference || undefined,
+  duplicateReason: r.duplicate_reason || undefined,
+  falseReason: r.false_reason || undefined,
   isFalseReport: Boolean(r.is_false),
 });
 
@@ -105,6 +108,8 @@ const AdminWasteReports = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<WasteReport | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isFlagDialogOpen, setIsFlagDialogOpen] = useState(false);
+  const notificationReportId = searchParams.get("report");
 
   // Search debounce ref
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -232,6 +237,14 @@ const AdminWasteReports = () => {
     }
   };
 
+  // A report notification links directly to this detail panel. If the report
+  // was deleted or is otherwise unavailable, keep the user on the valid
+  // reports page rather than leaving an empty or broken detail target.
+  useEffect(() => {
+    if (!notificationReportId || selectedId === notificationReportId) return;
+    void handleSelectReport(notificationReportId);
+  }, [notificationReportId]);
+
   const selectedReportIndex = reports.findIndex((report) => report.id === selectedId);
   const selectPreviousReport = () => {
     if (selectedReportIndex > 0) handleSelectReport(reports[selectedReportIndex - 1].id);
@@ -320,6 +333,11 @@ const AdminWasteReports = () => {
   const handleFlagReport = async (payload: {
     is_false?: boolean;
     is_duplicate?: boolean;
+    duplicate_of_reference?: string;
+    duplicate_reason?: string;
+    false_reason?: string;
+    resolve?: boolean;
+    admin_response?: string;
   }) => {
     if (!selectedId) return;
     try {
@@ -396,7 +414,7 @@ const AdminWasteReports = () => {
       `"${r.submitterName}"`,
       `"${r.priority}"`,
       `"${r.status}"`,
-      `"${r.submittedAt ? format(new Date(r.submittedAt), "yyyy-MM-dd HH:mm") : ""}"`,
+      `"${safeFormatDate(r.submittedAt, "yyyy-MM-dd HH:mm", "")}"`,
       `"${r.description.replace(/"/g, '""')}"`,
     ]);
 
@@ -558,7 +576,7 @@ const AdminWasteReports = () => {
       >
         <SheetContent
           side="right"
-          className="w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col h-full bg-card border-l border-border/80 shadow-2xl z-[100] focus:outline-none [&>button:last-child]:hidden"
+          className={`w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col h-full bg-card border-l border-border/80 shadow-2xl z-[100] focus:outline-none [&>button:last-child]:hidden transition-transform duration-300 ${isFlagDialogOpen ? "translate-x-full pointer-events-none" : ""}`}
         >
           <SheetTitle className="sr-only">Waste Report Details</SheetTitle>
           <SheetDescription className="sr-only">
@@ -577,6 +595,7 @@ const AdminWasteReports = () => {
               onUpdatePriority={handleUpdatePriority}
               onAddNote={handleAddNote}
               onFlagReport={handleFlagReport}
+              onFlagDialogOpenChange={setIsFlagDialogOpen}
               onDeleteReport={handleDeleteReport}
               onPrevious={selectPreviousReport}
               onNext={selectNextReport}

@@ -30,7 +30,11 @@ const addNoteSchema = z.object({
 const flagReportSchema = z.object({
   is_false: z.boolean().optional(),
   is_duplicate: z.boolean().optional(),
-  duplicate_of_id: z.string().optional(),
+  duplicate_of_reference: z.string().trim().min(1).optional(),
+  duplicate_reason: z.string().trim().min(1).max(2000).optional(),
+  false_reason: z.string().trim().min(1).max(2000).optional(),
+  resolve: z.boolean().optional(),
+  admin_response: z.string().trim().max(2000).optional(),
 });
 
 const updatePrioritySchema = z.object({

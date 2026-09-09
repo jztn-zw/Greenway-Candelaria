@@ -21,6 +21,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
+import { formatRelativeTime } from "@/utils/date";
 
 const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
   if (!notification.metadata) return {};
@@ -169,21 +170,6 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
   };
 };
 
-const formatTimeAgo = (dateString: string) => {
-  try {
-    const d = new Date(dateString.includes("Z") ? dateString : dateString.replace(" ", "T"));
-    const now = new Date();
-    const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
-    if (diffSec < 60) return "Just now";
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-    if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  } catch {
-    return dateString;
-  }
-};
-
 const RESIDENT_PAGE_TITLES: Record<string, string> = {
   "/resident": "Dashboard",
   "/resident/schedule": "Collection Schedule",
@@ -283,7 +269,7 @@ const ResidentTopBar = () => {
                 My Waste Reports
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-bold text-foreground truncate tracking-tight font-mono">
+              <span className="font-sans tabular-nums font-bold text-foreground truncate tracking-tight">
                 {refParam ? refParam : "Report Details"}
               </span>
             </>
@@ -383,7 +369,7 @@ const ResidentTopBar = () => {
                       {/* Content */}
                       <div className="flex-1 min-w-0 space-y-0.5">
                         <p className="text-xs text-foreground/90 leading-snug break-words">
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                          <span className="font-bold text-foreground">
                             {headline.prefix}
                           </span>
                           {headline.connector && (
@@ -403,7 +389,7 @@ const ResidentTopBar = () => {
                         )}
 
                         <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
-                          {formatTimeAgo(n.created_at)}
+                          {formatRelativeTime(n.created_at)}
                         </p>
                       </div>
 

@@ -46,7 +46,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
       <div className="space-y-3">
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-            Barangay <span className="text-destructive">*</span>
+            Barangay
           </label>
           {loadingBarangays ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground h-10 px-3 border border-border rounded-xl">

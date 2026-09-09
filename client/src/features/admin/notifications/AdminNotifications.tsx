@@ -159,7 +159,9 @@ const AdminNotifications: React.FC = () => {
       await markAsRead(n.id);
     }
 
-    if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
+    if ((n.ref_module === "reports" || n.type === "REPORT_UPDATE") && n.ref_id) {
+      navigate(`/admin/reports?report=${encodeURIComponent(n.ref_id)}`);
+    } else if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
       navigate("/admin/reports");
     } else if (n.ref_module === "posts" || n.type === "NEW_POST") {
       navigate(n.ref_id ? `/admin/posts?post=${n.ref_id}` : "/admin/posts");

@@ -78,9 +78,6 @@ const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
                   )}
                 >
                   {step.label}
-                  {step.required && (
-                    <span className="text-destructive ml-0.5">*</span>
-                  )}
                 </span>
               </div>
             );

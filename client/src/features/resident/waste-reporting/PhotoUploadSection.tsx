@@ -1,6 +1,11 @@
 import { useCallback } from "react";
-import { Upload, X, Pencil, Camera } from "lucide-react";
+import { Plus, X, Camera } from "lucide-react";
 import type { ReportPhoto } from "./types";
+import { toast } from "@/lib/toast";
+
+const MAX_REPORT_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 interface PhotoUploadSectionProps {
   photos: ReportPhoto[];
@@ -11,10 +16,31 @@ const PhotoUploadSection = ({ photos, onPhotosChange }: PhotoUploadSectionProps)
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
       if (!files) return;
+
+      const remainingSlots = MAX_REPORT_PHOTOS - photos.length;
+      if (remainingSlots <= 0) {
+        toast.error(`You can attach up to ${MAX_REPORT_PHOTOS} photos per report.`);
+        return;
+      }
+
       const newPhotos: ReportPhoto[] = [];
+      let rejectedTypeCount = 0;
+      let rejectedSizeCount = 0;
+
+      let skippedForLimitCount = 0;
       Array.from(files).forEach((file) => {
-        if (!["image/jpeg", "image/png"].includes(file.type)) return;
-        if (file.size > 10 * 1024 * 1024) return;
+        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+          rejectedTypeCount += 1;
+          return;
+        }
+        if (file.size > MAX_PHOTO_BYTES) {
+          rejectedSizeCount += 1;
+          return;
+        }
+        if (newPhotos.length >= remainingSlots) {
+          skippedForLimitCount += 1;
+          return;
+        }
         newPhotos.push({
           id: crypto.randomUUID(),
           file,
@@ -22,6 +48,16 @@ const PhotoUploadSection = ({ photos, onPhotosChange }: PhotoUploadSectionProps)
           annotations: [],
         });
       });
+
+      if (skippedForLimitCount > 0) {
+        toast.info(`Only ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} could be added.`);
+      }
+      if (rejectedTypeCount > 0) {
+        toast.error("Only JPG, PNG, and WebP images are allowed.");
+      }
+      if (rejectedSizeCount > 0) {
+        toast.error("Each photo must be 10MB or smaller.");
+      }
       onPhotosChange([...photos, ...newPhotos]);
     },
     [photos, onPhotosChange]
@@ -41,6 +77,27 @@ const PhotoUploadSection = ({ photos, onPhotosChange }: PhotoUploadSectionProps)
     onPhotosChange(photos.filter((p) => p.id !== id));
   };
 
+  const openFilePicker = () => {
+    document.getElementById("photo-upload-input")?.click();
+  };
+
+  const uploadDropzone = (
+    <div
+      onDrop={handleDrop}
+      onDragOver={(e) => e.preventDefault()}
+      className="flex-1 min-w-[220px] border-2 border-dashed border-primary/20 rounded-2xl p-6 sm:p-8 text-center hover:border-primary/40 hover:bg-primary/[0.02] transition-all duration-200 cursor-pointer group flex flex-col items-center justify-center"
+      onClick={openFilePicker}
+    >
+      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/15 transition-colors">
+        <Camera className="w-6 h-6 text-primary" />
+      </div>
+      <p className="text-sm font-medium text-foreground">
+        Drag and drop or <span className="text-primary font-semibold">browse files</span>
+      </p>
+      <p className="text-xs text-muted-foreground mt-1.5">JPG, PNG, or WebP · Max 10MB each · Up to 5 photos · At least 1 photo required</p>
+    </div>
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -50,55 +107,27 @@ const PhotoUploadSection = ({ photos, onPhotosChange }: PhotoUploadSectionProps)
         </span>
       </div>
 
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        className="border-2 border-dashed border-primary/20 rounded-2xl p-6 sm:p-8 text-center hover:border-primary/40 hover:bg-primary/[0.02] transition-all duration-200 cursor-pointer group"
-        onClick={() => document.getElementById("photo-upload-input")?.click()}
-      >
-        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/15 transition-colors">
-          <Camera className="w-6 h-6 text-primary" />
-        </div>
-        <p className="text-sm font-medium text-foreground">
-          Drag and drop or <span className="text-primary font-semibold">browse files</span>
-        </p>
-        <p className="text-xs text-muted-foreground mt-1.5">JPG, PNG · Max 10MB each · At least 1 photo required</p>
-        <input
-          id="photo-upload-input"
-          type="file"
-          accept="image/jpeg,image/png"
-          multiple
-          className="hidden"
-          onChange={(e) => handleFileSelect(e.target.files)}
-        />
-      </div>
-
-      {photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {photos.length === 0 ? (
+        uploadDropzone
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          <div className="flex gap-3 shrink-0">
           {photos.map((photo) => (
-            <div key={photo.id} className="relative group rounded-2xl overflow-hidden border border-border shadow-sm">
+            <div key={photo.id} className="relative group w-40 h-40 sm:w-44 sm:h-44 shrink-0 rounded-2xl overflow-hidden border border-border shadow-sm">
               <img
                 src={photo.preview}
                 alt="Upload preview"
-                className="w-full h-28 sm:h-32 object-cover"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-all duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                <button
-                  type="button"
-                  className="p-2 rounded-xl bg-card/95 text-foreground hover:bg-card shadow-lg transition-all"
-                  title="Annotate photo"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
-                  className="p-2 rounded-xl bg-card/95 text-destructive hover:bg-card shadow-lg transition-all"
-                  title="Remove photo"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
+                className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full border border-border/80 bg-card text-foreground shadow-md shadow-black/15 flex items-center justify-center transition-all hover:border-destructive hover:bg-destructive hover:text-destructive-foreground hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                title="Remove photo"
+                aria-label="Remove photo"
+              >
+                <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+              </button>
               {photo.annotations.length > 0 && (
                 <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
                   {photo.annotations.length}
@@ -106,8 +135,32 @@ const PhotoUploadSection = ({ photos, onPhotosChange }: PhotoUploadSectionProps)
               )}
             </div>
           ))}
+          {photos.length < MAX_REPORT_PHOTOS && (
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="w-40 h-40 sm:w-44 sm:h-44 shrink-0 rounded-2xl border-2 border-dashed border-primary/20 text-primary hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer flex items-center justify-center"
+              aria-label="Add more photos"
+            >
+              <Plus className="w-8 h-8" />
+            </button>
+          )}
+          </div>
         </div>
       )}
+
+      <input
+        id="photo-upload-input"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          handleFileSelect(e.target.files);
+          // Allow selecting the same file again after it has been removed.
+          e.currentTarget.value = "";
+        }}
+      />
     </div>
   );
 };

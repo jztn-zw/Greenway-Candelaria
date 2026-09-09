@@ -39,7 +39,7 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
         <CardContent className="pt-5 pb-5 space-y-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Reference Number</p>
           <div className="flex items-center justify-center gap-3">
-            <span className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-wide">{referenceNumber}</span>
+            <span className="text-2xl sm:text-3xl font-sans tabular-nums font-bold text-foreground tracking-wide">{referenceNumber}</span>
             <button
               onClick={copyRef}
               className="p-2.5 rounded-xl hover:bg-primary/10 transition-colors border border-primary/20"
@@ -72,6 +72,9 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
               </div>
             ))}
           </div>
+          <p className="mt-5 text-xs text-muted-foreground leading-relaxed">
+            Next: MENRO will review the submitted details and photo evidence. You can follow every update in My Reports.
+          </p>
         </CardContent>
       </Card>
 

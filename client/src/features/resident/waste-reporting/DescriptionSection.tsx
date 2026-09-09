@@ -1,12 +1,19 @@
 import { Textarea } from "@/components/ui/textarea";
-import { QUICK_CHIPS } from "./types";
+import { QUICK_CHIPS, VIOLATION_OPTIONS, type ViolationType } from "./types";
 
 interface DescriptionSectionProps {
   value: string;
   onChange: (value: string) => void;
+  violationType?: ViolationType | null;
 }
 
-const DescriptionSection = ({ value, onChange }: DescriptionSectionProps) => {
+const DescriptionSection = ({ value, onChange, violationType }: DescriptionSectionProps) => {
+  const violation = VIOLATION_OPTIONS.find((option) => option.value === violationType);
+  const prompts = violationType === "missed-collection"
+    ? ["What was the scheduled collection day?", "Which street or landmark was affected?", "How many households are affected?"]
+    : violationType === "open-burning"
+      ? ["When did you observe the burning?", "Is smoke affecting nearby homes?", "Describe the exact location."]
+      : QUICK_CHIPS;
   const handleChipClick = (chip: string) => {
     const separator = value.trim() ? "\n\n" : "";
     onChange(value + separator + chip + " ");
@@ -17,7 +24,7 @@ const DescriptionSection = ({ value, onChange }: DescriptionSectionProps) => {
       <h3 className="text-sm font-semibold text-foreground">Description</h3>
 
       <div className="flex flex-wrap gap-2">
-        {QUICK_CHIPS.map((chip) => (
+        {prompts.map((chip) => (
           <button
             key={chip}
             type="button"
@@ -32,7 +39,7 @@ const DescriptionSection = ({ value, onChange }: DescriptionSectionProps) => {
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Describe what you observed, when it happened, and how severe it is."
+        placeholder={violation ? `Describe the ${violation.label.toLowerCase()}, where it is, and when you observed it.` : "Describe what you observed, when it happened, and how severe it is."}
         className="min-h-[140px] resize-none rounded-xl"
         maxLength={2000}
       />

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
+import { formatRelativeTime } from "@/utils/date";
 
 const typeIcons: Record<string, React.ElementType> = {
   REPORT_UPDATE: FileText,
@@ -31,21 +32,11 @@ const typeIcons: Record<string, React.ElementType> = {
   SYSTEM: Bell,
 };
 
-const formatTimeAgo = (dateString: string) => {
-  try {
-    const d = new Date(
-      dateString.includes("Z") ? dateString : dateString.replace(" ", "T"),
-    );
-    const now = new Date();
-    const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
-    if (diffSec < 60) return "Just now";
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-    if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  } catch {
-    return dateString;
-  }
+const getReadableNotificationTitle = (notification: NotificationRow) => {
+  const title = (notification.title || "Notification").trim();
+  // Older notifications can contain the same title twice, separated by a colon.
+  const repeatedTitle = title.match(/^(.+?):\s*\1$/i);
+  return repeatedTitle ? repeatedTitle[1] : title.replace(/[🚨⚠️]/g, "").trim();
 };
 
 const ADMIN_PAGE_TITLES: Record<string, string> = {
@@ -116,14 +107,16 @@ const AdminTopBar = () => {
     }
     setBellOpen(false);
 
-    if (n.ref_module === "reports") {
-      navigate("/admin/reports");
-    } else if (n.ref_module === "posts") {
+    if ((n.ref_module === "reports" || n.type === "REPORT_UPDATE") && n.ref_id) {
+      navigate(`/admin/reports?report=${encodeURIComponent(n.ref_id)}`);
+    } else if ((n.ref_module === "posts" || n.type === "NEW_POST") && n.ref_id) {
+      navigate(`/admin/posts?post=${encodeURIComponent(n.ref_id)}`);
+    } else if (n.ref_module === "posts" || n.type === "NEW_POST") {
       navigate("/admin/posts");
     } else if (n.ref_module === "announcements") {
       navigate("/admin/announcements");
     } else if (n.ref_module === "tracking") {
-      navigate("/admin/routes");
+      navigate("/admin/tracking");
     } else {
       navigate("/admin/notifications");
     }
@@ -277,13 +270,13 @@ const AdminTopBar = () => {
                       </div>
                       <div className="flex-1 min-w-0 space-y-0.5">
                         <p className="text-xs text-foreground/90 leading-snug break-words">
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{n.title}</span>
+                          <span className="font-bold text-foreground">{getReadableNotificationTitle(n)}</span>
                         </p>
                         <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed break-words">
                           {n.body}
                         </p>
                         <p className="text-[10px] text-muted-foreground/80 font-medium pt-0.5">
-                          {formatTimeAgo(n.created_at)}
+                          {formatRelativeTime(n.created_at)}
                         </p>
                       </div>
                       {isUnread && (

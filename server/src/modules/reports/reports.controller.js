@@ -58,6 +58,15 @@ const getMyReportById = async (req, res, next) => {
   }
 };
 
+const checkSimilar = async (req, res, next) => {
+  try {
+    const similar = await service.hasSimilarActiveReport(req.query);
+    return success(res, { similar }, "Similar report check completed");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const create = async (req, res, next) => {
   try {
     const data = createReportSchema.parse(req.body);
@@ -81,7 +90,7 @@ const updateStatus = async (req, res, next) => {
 const flagReport = async (req, res, next) => {
   try {
     const data = flagReportSchema.parse(req.body);
-    const report = await service.flagReport(req.params.id, data);
+    const report = await service.flagReport(req.params.id, req.user.id, data);
     return success(res, report, "Report flagged successfully");
   } catch (err) {
     next(err);
@@ -91,7 +100,7 @@ const flagReport = async (req, res, next) => {
 const updatePriority = async (req, res, next) => {
   try {
     const { priority } = updatePrioritySchema.parse(req.body);
-    const report = await service.updatePriority(req.params.id, priority);
+    const report = await service.updatePriority(req.params.id, req.user.id, priority);
     return success(res, report, "Priority updated successfully");
   } catch (err) {
     next(err);
@@ -154,6 +163,7 @@ module.exports = {
   getById,
   getMyReports,
   getMyReportById,
+  checkSimilar,
   getMyStats,
   create,
   updateStatus,

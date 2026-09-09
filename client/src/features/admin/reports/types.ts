@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { parseApiTimestamp } from "@/utils/date";
 
 export const safeFormatDate = (
   dateVal?: string | Date | null,
@@ -7,10 +7,26 @@ export const safeFormatDate = (
 ): string => {
   if (!dateVal) return fallback;
   try {
-    const str = typeof dateVal === "string" ? dateVal.replace(" ", "T") : dateVal;
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return fallback;
-    return format(d, formatStr);
+    const d = parseApiTimestamp(dateVal);
+    if (!d) return fallback;
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).formatToParts(d);
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value || "";
+    if (formatStr === "h:mm a") return `${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+    if (formatStr === "MMM d, h:mm a") return `${part("month")} ${part("day")}, ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+    if (formatStr === "yyyy-MM-dd HH:mm") {
+      const numeric = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+      const numericPart = (type: Intl.DateTimeFormatPartTypes) => numeric.find((item) => item.type === type)?.value || "";
+      return `${numericPart("year")}-${numericPart("month")}-${numericPart("day")} ${numericPart("hour")}:${numericPart("minute")}`;
+    }
+    return `${part("month")} ${part("day")}, ${part("year")}`;
   } catch {
     return fallback;
   }
@@ -160,5 +176,8 @@ export interface WasteReport {
   internalNotes: InternalNote[];
   isDuplicate: boolean;
   duplicateOfId?: string;
+  duplicateOfReference?: string;
+  duplicateReason?: string;
+  falseReason?: string;
   isFalseReport: boolean;
 }

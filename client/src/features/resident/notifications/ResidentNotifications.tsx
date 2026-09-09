@@ -538,7 +538,7 @@ const ResidentNotifications = () => {
                 <div className="min-w-0 flex-1 space-y-1">
                   {/* Primary text with bold focal points */}
                   <p className="text-sm text-foreground/90 leading-snug break-words">
-                    <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                    <span className="font-bold text-foreground">
                       {headline.prefix}
                     </span>
                     {headline.connector && (

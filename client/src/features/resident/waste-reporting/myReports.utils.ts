@@ -1,4 +1,5 @@
 import type { MyReportRow } from "@/services/reportsService";
+import { parseApiTimestamp } from "@/utils/date";
 import {
   STATUS_REVERSE_MAP,
   VIOLATION_TYPE_REVERSE_MAP,
@@ -69,12 +70,12 @@ export const mapMyReport = (report: MyReportRow): SubmittedReport => ({
   photoCount: report.photos?.length ?? 0,
   photos: report.photos?.map((photo) => photo.url) ?? [],
   status: STATUS_REVERSE_MAP[report.status] ?? "submitted",
-  submittedAt: new Date(report.created_at),
-  updatedAt: new Date(report.updated_at),
+  submittedAt: parseApiTimestamp(report.created_at) ?? new Date(0),
+  updatedAt: parseApiTimestamp(report.updated_at) ?? new Date(0),
   adminResponse: report.admin_response ?? undefined,
   statusHistory: (report.status_history ?? []).map((historyEntry) => ({
     status: STATUS_REVERSE_MAP[historyEntry.status] ?? "submitted",
-    timestamp: new Date(historyEntry.created_at),
+    timestamp: parseApiTimestamp(historyEntry.created_at) ?? new Date(0),
     label: statusLabel(historyEntry.status),
   })),
 });

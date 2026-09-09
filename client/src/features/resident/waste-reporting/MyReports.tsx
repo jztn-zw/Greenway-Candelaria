@@ -604,7 +604,7 @@ const MyReports = () => {
                       )}
 
                       <div className="flex items-center gap-3 pt-1 flex-wrap">
-                        <span className="text-[11px] font-mono text-primary font-semibold">
+                        <span className="text-[11px] font-sans tabular-nums text-primary font-semibold">
                           {report.referenceNumber}
                         </span>
                         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -613,6 +613,7 @@ const MyReports = () => {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
+                            timeZone: "Asia/Manila",
                           })}
                         </span>
                       </div>
@@ -797,7 +798,7 @@ const ReportDetail = ({
         {/* Title row */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold font-display text-foreground truncate font-mono">
+            <h2 className="text-lg sm:text-xl font-sans tabular-nums font-bold text-foreground truncate">
               {report.referenceNumber}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">Report Details</p>
@@ -894,6 +895,7 @@ const ReportDetail = ({
                 month: "long",
                 day: "numeric",
                 year: "numeric",
+                timeZone: "Asia/Manila",
               })}
             </span>
           </div>
@@ -1004,11 +1006,13 @@ const ReportDetail = ({
                           month: "short",
                           day: "numeric",
                           year: "numeric",
+                          timeZone: "Asia/Manila",
                         })}{" "}
                         at{" "}
                         {entry.timestamp.toLocaleTimeString("en-US", {
                           hour: "numeric",
                           minute: "2-digit",
+                          timeZone: "Asia/Manila",
                         })}
                       </p>
                     </div>
