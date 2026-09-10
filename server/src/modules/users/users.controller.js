@@ -5,6 +5,7 @@ const {
   updateStatusSchema,
 } = require("./users.schema");
 const { success } = require("../../utils/apiResponse");
+const { uploadBufferToCloudinary } = require("../../config/cloudinary");
 
 const getProfile = async (req, res, next) => {
   try {
@@ -109,7 +110,11 @@ const uploadAvatar = async (req, res, next) => {
     if (!req.file) {
       return next({ statusCode: 400, message: "No image file provided" });
     }
-    const avatarUrl = req.file.path; // Cloudinary URL
+    const uploadedAvatar = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: "greenway/avatars",
+      transformation: [{ width: 400, height: 400, crop: "fill", gravity: "face" }],
+    });
+    const avatarUrl = uploadedAvatar.secure_url;
     const user = await service.updateProfile(req.user.id, { avatar_url: avatarUrl });
     return success(res, { avatar_url: avatarUrl, user }, "Avatar updated successfully");
   } catch (err) {

@@ -1,5 +1,5 @@
 const service = require("./posts.service");
-const { upload } = require("../../config/cloudinary");
+const { uploadBufferToCloudinary } = require("../../config/cloudinary");
 const {
   createPostSchema,
   updatePostSchema,
@@ -37,7 +37,10 @@ const uploadImage = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    return success(res, { url: req.file.path }, "Image uploaded", 201);
+    const uploadedImage = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: "greenway/posts",
+    });
+    return success(res, { url: uploadedImage.secure_url }, "Image uploaded", 201);
   } catch (err) {
     next(err);
   }

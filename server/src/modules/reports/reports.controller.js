@@ -7,6 +7,7 @@ const {
   updatePrioritySchema,
 } = require("./reports.schema");
 const { success } = require("../../utils/apiResponse");
+const { uploadBufferToCloudinary } = require("../../config/cloudinary");
 
 // ─── Upload Photos ──────────────────────────────────────────
 
@@ -15,7 +16,12 @@ const uploadPhotos = async (req, res, next) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No photos uploaded" });
     }
-    const urls = req.files.map((f) => f.path);
+    const uploads = await Promise.all(
+      req.files.map((file) =>
+        uploadBufferToCloudinary(file.buffer, { folder: "greenway/reports" }),
+      ),
+    );
+    const urls = uploads.map((upload) => upload.secure_url);
     return success(res, { urls }, "Photos uploaded successfully", 201);
   } catch (err) {
     next(err);

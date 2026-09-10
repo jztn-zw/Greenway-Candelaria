@@ -1,5 +1,4 @@
 const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 
 // Cloudinary validates the final format too, but reject non-image uploads
@@ -20,9 +19,12 @@ const imageFileFilter = (req, file, callback) => {
   return callback(null, true);
 };
 
-const createImageUploader = (storage, fileSize, files = 1) =>
+// Multer only validates and holds the request files briefly in memory. The
+// official Cloudinary v2 SDK below performs the actual upload, which removes
+// the incompatible multer-storage-cloudinary adapter from this application.
+const createImageUploader = (fileSize, files = 1) =>
   multer({
-    storage,
+    storage: multer.memoryStorage(),
     fileFilter: imageFileFilter,
     limits: {
       fileSize,
@@ -38,39 +40,33 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ─── Posts storage (greenway/posts) ────────────────────────
-const postStorage = new CloudinaryStorage({
+const uploadBufferToCloudinary = (buffer, options = {}) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        ...options,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        return resolve(result);
+      },
+    );
+
+    uploadStream.end(buffer);
+  });
+
+// The existing routes and file-size limits remain unchanged.
+const upload = createImageUploader(10 * 1024 * 1024);
+const uploadReports = createImageUploader(10 * 1024 * 1024, 5);
+const uploadAvatar = createImageUploader(5 * 1024 * 1024);
+
+module.exports = {
   cloudinary,
-  params: {
-    folder: "greenway/posts",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  },
-});
-
-const upload = createImageUploader(postStorage, 10 * 1024 * 1024);
-
-// ─── Reports storage (greenway/reports) ────────────────────
-const reportStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "greenway/reports",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-  },
-});
-
-const uploadReports = createImageUploader(reportStorage, 10 * 1024 * 1024, 5);
-
-// ─── Avatar storage (greenway/avatars) ─────────────────────
-const avatarStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "greenway/avatars",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    transformation: [{ width: 400, height: 400, crop: "fill", gravity: "face" }],
-  },
-});
-
-const uploadAvatar = createImageUploader(avatarStorage, 5 * 1024 * 1024);
-
-module.exports = { cloudinary, upload, uploadReports, uploadAvatar };
+  upload,
+  uploadReports,
+  uploadAvatar,
+  uploadBufferToCloudinary,
+};
 
