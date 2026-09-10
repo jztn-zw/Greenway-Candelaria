@@ -9,6 +9,7 @@ const { uploadLimiter, reportCreationLimiter } = require("../../middleware/rateL
 router.post(
   "/upload-photos",
   authenticate,
+  authorize("RESIDENT"),
   uploadLimiter,
   uploadReports.array("photos", 5),
   controller.uploadPhotos,
@@ -56,7 +57,7 @@ router.get(
 );
 
 // Resident/Admin — submit a report
-router.post("/", authenticate, reportCreationLimiter, controller.create);
+router.post("/", authenticate, authorize("RESIDENT"), reportCreationLimiter, controller.create);
 
 // Admin — get single report
 router.get(

@@ -97,10 +97,12 @@ const getAll = async (filters = {}) => {
       b.name      AS barangay_name,
       NULL        AS barangay_zone,
       u.full_name AS reporter_name,
-      u.email     AS reporter_email
+      u.email     AS reporter_email,
+      original.reference_number AS duplicate_of_reference
     FROM reports r
     JOIN  barangays b ON b.id = r.barangay_id
     LEFT JOIN users u ON u.id = r.user_id
+    LEFT JOIN reports original ON original.id = r.duplicate_of_id
   `;
 
   const params = [];
@@ -196,7 +198,7 @@ const getAll = async (filters = {}) => {
     under_review: Number(kpiRows[0]?.under_review || 0),
     dispatched: Number(kpiRows[0]?.dispatched || 0),
     resolved: Number(kpiRows[0]?.resolved || 0),
-    pending: Number((kpiRows[0]?.submitted || 0) + (kpiRows[0]?.under_review || 0)),
+    pending: Number(kpiRows[0]?.submitted || 0) + Number(kpiRows[0]?.under_review || 0),
   };
 
   // Fetch page of reports
@@ -482,49 +484,112 @@ const create = async (userId, data) => {
 // ─── Update Status ─────────────────────────────────────────
 
 const updateStatus = async (id, adminId, { status, admin_response }) => {
-  const existing = await getById(id);
+  const conn = await pool.getConnection();
+  let existing;
+  let duplicates = [];
 
-  // Repeating the current status must be a no-op: it should not create another
-  // history entry or send a duplicate resident notification. An official
-  // response may still be changed through the same endpoint.
-  if (existing.status === status) {
-    if (admin_response !== undefined && admin_response !== existing.admin_response) {
-      await pool.query("UPDATE reports SET admin_response = ? WHERE id = ?", [
-        admin_response,
-        id,
-      ]);
-      await auditService.log({
-        user_id: adminId,
-        action: "UPDATE_REPORT_RESPONSE",
-        module: "reports",
-        record_id: id,
-        old_value: { admin_response: existing.admin_response, reference_number: existing.reference_number },
-        new_value: { admin_response, reference_number: existing.reference_number },
-      }).catch(() => {});
+  try {
+    await conn.beginTransaction();
+    const [lockedReports] = await conn.query(
+      "SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL FOR UPDATE",
+      [id],
+    );
+    if (lockedReports.length === 0) {
+      throw { statusCode: 404, message: "Report not found" };
+    }
+    existing = lockedReports[0];
+
+    const statusOrder = ["SUBMITTED", "UNDER_REVIEW", "DISPATCHED", "RESOLVED"];
+    const currentStatusIndex = statusOrder.indexOf(existing.status);
+    const requestedStatusIndex = statusOrder.indexOf(status);
+
+    // Resolution is final. The status can never be changed once a report is
+    // resolved, even if a request bypasses the Admin interface.
+    if (existing.status === "RESOLVED" && status !== "RESOLVED") {
+      throw { statusCode: 400, message: "Resolved reports are final and cannot be reopened" };
+    }
+    if (requestedStatusIndex < currentStatusIndex) {
+      throw { statusCode: 400, message: "Report status cannot move backward" };
+    }
+
+    // Repeating the current status is a no-op. An official response may still
+    // be changed, but it must not add history or send another notification.
+    if (existing.status === status) {
+      if (admin_response !== undefined && admin_response !== existing.admin_response) {
+        await conn.query("UPDATE reports SET admin_response = ? WHERE id = ?", [
+          admin_response,
+          id,
+        ]);
+        await conn.commit();
+        await auditService.log({
+          user_id: adminId,
+          action: "UPDATE_REPORT_RESPONSE",
+          module: "reports",
+          record_id: id,
+          old_value: { admin_response: existing.admin_response, reference_number: existing.reference_number },
+          new_value: { admin_response, reference_number: existing.reference_number },
+        }).catch(() => {});
+        return getById(id);
+      }
+      await conn.commit();
       return getById(id);
     }
-    return existing;
+
+    const fields = ["status = ?"];
+    const params = [status];
+
+    if (admin_response !== undefined) {
+      fields.push("admin_response = ?");
+      params.push(admin_response);
+    }
+
+    params.push(id);
+    await conn.query(
+      `UPDATE reports SET ${fields.join(", ")} WHERE id = ?`,
+      params,
+    );
+
+    await conn.query(
+      `INSERT INTO report_status_history (id, report_id, status, changed_by)
+       VALUES (?, ?, ?, ?)`,
+      [generateId(), id, status, adminId],
+    );
+
+    // Resolve all linked duplicates in the same transaction. This prevents a
+    // partial result where the original is resolved but a duplicate is not.
+    if (status === "RESOLVED") {
+      const [linkedDuplicates] = await conn.query(
+        `SELECT id, user_id, reference_number, status
+         FROM reports
+         WHERE duplicate_of_id = ?
+           AND is_duplicate = TRUE
+           AND status != 'RESOLVED'
+           AND deleted_at IS NULL
+         FOR UPDATE`,
+        [id],
+      );
+      duplicates = linkedDuplicates;
+      for (const duplicate of duplicates) {
+        const duplicateResponse = `Your report ${duplicate.reference_number} was resolved because linked report ${existing.reference_number} has been resolved.`;
+        await conn.query(
+          "UPDATE reports SET status = 'RESOLVED', admin_response = ? WHERE id = ?",
+          [duplicateResponse, duplicate.id],
+        );
+        await conn.query(
+          `INSERT INTO report_status_history (id, report_id, status, changed_by)
+           VALUES (?, ?, 'RESOLVED', ?)`,
+          [generateId(), duplicate.id, adminId],
+        );
+      }
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-
-  const fields = ["status = ?"];
-  const params = [status];
-
-  if (admin_response !== undefined) {
-    fields.push("admin_response = ?");
-    params.push(admin_response);
-  }
-
-  params.push(id);
-  await pool.query(
-    `UPDATE reports SET ${fields.join(", ")} WHERE id = ?`,
-    params,
-  );
-
-  await pool.query(
-    `INSERT INTO report_status_history (id, report_id, status, changed_by)
-     VALUES (?, ?, ?, ?)`,
-    [generateId(), id, status, adminId],
-  );
 
   const updatedReport = await getById(id);
 
@@ -537,50 +602,25 @@ const updateStatus = async (id, adminId, { status, admin_response }) => {
     new_value: { status, admin_response, reference_number: updatedReport.reference_number },
   }).catch(() => {});
 
-  // Resolving the original report also resolves every active report that was
-  // formally linked to it as a duplicate. Each resident receives a clear
-  // update without requiring staff to close duplicate reports one by one.
-  if (status === "RESOLVED") {
-    const [duplicates] = await pool.query(
-      `SELECT id, user_id, reference_number, status
-       FROM reports
-       WHERE duplicate_of_id = ?
-         AND is_duplicate = TRUE
-         AND status != 'RESOLVED'
-         AND deleted_at IS NULL`,
-      [id],
-    );
-
-    const duplicateResponse = `The issue linked to report ${updatedReport.reference_number} has been resolved. Your duplicate report is now resolved as well.`;
-
-    for (const duplicate of duplicates) {
-      await pool.query(
-        "UPDATE reports SET status = 'RESOLVED', admin_response = ? WHERE id = ?",
-        [duplicateResponse, duplicate.id],
-      );
-      await pool.query(
-        `INSERT INTO report_status_history (id, report_id, status, changed_by)
-         VALUES (?, ?, 'RESOLVED', ?)`,
-        [generateId(), duplicate.id, adminId],
-      );
-      auditService.log({
+  for (const duplicate of duplicates) {
+    const duplicateResponse = `Your report ${duplicate.reference_number} was resolved because linked report ${updatedReport.reference_number} has been resolved.`;
+    auditService.log({
         user_id: adminId,
         action: "RESOLVE_DUPLICATE_REPORT",
         module: "reports",
         record_id: duplicate.id,
         old_value: { status: duplicate.status, reference_number: duplicate.reference_number },
         new_value: { status: "RESOLVED", duplicate_of: updatedReport.reference_number },
-      }).catch(() => {});
-      if (duplicate.user_id) {
-        sendToUser({
-          user_id: duplicate.user_id,
-          type: "REPORT_UPDATE",
-          title: "Report Resolved",
-          body: duplicateResponse,
-          ref_id: duplicate.id,
-          ref_module: "reports",
-        }).catch((err) => console.error("[Notify] ❌ Duplicate report notification failed:", err.message));
-      }
+    }).catch(() => {});
+    if (duplicate.user_id) {
+      sendToUser({
+        user_id: duplicate.user_id,
+        type: "REPORT_UPDATE",
+        title: "Report Resolved",
+        body: duplicateResponse,
+        ref_id: duplicate.id,
+        ref_module: "reports",
+      }).catch((err) => console.error("[Notify] ❌ Duplicate report notification failed:", err.message));
     }
   }
 
@@ -643,11 +683,15 @@ const flagReport = async (id, adminId, data) => {
     params.push(data.is_duplicate);
     let duplicateOfId = null;
     if (data.is_duplicate) {
+      const duplicateReference = data.duplicate_of_reference.trim().toUpperCase();
       const [matches] = await pool.query(
-        "SELECT id FROM reports WHERE reference_number = ? AND id != ? AND deleted_at IS NULL",
-        [data.duplicate_of_reference, id],
+        "SELECT id, barangay_id FROM reports WHERE UPPER(reference_number) = ? AND id != ? AND deleted_at IS NULL",
+        [duplicateReference, id],
       );
       if (matches.length === 0) throw { statusCode: 404, message: "Original report was not found" };
+      if (matches[0].barangay_id !== existing.barangay_id) {
+        throw { statusCode: 400, message: "The original report must be in the same barangay" };
+      }
       duplicateOfId = matches[0].id;
     }
     fields.push("duplicate_of_id = ?", "duplicate_reason = ?", "duplicate_flagged_by = ?", "duplicate_flagged_at = ?");
@@ -661,7 +705,7 @@ const flagReport = async (id, adminId, data) => {
   if (data.resolve) {
     fields.push("status = ?", "admin_response = ?");
     const defaultResponse = data.is_duplicate
-      ? `This report is a duplicate of ${data.duplicate_of_reference} and is already being handled.`
+      ? `This report is a duplicate of ${data.duplicate_of_reference.trim().toUpperCase()} and is already being handled.`
       : "This report has been reviewed and marked as invalid.";
     params.push("RESOLVED", data.admin_response || defaultResponse);
   }
@@ -693,7 +737,7 @@ const flagReport = async (id, adminId, data) => {
   }).catch(() => {});
 
   const updatedReport = await getById(id);
-  if (data.resolve && updatedReport.user_id) {
+  if (data.resolve && existing.status !== "RESOLVED" && updatedReport.user_id) {
     sendToUser({
       user_id: updatedReport.user_id,
       type: "REPORT_UPDATE",
@@ -708,24 +752,11 @@ const flagReport = async (id, adminId, data) => {
 
 // ─── Update Priority ───────────────────────────────────────
 
-const updatePriority = async (id, adminId, priority) => {
-  const existing = await getById(id);
-
-  await pool.query("UPDATE reports SET priority = ? WHERE id = ?", [
-    priority,
-    id,
-  ]);
-
-  auditService.log({
-    user_id: adminId,
-    action: "UPDATE_REPORT_PRIORITY",
-    module: "reports",
-    record_id: id,
-    old_value: { priority: existing.priority, reference_number: existing.reference_number },
-    new_value: { priority, reference_number: existing.reference_number },
-  }).catch(() => {});
-
-  return getById(id);
+const updatePriority = async () => {
+  throw {
+    statusCode: 403,
+    message: "Report priority is fixed after submission",
+  };
 };
 
 // ─── Add Note ──────────────────────────────────────────────

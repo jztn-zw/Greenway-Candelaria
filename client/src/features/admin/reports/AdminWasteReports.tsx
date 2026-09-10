@@ -34,7 +34,6 @@ import {
   fetchAdminReports,
   fetchAdminReportById,
   updateAdminReportStatus,
-  updateAdminReportPriority,
   flagAdminReport,
   addAdminReportNote,
   deleteReport,
@@ -295,23 +294,6 @@ const AdminWasteReports = () => {
     }
   };
 
-  // Priority update
-  const handleUpdatePriority = async (priority: "LOW" | "MEDIUM" | "HIGH") => {
-    if (!selectedId) return;
-    try {
-      const updated = await updateAdminReportPriority(selectedId, priority);
-      const mapped = mapAdminReport(updated);
-      setSelectedReport(mapped);
-      toast.success(`Priority updated to ${mapped.priority}`);
-      loadReports();
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update priority",
-      );
-      throw err;
-    }
-  };
-
   // Internal Note add
   const handleAddNote = async (note: string) => {
     if (!selectedId) return;
@@ -344,12 +326,8 @@ const AdminWasteReports = () => {
       const updated = await flagAdminReport(selectedId, payload);
       const mapped = mapAdminReport(updated);
       setSelectedReport(mapped);
-      toast.success("Report flag updated");
       loadReports();
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update flag",
-      );
       throw err;
     }
   };
@@ -592,7 +570,6 @@ const AdminWasteReports = () => {
                 setSelectedReport(null);
               }}
               onUpdateStatus={handleUpdateStatus}
-              onUpdatePriority={handleUpdatePriority}
               onAddNote={handleAddNote}
               onFlagReport={handleFlagReport}
               onFlagDialogOpenChange={setIsFlagDialogOpen}

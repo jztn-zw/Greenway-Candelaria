@@ -5,13 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   MapPin,
   Clock,
   User,
@@ -41,11 +34,7 @@ import {
 import {
   WasteReport,
   ReportStatus,
-  ReportPriority,
   STATUS_LABEL_TO_BACKEND,
-  PRIORITY_LABEL_TO_BACKEND,
-  statusBadgeStyles,
-  priorityBadgeStyles,
   violationBadgeStyles,
   safeFormatDate,
 } from "./types";
@@ -58,7 +47,6 @@ interface ReportDetailPanelProps {
   isLoading?: boolean;
   onClose?: () => void;
   onUpdateStatus?: (status: string, officialResponse?: string) => Promise<void>;
-  onUpdatePriority?: (priority: "LOW" | "MEDIUM" | "HIGH") => Promise<void>;
   onAddNote?: (note: string) => Promise<void>;
   onFlagReport?: (payload: {
     is_false?: boolean;
@@ -78,14 +66,12 @@ interface ReportDetailPanelProps {
 }
 
 const statusOrder: ReportStatus[] = ["Submitted", "Under Review", "Dispatched", "Resolved"];
-const priorityOrder: ReportPriority[] = ["High", "Medium", "Low"];
 
 const ReportDetailPanel = ({
   report,
   isLoading = false,
   onClose,
   onUpdateStatus,
-  onUpdatePriority,
   onAddNote,
   onFlagReport,
   onFlagDialogOpenChange,
@@ -98,16 +84,14 @@ const ReportDetailPanel = ({
   const [officialResponse, setOfficialResponse] = useState(report?.officialResponse || "");
   const [internalNote, setInternalNote] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<ReportStatus>(report?.status || "Submitted");
-  const [selectedPriority, setSelectedPriority] = useState<ReportPriority>(report?.priority || "Medium");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingResponse, setIsSavingResponse] = useState(false);
-  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
   const [flagType, setFlagType] = useState<"duplicate" | "false" | null>(null);
   const [flagReason, setFlagReason] = useState("");
   const [duplicateReference, setDuplicateReference] = useState("");
-  const [resolveOnFlag, setResolveOnFlag] = useState(true);
+  const [resolveOnFlag, setResolveOnFlag] = useState(false);
   const [flagResponse, setFlagResponse] = useState("");
   const [falseVerified, setFalseVerified] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<AdminReportItem[]>([]);
@@ -115,15 +99,15 @@ const ReportDetailPanel = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [showResolveModal, setShowResolveModal] = useState(false);
 
   useEffect(() => {
     if (report) {
       setSelectedStatus(report.status);
-      setSelectedPriority(report.priority);
       setOfficialResponse(report.officialResponse || "");
       setInternalNote("");
     }
-  }, [report?.id, report?.status, report?.priority, report?.officialResponse]);
+  }, [report?.id, report?.status, report?.officialResponse]);
 
   useEffect(() => {
     if (flagType !== "duplicate" || duplicateReference.trim().length < 2) {
@@ -134,9 +118,14 @@ const ReportDetailPanel = ({
     const timer = window.setTimeout(async () => {
       setIsSearchingDuplicates(true);
       try {
-        const result = await fetchAdminReports({ search: duplicateReference.trim(), limit: 8, sort: "date-desc" });
+        const result = await fetchAdminReports({
+          search: duplicateReference.trim(),
+          barangay_id: report.barangayId,
+          limit: 8,
+          sort: "date-desc",
+        });
         if (active) {
-          setDuplicateMatches(result.reports.filter((candidate) => candidate.id !== report?.id && candidate.status !== "RESOLVED"));
+          setDuplicateMatches(result.reports.filter((candidate) => candidate.id !== report?.id && candidate.status !== "RESOLVED" && candidate.barangay_id === report.barangayId));
         }
       } catch {
         if (active) setDuplicateMatches([]);
@@ -164,9 +153,7 @@ const ReportDetailPanel = ({
     );
   }
 
-  const sc = statusBadgeStyles[report.status] || statusBadgeStyles.Submitted;
   const vc = violationBadgeStyles[report.violationType] || violationBadgeStyles.Other;
-  const pc = priorityBadgeStyles[report.priority] || priorityBadgeStyles.Medium;
 
   const currentStepIndex = statusOrder.indexOf(report.status);
 
@@ -185,32 +172,25 @@ const ReportDetailPanel = ({
     }
   };
 
+  const handleStatusChange = (newStatus: ReportStatus) => {
+    if (newStatus === "Resolved" && report.status !== "Resolved") {
+      setShowResolveModal(true);
+      return;
+    }
+    void handleStatusSubmit(newStatus);
+  };
+
   const handleResponseSubmit = async () => {
     if (!onUpdateStatus || isSavingResponse) return;
     setIsSavingResponse(true);
     try {
       const backendStatus = STATUS_LABEL_TO_BACKEND[report.status] || "SUBMITTED";
       await onUpdateStatus(backendStatus, officialResponse.trim());
-      toast.success("Official response saved & sent to resident");
+      toast.success("Official response saved");
     } catch {
       toast.error("Failed to save response");
     } finally {
       setIsSavingResponse(false);
-    }
-  };
-
-  const handlePrioritySubmit = async (newPriority: ReportPriority) => {
-    setSelectedPriority(newPriority);
-    if (!onUpdatePriority || isUpdatingPriority) return;
-    setIsUpdatingPriority(true);
-    try {
-      const backendPriority = PRIORITY_LABEL_TO_BACKEND[newPriority] || "MEDIUM";
-      await onUpdatePriority(backendPriority);
-      toast.success(`Priority updated to ${newPriority}`);
-    } catch {
-      toast.error("Failed to update priority");
-    } finally {
-      setIsUpdatingPriority(false);
     }
   };
 
@@ -235,8 +215,8 @@ const ReportDetailPanel = ({
       await onFlagReport(payload);
       toast.success("Report flag updated");
       return true;
-    } catch {
-      toast.error("Failed to update flag");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update flag");
       return false;
     } finally {
       setIsFlagging(false);
@@ -247,7 +227,7 @@ const ReportDetailPanel = ({
     setFlagType(type);
     setFlagReason(type === "duplicate" ? report.duplicateReason || "" : report.falseReason || "");
     setDuplicateReference(type === "duplicate" ? report.duplicateOfReference || "" : "");
-    setResolveOnFlag(true);
+    setResolveOnFlag(false);
     setFlagResponse("");
     setFalseVerified(false);
     onFlagDialogOpenChange?.(true);
@@ -311,7 +291,7 @@ const ReportDetailPanel = ({
               </Badge>
               <Badge
                 variant="outline"
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${pc}`}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-border/70 bg-muted/40 text-foreground"
               >
                 {report.priority}
               </Badge>
@@ -336,7 +316,7 @@ const ReportDetailPanel = ({
               <div className="mt-2 space-y-1.5 text-[11px] leading-relaxed max-w-md">
                 {report.isDuplicate && report.duplicateReason && (
                   <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-muted-foreground">
-                    <span className="font-semibold text-foreground">Duplicate of {report.duplicateOfReference || "linked report"}:</span> {report.duplicateReason}
+                    <span className="font-semibold text-foreground">Duplicate of {report.duplicateOfReference || report.duplicateOfId || "linked report"}:</span> {report.duplicateReason}
                   </p>
                 )}
                 {report.isFalseReport && report.falseReason && (
@@ -377,35 +357,28 @@ const ReportDetailPanel = ({
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
         {/* ── Resolution Pipeline Stepper ── */}
         <div className="space-y-2 bg-muted/40 p-3.5 rounded-xl border border-border/60">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+          <div className="text-xs font-semibold text-foreground">
             <span>Workflow Status</span>
-            <Badge
-              variant="outline"
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border gap-1 shadow-2xs ${sc.badge}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-              {report.status}
-            </Badge>
           </div>
 
           <div className="grid grid-cols-4 gap-1.5 pt-1">
             {statusOrder.map((st, idx) => {
-              const isPastOrCurrent = idx <= currentStepIndex;
               const isCurrent = report.status === st;
+              const isBackward = idx < currentStepIndex;
               return (
                 <button
                   key={st}
                   type="button"
-                  onClick={() => handleStatusSubmit(st)}
-                  disabled={isUpdatingStatus || isCurrent}
-                  className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-all cursor-pointer ${
+                  onClick={() => !isBackward && handleStatusChange(st)}
+                  disabled={isUpdatingStatus || isCurrent || isBackward}
+                  className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-all ${
                     isCurrent
                       ? "bg-primary text-primary-foreground font-bold shadow-xs shadow-primary/20 cursor-default"
-                      : isPastOrCurrent
-                      ? "bg-primary/10 text-primary hover:bg-primary/20 font-medium"
+                      : isBackward
+                      ? "bg-muted/50 text-muted-foreground/60 cursor-not-allowed"
                       : "bg-background/60 text-muted-foreground hover:bg-background hover:text-foreground"
                   }`}
-                  title={`Move to ${st}`}
+                  title={isBackward ? "Report status cannot move backward" : `Move to ${st}`}
                 >
                   <span className="text-[10px] leading-tight line-clamp-1">{st}</span>
                 </button>
@@ -699,6 +672,7 @@ const ReportDetailPanel = ({
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Original report reference</label>
                 <Input value={duplicateReference} onChange={(e) => setDuplicateReference(e.target.value)} placeholder="e.g. RPT-2026-00012" className="h-10 rounded-xl" />
+                <p className="text-[11px] text-muted-foreground">Only active reports in {report.barangay} can be linked. Lowercase references are accepted.</p>
                 {isSearchingDuplicates && <p className="text-[11px] text-muted-foreground">Searching active reports...</p>}
                 {duplicateMatches.length > 0 && (
                   <div className="max-h-36 overflow-y-auto rounded-xl border border-border/70 bg-muted/20 divide-y divide-border/60">
@@ -737,6 +711,32 @@ const ReportDetailPanel = ({
             <Button variant="outline" onClick={() => { setFlagType(null); onFlagDialogOpenChange?.(false); }} className="rounded-xl">Cancel</Button>
             <Button onClick={submitFlagDecision} disabled={isFlagging} variant={flagType === "false" ? "destructive" : "default"} className="rounded-xl">
               {isFlagging ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Decision"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showResolveModal} onOpenChange={(open) => !open && setShowResolveModal(false)}>
+        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border-border/80 shadow-2xl [&>button:last-child]:hidden">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+            <div>
+              <DialogTitle className="text-base font-bold font-display">Resolve this report?</DialogTitle>
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
+                This finalizes the report. Its status cannot be changed again, and the resident will be notified.
+              </DialogDescription>
+            </div>
+            <button type="button" onClick={() => setShowResolveModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex gap-2.5 py-4 text-xs leading-relaxed text-muted-foreground">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+            <p>Confirm only after the issue has been fully handled. To prevent incorrect records, resolved reports cannot be reopened or moved to another status.</p>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border/60 pt-3.5">
+            <Button variant="outline" onClick={() => setShowResolveModal(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={() => { setShowResolveModal(false); void handleStatusSubmit("Resolved"); }} disabled={isUpdatingStatus} className="rounded-xl">
+              {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, resolve report"}
             </Button>
           </div>
         </DialogContent>

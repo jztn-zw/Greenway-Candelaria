@@ -1,7 +1,7 @@
 const { z } = require("zod");
 
 const createReportSchema = z.object({
-  barangay_id: z.string().min(1, "Barangay is required"),
+  barangay_id: z.string().trim().min(1, "Barangay is required"),
   violation_type: z.enum([
     "ILLEGAL_DUMPING",
     "MISSED_COLLECTION",
@@ -11,11 +11,11 @@ const createReportSchema = z.object({
     "IMPROPER_SEGREGATION",
     "OTHER",
   ]),
-  landmark: z.string().optional(),
-  description: z.string().min(5, "Description is required"),
-  pin_lat: z.number().optional(),
-  pin_lng: z.number().optional(),
-  photos: z.array(z.string().url()).optional(),
+  landmark: z.string().trim().max(300, "Landmark must be 300 characters or less").optional(),
+  description: z.string().trim().min(10, "Description must be at least 10 characters").max(2000, "Description must be 2000 characters or less"),
+  pin_lat: z.number().finite().min(-90, "Invalid latitude").max(90, "Invalid latitude").optional(),
+  pin_lng: z.number().finite().min(-180, "Invalid longitude").max(180, "Invalid longitude").optional(),
+  photos: z.array(z.string().url()).min(1, "At least one photo is required").max(5, "A report can contain up to 5 photos"),
 });
 
 const updateStatusSchema = z.object({
