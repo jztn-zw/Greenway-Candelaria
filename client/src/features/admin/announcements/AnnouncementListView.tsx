@@ -1,4 +1,4 @@
-﻿import {
+import {
   MoreHorizontal,
   Edit2,
   Trash2,
@@ -32,16 +32,12 @@ import {
 import {
   Announcement,
   AnnouncementType,
-  AnnouncementPriority,
   AnnouncementStatus,
   announcementTypeStyles,
-  announcementPriorityStyles,
   isAnnouncementExpired,
 } from "./types";
 
 const typeBadges: Record<AnnouncementType, string> = announcementTypeStyles;
-
-const priorityBadges: Record<AnnouncementPriority, string> = announcementPriorityStyles;
 
 const statusBadges: Record<AnnouncementStatus, string> = {
   Draft:
@@ -105,9 +101,6 @@ const AnnouncementListView = ({
                 Type
               </TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Priority
-              </TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Audience
               </TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -162,19 +155,6 @@ const AnnouncementListView = ({
                       }`}
                     >
                       {ann.type}
-                    </Badge>
-                  </TableCell>
-
-                  {/* Priority Pill */}
-                  <TableCell className="py-3">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs whitespace-nowrap pointer-events-none ${
-                        priorityBadges[ann.priority] ||
-                        "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {ann.priority}
                     </Badge>
                   </TableCell>
 
@@ -253,33 +233,33 @@ const AnnouncementListView = ({
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-40 rounded-xl border border-border/80 p-1 shadow-md">
                           {ann.status === "Draft" && (
                             <>
                               <DropdownMenuItem
                                 onClick={() => onEdit(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Edit2 className="w-3.5 h-3.5" /> Edit
+                                Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => onDuplicate(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Copy className="w-3.5 h-3.5" /> Duplicate
+                                Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => onSendNow(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Send className="w-3.5 h-3.5" /> Send Now
+                                Send Now
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              <DropdownMenuSeparator className="my-1" />
                               <DropdownMenuItem
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Archive className="w-3.5 h-3.5" /> Archive
+                                Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -287,30 +267,29 @@ const AnnouncementListView = ({
                             <>
                               <DropdownMenuItem
                                 onClick={() => onEdit(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Edit2 className="w-3.5 h-3.5" /> Edit
+                                Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => onDuplicate(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Copy className="w-3.5 h-3.5" /> Duplicate
+                                Duplicate
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              <DropdownMenuSeparator className="my-1" />
                               <DropdownMenuItem
                                 onClick={() => onCancelSchedule(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Clock className="w-3.5 h-3.5" /> Cancel
-                                Schedule
+                                Cancel Schedule
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              <DropdownMenuSeparator className="my-1" />
                               <DropdownMenuItem
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Archive className="w-3.5 h-3.5" /> Archive
+                                Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -318,31 +297,36 @@ const AnnouncementListView = ({
                             <>
                               <DropdownMenuItem
                                 onClick={() => onReadReceipt(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
+                                Read Analytics
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => onEdit(ann)}
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                              >
+                                Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => onDuplicate(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <Copy className="w-3.5 h-3.5" /> Duplicate
+                                Duplicate
                               </DropdownMenuItem>
                               {ann.readCount < ann.totalRecipients && (
                                 <DropdownMenuItem
                                   onClick={() => onResend(ann)}
-                                  className="gap-2 text-xs"
+                                  className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                                 >
-                                  <RotateCcw className="w-3.5 h-3.5" /> Resend
-                                  to Unread
+                                  Resend to Unread
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator />
+                              <DropdownMenuSeparator className="my-1" />
                               <DropdownMenuItem
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Archive className="w-3.5 h-3.5" /> Archive
+                                Archive
                               </DropdownMenuItem>
                             </>
                           )}
@@ -350,26 +334,22 @@ const AnnouncementListView = ({
                             <>
                               <DropdownMenuItem
                                 onClick={() => onReadReceipt(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
+                                Read Analytics
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                               >
-                                {needsExpiryUpdateBeforeRestore ? (
-                                  <><Edit2 className="w-3.5 h-3.5" /> Edit &amp; Restore</>
-                                ) : (
-                                  <><ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice</>
-                                )}
+                                {needsExpiryUpdateBeforeRestore ? "Edit & Restore" : "Restore Notice"}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              <DropdownMenuSeparator className="my-1" />
                               <DropdownMenuItem
-                                className="gap-2 text-xs"
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                                 onClick={() => onDelete(ann)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                                Delete
                               </DropdownMenuItem>
                             </>
                           )}

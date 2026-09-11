@@ -34,7 +34,6 @@ const flagReportSchema = z.object({
   duplicate_reason: z.string().trim().min(1).max(2000).optional(),
   false_reason: z.string().trim().min(1).max(2000).optional(),
   resolve: z.boolean().optional(),
-  admin_response: z.string().trim().max(2000).optional(),
 });
 
 const updatePrioritySchema = z.object({

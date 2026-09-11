@@ -16,8 +16,8 @@ import {
   ArrowRight,
   User,
   Globe,
-  FileText,
-  CheckCircle2,
+  GitCompare,
+  ShieldCheck,
   Copy,
 } from "lucide-react";
 import {
@@ -28,13 +28,27 @@ import {
 } from "./types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import PaginationControls from "@/components/common/PaginationControls";
 
 interface AuditLogTableProps {
   logs: AuditLogEntry[];
   isLoading?: boolean;
+  currentPage?: number;
+  totalPages?: number;
+  totalEntries?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
 }
 
-const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
+const AuditLogTable = ({
+  logs,
+  isLoading = false,
+  currentPage,
+  totalPages = 1,
+  totalEntries,
+  pageSize = 15,
+  onPageChange,
+}: AuditLogTableProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -45,6 +59,17 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
     e.stopPropagation();
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
+  };
+
+  const isDestructiveState = (val?: string) => {
+    if (!val) return false;
+    const l = val.toLowerCase();
+    return (
+      l.includes("delet") ||
+      l.includes("ban") ||
+      l.includes("deactivat") ||
+      l.includes("fail")
+    );
   };
 
   return (
@@ -103,15 +128,8 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
             ) : (
               logs.map((log) => {
                 const sc = severityStyles[log.severity] || severityStyles.routine;
-                const mc = moduleBadgeStyles[log.module] || "bg-muted text-muted-foreground border-border/80";
+                const mc = moduleBadgeStyles[log.module] || "bg-muted/60 text-muted-foreground border-border/70 font-medium";
                 const isExpanded = expandedId === log.id;
-
-                const initials = (log.adminName || "System")
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase();
 
                 return (
                   <React.Fragment key={log.id}>
@@ -135,32 +153,27 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
 
                       {/* Timestamp */}
                       <TableCell className="py-3.5 whitespace-nowrap">
-                        <div className="text-xs font-mono font-bold text-foreground">
+                        <div className="text-xs font-semibold tabular-nums text-foreground">
                           {safeFormatDate(log.timestamp, "MMM d, yyyy")}
                         </div>
-                        <p className="text-[11px] text-muted-foreground font-mono">
-                          {safeFormatDate(log.timestamp, "h:mm:ss a")}
+                        <p className="text-[11px] text-muted-foreground tabular-nums">
+                          {safeFormatDate(log.timestamp, "h:mm a")}
                         </p>
                       </TableCell>
 
                       {/* Actor / User */}
                       <TableCell className="py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold text-xs flex items-center justify-center shrink-0">
-                            {initials}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-foreground leading-snug">
-                              {log.adminName}
-                            </p>
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0 bg-muted/60 text-muted-foreground border-border/70 font-semibold"
-                            >
-                              <Shield className="w-2.5 h-2.5 mr-0.5" />
-                              {log.adminRole}
-                            </Badge>
-                          </div>
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground leading-snug">
+                            {log.adminName}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0 bg-muted/60 text-muted-foreground border-border/70 font-semibold"
+                          >
+                            <Shield className="w-2.5 h-2.5 mr-0.5" />
+                            {log.adminRole}
+                          </Badge>
                         </div>
                       </TableCell>
 
@@ -168,9 +181,8 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs gap-1.5 ${sc.badge}`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs ${sc.badge}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                           {log.actionType}
                         </Badge>
                       </TableCell>
@@ -179,7 +191,7 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs ${mc}`}
+                          className={`text-[10px] px-2 py-0.5 rounded-full border shadow-2xs ${mc}`}
                         >
                           {log.module}
                         </Badge>
@@ -190,7 +202,7 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                         <div className="flex items-center gap-1.5">
                           <span
                             onClick={(e) => handleCopy(e, log.affectedRecord, "Record ID")}
-                            className="font-mono text-xs font-bold text-foreground bg-muted/50 hover:bg-muted px-2 py-0.5 rounded border border-border/60 transition-colors cursor-copy max-w-[140px] truncate"
+                            className="text-xs font-semibold tabular-nums text-foreground bg-muted/50 hover:bg-muted px-2 py-0.5 rounded border border-border/60 transition-colors cursor-copy max-w-[140px] truncate"
                             title="Click to copy record reference"
                           >
                             {log.affectedRecord}
@@ -218,81 +230,131 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                     {isExpanded && (
                       <TableRow className="bg-muted/15 hover:bg-muted/15 border-b border-border/80 animate-in fade-in duration-200">
                         <TableCell colSpan={7} className="py-4 px-6">
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 text-xs">
-                            {/* Card 1: Event Description */}
-                            <div className="bg-card p-4 rounded-xl border border-border/80 shadow-2xs space-y-2">
-                              <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                                <FileText className="w-3.5 h-3.5 text-primary" />
-                                <span>Detailed Event Narrative</span>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                            {/* Card 1: State Transition & Field Delta */}
+                            <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-2xs space-y-3.5">
+                              <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                                <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                                  <GitCompare className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span>State Transition & Field Delta</span>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-2 py-0.5 bg-muted/50 text-muted-foreground border-border/70 font-semibold"
+                                >
+                                  {log.beforeValue || log.afterValue ? "State Delta" : "Standard Action"}
+                                </Badge>
                               </div>
-                              <p className="text-xs text-foreground leading-relaxed">
-                                {log.summary}
-                              </p>
-                            </div>
 
-                            {/* Card 2: State / Value Diff */}
-                            <div className="bg-card p-4 rounded-xl border border-border/80 shadow-2xs space-y-2">
-                              <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                                <span>State Transition & Field Diff</span>
-                              </div>
                               {log.beforeValue || log.afterValue ? (
-                                <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-                                  {log.beforeValue && (
-                                    <span className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-[11px] font-semibold border border-destructive/20 font-mono">
-                                      {log.beforeValue}
-                                    </span>
-                                  )}
-                                  {log.beforeValue && log.afterValue && (
-                                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  )}
-                                  {log.afterValue && (
-                                    <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[11px] font-semibold border border-primary/20 font-mono">
-                                      {log.afterValue}
-                                    </span>
-                                  )}
+                                <div className="space-y-3 pt-0.5">
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {log.beforeValue && (
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                                          Previous
+                                        </span>
+                                        <span className="inline-block px-3 py-1 rounded-xl bg-muted text-muted-foreground text-xs font-medium border border-border/80 tabular-nums">
+                                          {log.beforeValue}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {log.beforeValue && log.afterValue && (
+                                      <div className="pt-4">
+                                        <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
+                                      </div>
+                                    )}
+                                    {log.afterValue && (
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                                          Updated
+                                        </span>
+                                        <span
+                                          className={`inline-block px-3 py-1 rounded-xl text-xs font-semibold border tabular-nums ${
+                                            isDestructiveState(log.afterValue)
+                                              ? "bg-destructive/10 text-destructive border-destructive/20"
+                                              : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                          }`}
+                                        >
+                                          {log.afterValue}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ) : (
-                                <p className="text-xs text-muted-foreground italic pt-0.5">
-                                  No raw field delta registered for this action
+                                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                  No state change delta recorded for this event. This operation was recorded as a direct system action.
                                 </p>
                               )}
-                            </div>
 
-                            {/* Card 3: Security & Traceability */}
-                            <div className="bg-card p-4 rounded-xl border border-border/80 shadow-2xs space-y-2.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
-                                  <Globe className="w-3.5 h-3.5 text-primary" /> Client IP
-                                </span>
-                                <span className="font-mono text-xs font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
-                                  {log.ipAddress || "Internal Server"}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1">
-                                  <User className="w-3.5 h-3.5 text-primary" /> Actor
-                                </span>
-                                <span className="text-xs font-semibold text-foreground">
-                                  {log.adminName} ({log.adminRole})
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                                  Audit UUID
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <span className="font-mono text-[10px] text-muted-foreground">
-                                    {log.id.slice(0, 16)}...
+                              <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                                <span className="text-[11px] uppercase tracking-wider font-bold">Target Resource</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold tabular-nums text-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
+                                    {log.affectedRecord}
                                   </span>
                                   <button
                                     type="button"
-                                    onClick={(e) => handleCopy(e, log.id, "Audit UUID")}
-                                    className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
-                                    title="Copy full Audit UUID"
+                                    onClick={(e) => handleCopy(e, log.affectedRecord, "Record reference")}
+                                    className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer transition-colors"
+                                    title="Copy target reference"
                                   >
                                     <Copy className="w-3 h-3" />
                                   </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Card 2: Security & Forensic Traceability */}
+                            <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-2xs space-y-3">
+                              <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                                <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span>Security & Origin Traceability</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                  Tamper-Proof
+                                </span>
+                              </div>
+
+                              <div className="space-y-2.5">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                                    <User className="w-3.5 h-3.5 text-muted-foreground" /> Authenticated Actor
+                                  </span>
+                                  <span className="font-semibold text-foreground">
+                                    {log.adminName}{" "}
+                                    <span className="text-muted-foreground font-normal">({log.adminRole})</span>
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                                    <Globe className="w-3.5 h-3.5 text-muted-foreground" /> Client IP Address
+                                  </span>
+                                  <span className="text-xs font-medium tabular-nums text-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
+                                    {log.ipAddress || "Internal Server"}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                                  <span className="text-muted-foreground font-medium">
+                                    Audit UUID
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px] font-mono text-muted-foreground max-w-[180px] sm:max-w-[220px] truncate">
+                                      {log.id}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleCopy(e, log.id, "Audit UUID")}
+                                      className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer transition-colors"
+                                      title="Copy full Audit UUID"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -331,7 +393,7 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
         ) : (
           logs.map((log) => {
             const sc = severityStyles[log.severity] || severityStyles.routine;
-            const mc = moduleBadgeStyles[log.module] || "bg-muted text-muted-foreground border-border/80";
+            const mc = moduleBadgeStyles[log.module] || "bg-muted/60 text-muted-foreground border-border/70 font-medium";
             const isExpanded = expandedId === log.id;
 
             return (
@@ -340,7 +402,7 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                 onClick={() => toggleExpand(log.id)}
                 className={cn(
                   "p-4 transition-colors cursor-pointer",
-                  isExpanded ? "bg-primary/[0.04]" : "hover:bg-muted/40",
+                  isExpanded ? "bg-primary/[0.04] border-l-4 border-l-primary" : "hover:bg-muted/40",
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -348,14 +410,13 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge
                         variant="outline"
-                        className={`text-[9px] font-semibold gap-1 ${sc.badge}`}
+                        className={`text-[9px] font-semibold ${sc.badge}`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                         {log.actionType}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={`text-[9px] font-semibold ${mc}`}
+                        className={`text-[9px] ${mc}`}
                       >
                         {log.module}
                       </Badge>
@@ -363,8 +424,8 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                     <p className="text-xs font-bold text-foreground">
                       {log.adminName}
                     </p>
-                    <p className="text-[10px] text-muted-foreground font-mono">
-                      {safeFormatDate(log.timestamp, "MMM d, yyyy · h:mm:ss a")}
+                    <p className="text-[10px] text-muted-foreground tabular-nums">
+                      {safeFormatDate(log.timestamp, "MMM d, yyyy · h:mm a")}
                     </p>
                   </div>
                   <div className="w-6 h-6 rounded-lg bg-muted/40 flex items-center justify-center shrink-0 mt-1">
@@ -388,14 +449,14 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
                         Target Record
                       </p>
-                      <span className="font-mono text-xs font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
+                      <span className="text-xs font-semibold tabular-nums text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
                         {log.affectedRecord}
                       </span>
                     </div>
 
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
-                        Description
+                        Event Summary
                       </p>
                       <p className="text-foreground leading-relaxed">{log.summary}</p>
                     </div>
@@ -407,7 +468,7 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
                           {log.beforeValue && (
-                            <span className="px-2 py-0.5 rounded bg-destructive/10 text-destructive text-[11px] font-semibold border border-destructive/20 font-mono">
+                            <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-[11px] font-medium border border-border/80">
                               {log.beforeValue}
                             </span>
                           )}
@@ -415,7 +476,13 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
                             <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
                           )}
                           {log.afterValue && (
-                            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold border border-primary/20 font-mono">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                                isDestructiveState(log.afterValue)
+                                  ? "bg-destructive/10 text-destructive border-destructive/20"
+                                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                              }`}
+                            >
                               {log.afterValue}
                             </span>
                           )}
@@ -434,6 +501,19 @@ const AuditLogTable = ({ logs, isLoading = false }: AuditLogTableProps) => {
           })
         )}
       </div>
+
+      {/* ── Table Pagination Bar ── */}
+      {totalPages > 1 && onPageChange && currentPage && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalEntries}
+          pageSize={pageSize}
+          itemLabel="events"
+          onPageChange={onPageChange}
+          variant="table"
+        />
+      )}
     </div>
   );
 };

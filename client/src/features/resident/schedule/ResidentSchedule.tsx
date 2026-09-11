@@ -20,80 +20,16 @@ import {
 } from "lucide-react";
 import { ResidentScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import useAuthStore from "@/store/authStore";
-import { fetchCalendarEvents, CalendarEvent } from "@/services/scheduleService";
+import { fetchCalendarEvents, fetchCollectionSchedule, CalendarEvent, CollectionScheduleDay } from "@/services/scheduleService";
 
-// --- Candelaria Waste Schedule Configuration ---
-const WEEKLY_SCHEDULE: {
-  day: string;
-  dayShort: string;
-  wasteType: "bio" | "non-bio";
-  title: "Biodegradable" | "Non-Biodegradable";
-  timeWindow: string;
-  items: string[];
-}[] = [
-  {
-    day: "Sunday",
-    dayShort: "Sun",
-    wasteType: "bio",
-    title: "Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Food scraps", "Vegetable waste", "Compostable garden waste"],
-  },
-  {
-    day: "Monday",
-    dayShort: "Mon",
-    wasteType: "bio",
-    title: "Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Leftover food", "Fruit peels", "Fallen leaves & twigs"],
-  },
-  {
-    day: "Tuesday",
-    dayShort: "Tue",
-    wasteType: "non-bio",
-    title: "Non-Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Plastic bottles & packaging", "Paper & cardboard", "Metal cans & tins"],
-  },
-  {
-    day: "Wednesday",
-    dayShort: "Wed",
-    wasteType: "bio",
-    title: "Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Food waste", "Garden clippings", "Coffee grounds"],
-  },
-  {
-    day: "Thursday",
-    dayShort: "Thu",
-    wasteType: "non-bio",
-    title: "Non-Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Clean plastics", "Newspapers & boxes", "Glass bottles & jars"],
-  },
-  {
-    day: "Friday",
-    dayShort: "Fri",
-    wasteType: "bio",
-    title: "Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Kitchen waste", "Food prep scraps", "Biodegradable bags"],
-  },
-  {
-    day: "Saturday",
-    dayShort: "Sat",
-    wasteType: "non-bio",
-    title: "Non-Biodegradable",
-    timeWindow: "6:00 AM – 10:00 AM",
-    items: ["Dry recyclables", "Clean packaging", "Metals & cans"],
-  },
-];
-
-const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_CODES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 const ResidentSchedule: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [collectionRules, setCollectionRules] = useState<CollectionScheduleDay[]>([]);
   const user = useAuthStore((s) => s.user);
 
   // Dynamic Month State for full interactive calendar
@@ -137,10 +73,36 @@ const ResidentSchedule: React.FC = () => {
 
   const getDayWasteSchedule = (dateNum: number) => {
     const dow = new Date(year, month, dateNum).getDay();
-    return WEEKLY_SCHEDULE[dow];
+    const dayOfWeek = DAY_CODES[dow];
+    const rule = collectionRules.find((entry) => entry.day_of_week === dayOfWeek);
+    if (!rule) return null;
+    const template = rule.waste_type === "BIODEGRADABLE"
+      ? { wasteType: "bio" as const, title: "Biodegradable" as const, items: ["Food scraps", "Vegetable waste", "Compostable garden waste"] }
+      : { wasteType: "non-bio" as const, title: "Non-Biodegradable" as const, items: ["Plastic bottles & packaging", "Paper & cardboard", "Metal cans & tins"] };
+    const start = rule.start_time?.slice(0, 5) || "";
+    const end = rule.end_time?.slice(0, 5) || "";
+    return {
+      day: DAY_NAMES[dow],
+      dayShort: DAY_SHORT_NAMES[dow],
+      ...template,
+      timeWindow: start ? `${start}${end ? ` – ${end}` : ""}` : "Time to be announced",
+    };
   };
 
   const selectedDaySchedule = selectedDay ? getDayWasteSchedule(selectedDay) : null;
+
+  const weeklyRoutine = useMemo(() => DAY_CODES.map((dayCode, index) => {
+    const rule = collectionRules.find((entry) => entry.day_of_week === dayCode);
+    if (!rule) return null;
+    const isBio = rule.waste_type === "BIODEGRADABLE";
+    return {
+      day: DAY_NAMES[index],
+      dayShort: DAY_SHORT_NAMES[index],
+      wasteType: isBio ? "bio" : "non-bio",
+      title: isBio ? "Biodegradable" : "Non-Biodegradable",
+      timeWindow: `${rule.start_time.slice(0, 5)}${rule.end_time ? ` – ${rule.end_time.slice(0, 5)}` : ""}`,
+    };
+  }).filter((rule): rule is NonNullable<typeof rule> => Boolean(rule)), [collectionRules]);
 
   const selectedDateStr = selectedDay
     ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`
@@ -155,9 +117,12 @@ const ResidentSchedule: React.FC = () => {
   }, [events, selectedDateStr]);
 
   useEffect(() => {
-    fetchCalendarEvents()
-      .then((data) => setEvents(data))
-      .catch((err) => console.error("Failed to load community events", err))
+    Promise.all([fetchCalendarEvents(), fetchCollectionSchedule()])
+      .then(([eventData, ruleData]) => {
+        setEvents(eventData);
+        setCollectionRules(ruleData);
+      })
+      .catch((err) => console.error("Failed to load schedule data", err))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -206,13 +171,13 @@ const ResidentSchedule: React.FC = () => {
             <Clock className="w-4 h-4 text-primary" />
             Weekly Routine Breakdown
           </h2>
-          <span className="text-[11px] text-muted-foreground">Standard MENRO pickup window: 6:00 AM – 10:00 AM</span>
+          <span className="text-[11px] text-muted-foreground">Times reflect the current MENRO collection rules</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {WEEKLY_SCHEDULE.slice(1, 7).map((item) => {
+          {weeklyRoutine.map((item) => {
             const isToday =
-              isCurrentMonth && today.getDay() === dayLabels.indexOf(item.dayShort);
+              isCurrentMonth && today.getDay() === DAY_SHORT_NAMES.indexOf(item.dayShort);
             const isBio = item.wasteType === "bio";
 
             return (
@@ -253,14 +218,6 @@ const ResidentSchedule: React.FC = () => {
                     </p>
                   </div>
 
-                  <ul className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/50">
-                    {item.items.map((it, idx) => (
-                      <li key={idx} className="flex items-center gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-primary/60" />
-                        <span className="truncate">{it}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </CardContent>
               </Card>
             );
@@ -317,7 +274,7 @@ const ResidentSchedule: React.FC = () => {
           <CardContent className="p-4 sm:p-6 space-y-4">
             {/* Day Header Row */}
             <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center">
-              {dayLabels.map((label) => (
+              {DAY_SHORT_NAMES.map((label) => (
                 <span
                   key={label}
                   className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider py-1"
@@ -337,7 +294,7 @@ const ResidentSchedule: React.FC = () => {
                 const schedule = getDayWasteSchedule(dayNum);
                 const isSelected = selectedDay === dayNum;
                 const isTodayCell = isCurrentMonth && dayNum === todayDateNumber;
-                const isBio = schedule.wasteType === "bio";
+                const isBio = schedule?.wasteType === "bio";
                 const dayDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
                 const hasCommunityEvent = events.some((e) => {
                   const eDate = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
@@ -367,13 +324,15 @@ const ResidentSchedule: React.FC = () => {
 
                     {/* Dot Indicator */}
                     <div className="flex items-center gap-1">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          isBio ? "bg-primary" : "bg-amber-500"
-                        } shadow-xs`}
-                      />
+                      {schedule && (
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            isBio ? "bg-primary" : "bg-amber-500"
+                          } shadow-xs`}
+                        />
+                      )}
                       {hasCommunityEvent && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-background" title="Community Program" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-background" title="Official announcement event" />
                       )}
                     </div>
                   </button>
@@ -386,15 +345,15 @@ const ResidentSchedule: React.FC = () => {
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5 font-medium">
                   <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-                  Biodegradable (Sun, Mon, Wed, Fri)
+                  Biodegradable collection days
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  Non-Biodegradable (Tue, Thu, Sat)
+                  Non-biodegradable collection days
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  Community Drives & Programs
+                  Official announcement events
                 </div>
               </div>
             </div>
@@ -431,7 +390,7 @@ const ResidentSchedule: React.FC = () => {
                   <Clock className="w-4 h-4 text-primary shrink-0" />
                   <div>
                     <p className="font-semibold text-foreground">Pickup Window: {selectedDaySchedule.timeWindow}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Please bring your bins out before 6:00 AM.</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Please bring your bins out before the scheduled start time.</p>
                   </div>
                 </div>
 
@@ -449,12 +408,12 @@ const ResidentSchedule: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Public Community Programs & Activities */}
+                {/* Events explicitly published from official announcements */}
                 {dayPublicEvents.length > 0 && (
                   <div className="space-y-2 pt-3 border-t border-border/60">
                     <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" />
-                      <span>Community Programs & Activities ({dayPublicEvents.length}):</span>
+                      <span>Official announcement events ({dayPublicEvents.length}):</span>
                     </p>
                     <div className="space-y-2">
                       {dayPublicEvents.map((evt) => (
@@ -470,7 +429,7 @@ const ResidentSchedule: React.FC = () => {
                               variant="outline"
                               className="text-[9px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 shrink-0"
                             >
-                              {evt.event_type === "COMMUNITY_EVENT" ? "Public Drive" : "Collection Route"}
+                              Official event
                             </Badge>
                           </div>
                           {evt.description && (
@@ -499,9 +458,19 @@ const ResidentSchedule: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+          ) : dayPublicEvents.length > 0 ? (
+            <Card className="rounded-2xl border border-border bg-card shadow-sm p-5 space-y-3">
+              <CardTitle className="text-base font-bold font-display text-foreground">Official announcement events</CardTitle>
+              {dayPublicEvents.map((evt) => (
+                <div key={evt.id} className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs">
+                  <p className="font-semibold text-foreground">{evt.title}</p>
+                  {evt.description && <p className="mt-1 text-muted-foreground leading-relaxed">{evt.description}</p>}
+                </div>
+              ))}
+            </Card>
           ) : (
             <Card className="rounded-2xl border border-border bg-card shadow-sm p-6 text-center text-muted-foreground text-xs">
-              Select a date on the calendar to see details.
+              No collection or official announcement event is scheduled for this date.
             </Card>
           )}
 

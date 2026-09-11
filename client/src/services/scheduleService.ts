@@ -9,6 +9,7 @@ export interface CalendarEvent {
   title: string;
   description?: string | null;
   event_date: string;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   event_type: EventType;
@@ -27,6 +28,7 @@ export interface CreateEventPayload {
   title: string;
   description?: string | null;
   event_date: string;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   event_type: EventType;
@@ -40,6 +42,8 @@ export interface CollectionScheduleDay {
   id: string;
   day_of_week: string;
   waste_type: "BIODEGRADABLE" | "NON_BIODEGRADABLE";
+  start_time: string;
+  end_time?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -94,11 +98,21 @@ export const fetchCollectionSchedule = async (): Promise<CollectionScheduleDay[]
 
 export const updateCollectionSchedule = async (
   id: string,
-  waste_type: "BIODEGRADABLE" | "NON_BIODEGRADABLE"
+  payload: Pick<CollectionScheduleDay, "waste_type"> & {
+    start_time?: string;
+    end_time?: string | null;
+  },
 ): Promise<CollectionScheduleDay> => {
   const { data } = await api.put<{ data: CollectionScheduleDay }>(`/schedule/${id}`, {
-    waste_type,
+    ...payload,
   });
+  return data.data;
+};
+
+export const createCollectionSchedule = async (
+  payload: Omit<CollectionScheduleDay, "id" | "created_at" | "updated_at">,
+): Promise<CollectionScheduleDay> => {
+  const { data } = await api.post<{ data: CollectionScheduleDay }>("/schedule", payload);
   return data.data;
 };
 

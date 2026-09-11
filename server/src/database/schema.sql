@@ -42,7 +42,7 @@ CREATE TABLE `announcement_barangays` (
 CREATE TABLE `announcement_read_receipts` (
   `id` varchar(36) NOT NULL,
   `announcement_id` varchar(36) NOT NULL,
-  `user_id` varchar(36) NOT NULL,
+  `user_id` varchar(36) DEFAULT NULL,
   `read_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `unique_receipt` (`announcement_id`,`user_id`),
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
@@ -62,8 +62,7 @@ CREATE TABLE `announcements` (
   `id` varchar(36) NOT NULL,
   `title` varchar(255) NOT NULL,
   `body` text NOT NULL,
-  `type` enum('GENERAL_NOTICE','SCHEDULE_CHANGE','HOLIDAY_REMINDER','EMERGENCY_ADVISORY','SYSTEM_MAINTENANCE') NOT NULL,
-  `priority` enum('NORMAL','URGENT') DEFAULT 'NORMAL',
+  `type` enum('GENERAL_NOTICE','SCHEDULE_CHANGE','HOLIDAY_REMINDER','EMERGENCY_ADVISORY','SYSTEM_MAINTENANCE','COMMUNITY_EVENT') NOT NULL,
   `status` enum('DRAFT','ACTIVE','SCHEDULED','ARCHIVED') DEFAULT 'DRAFT',
   `is_featured` tinyint(1) DEFAULT '0',
   `target_all` tinyint(1) DEFAULT '1',
@@ -138,12 +137,29 @@ CREATE TABLE `collection_schedule` (
   `id` varchar(36) NOT NULL,
   `day_of_week` enum('MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY') NOT NULL,
   `waste_type` enum('BIODEGRADABLE','NON_BIODEGRADABLE') NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   UNIQUE KEY `day_of_week` (`day_of_week`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `collection_schedule_reminder_log`
+--
+
+CREATE TABLE `collection_schedule_reminder_log` (
+  `id` varchar(36) NOT NULL,
+  `schedule_id` varchar(36) NOT NULL,
+  `collection_date` date NOT NULL,
+  `reminder_timing` int NOT NULL,
+  `sent_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_collection_schedule_reminder` (`schedule_id`,`collection_date`,`reminder_timing`),
+  CONSTRAINT `fk_collection_schedule_reminder_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `collection_schedule` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
 -- Table structure for table `driver_messages`
@@ -487,6 +503,7 @@ CREATE TABLE `routes` (
   `name` varchar(100) DEFAULT NULL,
   `waste_type` enum('Biodegradable','Non-Biodegradable') DEFAULT NULL,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
+  UNIQUE KEY `uq_routes_truck_day` (`truck_id`,`day_of_week`),
   KEY `fk_1` (`truck_id`),
   KEY `fk_2` (`driver_id`),
   CONSTRAINT `fk_1` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE CASCADE,
@@ -505,6 +522,7 @@ CREATE TABLE `schedules` (
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `event_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
   `event_type` enum('PRIVATE_EVENT','COMMUNITY_EVENT','COLLECTION_SCHEDULE') NOT NULL DEFAULT 'PRIVATE_EVENT',
@@ -513,6 +531,7 @@ CREATE TABLE `schedules` (
   `barangay_id` varchar(36) DEFAULT NULL,
   `status` enum('UPCOMING','ONGOING','COMPLETED','CANCELLED') NOT NULL DEFAULT 'UPCOMING',
   `created_by` varchar(36) NOT NULL,
+  `announcement_id` varchar(36) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` timestamp NULL DEFAULT NULL,
@@ -522,8 +541,11 @@ CREATE TABLE `schedules` (
   KEY `idx_schedules_barangay` (`barangay_id`),
   KEY `idx_schedules_status` (`status`),
   KEY `fk_schedules_created_by` (`created_by`),
+  UNIQUE KEY `uq_schedules_announcement` (`announcement_id`),
+  KEY `idx_schedules_announcement` (`announcement_id`),
   CONSTRAINT `fk_schedules_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_schedules_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_schedules_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_schedules_announcement` FOREIGN KEY (`announcement_id`) REFERENCES `announcements` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

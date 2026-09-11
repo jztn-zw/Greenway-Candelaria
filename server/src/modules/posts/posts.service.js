@@ -96,8 +96,8 @@ const publishDueScheduledPosts = async () => {
     if (result.affectedRows === 1) {
       notifyAllResidents({
         type: "NEW_POST",
-        title: "New Content Published",
-        body: `"${post.title}" is now available in Contents.`,
+        title: `New Content: ${post.title}`,
+        body: "A new item is available in Contents.",
         ref_id: post.id,
         ref_module: "posts",
         metadata: { category: post.category },
@@ -267,8 +267,8 @@ const create = async (adminId, data) => {
     if (createdPost.status === "PUBLISHED") {
       notifyAllResidents({
         type: "NEW_POST",
-        title: "New Content Published",
-        body: `"${createdPost.title}" is now available in Contents.`,
+        title: `New Content: ${createdPost.title}`,
+        body: "A new item is available in Contents.",
         ref_id: createdPost.id,
         ref_module: "posts",
         metadata: { category: createdPost.category },
@@ -399,8 +399,8 @@ const update = async (id, data) => {
     if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
       notifyAllResidents({
         type: "NEW_POST",
-        title: "New Content Published",
-        body: `"${updatedPost.title}" is now available in Contents.`,
+        title: `New Content: ${updatedPost.title}`,
+        body: "A new item is available in Contents.",
         ref_id: updatedPost.id,
         ref_module: "posts",
         metadata: { category: updatedPost.category },

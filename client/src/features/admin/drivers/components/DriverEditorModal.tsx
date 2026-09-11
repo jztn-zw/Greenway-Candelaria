@@ -187,7 +187,7 @@ const DriverEditorModal = ({
             {/* Modal Header (Pinned / Non-scrollable) */}
             <div className="p-5 sm:p-6 pb-3.5 border-b border-border/60 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-muted/60 text-foreground border border-border/80 flex items-center justify-center shrink-0">
                   {isEditing ? (
                     <UserCheck className="w-4 h-4" />
                   ) : (
@@ -221,27 +221,32 @@ const DriverEditorModal = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="driver-name" className="text-xs font-semibold">
-                    Full Name <span className="text-destructive">*</span>
+                    Full Name
                   </Label>
                   <Input
                     id="driver-name"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Roberto Navarro"
-                    className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+                    className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="driver-contact" className="text-xs font-semibold">
-                    Contact Number <span className="text-destructive">*</span>
+                    Contact Number
                   </Label>
                   <Input
                     id="driver-contact"
                     value={formContact}
-                    onChange={(e) => setFormContact(e.target.value)}
+                    onChange={(e) =>
+                      setFormContact(e.target.value.replace(/\D/g, "").slice(0, 11))
+                    }
                     placeholder="e.g. 09171234567"
-                    className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={11}
+                    className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
                   />
                 </div>
               </div>
@@ -249,7 +254,7 @@ const DriverEditorModal = ({
               {/* Row 2: Email Address */}
               <div className="space-y-1.5">
                 <Label htmlFor="driver-email" className="text-xs font-semibold">
-                  Email Address {!isEditing && <span className="text-destructive">*</span>}
+                  Email Address
                 </Label>
                 <Input
                   id="driver-email"
@@ -258,7 +263,7 @@ const DriverEditorModal = ({
                   onChange={(e) => setFormEmail(e.target.value)}
                   placeholder="collector@greenway.ph"
                   disabled={isEditing}
-                  className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs disabled:opacity-60"
+                  className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs disabled:opacity-60"
                 />
                 {isEditing && (
                   <p className="text-[11px] text-muted-foreground">
@@ -272,20 +277,20 @@ const DriverEditorModal = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="driver-username" className="text-xs font-semibold">
-                      Username <span className="text-destructive">*</span>
+                      Username
                     </Label>
                     <Input
                       id="driver-username"
                       value={formUsername}
                       onChange={(e) => setFormUsername(e.target.value)}
                       placeholder="e.g. r.navarro"
-                      className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+                      className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="driver-password" className="text-xs font-semibold">
-                      Temporary Password <span className="text-destructive">*</span>
+                      Temporary Password
                     </Label>
                     <Input
                       id="driver-password"
@@ -293,7 +298,7 @@ const DriverEditorModal = ({
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+                      className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
                     />
                   </div>
                 </div>
@@ -308,7 +313,7 @@ const DriverEditorModal = ({
                   </p>
                 ) : (
                   <Select value={formTruckId} onValueChange={setFormTruckId}>
-                    <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs">
+                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs">
                       <SelectValue placeholder="Select a truck" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">

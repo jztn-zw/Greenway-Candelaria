@@ -1,10 +1,11 @@
-import {
-  MoreHorizontal, Eye, Edit2, Copy, Archive, ArchiveRestore, Globe, GlobeLock, Trash2, Star, StarOff,
-} from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Post } from "./types";
 
@@ -20,7 +21,14 @@ interface PostActionsDropdownProps {
 }
 
 const PostActionsDropdown = ({
-  post, onView, onEdit, onDuplicate, onArchive, onTogglePublish, onToggleFeatured, onDelete,
+  post,
+  onView,
+  onEdit,
+  onDuplicate,
+  onArchive,
+  onTogglePublish,
+  onToggleFeatured,
+  onDelete,
 }: PostActionsDropdownProps) => {
   const isArchived = post.status === "Archived";
   const isPublished = post.status === "Published";
@@ -28,56 +36,63 @@ const PostActionsDropdown = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-muted">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+          aria-label="More options"
+        >
           <MoreHorizontal className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onClick={() => onView(post)} className="gap-2 text-xs">
-          <Eye className="w-3.5 h-3.5" /> View
+      <DropdownMenuContent align="end" className="w-36 rounded-xl border-border/80 p-1 shadow-md">
+        <DropdownMenuItem
+          onClick={() => onView(post)}
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+        >
+          View
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onEdit(post)} className="gap-2 text-xs">
-          <Edit2 className="w-3.5 h-3.5" /> Edit
+        <DropdownMenuItem
+          onClick={() => onEdit(post)}
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+        >
+          Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDuplicate(post)} className="gap-2 text-xs">
-          <Copy className="w-3.5 h-3.5" /> Duplicate
+        <DropdownMenuItem
+          onClick={() => onDuplicate(post)}
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+        >
+          Duplicate
         </DropdownMenuItem>
         {onToggleFeatured && !isArchived && (
-          <DropdownMenuItem onClick={() => onToggleFeatured(post)} className="gap-2 text-xs">
-            {post.featured ? (
-              <>
-                <StarOff className="w-3.5 h-3.5" /> Unfeature
-              </>
-            ) : (
-              <>
-                <Star className="w-3.5 h-3.5" /> Feature Post
-              </>
-            )}
+          <DropdownMenuItem
+            onClick={() => onToggleFeatured(post)}
+            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          >
+            {post.featured ? "Unfeature" : "Feature Post"}
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onArchive(post)} className="gap-2 text-xs">
-          {isArchived ? (
-            <><ArchiveRestore className="w-3.5 h-3.5" /> Restore</>
-          ) : (
-            <><Archive className="w-3.5 h-3.5" /> Archive</>
-          )}
+        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuItem
+          onClick={() => onArchive(post)}
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+        >
+          {isArchived ? "Restore" : "Archive"}
         </DropdownMenuItem>
         {!isArchived && (
-          <DropdownMenuItem onClick={() => onTogglePublish(post)} className="gap-2 text-xs">
-            {isPublished ? (
-              <><GlobeLock className="w-3.5 h-3.5" /> Unpublish</>
-            ) : (
-              <><Globe className="w-3.5 h-3.5" /> Publish</>
-            )}
+          <DropdownMenuItem
+            onClick={() => onTogglePublish(post)}
+            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          >
+            {isPublished ? "Unpublish" : "Publish"}
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => onDelete(post)}
-          className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
         >
-          <Trash2 className="w-3.5 h-3.5" /> Delete
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

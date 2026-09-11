@@ -84,6 +84,14 @@ const changePassword = async (userId, { current_password, new_password }) => {
     userId,
   ]);
 
+  log({
+    user_id: userId,
+    action: "CHANGE_PASSWORD",
+    module: "auth",
+    record_id: userId,
+    new_value: { changed: true },
+  }).catch(() => {});
+
   return { message: "Password updated successfully" };
 };
 

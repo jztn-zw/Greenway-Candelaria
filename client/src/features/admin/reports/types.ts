@@ -91,22 +91,18 @@ export const PRIORITY_LABEL_TO_BACKEND: Record<string, "LOW" | "MEDIUM" | "HIGH"
   Low: "LOW",
 };
 
-export const statusBadgeStyles: Record<ReportStatus, { badge: string; dot: string }> = {
+export const statusBadgeStyles: Record<ReportStatus, { badge: string }> = {
   Submitted: {
     badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    dot: "bg-amber-500",
   },
   "Under Review": {
     badge: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-    dot: "bg-sky-500",
   },
   Dispatched: {
     badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-    dot: "bg-purple-500",
   },
   Resolved: {
     badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    dot: "bg-emerald-500",
   },
 };
 

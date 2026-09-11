@@ -155,7 +155,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-3xl p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-4xl p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
         >
           <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
             {/* Modal Header (Pinned / Non-scrollable) */}
@@ -195,7 +195,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Day of Week <span className="text-destructive">*</span>
+                  Day of Week
                 </Label>
                 <Select
                   value={form.day}
@@ -243,7 +243,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               {/* Truck selection */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Assigned Truck <span className="text-destructive">*</span>
+                  Assigned Truck
                 </Label>
                 <Select
                   value={form.truckId}
@@ -307,7 +307,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               {/* Start Time Select */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Start Time <span className="text-destructive">*</span>
+                  Start Time
                 </Label>
                 <Select
                   value={form.startTime.slice(0, 5)}
@@ -342,8 +342,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               </div>
             )}
 
-            {/* Section 3: Barangay Collection Sequence */}
-            <div className="pt-3 border-t border-border/60 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-4 lg:items-start">
+            {/* Section 3: Barangay Collection Sequence & Live Map */}
+            <div className="pt-3 border-t border-border/60 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-start">
               <div>
                 <BarangayOrderList
                   form={form}
@@ -366,7 +366,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     Visual check of the current collection order.
                   </p>
                 </div>
-                <RouteStopsMap stops={form.barangays} barangays={barangays} className="h-56" />
+                <RouteStopsMap stops={form.barangays} barangays={barangays} className="h-64 sm:h-72" />
               </div>
             </div>
           </div>

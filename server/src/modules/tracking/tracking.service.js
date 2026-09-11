@@ -69,8 +69,8 @@ const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
       await notifyBarangayResidents({
         barangay_id: stop.barangay_id,
         type: "TRUCK_IS_NEAR",
-        title: "Collection Truck Approaching",
-        body: `The collection truck is approaching ${stop.barangay_name}. Please prepare your segregated waste for pickup.`,
+        title: `Truck Approaching: ${stop.barangay_name}`,
+        body: "The collection truck is nearby. Please prepare your segregated waste.",
         ref_id: stop.route_id,
         ref_module: "tracking",
       });
@@ -237,8 +237,8 @@ const notifyStaleGpsRoutes = async () => {
     const minutes = Math.max(2, Math.floor(Number(route.seconds_since_ping) / 60));
     await notifyAdmins({
       type: "SYSTEM",
-      title: "GPS signal lost",
-      body: `${route.truck_name} has not sent a GPS update for ${minutes} minutes.`,
+      title: `GPS Signal Lost: ${route.truck_name}`,
+      body: `No GPS update has been received for ${minutes} minutes.`,
       ref_id: route.route_id,
       ref_module: "tracking-stale-gps",
     });

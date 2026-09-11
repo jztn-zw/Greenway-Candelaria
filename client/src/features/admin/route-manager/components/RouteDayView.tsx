@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { RouteCard } from "./RouteCard";
 import { DAYS, WASTE_MAP } from "../constants";
 import { Leaf, Trash2, Route as RouteIcon } from "lucide-react";
@@ -52,7 +52,7 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {DAYS.map((day) => {
         const dayRoutes = routesByDay[day] || [];
         if (dayRoutes.length === 0) return null;
@@ -67,34 +67,32 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <div
                   className={cn(
-                    "w-7 h-7 rounded-xl flex items-center justify-center border shadow-2xs",
+                    "w-8 h-8 rounded-xl flex items-center justify-center border shadow-2xs",
                     isBio
                       ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                       : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                   )}
                 >
-                  {isBio ? <Leaf className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  {isBio ? <Leaf className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-extrabold text-foreground tracking-tight font-display">
-                      {day}
-                    </h3>
-                    <span
-                      className={cn(
-                        "text-[10px] font-semibold px-2 py-0.2 rounded-full border",
-                        isBio
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                      )}
-                    >
-                      {waste.label} ({waste.local})
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-extrabold text-foreground tracking-tight font-display">
+                    {day}
+                  </h3>
+                  <span
+                    className={cn(
+                      "text-xs font-semibold px-2.5 py-0.5 rounded-full border",
+                      isBio
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                    )}
+                  >
+                    {waste.label} <span className="opacity-75 font-normal">({waste.local})</span>
+                  </span>
                 </div>
               </div>
 
-              <span className="text-xs text-muted-foreground font-medium">
+              <span className="text-xs text-muted-foreground font-semibold bg-muted/40 px-2.5 py-1 rounded-full border border-border/60 shrink-0">
                 {dayRoutes.length} {dayRoutes.length === 1 ? "route" : "routes"}
               </span>
             </div>

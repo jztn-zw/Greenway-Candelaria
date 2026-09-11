@@ -110,7 +110,7 @@ const sendToMany = async ({
 // ─── Notify All Active Residents ───────────────────────────
 
 const notifyAllResidents = async ({ type, title, body, ref_id, ref_module, metadata = null }) => {
-  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
+  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "COLLECTION_REMINDER" ? "notif_collection_reminders" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
     `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
@@ -130,7 +130,7 @@ const notifyBarangayResidents = async ({
   ref_module,
   metadata = null,
 }) => {
-  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
+  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "COLLECTION_REMINDER" ? "notif_collection_reminders" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
     `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ? AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,

@@ -81,8 +81,8 @@ const updateMyStatus = async (req, res, next) => {
     const driver = await service.updateStatusMsg(req.user.id, status_msg, route_id);
     await notifyAdmins({
       type: "SYSTEM",
-      title: "New collector message",
-      body: `${driver.full_name || driver.name || "A collector"}: ${status_msg}`,
+      title: `New Collector Message: ${driver.full_name || driver.name || "Collector"}`,
+      body: status_msg,
       ref_id: route_id || driver.id,
       ref_module: "tracking",
     }).catch((err) => console.error("[Drivers] Admin message notification error:", err.message));

@@ -89,71 +89,13 @@ const getMetadata = (notification: NotificationRow): Record<string, unknown> => 
 };
 
 const getNotificationHeadline = (n: NotificationRow) => {
-  const metadata = getMetadata(n);
   const cleanTitle = (n.title || "").replace(/[🚨⚠️]/g, "").trim();
-  const category = String(metadata.category || "").toUpperCase();
 
   if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
     return {
       prefix: "MENRO Candelaria",
       connector: "posted an announcement:",
       highlight: cleanTitle || "Official Notice",
-    };
-  }
-
-  if (n.ref_module === "reports" || n.type === "REPORT_UPDATE") {
-    return {
-      prefix: "Report Status Update:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (n.ref_module === "tracking" || n.type === "TRUCK_IS_NEAR") {
-    return {
-      prefix: "Collection Truck Alert:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (n.type === "COLLECTION_REMINDER") {
-    return {
-      prefix: "Collection Reminder:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (n.type === "COLLECTION_DONE") {
-    return {
-      prefix: "Collection Completed:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (category === "WASTE_TIP") {
-    return {
-      prefix: "Eco Tip:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (category === "SCHEDULE_CHANGE") {
-    return {
-      prefix: "Schedule Notice:",
-      connector: "",
-      highlight: cleanTitle,
-    };
-  }
-
-  if (n.type === "NEW_POST" || n.ref_module === "posts") {
-    return {
-      prefix: "Community Content:",
-      connector: "",
-      highlight: cleanTitle,
     };
   }
 

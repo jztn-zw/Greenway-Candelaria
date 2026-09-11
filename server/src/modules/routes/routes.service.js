@@ -129,10 +129,9 @@ const assertNoActiveRouteBarangayConflicts = async (
      FROM routes r
      JOIN route_stops rs ON rs.route_id = r.id
      JOIN barangays b ON b.id = rs.barangay_id
-     LEFT JOIN trucks t ON t.id = r.truck_id
-     WHERE UPPER(r.day_of_week) = ?
-       AND r.status IN ('ACTIVE', 'PAUSED')
-       AND rs.barangay_id IN (${barangayIds.map(() => "?").join(", ")})
+      LEFT JOIN trucks t ON t.id = r.truck_id
+      WHERE UPPER(r.day_of_week) = ?
+        AND rs.barangay_id IN (${barangayIds.map(() => "?").join(", ")})
        ${excludeClause}
      ORDER BY b.name ASC
      LIMIT 1`,
@@ -146,7 +145,7 @@ const assertNoActiveRouteBarangayConflicts = async (
   const conflict = rows[0];
   throw {
     statusCode: 409,
-    message: `${conflict.barangay_name} is already assigned to another active ${String(dayOfWeek).toLowerCase()} route`,
+      message: `${conflict.barangay_name} already has a ${String(dayOfWeek).toLowerCase()} collection route`,
   };
 };
 
@@ -421,7 +420,8 @@ const endRoute = async (routeId) => {
     throw { statusCode: 404, message: "Route not found" };
   }
 
-  const { truck_id, status: routeStatus, truck_name: truckName } = routeCheck[0];
+  const { truck_id, truck_name: truckName } = routeCheck[0];
+  let shouldNotifyRouteCompletion = false;
 
   const connection = await pool.getConnection();
   try {
@@ -437,11 +437,17 @@ const endRoute = async (routeId) => {
       [routeId],
     );
 
-    // Set route to INACTIVE
-    await connection.query(
-      `UPDATE routes SET status = 'INACTIVE' WHERE id = ?`,
+    // Claim route closure atomically. Concurrent final-stop and monitor calls
+    // may both reach this function, but only the caller that changes ACTIVE /
+    // PAUSED to INACTIVE may send the admin completion notification.
+    const [routeUpdate] = await connection.query(
+      `UPDATE routes
+       SET status = 'INACTIVE'
+       WHERE id = ?
+         AND status <> 'INACTIVE'`,
       [routeId],
     );
+    shouldNotifyRouteCompletion = routeUpdate.affectedRows > 0;
 
     // Mark truck as DONE so admin/resident views reflect completed route immediately
     await connection.query(
@@ -459,7 +465,7 @@ const endRoute = async (routeId) => {
 
   // One concise operational summary is useful to dispatchers; repeated end
   // requests for an already inactive route must not create notification spam.
-  if (String(routeStatus || "").toUpperCase() !== "INACTIVE") {
+  if (shouldNotifyRouteCompletion) {
     const [summaryRows] = await pool.query(
       `SELECT
          COUNT(*) AS total_stops,
@@ -470,10 +476,17 @@ const endRoute = async (routeId) => {
       [routeId],
     );
     const summary = summaryRows[0] || {};
+    const completedStops = Number(summary.completed_stops) || 0;
+    const skippedStops = Number(summary.skipped_stops) || 0;
+    const totalStops = Number(summary.total_stops) || 0;
+    const fullyCompleted = totalStops > 0 && completedStops === totalStops;
+
     await notifyAdmins({
       type: "SYSTEM",
-      title: "Route ended",
-      body: `${truckName} ended its route: ${Number(summary.completed_stops) || 0} completed, ${Number(summary.skipped_stops) || 0} skipped out of ${Number(summary.total_stops) || 0} stops.`,
+      title: fullyCompleted
+        ? `Collection Completed: ${truckName}`
+        : `Route Completed: ${truckName}`,
+      body: `${truckName} completed its route: ${completedStops} completed, ${skippedStops} skipped out of ${totalStops} stops.`,
       ref_id: routeId,
       ref_module: "tracking",
     }).catch((err) => console.error("[Routes] Route-end admin notification error:", err.message));
@@ -490,7 +503,28 @@ const endRoute = async (routeId) => {
   return { message: "Route ended successfully", routeId };
 };
 
-const assertNoScheduledRouteTruckConflict = async (
+// Safety net for routes whose final stop was recorded but whose close request
+// was interrupted. It keeps completed operations from appearing as active GPS
+// sessions and lets endRoute create the one correct admin summary.
+const finalizeCompletedRoutes = async () => {
+  const [rows] = await pool.query(
+    `SELECT r.id
+     FROM routes r
+     JOIN route_stops rs ON rs.route_id = r.id
+     WHERE r.status IN ('ACTIVE', 'PAUSED')
+     GROUP BY r.id
+     HAVING COUNT(*) > 0
+        AND SUM(rs.status NOT IN ('DONE', 'MISSED', 'SKIPPED')) = 0`,
+  );
+
+  for (const route of rows) {
+    await endRoute(route.id);
+  }
+
+  return rows.map((route) => route.id);
+};
+
+const assertNoRouteTruckDayConflict = async (
   executor,
   dayOfWeek,
   truckId,
@@ -511,8 +545,7 @@ const assertNoScheduledRouteTruckConflict = async (
      FROM routes r
      WHERE UPPER(r.day_of_week) = ?
        AND r.truck_id = ?
-       AND r.status IN ('ACTIVE', 'PAUSED')
-       ${excludeClause}
+        ${excludeClause}
      LIMIT 1`,
     params,
   );
@@ -520,7 +553,7 @@ const assertNoScheduledRouteTruckConflict = async (
   if (rows.length > 0) {
     throw {
       statusCode: 409,
-      message: `This truck already has a scheduled ${String(dayOfWeek).toLowerCase()} route`,
+      message: `This truck already has a ${String(dayOfWeek).toLowerCase()} collection route`,
     };
   }
 };
@@ -664,7 +697,7 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
 
   const effectiveTruckId = await resolveAssignedTruckId(driver_id, truck_id);
 
-  await assertNoScheduledRouteTruckConflict(pool, day_of_week, effectiveTruckId);
+  await assertNoRouteTruckDayConflict(pool, day_of_week, effectiveTruckId);
   await assertNoActiveRouteBarangayConflicts(pool, day_of_week, stops);
 
   const [truckCheck] = await pool.query("SELECT id FROM trucks WHERE id = ?", [effectiveTruckId]);
@@ -754,7 +787,7 @@ const update = async (id, data) => {
     );
 
     if (isScheduled) {
-      await assertNoScheduledRouteTruckConflict(
+      await assertNoRouteTruckDayConflict(
         connection,
         nextDayOfWeek,
         resolvedTruckId || existingRoute.truck_id,
@@ -894,14 +927,14 @@ const updateStopStatus = async (routeId, stopId, status, skippedReason = null) =
     ? {
         column: "collection_done_notified_at",
         type: "COLLECTION_DONE",
-        title: "Collection Completed",
-        body: `Waste collection in ${stop.barangay_name} has been completed.`,
+        title: `Collection Completed: ${stop.barangay_name}`,
+        body: "Waste collection was completed in your barangay.",
       }
     : status === "MISSED"
       ? {
           column: "collection_skipped_notified_at",
           type: "MISSED_COLLECTION",
-          title: "Collection Skipped",
+          title: `Collection Skipped: ${stop.barangay_name}`,
           body: reason
             ? `Waste collection in ${stop.barangay_name} was skipped. Reason: ${reason}.`
             : `Waste collection in ${stop.barangay_name} was skipped.`,
@@ -930,8 +963,8 @@ const updateStopStatus = async (routeId, stopId, status, skippedReason = null) =
         if (status === "MISSED") {
           await notifyAdmins({
             type: "SYSTEM",
-            title: "Collection stop skipped",
-            body: `${stop.truck_name} skipped ${stop.barangay_name}${reason ? `: ${reason}` : ""}.`,
+            title: `Collection Skipped: ${stop.truck_name}`,
+            body: `${stop.barangay_name} was skipped${reason ? `. Reason: ${reason}` : "."}`,
             ref_id: stopId,
             ref_module: "tracking",
           });
@@ -1039,6 +1072,7 @@ module.exports = {
   getAllRoutesToday,
   autoActivateScheduledRoutes,
   endRoute, // ✅ exported
+  finalizeCompletedRoutes,
   setRoutePaused,
   startRoute,
 };

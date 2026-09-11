@@ -1,17 +1,11 @@
 import { useState, useMemo } from "react";
 import {
-  Eye,
-  Edit2,
-  Trash2,
   Truck as TruckIcon,
   MoreHorizontal,
-  Wrench,
-  CheckCircle2,
   User,
   Recycle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
+import PaginationControls from "@/components/common/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -109,8 +103,8 @@ const TruckCardGrid = ({
                 {/* Header Row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
-                      <TruckIcon className="w-6 h-6" />
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 group-hover:bg-primary/15 transition-all duration-200">
+                      <TruckIcon className="w-5 h-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold font-display text-foreground text-sm sm:text-base truncate group-hover:text-primary transition-colors">
@@ -142,32 +136,22 @@ const TruckCardGrid = ({
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                        <DropdownMenuItem onClick={() => onView(t)} className="gap-2 cursor-pointer text-xs">
-                          <Eye className="w-3.5 h-3.5" /> View Details
+                      <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-lg border border-border/80 p-1">
+                        <DropdownMenuItem onClick={() => onView(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(t)} className="gap-2 cursor-pointer text-xs">
-                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        <DropdownMenuItem onClick={() => onEdit(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          Edit Truck
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onToggleStatus(t)} className="gap-2 cursor-pointer text-xs">
-                          {t.status === "Active" ? (
-                            <>
-                              <Wrench className="w-3.5 h-3.5 text-amber-500" />
-                              Under Maintenance
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              Mark as Active
-                            </>
-                          )}
+                        <DropdownMenuItem onClick={() => onToggleStatus(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground whitespace-nowrap">
+                          {t.status === "Active" ? "Mark Under Maintenance" : "Mark as Active"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(t)}
-                          className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                          className="text-xs cursor-pointer focus:bg-muted focus:text-foreground"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Truck
+                          Delete Truck
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -175,15 +159,15 @@ const TruckCardGrid = ({
                 </div>
 
                 {/* Details Section */}
-                <div className="space-y-2 text-xs pt-1 border-t border-border/60">
+                <div className="space-y-2 text-xs pt-2 border-t border-border/60">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md bg-muted/60 text-foreground border border-border/60">
+                    <span className="font-sans tabular-nums text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-muted/60 text-foreground border border-border/60 shadow-2xs">
                       {t.plateNumber}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
-                    <User className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+                    <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     {driver ? (
                       <span className="font-medium text-foreground truncate">
                         {driver.fullName}
@@ -196,7 +180,7 @@ const TruckCardGrid = ({
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Recycle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <Recycle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span>{t.wasteType}</span>
                   </div>
                 </div>
@@ -206,39 +190,17 @@ const TruckCardGrid = ({
         </div>
       )}
 
-      {/* ── Centered Pagination (Matching Posts & Announcements) ── */}
+      {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-3">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={ITEMS_PER_PAGE}
+          itemLabel="trucks"
+          onPageChange={setCurrentPage}
+          variant="floating"
+        />
       )}
     </div>
   );

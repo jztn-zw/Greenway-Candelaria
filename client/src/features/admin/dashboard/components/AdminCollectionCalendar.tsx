@@ -1,84 +1,125 @@
-import { useState } from "react";
-import { CalendarDays, X, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { CalendarEvent, fetchCalendarEvents } from "@/services/scheduleService";
 import { DashboardRoute } from "./useAdminDashboard";
+import { cn } from "@/lib/utils";
 
-const getWasteType = (wasteType?: string | null): "bio" | "non-bio" =>
-  wasteType?.toLowerCase().includes("non") ? "non-bio" : "bio";
-
-const wasteInfo = {
-  bio: {
-    label: "Biodegradable",
-    color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25",
-    dot: "bg-emerald-500",
-    time: "6:00 AM",
-  },
-  "non-bio": {
-    label: "Non-Biodegradable",
-    color: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25",
-    dot: "bg-sky-500",
-    time: "6:00 AM",
-  },
-};
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const fullDayLabels = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 interface AdminCollectionCalendarProps {
+  className?: string;
   routes?: DashboardRoute[];
 }
 
-const AdminCollectionCalendar = ({ routes = [] }: AdminCollectionCalendarProps) => {
+const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "" }) => {
   const navigate = useNavigate();
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const today = now.getDate();
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const currentDate = new Date();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
 
-  const firstDay = new Date(year, month, 1).getDay();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const todayDayNumber = currentDate.getDate();
+
+  const todayStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(todayDayNumber).padStart(2, "0")}`;
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
+
+  // Fetch real schedule events from Schedule Manager
+  useEffect(() => {
+    let isMounted = true;
+    const loadEvents = async () => {
+      try {
+        const data = await fetchCalendarEvents();
+        if (isMounted) {
+          setEvents(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch calendar schedule events", err);
+      }
+    };
+    loadEvents();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = now.toLocaleString("default", { month: "long" });
+  const monthName = currentDate.toLocaleString("default", { month: "long" });
 
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month + 1, 0);
+  const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
 
-  const activeRoutes = routes.filter((route) => route.status === "ACTIVE");
-  const selectedDayInfo = selectedDay
-    ? (() => {
-        const dow = new Date(year, month, selectedDay).getDay();
-        const dayRoutes = activeRoutes.filter((route) => route.day_of_week.toUpperCase() === fullDayLabels[dow]);
-        const firstRoute = dayRoutes[0];
-        const type = getWasteType(firstRoute?.waste_type);
-        return {
-          ...wasteInfo[type],
-          label: firstRoute?.waste_type || "No collection scheduled",
-          time: firstRoute?.start_time?.slice(0, 5) || "—",
-          routeCount: dayRoutes.length,
-          dayName: dayLabels[dow],
-          date: selectedDay,
-        };
-      })()
-    : null;
+  // Assign distinct colors per event visible in current month
+  const scheduleColorById = useMemo(() => {
+    const visibleScheduleIds = [
+      ...new Set(
+        events
+          .filter((event) => {
+            const start = event.event_date ? event.event_date.split("T")[0] : "";
+            const end = event.end_date ? event.end_date.split("T")[0] : start;
+            return start <= monthEnd && end >= monthStart;
+          })
+          .map((event) => event.id)
+      ),
+    ].sort();
+
+    return new Map(
+      visibleScheduleIds.map((id, index) => [
+        id,
+        `hsl(${Math.round((index * 360) / Math.max(visibleScheduleIds.length, 1))} 72% 52%)`,
+      ])
+    );
+  }, [events, monthStart, monthEnd]);
+
+  // Events in currently selected month
+  const currentMonthEvents = useMemo(() => {
+    return events.filter((event) => {
+      const start = event.event_date ? event.event_date.split("T")[0] : "";
+      const end = event.end_date ? event.end_date.split("T")[0] : start;
+      return start <= monthEnd && end >= monthStart;
+    });
+  }, [events, monthStart, monthEnd]);
+
+  // Events for selected date
+  const selectedDayEvents = useMemo(() => {
+    if (!selectedDateStr) return [];
+    return events.filter((e) => {
+      const start = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
+      const end = e.end_date ? e.end_date.split("T")[0] : start;
+      return start <= selectedDateStr && end >= selectedDateStr;
+    });
+  }, [events, selectedDateStr]);
+
+  // Event titles with matching dot colors to display directly below the calendar
+  const eventsToShow = useMemo(() => {
+    const source = selectedDayEvents.length > 0 ? selectedDayEvents : currentMonthEvents;
+    const seen = new Set<string>();
+    return source.filter((e) => {
+      const key = (e.title || "").trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [selectedDayEvents, currentMonthEvents]);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <CalendarDays className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-foreground font-display">
-              Municipal Collection Schedule
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {monthName} {year} · Daily classification calendar
-            </p>
-          </div>
+    <div
+      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all space-y-3.5 ${className}`}
+    >
+      {/* Header with Title, Month Badge & Manager Link */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h3 className="text-base font-bold text-foreground font-display">
+            MENRO Schedule
+          </h3>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+            {monthName} {year}
+          </span>
         </div>
 
         <Button
@@ -92,93 +133,247 @@ const AdminCollectionCalendar = ({ routes = [] }: AdminCollectionCalendarProps) 
         </Button>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="border border-border/80 rounded-xl p-3 sm:p-4 bg-background">
+      {/* Calendar Grid Container */}
+      <TooltipProvider delayDuration={100}>
+        <div className="border border-border/80 rounded-xl p-3 sm:p-3.5 bg-background space-y-2">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1.5 mb-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1">
           {dayLabels.map((d) => (
             <div
               key={d}
-              className="text-center text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider py-1"
+              className="text-center text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-0.5"
             >
               {d}
             </div>
           ))}
         </div>
 
-        {/* Calendar Day Cells */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {cells.map((day, i) => {
-            if (day === null) return <div key={`empty-${i}`} />;
-            const dow = new Date(year, month, day).getDay();
-            const dayRoutes = activeRoutes.filter((route) => route.day_of_week.toUpperCase() === fullDayLabels[dow]);
-            const hasSchedule = dayRoutes.length > 0;
-            const type = getWasteType(dayRoutes[0]?.waste_type);
-            const info = wasteInfo[type];
-            const isToday = day === today;
-            const isSelected = day === selectedDay;
+        {/* Calendar Day Cells — matched to Schedule Manager CalendarGrid */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+          {/* Empty offset slots */}
+          {Array.from({ length: firstDayIndex }).map((_, i) => (
+            <div
+              key={`empty-${i}`}
+              className="min-h-[64px] sm:min-h-[72px] rounded-xl bg-muted/15 border border-transparent opacity-30"
+            />
+          ))}
+
+          {/* Month Day Cells */}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const dayNum = i + 1;
+            const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+            const isSelected = selectedDateStr === dateStr;
+            const isToday = todayStr === dateStr;
+
+            const dayEvents = events.filter((e) => {
+              const start = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
+              const end = e.end_date ? e.end_date.split("T")[0] : start;
+              return start <= dateStr && end >= dateStr;
+            });
 
             return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => setSelectedDay(isSelected ? null : day)}
-                className={`relative flex flex-col items-center justify-center rounded-xl p-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  isToday
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs ring-2 ring-primary/30"
-                    : isSelected
-                      ? "bg-primary/20 text-foreground ring-2 ring-primary/40"
-                      : hasSchedule
-                        ? `${info.color} border hover:bg-primary/15`
-                        : "bg-muted/25 text-muted-foreground border border-border/50 hover:bg-muted/45"
-                }`}
-              >
-                <span>{day}</span>
-                {!isToday && hasSchedule && (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${info.dot} mt-1`}
-                  />
+              <div
+                key={dateStr}
+                onClick={() => setSelectedDateStr(dateStr)}
+                className={cn(
+                  "relative min-h-[64px] sm:min-h-[72px] p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group",
+                  isSelected
+                    ? "border-primary bg-primary/5 shadow-2xs ring-1.5 ring-primary/40"
+                    : isToday
+                      ? "border-primary/40 bg-muted/30"
+                      : "border-border/60 hover:border-primary/30 hover:bg-muted/40"
                 )}
-              </button>
+              >
+                {/* Day Number Circle */}
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      "text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full transition-colors",
+                      isToday
+                        ? "bg-primary text-primary-foreground font-extrabold shadow-2xs"
+                        : isSelected
+                          ? "text-primary font-black"
+                          : "text-foreground group-hover:text-primary"
+                    )}
+                  >
+                    {dayNum}
+                  </span>
+                </div>
+
+                {/* All schedule color dots directly on date with hover details */}
+                <div className="relative mt-auto min-h-[16px] flex items-center">
+                  {dayEvents.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 max-w-full">
+                      {dayEvents.map((evt) => {
+                        const dateText = evt.event_date
+                          ? new Date(evt.event_date.split("T")[0] + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "";
+                        const endDateText = evt.end_date && evt.end_date !== evt.event_date
+                          ? new Date(evt.end_date.split("T")[0] + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "";
+
+                        return (
+                          <Tooltip key={evt.id}>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 shadow-2xs transition-transform hover:scale-150 cursor-pointer"
+                                style={{
+                                  backgroundColor:
+                                    scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                                }}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50"
+                            >
+                              <div className="flex items-start gap-2 font-bold text-xs leading-tight">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+                                  style={{
+                                    backgroundColor:
+                                      scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                                  }}
+                                />
+                                <span className="break-words break-all [overflow-wrap:anywhere]">{evt.title}</span>
+                              </div>
+
+                              {dateText && (
+                                <p className="text-[11px] text-muted-foreground">
+                                  <strong className="text-foreground">Date:</strong> {dateText}
+                                  {endDateText ? ` – ${endDateText}` : ""}
+                                </p>
+                              )}
+
+                              {evt.start_time && (
+                                <p className="text-[11px] text-muted-foreground">
+                                  <strong className="text-foreground">Time:</strong> {evt.start_time.slice(0, 5)}
+                                  {evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}
+                                </p>
+                              )}
+
+                              {(evt.location || evt.barangay_name) && (
+                                <p className="text-[11px] text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
+                                  <strong className="text-foreground">Location:</strong> {evt.location || evt.barangay_name}
+                                </p>
+                              )}
+
+                              {evt.description && (
+                                <div className="pt-1.5 border-t border-border/60 max-h-36 overflow-y-auto pr-1">
+                                  <p className="text-[11px] text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
+                                    {evt.description}
+                                  </p>
+                                </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
 
-        {/* Selected Day Popover */}
-        {selectedDayInfo && (
-          <div className="mt-3.5 p-3.5 rounded-xl bg-muted/40 border border-border/80 flex items-center justify-between animate-fade-in">
-            <div>
-              <p className="text-xs font-bold text-foreground">
-                {selectedDayInfo.dayName}, {monthName} {selectedDayInfo.date}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {selectedDayInfo.routeCount > 0
-                  ? `${selectedDayInfo.label} · ${selectedDayInfo.routeCount} ${selectedDayInfo.routeCount === 1 ? "route" : "routes"} · Starts at ${selectedDayInfo.time}`
-                  : "No active collection route is configured for this day."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedDay(null)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        {/* Footer: Schedule Legend with full details on hover and click */}
+        {eventsToShow.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-2.5 mt-1 border-t border-border/60">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">
+                Schedule Legend:
+              </span>
+              {eventsToShow.map((evt) => {
+                const dateText = evt.event_date
+                  ? new Date(evt.event_date.split("T")[0] + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "";
+                const endDateText = evt.end_date && evt.end_date !== evt.event_date
+                  ? new Date(evt.end_date.split("T")[0] + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "";
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-3 mt-3 border-t border-border/60 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span>Biodegradable route</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
-            <span>Non-Biodegradable route</span>
-          </div>
+                return (
+                  <Tooltip key={evt.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (evt.event_date) {
+                            setSelectedDateStr(evt.event_date.split("T")[0]);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs text-foreground bg-muted/40 hover:bg-muted/80 hover:border-primary/40 px-2.5 py-1 rounded-full border border-border/70 shadow-2xs transition-all cursor-pointer group"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0 shadow-2xs group-hover:scale-125 transition-transform"
+                          style={{
+                            backgroundColor:
+                              scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                          }}
+                        />
+                        <span className="font-semibold text-xs text-foreground">
+                          {evt.title}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground">
+                      <div className="flex items-start gap-2 font-bold text-xs leading-tight">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+                          style={{
+                            backgroundColor:
+                              scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                          }}
+                        />
+                        <span className="break-words break-all [overflow-wrap:anywhere]">{evt.title}</span>
+                      </div>
+
+                      {dateText && (
+                        <p className="text-[11px] text-muted-foreground">
+                          <strong className="text-foreground">Date:</strong> {dateText}
+                          {endDateText ? ` – ${endDateText}` : ""}
+                        </p>
+                      )}
+
+                      {evt.start_time && (
+                        <p className="text-[11px] text-muted-foreground">
+                          <strong className="text-foreground">Time:</strong> {evt.start_time.slice(0, 5)}
+                          {evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}
+                        </p>
+                      )}
+
+                      {(evt.location || evt.barangay_name) && (
+                        <p className="text-[11px] text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
+                          <strong className="text-foreground">Location:</strong> {evt.location || evt.barangay_name}
+                        </p>
+                      )}
+
+                      {evt.description && (
+                        <div className="pt-1.5 border-t border-border/60 max-h-36 overflow-y-auto pr-1">
+                          <p className="text-[11px] text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
+                            {evt.description}
+                          </p>
+                        </div>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+        )}
         </div>
-      </div>
+      </TooltipProvider>
     </div>
   );
 };

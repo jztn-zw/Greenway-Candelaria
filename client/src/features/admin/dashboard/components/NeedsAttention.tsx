@@ -5,15 +5,15 @@ import {
   Clock,
   FileText,
   Truck,
-  Users,
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { AnalyticsOverview, ReportsAnalytics } from "./useAdminDashboard";
+import { DashboardAttention } from "./useAdminDashboard";
 
 interface AttentionItem {
   id: string;
+  count: number;
   description: string;
   timeAgo: string;
   priority: "high" | "medium" | "low";
@@ -23,8 +23,7 @@ interface AttentionItem {
 }
 
 interface NeedsAttentionProps {
-  overview?: AnalyticsOverview | null;
-  reportsAnalytics?: ReportsAnalytics | null;
+  attention?: DashboardAttention | null;
 }
 
 const priorityStyles: Record<
@@ -51,48 +50,74 @@ const priorityStyles: Record<
   },
 };
 
-const NeedsAttention = ({ overview }: NeedsAttentionProps) => {
+const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
   const navigate = useNavigate();
-  const pendingCount = overview?.reports?.pending ?? 0;
+  const highPriorityCount = attention?.high_priority_awaiting_triage ?? 0;
+  const standardPriorityCount = attention?.standard_priority_awaiting_triage ?? 0;
+  const maintenanceTruckCount = attention?.maintenance_trucks ?? 0;
 
-  const items: AttentionItem[] = pendingCount > 0 ? [
-    {
-      id: "1",
-      description: `${pendingCount} pending waste incident reports awaiting triage`,
-      timeAgo: "Live queue",
-      priority: pendingCount >= 5 ? "high" : "medium",
+  const items: AttentionItem[] = [];
+
+  if (highPriorityCount > 0) {
+    items.push({
+      id: "high-priority",
+      count: highPriorityCount,
+      description: `${highPriorityCount} urgent high-priority incident reports require review`,
+      timeAgo: "High priority",
+      priority: "high",
+      action: "Review",
+      route: "/admin/reports",
+      icon: AlertTriangle,
+    });
+  }
+
+  if (standardPriorityCount > 0) {
+    items.push({
+      id: "pending-queue",
+      count: standardPriorityCount,
+      description: `${standardPriorityCount} incident report${standardPriorityCount > 1 ? "s" : ""} awaiting review`,
+      timeAgo: "Queue active",
+      priority: "medium",
       action: "Review",
       route: "/admin/reports",
       icon: FileText,
-    },
-  ] : [];
+    });
+  }
+
+  if (maintenanceTruckCount > 0) {
+    items.push({
+      id: "fleet-idle",
+      count: maintenanceTruckCount,
+      description: `${maintenanceTruckCount} collection vehicle${maintenanceTruckCount > 1 ? "s" : ""} under maintenance`,
+      timeAgo: "Maintenance required",
+      priority: "medium",
+      action: "Fleet",
+      route: "/admin/truck-tracking",
+      icon: Truck,
+    });
+  }
 
   const noIssues = items.length === 0;
+  const attentionCount = items.reduce((total, item) => total + item.count, 0);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
+    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex h-full flex-col">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-2xs">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground font-display">
-                Needs Attention
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Urgent triage & operational alerts
-              </p>
-            </div>
-          </div>
+          <h3 className="text-base font-bold text-foreground font-display">
+            Needs Attention
+          </h3>
 
           <Badge
             variant="outline"
-            className="bg-destructive/10 text-destructive border-destructive/25 text-xs font-bold px-2 py-0.5 rounded-full"
+            className={
+              items.length > 0
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25 text-xs font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
+                : "bg-muted text-muted-foreground border-border/70 text-xs font-medium px-2.5 py-0.5 rounded-full"
+            }
           >
-            {items.length} items
+            {attentionCount} {attentionCount === 1 ? "item" : "items"}
           </Badge>
         </div>
 
@@ -159,6 +184,11 @@ const NeedsAttention = ({ overview }: NeedsAttentionProps) => {
           </div>
         )}
       </div>
+      {!noIssues && (
+        <p className="mt-auto border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+          No additional operational alerts right now.
+        </p>
+      )}
     </div>
   );
 };

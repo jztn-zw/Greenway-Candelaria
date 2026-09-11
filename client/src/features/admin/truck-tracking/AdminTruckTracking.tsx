@@ -1042,86 +1042,78 @@ const AdminTruckTracking = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
       {/* -- Page Header -- */}
       <div className="flex items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Navigation className="w-5 h-5" />
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+              Live Fleet Tracking
+            </h1>
+            <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold border-primary/30 text-primary bg-primary/5">
+              Candelaria
+            </Badge>
           </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-                Live Fleet Tracking
-              </h1>
-              <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold border-primary/30 text-primary bg-primary/5">
-                Candelaria
-              </Badge>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.
+          </p>
         </div>
       </div>
 
       {/* -- Executive Metric KPI Strip -- */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
         {[
           {
             title: "Active Fleet",
             value: `${animatedActive}/${displayTrucks.length}`,
             description: `${activeTrucks} vehicles on live duty`,
-            icon: Truck,
-            iconBox: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
           },
           {
             title: "Barangays Covered",
             value: `${animatedCompleted}/${totalStops}`,
             description: `${totalStops - totalCompleted} remaining stops`,
-            icon: MapPin,
-            iconBox: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+            tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
           },
           {
             title: "Fleet Progress",
             value: `${animatedCompletion}%`,
-            description: "Overall municipality progress",
-            icon: CheckCircle2,
-            iconBox: "bg-primary/10 text-primary border-primary/20",
+            description: "Overall municipal progress",
+            tag: "bg-muted/70 text-muted-foreground border-border/80",
           },
           {
             title: "Routes Finished",
             value: `${animatedDone}/${displayTrucks.length}`,
             description: `${doneTrucks} trucks completed routes`,
-            icon: ShieldCheck,
-            iconBox: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
           },
-        ].map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div
-              key={kpi.title}
-              className="bg-card border border-border/80 rounded-2xl p-3 sm:p-5 shadow-2xs space-y-1 sm:space-y-1.5 transition-all hover:border-border"
-            >
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider truncate">
-                  {kpi.title}
-                </span>
-                <div
-                  className={cn(
-                    "w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center shrink-0",
-                    kpi.iconBox
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-              <div className="text-xl sm:text-3xl font-bold font-display text-foreground tabular-nums tracking-tight">
-                {kpi.value}
-              </div>
-              <div className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
-                {kpi.description}
-              </div>
+        ].map((kpi, idx) => (
+          <div
+            key={kpi.title}
+            className={cn(
+              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
+              idx % 2 === 0 ? "border-r border-border/70" : "",
+              idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
+              idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
+            )}
+          >
+            <div className="flex items-center min-h-[22px]">
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  kpi.tag
+                )}
+              >
+                {kpi.title}
+              </span>
             </div>
-          );
-        })}
+
+            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+              {kpi.value}
+            </div>
+
+            <div className="text-[11px] text-muted-foreground font-medium truncate">
+              {kpi.description}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* -- Single-view switcher for tablet and mobile -- */}

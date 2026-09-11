@@ -1,11 +1,13 @@
 import {
   Truck as TruckIcon,
   User,
+  Recycle,
+  CalendarDays,
+  ShieldCheck,
+  Hash,
   Edit2,
   Wrench,
   CheckCircle2,
-  CalendarDays,
-  Recycle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,12 +47,12 @@ const TruckDetailView = ({
         </div>
       </div>
 
-      {/* ── Truck Profile Bento Card ── */}
+      {/* ── Truck Profile Overview Card ── */}
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5 pb-6 border-b border-border/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-              <TruckIcon className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+              <TruckIcon className="w-7 h-7 text-primary" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -77,70 +79,101 @@ const TruckDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onEdit(truck)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+              Edit Truck
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onToggleStatus(truck)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
             >
               {truck.status === "Active" ? (
                 <>
-                  <Wrench className="w-3.5 h-3.5 text-amber-500" /> Mark Under Maintenance
+                  <Wrench className="w-3.5 h-3.5 text-muted-foreground" />
+                  Mark Under Maintenance
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Mark as Active
+                  <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  Mark as Active
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {/* ── Metadata Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <TruckIcon className="w-3.5 h-3.5 text-primary" /> Plate Number
-            </p>
-            <p className="text-sm font-semibold font-mono text-foreground">
+        {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
+          {/* Layer 1: Vehicle Identification & Driver */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Plate Number
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground font-sans tabular-nums font-semibold">
               {truck.plateNumber}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-primary" /> Assigned Driver
-            </p>
-            <p className="text-sm font-semibold text-foreground truncate">
-              {driver ? driver.fullName : "Unassigned"}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <TruckIcon className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Vehicle Model
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate">
+              {truck.model}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Recycle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Waste Category
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Assigned Driver
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate">
+              {driver ? (
+                <span>
+                  {driver.fullName}{" "}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    (@{driver.username})
+                  </span>
+                </span>
+              ) : (
+                <span className="text-muted-foreground italic">Unassigned</span>
+              )}
             </p>
-            <p className="text-sm font-semibold text-foreground">
+          </div>
+
+          {/* Layer 2: Specifications & Operational Status */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Recycle className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Waste Category
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
               {truck.wasteType}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5 text-primary" /> Date Added
-            </p>
-            <p className="text-sm font-semibold text-foreground">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Date Added
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
               {truck.dateAdded || "N/A"}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground">Fleet Status</p>
-            <p className="text-sm font-semibold text-foreground">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Fleet Status
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
               {truck.status === "Active" ? "Operational Fleet" : "Under Service / Maintenance"}
             </p>
           </div>

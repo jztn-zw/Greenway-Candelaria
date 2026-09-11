@@ -25,6 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE_TRUCK: "Deleted Truck",
   ASSIGN_DRIVER_TRUCK: "Assigned Driver",
   UPDATE_COLLECTION_SCHEDULE: "Updated Schedule",
+  CREATE_COLLECTION_SCHEDULE: "Created Collection Rule",
   UPDATE_REMINDER_SETTINGS: "Updated Reminders",
   CREATE_USER: "Created Account",
   UPDATE_USER: "Updated Account",
@@ -77,23 +78,34 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
   const action = row.action || "UNKNOWN";
   const actionType = ACTION_LABELS[action] || action.replace(/_/g, " ");
 
+  const isPositive =
+    action === "UNBAN_USER" ||
+    action === "ACTIVATE_USER" ||
+    action === "PUBLISH_POST";
+
   const isCritical =
-    action.includes("DELETE") ||
-    action.includes("BAN") ||
-    action.includes("FAILED_LOGIN") ||
-    action.includes("DEACTIVATE");
+    !isPositive &&
+    (action.includes("DELETE") ||
+      action === "BAN_USER" ||
+      action.includes("FAILED_LOGIN") ||
+      action.includes("DEACTIVATE"));
+
   const isChange =
-    action.includes("UPDATE") ||
-    action.includes("PUBLISH") ||
-    action.includes("STATUS") ||
-    action.includes("ASSIGN") ||
-    action.includes("FLAG");
+    !isPositive &&
+    !isCritical &&
+    (action.includes("UPDATE") ||
+      action.includes("STATUS") ||
+      action.includes("ASSIGN") ||
+      action.includes("FLAG") ||
+      action === "CHANGE_PASSWORD");
 
   const severity: ActionSeverity = isCritical
     ? "critical"
-    : isChange
-      ? "change"
-      : "routine";
+    : isPositive
+      ? "positive"
+      : isChange
+        ? "change"
+        : "routine";
 
   const moduleName =
     MODULE_LABELS[row.module?.toLowerCase()] || ("Accounts" as AuditModule);
@@ -111,26 +123,46 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     affectedRecord = newVal.title || oldVal.title;
   } else if (newVal.name || oldVal.name) {
     affectedRecord = newVal.name || oldVal.name;
+  } else if (newVal.plate_number || oldVal.plate_number) {
+    affectedRecord = newVal.plate_number || oldVal.plate_number;
   } else if (newVal.driver || oldVal.driver) {
     affectedRecord = newVal.driver || oldVal.driver;
+  } else if (newVal.barangay || oldVal.barangay) {
+    affectedRecord = newVal.barangay || oldVal.barangay;
   } else if (newVal.email || oldVal.email) {
     affectedRecord = newVal.email || oldVal.email;
   } else if (row.record_id) {
     affectedRecord = `${row.record_id.slice(0, 8)}...`;
   }
 
-  // Format ID tag
-  const idTag = row.record_id ? `(ID: ${row.record_id.slice(0, 8)}...)` : "";
-
   let summary = "";
   let beforeValue: string | undefined = undefined;
   let afterValue: string | undefined = undefined;
 
   switch (action) {
+    case "CREATE_USER": {
+      const name = newVal.user_name || newVal.name || "User";
+      const role = formatStatus(newVal.role || "User");
+      const email = newVal.email ? ` (${newVal.email})` : "";
+      summary = `Created new ${role} account for "${name}"${email}.`;
+      afterValue = "Active";
+      break;
+    }
+
+    case "UPDATE_USER": {
+      const name = newVal.user_name || oldVal.user_name || newVal.name || "User";
+      summary = `Updated account details for "${name}".`;
+      if (oldVal.status !== newVal.status && (oldVal.status || newVal.status)) {
+        beforeValue = formatStatus(oldVal.status || "Active");
+        afterValue = formatStatus(newVal.status || "Active");
+      }
+      break;
+    }
+
     case "DELETE_USER": {
       const name = newVal.user_name || oldVal.user_name || "User";
       const role = formatStatus(newVal.role || oldVal.role || "User");
-      summary = `Deleted ${role} account for "${name}" ${idTag}.`;
+      summary = `Permanently deleted ${role} account for "${name}".`;
       beforeValue = formatStatus(oldVal.status || "Active");
       afterValue = "Deleted";
       break;
@@ -139,7 +171,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     case "DEACTIVATE_USER": {
       const name = newVal.user_name || oldVal.user_name || "User";
       const role = formatStatus(newVal.role || oldVal.role || "User");
-      summary = `Deactivated ${role} account for "${name}" ${idTag}.`;
+      summary = `Deactivated ${role} account for "${name}".`;
       beforeValue = formatStatus(oldVal.status || "Active");
       afterValue = "Deactivated";
       break;
@@ -148,8 +180,8 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     case "BAN_USER": {
       const name = newVal.user_name || oldVal.user_name || "User";
       const role = formatStatus(newVal.role || oldVal.role || "User");
-      const reason = newVal.ban_reason ? ` (Reason: "${newVal.ban_reason}")` : "";
-      summary = `Banned ${role} account for "${name}" ${idTag}${reason}.`;
+      const reason = newVal.ban_reason ? ` Reason: ${newVal.ban_reason}.` : "";
+      summary = `Banned ${role} account for "${name}".${reason}`;
       beforeValue = formatStatus(oldVal.status || "Active");
       afterValue = "Banned";
       break;
@@ -158,7 +190,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     case "UNBAN_USER": {
       const name = newVal.user_name || oldVal.user_name || "User";
       const role = formatStatus(newVal.role || oldVal.role || "User");
-      summary = `Unbanned and restored ${role} account for "${name}" ${idTag}.`;
+      summary = `Unbanned and restored ${role} account for "${name}".`;
       beforeValue = "Banned";
       afterValue = "Active";
       break;
@@ -167,7 +199,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     case "ACTIVATE_USER": {
       const name = newVal.user_name || oldVal.user_name || "User";
       const role = formatStatus(newVal.role || oldVal.role || "User");
-      summary = `Activated ${role} account for "${name}" ${idTag}.`;
+      summary = `Activated ${role} account for "${name}".`;
       beforeValue = formatStatus(oldVal.status || "Inactive");
       afterValue = "Active";
       break;
@@ -178,13 +210,12 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       break;
 
     case "FAILED_LOGIN":
-      summary = `Failed login attempt for account "${newVal.identifier || "unknown"}" (${newVal.reason || "Invalid credentials"}).`;
-      beforeValue = undefined;
+      summary = `Failed login attempt for account "${newVal.identifier || "unknown"}". Reason: ${newVal.reason || "Invalid credentials"}.`;
       afterValue = "Failed Login";
       break;
 
     case "CHANGE_PASSWORD":
-      summary = `User changed account security password.`;
+      summary = `User updated account security password.`;
       break;
 
     case "CREATE_POST":
@@ -193,7 +224,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       break;
 
     case "PUBLISH_POST":
-      summary = `Published content post "${newVal.title || oldVal.title || "Post"}".`;
+      summary = `Published content post "${newVal.title || oldVal.title || "Post"}" to the community feed.`;
       beforeValue = formatStatus(oldVal.status || "Draft");
       afterValue = "Published";
       break;
@@ -213,7 +244,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       break;
 
     case "CREATE_ANNOUNCEMENT":
-      summary = `Created announcement "${newVal.title || "Untitled"}" with priority ${formatStatus(newVal.priority || "Normal")}.`;
+      summary = `Created announcement "${newVal.title || "Untitled"}".`;
       afterValue = formatStatus(newVal.status || "Draft");
       break;
 
@@ -232,14 +263,14 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       break;
 
     case "CREATE_REPORT":
-      summary = `Submitted waste report ${newVal.reference_number || affectedRecord} (${formatStatus(newVal.violation_type || "Violation")}) in ${newVal.barangay || "Barangay"}.`;
+      summary = `Submitted waste report for ${formatStatus(newVal.violation_type || "Violation")} in ${newVal.barangay || "Barangay"}.`;
       afterValue = "Submitted";
       break;
 
     case "UPDATE_REPORT_STATUS": {
       const bStatus = formatStatus(oldVal.status || "Submitted");
       const aStatus = formatStatus(newVal.status || "Under Review");
-      summary = `Changed report ${newVal.reference_number || oldVal.reference_number || affectedRecord} status from ${bStatus} to ${aStatus}.`;
+      summary = `Changed report status from ${bStatus} to ${aStatus}.`;
       beforeValue = bStatus;
       afterValue = aStatus;
       break;
@@ -248,21 +279,25 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     case "UPDATE_REPORT_PRIORITY": {
       const bPri = formatStatus(oldVal.priority || "Medium");
       const aPri = formatStatus(newVal.priority || "High");
-      summary = `Changed report ${newVal.reference_number || oldVal.reference_number || affectedRecord} priority from ${bPri} to ${aPri}.`;
+      summary = `Changed report priority from ${bPri} to ${aPri}.`;
       beforeValue = bPri;
       afterValue = aPri;
       break;
     }
 
     case "FLAG_REPORT":
-      summary = `Updated report flags for ${affectedRecord}.`;
-      beforeValue = oldVal.is_false ? "Flagged False" : "Unflagged";
+      summary = newVal.is_false
+        ? `Flagged report as an invalid / false report.`
+        : `Removed false report flag from report.`;
+      beforeValue = oldVal.is_false ? "Flagged False" : "Verified";
       afterValue = newVal.is_false ? "Flagged False" : "Verified";
       break;
 
     case "ADD_REPORT_NOTE":
-      summary = `Added internal investigation note on report ${newVal.reference_number || affectedRecord}.`;
-      afterValue = `Note: "${newVal.note || ""}"`;
+      summary = newVal.note
+        ? `Added internal investigation note: "${newVal.note}".`
+        : `Added internal investigation note to report.`;
+      afterValue = "Note Added";
       break;
 
     case "CREATE_ROUTE":
@@ -270,20 +305,24 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       afterValue = "Active";
       break;
 
+    case "UPDATE_ROUTE":
+      summary = `Updated collection route "${newVal.name || oldVal.name || "Route"}".`;
+      break;
+
     case "DELETE_ROUTE":
-      summary = `Deleted ${formatStatus(oldVal.day_of_week || "Daily")} collection route "${oldVal.name || affectedRecord}".`;
+      summary = `Deleted collection route "${oldVal.name || affectedRecord}".`;
       beforeValue = "Active";
       afterValue = "Deleted";
       break;
 
     case "CREATE_TRUCK":
       summary = `Registered collection truck "${newVal.name || "Truck"}" (Plate: ${newVal.plate_number || "N/A"}).`;
-      afterValue = "Registered";
+      afterValue = "Active";
       break;
 
     case "UPDATE_TRUCK":
       summary = `Updated truck details for "${newVal.name || oldVal.name || "Truck"}".`;
-      if (oldVal.status !== newVal.status) {
+      if (oldVal.status !== newVal.status && (oldVal.status || newVal.status)) {
         beforeValue = formatStatus(oldVal.status);
         afterValue = formatStatus(newVal.status);
       }
@@ -301,26 +340,34 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       afterValue = newVal.truck ? `Truck: ${newVal.truck}` : "Unassigned";
       break;
 
-    case "UPDATE_COLLECTION_SCHEDULE":
-      summary = `Updated ${formatStatus(newVal.day || oldVal.day || "Day")} schedule waste type from ${formatStatus(oldVal.waste_type || "None")} to ${formatStatus(newVal.waste_type || "None")}.`;
-      beforeValue = formatStatus(oldVal.waste_type);
-      afterValue = formatStatus(newVal.waste_type);
+    case "CREATE_COLLECTION_SCHEDULE":
+      summary = `Created collection schedule rule for ${formatStatus(newVal.barangay || "Barangay")} on ${formatStatus(newVal.day || "Day")} (${formatStatus(newVal.waste_type || "General Waste")}).`;
+      afterValue = "Active";
       break;
 
-    default:
-      summary = action.replace(/_/g, " ");
-      if (Object.keys(newVal).length > 0) {
-        const preview = Object.entries(newVal)
-          .filter(([_, v]) => typeof v !== "object" && v !== null)
-          .map(([k, v]) => `${formatStatus(k)}: ${v}`)
-          .join(", ");
-        if (preview) summary += ` (${preview})`;
-      }
+    case "UPDATE_COLLECTION_SCHEDULE":
+      summary = `Updated ${formatStatus(newVal.day || oldVal.day || "Day")} collection type from ${formatStatus(oldVal.waste_type || "None")} to ${formatStatus(newVal.waste_type || "None")}.`;
+      beforeValue = formatStatus(oldVal.waste_type || "None");
+      afterValue = formatStatus(newVal.waste_type || "None");
+      break;
+
+    case "UPDATE_REMINDER_SETTINGS":
+      summary = `Updated collection reminder notification settings.`;
+      break;
+
+    case "UPDATE_LANDING_CONTENT":
+      summary = `Updated public landing page content and announcements.`;
+      break;
+
+    default: {
+      const cleanAction = actionType || action.replace(/_/g, " ");
+      summary = `${cleanAction} recorded on ${affectedRecord !== "System" ? `"${affectedRecord}"` : "system record"}.`;
       if (Object.keys(oldVal).length > 0 || Object.keys(newVal).length > 0) {
         beforeValue = getCleanValueString(oldVal);
         afterValue = getCleanValueString(newVal);
       }
       break;
+    }
   }
 
   return {

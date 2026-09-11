@@ -1,213 +1,114 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Truck, Leaf, MapPin, ChevronDown, ChevronUp, Bell, Info, Sparkles } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bell, Clock, Save, Truck } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { updateReminderSettings } from "@/services/scheduleService";
+import { CollectionScheduleDay, createCollectionSchedule, updateCollectionSchedule, updateReminderSettings } from "@/services/scheduleService";
 
-const DEFAULT_WEEKLY = [
-  { day: "Monday", shortDay: "Mon", wasteType: "BIODEGRADABLE", localName: "Nabulok", barangays: ["Malabanban Norte", "Malabanban Sur", "Mangilag Norte", "Mangilag Sur", "Masalukot I"] },
-  { day: "Tuesday", shortDay: "Tue", wasteType: "NON_BIODEGRADABLE", localName: "Di-Nabulok", barangays: ["Bukal Norte", "Bukal Sur", "Candelaria Proper", "Kinatihan I", "Kinatihan II"] },
-  { day: "Wednesday", shortDay: "Wed", wasteType: "BIODEGRADABLE", localName: "Nabulok", barangays: ["Malabanban Norte", "Malabanban Sur", "Mangilag Norte", "Mangilag Sur", "Masalukot I"] },
-  { day: "Thursday", shortDay: "Thu", wasteType: "NON_BIODEGRADABLE", localName: "Di-Nabulok", barangays: ["Bukal Norte", "Bukal Sur", "Candelaria Proper", "Kinatihan I", "Kinatihan II"] },
-  { day: "Friday", shortDay: "Fri", wasteType: "BIODEGRADABLE", localName: "Nabulok", barangays: ["Malabanban Norte", "Malabanban Sur", "Mangilag Norte", "Mangilag Sur", "Masalukot I"] },
-  { day: "Saturday", shortDay: "Sat", wasteType: "NON_BIODEGRADABLE", localName: "Di-Nabulok", barangays: ["Bukal Norte", "Bukal Sur", "Candelaria Proper", "Kinatihan I", "Kinatihan II"] },
-  { day: "Sunday", shortDay: "Sun", wasteType: "BIODEGRADABLE", localName: "Nabulok", barangays: ["Malabanban Norte", "Malabanban Sur", "Mangilag Norte", "Mangilag Sur", "Masalukot I"] },
-];
+const DAYS = [["MONDAY", "Mon"], ["TUESDAY", "Tue"], ["WEDNESDAY", "Wed"], ["THURSDAY", "Thu"], ["FRIDAY", "Fri"], ["SATURDAY", "Sat"], ["SUNDAY", "Sun"]] as const;
+type Draft = { waste_type: CollectionScheduleDay["waste_type"]; start_time: string; end_time: string };
 
 interface WeeklyRulesProps {
   initialReminderTiming: string;
+  rules: CollectionScheduleDay[];
+  onRulesChanged: () => Promise<void>;
 }
 
-export const WeeklyRules: React.FC<WeeklyRulesProps> = ({ initialReminderTiming }) => {
-  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+export const WeeklyRules: React.FC<WeeklyRulesProps> = ({ initialReminderTiming, rules, onRulesChanged }) => {
   const [reminderTiming, setReminderTiming] = useState(initialReminderTiming);
-  const [isSaving, setIsSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [newRuleDrafts, setNewRuleDrafts] = useState<Record<string, Draft>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingReminder, setSavingReminder] = useState(false);
 
-  const todayIndex = new Date().getDay();
-  const reorderedTodayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+  useEffect(() => setReminderTiming(initialReminderTiming), [initialReminderTiming]);
+  useEffect(() => {
+    setDrafts(Object.fromEntries(rules.map((rule) => [rule.id, {
+      waste_type: rule.waste_type,
+      start_time: rule.start_time?.slice(0, 5) || "",
+      end_time: rule.end_time?.slice(0, 5) || "",
+    }])));
+  }, [rules]);
 
-  const handleSaveReminder = async () => {
+  const rulesByDay = useMemo(() => new Map(rules.map((rule) => [rule.day_of_week, rule])), [rules]);
+
+  const saveRule = async (rule: CollectionScheduleDay) => {
+    const draft = drafts[rule.id];
+    if (!draft?.start_time) return toast.error("A collection start time is required.");
+    if (draft.end_time && draft.end_time <= draft.start_time) return toast.error("End time must be later than start time.");
     try {
-      setIsSaving(true);
-      const hours = reminderTiming === "1d" ? 24 : reminderTiming === "3h" ? 3 : 1;
-      await updateReminderSettings(hours);
-      toast.success("Resident notification timing updated successfully");
-    } catch (err) {
-      toast.error("Failed to update reminder setting");
+      setSavingId(rule.id);
+      await updateCollectionSchedule(rule.id, { waste_type: draft.waste_type, start_time: draft.start_time, end_time: draft.end_time || null });
+      await onRulesChanged();
+      toast.success(`${rule.day_of_week.toLowerCase()} collection rule saved.`);
+    } catch {
+      toast.error("Failed to save the collection rule.");
     } finally {
-      setIsSaving(false);
+      setSavingId(null);
+    }
+  };
+
+  const createRule = async (day: string) => {
+    const draft = newRuleDrafts[day];
+    if (!draft?.start_time) return toast.error("Choose a waste type and collection start time.");
+    if (draft.end_time && draft.end_time <= draft.start_time) return toast.error("End time must be later than start time.");
+    try {
+      setSavingId(day);
+      await createCollectionSchedule({ day_of_week: day, waste_type: draft.waste_type, start_time: draft.start_time, end_time: draft.end_time || null });
+      await onRulesChanged();
+      setNewRuleDrafts((current) => { const next = { ...current }; delete next[day]; return next; });
+      toast.success(`${day.toLowerCase()} collection rule created.`);
+    } catch {
+      toast.error("Failed to create the collection rule.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const saveReminder = async () => {
+    try {
+      setSavingReminder(true);
+      await updateReminderSettings(reminderTiming === "1d" ? 24 : reminderTiming === "3h" ? 3 : 1);
+      toast.success("Collection reminder timing saved.");
+    } catch {
+      toast.error("Failed to save reminder timing.");
+    } finally {
+      setSavingReminder(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Truck className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-foreground font-display">
-              Permanent Weekly Municipal Collection Rules
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Standard municipal waste segregation routine (Mon/Wed/Fri/Sun Biodegradable · Tue/Thu/Sat Non-Biodegradable)
-            </p>
-          </div>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-base sm:text-lg font-bold text-foreground font-display">Weekly Collection Rules</h2>
+        <p className="text-xs text-muted-foreground mt-1">Live database rules shown to residents and used for automatic collection reminders.</p>
       </div>
-
-      {/* 7-Day Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-        {DEFAULT_WEEKLY.map((item, idx) => {
-          const isToday = idx === reorderedTodayIndex;
-          const isBio = item.wasteType === "BIODEGRADABLE";
-
-          return (
-            <Collapsible
-              key={item.day}
-              open={expandedDay === idx}
-              onOpenChange={() => setExpandedDay(expandedDay === idx ? null : idx)}
-            >
-              <Card
-                className={`relative overflow-hidden transition-all duration-300 ${
-                  isToday
-                    ? "ring-2 ring-primary shadow-md shadow-primary/10 border-primary/40"
-                    : "border-border hover:border-primary/20 hover:shadow-xs"
-                }`}
-              >
-                <div
-                  className={`h-1 w-full ${
-                    isBio ? "bg-emerald-500" : "bg-sky-500"
-                  }`}
-                />
-                <CardHeader className="p-3 pb-2 space-y-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                      {item.shortDay}
-                    </span>
-                    {isToday && (
-                      <Badge className="text-[9px] h-4 px-1.5 bg-primary text-primary-foreground font-bold">
-                        Today
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-3 pt-0 space-y-2">
-                  <div className="flex flex-col items-center gap-1.5 py-2">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        isBio
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20"
-                      }`}
-                    >
-                      {isBio ? <Leaf className="w-4 h-4" /> : <Truck className="w-4 h-4" />}
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-xs font-semibold ${isBio ? "text-emerald-700 dark:text-emerald-400" : "text-sky-700 dark:text-sky-400"}`}>
-                        {isBio ? "Biodegradable" : "Non-Biodegradable"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        {item.localName}
-                      </p>
-                    </div>
-                  </div>
-
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground gap-1 cursor-pointer"
-                    >
-                      <MapPin className="w-3 h-3" />
-                      {item.barangays.length} sectors
-                      {expandedDay === idx ? (
-                        <ChevronUp className="w-3 h-3" />
-                      ) : (
-                        <ChevronDown className="w-3 h-3" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent className="space-y-1">
-                    <div className="border-t border-border/60 pt-2 space-y-1 max-h-36 overflow-y-auto">
-                      {item.barangays.map((brgy) => (
-                        <div
-                          key={brgy}
-                          className="flex items-center gap-1.5 text-[10px] text-muted-foreground"
-                        >
-                          <div className="w-1 h-1 rounded-full bg-primary/60 shrink-0" />
-                          <span className="truncate">{brgy}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CollapsibleContent>
-                </CardContent>
-              </Card>
-            </Collapsible>
-          );
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-3">
+        {DAYS.map(([day, shortDay]) => {
+          const rule = rulesByDay.get(day);
+          const draft = rule ? drafts[rule.id] : null;
+          const newDraft = newRuleDrafts[day] || { waste_type: "BIODEGRADABLE" as const, start_time: "", end_time: "" };
+          const biodegradable = draft?.waste_type === "BIODEGRADABLE";
+          return <Card key={day} className="border-border rounded-2xl overflow-hidden">
+            <div className={biodegradable ? "h-1 bg-emerald-500" : "h-1 bg-sky-500"} />
+            <CardHeader className="p-3 pb-2"><div className="flex items-center justify-between gap-2"><CardTitle className="text-xs font-bold">{shortDay}</CardTitle><Badge variant="outline" className="text-[9px]">{rule ? "Live rule" : "Not set"}</Badge></div></CardHeader>
+            <CardContent className="p-3 pt-1 space-y-2.5">{rule && draft ? <>
+              <Select value={draft.waste_type} onValueChange={(value: CollectionScheduleDay["waste_type"]) => setDrafts((current) => ({ ...current, [rule.id]: { ...draft, waste_type: value } }))}><SelectTrigger className="h-8 text-[11px] rounded-lg"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BIODEGRADABLE" className="text-xs">Biodegradable</SelectItem><SelectItem value="NON_BIODEGRADABLE" className="text-xs">Non-biodegradable</SelectItem></SelectContent></Select>
+              <div className="space-y-1"><label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />Start time</label><input type="time" value={draft.start_time} onChange={(event) => setDrafts((current) => ({ ...current, [rule.id]: { ...draft, start_time: event.target.value } }))} className="h-8 w-full rounded-lg border border-input bg-background px-2 text-[11px]" /></div>
+              <div className="space-y-1"><label className="text-[10px] font-medium text-muted-foreground">End time <span className="font-normal">(optional)</span></label><input type="time" value={draft.end_time} onChange={(event) => setDrafts((current) => ({ ...current, [rule.id]: { ...draft, end_time: event.target.value } }))} className="h-8 w-full rounded-lg border border-input bg-background px-2 text-[11px]" /></div>
+              <Button size="sm" onClick={() => saveRule(rule)} disabled={savingId === rule.id} className="h-8 w-full rounded-lg text-[11px] gap-1.5"><Save className="w-3 h-3" />{savingId === rule.id ? "Saving..." : "Save rule"}</Button>
+            </> : <>
+              <p className="text-[11px] text-muted-foreground">No database rule exists for this day.</p>
+              <Select value={newDraft.waste_type} onValueChange={(value: CollectionScheduleDay["waste_type"]) => setNewRuleDrafts((current) => ({ ...current, [day]: { ...newDraft, waste_type: value } }))}><SelectTrigger className="h-8 text-[11px] rounded-lg"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BIODEGRADABLE" className="text-xs">Biodegradable</SelectItem><SelectItem value="NON_BIODEGRADABLE" className="text-xs">Non-biodegradable</SelectItem></SelectContent></Select>
+              <div className="space-y-1"><label className="text-[10px] font-medium text-muted-foreground">Start time</label><input type="time" value={newDraft.start_time} onChange={(event) => setNewRuleDrafts((current) => ({ ...current, [day]: { ...newDraft, start_time: event.target.value } }))} className="h-8 w-full rounded-lg border border-input bg-background px-2 text-[11px]" /></div>
+              <Button size="sm" onClick={() => createRule(day)} disabled={savingId === day} className="h-8 w-full rounded-lg text-[11px] gap-1.5"><Save className="w-3 h-3" />{savingId === day ? "Creating..." : "Create rule"}</Button>
+            </>}</CardContent>
+          </Card>;
         })}
       </div>
-
-      {/* Automated Reminder Settings */}
-      <Card className="border border-border/80 shadow-2xs rounded-2xl">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-              <Bell className="w-4 h-4" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-bold font-display">Automated Resident Reminders</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Configure automated push notifications dispatched to residents before truck pickup
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <label className="text-xs font-semibold text-foreground whitespace-nowrap">
-              Notification Trigger:
-            </label>
-            <Select value={reminderTiming} onValueChange={setReminderTiming}>
-              <SelectTrigger className="w-full sm:w-64 h-9 text-xs rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1h">1 hour before collection (5:00 AM)</SelectItem>
-                <SelectItem value="3h">3 hours before collection (3:00 AM)</SelectItem>
-                <SelectItem value="1d">1 day before collection (Evening prior)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleSaveReminder}
-              disabled={isSaving}
-              className="sm:ml-2 h-9 text-xs font-semibold rounded-xl cursor-pointer active:scale-95 shadow-xs"
-            >
-              {isSaving ? "Saving..." : "Save Setting"}
-            </Button>
-          </div>
-          <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60">
-            <Info className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Changing this setting applies to all registered residents across Candelaria. Currently configured to dispatch reminders <strong className="text-foreground">{reminderTiming === "1h" ? "1 hour" : reminderTiming === "3h" ? "3 hours" : "1 day"}</strong> prior to standard route collection.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <Card className="border border-border/80 rounded-2xl"><CardHeader className="pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center"><Bell className="w-4 h-4" /></div><div><CardTitle className="text-sm font-bold font-display">Automatic Resident Reminders</CardTitle><p className="text-xs text-muted-foreground mt-0.5">Sent once per collection rule to residents who allow collection reminders.</p></div></div></CardHeader><CardContent className="flex flex-col sm:flex-row sm:items-center gap-3"><Select value={reminderTiming} onValueChange={setReminderTiming}><SelectTrigger className="w-full sm:w-64 h-9 text-xs rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1h">1 hour before collection</SelectItem><SelectItem value="3h">3 hours before collection</SelectItem><SelectItem value="1d">1 day before collection</SelectItem></SelectContent></Select><Button size="sm" onClick={saveReminder} disabled={savingReminder} className="h-9 rounded-xl text-xs gap-1.5"><Truck className="w-3.5 h-3.5" />{savingReminder ? "Saving..." : "Save reminder"}</Button></CardContent></Card>
     </div>
   );
 };

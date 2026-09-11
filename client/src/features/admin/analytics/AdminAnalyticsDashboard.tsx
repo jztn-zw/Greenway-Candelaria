@@ -111,18 +111,13 @@ const AdminAnalyticsDashboard: React.FC = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6 pb-12 animate-in fade-in duration-300">
       {/* ── 1. Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <BarChart3 className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Analytics Dashboard
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Historical insights, compliance tracking, and operational performance across Candelaria.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Analytics Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Historical insights, compliance tracking, and operational performance across Candelaria.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

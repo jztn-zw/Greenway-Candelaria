@@ -179,7 +179,7 @@ const CollectorNotifications = () => {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
-              Driver Notifications
+              Notifications
             </h1>
             {unreadCount > 0 && (
               <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full border border-primary/20">

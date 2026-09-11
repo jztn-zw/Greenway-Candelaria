@@ -1,6 +1,7 @@
 const service = require("./schedule.service");
 const {
   updateScheduleSchema,
+  createScheduleRuleSchema,
   updateReminderSchema,
   createEventSchema,
   updateEventSchema,
@@ -70,8 +71,18 @@ const getAll = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const data = updateScheduleSchema.parse(req.body);
-    const entry = await service.update(req.params.id, data);
+    const entry = await service.update(req.params.id, data, req.user.id);
     return success(res, entry, "Schedule updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createRule = async (req, res, next) => {
+  try {
+    const data = createScheduleRuleSchema.parse(req.body);
+    const entry = await service.createRule(data, req.user.id);
+    return success(res, entry, "Collection rule created successfully", 201);
   } catch (err) {
     next(err);
   }
@@ -103,6 +114,7 @@ module.exports = {
   updateEvent,
   deleteEvent,
   getAll,
+  createRule,
   update,
   getReminder,
   updateReminder,

@@ -64,6 +64,14 @@ const register = async ({
 };
 
 const login = async ({ identifier, password }, req) => {
+  const loginContext = {
+    ip_address: req?.ip || null,
+    new_value: {
+      request_id: req?.requestId || null,
+      device: String(req?.headers?.["user-agent"] || "Unknown device").slice(0, 255),
+    },
+  };
+
   // Find user
   const [users] = await queryWithRetry(
     `SELECT u.*, b.name AS barangay_name
@@ -74,6 +82,13 @@ const login = async ({ identifier, password }, req) => {
   );
 
   if (users.length === 0) {
+    auditService.log({
+      user_id: null,
+      action: "FAILED_LOGIN",
+      module: "auth",
+      ...loginContext,
+      new_value: { ...loginContext.new_value, reason: "Invalid credentials" },
+    }).catch(() => {});
     throw { statusCode: 401, message: "Invalid email or password" };
   }
 
@@ -81,9 +96,25 @@ const login = async ({ identifier, password }, req) => {
 
   // Check status
   if (user.status === "DEACTIVATED") {
+    auditService.log({
+      user_id: user.id,
+      action: "FAILED_LOGIN",
+      module: "auth",
+      record_id: user.id,
+      ...loginContext,
+      new_value: { ...loginContext.new_value, role: user.role, reason: "Account deactivated" },
+    }).catch(() => {});
     throw { statusCode: 403, message: "Account is deactivated" };
   }
   if (user.status === "BANNED") {
+    auditService.log({
+      user_id: user.id,
+      action: "FAILED_LOGIN",
+      module: "auth",
+      record_id: user.id,
+      ...loginContext,
+      new_value: { ...loginContext.new_value, role: user.role, reason: "Account unavailable" },
+    }).catch(() => {});
     throw {
       statusCode: 403,
       // Keep account-management notes private; the admin can still see the
@@ -100,8 +131,8 @@ const login = async ({ identifier, password }, req) => {
       action: "FAILED_LOGIN",
       module: "auth",
       record_id: user.id,
-      ip_address: req?.ip,
-      new_value: { identifier, reason: "Invalid password" },
+      ...loginContext,
+      new_value: { ...loginContext.new_value, role: user.role, reason: "Invalid credentials" },
     }).catch(() => {});
     throw { statusCode: 401, message: "Invalid email or password" };
   }
@@ -125,14 +156,16 @@ const login = async ({ identifier, password }, req) => {
     user.id,
   ]);
 
-  auditService.log({
-    user_id: user.id,
-    action: "USER_LOGIN",
-    module: "auth",
-    record_id: user.id,
-    ip_address: req?.ip,
-    new_value: { role: user.role, email: user.email },
-  }).catch(() => {});
+  if (user.role !== "RESIDENT") {
+    auditService.log({
+      user_id: user.id,
+      action: "USER_LOGIN",
+      module: "auth",
+      record_id: user.id,
+      ...loginContext,
+      new_value: { ...loginContext.new_value, role: user.role },
+    }).catch(() => {});
+  }
 
   return {
     token,

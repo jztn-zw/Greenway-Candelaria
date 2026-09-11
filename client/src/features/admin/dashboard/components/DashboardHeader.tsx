@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Megaphone, FileText, CheckCircle2, AlertTriangle, XCircle, LayoutDashboard } from "lucide-react";
+import { Megaphone, MapPin, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -71,15 +71,11 @@ const DashboardHeader = ({ isRefreshing = false, onRefresh }: DashboardHeaderPro
     <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         {/* Left: Greeting & Clock */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-            <LayoutDashboard className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
-                {getGreeting()}, <span className="text-primary">{adminName}</span>
-              </h1>
+        <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
+              {getGreeting()}, <span className="text-primary">{adminName}</span>
+            </h1>
               {/* Status Badge */}
               <div
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border shadow-2xs ${cfg.className}`}
@@ -96,7 +92,6 @@ const DashboardHeader = ({ isRefreshing = false, onRefresh }: DashboardHeaderPro
               </span>
             </div>
           </div>
-        </div>
 
         {/* Right: Quick Operational Actions */}
         <div className="flex items-center gap-2.5 shrink-0 self-start xl:self-auto">
@@ -112,10 +107,10 @@ const DashboardHeader = ({ isRefreshing = false, onRefresh }: DashboardHeaderPro
           <Button
             size="sm"
             className="h-10 px-3.5 sm:px-4 rounded-xl font-semibold shadow-2xs text-xs gap-2 cursor-pointer active:scale-95 transition-all"
-            onClick={() => navigate("/admin/reports")}
+            onClick={() => navigate("/admin/truck-tracking")}
           >
-            <FileText className="w-4 h-4" />
-            <span>Waste Reports</span>
+            <MapPin className="w-4 h-4" />
+            <span>Live Fleet</span>
           </Button>
         </div>
       </div>

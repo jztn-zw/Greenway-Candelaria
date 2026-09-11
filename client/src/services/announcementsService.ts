@@ -4,19 +4,19 @@ import type { Announcement } from "@/features/admin/announcements/types";
 export interface GetAllFilters {
   status?: string;
   type?: string;
-  priority?: string;
 }
 
 export interface CreatePayload {
   title: string;
   body: string;
   type: string;
-  priority?: string;
   status?: string;
   target_all?: boolean;
   scheduled_at?: string | null;
   expires_at?: string | null;
   barangay_ids?: string[];
+  show_on_calendar?: boolean;
+  calendar_date?: string | null;
 }
 
 export type UpdatePayload = Partial<CreatePayload>;
@@ -42,7 +42,6 @@ const buildQuery = (filters: GetAllFilters): string => {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.type) params.set("type", filters.type);
-  if (filters.priority) params.set("priority", filters.priority);
   const query = params.toString();
   return query ? `?${query}` : "";
 };

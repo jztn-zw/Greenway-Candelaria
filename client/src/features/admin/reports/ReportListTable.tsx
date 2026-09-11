@@ -17,16 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   MoreHorizontal,
-  Eye,
-  RefreshCw,
-  Copy,
   AlertOctagon,
   Camera,
   EyeOff,
-  ChevronLeft,
-  ChevronRight,
   MapPin,
 } from "lucide-react";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
   WasteReport,
   statusBadgeStyles,
@@ -160,7 +156,7 @@ const ReportListTable = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${vc}`}
+                      className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${vc}`}
                     >
                       {report.violationType}
                     </Badge>
@@ -192,7 +188,7 @@ const ReportListTable = ({
                   <TableCell className="py-3 text-center">
                     {report.photos?.length > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 border border-border/60 text-muted-foreground">
-                        <Camera className="w-3 h-3 text-primary" />
+                        <Camera className="w-3 h-3 text-muted-foreground" />
                         <span>{report.photos.length}</span>
                       </span>
                     ) : (
@@ -214,9 +210,8 @@ const ReportListTable = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border gap-1.5 shadow-2xs ${sc.badge}`}
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${sc.badge}`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                       {report.status}
                     </Badge>
                   </TableCell>
@@ -233,44 +228,57 @@ const ReportListTable = ({
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52 rounded-xl">
+                      <DropdownMenuContent align="end" className="w-44 rounded-xl border border-border/80 p-1 shadow-md">
                         <DropdownMenuItem
                           onClick={() => onSelect(report.id)}
-                          className="text-xs gap-2 cursor-pointer"
+                          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Inspect Details
+                          Inspect Details
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={(e) => handleCopyRef(e, report.referenceNumber)}
-                          className="text-xs gap-2 cursor-pointer"
+                          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                         >
-                          <Copy className="w-3.5 h-3.5" /> Copy Reference
+                          Copy Reference
                         </DropdownMenuItem>
 
                         {onQuickStatusChange && report.status !== "Resolved" && (
                           <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onQuickStatusChange(report.id, "UNDER_REVIEW")}
-                              className="text-xs gap-2 cursor-pointer"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5 text-sky-500" /> Move to Review
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onQuickStatusChange(report.id, "DISPATCHED")}
-                              className="text-xs gap-2 cursor-pointer"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5 text-purple-500" /> Move to Dispatched
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onQuickStatusChange(report.id, "RESOLVED")}
-                              className="text-xs gap-2 cursor-pointer"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5 text-emerald-500" /> Mark Resolved
-                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1" />
+                            {report.status === "Submitted" && (
+                              <DropdownMenuItem
+                                onClick={() => onQuickStatusChange(report.id, "UNDER_REVIEW")}
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                              >
+                                Move to Review
+                              </DropdownMenuItem>
+                            )}
+                            {report.status === "Under Review" && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => onQuickStatusChange(report.id, "DISPATCHED")}
+                                  className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                                >
+                                  Move to Dispatched
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => onQuickStatusChange(report.id, "RESOLVED")}
+                                  className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                                >
+                                  Mark Resolved
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {report.status === "Dispatched" && (
+                              <DropdownMenuItem
+                                onClick={() => onQuickStatusChange(report.id, "RESOLVED")}
+                                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                              >
+                                Mark Resolved
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
-
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -281,39 +289,17 @@ const ReportListTable = ({
         </Table>
       </div>
 
-      {/* ── Centered Pagination Bar (Matching Posts, Announcements, Residents, Admins) ── */}
+      {/* ── Table Pagination Bar ── */}
       {totalPages > 1 && onPageChange && (
-        <div className="p-4 border-t border-border/80 flex items-center justify-center gap-2 bg-card">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Button
-              key={p}
-              variant={p === page ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-semibold"
-              onClick={() => onPageChange(p)}
-            >
-              {p}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={total}
+          pageSize={10}
+          itemLabel="reports"
+          onPageChange={onPageChange}
+          variant="table"
+        />
       )}
     </div>
   );

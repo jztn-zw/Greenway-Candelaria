@@ -58,6 +58,7 @@ router.delete(
 router.get("/reminders", authenticate, authorize("ADMIN"), controller.getReminder);
 router.put("/reminders", authenticate, authorize("ADMIN"), controller.updateReminder);
 router.get("/", controller.getAll);
+router.post("/", authenticate, authorize("ADMIN"), controller.createRule);
 router.put("/:id", authenticate, authorize("ADMIN"), controller.update);
 
 module.exports = router;

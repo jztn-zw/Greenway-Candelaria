@@ -1,6 +1,6 @@
-import { FileText, Clock, Truck, CheckCircle2 } from "lucide-react";
 import type { AdminReportsKPIs } from "@/services/reportsService";
 import type { WasteReport } from "./types";
+import { cn } from "@/lib/utils";
 
 interface ReportKPIsProps {
   reports?: WasteReport[];
@@ -21,83 +21,68 @@ const ReportKPIs = ({ reports = [], kpis }: ReportKPIsProps) => {
 
   const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
+  const items = [
+    {
+      label: "Total Reports",
+      value: total,
+      subtext: `${resolutionRate}% overall resolution`,
+      tag: "bg-muted/70 text-muted-foreground border-border/80",
+    },
+    {
+      label: "Pending Review",
+      value: pending,
+      subtext: pending > 0 ? "Requires verification" : "All reviewed",
+      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    },
+    {
+      label: "In Dispatch",
+      value: dispatched,
+      subtext: dispatched > 0 ? "Crews actively deployed" : "No active dispatches",
+      tag: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    },
+    {
+      label: "Resolved Cases",
+      value: resolved,
+      subtext: `${resolved} remediated on site`,
+      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {/* Total Reports */}
-      <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            Total Reports
-          </span>
-          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-            <FileText className="w-4 h-4" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      {items.map((item, idx) => (
+        <div
+          key={item.label}
+          className={cn(
+            "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
+            // Mobile (2 columns): right border on even index (0, 2)
+            idx % 2 === 0 ? "border-r border-border/70" : "",
+            // Desktop (4 columns): right border on 0, 1, 2, none on 3
+            idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
+            // Mobile (2 columns): bottom border on top row (0, 1)
+            idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
+          )}
+        >
+          <div className="flex items-center min-h-[22px]">
+            <span
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                item.tag
+              )}
+            >
+              {item.label}
+            </span>
           </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-          {total}
-        </div>
-        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            {resolved} Resolved
-          </span>
-          <span>·</span>
-          <span>{resolutionRate}% Rate</span>
-        </div>
-      </div>
 
-      {/* Pending Review */}
-      <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            Pending Review
-          </span>
-          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
-            <Clock className="w-4 h-4" />
+          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+            {item.value}
           </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-          {pending}
-        </div>
-        <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-          Requires verification
-        </div>
-      </div>
 
-      {/* In Dispatch */}
-      <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            In Dispatch
-          </span>
-          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
-            <Truck className="w-4 h-4" />
+          <div className="text-[11px] text-muted-foreground font-medium truncate">
+            {item.subtext}
           </div>
         </div>
-        <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-          {dispatched}
-        </div>
-        <div className="text-[11px] text-muted-foreground">
-          Crew assigned to site
-        </div>
-      </div>
-
-      {/* Resolved Cases */}
-      <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-        <div className="flex items-center justify-between text-muted-foreground">
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            Resolved
-          </span>
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-          {resolved}
-        </div>
-        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-          Closed & remediated
-        </div>
-      </div>
+      ))}
     </div>
   );
 };

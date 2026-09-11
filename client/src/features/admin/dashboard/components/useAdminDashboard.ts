@@ -78,6 +78,8 @@ export interface DashboardBarangay {
   id: string;
   name: string;
   zone: string;
+  truck_name?: string;
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
 }
 
 export interface DashboardRouteStop {
@@ -102,6 +104,13 @@ export interface DashboardRoute {
   stops: DashboardRouteStop[];
 }
 
+export interface DashboardAttention {
+  awaiting_triage: number;
+  high_priority_awaiting_triage: number;
+  standard_priority_awaiting_triage: number;
+  maintenance_trucks: number;
+}
+
 interface DashboardPayload {
   overview: AnalyticsOverview;
   reportsAnalytics: ReportsAnalytics;
@@ -111,6 +120,7 @@ interface DashboardPayload {
   trucks: DashboardTruck[];
   barangays: DashboardBarangay[];
   routes: DashboardRoute[];
+  attention: DashboardAttention;
 }
 
 export const useAdminDashboard = () => {
@@ -126,6 +136,7 @@ export const useAdminDashboard = () => {
   const [trucks, setTrucks] = useState<DashboardTruck[]>([]);
   const [barangays, setBarangays] = useState<DashboardBarangay[]>([]);
   const [routes, setRoutes] = useState<DashboardRoute[]>([]);
+  const [attention, setAttention] = useState<DashboardAttention | null>(null);
 
   const fetchDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
@@ -144,6 +155,7 @@ export const useAdminDashboard = () => {
       setTrucks(dashboard.trucks ?? []);
       setBarangays(dashboard.barangays ?? []);
       setRoutes(dashboard.routes ?? []);
+      setAttention(dashboard.attention ?? null);
     } catch (err: unknown) {
       console.error("[useAdminDashboard] Error loading dashboard data:", err);
       setError(err instanceof Error ? err.message : "Failed to load dashboard data");
@@ -169,6 +181,7 @@ export const useAdminDashboard = () => {
     trucks,
     barangays,
     routes,
+    attention,
     refetch: () => fetchDashboardData(true),
   };
 };

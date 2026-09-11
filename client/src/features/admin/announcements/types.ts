@@ -1,5 +1,4 @@
-export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Emergency Advisory" | "General Notice" | "System Maintenance";
-export type AnnouncementPriority = "Normal" | "Urgent" | "Emergency";
+export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Community Event" | "Emergency Advisory" | "General Notice" | "System Maintenance";
 export type AnnouncementStatus = "Draft" | "Scheduled" | "Active" | "Archived";
 export type TargetAudience = "All Residents" | "Specific Barangays";
 
@@ -14,7 +13,6 @@ export interface Announcement {
   title: string;
   body: string;
   type: AnnouncementType;
-  priority: AnnouncementPriority;
   status: AnnouncementStatus;
   targetAudience: TargetAudience;
   targetBarangays: string[];
@@ -27,6 +25,11 @@ export interface Announcement {
   scheduledDate: string | null;
   expiryDate: string | null;
   expiryLabel?: string | null;
+  calendarEventId?: string | null;
+  calendarDate?: string | null;
+  calendarStartTime?: string | null;
+  calendarEndTime?: string | null;
+  calendarLocation?: string | null;
   readCount: number;
   totalRecipients: number;
   archived: boolean;
@@ -40,13 +43,14 @@ export interface EditorForm {
   title: string;
   body: string;
   type: AnnouncementType;
-  priority: AnnouncementPriority;
   status: AnnouncementStatus;
   targetAudience: TargetAudience;
   targetBarangays: string[];
   targetPreset: string | null;
   scheduledDate: string;
   expiryDate: string;
+  showOnResidentCalendar: boolean;
+  calendarDate: string;
 }
 
 /**
@@ -89,19 +93,12 @@ export const announcementTypeStyles: Record<AnnouncementType, string> = {
     "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
   "Holiday Reminder":
     "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+  "Community Event":
+    "bg-background/95 dark:bg-zinc-900/90 text-violet-700 dark:text-violet-300 border-violet-500/40 dark:border-violet-400/40 backdrop-blur-md shadow-2xs",
   "Emergency Advisory":
     "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
   "General Notice":
     "bg-background/95 dark:bg-zinc-900/90 text-primary dark:text-emerald-400 border-primary/40 dark:border-primary/40 backdrop-blur-md shadow-2xs",
   "System Maintenance":
     "bg-background/95 dark:bg-zinc-900/90 text-sky-700 dark:text-sky-300 border-sky-500/40 dark:border-sky-400/40 backdrop-blur-md shadow-2xs",
-};
-
-export const announcementPriorityStyles: Record<AnnouncementPriority, string> = {
-  Normal:
-    "bg-background/95 dark:bg-zinc-900/90 text-muted-foreground border-border/80 backdrop-blur-md shadow-2xs",
-  Urgent:
-    "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
-  Emergency:
-    "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { Download, Shield } from "lucide-react";
 import AuditLogKPIs from "./AuditLogKPIs";
 import AuditLogFilters from "./AuditLogFilters";
 import AuditLogTable from "./AuditLogTable";
@@ -15,7 +15,7 @@ import auditService, {
   AuditLogKPIsData,
   AuditFilterOptions,
 } from "@/services/auditService";
-import { AuditLogEntry } from "./types";
+import { AuditLogEntry, safeFormatDate } from "./types";
 import { formatAuditEntry } from "./auditFormatter";
 
 const PAGE_SIZE = 10;
@@ -85,11 +85,18 @@ const AdminAuditLogs = () => {
     loadLogs(false);
   }, [loadLogs]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (logs.length === 0) {
       toast.error("No log entries to export");
       return;
     }
+
+    await auditService.recordExport({
+      module: moduleFilter,
+      from: dateRange.from?.toISOString().split("T")[0],
+      to: dateRange.to?.toISOString().split("T")[0],
+      entry_count: logs.length,
+    });
 
     const headers = [
       "Timestamp",
@@ -103,7 +110,7 @@ const AdminAuditLogs = () => {
     ];
 
     const rows = logs.map((l) => [
-      `"${l.timestamp}"`,
+      `"${safeFormatDate(l.timestamp, "MMM d, yyyy · h:mm a")}"`,
       `"${l.adminName}"`,
       `"${l.adminRole}"`,
       `"${l.actionType}"`,
@@ -133,23 +140,6 @@ const AdminAuditLogs = () => {
     });
   };
 
-  // Centered pagination page numbers
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push("...");
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) pages.push(i);
-      if (currentPage < totalPages - 2) pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  };
-
   if (isInitialLoading) {
     return (
       <div className="w-full max-w-[1600px] mx-auto space-y-6">
@@ -165,23 +155,19 @@ const AdminAuditLogs = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Shield className="w-5 h-5" />
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+              Audit Logs
+            </h1>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider border border-border/80">
+              <Shield className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+              Tamper-Proof
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-                Audit Logs
-              </h1>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/20">
-                Tamper-Proof
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Track, investigate, and audit all administrative actions, system modifications, and security events across GreenWay.
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Track, investigate, and audit all administrative actions, system modifications, and security events across GreenWay.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -224,54 +210,12 @@ const AdminAuditLogs = () => {
         <AuditLogTable
           logs={logs}
           isLoading={isTableLoading}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
         />
-
-        {/* ── Centered Numbered Pagination ── */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-              disabled={currentPage <= 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-
-            {getPageNumbers().map((pageNum, idx) => {
-              if (pageNum === "...") {
-                return (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-xs text-muted-foreground">
-                    ...
-                  </span>
-                );
-              }
-              const isCurrent = pageNum === currentPage;
-              return (
-                <Button
-                  key={pageNum}
-                  variant={isCurrent ? "default" : "outline"}
-                  size="icon"
-                  className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-                  onClick={() => setCurrentPage(pageNum as number)}
-                >
-                  {pageNum}
-                </Button>
-              );
-            })}
-
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

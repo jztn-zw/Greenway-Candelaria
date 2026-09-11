@@ -310,7 +310,6 @@ export const flagAdminReport = async (
     duplicate_reason?: string;
     false_reason?: string;
     resolve?: boolean;
-    admin_response?: string;
   },
 ): Promise<AdminReportItem> => {
   const { data } = await api.put<{ data: AdminReportItem }>(

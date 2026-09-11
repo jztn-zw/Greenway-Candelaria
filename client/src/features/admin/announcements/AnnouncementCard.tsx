@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   Calendar,
   Clock,
@@ -31,10 +31,8 @@ import {
 import {
   Announcement,
   AnnouncementType,
-  AnnouncementPriority,
   AnnouncementStatus,
   announcementTypeStyles,
-  announcementPriorityStyles,
   isAnnouncementExpired,
 } from "./types";
 
@@ -72,20 +70,10 @@ const typeConfig: Record<
     gradient: "from-blue-800/80 via-cyan-900/60 to-slate-950/90",
     icon: Shield,
   },
-};
-
-const priorityConfig: Record<
-  AnnouncementPriority,
-  { badge: string }
-> = {
-  Normal: {
-    badge: announcementPriorityStyles.Normal,
-  },
-  Urgent: {
-    badge: announcementPriorityStyles.Urgent,
-  },
-  Emergency: {
-    badge: announcementPriorityStyles.Emergency,
+  "Community Event": {
+    badge: announcementTypeStyles["Community Event"],
+    gradient: "from-violet-800/80 via-purple-900/60 to-slate-950/90",
+    icon: Calendar,
   },
 };
 
@@ -152,7 +140,6 @@ const AnnouncementCard = ({
   const typeStyle = typeConfig[ann.type] || typeConfig["General Notice"];
   const TypeIcon = typeStyle.icon;
   const statusStyle = statusConfig[ann.status] || statusConfig.Draft;
-  const StatusIcon = statusStyle.icon;
   const readPct =
     ann.totalRecipients > 0
       ? Math.round((ann.readCount / ann.totalRecipients) * 100)
@@ -165,91 +152,123 @@ const AnnouncementCard = ({
       case "Draft":
         return (
           <>
-            <DropdownMenuItem onClick={() => onEdit(ann)} className="gap-2 text-xs">
-              <Edit2 className="w-3.5 h-3.5" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDuplicate(ann)} className="gap-2 text-xs">
-              <Copy className="w-3.5 h-3.5" /> Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onSendNow(ann)} className="gap-2 text-xs">
-              <Send className="w-3.5 h-3.5" /> Send Now
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="gap-2 text-xs"
+              onClick={() => onEdit(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDuplicate(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onSendNow(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Send Now
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
               onClick={() => onDelete(ann)}
             >
-              <Archive className="w-3.5 h-3.5" /> Archive
+              Archive
             </DropdownMenuItem>
           </>
         );
       case "Scheduled":
         return (
           <>
-            <DropdownMenuItem onClick={() => onEdit(ann)} className="gap-2 text-xs">
-              <Edit2 className="w-3.5 h-3.5" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDuplicate(ann)} className="gap-2 text-xs">
-              <Copy className="w-3.5 h-3.5" /> Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onCancelSchedule(ann)} className="gap-2 text-xs">
-              <Clock className="w-3.5 h-3.5" /> Cancel Schedule
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="gap-2 text-xs"
+              onClick={() => onEdit(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDuplicate(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              onClick={() => onCancelSchedule(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Cancel Schedule
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
               onClick={() => onDelete(ann)}
             >
-              <Archive className="w-3.5 h-3.5" /> Archive
+              Archive
             </DropdownMenuItem>
           </>
         );
       case "Active":
         return (
           <>
-            <DropdownMenuItem onClick={() => onReadReceipt(ann)} className="gap-2 text-xs">
-              <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
+            <DropdownMenuItem
+              onClick={() => onReadReceipt(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Read Analytics
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(ann)} className="gap-2 text-xs">
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+            <DropdownMenuItem
+              onClick={() => onEdit(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Edit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDuplicate(ann)} className="gap-2 text-xs">
-              <Copy className="w-3.5 h-3.5" /> Duplicate
+            <DropdownMenuItem
+              onClick={() => onDuplicate(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Duplicate
             </DropdownMenuItem>
             {ann.readCount < ann.totalRecipients && (
-              <DropdownMenuItem onClick={() => onResend(ann)} className="gap-2 text-xs">
-                <RotateCcw className="w-3.5 h-3.5" /> Resend to Unread
+              <DropdownMenuItem
+                onClick={() => onResend(ann)}
+                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              >
+                Resend to Unread
               </DropdownMenuItem>
             )}
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="gap-2 text-xs"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
               onClick={() => onDelete(ann)}
             >
-              <Archive className="w-3.5 h-3.5" /> Archive
+              Archive
             </DropdownMenuItem>
           </>
         );
       case "Archived":
         return (
           <>
-            <DropdownMenuItem onClick={() => onReadReceipt(ann)} className="gap-2 text-xs">
-              <BarChart3 className="w-3.5 h-3.5" /> Read Analytics
+            <DropdownMenuItem
+              onClick={() => onReadReceipt(ann)}
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            >
+              Read Analytics
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
-              className="gap-2 text-xs"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
             >
-              {needsExpiryUpdateBeforeRestore ? (
-                <><Edit2 className="w-3.5 h-3.5" /> Edit &amp; Restore</>
-              ) : (
-                <><ArchiveRestore className="w-3.5 h-3.5" /> Restore Notice</>
-              )}
+              {needsExpiryUpdateBeforeRestore ? "Edit & Restore" : "Restore Notice"}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-xs" onClick={() => onDelete(ann)}>
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              onClick={() => onDelete(ann)}
+            >
+              Delete
             </DropdownMenuItem>
           </>
         );
@@ -291,7 +310,7 @@ const AnnouncementCard = ({
           </div>
         </div>
 
-        {/* Top-left Badges (Type & Priority) */}
+        {/* Top-left type badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap z-10 pointer-events-none">
           <Badge
             variant="outline"
@@ -299,29 +318,19 @@ const AnnouncementCard = ({
           >
             {ann.type}
           </Badge>
-          {ann.priority !== "Normal" && (
+        </div>
+
+        {/* Top-right Status Pill: Shown only for Draft and Scheduled (without icon) */}
+        {(ann.status === "Draft" || ann.status === "Scheduled") && (
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
             <Badge
               variant="outline"
-              className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${
-                priorityConfig[ann.priority]?.badge || ""
-              }`}
+              className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${statusStyle.badge}`}
             >
-              {ann.priority}
+              <span>{ann.status}</span>
             </Badge>
-          )}
-        </div>
-
-        {/* Top-right Status Pill */}
-        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-          <Badge
-            variant="outline"
-            className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md gap-1 pointer-events-none ${statusStyle.badge}`}
-          >
-            <StatusIcon className="w-3 h-3" />
-            <span>{ann.status}</span>
-          </Badge>
-
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── Card Body ── */}
@@ -339,7 +348,7 @@ const AnnouncementCard = ({
         {/* Target Audience & Optional Read Stat */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5 truncate">
-            <Users className="w-3.5 h-3.5 text-primary shrink-0" />
+            <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="truncate font-medium">
               {ann.targetAudience === "All Residents"
                 ? "All Residents"
@@ -371,7 +380,7 @@ const AnnouncementCard = ({
           <div className="flex items-center gap-3 min-w-0 truncate">
             {ann.sentDate && (
               <span className="flex items-center gap-1">
-                <Send className="w-3 h-3 text-primary shrink-0" /> {ann.sentDate}
+                <Send className="w-3 h-3 text-muted-foreground shrink-0" /> {ann.sentDate}
               </span>
             )}
             {ann.status === "Scheduled" && ann.scheduledDate && (
@@ -401,7 +410,7 @@ const AnnouncementCard = ({
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border">
+            <DropdownMenuContent align="end" className="w-40 rounded-xl border border-border/80 p-1 shadow-md">
               {renderMenuItems()}
             </DropdownMenuContent>
           </DropdownMenu>

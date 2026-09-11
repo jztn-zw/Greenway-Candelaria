@@ -3,13 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,52 +16,45 @@ import {
   AlertCircle,
   RotateCcw,
   LayoutGrid,
-  List,
   Truck,
   X,
 } from "lucide-react";
 import { PageHeaderSkeleton, ScheduleGridSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   SearchInput,
-  FilterPillTabs,
-  FilterPillItem,
   SegmentedControl,
   SegmentedControlOption,
 } from "@/components/common";
 import {
   CalendarEvent,
-  EventType,
-  EventStatus,
+  CollectionScheduleDay,
   CreateEventPayload,
   fetchCalendarEvents,
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
   fetchReminderSettings,
+  fetchCollectionSchedule,
 } from "@/services/scheduleService";
-import { fetchBarangays, BarangayLocationRow } from "@/services/barangaysService";
 import { toast } from "@/lib/toast";
 import { ScheduleKPIs } from "./ScheduleKPIs";
 import { CalendarGrid } from "./CalendarGrid";
 import { SelectedDayPanel } from "./SelectedDayPanel";
-import { ScheduleAgendaView } from "./ScheduleAgendaView";
 import { WeeklyRules } from "./WeeklyRules";
 import { EventModal } from "./EventModal";
 import { EventDetailModal } from "./EventDetailModal";
 
-type ViewMode = "GRID" | "AGENDA" | "RULES";
+type ViewMode = "GRID" | "RULES";
 
 const AdminCollectionSchedule: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [barangays, setBarangays] = useState<BarangayLocationRow[]>([]);
   const [reminderTiming, setReminderTiming] = useState("3h");
+  const [collectionRules, setCollectionRules] = useState<CollectionScheduleDay[]>([]);
 
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>("GRID");
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"ALL" | EventType>("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | EventStatus>("ALL");
 
   // Calendar Date State
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -83,18 +69,39 @@ const AdminCollectionSchedule: React.FC = () => {
   const [viewingDetailEvent, setViewingDetailEvent] = useState<CalendarEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const scheduleColorById = useMemo(() => {
+    const monthStart = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const monthEnd = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+    const visibleScheduleIds = [...new Set(
+      events
+        .filter((event) => {
+          const start = event.event_date.split("T")[0];
+          const end = event.end_date ? event.end_date.split("T")[0] : start;
+          return start <= monthEnd && end >= monthStart;
+        })
+        .map((event) => event.id),
+    )].sort();
+
+    return new Map(
+      visibleScheduleIds.map((id, index) => [
+        id,
+        `hsl(${Math.round((index * 360) / Math.max(visibleScheduleIds.length, 1))} 72% 52%)`,
+      ]),
+    );
+  }, [events, currentDate]);
 
   const loadData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
 
-      const [evts, brgys, reminders] = await Promise.all([
-        fetchCalendarEvents(),
-        fetchBarangays().catch(() => []),
+      const [evts, reminders, rules] = await Promise.all([
+        fetchCalendarEvents({ event_type: "PRIVATE_EVENT", visibility: "PRIVATE" }),
         fetchReminderSettings().catch(() => null),
+        fetchCollectionSchedule().catch(() => []),
       ]);
       setEvents(evts);
-      setBarangays(brgys);
+      setCollectionRules(rules);
       if (reminders && reminders.timing) {
         setReminderTiming(reminders.timing >= 24 ? "1d" : `${reminders.timing}h`);
       }
@@ -110,41 +117,14 @@ const AdminCollectionSchedule: React.FC = () => {
     loadData();
   }, []);
 
-  // Counts by category
-  const counts = useMemo(() => {
-    return {
-      all: events.length,
-      private: events.filter((e) => e.event_type === "PRIVATE_EVENT").length,
-      community: events.filter((e) => e.event_type === "COMMUNITY_EVENT").length,
-      collection: events.filter((e) => e.event_type === "COLLECTION_SCHEDULE").length,
-    };
-  }, [events]);
-
-  const categoryTabs: FilterPillItem<"ALL" | EventType>[] = useMemo(
-    () => [
-      { id: "ALL", label: "All Events", count: counts.all },
-      { id: "PRIVATE_EVENT", label: "MENRO Private", count: counts.private },
-      { id: "COMMUNITY_EVENT", label: "Public Community", count: counts.community },
-      { id: "COLLECTION_SCHEDULE", label: "Collection Routes", count: counts.collection },
-    ],
-    [counts]
-  );
-
   const viewOptions: SegmentedControlOption<ViewMode>[] = [
     { id: "GRID", label: "Month Grid", icon: LayoutGrid },
-    { id: "AGENDA", label: "Agenda List", icon: List },
     { id: "RULES", label: "Weekly Rules", icon: Truck },
   ];
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      // Type filter
-      if (typeFilter !== "ALL" && e.event_type !== typeFilter) return false;
-
-      // Status filter
-      if (statusFilter !== "ALL" && e.status !== statusFilter) return false;
-
       // Search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -157,22 +137,21 @@ const AdminCollectionSchedule: React.FC = () => {
 
       return true;
     });
-  }, [events, typeFilter, statusFilter, searchQuery]);
+  }, [events, searchQuery]);
 
   // Selected Day's events
   const selectedDayEvents = useMemo(() => {
-    return filteredEvents.filter((e) => {
-      const eDate = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
-      return eDate === selectedDateStr;
-    });
+      return filteredEvents.filter((e) => {
+        const start = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
+        const end = e.end_date ? e.end_date.split("T")[0] : start;
+        return start <= selectedDateStr && end >= selectedDateStr;
+      });
   }, [filteredEvents, selectedDateStr]);
 
-  const hasActiveFilters = searchQuery.trim() !== "" || typeFilter !== "ALL" || statusFilter !== "ALL";
+  const hasActiveFilters = searchQuery.trim() !== "";
 
   const handleResetFilters = () => {
     setSearchQuery("");
-    setTypeFilter("ALL");
-    setStatusFilter("ALL");
   };
 
   const handleOpenCreate = () => {
@@ -227,18 +206,13 @@ const AdminCollectionSchedule: React.FC = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-fade-in pb-12">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <CalendarDays className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Schedule Manager
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Manage internal MENRO schedules, public community events, and collection timetables.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Schedule Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Plan internal MENRO activities and maintain the collection rules residents follow.
+          </p>
         </div>
 
         <Button
@@ -246,7 +220,7 @@ const AdminCollectionSchedule: React.FC = () => {
           className="h-10 px-4 rounded-xl font-semibold shadow-xs active:scale-95 cursor-pointer text-xs shrink-0 self-start sm:self-auto gap-2"
         >
           <Plus className="w-4 h-4" />
-          <span>New Schedule / Event</span>
+          <span>New Internal Schedule</span>
         </Button>
       </div>
 
@@ -255,14 +229,8 @@ const AdminCollectionSchedule: React.FC = () => {
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
       <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
-        {/* Tier 1: Category Scope Pills & View Mode Switcher */}
+        {/* View switcher */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
-          <FilterPillTabs<"ALL" | EventType>
-            items={categoryTabs}
-            activeId={typeFilter}
-            onChange={(id) => setTypeFilter(id)}
-          />
-
           <SegmentedControl<ViewMode>
             options={viewOptions}
             value={viewMode}
@@ -277,25 +245,10 @@ const AdminCollectionSchedule: React.FC = () => {
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search event title, venue, barangay..."
+               placeholder="Search internal schedule title or venue..."
               containerClassName="w-full sm:max-w-xs md:max-w-sm"
             />
 
-            <Select
-              value={statusFilter}
-              onValueChange={(val: "ALL" | EventStatus) => setStatusFilter(val)}
-            >
-              <SelectTrigger className="w-36 h-9 text-xs rounded-xl bg-card border-border/80 shrink-0">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="UPCOMING">Upcoming</SelectItem>
-                <SelectItem value="ONGOING">In Progress</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {hasActiveFilters && (
@@ -321,8 +274,8 @@ const AdminCollectionSchedule: React.FC = () => {
               currentDate={currentDate}
               selectedDateStr={selectedDateStr}
               events={filteredEvents}
+              scheduleColorById={scheduleColorById}
               onSelectDate={setSelectedDateStr}
-              onViewEvent={(e) => setViewingDetailEvent(e)}
               onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
               onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
               onGoToday={() => {
@@ -339,7 +292,7 @@ const AdminCollectionSchedule: React.FC = () => {
             <SelectedDayPanel
               selectedDateStr={selectedDateStr}
               events={selectedDayEvents}
-              onViewEvent={(e) => setViewingDetailEvent(e)}
+              scheduleColorById={scheduleColorById}
               onEditEvent={handleOpenEdit}
               onDeleteEvent={setDeletingEvent}
             />
@@ -347,17 +300,12 @@ const AdminCollectionSchedule: React.FC = () => {
         </div>
       )}
 
-      {viewMode === "AGENDA" && (
-        <ScheduleAgendaView
-          events={filteredEvents}
-          onViewEvent={(e) => setViewingDetailEvent(e)}
-          onEditEvent={handleOpenEdit}
-          onDeleteEvent={setDeletingEvent}
-        />
-      )}
-
       {viewMode === "RULES" && (
-        <WeeklyRules initialReminderTiming={reminderTiming} />
+        <WeeklyRules
+          initialReminderTiming={reminderTiming}
+          rules={collectionRules}
+          onRulesChanged={() => loadData(true)}
+        />
       )}
 
       {/* ── Create / Edit Event Modal ── */}
@@ -366,7 +314,6 @@ const AdminCollectionSchedule: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         event={editingEvent}
         defaultDate={selectedDateStr}
-        barangays={barangays}
         onSubmit={handleSubmitEvent}
       />
 

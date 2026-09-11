@@ -1,52 +1,56 @@
 import React from "react";
-import { CheckCircle2, TrendingUp, FileCheck, Clock, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
 import { cn } from "@/lib/utils";
 
-interface SummaryCardProps {
+interface SummarySegmentProps {
   label: string;
   value: number;
   suffix?: string;
-  icon: React.ElementType;
   trend: { value: number; up: boolean };
-  accent: string;
+  tag: string;
+  idx: number;
 }
 
-const SummaryCard = ({
+const SummarySegment = ({
   label,
   value,
   suffix = "",
-  icon: Icon,
   trend,
-  accent,
-}: SummaryCardProps) => {
+  tag,
+  idx,
+}: SummarySegmentProps) => {
   const animated = useCountUp(value);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-      {/* Top Row: Label on Left, Themed Squircle Icon on Right */}
-      <div className="flex items-center justify-between text-muted-foreground">
-        <span className="text-xs font-semibold uppercase tracking-wider truncate">
-          {label}
-        </span>
-        <div
+    <div
+      className={cn(
+        "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
+        // Mobile (2 columns): right border on even index (0, 2)
+        idx % 2 === 0 ? "border-r border-border/70" : "",
+        // Desktop (4 columns): right border on 0, 1, 2, none on 3
+        idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
+        // Mobile (2 columns): bottom border on top row (0, 1)
+        idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
+      )}
+    >
+      <div className="flex items-center min-h-[22px]">
+        <span
           className={cn(
-            "w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs",
-            accent
+            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+            tag
           )}
         >
-          <Icon className="w-4 h-4" />
-        </div>
+          {label}
+        </span>
       </div>
 
-      {/* Middle Row: Primary Metric */}
-      <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tabular-nums">
+      <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
         {animated.toLocaleString()}
         {suffix}
       </div>
 
-      {/* Bottom Row: Trend Pill & Subtitle */}
-      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+      <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
         <span
           className={cn(
             "inline-flex items-center font-bold text-[10px] px-1.5 py-0.5 rounded-md",
@@ -69,43 +73,39 @@ const SummaryCard = ({
 };
 
 const AnalyticsSummaryKPIs: React.FC = () => {
-  const cards: SummaryCardProps[] = [
+  const cards = [
     {
       label: "Total Collections",
       value: 648,
-      icon: CheckCircle2,
       trend: { value: 8, up: true },
-      accent: "bg-primary/10 text-primary border-primary/20",
+      tag: "bg-muted/70 text-muted-foreground border-border/80",
     },
     {
       label: "Completion Rate",
       value: 87,
       suffix: "%",
-      icon: TrendingUp,
       trend: { value: 3, up: true },
-      accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
     {
       label: "Reports Resolved",
       value: 42,
-      icon: FileCheck,
       trend: { value: 12, up: true },
-      accent: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
     },
     {
       label: "Avg Resolution",
       value: 2.9,
       suffix: " days",
-      icon: Clock,
       trend: { value: 15, up: true },
-      accent: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {cards.map((c) => (
-        <SummaryCard key={c.label} {...c} />
+    <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      {cards.map((c, idx) => (
+        <SummarySegment key={c.label} {...c} idx={idx} />
       ))}
     </div>
   );

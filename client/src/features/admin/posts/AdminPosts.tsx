@@ -7,8 +7,6 @@ import {
   LayoutGrid,
   List,
   Filter,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   User,
   Calendar,
@@ -55,6 +53,7 @@ import PostListView from "./PostListView";
 import PostEditor, { EditorForm } from "./PostEditor";
 import AdminPostDetail from "./AdminPostDetail";
 import { BackButton } from "@/components/common";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,
@@ -686,23 +685,18 @@ const AdminPosts = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Top Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <FileText className="w-5 h-5" />
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+              News & Articles
+            </h1>
+            <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              {posts.length} total
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-                News & Articles
-              </h1>
-              <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {posts.length} total
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Publish and manage municipal waste guidelines, eco tips, and event updates.
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Publish and manage municipal waste guidelines, eco tips, and event updates.
+          </p>
         </div>
         <Button onClick={() => openEditor()} className="gap-2 rounded-xl shadow-sm cursor-pointer shrink-0">
           <Plus className="w-4 h-4" /> Create Article
@@ -905,37 +899,15 @@ const AdminPosts = () => {
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={sorted.length}
+          pageSize={postsPerPage}
+          itemLabel="posts"
+          onPageChange={setCurrentPage}
+          variant="floating"
+        />
       )}
 
       {/* ── Delete Confirmation Modal ── */}

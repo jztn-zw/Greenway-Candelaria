@@ -39,9 +39,9 @@ export interface Truck {
 
 export const driverStatusStyles: Record<Driver["status"], string> = {
   Active:
-    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
   Deactivated:
-    "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30",
+    "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30",
 };
 
 export const truckStatusStyles: Record<TruckOperationalStatus, string> = {

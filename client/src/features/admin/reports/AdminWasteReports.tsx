@@ -22,6 +22,7 @@ import {
   STATUS_LABEL_TO_BACKEND,
   PRIORITY_TO_LABEL,
   PRIORITY_LABEL_TO_BACKEND,
+  safeFormatDate,
 } from "./types";
 import { toast } from "@/lib/toast";
 import {
@@ -319,7 +320,6 @@ const AdminWasteReports = () => {
     duplicate_reason?: string;
     false_reason?: string;
     resolve?: boolean;
-    admin_response?: string;
   }) => {
     if (!selectedId) return;
     try {
@@ -405,7 +405,7 @@ const AdminWasteReports = () => {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `greenway_waste_reports_${format(new Date(), "yyyyMMdd_HHmm")}.csv`,
+      `greenway_waste_reports_${safeFormatDate(new Date(), "yyyyMMdd_HHmm")}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -428,18 +428,13 @@ const AdminWasteReports = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6 pb-10">
       {/* ── Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Waste Reports
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Monitor, manage, and dispatch waste collection and incident reports across Candelaria.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Waste Reports
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Monitor, manage, and dispatch waste collection and incident reports across Candelaria.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   Table,
   TableBody,
@@ -16,22 +16,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Truck,
-  User,
-  Clock,
   MoreVertical,
-  Eye,
-  Pencil,
-  Copy,
-  Pause,
-  Play,
-  Trash2,
-  Leaf,
-  Loader2,
   Route as RouteIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { WASTE_MAP } from "../constants";
+import { WASTE_MAP, formatTime12h } from "../constants";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
 
@@ -84,25 +73,25 @@ export const RouteTable: React.FC<RouteTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border/80 bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-xs font-bold text-foreground py-3.5 pl-5">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 pl-5">
                 Day & Waste Category
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Assigned Truck
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Assigned Driver
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Departure
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Collection Sequence
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5 text-center">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 text-center">
                 Status
               </TableHead>
-              <TableHead className="text-xs font-bold text-foreground py-3.5 pr-5 text-right">
+              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 pr-5 text-right">
                 Actions
               </TableHead>
             </TableRow>
@@ -118,190 +107,141 @@ export const RouteTable: React.FC<RouteTableProps> = ({
               return (
                 <TableRow
                   key={route.id}
+                  onClick={() => onView(route)}
                   className={cn(
-                    "border-b border-border/60 transition-colors hover:bg-muted/30 group",
+                    "border-b border-border/60 transition-colors hover:bg-muted/40 cursor-pointer group",
                     !route.active && "opacity-75 bg-muted/10"
                   )}
                 >
                   {/* Day & Waste */}
-                  <TableCell className="py-4 pl-5">
-                    <div className="flex items-center gap-2.5">
-                      <div
+                  <TableCell className="py-3.5 pl-5">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                        {route.day}
+                      </span>
+                      <span
                         className={cn(
-                          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs",
+                          "text-[10px] font-semibold px-2 py-0.5 rounded-md border w-fit tracking-wide",
                           isBio
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                             : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                         )}
                       >
-                        {isBio ? (
-                          <Leaf className="w-4 h-4" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-foreground leading-tight">
-                          {route.day}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {waste.label}
-                        </p>
-                      </div>
+                        {waste.label}
+                      </span>
                     </div>
                   </TableCell>
 
                   {/* Truck */}
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Truck className="w-4 h-4 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate">
-                          {isLoadingTrucks
-                            ? "Loading..."
-                            : truck?.name ?? route.truckName}
-                        </p>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {isLoadingTrucks
-                            ? "..."
-                            : truck?.plate_number ?? route.truckPlate}
-                        </span>
-                      </div>
+                  <TableCell className="py-3.5">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-xs font-semibold text-foreground truncate">
+                        {isLoadingTrucks
+                          ? "Loading..."
+                          : truck?.name ?? route.truckName}
+                      </span>
+                      <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/60 w-fit">
+                        {isLoadingTrucks
+                          ? "..."
+                          : truck?.plate_number ?? route.truckPlate}
+                      </span>
                     </div>
                   </TableCell>
 
                   {/* Driver */}
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-xs font-medium text-foreground">
-                        {route.driverName || (
-                          <span className="text-muted-foreground italic">Unassigned</span>
-                        )}
-                      </span>
-                    </div>
+                  <TableCell className="py-3.5">
+                    <span className="text-xs font-medium text-foreground">
+                      {route.driverName || (
+                        <span className="text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </span>
                   </TableCell>
 
                   {/* Departure */}
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-semibold tabular-nums">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span>{route.startTime}</span>
-                    </div>
+                  <TableCell className="py-3.5">
+                    <span className="text-xs font-semibold text-foreground tabular-nums">
+                      {formatTime12h(route.startTime)}
+                    </span>
                   </TableCell>
 
                   {/* Sequence Preview */}
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-1.5 flex-wrap max-w-xs">
-                      <span className="inline-flex items-center justify-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
-                        {route.barangays.length} stops
+                  <TableCell className="py-3.5">
+                    <div className="flex items-center gap-2 max-w-xs">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted border border-border/60 text-foreground shrink-0 tabular-nums">
+                        {route.barangays.length} {route.barangays.length === 1 ? "stop" : "stops"}
                       </span>
-                      {route.barangays.slice(0, 2).map((bName, idx) => (
-                        <span
-                          key={bName}
-                          className="text-[11px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground truncate max-w-[90px]"
-                        >
-                          {bName}
-                        </span>
-                      ))}
-                      {route.barangays.length > 2 && (
-                        <span className="text-[10px] text-muted-foreground font-semibold">
-                          +{route.barangays.length - 2}
-                        </span>
-                      )}
+                      <span
+                        className="text-xs text-muted-foreground truncate"
+                        title={route.barangays.join(" → ")}
+                      >
+                        {route.barangays.length > 0 ? route.barangays.join(", ") : "None"}
+                      </span>
                     </div>
                   </TableCell>
 
                   {/* Status */}
-                  <TableCell className="py-4 text-center">
+                  <TableCell className="py-3.5 text-center">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border",
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border",
                         route.active
                           ? "bg-primary/10 text-primary border-primary/20"
                           : "bg-muted text-muted-foreground border-border/70"
                       )}
                     >
-                      <span
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          route.active ? "bg-primary animate-pulse" : "bg-muted-foreground"
-                        )}
-                      />
                       {route.active ? "Enabled" : "Paused"}
                     </span>
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className="py-4 pr-5 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onView(route)}
-                        aria-label={`Inspect ${route.day} route for ${route.truckName}`}
-                        className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                        title="Inspect Route Details"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(route)}
-                        aria-label={`Edit ${route.day} route for ${route.truckName}`}
-                        className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                        title="Edit Route"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-
+                  <TableCell className="py-3.5 pr-5 text-right">
+                    <div
+                      className="flex items-center justify-end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="w-8 h-8 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                             aria-label="More options"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/80">
+                        <DropdownMenuContent align="end" className="w-40 rounded-xl border-border/80 p-1">
+                          <DropdownMenuItem
+                            onClick={() => onEdit(route)}
+                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                          >
+                            Edit Route
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => onDuplicate(route)}
-                            className="text-xs cursor-pointer gap-2"
+                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                           >
-                            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span>Duplicate Route</span>
+                            Duplicate Route
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => onToggleActive(route)}
                             disabled={isToggling}
-                            className="text-xs cursor-pointer gap-2"
+                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                           >
-                            {route.active ? (
-                              <>
-                                <Pause className="w-3.5 h-3.5 text-amber-500" />
-                                <span>Pause Route</span>
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-3.5 h-3.5 text-primary" />
-                                <span>Enable Route</span>
-                              </>
-                            )}
+                            {route.active ? "Pause Route" : "Enable Route"}
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                          <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
                             onClick={() => onDelete(route)}
                             disabled={route.active || isDeleting}
-                            className="text-xs cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete Route</span>
-                            {route.active && <span className="ml-auto text-[10px] text-muted-foreground">Pause first</span>}
+                            Delete Route
+                            {route.active && (
+                              <span className="ml-auto text-[10px] text-muted-foreground font-normal">
+                                Pause first
+                              </span>
+                            )}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

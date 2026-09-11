@@ -2,7 +2,7 @@ import api from "@/lib/api";
 
 export interface AuditLogRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
   action: string;
   module: string;
   record_id: string | null;
@@ -64,6 +64,15 @@ export const auditService = {
   async fetchAuditLogById(id: string): Promise<AuditLogRow> {
     const res = await api.get<{ data: AuditLogRow }>(`/audit/${id}`);
     return res.data.data;
+  },
+
+  async recordExport(filters: {
+    module?: string;
+    from?: string;
+    to?: string;
+    entry_count: number;
+  }): Promise<void> {
+    await api.post("/audit/export", filters);
   },
 };
 

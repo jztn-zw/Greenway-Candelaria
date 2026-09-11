@@ -15,6 +15,5 @@ export interface Resident {
   dateRegistered: string;
   lastLogin: string;
   status: "Active" | "Deactivated";
-  twoFactorEnabled: boolean;
   reports: ResidentReport[];
 }

@@ -101,7 +101,7 @@ const TruckEditorModal = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-muted/60 text-foreground border border-border/80 flex items-center justify-center shrink-0">
               <TruckIcon className="w-4 h-4" />
             </div>
             <div>
@@ -125,68 +125,83 @@ const TruckEditorModal = ({
           </button>
         </div>
 
-        {/* Form Body */}
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="truck-name" className="text-xs font-semibold">
-              Truck Identifier Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="truck-name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g. Truck 1"
-              className="h-9 text-xs rounded-xl bg-background border-border/80"
-            />
+        {/* Form Body - Balanced 2-Column Grid */}
+        <div className="space-y-3.5 py-2">
+          {/* Row 1: Name & Model */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="truck-name" className="text-xs font-semibold">
+                Truck Identifier
+              </Label>
+              <Input
+                id="truck-name"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. Truck 1"
+                className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="truck-model" className="text-xs font-semibold">
+                Vehicle Model
+              </Label>
+              <Input
+                id="truck-model"
+                value={formModel}
+                onChange={(e) => setFormModel(e.target.value)}
+                placeholder="e.g. Isuzu Forward 6-Wheeler"
+                className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs"
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="truck-model" className="text-xs font-semibold">
-              Vehicle Model <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="truck-model"
-              value={formModel}
-              onChange={(e) => setFormModel(e.target.value)}
-              placeholder="e.g. Isuzu Forward 6-Wheeler"
-              className="h-9 text-xs rounded-xl bg-background border-border/80"
-            />
-          </div>
+          {/* Row 2: Plate Number & Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="truck-plate" className="text-xs font-semibold">
+                Plate Number
+              </Label>
+              <Input
+                id="truck-plate"
+                value={formPlate}
+                onChange={(e) => setFormPlate(e.target.value)}
+                placeholder="e.g. ABC-1234"
+                className="h-10 text-xs rounded-xl font-sans tabular-nums font-semibold bg-background border-border/80 shadow-2xs"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="truck-plate" className="text-xs font-semibold">
-              Plate Number <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="truck-plate"
-              value={formPlate}
-              onChange={(e) => setFormPlate(e.target.value)}
-              placeholder="e.g. ABC-1234"
-              className="h-9 text-xs rounded-xl font-mono bg-background border-border/80"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Operational Status</Label>
-            <Select
-              value={formStatus}
-              onValueChange={(v) => setFormStatus(v as TruckOperationalStatus)}
-            >
-              <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="Active">Active (Ready for service)</SelectItem>
-                <SelectItem value="Under Maintenance">
-                  Under Maintenance (Out of service)
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Operational Status</Label>
+              <Select
+                value={formStatus}
+                onValueChange={(v) => setFormStatus(v as TruckOperationalStatus)}
+              >
+                <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border/80 shadow-2xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="Active" className="text-xs">Active</SelectItem>
+                  <SelectItem value="Under Maintenance" className="text-xs">
+                    Under Maintenance
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
+        <div className="flex items-center justify-end gap-2.5 pt-3.5 border-t border-border/60">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isSaving}
+            className="h-10 px-4 rounded-xl text-xs font-semibold cursor-pointer"
+          >
+            Cancel
+          </Button>
           <Button
             type="button"
             onClick={() => {
@@ -196,11 +211,13 @@ const TruckEditorModal = ({
             className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {isSaving
-              ? "Saving..."
-              : isEditing
-                ? "Save Changes"
-                : "Register Truck"}
+            <span>
+              {isSaving
+                ? "Saving..."
+                : isEditing
+                  ? "Save Changes"
+                  : "Register Truck"}
+            </span>
           </Button>
         </div>
       </DialogContent>

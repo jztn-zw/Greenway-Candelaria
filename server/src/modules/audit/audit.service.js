@@ -1,6 +1,9 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 
+// Security events may occur before an account is identified.
+const ACTIONS_ALLOWING_ANONYMOUS_ACTOR = new Set(["FAILED_LOGIN"]);
+
 // Strip sensitive fields from audit payload
 const sanitize = (data) => {
   if (!data || typeof data !== "object") return data;
@@ -12,6 +15,9 @@ const sanitize = (data) => {
     "secret",
     "two_factor_secret",
     "apiKey",
+    "authorization",
+    "cookie",
+    "session",
   ];
   for (const key of Object.keys(clone)) {
     if (sensitiveKeys.some((s) => key.toLowerCase().includes(s))) {
@@ -34,7 +40,8 @@ const log = async ({
   new_value = null,
   ip_address = null,
 }) => {
-  if (!user_id || !action || !module) return null;
+  if (!action || !module) return null;
+  if (!user_id && !ACTIONS_ALLOWING_ANONYMOUS_ACTOR.has(action)) return null;
 
   const id = generateId();
 
@@ -62,6 +69,22 @@ const log = async ({
   }
 };
 
+const parseAuditValue = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const toManilaUtcBoundary = (value, endOfDay = false) => {
+  const date = String(value || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return value;
+  const boundary = new Date(`${date}T${endOfDay ? "23:59:59" : "00:00:00"}+08:00`);
+  return boundary.toISOString().slice(0, 19).replace("T", " ");
+};
+
 // ─── Get All (with filters, search, & pagination) ───────────
 
 const getAll = async (filters = {}) => {
@@ -69,7 +92,9 @@ const getAll = async (filters = {}) => {
   const limit = Math.min(100, Math.max(1, parseInt(filters.limit, 10) || 50));
   const offset = (page - 1) * limit;
 
-  const where = ["1=1"];
+  // Routine resident sign-ins are deliberately excluded from the operational
+  // audit feed. Their account still keeps last_login_at for support purposes.
+  const where = ["NOT (al.action = 'USER_LOGIN' AND u.role = 'RESIDENT')"];
   const params = [];
 
   // Search filter
@@ -102,11 +127,15 @@ const getAll = async (filters = {}) => {
   // Date range filter
   if (filters.from) {
     where.push("al.created_at >= ?");
-    params.push(filters.from);
+    params.push(toManilaUtcBoundary(filters.from));
   }
   if (filters.to) {
     where.push("al.created_at <= ?");
-    params.push(filters.to.includes(" ") ? filters.to : `${filters.to} 23:59:59`);
+    params.push(
+      filters.to.includes(" ")
+        ? filters.to
+        : toManilaUtcBoundary(filters.to, true),
+    );
   }
 
   const whereClause = `WHERE ${where.join(" AND ")}`;
@@ -142,8 +171,8 @@ const getAll = async (filters = {}) => {
   // Parse JSON values safely
   const formattedLogs = logs.map((l) => ({
     ...l,
-    old_value: typeof l.old_value === "string" ? JSON.parse(l.old_value) : l.old_value,
-    new_value: typeof l.new_value === "string" ? JSON.parse(l.new_value) : l.new_value,
+    old_value: parseAuditValue(l.old_value),
+    new_value: parseAuditValue(l.new_value),
   }));
 
   // Overall KPIs
@@ -153,7 +182,9 @@ const getAll = async (filters = {}) => {
        SUM(CASE WHEN action LIKE '%DELETE%' OR action LIKE '%DEACTIVATE%' OR action LIKE '%BAN%' THEN 1 ELSE 0 END) AS deletions,
        SUM(CASE WHEN action LIKE '%FAILED_LOGIN%' OR action LIKE '%BAN%' OR action LIKE '%DELETE%' THEN 1 ELSE 0 END) AS critical_actions,
        SUM(CASE WHEN action LIKE '%FAILED_LOGIN%' THEN 1 ELSE 0 END) AS failed_logins
-     FROM audit_logs`,
+     FROM audit_logs al
+     LEFT JOIN users u ON u.id = al.user_id
+     WHERE NOT (al.action = 'USER_LOGIN' AND u.role = 'RESIDENT')`,
   );
 
   const kpis = {
@@ -196,8 +227,8 @@ const getById = async (id) => {
   const log = rows[0];
   return {
     ...log,
-    old_value: typeof log.old_value === "string" ? JSON.parse(log.old_value) : log.old_value,
-    new_value: typeof log.new_value === "string" ? JSON.parse(log.new_value) : log.new_value,
+    old_value: parseAuditValue(log.old_value),
+    new_value: parseAuditValue(log.new_value),
   };
 };
 
@@ -224,17 +255,9 @@ const getFilterOptions = async () => {
   };
 };
 
-// ─── Clear All (Admin only) ───────────────────────────────
-
-const clearAll = async () => {
-  await pool.query("DELETE FROM audit_logs");
-  return { message: "Audit logs cleared successfully" };
-};
-
 module.exports = {
   log,
   getAll,
   getById,
   getFilterOptions,
-  clearAll,
 };

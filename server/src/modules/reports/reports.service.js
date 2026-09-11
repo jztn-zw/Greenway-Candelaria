@@ -458,7 +458,6 @@ const create = async (userId, data) => {
     }).catch(() => {});
 
     // Notify Admins of new report
-    const isUrgent = createdReport.priority === "HIGH";
     const violationLabel = createdReport.violation_type
       .toLowerCase()
       .split("_")
@@ -466,8 +465,8 @@ const create = async (userId, data) => {
       .join(" ");
     notifyAdmins({
       type: "REPORT_UPDATE",
-      title: `New ${isUrgent ? "high" : createdReport.priority.toLowerCase()} priority ${violationLabel} report`,
-      body: `${createdReport.reference_number} was submitted in ${createdReport.barangay_name}.`,
+      title: `New Report: ${createdReport.reference_number}`,
+      body: `${violationLabel} reported in ${createdReport.barangay_name} (${createdReport.priority.toLowerCase()} priority).`,
       ref_id: createdReport.id,
       ref_module: "reports",
     }).catch((err) => console.error("[Notify] ❌ Admin report notification failed:", err.message));
@@ -616,7 +615,7 @@ const updateStatus = async (id, adminId, { status, admin_response }) => {
       sendToUser({
         user_id: duplicate.user_id,
         type: "REPORT_UPDATE",
-        title: "Report Resolved",
+        title: `Report Resolved: ${duplicate.reference_number}`,
         body: duplicateResponse,
         ref_id: duplicate.id,
         ref_module: "reports",
@@ -636,7 +635,9 @@ const updateStatus = async (id, adminId, { status, admin_response }) => {
     sendToUser({
       user_id: updatedReport.user_id,
       type: "REPORT_UPDATE",
-      title: isResolved ? "Your report was resolved" : `Your report is now ${statusLabels[status] || status}`,
+      title: isResolved
+        ? `Report Resolved: ${updatedReport.reference_number}`
+        : `Report Updated: ${updatedReport.reference_number}`,
       body: isResolved
         ? `Your report ${updatedReport.reference_number} has been resolved.`
         : `Your report ${updatedReport.reference_number} is now ${statusLabels[status] || status}.`,
@@ -706,8 +707,8 @@ const flagReport = async (id, adminId, data) => {
     fields.push("status = ?", "admin_response = ?");
     const defaultResponse = data.is_duplicate
       ? `This report is a duplicate of ${data.duplicate_of_reference.trim().toUpperCase()} and is already being handled.`
-      : "This report has been reviewed and marked as invalid.";
-    params.push("RESOLVED", data.admin_response || defaultResponse);
+      : `We reviewed your report ${existing.reference_number} but could not verify the issue using the available information, so it has been closed. Reason: ${data.false_reason}. If the issue is still happening, you may submit a new report with clearer photos, location details, or landmarks.`;
+    params.push("RESOLVED", defaultResponse);
   }
 
   if (fields.length === 0) {
@@ -741,7 +742,9 @@ const flagReport = async (id, adminId, data) => {
     sendToUser({
       user_id: updatedReport.user_id,
       type: "REPORT_UPDATE",
-      title: "Report Resolved",
+      title: data.is_false
+        ? `Report review completed: ${updatedReport.reference_number}`
+        : `Report Resolved: ${updatedReport.reference_number}`,
       body: updatedReport.admin_response || "Your report has been reviewed and resolved.",
       ref_id: updatedReport.id,
       ref_module: "reports",

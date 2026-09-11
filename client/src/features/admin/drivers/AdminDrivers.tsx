@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -466,18 +467,13 @@ const AdminDrivers = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Truck className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Collector Manager
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Manage municipal waste collector personnel, truck assignments, and fleet statuses.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Collector Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Manage municipal waste collector personnel, truck assignments, and fleet statuses.
+          </p>
         </div>
 
         <Button
@@ -492,94 +488,65 @@ const AdminDrivers = () => {
       </div>
 
       {/* ── Executive Metric KPI Strip ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Collectors */}
-        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Total Collectors
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-            {totalCollectors}
-          </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {activeCollectors} Active
-            </span>
-            <span>·</span>
-            <span>{deactivatedCollectors} Deactivated</span>
-          </div>
-        </div>
-
-        {/* Active Personnel */}
-        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Active Personnel
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-            {activeCollectors}
-          </div>
-          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-            Ready for route dispatch
-          </div>
-        </div>
-
-        {/* Fleet Trucks */}
-        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Fleet Trucks
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-              <Truck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-            {totalTrucks}
-          </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {activeTrucks} Operational
-            </span>
-            {maintTrucks > 0 && (
-              <>
-                <span>·</span>
-                <span className="text-amber-600 dark:text-amber-400 font-medium">
-                  {maintTrucks} Maintenance
-                </span>
-              </>
+      <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+        {[
+          {
+            title: "Total Collectors",
+            value: totalCollectors,
+            subtext: `${activeCollectors} active · ${deactivatedCollectors} deactivated`,
+            tag: "bg-muted/70 text-muted-foreground border-border/80",
+          },
+          {
+            title: "Active Personnel",
+            value: activeCollectors,
+            subtext: "Ready for route dispatch",
+            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+          },
+          {
+            title: "Fleet Trucks",
+            value: totalTrucks,
+            subtext: `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
+            tag: "bg-muted/70 text-muted-foreground border-border/80",
+          },
+          {
+            title: "Assigned Fleet",
+            value: assignedTrucks,
+            subtext:
+              totalTrucks > 0
+                ? `${Math.round((assignedTrucks / totalTrucks) * 100)}% vehicles paired`
+                : "No vehicles in fleet",
+            tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+          },
+        ].map((kpi, idx) => (
+          <div
+            key={kpi.title}
+            className={cn(
+              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
+              idx % 2 === 0 ? "border-r border-border/70" : "",
+              idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
+              idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
             )}
-          </div>
-        </div>
+          >
+            <div className="flex items-center min-h-[22px]">
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  kpi.tag
+                )}
+              >
+                {kpi.title}
+              </span>
+            </div>
 
-        {/* Assigned Fleet */}
-        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Assigned Fleet
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+              {kpi.value}
+            </div>
+
+            <div className="text-[11px] text-muted-foreground font-medium truncate">
+              {kpi.subtext}
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-            {assignedTrucks}
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            {totalTrucks > 0
-              ? `${Math.round((assignedTrucks / totalTrucks) * 100)}% vehicles paired`
-              : "No vehicles in fleet"}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
@@ -635,7 +602,7 @@ const AdminDrivers = () => {
                   setDriverAssignmentFilter(val)
                 }
               >
-                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-card border-border/80 shrink-0">
+                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-background border-border/80 shrink-0">
                   <SelectValue placeholder="All Personnel" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -651,7 +618,7 @@ const AdminDrivers = () => {
                   setTruckDriverFilter(val)
                 }
               >
-                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-card border-border/80 shrink-0">
+                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-background border-border/80 shrink-0">
                   <SelectValue placeholder="All Vehicles" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">

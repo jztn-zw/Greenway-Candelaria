@@ -50,7 +50,6 @@ import {
   Announcement,
   EditorForm,
   AnnouncementType,
-  AnnouncementPriority,
   AnnouncementStatus,
   TargetAudience,
   BODY_CHAR_LIMIT,
@@ -116,6 +115,10 @@ const AnnouncementEditor = ({
     expiry.setHours(23, 59, 59, 0);
     return expiry.toISOString();
   };
+  const toDateInputValue = (value?: string) => {
+    const date = value ? parseStoredDate(value) : new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
 
   if (!form) return null;
 
@@ -126,11 +129,12 @@ const AnnouncementEditor = ({
         form.title !== editingAnnouncement.title ||
         form.body !== editingAnnouncement.body ||
         form.type !== editingAnnouncement.type ||
-        form.priority !== editingAnnouncement.priority ||
         form.status !== editingAnnouncement.status ||
-        form.targetAudience !== editingAnnouncement.targetAudience ||
-        form.scheduledDate !== (editingAnnouncement.scheduledDate ?? "") ||
-        form.expiryDate !== (editingAnnouncement.expiryDate ?? "")
+         form.targetAudience !== editingAnnouncement.targetAudience ||
+         form.scheduledDate !== (editingAnnouncement.scheduledDate ?? "") ||
+         form.expiryDate !== (editingAnnouncement.expiryDate ?? "") ||
+         form.showOnResidentCalendar !== Boolean(editingAnnouncement.calendarEventId) ||
+         form.calendarDate !== (editingAnnouncement.calendarDate?.split("T")[0] ?? "")
       );
     }
     return (
@@ -277,7 +281,7 @@ const AnnouncementEditor = ({
 
           {/* ── Scrollable Form Body ── */}
           <div className="overflow-y-auto px-4 sm:px-5 py-4 space-y-4 flex-1 overscroll-contain">
-            {/* Title */}
+            {/* Notice Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground/90">
                 Notice Title
@@ -290,6 +294,73 @@ const AnnouncementEditor = ({
                 placeholder="e.g. Special Holiday Waste Collection Schedule"
                 className="h-10 rounded-xl bg-background border border-border text-xs px-3.5 focus-visible:ring-primary/20"
               />
+            </div>
+
+            {/* Target Audience & Notice Type (50/50 split) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground/90">
+                  Target Audience
+                </Label>
+                <Select
+                  value={form.targetAudience}
+                  onValueChange={(v) =>
+                    setForm((p) => ({
+                      ...p,
+                      targetAudience: v as TargetAudience,
+                      targetBarangays: v === "All Residents" ? [] : p.targetBarangays,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-border">
+                    <SelectItem value="All Residents" className="text-xs font-medium">
+                      All Residents
+                    </SelectItem>
+                    <SelectItem value="Specific Barangays" className="text-xs font-medium">
+                      Specific Barangays
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground/90">
+                  Notice Type
+                </Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(v) =>
+                    setForm((p) => ({
+                      ...p,
+                      type: v as AnnouncementType,
+                      showOnResidentCalendar: ["Schedule Change", "Holiday Reminder", "Community Event"].includes(v)
+                        ? p.showOnResidentCalendar
+                        : false,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-border">
+                    {[
+                      "Schedule Change",
+                      "Holiday Reminder",
+                      "Community Event",
+                      "Emergency Advisory",
+                      "General Notice",
+                      "System Maintenance",
+                    ].map((t) => (
+                      <SelectItem key={t} value={t} className="text-xs font-medium">
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Message Body with Character Counter */}
@@ -311,93 +382,6 @@ const AnnouncementEditor = ({
                 className="min-h-[110px] rounded-xl bg-background border border-border p-3 text-xs resize-none focus-visible:ring-primary/20 leading-relaxed"
                 maxLength={BODY_CHAR_LIMIT}
               />
-            </div>
-
-            {/* Type & Priority Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90">
-                  Notice Type
-                </Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(v) =>
-                    setForm((p) => ({ ...p, type: v as AnnouncementType }))
-                  }
-                >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
-                    {[
-                      "Schedule Change",
-                      "Holiday Reminder",
-                      "Emergency Advisory",
-                      "General Notice",
-                      "System Maintenance",
-                    ].map((t) => (
-                      <SelectItem key={t} value={t} className="text-xs font-medium">
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90">
-                  Priority Level
-                </Label>
-                <Select
-                  value={form.priority}
-                  onValueChange={(v) =>
-                    setForm((p) => ({
-                      ...p,
-                      priority: v as AnnouncementPriority,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
-                    {["Normal", "Urgent", "Emergency"].map((p) => (
-                      <SelectItem key={p} value={p} className="text-xs font-medium">
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Target Audience */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground/90">
-                Target Audience
-              </Label>
-              <Select
-                value={form.targetAudience}
-                onValueChange={(v) =>
-                  setForm((p) => ({
-                    ...p,
-                    targetAudience: v as TargetAudience,
-                    targetBarangays: v === "All Residents" ? [] : p.targetBarangays,
-                  }))
-                }
-              >
-                <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border">
-                  <SelectItem value="All Residents" className="text-xs font-medium">
-                    All Residents (Municipality-wide)
-                  </SelectItem>
-                  <SelectItem value="Specific Barangays" className="text-xs font-medium">
-                    Specific Barangays
-                  </SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Specific Barangays Picker */}
@@ -556,6 +540,63 @@ const AnnouncementEditor = ({
                 )}
               </div>
             )}
+
+            {/* Resident calendar is available only for date-based announcement types. */}
+            {["Schedule Change", "Holiday Reminder", "Community Event"].includes(form.type) && <div className="rounded-xl border border-border/70 bg-muted/25 p-4 space-y-3.5">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <Checkbox
+                  checked={form.showOnResidentCalendar}
+                  onCheckedChange={(checked) => setForm((p) => ({
+                    ...p,
+                    showOnResidentCalendar: checked === true,
+                    calendarDate: checked === true ? p.calendarDate || toDateInputValue(p.scheduledDate) : p.calendarDate,
+                  }))}
+                  className="rounded-sm border-border"
+                />
+                <span className="text-xs font-semibold text-foreground">Show as an event on the resident calendar</span>
+              </label>
+              {form.showOnResidentCalendar && (
+                <div className="space-y-1.5 border-t border-border/60 pt-3">
+                  <Label className="text-xs font-semibold text-foreground/90">Event Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "h-10 w-full justify-between rounded-xl bg-background border-border px-3 text-xs font-medium hover:bg-muted/50",
+                          !form.calendarDate && "text-muted-foreground",
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-primary" />
+                          {form.calendarDate
+                            ? format(parseStoredDate(form.calendarDate), "MMMM d, yyyy")
+                            : "Choose event date"}
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto rounded-xl border border-border p-0 shadow-xl" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={form.calendarDate ? parseStoredDate(form.calendarDate) : undefined}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          setForm((p) => ({
+                            ...p,
+                            calendarDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+                          }));
+                        }}
+                        initialFocus
+                        className="p-3"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">Defaults to the announcement’s scheduled date. Change it only if the event is on another day.</p>
+                </div>
+              )}
+            </div>}
 
             {/* Publishing Status */}
             <div className="pt-1">

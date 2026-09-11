@@ -13,8 +13,6 @@ import {
   ArchiveRestore,
   Filter,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Send,
   Clock,
@@ -57,8 +55,9 @@ import AnnouncementCard from "./AnnouncementCard";
 import AnnouncementListView from "./AnnouncementListView";
 import AnnouncementEditor from "./AnnouncementEditor";
 import ReadReceiptModal from "./ReadReceiptModal";
+import PaginationControls from "@/components/common/PaginationControls";
 import { AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
-import { Announcement, EditorForm, announcementTypeStyles, announcementPriorityStyles, isAnnouncementExpired } from "./types";
+import { Announcement, EditorForm, announcementTypeStyles, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
 const ITEMS_PER_PAGE_TABLE = 10;
@@ -93,13 +92,14 @@ const DEFAULT_FORM: EditorForm = {
   title: "",
   body: "",
   type: "General Notice",
-  priority: "Normal",
   status: "Draft",
   targetAudience: "All Residents",
   targetBarangays: [],
   targetPreset: null,
   scheduledDate: "",
   expiryDate: "",
+  showOnResidentCalendar: false,
+  calendarDate: "",
 };
 
 const AdminAnnouncements = () => {
@@ -124,7 +124,6 @@ const AdminAnnouncements = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
@@ -175,15 +174,12 @@ const AdminAnnouncements = () => {
           a.body.toLowerCase().includes(search.toLowerCase());
 
         const matchesType = typeFilter === "all" || a.type === typeFilter;
-        const matchesPriority =
-          priorityFilter === "all" || a.priority === priorityFilter;
-
         const matchesStatus =
           statusFilter === "all"
             ? a.status !== "Archived"
             : a.status === statusFilter;
 
-        return matchesSearch && matchesType && matchesPriority && matchesStatus;
+        return matchesSearch && matchesType && matchesStatus;
       })
       .sort((a, b) => {
         if (sortBy === "newest") {
@@ -203,7 +199,7 @@ const AdminAnnouncements = () => {
         }
         return 0;
       });
-  }, [announcements, search, typeFilter, priorityFilter, statusFilter, sortBy]);
+  }, [announcements, search, typeFilter, statusFilter, sortBy]);
 
   const itemsPerPage =
     viewMode === "grid" ? ITEMS_PER_PAGE_GRID : ITEMS_PER_PAGE_TABLE;
@@ -211,7 +207,7 @@ const AdminAnnouncements = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [viewMode, search, typeFilter, priorityFilter, statusFilter]);
+  }, [viewMode, search, typeFilter, statusFilter]);
 
   const paginated = useMemo(() => {
     return filtered.slice(
@@ -234,6 +230,8 @@ const AdminAnnouncements = () => {
         targetBarangays: ann.targetBarangayIds,
         scheduledDate: ann.scheduledDate ?? "",
         expiryDate: ann.expiryDate ?? "",
+        showOnResidentCalendar: Boolean(ann.calendarEventId),
+        calendarDate: ann.calendarDate?.split("T")[0] ?? "",
       });
     } else {
       setEditingAnn(null);
@@ -270,13 +268,11 @@ const AdminAnnouncements = () => {
   const activeFilterCount =
     (search.trim() ? 1 : 0) +
     (typeFilter !== "all" ? 1 : 0) +
-    (priorityFilter !== "all" ? 1 : 0) +
     (statusFilter !== "all" ? 1 : 0);
 
   const handleClearAllFilters = () => {
     setSearch("");
     setTypeFilter("all");
-    setPriorityFilter("all");
     setStatusFilter("all");
     setSortBy("newest");
     setCurrentPage(1);
@@ -288,18 +284,13 @@ const AdminAnnouncements = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-300">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Megaphone className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Announcements
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Broadcast official MENRO advisories, schedule changes, and alerts to residents.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Announcements
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Broadcast official MENRO advisories, schedule changes, and alerts to residents.
+          </p>
         </div>
         <Button
           onClick={() => openEditor()}
@@ -313,11 +304,10 @@ const AdminAnnouncements = () => {
       {/* ── KPIs Overview Cards ── */}
       <AnnouncementKPIs announcements={announcements} />
 
-      {/* ── Standardized 2-Tier Filter Card Container ── */}
-      <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
-        {/* Tier 1: Status Navigation & Search */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
-          {/* Status Pills with Circular Count Badges */}
+      {/* ── Filter Bar & Actions ── */}
+      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/70 shadow-xs backdrop-blur-md">
+        {/* Tier 1: Search + Quick Status Tabs */}
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x">
             {STATUS_TABS.map((tab) => {
               const count = statusCounts[tab.key] || 0;
@@ -408,28 +398,10 @@ const AdminAnnouncements = () => {
               <SelectItem value="all" className="text-xs">All Types</SelectItem>
               <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
               <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
+              <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
               <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
               <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
               <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Priority Filter */}
-          <Select
-            value={priorityFilter}
-            onValueChange={(v) => {
-              setPriorityFilter(v);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="h-9 text-xs w-auto min-w-[120px] bg-card border-border/80 rounded-xl">
-              <SelectValue placeholder="All Priority" />
-            </SelectTrigger>
-            <SelectContent align="start" className="rounded-xl border border-border">
-              <SelectItem value="all" className="text-xs">All Priority</SelectItem>
-              <SelectItem value="Normal" className="text-xs">Normal</SelectItem>
-              <SelectItem value="Urgent" className="text-xs">Urgent</SelectItem>
-              <SelectItem value="Emergency" className="text-xs">Emergency</SelectItem>
             </SelectContent>
           </Select>
 
@@ -508,7 +480,7 @@ const AdminAnnouncements = () => {
               No announcements found
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {search || typeFilter !== "all" || priorityFilter !== "all"
+              {search || typeFilter !== "all"
                 ? "Try adjusting your filters or search keywords to find what you're looking for."
                 : "Get started by broadcasting your first community announcement to residents."}
             </p>
@@ -556,37 +528,15 @@ const AdminAnnouncements = () => {
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={itemsPerPage}
+          itemLabel="announcements"
+          onPageChange={setCurrentPage}
+          variant="floating"
+        />
       )}
 
       {/* ── Create / Edit Form Modal ── */}
@@ -653,14 +603,6 @@ const AdminAnnouncements = () => {
                   >
                     {previewAnn.type}
                   </Badge>
-                  {previewAnn.priority !== "Normal" && (
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-semibold rounded-full px-2.5 py-0.5 ${announcementPriorityStyles[previewAnn.priority] || ""}`}
-                    >
-                      {previewAnn.priority}
-                    </Badge>
-                  )}
                 </div>
 
                 {/* Title & Body */}

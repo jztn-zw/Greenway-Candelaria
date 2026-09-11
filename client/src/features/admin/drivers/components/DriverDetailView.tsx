@@ -1,15 +1,15 @@
 import {
-  Truck,
-  Phone,
   Clock,
   CheckCircle2,
-  MessageSquare,
+  Phone,
+  Mail,
+  Truck,
+  CalendarDays,
+  ShieldCheck,
   Edit2,
   KeyRound,
   UserX,
   UserCheck,
-  Mail,
-  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,11 +61,11 @@ const DriverDetailView = ({
         </div>
       </div>
 
-      {/* ── Collector Profile Bento Card ── */}
+      {/* ── Collector Profile Overview Card ── */}
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5 pb-6 border-b border-border/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xl font-display shrink-0 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-lg font-display shrink-0 shadow-2xs">
               {getInitials(driver.fullName)}
             </div>
             <div>
@@ -93,91 +93,107 @@ const DriverDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onEdit(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+              Edit Profile
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onResetPassword(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
             >
-              <KeyRound className="w-3.5 h-3.5" /> Reset Password
+              <KeyRound className="w-3.5 h-3.5 text-muted-foreground" />
+              Reset Password
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onToggleStatus(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
             >
               {driver.status === "Active" ? (
                 <>
-                  <UserX className="w-3.5 h-3.5 text-rose-500" /> Deactivate
+                  <UserX className="w-3.5 h-3.5 text-muted-foreground" />
+                  Deactivate
                 </>
               ) : (
                 <>
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-500" /> Reactivate
+                  <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                  Reactivate
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {/* ── Metadata Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-primary" /> Contact Number
-            </p>
-            <p className="text-sm font-semibold text-foreground">
+        {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
+          {/* Layer 1: Primary Contact & Assigned Vehicle */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Contact Number
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground font-sans tabular-nums">
               {driver.contactNumber || "N/A"}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-primary" /> Email Address
-            </p>
-            <p className="text-sm font-semibold text-foreground truncate">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Email Address
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate" title={driver.email}>
               {driver.email || "N/A"}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-primary" /> Assigned Truck
-            </p>
-            {truck ? (
-              <p className="text-sm font-semibold text-foreground truncate">
-                {truck.name} — {truck.model} ({truck.plateNumber})
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground/70 italic">None assigned</p>
-            )}
-          </div>
-
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-primary" /> Last Login
-            </p>
-            <p className="text-sm font-semibold text-foreground">
-              {driver.lastLogin || "Never"}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Assigned Truck
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate">
+              {truck ? (
+                <span>
+                  {truck.name} · <span className="font-sans tabular-nums font-semibold">{truck.plateNumber}</span>
+                </span>
+              ) : (
+                <span className="text-muted-foreground italic">None assigned</span>
+              )}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5 text-primary" /> Date Added
-            </p>
-            <p className="text-sm font-semibold text-foreground">
+          {/* Layer 2: Activity & Account */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Date Added
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
               {driver.dateAdded || "N/A"}
             </p>
           </div>
 
-          <div className="bg-muted/20 border border-border/60 rounded-xl p-4 space-y-1">
-            <p className="text-xs text-muted-foreground">Account Status</p>
-            <p className="text-sm font-semibold text-foreground">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Last Login
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
+              {driver.lastLogin || "Never"}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
+              Account Status
+            </span>
+            <p className="text-xs sm:text-sm font-medium text-foreground">
               {driver.status === "Active" ? "Operational & Ready" : "Account Suspended"}
             </p>
           </div>
@@ -219,21 +235,21 @@ const DriverDetailView = ({
                     </span>
                     <Badge
                       variant="outline"
-                      className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-2.5 py-0.5 rounded-md"
+                      className="bg-muted/60 text-foreground border-border/80 text-xs font-semibold px-2.5 py-0.5 rounded-full"
                     >
                       {a.route}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> {a.startTime} – {a.endTime}
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" /> {a.startTime} – {a.endTime}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>
                       {a.barangaysCompleted}/{a.barangaysTotal} barangays
                     </span>
@@ -243,20 +259,6 @@ const DriverDetailView = ({
                     className="flex-1 h-2 rounded-full"
                   />
                 </div>
-
-                {a.statusMessages.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1 border-t border-border/40">
-                    {a.statusMessages.map((m, j) => (
-                      <span
-                        key={j}
-                        className="inline-flex items-center gap-1 text-[11px] bg-muted/60 text-muted-foreground rounded-md px-2.5 py-1 border border-border/40"
-                      >
-                        <MessageSquare className="w-3 h-3 text-muted-foreground/70" />{" "}
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>

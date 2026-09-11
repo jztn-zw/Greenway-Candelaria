@@ -76,6 +76,20 @@ const getAdminDashboard = async () => {
     GROUP BY status
   `);
 
+  const [[attentionRow]] = await pool.query(`
+    SELECT
+      COALESCE(SUM(CASE WHEN status = 'SUBMITTED' THEN 1 ELSE 0 END), 0) AS awaiting_triage,
+      COALESCE(SUM(CASE WHEN status = 'SUBMITTED' AND priority = 'HIGH' THEN 1 ELSE 0 END), 0) AS high_priority_awaiting_triage,
+      COALESCE(SUM(CASE WHEN status = 'SUBMITTED' AND priority <> 'HIGH' THEN 1 ELSE 0 END), 0) AS standard_priority_awaiting_triage,
+      (
+        SELECT COUNT(*)
+        FROM trucks
+        WHERE availability_status = 'UNDER_MAINTENANCE'
+      ) AS maintenance_trucks
+    FROM reports
+    WHERE deleted_at IS NULL
+  `);
+
   const [reportTrendRows] = await pool.query(`
     SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count
     FROM reports
@@ -162,11 +176,31 @@ const getAdminDashboard = async () => {
     [getToday()],
   );
 
-  const [barangays] = await pool.query(`
-    SELECT id, name, NULL AS zone
-    FROM barangays
-    ORDER BY name ASC
-  `);
+  // These are the sectors actually assigned to an active route today.  Do not
+  // return the municipality's full barangay list here: the operations card
+  // reports today's collection coverage, not general municipality coverage.
+  const [barangays] = await pool.query(
+    `SELECT
+       b.id,
+       b.name,
+       NULL AS zone,
+       t.name AS truck_name,
+       CASE
+         WHEN SUM(rs.status = 'DONE') > 0 THEN 'DONE'
+         WHEN SUM(rs.status = 'IN_PROGRESS') > 0 THEN 'IN_PROGRESS'
+         WHEN SUM(rs.status = 'MISSED') > 0 THEN 'MISSED'
+         ELSE 'NOT_STARTED'
+       END AS status
+     FROM routes r
+     JOIN route_stops rs ON rs.route_id = r.id
+     JOIN barangays b ON b.id = rs.barangay_id
+     JOIN trucks t ON t.id = r.truck_id
+     WHERE UPPER(r.day_of_week) = ?
+       AND r.status = 'ACTIVE'
+     GROUP BY b.id, b.name, t.name
+     ORDER BY b.name ASC`,
+    [getToday()],
+  );
 
   const [routeRows] = await pool.query(`
     SELECT
@@ -238,6 +272,12 @@ const getAdminDashboard = async () => {
       by_status: [],
       monthly_signups: residentTrendRows,
       per_barangay: [],
+    },
+    attention: {
+      awaiting_triage: toNumber(attentionRow.awaiting_triage),
+      high_priority_awaiting_triage: toNumber(attentionRow.high_priority_awaiting_triage),
+      standard_priority_awaiting_triage: toNumber(attentionRow.standard_priority_awaiting_triage),
+      maintenance_trucks: toNumber(attentionRow.maintenance_trucks),
     },
     recentReports,
     activityLogs,

@@ -16,9 +16,7 @@ import {
 } from "@/services/announcementsService";
 import {
   announcementTypeStyles,
-  announcementPriorityStyles,
   AnnouncementType,
-  AnnouncementPriority,
 } from "@/features/admin/announcements/types";
 import type { NotificationRow } from "@/services/notificationsService";
 
@@ -36,7 +34,6 @@ export interface AnnouncementDetail {
   title: string;
   body: string;
   type: string;
-  priority: string;
   target_all?: boolean;
   barangays?: { id: string; name: string }[];
   pinned?: boolean;
@@ -53,6 +50,8 @@ const mapToAnnouncementType = (rawType?: string): AnnouncementType => {
       return "Schedule Change";
     case "HOLIDAY_REMINDER":
       return "Holiday Reminder";
+    case "COMMUNITY_EVENT":
+      return "Community Event";
     case "EMERGENCY_ADVISORY":
       return "Emergency Advisory";
     case "SYSTEM_MAINTENANCE":
@@ -61,13 +60,6 @@ const mapToAnnouncementType = (rawType?: string): AnnouncementType => {
     default:
       return "General Notice";
   }
-};
-
-const mapToAnnouncementPriority = (rawPriority?: string): AnnouncementPriority => {
-  const p = (rawPriority || "").toUpperCase();
-  if (p === "URGENT") return "Urgent";
-  if (p === "EMERGENCY") return "Emergency";
-  return "Normal";
 };
 
 const formatDateOnly = (dateStr?: string | null) => {
@@ -159,10 +151,6 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   const mappedType = hasLoadedDetails
     ? mapToAnnouncementType(displayAnnouncement?.type)
     : null;
-  const mappedPriority = mapToAnnouncementPriority(
-    displayAnnouncement?.priority ||
-      (notification?.title.match(/[🚨⚠️]/) ? "URGENT" : "NORMAL"),
-  );
 
   const formattedSent = formatDateOnly(createdAt);
   const relativeTime = formatRelativeTime(createdAt, {
@@ -253,16 +241,6 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
                   </Badge>
                 )}
 
-                {mappedPriority !== "Normal" && (
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-semibold rounded-full px-2.5 py-0.5 ${
-                      announcementPriorityStyles[mappedPriority] || ""
-                    }`}
-                  >
-                    {mappedPriority}
-                  </Badge>
-                )}
 
               </div>
 

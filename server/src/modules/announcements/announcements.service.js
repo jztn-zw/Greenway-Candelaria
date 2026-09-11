@@ -16,11 +16,18 @@ const getById = async (id, viewer = null) => {
        a.*,
        u.full_name  AS created_by_name,
        u.avatar_url AS created_by_avatar,
+       calendar_event.id AS calendar_event_id,
+       calendar_event.event_date AS calendar_date,
+       calendar_event.start_time AS calendar_start_time,
+       calendar_event.end_time AS calendar_end_time,
+       calendar_event.location AS calendar_location,
        (a.expires_at IS NOT NULL AND a.expires_at <= NOW()) AS is_expired,
        (SELECT COUNT(DISTINCT r.user_id) FROM announcement_read_receipts r WHERE r.announcement_id = a.id) AS read_count,
        (SELECT COUNT(DISTINCT n.user_id) FROM notifications n WHERE n.ref_module = 'announcements' AND n.ref_id = a.id) AS recipient_count
      FROM announcements a
      JOIN users u ON u.id = a.created_by
+     LEFT JOIN schedules calendar_event
+       ON calendar_event.announcement_id = a.id AND calendar_event.deleted_at IS NULL
      WHERE a.id = ?`,
     [id],
   );
@@ -54,6 +61,64 @@ const getById = async (id, viewer = null) => {
   return announcement;
 };
 
+const getCalendarEntry = async (announcementId) => {
+  const [rows] = await pool.query(
+    `SELECT id, event_date, start_time, end_time, location
+     FROM schedules
+     WHERE announcement_id = ? AND deleted_at IS NULL
+     LIMIT 1`,
+    [announcementId],
+  );
+  return rows[0] || null;
+};
+
+const announcementCalendarDate = (announcement) => {
+  const value = announcement.scheduled_at || announcement.sent_at || new Date();
+  if (typeof value === "string") return value.slice(0, 10);
+  return value.toISOString().slice(0, 10);
+};
+
+const syncResidentCalendarEntry = async (announcement, data) => {
+  const existingEntry = await getCalendarEntry(announcement.id);
+  const showOnCalendar = data.show_on_calendar === undefined
+    ? Boolean(existingEntry)
+    : data.show_on_calendar;
+
+  if (showOnCalendar && !["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"].includes(announcement.type)) {
+    throw { statusCode: 400, message: "Only event and schedule-related announcements can appear on the resident calendar." };
+  }
+
+  if (!showOnCalendar) {
+    if (existingEntry) {
+      await pool.query("UPDATE schedules SET deleted_at = NOW() WHERE id = ?", [existingEntry.id]);
+    }
+    return;
+  }
+
+  const eventDate = data.calendar_date ?? existingEntry?.event_date ?? announcementCalendarDate(announcement);
+  if (!eventDate) {
+    throw { statusCode: 400, message: "Select the resident calendar date." };
+  }
+  if (existingEntry) {
+    await pool.query(
+      `UPDATE schedules
+       SET title = ?, description = ?, event_date = ?, start_time = NULL, end_time = NULL, location = NULL,
+           event_type = 'COMMUNITY_EVENT', visibility = 'PUBLIC', status = 'UPCOMING'
+       WHERE id = ?`,
+      [announcement.title, announcement.body, eventDate, existingEntry.id],
+    );
+    return;
+  }
+
+  await pool.query(
+    `INSERT INTO schedules
+       (id, title, description, event_date, start_time, end_time, event_type, visibility,
+        location, status, created_by, announcement_id)
+     VALUES (?, ?, ?, ?, ?, ?, 'COMMUNITY_EVENT', 'PUBLIC', ?, 'UPCOMING', ?, ?)`,
+    [generateId(), announcement.title, announcement.body, eventDate, null, null, null, announcement.created_by, announcement.id],
+  );
+};
+
 // ─── Get All ───────────────────────────────────────────────
 
 const getAll = async (filters = {}, viewer = null) => {
@@ -61,10 +126,17 @@ const getAll = async (filters = {}, viewer = null) => {
     SELECT
       a.*,
        u.full_name AS created_by_name,
+       calendar_event.id AS calendar_event_id,
+       calendar_event.event_date AS calendar_date,
+       calendar_event.start_time AS calendar_start_time,
+       calendar_event.end_time AS calendar_end_time,
+       calendar_event.location AS calendar_location,
        (SELECT COUNT(DISTINCT r.user_id) FROM announcement_read_receipts r WHERE r.announcement_id = a.id) AS read_count,
        (SELECT COUNT(DISTINCT n.user_id) FROM notifications n WHERE n.ref_module = 'announcements' AND n.ref_id = a.id) AS recipient_count
-    FROM announcements a
-    JOIN users u ON u.id = a.created_by
+     FROM announcements a
+     JOIN users u ON u.id = a.created_by
+     LEFT JOIN schedules calendar_event
+       ON calendar_event.announcement_id = a.id AND calendar_event.deleted_at IS NULL
     WHERE 1=1
   `;
 
@@ -78,11 +150,6 @@ const getAll = async (filters = {}, viewer = null) => {
   if (filters.type) {
     query += " AND a.type = ?";
     params.push(filters.type);
-  }
-
-  if (filters.priority) {
-    query += " AND a.priority = ?";
-    params.push(filters.priority);
   }
 
   if (viewer?.role !== "ADMIN") {
@@ -117,7 +184,7 @@ const notifyRecipients = async (announcement) => {
     body: announcement.body,
     ref_id: announcement.id,
     ref_module: "announcements",
-    metadata: { category: announcement.type, priority: announcement.priority },
+    metadata: { category: announcement.type },
   };
   if (announcement.target_all) return notifyAllResidents(payload);
   return Promise.all(announcement.barangays.map((barangay) =>
@@ -157,12 +224,12 @@ const create = async (adminId, data) => {
     title,
     body,
     type,
-    priority,
     status,
     target_all,
     scheduled_at,
     expires_at,
     barangay_ids = [],
+    show_on_calendar,
   } = data;
 
   const id = generateId();
@@ -172,15 +239,14 @@ const create = async (adminId, data) => {
 
   await pool.query(
     `INSERT INTO announcements
-       (id, title, body, type, priority, status,
+       (id, title, body, type, status,
         target_all, scheduled_at, expires_at, sent_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${sentAt}, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${sentAt}, ?)`,
     [
       id,
       title,
       body,
       type,
-      priority,
       status,
       target_all,
       scheduled_at || null,
@@ -201,13 +267,14 @@ const create = async (adminId, data) => {
   }
 
   const created = await getById(id);
+  await syncResidentCalendarEntry(created, data);
 
   await auditService.log({
     user_id: adminId,
     action: "CREATE_ANNOUNCEMENT",
     module: "announcements",
     record_id: created.id,
-    new_value: { title: created.title, type: created.type, priority: created.priority, status: created.status },
+    new_value: { title: created.title, type: created.type, status: created.status },
   }).catch(() => {});
 
   // Finish persisting recipient notifications before returning success. Keeping this
@@ -221,7 +288,7 @@ const create = async (adminId, data) => {
     }
   }
 
-  return created;
+  return getById(created.id);
 };
 
 // ─── Update ────────────────────────────────────────────────
@@ -264,7 +331,6 @@ const update = async (id, data) => {
     title: "title",
     body: "body",
     type: "type",
-    priority: "priority",
     status: "status",
     target_all: "target_all",
     scheduled_at: "scheduled_at",
@@ -319,6 +385,7 @@ const update = async (id, data) => {
   }
 
   const updated = await getById(id);
+  await syncResidentCalendarEntry(updated, data);
 
   auditService.log({
     user_id: updated.created_by,
@@ -327,8 +394,8 @@ const update = async (id, data) => {
       : "UPDATE_ANNOUNCEMENT",
     module: "announcements",
     record_id: updated.id,
-    old_value: { title: existing.title, status: existing.status, priority: existing.priority },
-    new_value: { title: updated.title, status: updated.status, priority: updated.priority },
+    old_value: { title: existing.title, status: existing.status },
+    new_value: { title: updated.title, status: updated.status },
   }).catch(() => {});
 
   if (data.status === "ACTIVE" && existing.status !== "ACTIVE" && existing.status !== "ARCHIVED") {
@@ -343,7 +410,7 @@ const update = async (id, data) => {
     emitNotificationReferenceRemoved("announcements", updated.id);
   }
 
-  return updated;
+  return getById(updated.id);
 };
 
 // ─── Archive ───────────────────────────────────────────────
@@ -428,7 +495,7 @@ const resendToUnread = async (id) => {
     body: announcement.body,
     ref_id: announcement.id,
     ref_module: "announcements",
-    metadata: { category: announcement.type, priority: announcement.priority, resend: true },
+    metadata: { category: announcement.type, resend: true },
   });
 
   await auditService.log({

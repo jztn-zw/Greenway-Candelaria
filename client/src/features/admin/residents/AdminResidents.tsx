@@ -6,8 +6,6 @@ import {
   Trash2,
   UserX,
   UserCheck,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   Users,
   UserPlus,
@@ -53,6 +51,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Resident, ResidentReport } from "./types";
 import ResidentProfileView from "./ResidentProfile";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
   PageHeaderSkeleton,
   KPIRowSkeleton,
@@ -74,9 +73,9 @@ const ITEMS_PER_PAGE = 10;
 
 const residentStatusStyles: Record<string, string> = {
   Active:
-    "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
   Deactivated:
-    "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+    "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30",
   Banned:
     "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
 };
@@ -159,6 +158,12 @@ const AdminResidents = () => {
       toast.success(
         `${resident.fullName} ${newStatus === "ACTIVE" ? "reactivated" : "deactivated"}`,
       );
+      if (viewingResident && viewingResident.id === resident.id) {
+        setViewingResident({
+          ...viewingResident,
+          status: newStatus === "ACTIVE" ? "Active" : "Deactivated",
+        });
+      }
       await Promise.all([loadResidents(), loadKpiCounts()]);
     } catch (err) {
       toast.error(
@@ -305,6 +310,7 @@ const AdminResidents = () => {
       <ResidentProfileView
         resident={viewingResident}
         onBack={() => setViewingResident(null)}
+        onToggleStatus={toggleStatus}
       />
     );
   }
@@ -330,18 +336,13 @@ const AdminResidents = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Resident Manager
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              View and manage all registered resident accounts across Candelaria.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Resident Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            View and manage all registered resident accounts across Candelaria.
+          </p>
         </div>
 
         <Button
@@ -353,59 +354,56 @@ const AdminResidents = () => {
         </Button>
       </div>
 
-      {/* ── Executive KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      {/* ── Executive Metric KPI Strip ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
         {[
           {
             label: "Total Residents",
             value: totalResidentsCount,
-            icon: Users,
-            bg: "bg-primary/10 text-primary border-primary/20",
+            tag: "bg-muted/70 text-muted-foreground border-border/80",
             subtitle: "Registered municipal users",
           },
           {
             label: "Active Accounts",
             value: activeCount,
-            icon: UserCheck,
-            bg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
             subtitle: "Verified & active",
           },
           {
-            label: "Deactivated / Inactive",
+            label: "Deactivated Accounts",
             value: deactivatedCount,
-            icon: UserX,
-            bg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+            tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
             subtitle: "Suspended or deactivated",
           },
-        ].map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div
-              key={kpi.label}
-              className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-1.5"
-            >
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-xs font-semibold uppercase tracking-wider truncate">
-                  {kpi.label}
-                </span>
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs",
-                    kpi.bg
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tabular-nums">
-                {kpi.value.toLocaleString()}
-              </div>
-              <div className="text-[11px] text-muted-foreground truncate">
-                {kpi.subtitle}
-              </div>
+        ].map((kpi, idx) => (
+          <div
+            key={kpi.label}
+            className={cn(
+              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
+              idx < 2 ? "sm:border-r border-border/70" : "",
+              idx < 2 ? "border-b sm:border-b-0 border-border/70" : ""
+            )}
+          >
+            <div className="flex items-center min-h-[22px]">
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  kpi.tag
+                )}
+              >
+                {kpi.label}
+              </span>
             </div>
-          );
-        })}
+
+            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+              {kpi.value.toLocaleString()}
+            </div>
+
+            <div className="text-[11px] text-muted-foreground font-medium truncate">
+              {kpi.subtitle}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Resident Directory Table ── */}
@@ -560,7 +558,8 @@ const AdminResidents = () => {
                   return (
                     <TableRow
                       key={r.id}
-                      className="group hover:bg-muted/30 transition-colors"
+                      onClick={() => void openResidentProfile(r.id)}
+                      className="group hover:bg-muted/40 transition-colors cursor-pointer"
                     >
                       {/* Resident Name & Initials */}
                       <TableCell className="pl-5 py-3">
@@ -569,12 +568,9 @@ const AdminResidents = () => {
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <button
-                              onClick={() => void openResidentProfile(r.id)}
-                              className="font-bold text-xs sm:text-sm text-foreground hover:text-primary transition-colors text-left truncate block cursor-pointer"
-                            >
+                            <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
                               {r.fullName}
-                            </button>
+                            </span>
                             <span className="text-[11px] text-muted-foreground md:hidden truncate block mt-0.5">
                               @{r.username}
                             </span>
@@ -606,7 +602,7 @@ const AdminResidents = () => {
                       {/* Barangay */}
                       <TableCell className="text-xs">
                         <div className="inline-flex items-center gap-1 text-muted-foreground font-medium bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
-                          <MapPin className="w-3 h-3 text-primary shrink-0" />
+                          <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
                           <span className="truncate max-w-[120px]">
                             {r.barangay}
                           </span>
@@ -637,7 +633,10 @@ const AdminResidents = () => {
                       </TableCell>
 
                       {/* 3-Dot Action Menu */}
-                      <TableCell className="pr-5 text-right">
+                      <TableCell
+                        className="pr-5 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -650,37 +649,26 @@ const AdminResidents = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="rounded-xl shadow-lg border border-border/80 w-44 p-1"
+                            className="rounded-xl shadow-lg border border-border/80 w-40 p-1"
                           >
                             <DropdownMenuItem
                               onClick={() => void openResidentProfile(r.id)}
-                              className="gap-2 text-xs cursor-pointer"
+                              className="text-xs cursor-pointer"
                             >
-                              <Eye className="w-3.5 h-3.5 text-primary" /> View
-                              Profile
+                              View Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => void toggleStatus(r)}
-                              className="gap-2 text-xs cursor-pointer"
+                              className="text-xs cursor-pointer"
                             >
-                              {r.status === "Active" ? (
-                                <>
-                                  <UserX className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />{" "}
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />{" "}
-                                  Reactivate
-                                </>
-                              )}
+                              {r.status === "Active" ? "Deactivate" : "Reactivate"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 text-xs cursor-pointer"
                               onClick={() => setDeleteTarget(r)}
+                              className="text-xs cursor-pointer"
                             >
-                              <Trash2 className="w-3.5 h-3.5" /> Delete Account
+                              Delete Account
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -693,42 +681,19 @@ const AdminResidents = () => {
           </Table>
         </div>
 
+        {/* ── Table Pagination Bar ── */}
+        {totalPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredResidentsCount}
+            pageSize={ITEMS_PER_PAGE}
+            itemLabel="residents"
+            onPageChange={setCurrentPage}
+            variant="table"
+          />
+        )}
       </div>
-
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
 
       {/* ── Delete Resident Confirmation Modal ── */}
       <Dialog

@@ -9,8 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CalendarDays,
-  Clock,
-  MapPin,
   Lock,
   Users,
   Truck,
@@ -82,6 +80,12 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
         year: "numeric",
       })
     : String(event.event_date);
+  const endDateObj = event.end_date
+    ? new Date(event.end_date.includes("T") ? event.end_date : `${event.end_date}T00:00:00`)
+    : null;
+  const formattedEndDate = endDateObj && !isNaN(endDateObj.getTime())
+    ? endDateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -141,42 +145,16 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             </h3>
           </div>
 
-          {/* Date & Time Bento Card */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs">
+          {/* Date range */}
+          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs">
             <div className="space-y-1">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <CalendarDays className="w-3.5 h-3.5 text-primary" />
-                <span>Scheduled Date</span>
+                 <span>{formattedEndDate ? "Date Range" : "Scheduled Date"}</span>
               </span>
-              <p className="font-semibold text-foreground">{formattedDate}</p>
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                <span>Time Window</span>
-              </span>
-              <p className="font-semibold text-foreground">
-                {event.start_time
-                  ? `${event.start_time.slice(0, 5)} ${event.end_time ? `– ${event.end_time.slice(0, 5)}` : ""}`
-                  : "All Day Schedule"}
-              </p>
-            </div>
+               <p className="font-semibold text-foreground">{formattedDate}{formattedEndDate ? ` – ${formattedEndDate}` : ""}</p>
+             </div>
           </div>
-
-          {/* Location & Sector */}
-          {(event.location || event.barangay_name) && (
-            <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span>Venue & Sector</span>
-              </span>
-              <p className="font-semibold text-foreground">
-                {event.location || "Venue specified"}
-                {event.barangay_name && ` · ${event.barangay_name}`}
-              </p>
-            </div>
-          )}
 
           {/* Description */}
           {event.description ? (

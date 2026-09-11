@@ -1,6 +1,4 @@
-import { format } from "date-fns";
-
-export type ActionSeverity = "routine" | "change" | "critical";
+export type ActionSeverity = "routine" | "positive" | "change" | "critical";
 
 export type AuditModule =
   | "Accounts"
@@ -38,10 +36,30 @@ export const safeFormatDate = (
 ): string => {
   if (!dateVal) return fallback;
   try {
-    const str = typeof dateVal === "string" ? dateVal.replace(" ", "T") : dateVal;
+    const str = typeof dateVal === "string"
+      ? (/^\d{4}-\d{2}-\d{2}/.test(dateVal) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateVal)
+        ? `${dateVal.replace(" ", "T")}Z`
+        : dateVal)
+      : dateVal;
     const d = new Date(str);
     if (isNaN(d.getTime())) return fallback;
-    return format(d, formatStr);
+
+    const date = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(d);
+    const time = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(d);
+
+    if (formatStr === "MMM d, yyyy") return date;
+    if (formatStr === "h:mm a") return time;
+    return `${date} · ${time}`;
   } catch {
     return fallback;
   }
@@ -52,9 +70,14 @@ export const severityStyles: Record<
   { badge: string; dot: string; text: string }
 > = {
   routine: {
-    badge: "bg-primary/10 text-primary border-primary/20",
-    dot: "bg-primary",
+    badge: "bg-muted/60 text-foreground/80 border-border/70",
+    dot: "bg-muted-foreground/60",
     text: "Routine",
+  },
+  positive: {
+    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+    dot: "bg-emerald-500",
+    text: "Restoration",
   },
   change: {
     badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
@@ -68,16 +91,19 @@ export const severityStyles: Record<
   },
 };
 
+const neutralModuleBadge =
+  "bg-muted/60 text-muted-foreground border-border/70 font-medium";
+
 export const moduleBadgeStyles: Record<string, string> = {
-  Accounts: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  Posts: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  Announcements: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-  "Waste Reports": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  "Route Manager": "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
-  "Resident Manager": "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
-  "Driver Manager": "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  "Collection Schedule": "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  "Barangay Manager": "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
-  "Landing Page": "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-  Analytics: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  Accounts: neutralModuleBadge,
+  Posts: neutralModuleBadge,
+  Announcements: neutralModuleBadge,
+  "Waste Reports": neutralModuleBadge,
+  "Route Manager": neutralModuleBadge,
+  "Resident Manager": neutralModuleBadge,
+  "Driver Manager": neutralModuleBadge,
+  "Collection Schedule": neutralModuleBadge,
+  "Barangay Manager": neutralModuleBadge,
+  "Landing Page": neutralModuleBadge,
+  Analytics: neutralModuleBadge,
 };

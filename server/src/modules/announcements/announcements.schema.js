@@ -9,8 +9,8 @@ const createAnnouncementSchema = z.object({
     "HOLIDAY_REMINDER",
     "EMERGENCY_ADVISORY",
     "SYSTEM_MAINTENANCE",
+    "COMMUNITY_EVENT",
   ]),
-  priority: z.enum(["NORMAL", "URGENT"]).optional().default("NORMAL"),
   status: z
     .enum(["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"])
     .optional()
@@ -19,6 +19,8 @@ const createAnnouncementSchema = z.object({
   scheduled_at: z.string().optional().nullable(),
   expires_at: z.string().optional().nullable(),
   barangay_ids: z.array(z.string()).optional().default([]),
+  show_on_calendar: z.boolean().optional().default(false),
+  calendar_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Calendar date must use YYYY-MM-DD").optional().nullable(),
 }).superRefine((data, ctx) => {
   if (!data.target_all && data.barangay_ids.length === 0) {
     ctx.addIssue({ code: "custom", path: ["barangay_ids"], message: "Select at least one barangay" });
@@ -42,6 +44,12 @@ const createAnnouncementSchema = z.object({
       ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry must be after the broadcast time" });
     }
   }
+  if (data.show_on_calendar && !data.calendar_date) {
+    ctx.addIssue({ code: "custom", path: ["calendar_date"], message: "Select the resident calendar date" });
+  }
+  if (data.show_on_calendar && !["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"].includes(data.type)) {
+    ctx.addIssue({ code: "custom", path: ["show_on_calendar"], message: "Only event and schedule-related announcements can appear on the resident calendar" });
+  }
 });
 
 const updateAnnouncementSchema = z.object({
@@ -54,14 +62,16 @@ const updateAnnouncementSchema = z.object({
       "HOLIDAY_REMINDER",
       "EMERGENCY_ADVISORY",
       "SYSTEM_MAINTENANCE",
+      "COMMUNITY_EVENT",
     ])
     .optional(),
-  priority: z.enum(["NORMAL", "URGENT"]).optional(),
   status: z.enum(["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"]).optional(),
   target_all: z.boolean().optional(),
   scheduled_at: z.string().nullable().optional(),
   expires_at: z.string().nullable().optional(),
   barangay_ids: z.array(z.string()).optional(),
+  show_on_calendar: z.boolean().optional(),
+  calendar_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 module.exports = {

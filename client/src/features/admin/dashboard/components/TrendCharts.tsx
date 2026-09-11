@@ -1,4 +1,4 @@
-﻿import {
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -15,7 +15,6 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { TrendingUp, PieChart as PieIcon, Users, Activity } from "lucide-react";
 import { ReportsAnalytics, UsersAnalytics } from "./useAdminDashboard";
 
 const lineConfig = {
@@ -112,21 +111,16 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics }: TrendChartsProps) => 
       <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                <Activity className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground font-display">
-                  Report Volume Trend
-                </h3>
-                <p className="text-[11px] text-muted-foreground">
-                  6-Month incident volume
-                </p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground font-display">
+                Report Volume Trend
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                6-Month incident volume
+              </p>
             </div>
-            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-              {resolutionRateText} resolved
+            <span className="text-xs font-medium text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
+              6-Mo Rolling
             </span>
           </div>
 
@@ -178,21 +172,16 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics }: TrendChartsProps) => 
       <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center shrink-0 shadow-2xs">
-                <PieIcon className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground font-display">
-                  Reports by Status
-                </h3>
-                <p className="text-[11px] text-muted-foreground">
-                  Resolution distribution
-                </p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground font-display">
+                Reports by Status
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Resolution distribution
+              </p>
             </div>
-            <span className="text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded-md border border-border/60">
-              {totalReportsCount} total
+            <span className="text-xs font-medium text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
+              Live Breakdown
             </span>
           </div>
 
@@ -264,20 +253,15 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics }: TrendChartsProps) => 
       <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-2xs">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground font-display">
-                  Resident Community
-                </h3>
-                <p className="text-[11px] text-muted-foreground">
-                  Monthly registered users
-                </p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground font-display">
+                Resident Community
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Monthly registered users
+              </p>
             </div>
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/20 tabular-nums">
               +{thisMonthNewResidents} in {currentMonthLabel}
             </span>
           </div>

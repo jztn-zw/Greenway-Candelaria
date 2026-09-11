@@ -117,20 +117,20 @@ const PostListView = ({
                           {post.tags && post.tags.length > 0 && (
                             <>
                               <span className="text-muted-foreground/40">•</span>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5">
                                 {post.tags.slice(0, 2).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.2 rounded-md border border-primary/15"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                                {post.tags.length > 2 && (
-                                  <span className="text-[10px] text-muted-foreground font-medium">
-                                    +{post.tags.length - 2}
-                                  </span>
-                                )}
+                                   <span
+                                     key={tag}
+                                     className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
+                                   >
+                                     #{tag.replace(/^#+/, "")}
+                                   </span>
+                                 ))}
+                                 {post.tags.length > 2 && (
+                                   <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                                     +{post.tags.length - 2} more
+                                   </span>
+                                 )}
                               </div>
                             </>
                           )}

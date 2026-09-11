@@ -38,6 +38,7 @@ const formatDriverDateTime = (value?: string | null) => {
 
   if (Number.isNaN(parsedDate.getTime())) return "-";
   return parsedDate.toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
     month: "short",
     day: "numeric",
     year: "numeric",

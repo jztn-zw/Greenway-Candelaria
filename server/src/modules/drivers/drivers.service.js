@@ -18,6 +18,7 @@ const baseSelect = `
     u.phone,
     u.status       AS account_status,
     u.avatar_url,
+    u.last_login_at AS last_login,
     t.id           AS truck_id,
     t.name         AS truck_name,
     t.plate_number AS truck_plate,
@@ -27,12 +28,7 @@ const baseSelect = `
       FROM driver_messages dm
       WHERE dm.driver_id = d.id
         AND dm.sent_by = u.id
-    )              AS status_msg_created_at,
-    (
-      SELECT MAX(s.created_at)
-      FROM sessions s
-      WHERE s.user_id = u.id
-    )              AS last_login
+    )              AS status_msg_created_at
   FROM drivers d
   JOIN  users  u ON u.id = d.user_id
   LEFT JOIN trucks t ON t.id = d.truck_id

@@ -17,15 +17,10 @@ const formToPayload = (form: EditorForm) => {
   const typeMap: Record<string, string> = {
     "Schedule Change": "SCHEDULE_CHANGE",
     "Holiday Reminder": "HOLIDAY_REMINDER",
+    "Community Event": "COMMUNITY_EVENT",
     "Emergency Advisory": "EMERGENCY_ADVISORY",
     "General Notice": "GENERAL_NOTICE",
     "System Maintenance": "SYSTEM_MAINTENANCE",
-  };
-
-  const priorityMap: Record<string, string> = {
-    Normal: "NORMAL",
-    Urgent: "URGENT",
-    Emergency: "URGENT",
   };
 
   const statusMap: Record<string, string> = {
@@ -39,7 +34,6 @@ const formToPayload = (form: EditorForm) => {
     title: form.title,
     body: form.body,
     type: typeMap[form.type] || "GENERAL_NOTICE",
-    priority: priorityMap[form.priority] ?? "NORMAL",
     status: statusMap[form.status] ?? "DRAFT",
     target_all: form.targetAudience === "All Residents",
     scheduled_at:
@@ -51,6 +45,8 @@ const formToPayload = (form: EditorForm) => {
       : null,
     barangay_ids:
       form.targetAudience !== "All Residents" ? form.targetBarangays : [],
+    show_on_calendar: form.showOnResidentCalendar,
+    calendar_date: form.showOnResidentCalendar ? form.calendarDate || null : null,
   };
 };
 
@@ -58,15 +54,12 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
   const typeMap: Record<string, string> = {
     SCHEDULE_CHANGE: "Schedule Change",
     HOLIDAY_REMINDER: "Holiday Reminder",
+    COMMUNITY_EVENT: "Community Event",
     EMERGENCY_ADVISORY: "Emergency Advisory",
     GENERAL_NOTICE: "General Notice",
     SYSTEM_MAINTENANCE: "System Maintenance",
   };
 
-  const priorityMap: Record<string, string> = {
-    NORMAL: "Normal",
-    URGENT: "Urgent",
-  };
   const statusMap: Record<string, string> = {
     DRAFT: "Draft",
     SCHEDULED: "Scheduled",
@@ -94,8 +87,6 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     title: raw.title as string,
     body: raw.body as string,
     type: (typeMap[raw.type as string] ?? raw.type) as Announcement["type"],
-    priority: (priorityMap[raw.priority as string] ??
-      raw.priority) as Announcement["priority"],
     status: (statusMap[raw.status as string] ??
       raw.status) as AnnouncementStatus,
     targetAudience: raw.target_all ? "All Residents" : "Specific Barangays",
@@ -109,6 +100,11 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     scheduledDate: (raw.scheduled_at as string | null) ?? null,
     expiryDate: (raw.expires_at as string | null) ?? null,
     expiryLabel: formatDate(raw.expires_at as string | null),
+    calendarEventId: (raw.calendar_event_id as string | null) ?? null,
+    calendarDate: (raw.calendar_date as string | null) ?? null,
+    calendarStartTime: (raw.calendar_start_time as string | null) ?? null,
+    calendarEndTime: (raw.calendar_end_time as string | null) ?? null,
+    calendarLocation: (raw.calendar_location as string | null) ?? null,
     readCount: Number(raw.read_count ?? 0),
     totalRecipients: 0,
     archived: raw.status === "ARCHIVED",
@@ -266,6 +262,8 @@ export const useAnnouncements = () => {
         targetBarangays: ann.targetBarangayIds,
         scheduledDate: "",
         expiryDate: "",
+        showOnResidentCalendar: false,
+        calendarDate: "",
       });
       const raw = await createAnnouncement(payload);
       const mapped = mapFromApi(raw as unknown as Record<string, unknown>);

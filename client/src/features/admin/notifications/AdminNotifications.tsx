@@ -11,11 +11,10 @@ import {
   FileText,
   Newspaper,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import PaginationControls from "@/components/common/PaginationControls";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
@@ -193,10 +192,7 @@ const AdminNotifications: React.FC = () => {
   return (
     <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 animate-in fade-in duration-300">
       {/* ── Page Header ── */}
-      <div className="flex items-center gap-3 pb-1">
-        <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-          <Bell className="w-5 h-5" />
-        </div>
+      <div className="pb-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
@@ -353,39 +349,17 @@ const AdminNotifications: React.FC = () => {
         </div>
       )}
 
-      {/* ── Centered Pagination (Matching Posts & Announcements) ── */}
+      {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={PAGE_SIZE}
+          itemLabel="notifications"
+          onPageChange={setCurrentPage}
+          variant="floating"
+        />
       )}
 
       {/* ── Modal for Announcements & System Details ── */}

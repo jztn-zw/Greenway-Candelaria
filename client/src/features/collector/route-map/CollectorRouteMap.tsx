@@ -493,6 +493,13 @@ const CollectorRouteMap = () => {
     if (!activeStop || !routeInfo) return;
     setMutating("done");
 
+    const isFinalOutstandingStop = autoRoutedStops.every(
+      (stop) =>
+        stop.id === activeStop.id ||
+        stop.status === "done" ||
+        stop.status === "skipped",
+    );
+
     // Optimistic update â€” UI feels instant
     const now = new Date().toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -502,9 +509,24 @@ const CollectorRouteMap = () => {
 
     try {
       await completeStop(routeInfo.routeId, activeStop.id);
-      toast.success(`${activeStop.barangay} marked as done`, {
-        description: "Residents have been notified.",
-      });
+
+      // Explicitly close the route after its final stop. The server also
+      // performs this check, but this client-side confirmation makes the
+      // admin's one route-completion notification reliable if the backend
+      // receives stop updates before a live process reload. endRoute is
+      // idempotent, so a route already closed by the server is safe here.
+      if (isFinalOutstandingStop) {
+        await endRoute(routeInfo.routeId);
+        setIsRouteEnded(true);
+        toast.success("Collection route completed", {
+          description: "The collection summary was sent to the admin.",
+        });
+        navigate("/collector");
+      } else {
+        toast.success(`${activeStop.barangay} marked as done`, {
+          description: "Residents have been notified.",
+        });
+      }
     } catch (err: unknown) {
       // Revert optimistic update on failure
       updateStopLocally(activeStop.id, {
@@ -517,12 +539,19 @@ const CollectorRouteMap = () => {
     } finally {
       setMutating(null);
     }
-  }, [activeStop, routeInfo, updateStopLocally]);
+  }, [activeStop, autoRoutedStops, navigate, routeInfo, updateStopLocally]);
 
   const handleSkipConfirm = useCallback(
     async (reason: SkipReason, notes?: string) => {
       if (!activeStop || !routeInfo) return;
       setMutating("skip");
+
+      const isFinalOutstandingStop = autoRoutedStops.every(
+        (stop) =>
+          stop.id === activeStop.id ||
+          stop.status === "done" ||
+          stop.status === "skipped",
+      );
 
       const fullReason = reason === "Other" ? (notes ?? reason) : reason;
 
@@ -534,10 +563,20 @@ const CollectorRouteMap = () => {
       setShowSkipModal(false);
 
       try {
-        await skipStop(routeInfo.routeId, activeStop.id);
-        toast.warning(`${activeStop.barangay} skipped`, {
-          description: `Reason: ${reason}`,
-        });
+        await skipStop(routeInfo.routeId, activeStop.id, fullReason);
+
+        if (isFinalOutstandingStop) {
+          await endRoute(routeInfo.routeId);
+          setIsRouteEnded(true);
+          toast.success("Collection route completed", {
+            description: "The collection summary was sent to the admin.",
+          });
+          navigate("/collector");
+        } else {
+          toast.warning(`${activeStop.barangay} skipped`, {
+            description: `Reason: ${reason}`,
+          });
+        }
       } catch (err: unknown) {
         // Revert
         updateStopLocally(activeStop.id, {
@@ -552,7 +591,7 @@ const CollectorRouteMap = () => {
         setMutating(null);
       }
     },
-    [activeStop, routeInfo, updateStopLocally],
+    [activeStop, autoRoutedStops, navigate, routeInfo, updateStopLocally],
   );
 
   const handleEndRoute = useCallback(async () => {

@@ -1,20 +1,13 @@
 import { useState, useMemo } from "react";
 import {
-  Eye,
-  Edit2,
-  Trash2,
-  UserX,
-  UserCheck,
-  KeyRound,
   Truck,
   Phone,
   Clock,
   MoreHorizontal,
   Mail,
-  ChevronLeft,
-  ChevronRight,
   Users,
 } from "lucide-react";
+import PaginationControls from "@/components/common/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -121,7 +114,7 @@ const DriverCardGrid = ({
                 {/* Header Row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-sm sm:text-base font-display shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-sm sm:text-base font-display shrink-0 shadow-2xs group-hover:scale-105 group-hover:bg-primary/15 transition-all duration-200">
                       {getInitials(d.fullName)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -154,35 +147,25 @@ const DriverCardGrid = ({
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44 rounded-xl">
-                        <DropdownMenuItem onClick={() => onView(d)} className="gap-2 cursor-pointer text-xs">
-                          <Eye className="w-3.5 h-3.5" /> View Details
+                      <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg border border-border/80 p-1">
+                        <DropdownMenuItem onClick={() => onView(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(d)} className="gap-2 cursor-pointer text-xs">
-                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        <DropdownMenuItem onClick={() => onEdit(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          Edit Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onResetPassword(d)} className="gap-2 cursor-pointer text-xs">
-                          <KeyRound className="w-3.5 h-3.5" /> Reset Password
+                        <DropdownMenuItem onClick={() => onResetPassword(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          Reset Password
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onToggleStatus(d)} className="gap-2 cursor-pointer text-xs">
-                          {d.status === "Active" ? (
-                            <>
-                              <UserX className="w-3.5 h-3.5 text-rose-500" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
-                              Reactivate
-                            </>
-                          )}
+                        <DropdownMenuItem onClick={() => onToggleStatus(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                          {d.status === "Active" ? "Deactivate" : "Reactivate"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(d)}
-                          className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                          className="text-xs cursor-pointer focus:bg-muted focus:text-foreground"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Account
+                          Delete Account
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -190,33 +173,33 @@ const DriverCardGrid = ({
                 </div>
 
                 {/* Details Section */}
-                <div className="space-y-2 text-xs pt-1 border-t border-border/60">
+                <div className="space-y-2 text-xs pt-2 border-t border-border/60">
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
-                    <Phone className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
-                    <span className="truncate">{d.contactNumber}</span>
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate font-sans tabular-nums">{d.contactNumber}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
-                    <Mail className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span className="truncate">{d.email}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <Truck className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <div className="flex items-center gap-2 text-muted-foreground truncate">
+                    <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     {truck ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium text-[11px] border border-primary/20 truncate">
-                        {truck.name} · {truck.plateNumber}
+                      <span className="truncate">
+                        {truck.name} · <span className="font-sans tabular-nums">{truck.plateNumber}</span>
                       </span>
                     ) : (
-                      <span className="text-muted-foreground/60 italic text-[11px]">
+                      <span className="text-muted-foreground/60 italic">
                         No truck assigned
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-muted-foreground/70 pt-0.5">
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                    <span>Last login: {d.lastLogin}</span>
+                  <div className="flex items-center gap-2 text-muted-foreground truncate">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate">Last login: {d.lastLogin}</span>
                   </div>
                 </div>
               </div>
@@ -225,39 +208,17 @@ const DriverCardGrid = ({
         </div>
       )}
 
-      {/* ── Centered Pagination (Matching Posts & Announcements) ── */}
+      {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-3">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8 text-xs rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none font-medium"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-lg cursor-pointer transition-all active:scale-95 focus:outline-none"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={ITEMS_PER_PAGE}
+          itemLabel="collectors"
+          onPageChange={setCurrentPage}
+          variant="floating"
+        />
       )}
     </div>
   );

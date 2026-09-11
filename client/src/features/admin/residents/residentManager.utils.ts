@@ -53,7 +53,6 @@ export const mapResidentListRow = (row: ResidentListRow): Resident => ({
   dateRegistered: formatResidentDate(row.created_at),
   lastLogin: formatResidentDate(row.last_login_at),
   status: mapResidentStatus(row.status),
-  twoFactorEnabled: false,
   reports: [],
 });
 
@@ -70,6 +69,5 @@ export const mapResidentDetails = (
   dateRegistered: formatResidentDate(details.created_at),
   lastLogin: formatResidentDate(details.last_login_at),
   status: mapResidentStatus(details.status),
-  twoFactorEnabled: Boolean(details.two_factor),
   reports: reports.map(mapResidentReportRow),
 });

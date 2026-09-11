@@ -151,18 +151,18 @@ const PostCard = ({
 
         {/* Tags */}
         {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded-md border border-primary/15"
+                className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
               >
-                #{tag}
+                #{tag.replace(/^#+/, "")}
               </span>
             ))}
             {post.tags.length > 3 && (
-              <span className="text-[10px] text-muted-foreground">
-                +{post.tags.length - 3}
+              <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                +{post.tags.length - 3} more
               </span>
             )}
           </div>

@@ -1,13 +1,11 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Truck,
   MapPin,
   ChevronDown,
   ChevronUp,
-  Leaf,
   ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -20,54 +18,35 @@ interface TruckRow {
   currentBarangay: string;
   completed: number;
   total: number;
-  status: "Active" | "Idle" | "Offline";
-  lastUpdate: string;
+  status: "Scheduled" | "On route" | "Completed" | "Offline" | "No route today" | "Under maintenance";
   driverMessage: string;
 }
 
-const defaultTrucks: TruckRow[] = [
-  {
-    name: "Truck 01",
-    plate: "ABC-1234",
-    driver: "Juan Dela Cruz",
-    currentBarangay: "Brgy. Poblacion",
-    completed: 3,
-    total: 5,
-    status: "Active",
-    lastUpdate: "2 min ago",
-    driverMessage: "Collecting at Purok 3",
-  },
-  {
-    name: "Truck 02",
-    plate: "XYZ-5678",
-    driver: "Pedro Santos",
-    currentBarangay: "Brgy. Malabanban Norte",
-    completed: 1,
-    total: 4,
-    status: "Idle",
-    lastUpdate: "15 min ago",
-    driverMessage: "On mandatory rest break",
-  },
-];
-
-const defaultBarangays = [
-  { name: "Brgy. Poblacion", status: "Done", truck: "Truck 01" },
-  { name: "Brgy. Malabanban Norte", status: "In Progress", truck: "Truck 02" },
-  { name: "Brgy. Kinatihan I", status: "Done", truck: "Truck 01" },
-  { name: "Brgy. Malabanban Sur", status: "Not Started", truck: "Unassigned" },
-  { name: "Brgy. Pahinga Norte", status: "Not Started", truck: "Unassigned" },
-];
-
 const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
-  Active: {
+  "On route": {
     bg: "bg-emerald-500/10",
     text: "text-emerald-600 dark:text-emerald-400",
     border: "border-emerald-500/20",
   },
-  Idle: {
+  Scheduled: {
     bg: "bg-amber-500/10",
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-500/20",
+  },
+  Completed: {
+    bg: "bg-sky-500/10",
+    text: "text-sky-600 dark:text-sky-400",
+    border: "border-sky-500/20",
+  },
+  "No route today": {
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    border: "border-border/70",
+  },
+  "Under maintenance": {
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/25",
   },
   Offline: {
     bg: "bg-destructive/10",
@@ -85,49 +64,55 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
   const [showBarangays, setShowBarangays] = useState(false);
   const navigate = useNavigate();
 
-  const displayTrucks: TruckRow[] = liveTrucks && liveTrucks.length > 0
-    ? liveTrucks.map((t, idx) => ({
-        name: t.name || `Truck 0${idx + 1}`,
-        plate: t.plate_number || "GW-TRUCK",
-        driver: t.driver_name || (idx === 0 ? "Juan Dela Cruz" : "Pedro Santos"),
-        currentBarangay: t.current_route || (idx === 0 ? "Brgy. Poblacion" : "Brgy. Malabanban Norte"),
-        completed: t.completed_barangays ?? (idx === 0 ? 3 : 1),
-        total: t.total_barangays ?? (idx === 0 ? 5 : 4),
-        status: (t.status as string) === "ACTIVE" ? "Active" : (t.status as string) === "IDLE" ? "Idle" : "Offline",
-        lastUpdate: "Live data",
-        driverMessage: idx === 0 ? "Collecting sector routes" : "On standby",
-      }))
-    : defaultTrucks;
+  const displayTrucks: TruckRow[] = (liveTrucks ?? []).map((t) => {
+    const hasRoute = Number(t.total_barangays ?? 0) > 0;
+    const status = t.availability_status === "UNDER_MAINTENANCE"
+      ? "Under maintenance"
+      : !hasRoute
+        ? "No route today"
+        : t.status === "ON_THE_WAY"
+          ? "On route"
+          : t.status === "SCHEDULED"
+            ? "Scheduled"
+            : t.status === "DONE"
+              ? "Completed"
+              : "Offline";
 
-  const displayBarangays = liveBarangays && liveBarangays.length > 0
-    ? liveBarangays.map((b, idx) => ({
-        name: b.name.startsWith("Brgy") ? b.name : `Brgy. ${b.name}`,
-        status: idx < 2 ? "Done" : idx === 2 ? "In Progress" : "Not Started",
-        truck: idx === 0 ? "Truck 01" : idx === 1 ? "Truck 02" : "Unassigned",
-      }))
-    : defaultBarangays;
+    return {
+      name: t.name,
+      plate: t.plate_number,
+      driver: t.driver_name || "No driver assigned",
+      currentBarangay: t.current_route || "No active route today",
+      completed: Number(t.completed_barangays ?? 0),
+      total: Number(t.total_barangays ?? 0),
+      status,
+      driverMessage: hasRoute ? "Today's assigned route" : "No route assigned today",
+    };
+  });
+
+  const displayBarangays = (liveBarangays ?? []).map((b) => ({
+    name: b.name.startsWith("Brgy") ? b.name : `Brgy. ${b.name}`,
+    status: b.status === "DONE" ? "Done" : b.status === "IN_PROGRESS" ? "In Progress" : b.status === "MISSED" ? "Missed" : "Not Started",
+    truck: b.truck_name || "Unassigned",
+  }));
 
   const doneCount = displayBarangays.filter((b) => b.status === "Done").length;
   const inProgressCount = displayBarangays.filter((b) => b.status === "In Progress").length;
+
+  const totalCompletedSectors = displayBarangays.filter((b) => b.status === "Done").length;
+  const totalTargetSectors = displayBarangays.length;
+  const overallFleetProgress = totalTargetSectors > 0
+    ? Math.round((totalCompletedSectors / totalTargetSectors) * 100)
+    : 0;
 
   return (
     <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-              <Truck className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground font-display">
-                Today's Fleet Operations
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Dispatch status & live collection progress
-              </p>
-            </div>
-          </div>
+          <h3 className="text-base font-bold text-foreground font-display">
+            Today's Fleet Operations
+          </h3>
 
           <Button
             variant="ghost"
@@ -140,24 +125,59 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
           </Button>
         </div>
 
-        {/* Waste Type Scheduled Today */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
-          <div className="flex items-center gap-2 font-medium text-emerald-800 dark:text-emerald-300">
-            <Leaf className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>
-              Scheduled: <strong className="font-bold">Biodegradable Waste</strong> (Mon/Wed/Fri)
+        {/* Overall Municipal Route Dispatch Progress */}
+        <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-foreground">
+              Municipal Sector Coverage
+            </span>
+            <span className="font-bold text-primary tabular-nums">
+              {totalTargetSectors > 0
+                ? `${totalCompletedSectors} of ${totalTargetSectors} sectors (${overallFleetProgress}%)`
+                : "No sectors scheduled today"}
             </span>
           </div>
-          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
-            {displayTrucks.filter(t => t.status === "Active").length} Active
-          </span>
+          {totalTargetSectors > 0 && <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${overallFleetProgress}%` }}
+            />
+          </div>}
         </div>
 
         {/* Truck Fleet Cards */}
         <div className="space-y-2.5">
-          {displayTrucks.map((t) => {
-            const pct = Math.round((t.completed / t.total) * 100);
-            const style = statusStyles[t.status] || statusStyles.Active;
+          {displayTrucks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              No trucks are registered yet.
+            </div>
+          ) : totalTargetSectors === 0 ? (
+            <div className="grid grid-cols-1 gap-2">
+              {displayTrucks.map((t) => {
+                const style = statusStyles[t.status] || statusStyles.Offline;
+
+                return (
+                  <div
+                    key={t.name}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-background px-3 py-3 shadow-2xs"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-foreground">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.plate}</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${style.bg} ${style.text} ${style.border}`}
+                    >
+                      {t.status}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          ) : displayTrucks.map((t) => {
+            const pct = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
+            const style = statusStyles[t.status] || statusStyles.Offline;
 
             return (
               <div
@@ -165,23 +185,18 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                 className="bg-background border border-border/80 rounded-xl p-3.5 shadow-2xs space-y-2.5 hover:border-primary/30 transition-all"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center font-bold text-xs shrink-0">
-                      <Truck className="w-4 h-4 text-primary" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-foreground">
+                        {t.name}
+                      </span>
+                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/60">
+                        {t.plate}
+                      </span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-foreground">
-                          {t.name}
-                        </span>
-                        <span className="text-[11px] font-mono text-muted-foreground">
-                          ({t.plate})
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        Driver: <span className="font-medium text-foreground">{t.driver}</span>
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      Driver: <span className="font-medium text-foreground">{t.driver}</span>
+                    </p>
                   </div>
 
                   <Badge
@@ -192,7 +207,6 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                   </Badge>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="flex items-center gap-1 text-muted-foreground truncate">
@@ -211,9 +225,8 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                <div className="text-[10px] text-muted-foreground pt-0.5">
                   <span className="truncate italic">"{t.driverMessage}"</span>
-                  <span className="shrink-0">{t.lastUpdate}</span>
                 </div>
               </div>
             );
@@ -221,7 +234,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         </div>
 
         {/* Compact Expandable Barangay Coverage with ScrollArea & 2-Column Grid */}
-        <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
+        {displayBarangays.length > 0 && <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
           <button
             type="button"
             onClick={() => setShowBarangays(!showBarangays)}
@@ -245,6 +258,11 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
 
           {showBarangays && (
             <div className="border-t border-border/80 bg-muted/20 p-2.5 animate-fade-in">
+              {displayBarangays.length === 0 ? (
+                <p className="px-1 py-3 text-center text-xs text-muted-foreground">
+                  No active routes are scheduled for today.
+                </p>
+              ) : (
               <ScrollArea className="h-[210px] pr-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {displayBarangays.map((b) => (
@@ -272,10 +290,16 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                   ))}
                 </div>
               </ScrollArea>
+              )}
             </div>
           )}
-        </div>
+        </div>}
       </div>
+      {totalTargetSectors === 0 && displayTrucks.length > 0 && (
+        <p className="mt-auto border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+          No collection activity is scheduled for today.
+        </p>
+      )}
     </div>
   );
 };

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   CalendarDays,
   Clock,
-  MapPin,
   Lock,
   Users,
   Truck,
@@ -100,6 +99,9 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                 weekday: "short",
               })
             : String(evt.event_date);
+          const endDateLabel = evt.end_date
+            ? new Date(evt.end_date.includes("T") ? evt.end_date : `${evt.end_date}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            : null;
 
           return (
             <div
@@ -143,16 +145,11 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-1 flex-wrap">
+                    {endDateLabel && <span>{dateLabel} – {endDateLabel}</span>}
                     {evt.start_time && (
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-primary" />
                         {evt.start_time.slice(0, 5)} {evt.end_time ? `– ${evt.end_time.slice(0, 5)}` : ""}
-                      </span>
-                    )}
-                    {(evt.location || evt.barangay_name) && (
-                      <span className="flex items-center gap-1 truncate max-w-[200px]">
-                        <MapPin className="w-3 h-3 text-primary" />
-                        {evt.barangay_name ? `${evt.barangay_name}` : evt.location}
                       </span>
                     )}
                     <span className="text-[10px] text-muted-foreground/80">

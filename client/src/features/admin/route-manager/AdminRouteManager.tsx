@@ -223,14 +223,13 @@ const AdminRouteManager: React.FC = () => {
     });
   };
 
-  // A truck and a barangay may appear in only one live schedule for a day.
+  // A truck and a barangay may appear in only one schedule for a day.
   // The route currently being edited is excluded so its own selections remain valid.
   const scheduledRoutesForFormDay = useMemo(
     () => routes.filter(
       (route) =>
         route.day === form.day &&
-        route.id !== selectedRouteId &&
-        route.status !== "INACTIVE",
+        route.id !== selectedRouteId,
     ),
     [routes, form.day, selectedRouteId],
   );
@@ -379,18 +378,13 @@ const AdminRouteManager: React.FC = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Page Header (Unboxed Canvas) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <RouteIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Route Manager
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Plan collection days, assign fleet resources, and verify every barangay stop.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Route Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Plan collection days, assign fleet resources, and verify every barangay stop.
+          </p>
         </div>
 
         <Button
@@ -458,18 +452,23 @@ const AdminRouteManager: React.FC = () => {
             </Select>
           </div>
 
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0 gap-1.5 cursor-pointer active:scale-95 transition-all hover:bg-muted/50"
-              title="Reset active filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+              Showing <span className="font-bold text-foreground">{filteredRoutes.length}</span> of {routes.length} routes
+            </span>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0 gap-1.5 cursor-pointer active:scale-95 transition-all hover:bg-muted/50"
+                title="Reset active filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </Button>
+            )}
+          </div>
         </div>
       </section>
 

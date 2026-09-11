@@ -2,26 +2,17 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  MapPin,
-  Clock,
-  User,
-  Camera,
+  AlertOctagon,
   AlertTriangle,
   Copy,
-  AlertOctagon,
-  MessageSquare,
-  StickyNote,
-  Save,
   Loader2,
   ExternalLink,
   Trash2,
   X,
-  CheckCircle2,
-  Send,
-  Flag,
+  Check,
+  Search,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -55,7 +46,6 @@ interface ReportDetailPanelProps {
     duplicate_reason?: string;
     false_reason?: string;
     resolve?: boolean;
-    admin_response?: string;
   }) => Promise<void>;
   onFlagDialogOpenChange?: (open: boolean) => void;
   onDeleteReport?: (id: string) => Promise<void>;
@@ -92,8 +82,7 @@ const ReportDetailPanel = ({
   const [flagReason, setFlagReason] = useState("");
   const [duplicateReference, setDuplicateReference] = useState("");
   const [resolveOnFlag, setResolveOnFlag] = useState(false);
-  const [flagResponse, setFlagResponse] = useState("");
-  const [falseVerified, setFalseVerified] = useState(false);
+  const [selectedDuplicateCandidate, setSelectedDuplicateCandidate] = useState<AdminReportItem | null>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<AdminReportItem[]>([]);
   const [isSearchingDuplicates, setIsSearchingDuplicates] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -114,18 +103,33 @@ const ReportDetailPanel = ({
       setDuplicateMatches([]);
       return;
     }
+    // Don't re-trigger search if the reference matches the currently selected candidate
+    if (
+      selectedDuplicateCandidate &&
+      selectedDuplicateCandidate.reference_number.toLowerCase() === duplicateReference.trim().toLowerCase()
+    ) {
+      setDuplicateMatches([]);
+      return;
+    }
     let active = true;
     const timer = window.setTimeout(async () => {
       setIsSearchingDuplicates(true);
       try {
         const result = await fetchAdminReports({
           search: duplicateReference.trim(),
-          barangay_id: report.barangayId,
+          barangay_id: report?.barangayId,
           limit: 8,
           sort: "date-desc",
         });
         if (active) {
-          setDuplicateMatches(result.reports.filter((candidate) => candidate.id !== report?.id && candidate.status !== "RESOLVED" && candidate.barangay_id === report.barangayId));
+          setDuplicateMatches(
+            result.reports.filter(
+              (candidate) =>
+                candidate.id !== report?.id &&
+                candidate.status !== "RESOLVED" &&
+                candidate.barangay_id === report?.barangayId,
+            ),
+          );
         }
       } catch {
         if (active) setDuplicateMatches([]);
@@ -137,7 +141,7 @@ const ReportDetailPanel = ({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [duplicateReference, flagType, report?.id]);
+  }, [duplicateReference, flagType, report?.id, report?.barangayId, selectedDuplicateCandidate]);
 
   if (!report) {
     return (
@@ -227,32 +231,40 @@ const ReportDetailPanel = ({
     setFlagType(type);
     setFlagReason(type === "duplicate" ? report.duplicateReason || "" : report.falseReason || "");
     setDuplicateReference(type === "duplicate" ? report.duplicateOfReference || "" : "");
-    setResolveOnFlag(false);
-    setFlagResponse("");
-    setFalseVerified(false);
+    setSelectedDuplicateCandidate(null);
+    setResolveOnFlag(type === "false");
     onFlagDialogOpenChange?.(true);
   };
 
-  const submitFlagDecision = async () => {
-    if (!flagType || !flagReason.trim()) {
-      toast.error("Please provide the review reason.");
+  const handleFlagSubmit = async () => {
+    if (!flagType) return;
+    if (!flagReason.trim()) {
+      toast.error("Please provide a review reason explaining this decision.");
       return;
     }
     if (flagType === "duplicate" && !duplicateReference.trim()) {
-      toast.error("Enter the original report reference number.");
+      toast.error("Please specify the original report reference number.");
       return;
     }
-    if (flagType === "false" && !falseVerified) {
-      toast.error("Confirm that you verified this report before flagging it as false.");
-      return;
-    }
-    const saved = await handleFlag(
+
+    const payload =
       flagType === "duplicate"
-        ? { is_duplicate: true, duplicate_of_reference: duplicateReference.trim(), duplicate_reason: flagReason.trim(), resolve: resolveOnFlag, admin_response: flagResponse.trim() || undefined }
-        : { is_false: true, false_reason: flagReason.trim(), resolve: resolveOnFlag, admin_response: flagResponse.trim() || undefined },
-    );
+        ? {
+            is_duplicate: true,
+            duplicate_of_reference: duplicateReference.trim(),
+            duplicate_reason: flagReason.trim(),
+            resolve: resolveOnFlag,
+          }
+        : {
+            is_false: true,
+            false_reason: flagReason.trim(),
+            resolve: resolveOnFlag,
+          };
+
+    const saved = await handleFlag(payload);
     if (saved) {
       setFlagType(null);
+      setSelectedDuplicateCandidate(null);
       onFlagDialogOpenChange?.(false);
     }
   };
@@ -260,11 +272,12 @@ const ReportDetailPanel = ({
   return (
     <div className="flex flex-col h-full w-full bg-card overflow-hidden">
       {/* ── Inspector Header ── */}
-      <div className="p-4 sm:p-5 border-b border-border/80 bg-muted/20 shrink-0">
+      <div className="px-4 py-2.5 sm:py-3 sm:px-5 border-b border-border/70 bg-muted/15 shrink-0">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
+            {/* Reference Number & Copy */}
             <div className="flex items-center gap-2">
-              <span className="text-xs font-sans tabular-nums font-bold text-foreground">
+              <span className="text-sm font-semibold tracking-tight text-foreground">
                 {report.referenceNumber}
               </span>
               <button
@@ -273,32 +286,34 @@ const ReportDetailPanel = ({
                   navigator.clipboard.writeText(report.referenceNumber);
                   toast.success("Reference copied");
                 }}
-                className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
-                title="Copy reference"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted/70 p-1 rounded transition-colors cursor-pointer"
+                title="Copy reference number"
               >
-                <Copy className="w-3 h-3" />
+                <Copy className="w-3.5 h-3.5" />
               </button>
               {isLoading && (
                 <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
               )}
             </div>
+
+            {/* Badges */}
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <Badge
                 variant="outline"
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs ${vc}`}
+                className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${vc}`}
               >
                 {report.violationType}
               </Badge>
               <Badge
                 variant="outline"
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-border/70 bg-muted/40 text-foreground"
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md border-border/70 bg-muted/40 text-foreground"
               >
-                {report.priority}
+                {report.priority} Priority
               </Badge>
               {report.isDuplicate && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold bg-amber-500/10 text-amber-600 border-amber-500/20 px-2 py-0.5 rounded-full"
+                  className="text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 rounded-md"
                 >
                   Duplicate
                 </Badge>
@@ -306,35 +321,36 @@ const ReportDetailPanel = ({
               {report.isFalseReport && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold bg-destructive/10 text-destructive border-destructive/20 px-2 py-0.5 rounded-full"
+                  className="text-[10px] font-medium bg-destructive/10 text-destructive border-destructive/20 px-2 py-0.5 rounded-md"
                 >
-                  False Report
+                  Invalid / False
                 </Badge>
               )}
             </div>
-            {(report.duplicateReason || report.falseReason) && (
-              <div className="mt-2 space-y-1.5 text-[11px] leading-relaxed max-w-md">
-                {report.isDuplicate && report.duplicateReason && (
-                  <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5 text-muted-foreground">
-                    <span className="font-semibold text-foreground">Duplicate of {report.duplicateOfReference || report.duplicateOfId || "linked report"}:</span> {report.duplicateReason}
-                  </p>
-                )}
-                {report.isFalseReport && report.falseReason && (
-                  <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-1.5 text-muted-foreground">
-                    <span className="font-semibold text-foreground">False-report review:</span> {report.falseReason}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
+          {/* Navigation & Close Controls */}
           <div className="flex items-center gap-1.5 shrink-0">
             {(onPrevious || onNext) && (
-              <div className="flex items-center rounded-lg border border-border/70 bg-background/50 p-0.5">
-                <Button variant="ghost" size="icon" onClick={onPrevious} disabled={!hasPrevious} className="h-7 w-7 rounded-md" title="Previous report">
+              <div className="flex items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-2xs">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onPrevious}
+                  disabled={!hasPrevious}
+                  className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                  title="Previous report"
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={onNext} disabled={!hasNext} className="h-7 w-7 rounded-md" title="Next report">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onNext}
+                  disabled={!hasNext}
+                  className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                  title="Next report"
+                >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -343,7 +359,7 @@ const ReportDetailPanel = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-xl border border-border/70 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer"
                 title="Close Inspector"
               >
                 <X className="w-4 h-4" />
@@ -354,90 +370,109 @@ const ReportDetailPanel = ({
       </div>
 
       {/* ── Scrollable Inspector Body ── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
-        {/* ── Resolution Pipeline Stepper ── */}
-        <div className="space-y-2 bg-muted/40 p-3.5 rounded-xl border border-border/60">
-          <div className="text-xs font-semibold text-foreground">
-            <span>Workflow Status</span>
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        {/* ── Review Reason ── */}
+        {(report.duplicateReason || report.falseReason) && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">
+                {report.isDuplicate ? "Duplicate Report Note" : "Review Reason"}
+              </span>
+              {report.isDuplicate && (report.duplicateOfReference || report.duplicateOfId) && (
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Linked: {report.duplicateOfReference || report.duplicateOfId}
+                </span>
+              )}
+            </div>
+            <div className="bg-muted/25 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
+              {report.isDuplicate ? report.duplicateReason : report.falseReason}
+            </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-4 gap-1.5 pt-1">
+        {/* ── Status Stepper ── */}
+        <div className="space-y-2 bg-muted/20 p-3 rounded-xl border border-border/70">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+            Status
+          </span>
+
+          <div className="grid grid-cols-4 gap-1.5">
             {statusOrder.map((st, idx) => {
               const isCurrent = report.status === st;
-              const isBackward = idx < currentStepIndex;
+              const isPast = idx < currentStepIndex;
+              const isFuture = idx > currentStepIndex;
+
               return (
                 <button
                   key={st}
                   type="button"
-                  onClick={() => !isBackward && handleStatusChange(st)}
-                  disabled={isUpdatingStatus || isCurrent || isBackward}
-                  className={`flex flex-col items-center py-2 px-1 rounded-lg text-center transition-all ${
-                    isCurrent
-                      ? "bg-primary text-primary-foreground font-bold shadow-xs shadow-primary/20 cursor-default"
-                      : isBackward
-                      ? "bg-muted/50 text-muted-foreground/60 cursor-not-allowed"
-                      : "bg-background/60 text-muted-foreground hover:bg-background hover:text-foreground"
-                  }`}
-                  title={isBackward ? "Report status cannot move backward" : `Move to ${st}`}
+                  onClick={() => isFuture && handleStatusChange(st)}
+                  disabled={isUpdatingStatus || isCurrent || isPast}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg text-center transition-all border",
+                    isCurrent && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs cursor-default",
+                    isPast && "bg-primary/10 border-primary/20 text-primary font-medium cursor-not-allowed opacity-85",
+                    isFuture && "bg-background border-border/70 text-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer shadow-2xs",
+                  )}
+                  title={isPast ? "Completed step" : isCurrent ? "Current status" : `Move to ${st}`}
                 >
-                  <span className="text-[10px] leading-tight line-clamp-1">{st}</span>
+                  <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
+                    {st}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* ── Bento Incident & Location Card ── */}
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-foreground">Incident Location & Details</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="bg-card border border-border/80 rounded-xl p-3 shadow-2xs space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span>Barangay</span>
-              </div>
-              <p className="text-xs font-bold text-foreground">{report.barangay}</p>
+        {/* ── Unified Incident Details Card ── */}
+        <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs">
+          <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+            <span className="text-xs font-bold text-foreground">
+              Incident Details
+            </span>
+            <span className="text-[11px] text-muted-foreground font-medium">
+              {safeFormatDate(report.submittedAt, "MMM d, yyyy · h:mm a")}
+            </span>
+          </div>
+
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                Barangay & Street
+              </span>
+              <span className="font-semibold text-foreground block mt-0.5 text-xs">
+                {report.barangay}
+              </span>
               {report.street && (
-                <p className="text-[11px] text-muted-foreground truncate">{report.street}</p>
+                <span className="text-[11px] text-muted-foreground block mt-0.5">
+                  {report.street}
+                </span>
               )}
             </div>
 
-            <div className="bg-card border border-border/80 rounded-xl p-3 shadow-2xs space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                <span>Reported On</span>
-              </div>
-              <p className="text-xs font-bold text-foreground">
-                {safeFormatDate(report.submittedAt, "MMM d, yyyy")}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {safeFormatDate(report.submittedAt, "h:mm a", "")}
-              </p>
-            </div>
-
-            <div className="col-span-2 bg-card border border-border/80 rounded-xl p-3 shadow-2xs space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                <User className="w-3.5 h-3.5 text-primary" />
-                <span>Reporter Information</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground">
-                  {report.submitterName}
-                </p>
-                {report.submitterEmail && (
-                  <span className="text-[11px] text-muted-foreground">
-                    {report.submitterEmail}
-                  </span>
-                )}
-              </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                Reporter Information
+              </span>
+              <span className="font-semibold text-foreground block mt-0.5 text-xs">
+                {report.submitterName}
+              </span>
+              {report.submitterEmail && (
+                <span className="text-[11px] text-muted-foreground block mt-0.5 truncate">
+                  {report.submitterEmail}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── Violation Description ── */}
+        {/* ── Resident Description ── */}
         <div className="space-y-1.5">
-          <p className="text-xs font-bold text-foreground">Resident Description</p>
-          <div className="bg-muted/30 border border-border/80 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed">
+          <span className="text-xs font-bold text-foreground block">
+            Resident Description
+          </span>
+          <div className="bg-muted/25 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
             {report.description || "No description provided."}
           </div>
         </div>
@@ -445,20 +480,17 @@ const ReportDetailPanel = ({
         {/* ── Evidence Photos ── */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-foreground">
-            <span className="flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5 text-primary" />
-              <span>Evidence Photos ({report.photos?.length || 0})</span>
-            </span>
+            <span>Evidence Photos ({report.photos?.length || 0})</span>
           </div>
 
           {report.photos && report.photos.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               {report.photos.map((photo, idx) => (
                 <button
                   key={photo.id || idx}
                   type="button"
                   onClick={() => setPreviewPhoto(photo.url)}
-                  className="relative aspect-square rounded-xl bg-muted border border-border/80 overflow-hidden group block cursor-pointer"
+                  className="relative aspect-square rounded-xl bg-muted border border-border/80 overflow-hidden group block cursor-pointer hover:border-primary/50 transition-all shadow-2xs"
                 >
                   <img
                     src={photo.url}
@@ -480,44 +512,41 @@ const ReportDetailPanel = ({
 
         {/* ── Official Response to Resident ── */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-foreground">
-            <span className="flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5 text-primary" />
-              <span>Official Resident Response</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-foreground">
+              Official Resident Response
             </span>
-            <span className="text-[10px] font-normal text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground font-medium">
               Visible to resident
             </span>
           </div>
+
           <Textarea
             placeholder="Type official notification message to be sent to the resident..."
             value={officialResponse}
             onChange={(e) => setOfficialResponse(e.target.value)}
-            className="text-xs min-h-[80px] bg-background border-border/80 rounded-xl resize-none focus-visible:ring-primary/20"
+            className="text-xs min-h-[80px] bg-muted/25 border border-border/70 rounded-xl p-3.5 resize-none leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20"
           />
-          <Button
-            size="sm"
-            onClick={handleResponseSubmit}
-            disabled={isSavingResponse || !officialResponse.trim()}
-            className="h-8 text-xs rounded-xl font-semibold gap-1.5 cursor-pointer active:scale-95"
-          >
-            {isSavingResponse ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
-            Save Response
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={handleResponseSubmit}
+              disabled={isSavingResponse || !officialResponse.trim() || (!!report.officialResponse && officialResponse.trim() === report.officialResponse)}
+              className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
+            >
+              {isSavingResponse && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+              {report.officialResponse && officialResponse.trim() === report.officialResponse
+                ? "Saved"
+                : "Save Response"}
+            </Button>
+          </div>
         </div>
 
         {/* ── Internal Staff Notes ── */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-foreground">
-            <span className="flex items-center gap-1.5">
-              <StickyNote className="w-3.5 h-3.5 text-primary" />
-              <span>Internal Notes</span>
-            </span>
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-semibold">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-foreground">Internal Notes</span>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-medium">
               Staff only
             </Badge>
           </div>
@@ -527,7 +556,7 @@ const ReportDetailPanel = ({
               {report.internalNotes.map((note, idx) => (
                 <div
                   key={note.id || idx}
-                  className="bg-muted/40 rounded-xl p-3 border border-border/60 space-y-1"
+                  className="bg-muted/30 rounded-xl p-3 border border-border/60 space-y-1"
                 >
                   <p className="text-xs text-foreground leading-relaxed">{note.text}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">
@@ -539,91 +568,87 @@ const ReportDetailPanel = ({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Textarea
-              placeholder="Add internal investigation note..."
-              value={internalNote}
-              onChange={(e) => setInternalNote(e.target.value)}
-              className="text-xs min-h-[60px] bg-background border-border/80 rounded-xl resize-none focus-visible:ring-primary/20"
-            />
+          <Textarea
+            placeholder="Add internal investigation note..."
+            value={internalNote}
+            onChange={(e) => setInternalNote(e.target.value)}
+            className="text-xs min-h-[64px] bg-muted/25 border border-border/70 rounded-xl p-3.5 resize-none leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20"
+          />
+          <div className="flex justify-end">
             <Button
               size="sm"
               variant="outline"
               onClick={handleNoteSubmit}
               disabled={isSavingNote || !internalNote.trim()}
-              className="h-8 text-xs rounded-xl font-semibold gap-1.5 cursor-pointer active:scale-95"
+              className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-2xs active:scale-95 disabled:opacity-40"
             >
-              {isSavingNote ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
-              )}
+              {isSavingNote && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
               Add Note
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* ── Flag & Action Bar ── */}
-        <div className="pt-2 border-t border-border/60 flex flex-wrap items-center gap-2">
+      {/* ── Pinned Bottom Action Bar ── */}
+      <div className="p-3 sm:px-5 border-t border-border/70 bg-card/95 backdrop-blur-sm shrink-0 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           {!report.isFalseReport && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isFlagging}
-                onClick={() => openFlagDialog("duplicate")}
-                className={cn(
-                  "h-8 text-xs rounded-xl gap-1.5 cursor-pointer",
-                  report.isDuplicate && "bg-amber-500/10 text-amber-600 border-amber-500/30",
-                )}
-              >
-                <Copy className="w-3 h-3" />
-                {report.isDuplicate ? "Edit Duplicate Flag" : "Flag Duplicate"}
-              </Button>
-              {report.isDuplicate && (
-                <Button variant="ghost" size="sm" disabled={isFlagging} onClick={() => handleFlag({ is_duplicate: false })} className="h-8 text-xs rounded-xl text-muted-foreground hover:text-destructive">
-                  Clear duplicate
-                </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isFlagging}
+              onClick={() => openFlagDialog("duplicate")}
+              className={cn(
+                "h-8 text-xs px-3 rounded-xl cursor-pointer font-medium",
+                report.isDuplicate && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
               )}
-            </>
+            >
+              {report.isDuplicate ? "Edit Duplicate" : "Flag Duplicate"}
+            </Button>
           )}
 
           {!report.isDuplicate && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isFlagging}
-                onClick={() => openFlagDialog("false")}
-                className={cn(
-                  "h-8 text-xs rounded-xl gap-1.5 cursor-pointer text-destructive border-destructive/30 hover:bg-destructive/10",
-                  report.isFalseReport && "bg-destructive/10 text-destructive",
-                )}
-              >
-                <Flag className="w-3 h-3" />
-                {report.isFalseReport ? "Edit False Flag" : "Flag False"}
-              </Button>
-              {report.isFalseReport && (
-                <Button variant="ghost" size="sm" disabled={isFlagging} onClick={() => handleFlag({ is_false: false })} className="h-8 text-xs rounded-xl text-muted-foreground hover:text-destructive">
-                  Clear false flag
-                </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isFlagging}
+              onClick={() => openFlagDialog("false")}
+              className={cn(
+                "h-8 text-xs px-3 rounded-xl cursor-pointer font-medium",
+                report.isFalseReport
+                  ? "border-destructive/30 text-destructive hover:bg-destructive/10"
+                  : "text-foreground hover:bg-muted",
               )}
-            </>
+            >
+              {report.isFalseReport ? "Edit Flag" : "Flag as False"}
+            </Button>
           )}
 
-          {onDeleteReport && (
+          {/* Quick Clear button if flagged */}
+          {(report.isDuplicate || report.isFalseReport) && (
             <Button
-              variant="destructive-outline"
+              variant="outline"
               size="sm"
-              disabled={isDeleting}
-              onClick={() => setShowDeleteModal(true)}
-              className="h-8 text-xs gap-1.5 ml-auto"
+              disabled={isFlagging}
+              onClick={() => handleFlag(report.isDuplicate ? { is_duplicate: false } : { is_false: false })}
+              className="h-8 text-xs px-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted border-border/70 cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              Delete
+              Clear Flag
             </Button>
           )}
         </div>
+
+        {onDeleteReport && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isDeleting}
+            onClick={() => setShowDeleteModal(true)}
+            className="h-8 text-xs px-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 cursor-pointer ml-auto transition-colors"
+          >
+            Delete
+          </Button>
+        )}
       </div>
 
       {/* ── Photo Lightbox Modal ── */}
@@ -654,63 +679,200 @@ const ReportDetailPanel = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!flagType} onOpenChange={(open) => {
-        if (!open) setFlagType(null);
-        onFlagDialogOpenChange?.(open);
-      }}>
-        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border-border/80 shadow-2xl [&>button:last-child]:hidden">
-          <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
-            <DialogTitle className="text-base font-bold font-display">
-              {flagType === "duplicate" ? "Flag as Duplicate" : "Flag as False Report"}
-            </DialogTitle>
-            <button type="button" onClick={() => { setFlagType(null); onFlagDialogOpenChange?.(false); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted">
+      {/* ── Simple Flag Modal (Duplicate & False Report) ── */}
+      <Dialog
+        open={!!flagType}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFlagType(null);
+            setSelectedDuplicateCandidate(null);
+          }
+          onFlagDialogOpenChange?.(open);
+        }}
+      >
+        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border border-border/80 shadow-2xl [&>button:last-child]:hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
+            <div>
+              <DialogTitle className="text-base font-bold font-display text-foreground">
+                {flagType === "duplicate" ? "Flag as Duplicate" : "Mark as Invalid Report"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Report {report.referenceNumber} • {report.barangay}
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setFlagType(null);
+                setSelectedDuplicateCandidate(null);
+                onFlagDialogOpenChange?.(false);
+              }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Form */}
           <div className="space-y-4 py-4">
+            {/* If Duplicate: Clean Reference Search */}
             {flagType === "duplicate" && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Original report reference</label>
-                <Input value={duplicateReference} onChange={(e) => setDuplicateReference(e.target.value)} placeholder="e.g. RPT-2026-00012" className="h-10 rounded-xl" />
-                <p className="text-[11px] text-muted-foreground">Only active reports in {report.barangay} can be linked. Lowercase references are accepted.</p>
-                {isSearchingDuplicates && <p className="text-[11px] text-muted-foreground">Searching active reports...</p>}
+              <div className="space-y-1.5 relative">
+                <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Original Report Reference</span>
+                  {selectedDuplicateCandidate && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      Linked
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={duplicateReference}
+                    onChange={(e) => {
+                      setDuplicateReference(e.target.value);
+                      if (selectedDuplicateCandidate && e.target.value !== selectedDuplicateCandidate.reference_number) {
+                        setSelectedDuplicateCandidate(null);
+                      }
+                    }}
+                    placeholder="e.g. RPT-2026-00012"
+                    className="h-10 text-xs font-mono placeholder:font-sans rounded-xl pl-9 pr-8"
+                  />
+                  {isSearchingDuplicates && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                  )}
+                </div>
+
+                {/* Dropdown Suggestions */}
                 {duplicateMatches.length > 0 && (
-                  <div className="max-h-36 overflow-y-auto rounded-xl border border-border/70 bg-muted/20 divide-y divide-border/60">
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto rounded-xl border border-border/80 bg-popover shadow-lg divide-y divide-border/60">
                     {duplicateMatches.map((candidate) => (
-                      <button key={candidate.id} type="button" onClick={() => { setDuplicateReference(candidate.reference_number); setDuplicateMatches([]); }} className="w-full px-3 py-2 text-left hover:bg-primary/5 transition-colors">
-                        <span className="block text-xs font-bold text-foreground">{candidate.reference_number}</span>
-                        <span className="block text-[11px] text-muted-foreground truncate">{candidate.barangay_name} · {candidate.violation_type.replaceAll("_", " ")}</span>
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() => {
+                          setDuplicateReference(candidate.reference_number);
+                          setSelectedDuplicateCandidate(candidate);
+                          setDuplicateMatches([]);
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/60 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                      >
+                        <span className="font-mono font-bold text-foreground">
+                          {candidate.reference_number}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                          {candidate.violation_type.replaceAll("_", " ")}
+                        </span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             )}
+
+            {/* Reason */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Review reason</label>
-              <Textarea value={flagReason} onChange={(e) => setFlagReason(e.target.value)} placeholder="Explain the verification decision for the audit record..." className="min-h-[88px] rounded-xl resize-none" />
+              <label className="text-xs font-semibold text-foreground">Reason</label>
+              <Textarea
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                placeholder={
+                  flagType === "duplicate"
+                    ? "Explain why this is duplicate..."
+                    : "Explain why this report could not be verified or is invalid..."
+                }
+                className="min-h-[80px] rounded-xl text-xs resize-none"
+              />
             </div>
-            {flagType === "false" && (
-              <label className="flex items-start gap-2.5 text-xs font-medium text-foreground cursor-pointer leading-relaxed">
-                <Checkbox checked={falseVerified} onCheckedChange={(checked) => setFalseVerified(checked === true)} className="mt-0.5" />
-                I verified this report and confirm that it is invalid or false.
-              </label>
-            )}
-            <label className="flex items-center gap-2.5 text-xs font-medium text-foreground cursor-pointer">
-              <Checkbox checked={resolveOnFlag} onCheckedChange={(checked) => setResolveOnFlag(checked === true)} />
-              Resolve this report and notify the resident
-            </label>
-            {resolveOnFlag && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Resident response <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <Textarea value={flagResponse} onChange={(e) => setFlagResponse(e.target.value)} placeholder="A clear default response will be sent if left blank." className="min-h-[70px] rounded-xl resize-none" />
+
+            {/* Resolve & Notify Circle Check Card */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setResolveOnFlag(!resolveOnFlag)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setResolveOnFlag(!resolveOnFlag);
+                }
+              }}
+              className={cn(
+                "group flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none",
+                resolveOnFlag
+                  ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
+                  : "bg-muted/30 border-border/70 hover:bg-muted/50 hover:border-primary/40",
+              )}
+            >
+              <div
+                className={cn(
+                  "mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border",
+                  resolveOnFlag
+                    ? "bg-primary border-primary text-primary-foreground shadow-xs scale-100"
+                    : "border-border/80 bg-background/60 group-hover:border-primary/60 group-hover:bg-primary/5",
+                )}
+              >
+                {resolveOnFlag && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
               </div>
-            )}
+
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-foreground">
+                    {flagType === "duplicate" ? "Resolve & Notify Resident" : "Close as Resolved & Notify"}
+                  </span>
+                  {resolveOnFlag && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-semibold bg-primary/20 text-primary">
+                      Will Resolve
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {flagType === "duplicate"
+                    ? resolveOnFlag
+                      ? "Close this duplicate report and send an update to the resident."
+                      : "Keep under review. Record flag for staff without notifying resident."
+                    : resolveOnFlag
+                      ? "Close this report and send the review outcome to the resident."
+                      : "Keep under review. Record flag for staff without notifying resident."}
+                </p>
+              </div>
+            </div>
+
           </div>
-          <div className="flex justify-end gap-2 border-t border-border/60 pt-3.5">
-            <Button variant="outline" onClick={() => { setFlagType(null); onFlagDialogOpenChange?.(false); }} className="rounded-xl">Cancel</Button>
-            <Button onClick={submitFlagDecision} disabled={isFlagging} variant={flagType === "false" ? "destructive" : "default"} className="rounded-xl">
-              {isFlagging ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Decision"}
+
+          {/* Footer */}
+          <div className="flex justify-end gap-2 pt-3.5 border-t border-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setFlagType(null);
+                setSelectedDuplicateCandidate(null);
+                onFlagDialogOpenChange?.(false);
+              }}
+              disabled={isFlagging}
+              className="rounded-xl h-9 text-xs px-4 cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleFlagSubmit}
+              disabled={isFlagging}
+              variant={flagType === "false" ? "destructive" : "default"}
+              className={cn(
+                "rounded-xl h-9 text-xs px-4 font-semibold cursor-pointer",
+                flagType === "duplicate" && "bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700",
+              )}
+            >
+              {isFlagging ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : flagType === "duplicate" ? (
+                "Flag as Duplicate"
+              ) : (
+                "Mark Invalid"
+              )}
             </Button>
           </div>
         </DialogContent>
