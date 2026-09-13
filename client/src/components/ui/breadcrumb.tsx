@@ -39,8 +39,9 @@ const BreadcrumbItem = React.forwardRef<
 BreadcrumbItem.displayName = "BreadcrumbItem";
 
 export interface BreadcrumbLinkProps
-  extends React.ComponentPropsWithoutRef<"a"> {
+  extends Omit<React.ComponentPropsWithoutRef<"a">, "type"> {
   asChild?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
 const BreadcrumbLink = React.forwardRef<
@@ -52,12 +53,12 @@ const BreadcrumbLink = React.forwardRef<
   return (
     <Comp
       ref={ref as any}
-      type={!asChild && !props.href ? "button" : undefined}
+      type={(!asChild && !props.href ? "button" : undefined) as any}
       className={cn(
         "transition-colors hover:text-foreground text-muted-foreground cursor-pointer font-medium text-xs inline-flex items-center",
         className
       )}
-      {...props}
+      {...(props as any)}
     />
   );
 });

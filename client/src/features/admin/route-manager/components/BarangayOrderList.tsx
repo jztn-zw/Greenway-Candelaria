@@ -25,6 +25,7 @@ interface BarangayOrderListProps {
   onRemove: (id: string) => void;
   onMove: (idx: number, direction: "up" | "down") => void;
   onReorder?: (sourceIdx: number, targetIdx: number) => void;
+  error?: string;
 }
 
 export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
@@ -37,6 +38,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
   onRemove,
   onMove,
   onReorder,
+  error,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,7 +108,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <Label className="text-xs font-bold text-foreground">
+          <Label className={cn("text-xs font-bold", error ? "text-destructive" : "text-foreground")}>
             Collection Sequence & Stops
           </Label>
           <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -142,7 +144,9 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
               setIsDropdownOpen(true);
             }}
             disabled={isLoadingBarangays}
-            className="pl-9 pr-16 h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs focus-visible:ring-primary/20"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "route-stops-error" : undefined}
+            className={cn("pl-9 pr-16 h-9 text-xs rounded-xl bg-background shadow-2xs", error ? "border-destructive/70 text-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:ring-primary/20")}
           />
 
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -238,12 +242,13 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
             </div>
           </div>
         )}
-      </div>
+        </div>
+        {error && <p id="route-stops-error" className="text-[11px] font-medium text-destructive -mt-1.5">{error}</p>}
 
-      {/* ── Collection Sequence: Ordered Stops List ── */}
-      <div className="border border-border/80 rounded-xl overflow-hidden divide-y divide-border/60 max-h-64 sm:max-h-72 overflow-y-auto bg-background/50 shadow-2xs">
+        {/* ── Collection Sequence: Ordered Stops List ── */}
+        <div className={cn("border rounded-xl overflow-hidden divide-y divide-border/60 max-h-64 sm:max-h-72 overflow-y-auto bg-background/50 shadow-2xs", error ? "border-destructive/70" : "border-border/80")}>
         {form.barangays.length === 0 ? (
-          <div className="p-8 text-center space-y-2">
+          <div className="p-6 text-center space-y-2">
             <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
               <MapPin className="w-5 h-5" />
             </div>

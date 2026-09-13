@@ -124,7 +124,7 @@ const normaliseStatus = (raw: string): TruckStatus => {
     PAUSED: "paused",
     OFFLINE: "offline",
     SCHEDULED: "scheduled",
-    DONE: "done",
+    DONE: "offline",
   };
   return map[raw?.toUpperCase()] ?? "offline";
 };
@@ -314,11 +314,10 @@ const resolveTrackedTruckStatus = ({
   }
 
   // Explicit persisted overrides take precedence over route inference.
-  if (persistedTruckStatus === "offline") return "offline";
-  if (persistedTruckStatus === "done") return "done";
+  if (persistedTruckStatus === "offline" || persistedTruckStatus === "done") return "offline";
 
   if (route && isRouteFinished(route)) {
-    return "done";
+    return "offline";
   }
 
   if (route) {
@@ -501,7 +500,18 @@ const buildTruckList = (
         };
       }) ?? [];
 
-    const liveCoords = live ? ([live.latitude, live.longitude] as [number, number]) : null;
+    const resolvedStatus = resolveTrackedTruckStatus({
+      truckStatus: truck.status,
+      live,
+      route,
+    });
+    const isFinishedOrOffline =
+      resolvedStatus === "offline" ||
+      resolvedStatus === "done" ||
+      (Number(route?.total_stops) > 0 && Number(route?.completed_stops) >= Number(route?.total_stops));
+
+    const finalStatus: TruckStatus = isFinishedOrOffline ? "offline" : resolvedStatus;
+    const liveCoords = live && !isFinishedOrOffline ? ([live.latitude, live.longitude] as [number, number]) : null;
 
     return {
       id: truck.id,
@@ -518,11 +528,7 @@ const buildTruckList = (
         null,
       name: truck.name,
       plateNumber: truck.plate_number,
-      status: resolveTrackedTruckStatus({
-        truckStatus: truck.status,
-        live,
-        route,
-      }),
+      status: finalStatus,
       wasteType: route?.waste_type ?? truck.waste_type ?? "Not assigned",
       driver: pickDriverName(
         routeDriver?.full_name,
@@ -534,8 +540,8 @@ const buildTruckList = (
       completedBarangays: route?.completed_stops ?? 0,
       totalBarangays: route?.total_stops ?? 0,
       coords: liveCoords,
-      lastGpsUpdate: live ? elapsedLabel(live.last_ping) : "-",
-      lastPingIso: live?.last_ping ?? null,
+      lastGpsUpdate: live && !isFinishedOrOffline ? elapsedLabel(live.last_ping) : "-",
+      lastPingIso: live && !isFinishedOrOffline ? (live.last_ping ?? null) : null,
       driverMessages: [],
       barangaysAway: null,
       route: stops,
@@ -558,32 +564,42 @@ const mergeLiveIntoTrucks = (
     const routeSnapshot = buildRouteSnapshotFromTruck(truck);
 
     if (!row) {
-      const status = resolveTrackedTruckStatus({
+      const rawStatus = resolveTrackedTruckStatus({
         truckStatus: truck.status,
         route: routeSnapshot,
       });
+      const isFinished =
+        rawStatus === "offline" ||
+        rawStatus === "done" ||
+        (truck.totalBarangays > 0 && truck.completedBarangays >= truck.totalBarangays);
+      const status: TruckStatus = isFinished ? "offline" : rawStatus;
 
       return {
         ...truck,
         status,
-        coords: status === "on-the-way" ? truck.coords : null,
-        lastGpsUpdate: status === "done" ? truck.lastGpsUpdate : "-",
+        coords: status === "on-the-way" || status === "paused" ? truck.coords : null,
+        lastGpsUpdate: isFinished ? "-" : truck.lastGpsUpdate,
         lastPingIso: null,
       };
     }
 
-    const status = resolveTrackedTruckStatus({
+    const rawStatus = resolveTrackedTruckStatus({
       truckStatus: row.truck_status,
       live: row,
       route: routeSnapshot,
     });
+    const isFinished =
+      rawStatus === "offline" ||
+      rawStatus === "done" ||
+      (truck.totalBarangays > 0 && truck.completedBarangays >= truck.totalBarangays);
+    const status: TruckStatus = isFinished ? "offline" : rawStatus;
 
     return {
       ...truck,
       status,
-      coords: [row.latitude, row.longitude],
-      lastGpsUpdate: elapsedLabel(row.last_ping),
-      lastPingIso: row.last_ping,
+      coords: status === "on-the-way" || status === "paused" ? [row.latitude, row.longitude] : null,
+      lastGpsUpdate: isFinished ? "-" : elapsedLabel(row.last_ping),
+      lastPingIso: isFinished ? null : row.last_ping,
       driver: pickDriverName(truck.driver, row.driver_name),
     };
   });
@@ -1020,7 +1036,12 @@ const AdminTruckTracking = () => {
   const totalStops = trucks.reduce((sum, t) => sum + t.totalBarangays, 0);
   const completionPct =
     totalStops > 0 ? Math.round((totalCompleted / totalStops) * 100) : 0;
-  const doneTrucks = trucks.filter((t) => t.status === "done").length;
+  const doneTrucks = trucks.filter(
+    (t) =>
+      t.status === "offline" ||
+      t.status === "done" ||
+      (t.totalBarangays > 0 && t.completedBarangays >= t.totalBarangays),
+  ).length;
 
   const animatedActive = useCountUp(activeTrucks);
   const animatedCompletion = useCountUp(completionPct);
@@ -1170,6 +1191,7 @@ const AdminTruckTracking = () => {
             activeStopCoords={activeStopCoords}
             autoRoutedStops={scheduledStops}
             onMarkerClick={handleMarkerClick}
+            onDeselectTruck={() => setFocusedTruckId(null)}
             replayPath={replayPath}
             replayIndex={replayIndex}
             replayTargetStop={replayTargetStop}
@@ -1194,69 +1216,55 @@ const AdminTruckTracking = () => {
               type="button"
               onClick={() => setIsFleetPanelMinimized(false)}
               className="h-9 px-2.5 rounded-xl border border-border/70 bg-card/90 backdrop-blur-md text-foreground shadow-md flex items-center gap-1.5 hover:bg-muted/90 hover:border-border active:scale-[0.98] transition-colors cursor-pointer"
-              title={`Open Fleet controls (${displayTrucks.length} truck${displayTrucks.length === 1 ? "" : "s"})`}
+              title="Open Fleet controls"
               aria-label="Open Fleet controls"
             >
-              <Truck className="w-3.5 h-3.5 text-primary" />
+              <Truck className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-[11px] font-semibold">Fleet</span>
-              <span className="min-w-4 h-4 px-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] leading-[14px] font-bold">
-                {displayTrucks.length}
-              </span>
             </button>
           ) : (
             <>
-          {/* Top Tab Switcher */}
+          {/* Top Tab Switcher & Panel Controls */}
           <div className="flex items-center gap-2 shrink-0">
-          <div className="flex-1 flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/60">
-            {[
-              { id: "FLEET" as const, label: "Fleet", icon: Truck, count: displayTrucks.length },
-              { id: "REPLAY" as const, label: "Replay", icon: RotateCcw },
-            ].map((tab) => {
-              const isActive = sidebarTab === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    if (tab.id === "FLEET") {
-                      setReplayPath(undefined);
-                      setReplayIndex(undefined);
-                      setReplayTargetStop(null);
-                      setReplayLegPath(undefined);
-                      setReplayCompletedStops([]);
-                    }
-                    setSidebarTab(tab.id);
-                  }}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
-                    isActive
-                      ? "bg-card text-foreground font-bold shadow-2xs border border-border/70"
-                      : "text-muted-foreground hover:text-foreground hover:bg-card/40"
-                  )}
-                >
-                  <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="truncate">{tab.label}</span>
-                  {tab.count !== undefined && (
-                    <span
-                      className={cn(
-                        "ml-0.5 px-1.5 py-0.2 text-[10px] font-bold rounded-full shrink-0",
-                        isActive
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+            <div className="flex-1 grid grid-cols-2 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/70 h-10 items-center">
+              {[
+                { id: "FLEET" as const, label: "Fleet", icon: Truck },
+                { id: "REPLAY" as const, label: "Replay", icon: RotateCcw },
+              ].map((tab) => {
+                const isActive = sidebarTab === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      if (tab.id === "FLEET") {
+                        setReplayPath(undefined);
+                        setReplayIndex(undefined);
+                        setReplayTargetStop(null);
+                        setReplayLegPath(undefined);
+                        setReplayCompletedStops([]);
+                      }
+                      setSidebarTab(tab.id);
+                    }}
+                    className={cn(
+                      "h-8 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
+                      isActive
+                        ? "bg-card text-foreground font-bold shadow-xs border border-border/80"
+                        : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <button
               type="button"
               onClick={() => setIsFleetPanelMinimized(true)}
-              className="hidden xl:flex w-9 h-9 rounded-xl border border-border/60 text-muted-foreground items-center justify-center hover:bg-muted hover:text-foreground transition-colors cursor-pointer shrink-0"
+              className="hidden xl:flex h-10 w-10 rounded-xl border border-border/70 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs"
               title="Minimize Fleet panel"
               aria-label="Minimize Fleet panel"
             >

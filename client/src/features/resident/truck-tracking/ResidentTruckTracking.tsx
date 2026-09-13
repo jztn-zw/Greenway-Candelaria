@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { AlertTriangle, CheckCircle2, Truck as TruckIcon } from "lucide-react";
+import { AlertTriangle, RefreshCw, Truck as TruckIcon } from "lucide-react";
 import TrackingMap from "./TrackingMap";
 import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
@@ -27,7 +27,6 @@ import {
 import type { RoadRouteResult } from "@/services/roadRoutingService";
 
 const REFRESH_MS = 4_000;
-const FALLBACK_RESIDENT_COORDS: [number, number] = [14.0424, 121.4234];
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   String(import.meta.env.VITE_API_URL || "").replace(/\/api\/?$/, "") ||
@@ -112,13 +111,18 @@ const isTerminalStopStatus = (raw?: string) => {
 const isRouteFinished = (route?: TruckRouteRow) => {
   if (!route) return false;
 
-  if (String(route.route_status || "").toUpperCase() === "INACTIVE") {
-    return true;
-  }
-
   const stops = route.stops ?? [];
   if (stops.length === 0) return false;
   return stops.every((stop) => isTerminalStopStatus(stop.status));
+};
+
+const isRouteClosedForTheDay = (route?: TruckRouteRow) => {
+  if (!route || String(route.route_status || "").toUpperCase() !== "INACTIVE") {
+    return false;
+  }
+
+  const stops = route.stops ?? [];
+  return stops.length > 0 && stops.every((stop) => isTerminalStopStatus(stop.status));
 };
 
 const resolveResidentTruckStatus = (
@@ -135,7 +139,7 @@ const resolveResidentTruckStatus = (
     return "paused";
   }
 
-  if (route && isRouteFinished(route)) {
+  if (route && isRouteClosedForTheDay(route)) {
     return persistedTruckStatus === "offline" ? "offline" : "done";
   }
 
@@ -213,8 +217,10 @@ const toRelativeDayLabel = (offset: number) => {
 const buildSchedule = (
   routes: ApiRoute[],
   residentBarangayId: string | null,
+  residentCollectionFinishedToday = false,
 ): CollectionSchedule => {
   const residentRoutes = routes.filter((route) =>
+    String(route.status || "").toUpperCase() !== "INACTIVE" &&
     route.stops.some(
       (stop) => normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
     ),
@@ -236,7 +242,10 @@ const buildSchedule = (
   }
 
   const todayIndex = getCurrentDayIndex();
-  for (let offset = 0; offset < 7; offset += 1) {
+  // Once the collector has closed the resident's route, the schedule card
+  // should point to the next collection instead of a collection that is over.
+  const firstOffset = residentCollectionFinishedToday ? 1 : 0;
+  for (let offset = firstOffset; offset <= 7; offset += 1) {
     const day = DAY_ORDER[(todayIndex + offset) % 7];
     const route = routeByDay.get(day);
     if (!route) continue;
@@ -259,12 +268,6 @@ const buildSchedule = (
   };
 };
 
-const hasRouteCollectionCompleted = (truck: Truck) =>
-  truck.routeStops.length > 0 &&
-  truck.routeStops.every(
-    (stop) => stop.status === "done" || stop.status === "skipped",
-  );
-
 const ResidentTruckTracking = () => {
   const currentUser = authService.getCurrentUser();
   const [isLoading, setIsLoading] = useState(true);
@@ -277,11 +280,12 @@ const ResidentTruckTracking = () => {
   const [residentArea, setResidentArea] = useState(
     String((currentUser as { barangay_name?: string | null } | null)?.barangay_name || "My Barangay"),
   );
-  const [residentCoords, setResidentCoords] = useState<[number, number]>(FALLBACK_RESIDENT_COORDS);
+  const [residentCoords, setResidentCoords] = useState<[number, number] | null>(null);
   const [residentBarangayId, setResidentBarangayId] = useState<string | null>(
     normaliseId(currentUser?.barangay_id),
   );
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
 
   const loadDynamicData = useCallback(async () => {
     const [barangaysResult, allTrucksResult, liveResult, todayRoutesResult, routesResult] =
@@ -293,11 +297,23 @@ const ResidentTruckTracking = () => {
         fetchRoutes(),
       ]);
 
-    const barangays = barangaysResult.status === "fulfilled" ? barangaysResult.value : [];
-    const allTrucks = allTrucksResult.status === "fulfilled" ? allTrucksResult.value : [];
-    const liveRows = liveResult.status === "fulfilled" ? liveResult.value : [];
-    const todayRoutes = todayRoutesResult.status === "fulfilled" ? todayRoutesResult.value : [];
-    const allRoutes = routesResult.status === "fulfilled" ? routesResult.value : [];
+    if (
+      barangaysResult.status !== "fulfilled" ||
+      allTrucksResult.status !== "fulfilled" ||
+      liveResult.status !== "fulfilled" ||
+      todayRoutesResult.status !== "fulfilled" ||
+      routesResult.status !== "fulfilled"
+    ) {
+      setTrackingError("Live tracking data could not be refreshed. Showing the last available information.");
+      return;
+    }
+
+    const barangays = barangaysResult.value;
+    const allTrucks = allTrucksResult.value;
+    const liveRows = liveResult.value;
+    const todayRoutes = todayRoutesResult.value;
+    const allRoutes = routesResult.value;
+    setTrackingError(null);
 
     const residentBarangay = barangays.find(
       (b) => normaliseId(b.id) === normaliseId(residentBarangayId),
@@ -311,15 +327,14 @@ const ResidentTruckTracking = () => {
     const hasResidentCoords = residentLat !== null && residentLng !== null;
     if (hasResidentCoords) {
       setResidentCoords((prev) =>
-        prev[0] === residentLat && prev[1] === residentLng
+        prev?.[0] === residentLat && prev?.[1] === residentLng
           ? prev
           : [residentLat, residentLng],
       );
     }
-    const effectiveResidentCoords: [number, number] =
-      hasResidentCoords
-        ? [residentLat, residentLng]
-        : residentCoords;
+    const effectiveResidentCoords: [number, number] | null = hasResidentCoords
+      ? [residentLat, residentLng]
+      : residentCoords;
 
     const liveByTruckId = new Map(liveRows.map((row) => [row.truck_id, row]));
     const barangayCoordsById = new Map(
@@ -348,7 +363,9 @@ const ResidentTruckTracking = () => {
         liveLatitude !== null && liveLongitude !== null
           ? ([liveLatitude, liveLongitude] as [number, number])
           : null;
-      const distanceKm = coords ? calculateDistanceInKilometers(coords, effectiveResidentCoords) : null;
+      const distanceKm = coords && effectiveResidentCoords
+        ? calculateDistanceInKilometers(coords, effectiveResidentCoords)
+        : null;
       const eta = distanceKm !== null ? Math.max(1, Math.round((distanceKm / 20) * 60)) : null;
 
       const barangaysAway = computeBarangaysAway(route, residentBarangayId);
@@ -397,18 +414,25 @@ const ResidentTruckTracking = () => {
         totalBarangays: route?.total_stops ?? 0,
         coords,
         eta,
-        driverMessage: null,
         isResidentTruck,
         barangaysAway,
         arrivedAtResident: Boolean(distanceKm !== null && distanceKm <= 0.2),
         routeStops,
+        routeClosedForTheDay: isRouteClosedForTheDay(route),
         residentStopStatus: residentStop ? residentStop.status : null,
         residentStopCompletedAt: residentStop?.completedAt,
       };
     });
 
+    const residentCollectionFinished = todayRoutes.some(
+      (route) =>
+        route.stops.some(
+          (stop) => normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
+        ) && isRouteClosedForTheDay(route),
+    );
+
     setTrucks(mappedTrucks);
-    setSchedule(buildSchedule(allRoutes, residentBarangayId));
+    setSchedule(buildSchedule(allRoutes, residentBarangayId, residentCollectionFinished));
   }, [residentBarangayId, residentCoords]);
 
   // Keep socket event handlers current without recreating a connection when
@@ -530,21 +554,7 @@ const ResidentTruckTracking = () => {
   );
 
   const hasActiveTrucks = residentTrucks.some((t) => t.status === "on-the-way");
-  const allDone =
-    residentTrucks.length > 0 &&
-    residentTrucks.every((truck) => hasRouteCollectionCompleted(truck));
-  const residentCollectionFinalized = residentTrucks.some(
-    (truck) =>
-      truck.residentStopStatus === "done" ||
-      truck.residentStopStatus === "skipped",
-  );
-  const residentOutcomeTruck = residentTrucks.find(
-    (truck) =>
-      truck.residentStopStatus === "done" ||
-      truck.residentStopStatus === "skipped",
-  );
-  const residentCollectionMissed =
-    residentOutcomeTruck?.residentStopStatus === "skipped";
+  const residentCollectionFinalized = residentTrucks.some((truck) => truck.routeClosedForTheDay);
   const hasLiveTrackingForResident =
     hasActiveTrucks && !residentCollectionFinalized;
 
@@ -560,13 +570,12 @@ const ResidentTruckTracking = () => {
     // before finishing the rest of the route for other barangays.
     if (residentCollectionFinalized) return "completed";
     if (hasActiveTrucks) return "active";
-    if (allDone) return "completed";
     if (residentTrucks.some((t) => t.status === "paused")) return "paused";
     if (residentTrucks.some((t) => t.status === "scheduled")) {
       return "scheduled-not-started";
     }
     return "not-collection-day";
-  }, [allDone, hasActiveTrucks, residentCollectionFinalized, residentTrucks]);
+  }, [hasActiveTrucks, residentCollectionFinalized, residentTrucks]);
 
   const nextCollectionInfo = `Your next collection day is ${schedule.nextCollectionDay}${
     schedule.wasteType ? ` - ${schedule.wasteType}` : ""
@@ -607,54 +616,42 @@ const ResidentTruckTracking = () => {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-3.5 sm:space-y-4 px-2 sm:px-4">
       {/* ── Page Header ── */}
-      <div className="flex items-center gap-3 pb-1">
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-          <TruckIcon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-            Truck Tracking
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
-            <span>Your registered barangay:</span>
-            <span className="font-semibold text-primary">{residentArea}</span>
-          </p>
-        </div>
+      <div className="pb-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          Truck Tracking
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Track your scheduled waste collection in real time.
+        </p>
       </div>
+
+      {trackingError && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-foreground">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{trackingError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadDynamicData()}
+            className="inline-flex items-center gap-1.5 self-start rounded-xl border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-amber-500/10 sm:self-auto"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
+        </div>
+      )}
+
+      {!residentCoords && !trackingError && (
+        <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          Your barangay location is not configured yet, so distance and arrival estimates are unavailable.
+        </div>
+      )}
 
       {hasLiveTrackingForResident && proximityTruck && (
         <ProximityAlert truck={proximityTruck} />
       )}
-      {residentOutcomeTruck ? (
-        <div className={`flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border shadow-2xs ${
-          residentCollectionMissed
-            ? "bg-destructive/5 border-destructive/25"
-            : "bg-emerald-500/5 border-emerald-500/25"
-        }`}>
-          <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
-            residentCollectionMissed
-              ? "bg-destructive/10 text-destructive border-destructive/20"
-              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-          }`}>
-            {residentCollectionMissed ? <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" /> : <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </div>
-          <div className="min-w-0 pt-0.5">
-            <h3 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
-              {residentCollectionMissed ? "Collection missed today" : "Collection completed today"}
-            </h3>
-            <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-              {residentCollectionMissed
-                ? `Waste collection in ${residentArea} was not completed today.`
-                : `Waste collection in ${residentArea} was completed${residentOutcomeTruck.residentStopCompletedAt ? ` at ${residentOutcomeTruck.residentStopCompletedAt}` : ""}.`}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <CountdownBanner
-          schedule={schedule}
-          hasActiveTrucks={hasLiveTrackingForResident}
-        />
-      )}
+      <CountdownBanner schedule={schedule} residentArea={residentArea} />
 
       <div className="h-[390px] sm:h-[480px] lg:h-[580px]">
         <TrackingMap
@@ -669,12 +666,6 @@ const ResidentTruckTracking = () => {
           onSelectTruck={handleTruckClick}
         />
       </div>
-
-      {hasLiveTrackingForResident && (
-        <p className="text-[11px] text-muted-foreground text-center pt-1 pb-2">
-          GPS updates transmitted live
-        </p>
-      )}
     </div>
   );
 };

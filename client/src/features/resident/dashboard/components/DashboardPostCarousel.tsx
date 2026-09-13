@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, Newspaper } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import postsService from "@/services/postsService";
@@ -57,7 +57,7 @@ const DashboardPostCarousel = () => {
 
   if (isLoading) {
     return (
-      <Card className="h-full border border-border overflow-hidden">
+      <Card className="h-full border border-border overflow-hidden rounded-2xl">
         <CardContent className="p-0">
           <div className="h-1 bg-primary/30 animate-pulse" />
           <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-3.5 sm:gap-4 min-h-[165px] animate-pulse items-start sm:items-center">
@@ -86,7 +86,7 @@ const DashboardPostCarousel = () => {
 
   return (
     <Card
-      className="group h-full border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between"
+      className="group h-full border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between rounded-2xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onClick={() => navigate(`/resident/contents?post=${post.id}`)}
@@ -136,12 +136,9 @@ const DashboardPostCarousel = () => {
           <div className="flex flex-col justify-between flex-1 min-w-0 w-full">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Newspaper className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
-                    Community Update
-                  </p>
-                </div>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                  Community Update
+                </p>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                 >
@@ -161,16 +158,8 @@ const DashboardPostCarousel = () => {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => navigate(`/resident/contents?post=${post.id}`)}
-                className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline cursor-pointer"
-              >
-                Read article <ArrowRight className="w-3 h-3" />
-              </button>
-
-              {posts.length > 1 && (
+            {posts.length > 1 && (
+              <div className="mt-2 flex items-center justify-end border-t border-border/40 pt-2" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -206,8 +195,8 @@ const DashboardPostCarousel = () => {
                     <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

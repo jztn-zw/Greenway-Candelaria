@@ -1,4 +1,5 @@
 const { pool } = require("../../config/db");
+const { cloudinary } = require("../../config/cloudinary");
 const generateId = require("../../utils/generateId");
 const {
   sendToUser,
@@ -25,6 +26,43 @@ const generateSequentialRef = async (conn) => {
 
   const seq = String(row.counter).padStart(5, "0");
   return `RPT-${year}-${seq}`;
+};
+
+// Only remove uploads owned by this feature. URLs may contain a Cloudinary
+// transformation/version segment, so derive the stable public ID from the
+// part after `/upload/` and never act on arbitrary third-party URLs.
+const getReportPhotoPublicId = (url) => {
+  try {
+    const assetPath = new URL(url).pathname.split("/upload/")[1];
+    if (!assetPath) return null;
+
+    const pathWithoutVersion = assetPath.replace(/^v\d+\//, "");
+    if (!pathWithoutVersion.startsWith("greenway/reports/")) return null;
+
+    return pathWithoutVersion.replace(/\.[^/.]+$/, "");
+  } catch {
+    return null;
+  }
+};
+
+const cleanupUnattachedReportPhotos = async (urls) => {
+  await Promise.all(
+    urls.map(async (url) => {
+      const [photoRows] = await pool.query(
+        "SELECT id FROM report_photos WHERE url = ? LIMIT 1",
+        [url],
+      );
+      if (photoRows.length > 0) return;
+
+      const publicId = getReportPhotoPublicId(url);
+      if (!publicId) return;
+
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: "image",
+        invalidate: true,
+      });
+    }),
+  );
 };
 
 // ─── Get single report by ID ───────────────────────────────
@@ -123,12 +161,6 @@ const getAll = async (filters = {}) => {
     params.push(filters.status.toUpperCase());
   }
 
-  // Priority
-  if (filters.priority && filters.priority !== "all") {
-    where.push("r.priority = ?");
-    params.push(filters.priority.toUpperCase());
-  }
-
   // Barangay (id or name)
   if (filters.barangay_id && filters.barangay_id !== "all") {
     where.push("r.barangay_id = ?");
@@ -164,8 +196,6 @@ const getAll = async (filters = {}) => {
     orderBy = `ORDER BY FIELD(r.status, 'SUBMITTED', 'UNDER_REVIEW', 'DISPATCHED', 'RESOLVED') ASC, r.created_at DESC`;
   } else if (filters.sort === "violation") {
     orderBy = "ORDER BY r.violation_type ASC, r.created_at DESC";
-  } else if (filters.sort === "priority") {
-    orderBy = `ORDER BY FIELD(r.priority, 'HIGH', 'MEDIUM', 'LOW') ASC, r.created_at DESC`;
   }
 
   // Count total matching rows
@@ -232,17 +262,21 @@ const getAll = async (filters = {}) => {
 // ─── Get My Reports (resident) — paginated + filtered ─────
 
 const getMyReports = async (userId, filters = {}) => {
-  const page  = Math.max(1, parseInt(filters.page)  || 1);
+  const requestedPage = Math.max(1, parseInt(filters.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(filters.limit) || 10));
-  const offset = (page - 1) * limit;
 
   const where  = ["r.user_id = ?", "r.deleted_at IS NULL"];
   const params = [userId];
 
   // Status filter (backend enum: SUBMITTED, UNDER_REVIEW, DISPATCHED, RESOLVED)
   if (filters.status && filters.status !== "all") {
+    const status = String(filters.status).toUpperCase();
+    const allowedStatuses = new Set(["SUBMITTED", "UNDER_REVIEW", "DISPATCHED", "RESOLVED"]);
+    if (!allowedStatuses.has(status)) {
+      throw { statusCode: 400, message: "Invalid report status filter" };
+    }
     where.push("r.status = ?");
-    params.push(filters.status.toUpperCase());
+    params.push(status);
   }
 
   // Search — reference number or description
@@ -262,6 +296,8 @@ const getMyReports = async (userId, filters = {}) => {
   );
   const total      = countRows[0].total;
   const totalPages = Math.ceil(total / limit);
+  const page = totalPages === 0 ? 1 : Math.min(requestedPage, totalPages);
+  const offset = (page - 1) * limit;
 
   // Fetch page of reports
   const [reports] = await pool.query(
@@ -401,33 +437,21 @@ const create = async (userId, data) => {
     const refNumber = await generateSequentialRef(conn);
     const reportId = generateId();
 
-    const defaultPriorityMap = {
-      ILLEGAL_DUMPING: "HIGH",
-      OPEN_BURNING: "HIGH",
-      OVERFLOWING_BIN: "MEDIUM",
-      MISSED_COLLECTION: "MEDIUM",
-      IMPROPER_SEGREGATION: "MEDIUM",
-      LITTERING: "LOW",
-      OTHER: "LOW",
-    };
-    const initialPriority = defaultPriorityMap[violation_type] || "MEDIUM";
-
     await conn.query(
       `INSERT INTO reports
          (id, reference_number, user_id, barangay_id, violation_type,
-          priority, landmark, description, pin_lat, pin_lng)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           landmark, description, pin_lat, pin_lng)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reportId,
         refNumber,
         userId,
         barangay_id,
         violation_type,
-        initialPriority,
         landmark || null,
         description,
-        pin_lat || null,
-        pin_lng || null,
+        pin_lat ?? null,
+        pin_lng ?? null,
       ],
     );
 
@@ -454,7 +478,7 @@ const create = async (userId, data) => {
       action: "CREATE_REPORT",
       module: "reports",
       record_id: createdReport.id,
-      new_value: { reference_number: createdReport.reference_number, violation_type: createdReport.violation_type, priority: createdReport.priority, barangay: createdReport.barangay_name },
+      new_value: { reference_number: createdReport.reference_number, violation_type: createdReport.violation_type, barangay: createdReport.barangay_name },
     }).catch(() => {});
 
     // Notify Admins of new report
@@ -466,7 +490,7 @@ const create = async (userId, data) => {
     notifyAdmins({
       type: "REPORT_UPDATE",
       title: `New Report: ${createdReport.reference_number}`,
-      body: `${violationLabel} reported in ${createdReport.barangay_name} (${createdReport.priority.toLowerCase()} priority).`,
+      body: `${violationLabel} reported in ${createdReport.barangay_name}.`,
       ref_id: createdReport.id,
       ref_module: "reports",
     }).catch((err) => console.error("[Notify] ❌ Admin report notification failed:", err.message));
@@ -474,6 +498,12 @@ const create = async (userId, data) => {
     return createdReport;
   } catch (err) {
     await conn.rollback();
+    await cleanupUnattachedReportPhotos(photos).catch((cleanupError) =>
+      console.error(
+        "[Reports] Failed to clean up unattached report photos:",
+        cleanupError.message,
+      ),
+    );
     throw err;
   } finally {
     conn.release();
@@ -753,15 +783,6 @@ const flagReport = async (id, adminId, data) => {
   return updatedReport;
 };
 
-// ─── Update Priority ───────────────────────────────────────
-
-const updatePriority = async () => {
-  throw {
-    statusCode: 403,
-    message: "Report priority is fixed after submission",
-  };
-};
-
 // ─── Add Note ──────────────────────────────────────────────
 
 const addNote = async (reportId, adminId, note) => {
@@ -931,7 +952,6 @@ module.exports = {
   create,
   updateStatus,
   flagReport,
-  updatePriority,
   addNote,
   getNotes,
   getStatusHistory,

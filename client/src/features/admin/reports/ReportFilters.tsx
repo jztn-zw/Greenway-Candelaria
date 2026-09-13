@@ -20,7 +20,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { ViolationType, ReportStatus, ReportPriority } from "./types";
+import { ViolationType, ReportStatus } from "./types";
 import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
 import type { AdminReportsKPIs } from "@/services/reportsService";
 import { cn } from "@/lib/utils";
@@ -34,8 +34,6 @@ interface ReportFiltersProps {
   onStatusFilterChange: (val: string) => void;
   barangayFilter: string;
   onBarangayFilterChange: (val: string) => void;
-  priorityFilter: string;
-  onPriorityFilterChange: (val: string) => void;
   sortBy: string;
   onSortByChange: (val: string) => void;
   dateRange: { from?: Date; to?: Date };
@@ -55,7 +53,6 @@ const violationTypes: ViolationType[] = [
 ];
 
 const statuses: ReportStatus[] = ["Submitted", "Under Review", "Dispatched", "Resolved"];
-const priorities: ReportPriority[] = ["High", "Medium", "Low"];
 
 const ReportFilters = ({
   search,
@@ -66,8 +63,6 @@ const ReportFilters = ({
   onStatusFilterChange,
   barangayFilter,
   onBarangayFilterChange,
-  priorityFilter,
-  onPriorityFilterChange,
   sortBy,
   onSortByChange,
   dateRange,
@@ -99,7 +94,6 @@ const ReportFilters = ({
   const secondaryFilterCount = [
     violationFilter !== "all",
     barangayFilter !== "all",
-    priorityFilter !== "all",
     Boolean(dateRange.from || dateRange.to),
   ].filter(Boolean).length;
 
@@ -112,7 +106,6 @@ const ReportFilters = ({
   const clearSecondary = () => {
     onViolationFilterChange("all");
     onBarangayFilterChange("all");
-    onPriorityFilterChange("all");
     onDateRangeChange({});
   };
 
@@ -263,23 +256,7 @@ const ReportFilters = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {/* Priority */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Priority</label>
-                      <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
-                        <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
-                          <SelectValue placeholder="All Priority" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="all">All Priority</SelectItem>
-                          {priorities.map((p) => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
+                  <div className="space-y-1">
                     {/* Sort Order */}
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Sort Order</label>
@@ -292,10 +269,8 @@ const ReportFilters = ({
                           <SelectItem value="date-asc">Oldest First</SelectItem>
                           <SelectItem value="status">By Status</SelectItem>
                           <SelectItem value="violation">By Violation</SelectItem>
-                          <SelectItem value="priority">By Priority</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
                   </div>
 
                   {/* Date Range (Full Width) */}
@@ -331,6 +306,7 @@ const ReportFilters = ({
                       </PopoverContent>
                     </Popover>
                   </div>
+                </div>
                 </div>
 
                 {/* Apply Button */}
@@ -385,21 +361,6 @@ const ReportFilters = ({
               {barangays.map((b) => (
                 <SelectItem key={b.id} value={b.name}>
                   {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Priority */}
-          <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
-            <SelectTrigger className="h-9 text-xs w-auto min-w-[110px] bg-card border-border/80 rounded-xl">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Priority</SelectItem>
-              {priorities.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {p}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -467,7 +428,6 @@ const ReportFilters = ({
               <SelectItem value="date-asc">Oldest First</SelectItem>
               <SelectItem value="status">By Status</SelectItem>
               <SelectItem value="violation">By Violation</SelectItem>
-              <SelectItem value="priority">By Priority</SelectItem>
             </SelectContent>
           </Select>
         </div>

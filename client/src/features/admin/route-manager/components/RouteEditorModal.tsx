@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -60,8 +60,10 @@ interface RouteEditorModalProps {
   onRemoveBarangay: (id: string) => void;
   onMoveBarangay: (idx: number, direction: "up" | "down") => void;
   onReorderBarangay?: (sourceIdx: number, targetIdx: number) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
 }
+
+type FormErrors = Partial<Record<"truck" | "stops" | "form", string>>;
 
 // Full-day 30-minute intervals for Start Time selection (12:00 AM–11:30 PM).
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
@@ -104,10 +106,36 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
   const assignedDriver = form.truckId
     ? drivers.find((d) => d.truck_id === form.truckId) ?? null
     : null;
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    if (!isOpen) setErrors({});
+  }, [isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.truckId || form.barangays.length === 0) return;
-    onSave();
+    const nextErrors: FormErrors = {};
+    if (!form.truckId) {
+      nextErrors.truck = trucks.length === 0
+        ? `No truck is available for ${form.day}. Choose another day.`
+        : "Select a truck for this collection route.";
+    }
+    if (form.barangays.length === 0) {
+      nextErrors.stops = "Add at least one barangay collection stop.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    try {
+      setErrors({});
+      await onSave();
+    } catch (err) {
+      setErrors({
+        form: err instanceof Error ? err.message : "Unable to save this route. Please try again.",
+      });
+    }
   };
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -155,21 +183,21 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-4xl p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-4xl p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
         >
-          <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+          <form noValidate onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
             {/* Modal Header (Pinned / Non-scrollable) */}
-            <div className="p-5 sm:p-6 pb-3.5 border-b border-border/60 shrink-0 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                   {isCreating ? (
-                    <CalendarPlus className="w-4 h-4" />
+                    <CalendarPlus className="w-5 h-5" />
                   ) : (
-                    <CalendarCheck className="w-4 h-4" />
+                    <CalendarCheck className="w-5 h-5" />
                   )}
                 </div>
-                <div>
-                  <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
+                <div className="min-w-0">
+                  <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight">
                     {isCreating ? "Create Collection Route" : "Edit Collection Route"}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -182,7 +210,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
                 title="Close modal"
               >
                 <X className="w-4 h-4" />
@@ -190,16 +218,19 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             </div>
 
           {/* Form Content (Scrollable Body) */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+          <div className="px-5 py-4 overflow-y-auto flex-1 space-y-4 scrollbar-thin">
             {/* Section 1: Schedule & Waste Type */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
+                <Label className="text-xs font-semibold text-foreground">
                   Day of Week
                 </Label>
                 <Select
                   value={form.day}
-                  onValueChange={(val: Day) => setForm((prev) => ({ ...prev, day: val }))}
+                  onValueChange={(val: Day) => {
+                    setForm((prev) => ({ ...prev, day: val }));
+                    setErrors((current) => ({ ...current, truck: undefined, form: undefined }));
+                  }}
                 >
                   <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs focus:ring-primary/20">
                     <SelectValue />
@@ -216,12 +247,12 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
               {/* Auto Waste Category */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
+                <Label className="text-xs font-semibold text-foreground">
                   Waste Category <span className="text-[11px] font-normal text-muted-foreground">(Auto)</span>
                 </Label>
                 <div
                   className={cn(
-                    "h-9 px-3 rounded-xl border flex items-center gap-2 text-xs font-bold shadow-2xs",
+                    "h-9 px-3 rounded-xl border flex items-center gap-2 text-xs font-semibold shadow-2xs",
                     isBio
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25"
                       : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25"
@@ -242,7 +273,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Truck selection */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
+                <Label className={cn("text-xs font-semibold", errors.truck ? "text-destructive" : "text-foreground")}>
                   Assigned Truck
                 </Label>
                 <Select
@@ -254,10 +285,15 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       truckId: val,
                       driverId: driver?.id ?? "",
                     }));
+                    setErrors((current) => ({ ...current, truck: undefined, form: undefined }));
                   }}
                   disabled={isLoadingTrucks || trucks.length === 0}
                 >
-                  <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs focus:ring-primary/20">
+                  <SelectTrigger
+                    aria-invalid={Boolean(errors.truck)}
+                    aria-describedby={errors.truck ? "route-truck-error" : undefined}
+                    className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs", errors.truck ? "border-destructive/70 text-destructive focus:ring-destructive/25" : "border-border/80 focus:ring-primary/20")}
+                  >
                     <div className="flex items-center gap-2 truncate">
                       <TruckIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="Select a truck" />
@@ -280,11 +316,12 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.truck && <p id="route-truck-error" className="text-[11px] font-medium text-destructive">{errors.truck}</p>}
               </div>
 
               {/* Driver auto display */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
+                <Label className="text-xs font-semibold text-foreground">
                   Collector / Driver <span className="text-[11px] font-normal text-muted-foreground">(Auto)</span>
                 </Label>
                 <div className="relative">
@@ -306,7 +343,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
               {/* Start Time Select */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
+                <Label className="text-xs font-semibold text-foreground">
                   Start Time
                 </Label>
                 <Select
@@ -343,7 +380,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             )}
 
             {/* Section 3: Barangay Collection Sequence & Live Map */}
-            <div className="pt-3 border-t border-border/60 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-start">
+            <div className="pt-3.5 border-t border-border/60 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-start">
               <div>
                 <BarangayOrderList
                   form={form}
@@ -351,7 +388,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   setBarangaySearch={setBarangaySearch}
                   availableBarangays={availableBarangays}
                   isLoadingBarangays={isLoadingBarangays}
-                  onAdd={onAddBarangay}
+                  error={errors.stops}
+                  onAdd={(barangay) => {
+                    onAddBarangay(barangay);
+                    setErrors((current) => ({ ...current, stops: undefined, form: undefined }));
+                  }}
                   onRemove={onRemoveBarangay}
                   onMove={onMoveBarangay}
                   onReorder={onReorderBarangay}
@@ -369,11 +410,12 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 <RouteStopsMap stops={form.barangays} barangays={barangays} className="h-64 sm:h-72" />
               </div>
             </div>
+            {errors.form && <p className="text-[11px] font-medium text-destructive">{errors.form}</p>}
           </div>
 
           {/* Modal Footer (Pinned / Sticky) */}
-          <div className="p-4 sm:p-5 sm:px-6 border-t border-border/60 shrink-0 bg-muted/10 flex items-center justify-end gap-2.5">
-            <p className="mr-auto hidden sm:block text-[11px] text-muted-foreground" aria-live="polite">
+          <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-end gap-2.5">
+            <p className="mr-auto hidden sm:block text-xs text-muted-foreground" aria-live="polite">
               {!form.truckId
                 ? "Select a truck to continue"
                 : trucks.length === 0
@@ -396,11 +438,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             <Button
               type="submit"
               disabled={
-                isSaving ||
-                !form.truckId ||
-                form.barangays.length === 0 ||
-                isLoadingTrucks ||
-                trucks.length === 0
+                isSaving || isLoadingTrucks
               }
               className="h-9 text-xs rounded-xl px-5 font-bold shadow-sm gap-1.5 cursor-pointer"
             >

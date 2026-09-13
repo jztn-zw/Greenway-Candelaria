@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Megaphone, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import {
@@ -88,7 +88,7 @@ const AnnouncementAndTip = () => {
   // Loading skeleton while fetching on initial load or reload
   if (loading) {
     return (
-      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between">
+      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
         <CardContent className="p-0 flex flex-col h-full">
           <div className="h-1 bg-primary/40 shrink-0" />
           <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px] space-y-3">
@@ -117,18 +117,15 @@ const AnnouncementAndTip = () => {
   // Clean empty state when no active announcements exist in database
   if (!announcement) {
     return (
-      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between">
+      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
         <CardContent className="p-0 flex flex-col h-full">
           <div className="h-1 bg-muted shrink-0" />
           <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Megaphone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
-                    Official Announcement
-                  </p>
-                </div>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                  Latest Announcement
+                </p>
               </div>
 
               <p className="text-sm sm:text-base font-bold text-foreground">
@@ -143,9 +140,9 @@ const AnnouncementAndTip = () => {
               <button
                 type="button"
                 onClick={() => navigate("/resident/contents")}
-                className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline cursor-pointer"
+                className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
               >
-                View all bulletins <ArrowRight className="w-3 h-3" />
+                View all bulletins <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
@@ -162,7 +159,7 @@ const AnnouncementAndTip = () => {
   return (
     <>
       <Card
-        className="group h-full border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+        className="group h-full border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between rounded-2xl"
         onClick={openAnnouncement}
       >
         <CardContent className="p-0 flex flex-col h-full">
@@ -173,12 +170,9 @@ const AnnouncementAndTip = () => {
             {/* Header row */}
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Megaphone className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
-                    Official Announcement
-                  </p>
-                </div>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                  Latest Announcement
+                </p>
                 <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold shrink-0">
                   {announcement.type}
                 </span>
@@ -196,18 +190,7 @@ const AnnouncementAndTip = () => {
             </div>
 
             {/* Footer matching post carousel */}
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openAnnouncement();
-                }}
-                className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline cursor-pointer"
-              >
-                Read announcement <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-
+            <div className="mt-2 flex items-center justify-end border-t border-border/40 pt-2">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden sm:inline">MENRO Verified</span>

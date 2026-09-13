@@ -36,7 +36,6 @@ import {
   CreateEventPayload,
 } from "@/services/scheduleService";
 import { format } from "date-fns";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 interface EventModalProps {
@@ -46,6 +45,8 @@ interface EventModalProps {
   defaultDate: string;
   onSubmit: (payload: CreateEventPayload) => Promise<void>;
 }
+
+type FormErrors = Partial<Record<"title" | "eventDate" | "endDate" | "form", string>>;
 
 export const EventModal: React.FC<EventModalProps> = ({
   isOpen,
@@ -75,6 +76,12 @@ export const EventModal: React.FC<EventModalProps> = ({
   }, [endDate]);
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const today = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+  const todayDate = format(today, "yyyy-MM-dd");
 
   const isEditing = Boolean(event);
 
@@ -101,16 +108,25 @@ export const EventModal: React.FC<EventModalProps> = ({
       setEndDate("");
       setDescription("");
     }
+    setErrors({});
   }, [event, defaultDate, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextErrors: FormErrors = {};
     if (title.trim().length < 3) {
-      toast.error("Schedule title must be at least 3 characters. Please try again.");
-      return;
+      nextErrors.title = "Enter an event title with at least 3 characters.";
     }
     if (!eventDate) {
-      toast.error("Please select a valid scheduled date.");
+      nextErrors.eventDate = "Select a scheduled date.";
+    } else if (eventDate < todayDate) {
+      nextErrors.eventDate = "Scheduled date cannot be in the past.";
+    }
+    if (endDate && endDate < eventDate) {
+      nextErrors.endDate = "End date cannot be earlier than the scheduled date.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
 
@@ -130,7 +146,7 @@ export const EventModal: React.FC<EventModalProps> = ({
       onClose();
     } catch (err) {
       console.error("Failed to submit schedule event", err);
-      toast.error("Unable to save the schedule. Please try again.");
+      setErrors({ form: "Unable to save the schedule. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -180,24 +196,24 @@ export const EventModal: React.FC<EventModalProps> = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-[490px] p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
         >
-          <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+          <form noValidate onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
             {/* Header (Pinned / Non-scrollable) */}
-            <div className="p-5 sm:p-6 pb-3.5 border-b border-border/60 shrink-0 flex items-center justify-between">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
                   {isEditing ? (
-                    <CalendarCheck className="w-4 h-4" />
+                    <CalendarCheck className="w-5 h-5" />
                   ) : (
-                    <CalendarPlus className="w-4 h-4" />
+                    <CalendarPlus className="w-5 h-5" />
                   )}
                 </div>
-                <div>
-                  <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight truncate">
                     {isEditing ? "Edit Schedule Event" : "Create Schedule / Event"}
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
                     {isEditing
                       ? "Modify this internal MENRO schedule."
                       : "Register a task, meeting, or internal MENRO activity."}
@@ -207,7 +223,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -215,34 +231,41 @@ export const EventModal: React.FC<EventModalProps> = ({
             </div>
 
           {/* Form Fields (Scrollable Body) */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+          <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Title */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className={cn("text-xs font-semibold", errors.title ? "text-destructive" : "text-foreground")}>
                 Event Title
               </Label>
               <Input
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setErrors((current) => ({ ...current, title: undefined, form: undefined }));
+                }}
                 placeholder="e.g. Monthly staff review"
-                className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs focus-visible:ring-primary/20"
+                aria-invalid={Boolean(errors.title)}
+                aria-describedby={errors.title ? "event-title-error" : undefined}
+                className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs", errors.title ? "border-destructive/70 text-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:ring-primary/20")}
                 maxLength={255}
-                required
               />
+              {errors.title && <p id="event-title-error" className="text-[11px] font-medium text-destructive">{errors.title}</p>}
             </div>
 
             {/* Start and optional end date */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Start date dropdown */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className={cn("text-xs font-semibold", errors.eventDate ? "text-destructive" : "text-foreground")}>
                   Date
                 </Label>
                 <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center justify-between rounded-xl border border-border/80 bg-background px-3 text-xs shadow-2xs hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                      aria-invalid={Boolean(errors.eventDate)}
+                      aria-describedby={errors.eventDate ? "event-date-error" : undefined}
+                      className={cn("flex h-9 w-full items-center justify-between rounded-xl border bg-background px-3 text-xs shadow-2xs hover:bg-muted/40 focus:outline-none focus:ring-2 transition-all cursor-pointer", errors.eventDate ? "border-destructive/70 text-destructive focus:ring-destructive/25" : "border-border/80 focus:ring-primary/20")}
                     >
                       <span className="flex items-center gap-2 truncate">
                         <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -261,7 +284,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                         if (d) {
                           setSelectedDate(d);
                           const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                          setEventDate(formatted);
+                           setEventDate(formatted);
+                           setErrors((current) => ({ ...current, eventDate: undefined, form: undefined }));
                           if (endDate && endDate < formatted) {
                             setEndDate("");
                           }
@@ -273,18 +297,21 @@ export const EventModal: React.FC<EventModalProps> = ({
                     />
                   </PopoverContent>
                 </Popover>
+                {errors.eventDate && <p id="event-date-error" className="text-[11px] font-medium text-destructive">{errors.eventDate}</p>}
               </div>
 
               {/* Optional end date */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className={cn("text-xs font-semibold", errors.endDate ? "text-destructive" : "text-foreground")}>
                   End Date <span className="text-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center justify-between rounded-xl border border-border/80 bg-background px-3 text-xs shadow-2xs hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                      aria-invalid={Boolean(errors.endDate)}
+                      aria-describedby={errors.endDate ? "event-end-date-error" : undefined}
+                      className={cn("flex h-9 w-full items-center justify-between rounded-xl border bg-background px-3 text-xs shadow-2xs hover:bg-muted/40 focus:outline-none focus:ring-2 transition-all cursor-pointer", errors.endDate ? "border-destructive/70 text-destructive focus:ring-destructive/25" : "border-border/80 focus:ring-primary/20")}
                     >
                       <span className="flex items-center gap-2 truncate">
                         <CalendarDays className={cn("w-3.5 h-3.5 shrink-0", selectedEndDate ? "text-primary" : "text-muted-foreground")} />
@@ -320,16 +347,12 @@ export const EventModal: React.FC<EventModalProps> = ({
                     <Calendar
                       mode="single"
                       selected={selectedEndDate}
-                      disabled={(date) =>
-                        selectedDate
-                          ? date < new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-                          : false
-                      }
                       onSelect={(d) => {
                         if (d) {
-                          setEndDate(
-                            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-                          );
+                           setEndDate(
+                             `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+                           );
+                           setErrors((current) => ({ ...current, endDate: undefined, form: undefined }));
                           setIsEndDatePickerOpen(false);
                         }
                       }}
@@ -354,6 +377,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                     )}
                   </PopoverContent>
                 </Popover>
+                {errors.endDate && <p id="event-end-date-error" className="text-[11px] font-medium text-destructive">{errors.endDate}</p>}
               </div>
             </div>
 
@@ -364,27 +388,28 @@ export const EventModal: React.FC<EventModalProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Specific instructions, agenda items, or reminders..."
-                rows={2}
-                className="text-xs rounded-xl resize-none bg-background border-border/80 shadow-2xs focus-visible:ring-primary/20"
+                rows={3}
+                className="text-xs rounded-xl resize-none bg-background border-border/80 shadow-2xs focus-visible:ring-primary/20 min-h-[72px] leading-relaxed"
               />
             </div>
+            {errors.form && <p className="text-[11px] font-medium text-destructive">{errors.form}</p>}
 
           </div>
 
           {/* Footer (Pinned / Sticky) */}
-          <div className="p-4 sm:p-5 sm:px-6 border-t border-border/60 shrink-0 bg-muted/10 flex items-center justify-end gap-2">
+          <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-end gap-2.5">
             <Button
               type="button"
               variant="outline"
               onClick={handleRequestClose}
-              className="h-10 px-4 rounded-xl text-xs font-semibold cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer border-border/80 hover:bg-muted/80"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5"
+              className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {isSubmitting ? "Saving..." : isEditing ? "Save Changes" : "Create Schedule"}

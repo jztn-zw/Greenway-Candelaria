@@ -8,20 +8,17 @@ interface PageTransitionProps {
 const PageTransition = ({ children }: PageTransitionProps) => {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
-  const [displayKey, setDisplayKey] = useState(location.pathname);
 
   useEffect(() => {
     setIsVisible(false);
     const raf = requestAnimationFrame(() => {
-      setDisplayKey(location.pathname);
-      requestAnimationFrame(() => setIsVisible(true));
+      setIsVisible(true);
     });
     return () => cancelAnimationFrame(raf);
   }, [location.pathname]);
 
   return (
     <div
-      key={displayKey}
       className={`transition-all duration-400 ease-out will-change-[transform,opacity] ${
         isVisible
           ? "opacity-100 translate-y-0"

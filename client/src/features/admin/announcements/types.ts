@@ -85,7 +85,6 @@ export const BARANGAYS = [
   "San Nicolas", "Santiago", "Villa Esperanza",
 ];
 
-export const BODY_CHAR_LIMIT = 500;
 export const ITEMS_PER_PAGE = 6;
 
 export const announcementTypeStyles: Record<AnnouncementType, string> = {

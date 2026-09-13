@@ -10,6 +10,7 @@ When the user asks to change, fix, or update any UI element, feature, or behavio
 
 ## Design & UI Guidelines
 - **Premium, Typography-Driven Minimalist Vibe**: Keep layouts clean, balanced, and free of unnecessary decorative clutter, verbose helper text, or redundant icons.
+- **Concentric Border Radii ($R_{\text{outer}} = R_{\text{inner}} + \text{Padding}$)**: Always enforce concentric curvature between nested containers and elements to prevent corner pinching. Outer cards, panels, and modals must use `rounded-2xl` (16px), inner cards/icon containers/buttons use `rounded-xl` (12px) or `rounded-lg` (8px), and circular elements use `rounded-full`. Never share identical radii when nested with padding ($R_{\text{outer}} > R_{\text{inner}}$).
 - **Consistent Radius & Inputs**: Form inputs, buttons, and popovers use `rounded-xl`, subtle border (`border-border`), and appropriate height (`h-10` or `h-9`).
 - **Balanced Grids**: Multi-column form fields (such as Target Audience & Notice Type) must use balanced grids (`grid-cols-2 gap-3`) so inputs share width symmetrically.
 

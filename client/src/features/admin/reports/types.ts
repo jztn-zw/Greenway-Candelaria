@@ -43,8 +43,6 @@ export type ViolationType =
 
 export type ReportStatus = "Submitted" | "Under Review" | "Dispatched" | "Resolved";
 
-export type ReportPriority = "High" | "Medium" | "Low";
-
 export const VIOLATION_TYPE_TO_LABEL: Record<string, ViolationType> = {
   ILLEGAL_DUMPING: "Illegal Dumping",
   MISSED_COLLECTION: "Missed Collection",
@@ -79,18 +77,6 @@ export const STATUS_LABEL_TO_BACKEND: Record<string, string> = {
   Resolved: "RESOLVED",
 };
 
-export const PRIORITY_TO_LABEL: Record<string, ReportPriority> = {
-  HIGH: "High",
-  MEDIUM: "Medium",
-  LOW: "Low",
-};
-
-export const PRIORITY_LABEL_TO_BACKEND: Record<string, "LOW" | "MEDIUM" | "HIGH"> = {
-  High: "HIGH",
-  Medium: "MEDIUM",
-  Low: "LOW",
-};
-
 export const statusBadgeStyles: Record<ReportStatus, { badge: string }> = {
   Submitted: {
     badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
@@ -106,20 +92,14 @@ export const statusBadgeStyles: Record<ReportStatus, { badge: string }> = {
   },
 };
 
-export const priorityBadgeStyles: Record<ReportPriority, string> = {
-  High: "bg-destructive/10 text-destructive border-destructive/20",
-  Medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  Low: "bg-muted text-muted-foreground border-border/80",
-};
-
 export const violationBadgeStyles: Record<ViolationType, string> = {
-  "Illegal Dumping": "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
-  "Missed Collection": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  "Overflowing Bin": "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  "Improper Segregation": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  "Open Burning": "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  "Littering": "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  Other: "bg-muted text-muted-foreground border-border/80",
+  "Illegal Dumping": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+  "Missed Collection": "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25",
+  "Overflowing Bin": "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/25",
+  "Improper Segregation": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+  "Open Burning": "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/25",
+  Littering: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25",
+  Other: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/25",
 };
 
 export interface PhotoAnnotation {
@@ -165,7 +145,6 @@ export interface WasteReport {
   submitterName: string;
   submitterEmail?: string;
   photos: ReportPhoto[];
-  priority: ReportPriority;
   status: ReportStatus;
   statusHistory: StatusHistoryEntry[];
   officialResponse?: string;

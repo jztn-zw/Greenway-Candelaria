@@ -5,7 +5,29 @@ const { notifyAllResidents } = require("../notifications/notifications.service")
 
 // ─── Centralized Calendar Events ───────────────────────────
 
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
+
+const getCurrentAppDate = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+};
+
 const validateEventDetails = async (event) => {
+  if (event.event_date && event.event_date < getCurrentAppDate()) {
+    throw { statusCode: 400, message: "Scheduled date cannot be in the past" };
+  }
+
   if (event.end_date && event.event_date && event.end_date < event.event_date) {
     throw { statusCode: 400, message: "End date cannot be earlier than the start date" };
   }

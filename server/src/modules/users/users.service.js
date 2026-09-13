@@ -31,6 +31,22 @@ const updateProfile = async (userId, data) => {
     fields.push("full_name = ?");
     params.push(data.full_name);
   }
+  if (data.username) {
+    const [existingUsers] = await pool.query(
+      `SELECT id
+       FROM users
+       WHERE username = ? AND id <> ? AND deleted_at IS NULL
+       LIMIT 1`,
+      [data.username, userId]
+    );
+
+    if (existingUsers.length > 0) {
+      throw { statusCode: 409, message: "Username is already in use" };
+    }
+
+    fields.push("username = ?");
+    params.push(data.username);
+  }
   if (data.phone) {
     fields.push("phone = ?");
     params.push(data.phone);
@@ -258,7 +274,7 @@ const getReportHistory = async (userId) => {
   const [reports] = await pool.query(
     `SELECT 
        r.id, r.reference_number, r.violation_type,
-       r.status, r.priority,
+       r.status,
        r.created_at,
        b.name AS barangay_name
      FROM reports r

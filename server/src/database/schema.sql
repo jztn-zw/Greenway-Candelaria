@@ -430,7 +430,6 @@ CREATE TABLE `reports` (
   `violation_type` enum('ILLEGAL_DUMPING','MISSED_COLLECTION','OVERFLOWING_BIN','OPEN_BURNING','LITTERING','IMPROPER_SEGREGATION','OTHER') NOT NULL,
   `landmark` varchar(255) DEFAULT NULL,
   `description` text NOT NULL,
-  `priority` enum('LOW','MEDIUM','HIGH') DEFAULT 'MEDIUM',
   `status` enum('SUBMITTED','UNDER_REVIEW','DISPATCHED','RESOLVED') DEFAULT 'SUBMITTED',
   `admin_response` text DEFAULT NULL,
   `is_false` tinyint(1) DEFAULT '0',

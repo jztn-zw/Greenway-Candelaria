@@ -4,7 +4,6 @@ const {
   updateStatusSchema,
   addNoteSchema,
   flagReportSchema,
-  updatePrioritySchema,
 } = require("./reports.schema");
 const { success } = require("../../utils/apiResponse");
 const { uploadBufferToCloudinary } = require("../../config/cloudinary");
@@ -103,16 +102,6 @@ const flagReport = async (req, res, next) => {
   }
 };
 
-const updatePriority = async (req, res, next) => {
-  try {
-    const { priority } = updatePrioritySchema.parse(req.body);
-    const report = await service.updatePriority(req.params.id, req.user.id, priority);
-    return success(res, report, "Priority updated successfully");
-  } catch (err) {
-    next(err);
-  }
-};
-
 const addNote = async (req, res, next) => {
   try {
     const { note } = addNoteSchema.parse(req.body);
@@ -174,7 +163,6 @@ module.exports = {
   create,
   updateStatus,
   flagReport,
-  updatePriority,
   addNote,
   getNotes,
   getStatusHistory,

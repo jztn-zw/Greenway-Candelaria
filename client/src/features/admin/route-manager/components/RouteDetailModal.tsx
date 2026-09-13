@@ -64,9 +64,9 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden gap-0">
           {/* Modal Header (Pinned / Non-scrollable) */}
-          <div className="p-5 sm:p-6 pb-3.5 border-b border-border/60 shrink-0 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-border/60 bg-muted/15 shrink-0 flex items-center justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
@@ -90,7 +90,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -98,12 +98,12 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Body Content (Scrollable Body) */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+          <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Overview Bento Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               {/* Waste Type */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/60 space-y-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Waste Type
                 </p>
                 <p className="text-xs font-bold text-foreground truncate">{waste.label}</p>
@@ -111,8 +111,8 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
               </div>
 
               {/* Start Time */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/60 space-y-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Departure
                 </p>
                 <p className="text-xs font-bold text-foreground tabular-nums">
@@ -122,8 +122,8 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
               </div>
 
               {/* Total Stops */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/60 space-y-1 col-span-2 sm:col-span-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Coverage
                 </p>
                 <p className="text-xs font-bold text-foreground tabular-nums">
@@ -134,26 +134,26 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             </div>
 
             {/* Vehicle & Collector Details */}
-            <div className="p-3.5 rounded-xl bg-card border border-border/80 shadow-2xs space-y-3">
+            <div className="p-3.5 rounded-xl bg-muted/20 border border-border/70 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground">
+                <span className="text-xs font-semibold text-foreground">
                   Assigned Vehicle & Collector
                 </span>
-                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-muted border border-border/60 text-foreground">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-muted border border-border/60 text-foreground">
                   {truck?.plate_number ?? route.truckPlate}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-border/60">
+              <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Truck</p>
-                  <p className="text-xs font-bold text-foreground mt-0.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Truck</p>
+                  <p className="text-xs font-bold text-foreground mt-0.5 truncate">
                     {truck?.name ?? route.truckName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Driver</p>
-                  <p className="text-xs font-bold text-foreground mt-0.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Driver</p>
+                  <p className="text-xs font-bold text-foreground mt-0.5 truncate">
                     {route.driverName || "Unassigned"}
                   </p>
                 </div>
@@ -162,34 +162,34 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold text-foreground">
+                <span className="text-xs font-semibold text-foreground">
                   Route Preview
                 </span>
-                <span className="text-[11px] text-muted-foreground">Sequence follows the numbered markers</span>
+                <span className="text-[10px] text-muted-foreground font-medium">Sequence follows the numbered markers</span>
               </div>
               <RouteStopsMap
                 stops={orderedStops.map((stop) => ({ id: stop.barangayId, name: stop.barangayName }))}
                 barangays={barangays}
-                className="h-48"
+                className="h-44"
               />
             </div>
 
             {/* Ordered Barangay Stops Sequence */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground">Collection Stops</span>
-                <span className="text-[11px] text-muted-foreground">Order of service</span>
+                <span className="text-xs font-semibold text-foreground">Collection Stops</span>
+                <span className="text-[10px] text-muted-foreground font-medium">Order of service</span>
               </div>
 
-              <div className="border border-border/80 rounded-xl max-h-52 overflow-y-auto divide-y divide-border/60 bg-muted/10">
+              <div className="border border-border/70 rounded-xl max-h-48 overflow-y-auto divide-y divide-border/60 bg-muted/15 scrollbar-thin">
                 {orderedStops.map((stop, index) => (
                   <div
                     key={stop.barangayId}
-                    className="flex items-center justify-between px-3.5 py-2.5 text-xs"
+                    className="flex items-center justify-between px-3.5 py-2 text-xs hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-extrabold font-mono">{index + 1}</span>
+                      <div className="w-5 h-5 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                        <span className="text-[10px] font-bold font-mono">{index + 1}</span>
                       </div>
                       <span className="font-semibold text-foreground truncate">
                         {stop.barangayName}
@@ -197,7 +197,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                     </div>
 
                     {stop.zone && (
-                      <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/60 shrink-0">
+                      <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/70 px-1.5 py-0.5 rounded border border-border/60 shrink-0">
                         Zone {stop.zone}
                       </span>
                     )}
@@ -213,7 +213,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Modal Footer Controls (Pinned / Sticky) */}
-          <div className="p-4 sm:p-5 sm:px-6 border-t border-border/60 shrink-0 bg-muted/10 flex items-center justify-between gap-2">
+          <div className="px-5 py-3 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-between gap-2">
             {/* Destructive Delete Button */}
             <Button
               variant="ghost"
@@ -221,7 +221,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
               onClick={() => setDeleteDialogOpen(true)}
               disabled={route.active || isDeleting}
               className={cn(
-                "h-9 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl px-3 transition-colors cursor-pointer",
+                "h-8 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 rounded-xl px-3 transition-colors cursor-pointer",
                 route.active && "opacity-40 cursor-not-allowed"
               )}
               title={route.active ? "Pause route before deleting" : "Delete Route"}
@@ -241,7 +241,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                   onClose();
                   onDuplicate(route);
                 }}
-                className="h-9 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3.5 transition-colors cursor-pointer"
+                className="h-8 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3 transition-colors cursor-pointer"
               >
                 Duplicate
               </Button>
@@ -251,7 +251,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 size="sm"
                 onClick={() => onToggleActive(route)}
                 disabled={isToggling}
-                className="h-9 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3.5 transition-colors cursor-pointer"
+                className="h-8 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3 transition-colors cursor-pointer"
               >
                 {isToggling ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
@@ -265,7 +265,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                   onClose();
                   onEdit(route);
                 }}
-                className="h-9 text-xs font-bold rounded-xl px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-2xs"
+                className="h-8 text-xs font-semibold rounded-xl px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-2xs"
               >
                 Edit Route
               </Button>

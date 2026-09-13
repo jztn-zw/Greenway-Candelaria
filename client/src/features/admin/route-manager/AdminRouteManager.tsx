@@ -267,7 +267,9 @@ const AdminRouteManager: React.FC = () => {
 
   // ── CRUD handlers ──
   const handleSave = async () => {
-    if (!form.truckId || form.barangays.length === 0) return;
+    if (!form.truckId || form.barangays.length === 0) {
+      throw new Error("Complete the required route details before saving.");
+    }
     if (isCreating) {
       const result = await createNew(form);
       if (result) {

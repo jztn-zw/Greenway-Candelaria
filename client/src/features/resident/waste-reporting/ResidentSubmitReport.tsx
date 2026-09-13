@@ -1,25 +1,35 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/lib/toast";
-import { Send, AlertTriangle } from "lucide-react";
+import { Send, RotateCcw } from "lucide-react";
 import ViolationTypeSelector from "./ViolationTypeSelector";
 import LocationSection from "./LocationSection";
 import DescriptionSection from "./DescriptionSection";
 import PhotoUploadSection from "./PhotoUploadSection";
-import FormProgressSidebar from "./FormProgressSidebar";
+import DuplicateWarning from "./DuplicateWarning";
 import SuccessScreen from "./SuccessScreen";
 import ReviewModal from "./ReviewModal";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
 import { ReportFormSkeleton } from "@/components/PageLoadingSkeletons";
-import { uploadReportPhotos, submitReport } from "@/services/reportsService";
+import {
+  checkSimilarReport,
+  submitReport,
+  uploadReportPhotos,
+} from "@/services/reportsService";
 const DRAFT_STORAGE_KEY = "greenway_report_draft_v1";
+
+const revokePhotoPreviews = (photos: ReportFormData["photos"]) => {
+  photos.forEach((photo) => URL.revokeObjectURL(photo.preview));
+};
 
 const ResidentSubmitReport = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const [hasSimilarReport, setHasSimilarReport] = useState(false);
 
   const [form, setForm] = useState<ReportFormData>(() => {
     try {
@@ -66,6 +76,16 @@ const ResidentSubmitReport = () => {
     form.photos.length,
   ]);
 
+  const photoPreviewsRef = useRef(form.photos);
+
+  useEffect(() => {
+    photoPreviewsRef.current = form.photos;
+  }, [form.photos]);
+
+  useEffect(() => {
+    return () => revokePhotoPreviews(photoPreviewsRef.current);
+  }, []);
+
   // Auto-save form draft whenever text or selections change
   useEffect(() => {
     try {
@@ -77,8 +97,18 @@ const ResidentSubmitReport = () => {
         pinLocation: form.pinLocation,
         description: form.description,
       };
-      if (form.description || form.violationType || form.barangayId) {
+      const hasPersistableDraft = Boolean(
+        form.violationType ||
+          form.barangayId ||
+          form.streetOrLandmark.trim() ||
+          form.description.trim() ||
+          form.pinLocation,
+      );
+
+      if (hasPersistableDraft) {
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      } else {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
       }
     } catch {
       // Ignore storage errors
@@ -91,6 +121,32 @@ const ResidentSubmitReport = () => {
     form.pinLocation,
     form.description,
   ]);
+
+  useEffect(() => {
+    if (!form.barangayId || !form.violationType) {
+      setHasSimilarReport(false);
+      return;
+    }
+
+    let isCurrent = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const hasSimilar = await checkSimilarReport(
+          form.barangayId,
+          VIOLATION_TYPE_MAP[form.violationType],
+        );
+        if (isCurrent) setHasSimilarReport(hasSimilar);
+      } catch {
+        // This is advisory only. A transient check failure must not block reports.
+        if (isCurrent) setHasSimilarReport(false);
+      }
+    }, 300);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timer);
+    };
+  }, [form.barangayId, form.violationType]);
 
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -110,24 +166,28 @@ const ResidentSubmitReport = () => {
     [],
   );
 
-  const canSubmit =
+  const canSubmit = Boolean(
     form.violationType &&
-    form.barangayId &&
-    form.description.trim().length >= 10 &&
-    form.photos.length > 0;
+      form.barangayId &&
+      form.description.trim().length >= 10 &&
+      form.photos.length > 0,
+  );
 
   const handleReview = () => {
     if (!canSubmit) {
-      toast.error(
-        "Please fill in all required fields including at least one photo.",
-      );
+      setShowValidation(true);
       return;
     }
+    setShowValidation(false);
     setReviewModalOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.violationType || !form.barangayId) return;
+    if (!canSubmit || !form.violationType || !form.barangayId) {
+      setShowValidation(true);
+      setReviewModalOpen(false);
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -139,12 +199,24 @@ const ResidentSubmitReport = () => {
         );
       }
 
-      // Step 2: Submit report to backend
+      // Step 2: Clean and submit report to backend
+      const cleanedDescription = form.description
+        .split(/\n\s*\n/)
+        .map((b) => b.trim())
+        .filter(Boolean)
+        .filter((block, _, arr) => {
+          if (/^[^\n?]+\?\s*$/.test(block) && arr.length > 1) {
+            return false;
+          }
+          return true;
+        })
+        .join("\n\n");
+
       const created = await submitReport({
         barangay_id: form.barangayId,
         violation_type: VIOLATION_TYPE_MAP[form.violationType],
         landmark: form.streetOrLandmark || undefined,
-        description: form.description,
+        description: cleanedDescription || form.description,
         pin_lat: form.pinLocation?.[0],
         pin_lng: form.pinLocation?.[1],
         photos: photoUrls,
@@ -158,6 +230,8 @@ const ResidentSubmitReport = () => {
       }
 
       // Step 4: Show success with real reference number from backend
+      revokePhotoPreviews(form.photos);
+      setForm((previous) => ({ ...previous, photos: [] }));
       setReferenceNumber(created.reference_number);
       setSubmitted(true);
       setReviewModalOpen(false);
@@ -172,6 +246,7 @@ const ResidentSubmitReport = () => {
   };
 
   const resetForm = () => {
+    revokePhotoPreviews(form.photos);
     try {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     } catch {
@@ -189,6 +264,7 @@ const ResidentSubmitReport = () => {
     setSubmitted(false);
     setReviewModalOpen(false);
     setReferenceNumber("");
+    setShowValidation(false);
   };
 
   useEffect(() => {
@@ -209,68 +285,80 @@ const ResidentSubmitReport = () => {
   return (
     <div className="space-y-1">
       {/* ── Page Header ── */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 shadow-sm">
-            <AlertTriangle className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
-              Submit a Report
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Report waste-related issues to the MENRO office of Candelaria.
-            </p>
-          </div>
+      <div className="max-w-3xl mx-auto mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            Submit a Waste Report
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Report waste-related violations and hazards directly to MENRO Candelaria.
+          </p>
         </div>
-      </div>
 
-      {/* Top Action Row for Clear Draft */}
-      {hasDraft && (
-        <div className="flex justify-end items-center px-1 mb-2">
+        {hasDraft && (
           <button
             type="button"
             onClick={resetForm}
-            className="text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer active:scale-95"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/80 hover:border-destructive/30 rounded-xl px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
           >
-            Clear draft
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Clear draft</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
-        {/* Main Form */}
-        <div className="flex-1 w-full space-y-4 sm:space-y-5">
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
-            <ViolationTypeSelector value={form.violationType} onChange={(v) => update("violationType", v)} />
-          </div>
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
-            <LocationSection barangayId={form.barangayId} barangayName={form.barangayName} streetOrLandmark={form.streetOrLandmark} onBarangayChange={handleBarangayChange} onStreetChange={(v) => update("streetOrLandmark", v)} />
-          </div>
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
-            <DescriptionSection value={form.description} onChange={(v) => update("description", v)} violationType={form.violationType} />
-          </div>
-          <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
-            <PhotoUploadSection photos={form.photos} onPhotosChange={(v) => update("photos", v)} />
-          </div>
-
-          <div className="space-y-3 pb-6 pt-2">
-            <Button onClick={handleReview} disabled={!canSubmit || isSubmitting} className="w-full min-h-[52px] rounded-2xl text-sm font-bold gap-2 shadow-xl shadow-primary/20" size="lg">
-              <Send className="w-4 h-4" /> Review and Submit
-            </Button>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="w-full lg:w-72 shrink-0">
-          <div className="lg:sticky lg:top-6 space-y-4">
-            <FormProgressSidebar
-              violationTypeSelected={!!form.violationType}
-              barangaySelected={!!form.barangayId}
-              descriptionFilled={form.description.trim().length >= 10}
-              photosAdded={form.photos.length > 0}
+      {/* Main Form Container */}
+      <div className="max-w-3xl mx-auto w-full space-y-5">
+        <div className="bg-card rounded-2xl border border-border/80 p-5 sm:p-7 shadow-2xs divide-y divide-border/60 space-y-6">
+          <div>
+            <ViolationTypeSelector
+              value={form.violationType}
+              onChange={(v) => update("violationType", v)}
+              showError={showValidation && !form.violationType}
             />
           </div>
+          <div className="pt-6">
+            <LocationSection
+              barangayId={form.barangayId}
+              barangayName={form.barangayName}
+              streetOrLandmark={form.streetOrLandmark}
+              onBarangayChange={handleBarangayChange}
+              onStreetChange={(v) => update("streetOrLandmark", v)}
+              showError={showValidation && !form.barangayId}
+            />
+          </div>
+          {hasSimilarReport && (
+            <div className="pt-6">
+              <DuplicateWarning barangay={form.barangayName} />
+            </div>
+          )}
+          <div className="pt-6">
+            <DescriptionSection
+              value={form.description}
+              onChange={(v) => update("description", v)}
+              violationType={form.violationType}
+              showError={showValidation && form.description.trim().length < 10}
+            />
+          </div>
+          <div className="pt-6">
+            <PhotoUploadSection
+              photos={form.photos}
+              onPhotosChange={(v) => update("photos", v)}
+              showError={showValidation && form.photos.length === 0}
+            />
+          </div>
+        </div>
+
+        <div className="pb-8">
+          <Button
+            onClick={handleReview}
+            disabled={isSubmitting}
+            className="w-full h-12 rounded-xl text-sm font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-[0.99] disabled:cursor-not-allowed"
+            size="lg"
+          >
+            <Send className="w-4 h-4" />
+            <span>Review and Submit Report</span>
+          </Button>
         </div>
       </div>
 

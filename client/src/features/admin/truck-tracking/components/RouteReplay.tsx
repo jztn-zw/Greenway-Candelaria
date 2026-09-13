@@ -275,7 +275,7 @@ const RouteReplay = ({
               completedAt: s.completed_at,
             };
           })
-          .filter((s): s is { name: string; coords: [number, number]; order: number; completedAt?: string | null } => Boolean(s));
+          .filter((s): s is NonNullable<typeof s> => Boolean(s));
       }
 
       // If no backend stops, fallback to assigned route stops on the truck object

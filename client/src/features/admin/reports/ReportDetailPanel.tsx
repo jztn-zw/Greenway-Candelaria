@@ -272,7 +272,7 @@ const ReportDetailPanel = ({
   return (
     <div className="flex flex-col h-full w-full bg-card overflow-hidden">
       {/* ── Inspector Header ── */}
-      <div className="px-4 py-2.5 sm:py-3 sm:px-5 border-b border-border/70 bg-muted/15 shrink-0">
+      <div className="px-5 py-3.5 border-b border-border/60 bg-muted/15 shrink-0">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {/* Reference Number & Copy */}
@@ -303,12 +303,6 @@ const ReportDetailPanel = ({
                 className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${vc}`}
               >
                 {report.violationType}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-medium px-2 py-0.5 rounded-md border-border/70 bg-muted/40 text-foreground"
-              >
-                {report.priority} Priority
               </Badge>
               {report.isDuplicate && (
                 <Badge
@@ -359,7 +353,7 @@ const ReportDetailPanel = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-xl border border-border/70 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
                 title="Close Inspector"
               >
                 <X className="w-4 h-4" />
@@ -370,12 +364,12 @@ const ReportDetailPanel = ({
       </div>
 
       {/* ── Scrollable Inspector Body ── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 scrollbar-thin">
         {/* ── Review Reason ── */}
         {(report.duplicateReason || report.falseReason) && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">
+              <span className="text-xs font-semibold text-foreground">
                 {report.isDuplicate ? "Duplicate Report Note" : "Review Reason"}
               </span>
               {report.isDuplicate && (report.duplicateOfReference || report.duplicateOfId) && (
@@ -384,7 +378,7 @@ const ReportDetailPanel = ({
                 </span>
               )}
             </div>
-            <div className="bg-muted/25 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
+            <div className="bg-muted/20 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
               {report.isDuplicate ? report.duplicateReason : report.falseReason}
             </div>
           </div>
@@ -428,7 +422,7 @@ const ReportDetailPanel = ({
         {/* ── Unified Incident Details Card ── */}
         <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs">
           <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20 flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">
+            <span className="text-xs font-semibold text-foreground">
               Incident Details
             </span>
             <span className="text-[11px] text-muted-foreground font-medium">
@@ -438,7 +432,7 @@ const ReportDetailPanel = ({
 
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
                 Barangay & Street
               </span>
               <span className="font-semibold text-foreground block mt-0.5 text-xs">
@@ -452,7 +446,7 @@ const ReportDetailPanel = ({
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
                 Reporter Information
               </span>
               <span className="font-semibold text-foreground block mt-0.5 text-xs">
@@ -469,28 +463,32 @@ const ReportDetailPanel = ({
 
         {/* ── Resident Description ── */}
         <div className="space-y-1.5">
-          <span className="text-xs font-bold text-foreground block">
+          <span className="text-xs font-semibold text-foreground block">
             Resident Description
           </span>
-          <div className="bg-muted/25 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
+          <div className="bg-muted/20 border border-border/70 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed font-normal">
             {report.description || "No description provided."}
           </div>
         </div>
 
         {/* ── Evidence Photos ── */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground">
             <span>Evidence Photos ({report.photos?.length || 0})</span>
+            {report.photos && report.photos.length > 0 && (
+              <span className="text-[10px] text-muted-foreground font-normal">Click to enlarge</span>
+            )}
           </div>
 
           {report.photos && report.photos.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               {report.photos.map((photo, idx) => (
                 <button
                   key={photo.id || idx}
                   type="button"
                   onClick={() => setPreviewPhoto(photo.url)}
-                  className="relative aspect-square rounded-xl bg-muted border border-border/80 overflow-hidden group block cursor-pointer hover:border-primary/50 transition-all shadow-2xs"
+                  className="relative w-20 h-20 rounded-xl bg-muted/30 border border-border/80 overflow-hidden group block cursor-pointer hover:border-primary/50 transition-all shadow-2xs shrink-0"
+                  title="Click to view full photo"
                 >
                   <img
                     src={photo.url}
@@ -498,13 +496,13 @@ const ReportDetailPanel = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <ExternalLink className="w-4 h-4 text-white" />
+                    <ExternalLink className="w-3.5 h-3.5 text-white" />
                   </div>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="bg-muted/20 border border-dashed border-border/80 rounded-xl p-4 text-center">
+            <div className="bg-muted/20 border border-dashed border-border/80 rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">No photos attached to this report.</p>
             </div>
           )}
@@ -513,7 +511,7 @@ const ReportDetailPanel = ({
         {/* ── Official Response to Resident ── */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">
+            <span className="text-xs font-semibold text-foreground">
               Official Resident Response
             </span>
             <span className="text-[11px] text-muted-foreground font-medium">
@@ -525,14 +523,14 @@ const ReportDetailPanel = ({
             placeholder="Type official notification message to be sent to the resident..."
             value={officialResponse}
             onChange={(e) => setOfficialResponse(e.target.value)}
-            className="text-xs min-h-[80px] bg-muted/25 border border-border/70 rounded-xl p-3.5 resize-none leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20"
+            className="text-xs min-h-[80px] bg-muted/20 border border-border/70 rounded-xl p-3.5 resize-none leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20 shadow-2xs"
           />
           <div className="flex justify-end">
             <Button
               size="sm"
               onClick={handleResponseSubmit}
               disabled={isSavingResponse || !officialResponse.trim() || (!!report.officialResponse && officialResponse.trim() === report.officialResponse)}
-              className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
+              className="h-8 text-xs px-3.5 rounded-xl font-semibold cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
             >
               {isSavingResponse && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
               {report.officialResponse && officialResponse.trim() === report.officialResponse
@@ -545,7 +543,7 @@ const ReportDetailPanel = ({
         {/* ── Internal Staff Notes ── */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">Internal Notes</span>
+            <span className="text-xs font-semibold text-foreground">Internal Notes</span>
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-medium">
               Staff only
             </Badge>
@@ -590,7 +588,7 @@ const ReportDetailPanel = ({
       </div>
 
       {/* ── Pinned Bottom Action Bar ── */}
-      <div className="p-3 sm:px-5 border-t border-border/70 bg-card/95 backdrop-blur-sm shrink-0 flex items-center justify-between gap-2">
+      <div className="px-5 py-3 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {!report.isFalseReport && (
             <Button
@@ -599,7 +597,7 @@ const ReportDetailPanel = ({
               disabled={isFlagging}
               onClick={() => openFlagDialog("duplicate")}
               className={cn(
-                "h-8 text-xs px-3 rounded-xl cursor-pointer font-medium",
+                "h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold",
                 report.isDuplicate && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
               )}
             >
@@ -614,7 +612,7 @@ const ReportDetailPanel = ({
               disabled={isFlagging}
               onClick={() => openFlagDialog("false")}
               className={cn(
-                "h-8 text-xs px-3 rounded-xl cursor-pointer font-medium",
+                "h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold",
                 report.isFalseReport
                   ? "border-destructive/30 text-destructive hover:bg-destructive/10"
                   : "text-foreground hover:bg-muted",
@@ -631,7 +629,7 @@ const ReportDetailPanel = ({
               size="sm"
               disabled={isFlagging}
               onClick={() => handleFlag(report.isDuplicate ? { is_duplicate: false } : { is_false: false })}
-              className="h-8 text-xs px-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted border-border/70 cursor-pointer"
+              className="h-8 text-xs px-3 rounded-xl font-semibold text-muted-foreground hover:text-foreground hover:bg-muted border-border/70 cursor-pointer"
             >
               Clear Flag
             </Button>
@@ -644,7 +642,7 @@ const ReportDetailPanel = ({
             size="sm"
             disabled={isDeleting}
             onClick={() => setShowDeleteModal(true)}
-            className="h-8 text-xs px-3 rounded-xl font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 cursor-pointer ml-auto transition-colors"
+            className="h-8 text-xs px-3 rounded-xl font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 cursor-pointer ml-auto transition-colors"
           >
             Delete
           </Button>
@@ -763,7 +761,7 @@ const ReportDetailPanel = ({
                           {candidate.reference_number}
                         </span>
                         <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
-                          {candidate.violation_type.replaceAll("_", " ")}
+                          {candidate.violation_type.replace(/_/g, " ")}
                         </span>
                       </button>
                     ))}
@@ -936,7 +934,16 @@ const ReportDetailPanel = ({
             </DialogDescription>
           </div>
 
-          <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
+          <div className="flex items-center justify-end gap-2 pt-3.5 border-t border-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeleting}
+              className="rounded-xl h-9 text-xs px-4 cursor-pointer"
+            >
+              Cancel
+            </Button>
             <Button
               type="button"
               variant="destructive"
@@ -952,7 +959,7 @@ const ReportDetailPanel = ({
                   setIsDeleting(false);
                 }
               }}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs"
+              className="h-9 px-4 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs"
             >
               {isDeleting ? (
                 <>

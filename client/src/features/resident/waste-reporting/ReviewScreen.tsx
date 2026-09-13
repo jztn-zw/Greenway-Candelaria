@@ -29,7 +29,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
       </div>
 
       {/* Violation Type */}
-      <Card className="border border-border shadow-sm">
+      <Card className="rounded-2xl border border-border/80 shadow-2xs">
         <CardContent className="p-4 sm:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Violation Type</p>
           {violation && (
@@ -47,7 +47,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
       </Card>
 
       {/* Location */}
-      <Card className="border border-border shadow-sm">
+      <Card className="rounded-2xl border border-border/80 shadow-2xs">
         <CardContent className="p-4 sm:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Location</p>
           <div className="flex items-start gap-2">
@@ -63,7 +63,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
       </Card>
 
       {/* Description */}
-      <Card className="border border-border shadow-sm">
+      <Card className="rounded-2xl border border-border/80 shadow-2xs">
         <CardContent className="p-4 sm:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Description</p>
           <div className="flex items-start gap-2">
@@ -74,7 +74,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
       </Card>
 
       {/* Photos */}
-      <Card className="border border-border shadow-sm">
+      <Card className="rounded-2xl border border-border/80 shadow-2xs">
         <CardContent className="p-4 sm:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
             Photo Evidence

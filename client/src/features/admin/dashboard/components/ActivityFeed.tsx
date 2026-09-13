@@ -9,7 +9,6 @@ import { formatRelativeTime } from "@/utils/date";
 const ACTION_TITLES: Record<string, string> = {
   CREATE_REPORT: "Report Submitted",
   UPDATE_REPORT_STATUS: "Report Status Updated",
-  UPDATE_REPORT_PRIORITY: "Report Priority Updated",
   FLAG_REPORT: "Report Flagged",
   ADD_REPORT_NOTE: "Internal Note Added",
   USER_LOGIN: "User Logged In",

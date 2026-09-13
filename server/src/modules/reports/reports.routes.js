@@ -83,14 +83,6 @@ router.put(
   controller.flagReport,
 );
 
-// Admin — update priority
-router.put(
-  "/:id/priority",
-  authenticate,
-  authorize("ADMIN"),
-  controller.updatePriority,
-);
-
 // Admin — internal notes
 router.post(
   "/:id/notes",

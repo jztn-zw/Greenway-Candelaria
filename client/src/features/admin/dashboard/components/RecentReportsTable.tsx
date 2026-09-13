@@ -32,12 +32,6 @@ const statusStyles: Record<string, { badge: string; dot: string }> = {
   },
 };
 
-const priorityStyles: Record<string, string> = {
-  High: "bg-destructive/10 text-destructive border-destructive/25 font-bold",
-  Medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 font-semibold",
-  Low: "bg-muted/70 text-muted-foreground border-border/70",
-};
-
 const violationStyles: Record<string, string> = {
   "Illegal Dumping": "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
   "Missed Collection": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
@@ -74,14 +68,6 @@ const formatStatusLabel = (s: string) => {
   return s;
 };
 
-const formatPriorityLabel = (p: string) => {
-  if (!p) return "Low";
-  const upper = p.toUpperCase();
-  if (upper === "HIGH") return "High";
-  if (upper === "MEDIUM") return "Medium";
-  return "Low";
-};
-
 interface RecentReportsTableProps {
   reports?: DashboardReport[];
   className?: string;
@@ -96,7 +82,6 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
     type: formatViolationType(r.violation_type),
     barangay: r.barangay_name || "Candelaria",
     date: formatRelativeTime(r.created_at, { emptyLabel: "Recently" }),
-    priority: formatPriorityLabel(r.priority),
     status: formatStatusLabel(r.status),
     reporter: r.reporter_name || "Resident",
   }));
@@ -141,9 +126,6 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                   <TableHead className="hidden sm:table-cell text-xs font-bold text-muted-foreground uppercase tracking-wider py-3">
                     Time
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3">
-                    Priority
-                  </TableHead>
                   <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3 pr-4 text-right sm:text-left">
                     Status
                   </TableHead>
@@ -152,7 +134,7 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
               <TableBody>
                 {displayReports.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-48 text-center">
+                      <TableCell colSpan={5} className="h-48 text-center">
                       <Inbox className="w-8 h-8 text-muted-foreground/60 mx-auto mb-2" />
                       <p className="text-sm font-semibold text-foreground">
                         No recent reports submitted
@@ -166,7 +148,6 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                   displayReports.map((r) => {
                     const statusMeta = statusStyles[r.status] || statusStyles.Pending;
                     const violationStyle = violationStyles[r.type] || violationStyles.Other;
-                    const priorityStyle = priorityStyles[r.priority] || priorityStyles.Low;
 
                     return (
                       <TableRow
@@ -196,16 +177,6 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                         {/* Time */}
                         <TableCell className="hidden sm:table-cell py-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                           {r.date}
-                        </TableCell>
-
-                        {/* Priority */}
-                        <TableCell className="py-3">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] px-2 py-0.5 rounded-full border shadow-2xs whitespace-nowrap ${priorityStyle}`}
-                          >
-                            {r.priority}
-                          </Badge>
                         </TableCell>
 
                         {/* Status with colored indicator dot */}

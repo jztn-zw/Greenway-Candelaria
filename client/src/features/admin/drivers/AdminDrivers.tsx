@@ -270,8 +270,7 @@ const AdminDrivers = () => {
     try {
       if (!editingDriver) {
         if (!data.email || !data.username || !data.password) {
-          toast.error("Email, username, and password are required");
-          return null;
+          throw new Error("Email, username, and password are required.");
         }
 
         await createDriver({
@@ -354,7 +353,7 @@ const AdminDrivers = () => {
     assignedDriverId: string | null;
     wasteType: string;
     status: string;
-  }): Promise<boolean> => {
+  }): Promise<void> => {
     setIsSavingTruck(true);
     try {
       if (!editingTruck) {
@@ -367,7 +366,7 @@ const AdminDrivers = () => {
 
         await loadData();
         toast.success("Truck added");
-        return true;
+        return;
       }
 
       await updateTruck(editingTruck.id, {
@@ -379,12 +378,9 @@ const AdminDrivers = () => {
 
       await loadData();
       toast.success("Truck updated");
-      return true;
+      return;
     } catch (err) {
-      toast.error("Failed to save truck", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
-      return false;
+      throw new Error(err instanceof Error ? err.message : "Failed to save truck. Please try again.");
     } finally {
       setIsSavingTruck(false);
     }
@@ -692,16 +688,7 @@ const AdminDrivers = () => {
         trucks={trucks}
         drivers={drivers}
         isSaving={isSavingDriver}
-        onSave={async (data) => {
-          try {
-            return await handleSaveDriver(data);
-          } catch (err) {
-            toast.error("Failed to save driver", {
-              description: err instanceof Error ? err.message : "Please try again.",
-            });
-            return null;
-          }
-        }}
+        onSave={handleSaveDriver}
       />
 
       <TruckEditorModal

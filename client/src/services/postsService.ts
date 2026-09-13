@@ -8,6 +8,21 @@ export interface PostFilters {
   all?: boolean;
 }
 
+export interface PaginatedPostFilters extends PostFilters {
+  page: number;
+  limit: number;
+  search?: string;
+  sort?: "latest" | "oldest" | "most-reacted";
+}
+
+export interface PaginatedPosts<T> {
+  posts: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 const postsService = {
   // ─── Upload image to Cloudinary via backend
   uploadImage: async (file: File): Promise<string> => {
@@ -24,6 +39,14 @@ const postsService = {
   // ─── Get all posts
   getAll: async (filters: PostFilters = {}) => {
     const { data } = await api.get("/posts", { params: filters });
+    return data.data;
+  },
+
+  // ─── Resident feed: server-side search, sorting, and pagination
+  getPage: async <T>(filters: PaginatedPostFilters): Promise<PaginatedPosts<T>> => {
+    const { data } = await api.get<{ data: PaginatedPosts<T> }>("/posts", {
+      params: filters,
+    });
     return data.data;
   },
 

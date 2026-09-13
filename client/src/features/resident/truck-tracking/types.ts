@@ -24,10 +24,10 @@ export interface Truck {
   coords: [number, number] | null;
   eta: number | null; // minutes
   roadDistanceKm?: number | null;
-  driverMessage: string | null;
   isResidentTruck: boolean;
   barangaysAway: number | null;
   routeStops: RouteStopInfo[];
+  routeClosedForTheDay: boolean;
   arrivedAtResident?: boolean; // truck is currently at resident's barangay
   residentStopStatus?: RouteStopStatus | null;
   residentStopCompletedAt?: string;
@@ -42,8 +42,3 @@ export interface CollectionSchedule {
 
 export type CollectionDayStatus = "not-collection-day" | "scheduled-not-started" | "active" | "paused" | "completed";
 
-export interface CollectionHistoryEntry {
-  date: string;
-  wasteType: string;
-  status: "completed" | "missed";
-}

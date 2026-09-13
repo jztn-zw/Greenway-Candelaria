@@ -36,7 +36,6 @@ export interface MyReportRow {
   violation_type: string;
   landmark: string | null;
   description: string;
-  priority: string;
   status: string;
   admin_response: string | null;
   pin_lat: number | null;
@@ -199,7 +198,6 @@ export interface AdminReportItem {
   violation_type: string;
   landmark: string | null;
   description: string;
-  priority: "LOW" | "MEDIUM" | "HIGH";
   status: "SUBMITTED" | "UNDER_REVIEW" | "DISPATCHED" | "RESOLVED";
   admin_response: string | null;
   is_false: boolean;
@@ -235,7 +233,6 @@ export interface AdminReportsParams {
   limit?: number;
   search?: string;
   status?: string;
-  priority?: string;
   barangay_id?: string;
   barangay?: string;
   violation_type?: string;
@@ -286,18 +283,6 @@ export const updateAdminReportStatus = async (
   return data.data;
 };
 
-// ─── Admin: update report priority ─────────────────────────
-
-export const updateAdminReportPriority = async (
-  id: string,
-  priority: "LOW" | "MEDIUM" | "HIGH",
-): Promise<AdminReportItem> => {
-  const { data } = await api.put<{ data: AdminReportItem }>(
-    `/reports/${id}/priority`,
-    { priority },
-  );
-  return data.data;
-};
 
 // ─── Admin: flag as false / duplicate ──────────────────────
 

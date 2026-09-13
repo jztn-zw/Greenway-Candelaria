@@ -55,9 +55,12 @@ import AnnouncementCard from "./AnnouncementCard";
 import AnnouncementListView from "./AnnouncementListView";
 import AnnouncementEditor from "./AnnouncementEditor";
 import ReadReceiptModal from "./ReadReceiptModal";
+import ResidentAnnouncementModal, {
+  type AnnouncementDetail,
+} from "@/features/resident/announcements/ResidentAnnouncementModal";
 import PaginationControls from "@/components/common/PaginationControls";
 import { AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
-import { Announcement, EditorForm, announcementTypeStyles, isAnnouncementExpired } from "./types";
+import { Announcement, EditorForm, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
 const ITEMS_PER_PAGE_TABLE = 10;
@@ -68,21 +71,9 @@ const formatDateTime = (dateStr?: string | null) => {
     const normalized = /^\d{4}-\d{2}-\d{2}/.test(dateStr) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(dateStr)
       ? `${dateStr.replace(" ", "T")}Z`
       : dateStr;
-    const d = new Date(normalized);
-    if (Number.isNaN(d.getTime())) return dateStr;
-    const datePart = d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "Asia/Manila",
-    });
-    const timePart = d.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Asia/Manila",
-    });
-    return `${datePart} at ${timePart}`;
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })} at ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}`;
   } catch {
     return dateStr;
   }
@@ -241,10 +232,12 @@ const AdminAnnouncements = () => {
   };
 
   const handleSave = async () => {
-    const success = editingAnn
-      ? await updateExisting(editingAnn.id, editorForm)
-      : await createNew(editorForm);
-    if (success) setEditorOpen(false);
+    if (editingAnn) {
+      await updateExisting(editingAnn.id, editorForm);
+    } else {
+      await createNew(editorForm);
+    }
+    setEditorOpen(false);
   };
 
   const initiateSend = (ann: Announcement) => {
@@ -561,106 +554,50 @@ const AdminAnnouncements = () => {
       )}
 
       {/* ── Resident Preview Dialog ── */}
-      <Dialog
-        open={!!previewAnn}
-        onOpenChange={(open) => !open && setPreviewAnn(null)}
-      >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background [&>button:last-child]:hidden">
-          {/* Header */}
-          <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                  Resident Notice Preview
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                  Live resident feed preview
-                </DialogDescription>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPreviewAnn(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close preview"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {previewAnn && (
-            <div className="p-4 sm:p-5 pt-3 sm:pt-3.5 space-y-3 text-left overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin">
-              {/* Notice Card simulating resident feed item */}
-              <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 space-y-2.5 shadow-2xs min-w-0 overflow-hidden break-words">
-                {/* Badges row */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-semibold rounded-full px-2.5 py-0.5 ${announcementTypeStyles[previewAnn.type] || ""}`}
-                  >
-                    {previewAnn.type}
-                  </Badge>
-                </div>
-
-                {/* Title & Body */}
-                <h3 className="text-base sm:text-lg font-bold font-display text-foreground leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
-                  {previewAnn.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] max-h-[45vh] overflow-y-auto scrollbar-thin">
-                  {previewAnn.body}
-                </p>
-
-                {/* Sent / Scheduled Timestamp */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2.5 border-t border-border/60 min-w-0">
-                  <Send className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="truncate">
-                    {previewAnn.sentAt || previewAnn.sentDate
-                      ? `Broadcast on ${formatDateTime(previewAnn.sentAt || previewAnn.sentDate)}`
-                      : previewAnn.scheduledDate
-                        ? `Scheduled for ${formatDateTime(previewAnn.scheduledDate)}`
-                        : "Draft Notice (Not Sent)"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Delivery Metadata Strip */}
+      {previewAnn && (
+        <ResidentAnnouncementModal
+          open
+          onOpenChange={(open) => !open && setPreviewAnn(null)}
+          announcementId={previewAnn.id}
+          disableReadTracking
+          headerTitle="Resident Notice Preview"
+          headerDescription="Live resident feed preview"
+          showExactTime
+          initialAnnouncement={{
+            id: previewAnn.id,
+            title: previewAnn.title,
+            body: previewAnn.body,
+            type: previewAnn.type,
+            target_all: previewAnn.targetAudience === "All Residents",
+            barangays: previewAnn.targetBarangays.map((name) => ({ id: name, name })),
+            created_at: previewAnn.createdAt ?? previewAnn.sentAt ?? previewAnn.sentDate,
+            sent_at: previewAnn.sentAt ?? previewAnn.sentDate,
+            expires_at: previewAnn.expiryDate,
+          } satisfies AnnouncementDetail}
+          footerDetails={
+            <div className="space-y-3">
               <div className="rounded-xl bg-muted/40 border border-border/60 p-3 text-xs text-muted-foreground space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-foreground shrink-0">Target Audience:</span>
-                  <div
-                    className="flex items-center gap-1.5 min-w-0 max-w-[240px] justify-end"
-                    title={previewAnn.targetAudience === "All Residents" ? "All Residents" : previewAnn.targetBarangays.join(", ")}
-                  >
-                    <span className="text-foreground/80 font-medium truncate">
-                      {previewAnn.targetAudience === "All Residents"
-                        ? "All Residents"
-                        : previewAnn.targetBarangays.length <= 2
-                          ? previewAnn.targetBarangays.join(", ")
-                          : previewAnn.targetBarangays.slice(0, 2).join(", ")}
-                    </span>
-                    {previewAnn.targetAudience !== "All Residents" && previewAnn.targetBarangays.length > 2 && (
-                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0 leading-none shadow-2xs">
-                        +{previewAnn.targetBarangays.length - 2}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-foreground/80 font-medium truncate text-right" title={previewAnn.targetAudience === "All Residents" ? "All Residents" : previewAnn.targetBarangays.join(", ")}>
+                    {previewAnn.targetAudience === "All Residents"
+                      ? "All Residents"
+                      : previewAnn.targetBarangays.length <= 2
+                        ? previewAnn.targetBarangays.join(", ")
+                        : `${previewAnn.targetBarangays.slice(0, 2).join(", ")} +${previewAnn.targetBarangays.length - 2}`}
+                  </span>
                 </div>
                 {previewAnn.expiryDate && (
-                  <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
                     <span className="font-semibold text-foreground">Auto-Expiry:</span>
-                    <span className="text-foreground/80 font-medium">
-                      {formatDateTime(previewAnn.expiryDate)}
-                    </span>
+                    <span className="text-foreground/80 font-medium text-right">{formatDateTime(previewAnn.expiryDate)}</span>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          }
+        />
+      )}
 
       {/* ── Confirm Send Now Modal ── */}
       <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>

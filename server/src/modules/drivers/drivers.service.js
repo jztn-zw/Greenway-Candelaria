@@ -5,6 +5,21 @@ const auditService = require("../audit/audit.service");
 
 // ─── Helpers ──────────────────────────────────────────────
 
+// Routes display the driver assigned at the time they are scheduled. When a
+// truck receives its first driver later, link only its previously unassigned
+// routes—never overwrite a route that already names a different driver.
+const linkUnassignedRoutesToDriver = async (truckId, driverId) => {
+  if (!truckId || !driverId) return;
+
+  await pool.query(
+    `UPDATE routes
+        SET driver_id = ?
+      WHERE truck_id = ?
+        AND driver_id IS NULL`,
+    [driverId, truckId],
+  );
+};
+
 const baseSelect = `
   SELECT
     d.id,
@@ -145,6 +160,8 @@ const create = async ({
     [driverId, userId, truck_id || null],
   );
 
+  await linkUnassignedRoutesToDriver(truck_id, driverId);
+
   return getById(driverId);
 };
 
@@ -239,6 +256,10 @@ const update = async (id, data) => {
     );
   }
 
+  if (data.truck_id) {
+    await linkUnassignedRoutesToDriver(data.truck_id, id);
+  }
+
   return getById(id);
 };
 
@@ -278,6 +299,8 @@ const assignTruck = async (id, truck_id) => {
     truck_id,
     id,
   ]);
+
+  await linkUnassignedRoutesToDriver(truck_id, id);
 
   const updated = await getById(id);
 

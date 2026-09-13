@@ -34,32 +34,36 @@ export function formatCategory(cat: string): string {
   }
 }
 
-export function getCategoryBadgeStyle(cat: string): { bg: string; text: string; border: string } {
+export function getCategoryBadgeStyle(cat: string): { bg: string; text: string; border: string; dot: string } {
   switch (cat) {
     case "WASTE_TIP":
       return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-xs",
-        text: "text-emerald-700 dark:text-emerald-300",
-        border: "border-emerald-500/50 dark:border-emerald-400/40",
+        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
+        text: "text-foreground",
+        border: "border-border/80",
+        dot: "bg-emerald-500",
       };
     case "EVENT":
       return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-xs",
-        text: "text-amber-700 dark:text-amber-300",
-        border: "border-amber-500/50 dark:border-amber-400/40",
+        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
+        text: "text-foreground",
+        border: "border-border/80",
+        dot: "bg-amber-500",
       };
     case "NEWS":
     case "ANNOUNCEMENT":
       return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-xs",
-        text: "text-blue-700 dark:text-blue-300",
-        border: "border-blue-500/50 dark:border-blue-400/40",
+        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
+        text: "text-foreground",
+        border: "border-border/80",
+        dot: "bg-blue-500",
       };
     default:
       return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-xs",
-        text: "text-primary dark:text-emerald-300",
-        border: "border-primary/50 dark:border-primary/40",
+        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
+        text: "text-foreground",
+        border: "border-border/80",
+        dot: "bg-primary",
       };
   }
 }

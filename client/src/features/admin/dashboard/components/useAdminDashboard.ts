@@ -24,7 +24,6 @@ export interface AnalyticsOverview {
 export interface ReportsAnalytics {
   by_status: Array<{ status: string; count: number }>;
   by_type: Array<{ violation_type: string; count: number }>;
-  by_priority: Array<{ priority: string; count: number }>;
   by_barangay: Array<{ barangay_name: string; zone: string; count: number }>;
   monthly_trend: Array<{ month: string; count: number }>;
   total: number;
@@ -46,7 +45,6 @@ export interface DashboardReport {
   barangay_name: string;
   landmark?: string;
   reporter_name: string;
-  priority: "HIGH" | "MEDIUM" | "LOW";
   status: "SUBMITTED" | "UNDER_REVIEW" | "DISPATCHED" | "RESOLVED" | "REJECTED";
   created_at: string;
 }
@@ -106,8 +104,6 @@ export interface DashboardRoute {
 
 export interface DashboardAttention {
   awaiting_triage: number;
-  high_priority_awaiting_triage: number;
-  standard_priority_awaiting_triage: number;
   maintenance_trucks: number;
 }
 

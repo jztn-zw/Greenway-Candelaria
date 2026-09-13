@@ -27,7 +27,7 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const requestId =
       error.response?.headers?.["x-request-id"] ||
-      error.response?.data?.requestId ||
+      (error.response?.data as any)?.requestId ||
       "unavailable";
 
     // Session expired → clear storage and redirect to login

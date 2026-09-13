@@ -26,7 +26,6 @@ import PaginationControls from "@/components/common/PaginationControls";
 import {
   WasteReport,
   statusBadgeStyles,
-  priorityBadgeStyles,
   violationBadgeStyles,
   safeFormatDate,
 } from "./types";
@@ -86,9 +85,6 @@ const ReportListTable = ({
                 Photos
               </TableHead>
               <TableHead className="text-xs font-semibold py-3.5">
-                Priority
-              </TableHead>
-              <TableHead className="text-xs font-semibold py-3.5">
                 Status
               </TableHead>
               <TableHead className="text-right pr-4 py-3.5 w-10"></TableHead>
@@ -125,7 +121,6 @@ const ReportListTable = ({
                 const isSelected = selectedId === report.id;
                 const sc = statusBadgeStyles[report.status] || statusBadgeStyles.Submitted;
                 const vc = violationBadgeStyles[report.violationType] || violationBadgeStyles.Other;
-                const pc = priorityBadgeStyles[report.priority] || priorityBadgeStyles.Medium;
 
                 return (
                   <TableRow
@@ -194,16 +189,6 @@ const ReportListTable = ({
                     ) : (
                       <span className="text-[11px] text-muted-foreground/60">—</span>
                     )}
-                  </TableCell>
-
-                  {/* Priority */}
-                  <TableCell className="py-3">
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${pc}`}
-                    >
-                      {report.priority}
-                    </Badge>
                   </TableCell>
 
                   {/* Status */}

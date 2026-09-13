@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   Radio,
   Settings2,
   Route as RouteIcon,
+  X,
 } from "lucide-react";
 import AnimatedList from "@/components/AnimatedList";
 import {
@@ -139,7 +140,7 @@ const statusConfig: Record<TruckStatus, { label: string; className: string }> = 
   scheduled: { label: "Scheduled", className: "bg-blue-500/15 text-blue-600 border-blue-500/25 dark:text-blue-400" },
   "on-the-way": { label: "On The Way", className: "bg-primary/15 text-primary border-primary/25" },
   paused: { label: "Paused", className: "bg-amber-500/15 text-amber-700 border-amber-500/25 dark:text-amber-300" },
-  done: { label: "Done", className: "bg-leaf/15 text-leaf border-leaf/25" },
+  done: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
   offline: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
 };
 
@@ -264,6 +265,24 @@ const MessageThread = ({
             )}
           </div>
 
+          {/* Quick 1-Click Dispatch Prompts */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            {[
+              "Report current location",
+              "Proceed to next stop",
+              "Return to MENRO Depot",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => setMessageText(prompt)}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors cursor-pointer"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
             <Input
               className="h-7 min-w-0 flex-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0"
@@ -307,6 +326,11 @@ const AdminTruckCard = ({
     ? Math.min(100, Math.max(0, Math.round((truck.completedBarangays / truck.totalBarangays) * 100)))
     : 0;
 
+  const skippedStops = useMemo(
+    () => truck.route.filter((s) => s.state === "skipped"),
+    [truck.route],
+  );
+
   return (
     <Card
       className={cn(
@@ -344,7 +368,15 @@ const AdminTruckCard = ({
             </div>
 
             {/* Status Badge + Quick Override in Header */}
-            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              {skippedStops.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-[9px] px-1.5 py-0 h-4 font-bold bg-destructive/10 text-destructive border-destructive/30 uppercase tracking-wider"
+                >
+                  {skippedStops.length} Skipped
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={cn(
@@ -368,7 +400,7 @@ const AdminTruckCard = ({
                 <PopoverContent className="w-48 p-2 rounded-xl shadow-lg border border-border" align="end">
                   <p className="text-[10px] text-muted-foreground mb-1.5 font-medium px-1">Manual status override</p>
                   <div className="space-y-0.5">
-                    {(["scheduled", "on-the-way", "paused", "done", "offline"] as TruckStatus[]).map((s) => (
+                    {(["scheduled", "on-the-way", "paused", "offline"] as TruckStatus[]).map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -477,6 +509,43 @@ const AdminTruckCard = ({
               </p>
             </div>
           )}
+
+          {/* Missed / Skipped Stops Priority Alert */}
+          {skippedStops.length > 0 && (
+            <div className="mt-2.5 rounded-xl border border-destructive/25 bg-destructive/10 p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {skippedStops.length} Skipped Barangay{skippedStops.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <Badge
+                  variant="destructive"
+                  className="text-[9px] px-1.5 py-0 h-4 font-bold"
+                >
+                  Attention Required
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                {skippedStops.map((stop) => (
+                  <div
+                    key={stop.name}
+                    className="flex items-start justify-between gap-2 text-[11px] bg-background/80 rounded-lg px-2 py-1 border border-destructive/15"
+                  >
+                    <span className="font-semibold text-foreground truncate">
+                      {stop.name}
+                    </span>
+                    <span className="text-[10px] text-destructive italic truncate max-w-[60%]">
+                      {stop.skippedReason
+                        ? `"${stop.skippedReason}"`
+                        : "Reason not specified"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
             </>
           )}
         </div>
@@ -499,62 +568,96 @@ const AdminTruckCard = ({
           </button>
 
           {routeExpanded && (
-            <div className="px-4 pb-3.5 max-h-52 overflow-y-auto">
-              <div className="rounded-xl border border-border/70 bg-muted/15 p-1.5 space-y-0.5">
-                <AnimatedList
-                  items={truck.route}
-                  getKey={(stop) => stop.name}
-                  className=""
-                >
-                  {(stop) => (
-                    <div className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs transition-colors",
-                      stop.state === "skipped" && "bg-destructive/5",
-                      stop.state === "done" && "bg-primary/5",
-                      stop.state === "in-progress" && "bg-primary/10",
-                      stop.state === "not-started" && "hover:bg-muted/60",
-                    )}>
-                      <span className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold tabular-nums",
-                        stop.state === "done" && "border-primary/30 bg-primary text-primary-foreground",
-                        stop.state === "in-progress" && "border-primary bg-primary/15 text-primary",
-                        stop.state === "skipped" && "border-destructive/30 bg-destructive/10 text-destructive",
-                        stop.state === "not-started" && "border-border text-muted-foreground",
-                      )}>
-                        {stop.state === "done" ? <CheckCircle2 className="w-3 h-3" /> : stop.state === "in-progress" ? <Loader2 className="w-3 h-3 animate-spin" /> : stop.state === "skipped" ? <AlertTriangle className="w-3 h-3" /> : stop.stopNumber}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <span className={cn(
-                          "block truncate",
-                          stop.state === "done" && "text-primary font-medium line-through decoration-primary/30",
-                          stop.state === "in-progress" && "text-primary font-semibold",
-                          stop.state === "skipped" && "text-destructive font-semibold",
-                          stop.state === "not-started" && "text-foreground"
-                        )}>
-                          {stop.name}
-                        </span>
-                        {stop.state === "skipped" && stop.skippedReason && (
-                          <span className="block text-[10px] text-destructive/80 italic truncate">
-                            Reason: {stop.skippedReason}
-                          </span>
+            <div className="px-4 pb-3.5 max-h-64 overflow-y-auto scrollbar-thin">
+              <div className="rounded-xl border border-border/70 bg-muted/15 p-3">
+                <div className="relative pl-1">
+                  {truck.route.map((stop, idx) => {
+                    const isLast = idx === truck.route.length - 1;
+                    const isDone = stop.state === "done";
+                    const isInProgress = stop.state === "in-progress";
+                    const isSkipped = stop.state === "skipped";
+
+                    return (
+                      <div key={stop.name} className="relative flex items-start gap-3 pb-3.5 last:pb-0">
+                        {/* Vertical Connecting Line */}
+                        {!isLast && (
+                          <div
+                            className={cn(
+                              "absolute left-2.5 top-5 bottom-0 w-0.5 -translate-x-1/2",
+                              isDone ? "bg-primary/40" : "bg-border/70"
+                            )}
+                          />
                         )}
+
+                        {/* Stepper Node */}
+                        <div
+                          className={cn(
+                            "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border text-[9px] font-bold tabular-nums transition-all",
+                            isDone && "bg-primary text-primary-foreground border-primary shadow-xs",
+                            isInProgress && "bg-primary/15 text-primary border-primary ring-2 ring-primary/20",
+                            isSkipped && "bg-destructive text-destructive-foreground border-destructive",
+                            !isDone && !isInProgress && !isSkipped && "bg-muted text-muted-foreground border-border/80"
+                          )}
+                        >
+                          {isDone ? (
+                            <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />
+                          ) : isInProgress ? (
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          ) : isSkipped ? (
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                          ) : (
+                            idx + 1
+                          )}
+                        </div>
+
+                        {/* Stop Details */}
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={cn(
+                                "text-xs font-semibold truncate",
+                                isDone && "text-muted-foreground line-through decoration-primary/40",
+                                isInProgress && "text-primary font-bold",
+                                isSkipped && "text-destructive font-bold",
+                                !isDone && !isInProgress && !isSkipped && "text-foreground"
+                              )}
+                            >
+                              {stop.name}
+                            </span>
+
+                            {isDone && (
+                              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 font-medium">
+                                {stop.completedAt ? formatTime12h(stop.completedAt) : "Done"}
+                              </span>
+                            )}
+                            {isInProgress && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/25 font-bold animate-pulse"
+                              >
+                                Current Stop
+                              </Badge>
+                            )}
+                            {isSkipped && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-destructive/15 text-destructive border-destructive/25 font-bold"
+                              >
+                                Skipped
+                              </Badge>
+                            )}
+                          </div>
+
+                          {isSkipped && stop.skippedReason && (
+                            <p className="mt-0.5 text-[10px] text-destructive/90 italic leading-snug">
+                              Reason: {stop.skippedReason}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {stop.state === "done" && (
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20 font-medium rounded-md">
-                          Done
-                        </Badge>
-                      )}
-                      {stop.state === "skipped" && (
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-destructive/15 text-destructive border-destructive/25 font-bold rounded-md">
-                          Skipped
-                        </Badge>
-                      )}
-                      {stop.completedAt && stop.state === "done" && (
-                        <span className="text-[10px] text-muted-foreground tabular-nums">{formatTime12h(stop.completedAt)}</span>
-                      )}
-                    </div>
-                  )}
-                </AnimatedList>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -564,21 +667,48 @@ const AdminTruckCard = ({
         open={pendingStatus !== null}
         onOpenChange={(open) => !open && setPendingStatus(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm status override</AlertDialogTitle>
-            <AlertDialogDescription>
-              Change {truck.name} from {status.label} to{" "}
-              {pendingStatus ? statusConfig[pendingStatus].label : "the selected status"}?
-              This immediately updates the resident-facing tracking view.
+        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3.5 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <AlertDialogTitle className="text-base font-semibold text-foreground font-display">
+                Confirm Status Override
+              </AlertDialogTitle>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPendingStatus(null)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4">
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Change <strong className="text-foreground font-semibold">{truck.name}</strong> from{" "}
+              <strong className="text-foreground font-semibold uppercase">{status.label}</strong> to{" "}
+              <strong className="text-foreground font-semibold uppercase">
+                {pendingStatus ? statusConfig[pendingStatus].label : "the selected status"}
+              </strong>
+              ? This immediately updates the resident-facing tracking view.
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border/60 bg-muted/20">
+            <AlertDialogCancel
+              onClick={() => setPendingStatus(null)}
+              className="h-9 px-4 rounded-xl text-xs font-semibold hover:bg-muted cursor-pointer"
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className={cn(
-                pendingStatus === "offline" &&
-                  "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer shadow-xs",
+                pendingStatus === "offline"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
               )}
               onClick={() => {
                 if (pendingStatus) onStatusChange(truck.id, pendingStatus);
@@ -587,7 +717,7 @@ const AdminTruckCard = ({
             >
               Confirm Override
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </Card>

@@ -6,20 +6,21 @@ import {
   Eye,
   Heart,
   FileText,
-  Star,
-  Edit2,
-  Copy,
-  Archive,
-  ArchiveRestore,
-  Globe,
-  GlobeLock,
-  Trash2,
   Share2,
   Check,
+  MoreVertical,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BackButton } from "@/components/common";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Post, statusStyles, categoryStyles } from "./types";
 import PostImagePlaceholder from "./PostImagePlaceholder";
 
@@ -185,28 +186,102 @@ const AdminPostDetail = ({
           </div>
         )}
 
-        {/* ── Post Header Info ── */}
+        {/* ── Post Header Info with 3-dots Action Dropdown ── */}
         <div className="space-y-3 pt-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-tight leading-tight">
-            {post.title}
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-tight leading-tight flex-1">
+              {post.title}
+            </h1>
+
+            {/* 3 Vertical Dots Dropdown (Admin actions) */}
+            {!isPreview && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0 mt-1"
+                    aria-label="Post actions"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/80 p-1 shadow-md">
+                  {onEdit && (
+                    <DropdownMenuItem
+                      onClick={() => onEdit(post)}
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                    >
+                      Edit Article
+                    </DropdownMenuItem>
+                  )}
+                  {onDuplicate && (
+                    <DropdownMenuItem
+                      onClick={() => onDuplicate(post)}
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                    >
+                      Duplicate
+                    </DropdownMenuItem>
+                  )}
+                  {!isArchived && onTogglePublish && (
+                    <DropdownMenuItem
+                      onClick={() => onTogglePublish(post)}
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                    >
+                      {isPublished ? "Unpublish" : "Publish"}
+                    </DropdownMenuItem>
+                  )}
+                  {!isArchived && onToggleFeatured && (
+                    <DropdownMenuItem
+                      onClick={() => onToggleFeatured(post)}
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                    >
+                      {post.featured ? "Unfeature" : "Feature Post"}
+                    </DropdownMenuItem>
+                  )}
+                  {onArchive && (
+                    <>
+                      <DropdownMenuSeparator className="my-1" />
+                      <DropdownMenuItem
+                        onClick={() => onArchive(post)}
+                        className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                      >
+                        {isArchived ? "Restore" : "Archive"}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {onDelete && (
+                    <>
+                      <DropdownMenuSeparator className="my-1" />
+                      <DropdownMenuItem
+                        onClick={() => onDelete(post)}
+                        className="text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg px-2.5 py-2"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
           {/* Metadata Row: Date, Author, (Views & Reacts in Admin View) */}
           <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5 font-medium">
-              <Calendar className="w-4 h-4 text-primary" />
+              <Calendar className="w-4 h-4 text-muted-foreground" />
               {post.publishedDate || "Just now"}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1.5 font-medium">
-              <User className="w-4 h-4 text-primary" />
+              <User className="w-4 h-4 text-muted-foreground" />
               {post.author || "MENRO Candelaria"}
             </span>
             {post.source && (
               <>
                 <span>•</span>
                 <span className="flex items-center gap-1.5 font-medium">
-                  <MapPin className="w-4 h-4 text-primary" />
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
                   {post.source}
                 </span>
               </>
@@ -215,12 +290,12 @@ const AdminPostDetail = ({
               <>
                 <span>•</span>
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Eye className="w-4 h-4 text-primary" />
+                  <Eye className="w-4 h-4 text-muted-foreground" />
                   {(post.views || 0).toLocaleString()} views
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Heart className="w-4 h-4 text-primary" />
+                  <Heart className="w-4 h-4 text-muted-foreground" />
                   {(post.likes || 0).toLocaleString()} Reacts
                 </span>
               </>
@@ -228,8 +303,8 @@ const AdminPostDetail = ({
           </div>
         </div>
 
-        {/* ── Action Buttons Row (Resident Interaction Row in Preview, Admin Actions in Admin) ── */}
-        {isPreview ? (
+        {/* ── Action Buttons Row in Preview Only ── */}
+        {isPreview && (
           <div className="flex items-center gap-3 pt-1 flex-wrap select-none">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border bg-background/80 text-muted-foreground border-border cursor-default opacity-85 pointer-events-none"
@@ -246,98 +321,6 @@ const AdminPostDetail = ({
               <Share2 className="w-4 h-4 text-muted-foreground" />
               <span>Share Guide</span>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 pt-1 flex-wrap">
-            {onEdit && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(post)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
-              >
-                <Edit2 className="w-3.5 h-3.5 text-primary" /> Edit Article
-              </Button>
-            )}
-
-            {onDuplicate && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onDuplicate(post)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
-              >
-                <Copy className="w-3.5 h-3.5 text-muted-foreground" /> Duplicate
-              </Button>
-            )}
-
-            {!isArchived && onTogglePublish && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onTogglePublish(post)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
-              >
-                {isPublished ? (
-                  <>
-                    <GlobeLock className="w-3.5 h-3.5 text-amber-500" /> Unpublish
-                  </>
-                ) : (
-                  <>
-                    <Globe className="w-3.5 h-3.5 text-emerald-500" /> Publish
-                  </>
-                )}
-              </Button>
-            )}
-
-            {!isArchived && onToggleFeatured && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onToggleFeatured(post)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
-              >
-                {post.featured ? (
-                  <>
-                    <Star className="w-3.5 h-3.5" /> Unfeature
-                  </>
-                ) : (
-                  <>
-                    <Star className="w-3.5 h-3.5" /> Feature
-                  </>
-                )}
-              </Button>
-            )}
-
-            {onArchive && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onArchive(post)}
-                className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-border hover:bg-muted cursor-pointer active:scale-95 transition-all"
-              >
-                {isArchived ? (
-                  <>
-                    <ArchiveRestore className="w-3.5 h-3.5 text-primary" /> Restore
-                  </>
-                ) : (
-                  <>
-                    <Archive className="w-3.5 h-3.5 text-muted-foreground" /> Archive
-                  </>
-                )}
-              </Button>
-            )}
-
-            {onDelete && (
-              <Button
-                size="sm"
-                variant="destructive-outline"
-                onClick={() => onDelete(post)}
-                className="h-9 text-xs gap-1.5 ml-auto"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </Button>
-            )}
           </div>
         )}
 

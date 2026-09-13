@@ -6,7 +6,7 @@ const validReport = {
   barangay_id: "barangay-1",
   violation_type: "ILLEGAL_DUMPING",
   description: "Waste has been blocking the roadside since this morning.",
-  photos: ["https://res.cloudinary.com/example/image/upload/report.jpg"],
+  photos: ["https://res.cloudinary.com/example/image/upload/greenway/reports/report.jpg"],
 };
 
 test("report submissions require one to five photos", () => {
@@ -19,4 +19,14 @@ test("report submissions reject blank text and invalid coordinates", () => {
   assert.equal(createReportSchema.safeParse({ ...validReport, description: "          " }).success, false);
   assert.equal(createReportSchema.safeParse({ ...validReport, pin_lat: 91 }).success, false);
   assert.equal(createReportSchema.safeParse({ ...validReport, pin_lng: -181 }).success, false);
+});
+
+test("report submissions only accept GreenWay report uploads", () => {
+  assert.equal(
+    createReportSchema.safeParse({
+      ...validReport,
+      photos: ["https://example.com/photo.jpg"],
+    }).success,
+    false,
+  );
 });

@@ -115,6 +115,8 @@ const getAll = async (filters = {}, userId = null) => {
   );
 
   const params = [];
+  const whereParams = [];
+  const conditions = ["p.deleted_at IS NULL"];
   let isLikedField = "FALSE AS is_liked";
   if (userId) {
     isLikedField = "EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) AS is_liked";
@@ -143,19 +145,18 @@ const getAll = async (filters = {}, userId = null) => {
       (SELECT GROUP_CONCAT(tag) FROM post_tags WHERE post_id = p.id) AS tag_list
     FROM posts p
     LEFT JOIN users u ON u.id = p.created_by
-    WHERE p.deleted_at IS NULL
   `;
 
   if (filters.category) {
-    query += " AND p.category = ?";
-    params.push(filters.category);
+    conditions.push("p.category = ?");
+    whereParams.push(filters.category);
   }
 
   if (filters.status) {
-    query += " AND p.status = ?";
-    params.push(filters.status);
+    conditions.push("p.status = ?");
+    whereParams.push(filters.status);
   } else if (!filters.all) {
-    query += " AND p.status = 'PUBLISHED'";
+    conditions.push("p.status = 'PUBLISHED'");
   }
 
   if (filters.is_featured !== undefined && filters.is_featured !== "") {
@@ -164,32 +165,68 @@ const getAll = async (filters = {}, userId = null) => {
       filters.is_featured === "true" ||
       filters.is_featured === 1 ||
       filters.is_featured === "1";
-    query += " AND p.is_featured = ?";
-    params.push(isFeat ? 1 : 0);
+    conditions.push("p.is_featured = ?");
+    whereParams.push(isFeat ? 1 : 0);
   }
 
   if (filters.tag) {
-    query +=
-      " AND EXISTS (SELECT 1 FROM post_tags WHERE post_id = p.id AND tag = ?)";
-    params.push(filters.tag);
+    conditions.push(
+      "EXISTS (SELECT 1 FROM post_tags WHERE post_id = p.id AND tag = ?)",
+    );
+    whereParams.push(filters.tag);
   }
 
   if (filters.search) {
-    query += " AND (p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ?)";
+    conditions.push("(p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ?)");
     const s = `%${filters.search}%`;
-    params.push(s, s, s);
+    whereParams.push(s, s, s);
   }
 
-  query += " ORDER BY p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
+  const usePagination = filters.page !== undefined || filters.limit !== undefined;
+  const requestedPage = Number.parseInt(filters.page, 10);
+  const requestedLimit = Number.parseInt(filters.limit, 10);
+  const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(50, Math.max(1, requestedLimit))
+    : 10;
+  const sortOrder = filters.sort === "oldest"
+    ? "COALESCE(p.published_at, p.created_at) ASC"
+    : filters.sort === "most-reacted"
+      ? "like_count DESC, COALESCE(p.published_at, p.created_at) DESC"
+      : "p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
+
+  query += ` WHERE ${conditions.join(" AND ")} ORDER BY ${sortOrder}`;
+  params.push(...whereParams);
+
+  if (usePagination) {
+    query += " LIMIT ? OFFSET ?";
+    params.push(limit, (page - 1) * limit);
+  }
 
   const [rows] = await pool.query(query, params);
 
-  return rows.map((post) => ({
+  const posts = rows.map((post) => ({
     ...post,
     is_liked: Boolean(post.is_liked),
     images: post.image_list ? post.image_list.split(",") : [],
     tags: post.tag_list ? post.tag_list.split(",") : [],
   }));
+
+  if (!usePagination) return posts;
+
+  const [[countRow]] = await pool.query(
+    `SELECT COUNT(*) AS total FROM posts p WHERE ${conditions.join(" AND ")}`,
+    whereParams,
+  );
+  const total = Number(countRow.total || 0);
+
+  return {
+    posts,
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+  };
 };
 
 // ─── Create ────────────────────────────────────────────────

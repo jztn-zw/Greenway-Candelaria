@@ -45,27 +45,21 @@ const ResidentDashboard = () => {
       <HeroCards />
 
       {/* 3. Top row: Post Carousel (left) | Announcement (right) */}
-      <div className="grid gap-3 grid-cols-1 md:grid-cols-5 md:items-stretch">
-        <div className="md:col-span-3 h-full">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
+        <div className="h-full">
           <DashboardPostCarousel />
         </div>
-        <div className="md:col-span-2 h-full">
+        <div className="h-full">
           <AnnouncementAndTip />
         </div>
       </div>
 
-      {/* 4. Bottom row: Calendar (left, tall) | Did You Know + MENRO (right, stacked) */}
-      <div className="grid gap-3 grid-cols-1 md:grid-cols-5 md:items-stretch">
-        <div className="md:col-span-3 h-full">
-          <CollectionCalendar />
-        </div>
-        <div className="md:col-span-2 flex flex-col gap-3">
-          <div className="shrink-0">
-            <EcoTipCard />
-          </div>
-          <div className="flex-1 min-h-0">
-            <QuickActionsAndContact />
-          </div>
+      {/* 4. Community calendar, followed by supporting resident information */}
+      <CollectionCalendar />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
+        <EcoTipCard />
+        <div>
+          <QuickActionsAndContact />
         </div>
       </div>
     </div>

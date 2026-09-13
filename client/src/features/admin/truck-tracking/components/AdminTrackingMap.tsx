@@ -86,6 +86,7 @@ interface AdminTrackingMapProps {
   activeStopCoords?: [number, number] | null;
   autoRoutedStops?: RouteStop[];
   onMarkerClick: (truckId: string) => void;
+  onDeselectTruck?: () => void;
   replayPath?: [number, number][];
   replayIndex?: number;
   replayTargetStop?: ReplayTargetStopInfo | null;
@@ -321,6 +322,7 @@ const AdminTrackingMap = ({
   activeStopCoords: passedActiveStopCoords,
   autoRoutedStops: passedAutoRoutedStops,
   onMarkerClick,
+  onDeselectTruck,
   replayPath,
   replayIndex,
   replayTargetStop,
@@ -351,9 +353,10 @@ const AdminTrackingMap = ({
       trucks.filter(
         (truck) =>
           Boolean(truck.coords) &&
-          (truck.status === "on-the-way" ||
-            truck.status === "paused" ||
-            (truck.status === "offline" && Boolean(truck.lastPingIso))),
+          truck.status !== "offline" &&
+          truck.status !== "done" &&
+          (truck.totalBarangays === 0 || truck.completedBarangays < truck.totalBarangays) &&
+          (truck.status === "on-the-way" || truck.status === "paused"),
       ),
     [trucks],
   );
@@ -361,15 +364,23 @@ const AdminTrackingMap = ({
   const activeTruck = useMemo(() => {
     if (passedActiveTruck !== undefined) return passedActiveTruck;
     if (focusedTruckId) {
-      const match = visibleTrucks.find((t) => t.id === focusedTruckId);
+      const match = trucks.find((t) => t.id === focusedTruckId);
       if (match) return match;
     }
-    return (
-      visibleTrucks.find((t) => t.status === "on-the-way") ??
-      visibleTrucks[0] ??
-      null
-    );
-  }, [passedActiveTruck, visibleTrucks, focusedTruckId]);
+    return null;
+  }, [passedActiveTruck, trucks, focusedTruckId]);
+
+  const isAllCompleted = useMemo(
+    () =>
+      trucks.length > 0 &&
+      trucks.every(
+        (t) =>
+          t.status === "offline" ||
+          t.status === "done" ||
+          (t.totalBarangays > 0 && t.completedBarangays >= t.totalBarangays),
+      ),
+    [trucks],
+  );
 
   const activeTruckCoords = passedActiveTruckCoords !== undefined
     ? passedActiveTruckCoords
@@ -593,15 +604,18 @@ const AdminTrackingMap = ({
       const isLive = truck.status === "on-the-way";
       const isPaused = truck.status === "paused";
       const isDelayed = truck.status === "offline" && Boolean(truck.lastPingIso);
+      const isDone = truck.status === "done";
       const markerBg = isLive
         ? "hsl(145,63%,32%)"
-        : isPaused || isDelayed
-          ? "hsl(38, 92%, 42%)"
-          : "hsl(215, 14%, 45%)";
+        : isDone
+          ? "hsl(145,63%,32%)"
+          : isPaused || isDelayed
+            ? "hsl(38, 92%, 42%)"
+            : "hsl(215, 14%, 45%)";
 
       const truckIcon = createAdminTruckPinIcon(
         isFocused,
-        isLive ? "live" : isPaused || isDelayed ? "delayed" : "idle",
+        isLive ? "live" : isDone ? "live" : isPaused || isDelayed ? "delayed" : "idle",
       );
 
       const marker = L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
@@ -631,7 +645,7 @@ const AdminTrackingMap = ({
               <div style="font-size:11px;opacity:0.6;font-family:monospace">${safePlateNumber}</div>
             </div>
             <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:${markerBg};color:white;text-transform:uppercase;letter-spacing:0.04em">
-              ${isLive ? "EN ROUTE" : isPaused ? "PAUSED" : isDelayed ? "GPS DELAYED" : truck.status.toUpperCase()}
+              ${isLive ? "EN ROUTE" : isDone ? "COMPLETED" : isPaused ? "PAUSED" : isDelayed ? "GPS DELAYED" : truck.status.toUpperCase()}
             </span>
           </div>
 
@@ -701,42 +715,60 @@ const AdminTrackingMap = ({
 
     // When focused truck or active target changes, frame the corridor comfortably
     if (focusedTruckId) {
-      const truck = visibleTrucks.find((t) => t.id === focusedTruckId);
-      if (truck?.coords) {
+      const truck = trucks.find((t) => t.id === focusedTruckId);
+      if (truck) {
         const focusChanged = lastFocusedTruckIdRef.current !== focusedTruckId;
         if (focusChanged || lastViewModeRef.current !== "focused") {
           lastFocusedTruckIdRef.current = focusedTruckId;
           lastViewModeRef.current = "focused";
 
-          if (activeStopCoords) {
+          const stopCoords = scheduledStops.filter((s) => Boolean(s.coords)).map((s) => s.coords);
+          const isDoneOrOffline =
+            truck.status === "offline" ||
+            truck.status === "done" ||
+            (truck.totalBarangays > 0 && truck.completedBarangays >= truck.totalBarangays);
+
+          if (isDoneOrOffline && stopCoords.length > 0) {
+            const bounds = L.latLngBounds(stopCoords);
+            if (bounds.isValid()) {
+              map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 15, duration: 0.8 });
+              return;
+            }
+          }
+
+          if (truck.coords && activeStopCoords) {
             const bounds = L.latLngBounds([truck.coords, activeStopCoords]);
             if (bounds.isValid()) {
               map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 16, duration: 0.8 });
               return;
             }
           }
-          map.flyTo(truck.coords, Math.max(map.getZoom(), 15), { duration: 0.8 });
+          if (truck.coords && stopCoords.length > 0) {
+            const bounds = L.latLngBounds([truck.coords, ...stopCoords]);
+            if (bounds.isValid()) {
+              map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 15, duration: 0.8 });
+              return;
+            }
+          }
+          if (truck.coords) {
+            map.flyTo(truck.coords, Math.max(map.getZoom(), 15), { duration: 0.8 });
+          } else if (stopCoords.length > 0) {
+            const bounds = L.latLngBounds(stopCoords);
+            if (bounds.isValid()) {
+              map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 15, duration: 0.8 });
+            }
+          }
         }
         return;
       }
     }
 
-    // Default view when unfocused: if an active truck and stop exist, frame the corridor once
-    if (activeTruckCoords && activeStopCoords && lastViewModeRef.current === null) {
-      const bounds = L.latLngBounds([activeTruckCoords, activeStopCoords]);
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
-        lastViewModeRef.current = "focused";
-        return;
-      }
-    }
-
-    if (!focusedTruckId && lastViewModeRef.current !== "bounds" && !activeTruckCoords) {
+    if (!focusedTruckId && lastViewModeRef.current !== "bounds") {
       lastFocusedTruckIdRef.current = null;
       map.flyToBounds(BOUNDS, { padding: DEFAULT_PADDING, duration: 0.8 });
       lastViewModeRef.current = "bounds";
     }
-  }, [focusedTruckId, visibleTrucks, activeTruckCoords, activeStopCoords, replayPath]);
+  }, [focusedTruckId, trucks, activeTruckCoords, activeStopCoords, scheduledStops, replayPath]);
 
   // Focused Route Replay Rendering
   // The map ONLY displays:
@@ -972,125 +1004,208 @@ const AdminTrackingMap = ({
         </button>
       </div>
 
-      {/* Floating Status Card for Active / Focused Truck */}
-      {activeTruck && (activeStop || isRoutePaused) && (!replayPath || replayPath.length === 0) && (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
-          {isCardCollapsed ? (
-            /* Collapsed Compact Status Pill */
-            <button
-              type="button"
-              onClick={() => setIsCardCollapsed(false)}
-              className="flex items-center gap-2 bg-card/75 backdrop-blur-md px-3.5 py-2 rounded-xl border border-border/70 shadow-2xs text-xs font-bold text-foreground cursor-pointer hover:bg-muted/80 transition-all"
-            >
-              <TruckIcon className={cn("w-3.5 h-3.5 shrink-0", isRoutePaused ? "text-amber-600 dark:text-amber-400" : "text-primary")} />
-              <span className="truncate">{activeTruck.name}</span>
-              {isRoutePaused ? (
-                <span className="text-amber-700 dark:text-amber-300 font-medium">• Paused</span>
-              ) : routeData ? (
-                <span className="text-primary font-medium">• {routeData.distanceKm} km (~{routeData.durationMinutes}m)</span>
-              ) : null}
-              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1 shrink-0" />
-            </button>
-          ) : (
-            /* Full Route Metric Card */
-            <div className="bg-card/75 backdrop-blur-md rounded-2xl border border-border/70 shadow-md p-3.5 space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
-                    isRoutePaused
-                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                      : "bg-primary/15 text-primary border-primary/20",
-                  )}>
-                    <TruckIcon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold font-display text-foreground truncate">
-                      {activeTruck.name}
-                    </h4>
-                    <div className="flex items-center gap-1.5 text-[11px] leading-none">
-                      <span className="text-muted-foreground truncate">{activeTruck.plateNumber}</span>
-                      {GpsSignalIcon && gpsSignal && (
-                        <span
-                          className={cn("inline-flex items-center gap-0.5 shrink-0 font-semibold", gpsSignal.className)}
-                          title={`${gpsSignal.label}${gpsSignal.age ? ` · Last GPS ping ${gpsSignal.age}` : ""}`}
-                        >
-                          <GpsSignalIcon className="w-3 h-3" aria-hidden="true" />
-                          <span>{gpsSignal.age ?? gpsSignal.label}</span>
-                        </span>
+      {/* Floating Status / Info Card in Top-Left */}
+      {(!replayPath || replayPath.length === 0) && (
+        activeTruck ? (
+          <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
+            {isCardCollapsed ? (
+              /* Collapsed Compact Status Pill */
+              <button
+                type="button"
+                onClick={() => setIsCardCollapsed(false)}
+                className="flex items-center gap-2 bg-card/85 backdrop-blur-md px-3.5 py-2 rounded-xl border border-border/70 shadow-2xs text-xs font-bold text-foreground cursor-pointer hover:bg-muted/80 transition-all pointer-events-auto"
+              >
+                <TruckIcon className={cn(
+                  "w-3.5 h-3.5 shrink-0",
+                  activeTruck.status === "offline" || activeTruck.status === "done"
+                    ? "text-muted-foreground"
+                    : isRoutePaused
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-primary"
+                )} />
+                <span className="truncate">{activeTruck.name}</span>
+                {activeTruck.status === "offline" || activeTruck.status === "done" ? (
+                  <span className="text-muted-foreground font-medium">• Offline</span>
+                ) : isRoutePaused ? (
+                  <span className="text-amber-700 dark:text-amber-300 font-medium">• Paused</span>
+                ) : routeData ? (
+                  <span className="text-primary font-medium">• {routeData.distanceKm} km (~{routeData.durationMinutes}m)</span>
+                ) : null}
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1 shrink-0" />
+              </button>
+            ) : (
+              /* Full Route Metric Card */
+              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-md p-3.5 space-y-2.5 pointer-events-auto">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
+                      activeTruck.status === "offline" || activeTruck.status === "done"
+                        ? "bg-muted text-muted-foreground border-border/80"
+                        : isRoutePaused
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          : "bg-primary/15 text-primary border-primary/20",
+                    )}>
+                      {activeTruck.status === "offline" || activeTruck.status === "done" ? (
+                        <TruckIcon className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <TruckIcon className="w-4 h-4" />
                       )}
                     </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold font-display text-foreground truncate">
+                        {activeTruck.name}
+                      </h4>
+                      <div className="flex items-center gap-1.5 text-[11px] leading-none">
+                        <span className="text-muted-foreground truncate">{activeTruck.plateNumber}</span>
+                        {activeTruck.status === "offline" || activeTruck.status === "done" ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
+                            • Offline
+                          </span>
+                        ) : GpsSignalIcon && gpsSignal ? (
+                          <span
+                            className={cn("inline-flex items-center gap-0.5 shrink-0 font-semibold", gpsSignal.className)}
+                            title={`${gpsSignal.label}${gpsSignal.age ? ` · Last GPS ping ${gpsSignal.age}` : ""}`}
+                          >
+                            <GpsSignalIcon className="w-3 h-3" aria-hidden="true" />
+                            <span>{gpsSignal.age ?? gpsSignal.label}</span>
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsCardCollapsed(true)}
+                      className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      title="Collapse card"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    {(onDeselectTruck || onMarkerClick) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeselectTruck) {
+                            onDeselectTruck();
+                          } else {
+                            onMarkerClick(activeTruck.id);
+                          }
+                        }}
+                        className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                        title="Deselect truck"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsCardCollapsed(true)}
-                  className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer transition-colors shrink-0"
-                  title="Collapse card"
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
+                {activeTruck.status === "offline" || activeTruck.status === "done" ? (
+                  <div className="text-[11px] text-muted-foreground border-t border-border/60 pt-2.5 flex items-center justify-between">
+                    <span>
+                      {scheduledStops.length > 0 && scheduledStops.every((s) => s.status === "done")
+                        ? "Collection completed"
+                        : "Vehicle offline"}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {scheduledStops.length} Pins Shown
+                    </span>
+                  </div>
+                ) : isRoutePaused ? (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
+                    Collection is temporarily paused. The amber pin shows the truck's last known location.
+                  </p>
+                ) : (
+                  <>
+                    {routeData && (
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
+                        <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
+                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-primary" />
+                            Road Distance
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground tracking-tight mt-0.5">
+                            {routeData.distanceKm} km
+                          </span>
+                        </div>
+
+                        <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
+                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-primary" />
+                            Est. Arrival
+                          </span>
+                          <span className="text-sm font-extrabold text-primary tracking-tight mt-0.5">
+                            ~{routeData.durationMinutes} mins
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeStop && (
+                      <div className="flex items-center text-[11px] text-muted-foreground pt-0.5">
+                        <span className="flex items-center gap-1 truncate">
+                          <RouteIcon className="w-3 h-3 text-primary shrink-0" />
+                          <span className="truncate">Target: {activeStop.barangay}</span>
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-
-              {isRoutePaused ? (
-                <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
-                  Collection is temporarily paused. The amber pin shows the truck's last known location.
-                </p>
-              ) : routeData && <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
-                <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
-                  <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-primary" />
-                    Road Distance
-                  </span>
-                  <span className="text-sm font-extrabold text-foreground tracking-tight mt-0.5">
-                    {routeData.distanceKm} km
-                  </span>
-                </div>
-
-                <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
-                  <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-primary" />
-                    Est. Arrival
-                  </span>
-                  <span className="text-sm font-extrabold text-primary tracking-tight mt-0.5">
-                    ~{routeData.durationMinutes} mins
-                  </span>
-                </div>
-              </div>}
-
-              {!isRoutePaused && activeStop && <div className="flex items-center text-[11px] text-muted-foreground pt-0.5">
-                <span className="flex items-center gap-1 truncate">
-                  <RouteIcon className="w-3 h-3 text-primary shrink-0" />
-                  <span className="truncate">Target: {activeStop.barangay}</span>
-                </span>
-              </div>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* No-trucks overlay */}
-      {visibleTrucks.length === 0 && !replayPath && (
-        <div className="absolute inset-0 z-[400] flex items-center justify-center bg-background/50 backdrop-blur-xs pointer-events-none">
-          <div className="bg-card/75 border border-border/70 backdrop-blur-md rounded-2xl p-5 shadow-md text-center space-y-2 pointer-events-auto max-w-xs mx-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mx-auto">
-              <TruckIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-display font-semibold text-foreground">
-                No trucks currently tracking
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
-                Markers will appear when drivers transmit live GPS positions.
-              </p>
-            </div>
+            )}
           </div>
-        </div>
+        ) : (
+          /* Sleek Top-Left Status Pill when No Truck is Selected */
+          <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 z-[450] pointer-events-auto animate-in fade-in-50 duration-300">
+            {isAllCompleted ? (
+              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-xs px-3.5 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-muted/80 text-muted-foreground border border-border/80 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-foreground leading-tight truncate">
+                    Collection Completed · Offline
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground leading-tight truncate">
+                    Click a truck card to view barangay pins
+                  </span>
+                </div>
+              </div>
+            ) : visibleTrucks.length === 0 ? (
+              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-xs px-3.5 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-muted/80 text-muted-foreground border border-border/80 flex items-center justify-center shrink-0">
+                  <TruckIcon className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-foreground leading-tight truncate">
+                    Fleet Standby · Offline
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground leading-tight truncate">
+                    Click a truck card to view route pins
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-card/85 backdrop-blur-md rounded-xl border border-border/70 shadow-xs px-3 py-1.5 flex items-center gap-2">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[11px] font-medium text-foreground truncate">
+                  {visibleTrucks.length} truck{visibleTrucks.length > 1 ? "s" : ""} active
+                  <span className="text-muted-foreground font-normal"> · Select card for pins</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )
       )}
 
       <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs pointer-events-auto">
-        {activeTruck?.coords && (
+        {activeTruck?.coords && activeTruck.status !== "offline" && activeTruck.status !== "done" && (
           <button
             type="button"
             onClick={handleRecenterFocusedTruck}

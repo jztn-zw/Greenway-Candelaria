@@ -52,7 +52,6 @@ import {
   AnnouncementType,
   AnnouncementStatus,
   TargetAudience,
-  BODY_CHAR_LIMIT,
 } from "./types";
 
 interface Props {
@@ -61,7 +60,7 @@ interface Props {
   editingAnnouncement: Announcement | null;
   form: EditorForm;
   setForm: React.Dispatch<React.SetStateAction<EditorForm>>;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   isSaving: boolean;
   barangayOptions: { id: string; name: string }[];
 }
@@ -78,6 +77,16 @@ const AnnouncementEditor = ({
 }: Props) => {
   const [barangaySearch, setBarangaySearch] = useState("");
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<"title" | "body" | "targetBarangays" | "scheduledDate" | "expiryDate" | "calendarDate" | "form", string>>>({});
+
+  const clearError = (field: keyof typeof errors) => {
+    setErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   // Database DATETIME values are UTC but arrive without a timezone suffix.
   const parseStoredDate = (value: string) => {
@@ -163,8 +172,57 @@ const AnnouncementEditor = ({
       setForm((prev) => ({ ...prev, status: "Draft" }));
     }
     setTimeout(() => {
-      onSave();
+      void handleSave();
     }, 50);
+  };
+
+  const validateForm = () => {
+    const nextErrors: typeof errors = {};
+    const now = new Date();
+
+    if (!form.title.trim()) nextErrors.title = "Enter a notice title.";
+    if (!form.body.trim()) nextErrors.body = "Enter the announcement details.";
+    if (form.targetAudience === "Specific Barangays" && form.targetBarangays.length === 0) {
+      nextErrors.targetBarangays = "Select at least one barangay.";
+    }
+
+    if (form.status === "Scheduled") {
+      const scheduledAt = form.scheduledDate ? new Date(form.scheduledDate) : null;
+      if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+        nextErrors.scheduledDate = "Choose a broadcast date and time.";
+      } else if (scheduledAt <= now) {
+        nextErrors.scheduledDate = "Broadcast time must be in the future.";
+      }
+    }
+
+    if (form.expiryDate) {
+      const expiryAt = new Date(form.expiryDate);
+      const scheduledAt = form.scheduledDate ? new Date(form.scheduledDate) : null;
+      if (Number.isNaN(expiryAt.getTime())) {
+        nextErrors.expiryDate = "Expiry time is invalid.";
+      } else if (form.status !== "Draft" && expiryAt <= now) {
+        nextErrors.expiryDate = "Expiry time must be in the future.";
+      } else if (scheduledAt && !Number.isNaN(scheduledAt.getTime()) && expiryAt <= scheduledAt) {
+        nextErrors.expiryDate = "Expiry must be after the broadcast time.";
+      }
+    }
+
+    if (form.showOnResidentCalendar && !form.calendarDate) {
+      nextErrors.calendarDate = "Choose the resident calendar date.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    try {
+      await onSave();
+    } catch (error) {
+      setErrors({ form: error instanceof Error ? error.message : "Unable to save this announcement. Please try again." });
+    }
   };
 
   const promptTitle = editingAnnouncement
@@ -190,6 +248,7 @@ const AnnouncementEditor = ({
         ? prev.targetBarangays.filter((x) => x !== id)
         : [...prev.targetBarangays, id],
     }));
+    clearError("targetBarangays");
   };
 
   const isAllSelected = useMemo(() => {
@@ -204,6 +263,7 @@ const AnnouncementEditor = ({
       ...prev,
       targetBarangays: (barangayOptions || []).map((b) => b.id),
     }));
+    clearError("targetBarangays");
   };
 
   const clearAllBarangays = () => {
@@ -237,7 +297,7 @@ const AnnouncementEditor = ({
         }}
       >
         <DialogContent
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[82vh]"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] bg-background text-left [&>button:last-child]:hidden"
           onPointerDownOutside={(e) => {
             if (isDirty && !isSaving) {
               e.preventDefault();
@@ -252,13 +312,13 @@ const AnnouncementEditor = ({
           }}
         >
           {/* ── Fixed Pinned Header (Non-Scrollable) with Top-Right X ── */}
-          <div className="p-4 sm:p-5 pb-3 border-b border-border/60 shrink-0 bg-background z-20 flex items-center justify-between gap-3 text-left">
+          <div className="px-5 py-4 border-b border-border/60 shrink-0 bg-background z-20 flex items-center justify-between gap-3 text-left">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                 <Megaphone className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="text-lg font-bold font-display text-foreground tracking-tight truncate">
+                <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight truncate">
                   {editingAnnouncement
                     ? "Edit Announcement"
                     : "Create Announcement"}
@@ -272,7 +332,7 @@ const AnnouncementEditor = ({
             <button
               type="button"
               onClick={handleAttemptClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -280,42 +340,46 @@ const AnnouncementEditor = ({
           </div>
 
           {/* ── Scrollable Form Body ── */}
-          <div className="overflow-y-auto px-4 sm:px-5 py-4 space-y-4 flex-1 overscroll-contain">
+          <div className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
             {/* Notice Title */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground/90">
+              <Label className={cn("text-xs font-semibold", errors.title ? "text-destructive" : "text-foreground")}>
                 Notice Title
               </Label>
               <Input
                 value={form.title}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, title: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, title: e.target.value }));
+                  clearError("title");
+                }}
                 placeholder="e.g. Special Holiday Waste Collection Schedule"
-                className="h-10 rounded-xl bg-background border border-border text-xs px-3.5 focus-visible:ring-primary/20"
+                aria-invalid={Boolean(errors.title)}
+                className={cn("h-9 rounded-xl bg-background border text-xs px-3.5 focus-visible:ring-primary/20 shadow-2xs", errors.title ? "border-destructive focus-visible:ring-destructive/20" : "border-border/80")}
               />
+              {errors.title && <p className="text-[11px] font-medium text-destructive">{errors.title}</p>}
             </div>
 
             {/* Target Audience & Notice Type (50/50 split) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90">
+                <Label className="text-xs font-semibold text-foreground">
                   Target Audience
                 </Label>
                 <Select
                   value={form.targetAudience}
-                  onValueChange={(v) =>
+                  onValueChange={(v) => {
                     setForm((p) => ({
                       ...p,
                       targetAudience: v as TargetAudience,
                       targetBarangays: v === "All Residents" ? [] : p.targetBarangays,
-                    }))
-                  }
+                    }));
+                    clearError("targetBarangays");
+                  }}
                 >
-                  <SelectTrigger className="h-10 w-full rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
+                  <SelectTrigger className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 focus:ring-primary/20 shadow-2xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
+                  <SelectContent className="rounded-xl border border-border shadow-md">
                     <SelectItem value="All Residents" className="text-xs font-medium">
                       All Residents
                     </SelectItem>
@@ -327,7 +391,7 @@ const AnnouncementEditor = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90">
+                <Label className="text-xs font-semibold text-foreground">
                   Notice Type
                 </Label>
                 <Select
@@ -342,10 +406,10 @@ const AnnouncementEditor = ({
                     }))
                   }
                 >
-                  <SelectTrigger className="h-10 w-full rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20">
+                  <SelectTrigger className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 focus:ring-primary/20 shadow-2xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
+                  <SelectContent className="rounded-xl border border-border shadow-md">
                     {[
                       "Schedule Change",
                       "Holiday Reminder",
@@ -365,28 +429,25 @@ const AnnouncementEditor = ({
 
             {/* Message Body with Character Counter */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold text-foreground/90">
-                  Message Content
-                </Label>
-                <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md tabular-nums border border-border/40">
-                  {form.body.length} / {BODY_CHAR_LIMIT}
-                </span>
-              </div>
+              <Label className={cn("text-xs font-semibold", errors.body ? "text-destructive" : "text-foreground")}>
+                Message Content
+              </Label>
               <Textarea
                 value={form.body}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, body: e.target.value }))
-                }
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, body: e.target.value }));
+                  clearError("body");
+                }}
                 placeholder="Write the details of the announcement here..."
-                className="min-h-[110px] rounded-xl bg-background border border-border p-3 text-xs resize-none focus-visible:ring-primary/20 leading-relaxed"
-                maxLength={BODY_CHAR_LIMIT}
+                aria-invalid={Boolean(errors.body)}
+                className={cn("min-h-[110px] rounded-xl bg-background border p-3 text-xs resize-none focus-visible:ring-primary/20 leading-relaxed shadow-2xs", errors.body ? "border-destructive focus-visible:ring-destructive/20" : "border-border/80")}
               />
+              {errors.body && <p className="text-[11px] font-medium text-destructive">{errors.body}</p>}
             </div>
 
             {/* Specific Barangays Picker */}
             {form.targetAudience === "Specific Barangays" && (
-              <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border/70">
+              <div className={cn("space-y-2 p-3 rounded-xl bg-muted/40 border", errors.targetBarangays ? "border-destructive/80" : "border-border/70")}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Label className="text-xs font-semibold text-foreground/90 shrink-0">
@@ -423,7 +484,8 @@ const AnnouncementEditor = ({
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full h-10 justify-between font-normal rounded-xl bg-background border border-border text-xs px-3"
+                      aria-invalid={Boolean(errors.targetBarangays)}
+                      className={cn("w-full h-10 justify-between font-normal rounded-xl bg-background border text-xs px-3", errors.targetBarangays ? "border-destructive" : "border-border")}
                     >
                       <span className="truncate">
                         {form.targetBarangays.length > 0
@@ -538,6 +600,7 @@ const AnnouncementEditor = ({
                     )}
                   </div>
                 )}
+                {errors.targetBarangays && <p className="text-[11px] font-medium text-destructive">{errors.targetBarangays}</p>}
               </div>
             )}
 
@@ -557,15 +620,16 @@ const AnnouncementEditor = ({
               </label>
               {form.showOnResidentCalendar && (
                 <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <Label className="text-xs font-semibold text-foreground/90">Event Date</Label>
+                  <Label className={cn("text-xs font-semibold", errors.calendarDate ? "text-destructive" : "text-foreground/90")}>Event Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
                         className={cn(
-                          "h-10 w-full justify-between rounded-xl bg-background border-border px-3 text-xs font-medium hover:bg-muted/50",
+                          "h-10 w-full justify-between rounded-xl bg-background border px-3 text-xs font-medium hover:bg-muted/50",
                           !form.calendarDate && "text-muted-foreground",
+                          errors.calendarDate ? "border-destructive" : "border-border",
                         )}
                       >
                         <span className="flex items-center gap-2">
@@ -587,50 +651,50 @@ const AnnouncementEditor = ({
                             ...p,
                             calendarDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
                           }));
+                          clearError("calendarDate");
                         }}
                         initialFocus
                         className="p-3"
                       />
                     </PopoverContent>
                   </Popover>
+                  {errors.calendarDate && <p className="text-[11px] font-medium text-destructive">{errors.calendarDate}</p>}
                   <p className="text-[11px] leading-relaxed text-muted-foreground">Defaults to the announcement’s scheduled date. Change it only if the event is on another day.</p>
                 </div>
               )}
             </div>}
 
             {/* Publishing Status */}
-            <div className="pt-1">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90 h-5 flex items-center">
-                  Publishing Status
-                </Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(v) =>
-                    setForm((p) => ({ ...p, status: v as AnnouncementStatus }))
-                  }
-                >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border border-border text-xs px-3 focus:ring-primary/20 shadow-2xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border">
-                    <SelectItem value="Active" className="text-xs font-medium">
-                      Active
-                    </SelectItem>
-                    <SelectItem value="Scheduled" className="text-xs font-medium">
-                      Scheduled
-                    </SelectItem>
-                    <SelectItem value="Draft" className="text-xs font-medium">
-                      Draft
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">
+                Publishing Status
+              </Label>
+              <Select
+                value={form.status}
+                onValueChange={(v) =>
+                  setForm((p) => ({ ...p, status: v as AnnouncementStatus }))
+                }
+              >
+                <SelectTrigger className="h-9 rounded-xl bg-background border border-border/80 text-xs px-3 focus:ring-primary/20 shadow-2xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-border shadow-md">
+                  <SelectItem value="Active" className="text-xs font-medium">
+                    Active
+                  </SelectItem>
+                  <SelectItem value="Scheduled" className="text-xs font-medium">
+                    Scheduled
+                  </SelectItem>
+                  <SelectItem value="Draft" className="text-xs font-medium">
+                    Draft
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {form.status === "Scheduled" && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/40 border border-border/70">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground/90 flex items-center gap-1.5">
+                  <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.scheduledDate ? "text-destructive" : "text-foreground")}>
                     <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                     Broadcast Date & Time
                   </Label>
@@ -639,8 +703,9 @@ const AnnouncementEditor = ({
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-10 justify-start text-left font-normal rounded-xl bg-background border border-border text-xs px-3",
-                          !form.scheduledDate && "text-muted-foreground",
+                           "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                           !form.scheduledDate && "text-muted-foreground",
+                           errors.scheduledDate ? "border-destructive" : "border-border/80",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -650,7 +715,7 @@ const AnnouncementEditor = ({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-auto p-0 rounded-xl border border-border shadow-xl"
+                      className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
                       align="start"
                     >
                       <Calendar
@@ -660,32 +725,35 @@ const AnnouncementEditor = ({
                             ? parseStoredDate(form.scheduledDate)
                             : undefined
                         }
-                        onSelect={(date) =>
+                        onSelect={(date) => {
                           setForm((p) => ({
                             ...p,
                             scheduledDate: date ? date.toISOString() : "",
-                          }))
-                        }
+                          }));
+                          clearError("scheduledDate");
+                        }}
                         initialFocus
                         className="p-3"
                       />
-                      <div className="relative border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+                      <div className="relative border-t border-border/60 p-2.5 flex items-center justify-between gap-2 bg-muted/20">
                         <span className="text-xs font-medium text-muted-foreground shrink-0">
                           Time:
                         </span>
                         <TimePicker
                           value={getTimeFromDate(form.scheduledDate)}
-                          onChange={(val) =>
-                            setTimeForField("scheduledDate", val)
-                          }
+                          onChange={(val) => {
+                            setTimeForField("scheduledDate", val);
+                            clearError("scheduledDate");
+                          }}
                         />
                       </div>
                     </PopoverContent>
                   </Popover>
+                  {errors.scheduledDate && <p className="text-[11px] font-medium text-destructive">{errors.scheduledDate}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground/90 flex items-center gap-1.5">
+                  <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.expiryDate ? "text-destructive" : "text-foreground")}>
                     <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     Auto-Expiry (Optional)
                   </Label>
@@ -694,8 +762,9 @@ const AnnouncementEditor = ({
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-10 justify-start text-left font-normal rounded-xl bg-background border border-border text-xs px-3",
-                          !form.expiryDate && "text-muted-foreground",
+                           "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                           !form.expiryDate && "text-muted-foreground",
+                           errors.expiryDate ? "border-destructive" : "border-border/80",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -705,7 +774,7 @@ const AnnouncementEditor = ({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-auto p-0 rounded-xl border border-border shadow-xl"
+                      className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
                       align="start"
                     >
                       <Calendar
@@ -715,28 +784,31 @@ const AnnouncementEditor = ({
                             ? parseStoredDate(form.expiryDate)
                             : undefined
                         }
-                        onSelect={(date) =>
+                        onSelect={(date) => {
                           setForm((p) => ({
                             ...p,
                             expiryDate: expiryAtEndOfDay(date),
-                          }))
-                        }
+                          }));
+                          clearError("expiryDate");
+                        }}
                         initialFocus
                         className="p-3"
                       />
-                      <div className="relative border-t border-border p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+                      <div className="relative border-t border-border/60 p-2.5 flex items-center justify-between gap-2 bg-muted/20">
                         <span className="text-xs font-medium text-muted-foreground shrink-0">
                           Time:
                         </span>
                         <TimePicker
                           value={getTimeFromDate(form.expiryDate)}
-                          onChange={(val) =>
-                            setTimeForField("expiryDate", val)
-                          }
+                          onChange={(val) => {
+                            setTimeForField("expiryDate", val);
+                            clearError("expiryDate");
+                          }}
                         />
                       </div>
                     </PopoverContent>
                   </Popover>
+                  {errors.expiryDate && <p className="text-[11px] font-medium text-destructive">{errors.expiryDate}</p>}
                 </div>
               </div>
             )}
@@ -744,7 +816,7 @@ const AnnouncementEditor = ({
             {/* Optional Expiry for Draft and Active */}
             {form.status !== "Scheduled" && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground/90 flex items-center gap-1.5">
+                <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.expiryDate ? "text-destructive" : "text-foreground")}>
                   <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                   Auto-Expiry Date (Optional)
                 </Label>
@@ -753,8 +825,9 @@ const AnnouncementEditor = ({
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full h-10 justify-start text-left font-normal rounded-xl bg-background border border-border text-xs px-3",
-                        !form.expiryDate && "text-muted-foreground",
+                         "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                         !form.expiryDate && "text-muted-foreground",
+                         errors.expiryDate ? "border-destructive" : "border-border/80",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -774,12 +847,13 @@ const AnnouncementEditor = ({
                           ? parseStoredDate(form.expiryDate)
                           : undefined
                       }
-                      onSelect={(date) =>
+                      onSelect={(date) => {
                         setForm((p) => ({
                           ...p,
                           expiryDate: expiryAtEndOfDay(date),
-                        }))
-                      }
+                        }));
+                        clearError("expiryDate");
+                      }}
                       initialFocus
                       className="p-3"
                     />
@@ -789,30 +863,36 @@ const AnnouncementEditor = ({
                       </span>
                       <TimePicker
                         value={getTimeFromDate(form.expiryDate)}
-                        onChange={(val) =>
-                          setTimeForField("expiryDate", val)
-                        }
+                        onChange={(val) => {
+                          setTimeForField("expiryDate", val);
+                          clearError("expiryDate");
+                        }}
                       />
                     </div>
                   </PopoverContent>
-                </Popover>
+                  </Popover>
+                  {errors.expiryDate && <p className="text-[11px] font-medium text-destructive">{errors.expiryDate}</p>}
               </div>
             )}
           </div>
 
           {/* ── Fixed Pinned Footer (Non-Scrollable) ── */}
-          <DialogFooter className="px-4 sm:px-5 py-3.5 border-t border-border/80 shrink-0 bg-background z-10 flex flex-row items-center justify-end">
+          <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 z-10 flex items-center justify-end gap-2.5">
+            {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
             <Button
               type="button"
-              onClick={onSave}
-              disabled={
-                isSaving ||
-                !form.title.trim() ||
-                !form.body.trim() ||
-                (form.status === "Scheduled" && !form.scheduledDate) ||
-                (form.targetAudience !== "All Residents" && form.targetBarangays.length === 0)
-              }
-              className="h-10 px-6 rounded-xl font-semibold text-xs gap-1.5 shadow-xs cursor-pointer active:scale-95"
+              variant="outline"
+              onClick={handleAttemptClose}
+              disabled={isSaving}
+              className="h-9 text-xs rounded-xl border-border/80 px-4 cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={isSaving}
+              className="h-9 px-5 rounded-xl font-bold text-xs gap-1.5 shadow-sm cursor-pointer active:scale-95"
             >
               {isSaving ? (
                 <>
@@ -826,7 +906,7 @@ const AnnouncementEditor = ({
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

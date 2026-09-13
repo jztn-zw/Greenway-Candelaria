@@ -1,7 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  AlertTriangle,
   Clock,
   FileText,
   Truck,
@@ -16,7 +15,6 @@ interface AttentionItem {
   count: number;
   description: string;
   timeAgo: string;
-  priority: "high" | "medium" | "low";
   action: string;
   route: string;
   icon: React.ElementType;
@@ -26,58 +24,19 @@ interface NeedsAttentionProps {
   attention?: DashboardAttention | null;
 }
 
-const priorityStyles: Record<
-  string,
-  { bg: string; text: string; border: string; iconBox: string }
-> = {
-  high: {
-    bg: "bg-destructive/10",
-    text: "text-destructive",
-    border: "border-destructive/25",
-    iconBox: "bg-destructive/10 text-destructive border-destructive/20",
-  },
-  medium: {
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/25",
-    iconBox: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  },
-  low: {
-    bg: "bg-muted",
-    text: "text-muted-foreground",
-    border: "border-border/60",
-    iconBox: "bg-muted text-muted-foreground border-border/60",
-  },
-};
-
 const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
   const navigate = useNavigate();
-  const highPriorityCount = attention?.high_priority_awaiting_triage ?? 0;
-  const standardPriorityCount = attention?.standard_priority_awaiting_triage ?? 0;
+  const awaitingTriageCount = attention?.awaiting_triage ?? 0;
   const maintenanceTruckCount = attention?.maintenance_trucks ?? 0;
 
   const items: AttentionItem[] = [];
 
-  if (highPriorityCount > 0) {
-    items.push({
-      id: "high-priority",
-      count: highPriorityCount,
-      description: `${highPriorityCount} urgent high-priority incident reports require review`,
-      timeAgo: "High priority",
-      priority: "high",
-      action: "Review",
-      route: "/admin/reports",
-      icon: AlertTriangle,
-    });
-  }
-
-  if (standardPriorityCount > 0) {
+  if (awaitingTriageCount > 0) {
     items.push({
       id: "pending-queue",
-      count: standardPriorityCount,
-      description: `${standardPriorityCount} incident report${standardPriorityCount > 1 ? "s" : ""} awaiting review`,
+      count: awaitingTriageCount,
+      description: `${awaitingTriageCount} incident report${awaitingTriageCount > 1 ? "s" : ""} awaiting review`,
       timeAgo: "Queue active",
-      priority: "medium",
       action: "Review",
       route: "/admin/reports",
       icon: FileText,
@@ -90,7 +49,6 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
       count: maintenanceTruckCount,
       description: `${maintenanceTruckCount} collection vehicle${maintenanceTruckCount > 1 ? "s" : ""} under maintenance`,
       timeAgo: "Maintenance required",
-      priority: "medium",
       action: "Fleet",
       route: "/admin/truck-tracking",
       icon: Truck,
@@ -135,7 +93,6 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
         ) : (
           <div className="space-y-2.5">
             {items.map((item) => {
-              const style = priorityStyles[item.priority] || priorityStyles.low;
               const Icon = item.icon;
 
               return (
@@ -145,7 +102,7 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${style.iconBox}`}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-muted text-muted-foreground border-border/60"
                     >
                       <Icon className="w-4 h-4" />
                     </div>
@@ -159,12 +116,6 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
                           <Clock className="w-3 h-3" />
                           {item.timeAgo}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[9px] uppercase font-bold px-1.5 py-0 rounded-sm border ${style.bg} ${style.text} ${style.border}`}
-                        >
-                          {item.priority}
-                        </Badge>
                       </div>
                     </div>
                   </div>

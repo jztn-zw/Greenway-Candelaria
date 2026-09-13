@@ -79,8 +79,6 @@ const getAdminDashboard = async () => {
   const [[attentionRow]] = await pool.query(`
     SELECT
       COALESCE(SUM(CASE WHEN status = 'SUBMITTED' THEN 1 ELSE 0 END), 0) AS awaiting_triage,
-      COALESCE(SUM(CASE WHEN status = 'SUBMITTED' AND priority = 'HIGH' THEN 1 ELSE 0 END), 0) AS high_priority_awaiting_triage,
-      COALESCE(SUM(CASE WHEN status = 'SUBMITTED' AND priority <> 'HIGH' THEN 1 ELSE 0 END), 0) AS standard_priority_awaiting_triage,
       (
         SELECT COUNT(*)
         FROM trucks
@@ -123,7 +121,6 @@ const getAdminDashboard = async () => {
       b.name AS barangay_name,
       r.landmark,
       COALESCE(u.full_name, 'Anonymous Resident') AS reporter_name,
-      r.priority,
       r.status,
       r.created_at
     FROM reports r
@@ -260,7 +257,6 @@ const getAdminDashboard = async () => {
     reportsAnalytics: {
       by_status: reportStatusRows,
       by_type: [],
-      by_priority: [],
       by_barangay: [],
       monthly_trend: reportTrendRows,
       total: reportsTotal,
@@ -275,8 +271,6 @@ const getAdminDashboard = async () => {
     },
     attention: {
       awaiting_triage: toNumber(attentionRow.awaiting_triage),
-      high_priority_awaiting_triage: toNumber(attentionRow.high_priority_awaiting_triage),
-      standard_priority_awaiting_triage: toNumber(attentionRow.standard_priority_awaiting_triage),
       maintenance_trucks: toNumber(attentionRow.maintenance_trucks),
     },
     recentReports,

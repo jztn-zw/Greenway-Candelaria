@@ -7,6 +7,7 @@ import {
   CalendarOff,
   CalendarClock,
   CheckCircle2,
+  AlertTriangle,
   Truck as TruckIcon,
   Navigation,
   Route as RouteIcon,
@@ -29,7 +30,7 @@ import {
 interface TrackingMapProps {
   trucks: Truck[];
   focusedTruckId: string | null;
-  residentBarangayCoords: [number, number];
+  residentBarangayCoords: [number, number] | null;
   residentAreaName: string;
   lockedToBarangay: boolean;
   collectionDayStatus: CollectionDayStatus;
@@ -71,10 +72,10 @@ const getBarangayPopupContent = (
   </div>`;
 };
 
-const createBarangayPinIcon = (isCompleted = false) => {
+const createBarangayPinIcon = (isCompleted = false, isMissed = false) => {
   const width = 36;
   const height = 48;
-  const color = "hsl(145, 63%, 32%)";
+  const color = isMissed ? "#dc2626" : "hsl(145, 63%, 32%)";
 
   return L.divIcon({
     className: "",
@@ -182,7 +183,9 @@ const TrackingMap = ({
   const isResidentCompleted =
     residentStopStatus === "done" ||
     (!residentStopStatus && collectionDayStatus === "completed");
-  const hasResidentCollectionOutcome = isResidentCompleted || isResidentMissed;
+  // Keep live route information visible after this barangay is served. The
+  // tracking day only finishes once the collector closes the entire route.
+  const hasResidentCollectionOutcome = collectionDayStatus === "completed";
 
   const residentCompletedAt = residentTruck?.residentStopCompletedAt;
 
@@ -238,7 +241,7 @@ const TrackingMap = ({
   // The resident ETA follows the remaining scheduled collection stops, while
   // the visible green line stays focused on the direct live route home.
   const arrivalWaypoints = useMemo((): [number, number][] => {
-    if (!targetTruck?.coords) return [];
+    if (!targetTruck?.coords || !residentBarangayCoords) return [];
 
     const residentStopIndex = targetTruck.routeStops.findIndex(
       (stop) => stop.isResidentBarangay,
@@ -293,19 +296,6 @@ const TrackingMap = ({
       maxZoom: MAX_ZOOM,
     }).addTo(map);
 
-    const barangayIcon = createBarangayPinIcon(isResidentCompleted);
-
-    residentLayerRef.current = L.marker(residentBarangayCoords, {
-      icon: barangayIcon,
-      zIndexOffset: 500,
-    }) as any;
-
-    residentLayerRef.current
-      .bindPopup(
-        getBarangayPopupContent(residentAreaName, isResidentCompleted, residentCompletedAt)
-      )
-      .addTo(map);
-
     routeLayerRef.current = L.layerGroup().addTo(map);
     trucksLayerRef.current = L.layerGroup().addTo(map);
     const resizeObserver = new ResizeObserver(() => {
@@ -332,15 +322,30 @@ const TrackingMap = ({
   }, []);
 
   useEffect(() => {
-    const residentMarker = residentLayerRef.current;
-    if (!residentMarker) return;
+    const map = mapRef.current;
+    if (!map || !residentBarangayCoords) return;
 
-    residentMarker.setIcon(createBarangayPinIcon(isResidentCompleted));
-    residentMarker.setLatLng(residentBarangayCoords);
-    residentMarker.setPopupContent(
-      getBarangayPopupContent(residentAreaName, isResidentCompleted, residentCompletedAt)
+    const popup = getBarangayPopupContent(
+      residentAreaName,
+      isResidentCompleted,
+      residentCompletedAt,
     );
-  }, [residentAreaName, residentBarangayCoords, isResidentCompleted, residentCompletedAt]);
+    const icon = createBarangayPinIcon(isResidentCompleted, isResidentMissed);
+    const residentMarker = residentLayerRef.current;
+
+    if (!residentMarker) {
+      residentLayerRef.current = L.marker(residentBarangayCoords, {
+        icon,
+        zIndexOffset: 500,
+      }) as any;
+      residentLayerRef.current.bindPopup(popup).addTo(map);
+      return;
+    }
+
+    residentMarker.setIcon(icon);
+    residentMarker.setLatLng(residentBarangayCoords);
+    residentMarker.setPopupContent(popup);
+  }, [residentAreaName, residentBarangayCoords, isResidentCompleted, isResidentMissed, residentCompletedAt]);
 
   // Road snapping route calculation and polyline rendering
   useEffect(() => {
@@ -396,8 +401,8 @@ const TrackingMap = ({
     targetTruck?.id,
     targetTruck?.coords?.[0],
     targetTruck?.coords?.[1],
-    residentBarangayCoords[0],
-    residentBarangayCoords[1],
+    residentBarangayCoords?.[0],
+    residentBarangayCoords?.[1],
     onRouteCalculated,
   ]);
 
@@ -444,7 +449,6 @@ const TrackingMap = ({
         `<div style="font-family:Inter,sans-serif;font-size:13px">
           <strong>${truck.name}</strong> · ${truck.plateNumber}<br/>
           <span>${truck.status === "paused" ? "Paused — last known location" : truck.driver || "Assigned Driver"}</span>
-          ${truck.driverMessage ? `<br/><em style="font-size:11px">"${truck.driverMessage}"</em>` : ""}
         </div>`
       );
 
@@ -460,7 +464,7 @@ const TrackingMap = ({
     const map = mapRef.current;
     if (!map) return;
 
-    if (lockedToBarangay) {
+    if (lockedToBarangay && residentBarangayCoords) {
       lastFocusedTruckIdRef.current = null;
       if (lastViewModeRef.current !== "barangay") {
         map.flyTo(residentBarangayCoords, Math.max(map.getZoom(), 15), {
@@ -597,13 +601,8 @@ const TrackingMap = ({
     <div className="relative w-full h-full rounded-2xl overflow-hidden border border-border/80 bg-card shadow-sm [&_.leaflet-control-attribution]:!hidden">
       <div ref={mapElementRef} className="h-full w-full z-0" />
 
-      {hasResidentCollectionOutcome && (
-        <div className="absolute inset-0 z-[400] bg-background/45 backdrop-blur-[3px] pointer-events-auto" />
-      )}
-
       {/* Floating Zoom Controls (Top-Right) */}
-      {!hasResidentCollectionOutcome && (
-      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[500] flex flex-col bg-card/75 backdrop-blur-md rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">
+      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[500] flex flex-col bg-card/90 backdrop-blur-md rounded-xl border border-border/80 shadow-sm overflow-hidden p-0.5 pointer-events-auto">
         <button
           type="button"
           onClick={handleZoomIn}
@@ -624,9 +623,26 @@ const TrackingMap = ({
           <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
-      )}
 
-      {!hasResidentCollectionOutcome && pausedResidentTruck ? (
+      {/* Compact map context; the full collection outcome is shown above the map. */}
+      {hasResidentCollectionOutcome ? (
+        <div className="absolute left-2.5 top-2.5 z-[450] max-w-[calc(100%-56px)] animate-in fade-in-50 duration-300 sm:left-3 sm:top-3">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border/80 bg-card/90 px-2.5 py-2 shadow-md backdrop-blur-md">
+            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
+              isResidentMissed
+                ? "border-destructive/20 bg-destructive/10 text-destructive"
+                : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            }`}>
+              {isResidentMissed ? <AlertTriangle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            </div>
+            <span className="truncate text-xs font-semibold text-foreground">{residentAreaName}</span>
+            <span className="shrink-0 text-muted-foreground">·</span>
+            <span className={`shrink-0 text-[11px] font-semibold ${isResidentMissed ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {isResidentMissed ? "Collection missed" : "Collection complete"}
+            </span>
+          </div>
+        </div>
+      ) : pausedResidentTruck ? (
         <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] animate-in fade-in-50 slide-in-from-top-1 duration-300">
           <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-amber-500/30 shadow-md p-3.5 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
@@ -659,23 +675,28 @@ const TrackingMap = ({
             <button
               type="button"
               onClick={() => setIsCardCollapsed(false)}
-              className="flex items-center gap-2 bg-card/75 backdrop-blur-md px-3.5 py-2 rounded-xl border border-border/70 shadow-2xs text-xs font-bold text-foreground cursor-pointer hover:bg-muted/80 transition-all"
+              className="flex items-center gap-2 bg-card/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-border/80 shadow-2xs text-xs font-bold text-foreground cursor-pointer hover:bg-muted/80 transition-all"
             >
-              <TruckIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
               <span className="truncate">{targetTruck.name}</span>
-              <span className="text-primary font-medium">• {routeData.distanceKm} km (~{routeData.durationMinutes}m)</span>
-              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+              <span className="text-primary font-medium">
+                • {routeData.distanceKm} km (~{estimatedArrivalMinutes ?? routeData.durationMinutes}m)
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-0.5 shrink-0" />
             </button>
           ) : (
             /* Full Delivery Card */
-            <div className="bg-card/75 backdrop-blur-md rounded-2xl border border-border/70 shadow-md p-3.5 space-y-2.5">
+            <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
                     <TruckIcon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-xs font-bold font-display text-foreground truncate">
+                    <h4 className="text-xs font-bold font-display text-foreground tracking-tight truncate">
                       {targetTruck.name}
                     </h4>
                     <p className="text-[11px] text-muted-foreground truncate">
@@ -687,7 +708,7 @@ const TrackingMap = ({
                 <button
                   type="button"
                   onClick={() => setIsCardCollapsed(true)}
-                  className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer shrink-0"
+                  className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer shrink-0 transition-colors"
                   title="Collapse card"
                 >
                   <ChevronUp className="w-3.5 h-3.5" />
@@ -695,29 +716,29 @@ const TrackingMap = ({
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
-                <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
+                <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-primary" />
                     Road Distance
                   </span>
-                  <span className="text-sm font-extrabold text-foreground tracking-tight mt-0.5">
+                  <span className="text-sm font-extrabold font-display text-foreground tracking-tight mt-0.5">
                     {routeData.distanceKm} km
                   </span>
                 </div>
 
-                <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
+                <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3 text-primary" />
                     Est. Arrival
                   </span>
-                  <span className="text-sm font-extrabold text-primary tracking-tight mt-0.5">
+                  <span className="text-sm font-extrabold font-display text-primary tracking-tight mt-0.5">
                     ~{estimatedArrivalMinutes ?? routeData.durationMinutes} mins
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center text-[11px] text-muted-foreground pt-0.5">
-                <span className="flex items-center gap-1 truncate">
+                <span className="flex items-center gap-1.5 truncate">
                   <RouteIcon className="w-3 h-3 text-primary shrink-0" />
                   <span className="truncate">
                     {stopsBeforeResident > 0
@@ -729,37 +750,38 @@ const TrackingMap = ({
             </div>
           )}
         </div>
-      ) : null}
-
-      {!hasActiveTrucks && !hasResidentCollectionOutcome && collectionDayStatus !== "paused" && (
-        <div className="absolute inset-0 z-[400] flex items-center justify-center bg-background/50 backdrop-blur-[2px] p-4 pointer-events-none transition-all">
-          <div className="w-full max-w-[340px] rounded-2xl border border-border/70 bg-card/75 backdrop-blur-md p-6 text-center shadow-md space-y-3.5 pointer-events-auto">
-            {/* Icon Container */}
-            <div className={`w-12 h-12 sm:w-13 sm:h-13 mx-auto rounded-2xl flex items-center justify-center border shadow-2xs ${emptyState.iconBg}`}>
-              {emptyState.icon}
+      ) : !hasActiveTrucks && collectionDayStatus !== "paused" ? (
+        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] animate-in fade-in-50 duration-300">
+          <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${emptyState.iconBg}`}
+              >
+                {emptyState.icon}
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold font-display text-foreground tracking-tight leading-tight">
+                  {emptyState.title}
+                </h4>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  {emptyState.badge}
+                </p>
+              </div>
             </div>
-
-            {/* Title & Description */}
-            <div className="space-y-1.5">
-              <h3 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight">
-                {emptyState.title}
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[270px] mx-auto">
-                {emptyState.desc}
-              </p>
-            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
+              {emptyState.desc}
+            </p>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Floating Map Action Controls (Bottom-Right) */}
-      {!hasResidentCollectionOutcome && (
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs pointer-events-auto">
+      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-sm pointer-events-auto">
         {targetTruck?.coords && (
           <button
             type="button"
             onClick={handleRecenterTruck}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
             title="Recenter on Truck"
           >
             <TruckIcon className="w-3.5 h-3.5 shrink-0" />
@@ -770,7 +792,7 @@ const TrackingMap = ({
         <button
           type="button"
           onClick={handleRecenterBarangay}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Zoom to My Barangay"
         >
           <LocateFixed className="w-3.5 h-3.5 shrink-0" />
@@ -780,23 +802,13 @@ const TrackingMap = ({
         <button
           type="button"
           onClick={handleFitRouteBounds}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Fit Whole Route"
         >
           <Maximize2 className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Fit Route</span>
         </button>
       </div>
-      )}
-
-      {/* Location Badge (Bottom-Left) */}
-      {!hasResidentCollectionOutcome && (
-      <div className="absolute bottom-3 left-3 z-[400] bg-card/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center">
-        <span className="text-[11px] font-display font-semibold text-foreground">
-          Candelaria, Quezon
-        </span>
-      </div>
-      )}
     </div>
   );
 };

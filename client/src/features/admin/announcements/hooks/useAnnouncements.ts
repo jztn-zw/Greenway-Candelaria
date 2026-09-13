@@ -150,7 +150,7 @@ export const useAnnouncements = () => {
     loadInitialData();
   }, [loadInitialData]);
 
-  const createNew = useCallback(async (form: EditorForm): Promise<boolean> => {
+  const createNew = useCallback(async (form: EditorForm): Promise<void> => {
     try {
       setIsSaving(true);
       const payload = formToPayload(form);
@@ -158,17 +158,15 @@ export const useAnnouncements = () => {
       const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
       setAnnouncements((prev) => [mapped, ...prev]);
       toast.success("Announcement saved successfully");
-      return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create.");
-      return false;
+      throw new Error(err instanceof Error ? err.message : "Failed to create the announcement.");
     } finally {
       setIsSaving(false);
     }
   }, []);
 
   const updateExisting = useCallback(
-    async (id: string, form: EditorForm): Promise<boolean> => {
+    async (id: string, form: EditorForm): Promise<void> => {
       try {
         setIsSaving(true);
         const payload = formToPayload(form);
@@ -176,10 +174,8 @@ export const useAnnouncements = () => {
         const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
         setAnnouncements((prev) => prev.map((a) => (a.id === id ? mapped : a)));
         toast.success("Announcement updated");
-        return true;
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to update.");
-        return false;
+        throw new Error(err instanceof Error ? err.message : "Failed to update the announcement.");
       } finally {
         setIsSaving(false);
       }

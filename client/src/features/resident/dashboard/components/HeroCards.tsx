@@ -1,76 +1,121 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
-  Truck,
-  AlertTriangle,
-  MapPin,
   Package,
-  CheckCircle2,
-  Clock,
-  Timer,
-  ArrowRight,
-  PlusCircle,
-  Radio,
+  Truck,
   FileText,
+  Clock,
+  Radio,
+  Hash,
+  Calendar,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchLiveTrucks, LiveRow } from "@/services/trackingService";
 import { fetchMyReports, MyReportRow } from "@/services/reportsService";
-import useAuthStore from "@/store/authStore";
+import {
+  CollectionScheduleDay,
+  fetchCollectionSchedule,
+} from "@/services/scheduleService";
 
-// --- Waste schedule for Candelaria MENRO ---
-const wasteTypes: Record<string, { label: string; tag: string; tagColor: string; description: string }> = {
-  Mon: { label: "Biodegradable", tag: "Biodegradable", tagColor: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30", description: "Food scraps, yard waste, compostable items" },
-  Tue: { label: "Non-Biodegradable", tag: "Non-Bio / Recyclables", tagColor: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30", description: "Plastics, metals, paper, dry waste" },
-  Wed: { label: "Biodegradable", tag: "Biodegradable", tagColor: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30", description: "Food scraps, yard waste, compostable items" },
-  Thu: { label: "Non-Biodegradable", tag: "Non-Bio / Recyclables", tagColor: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30", description: "Plastics, metals, paper, dry waste" },
-  Fri: { label: "Biodegradable", tag: "Biodegradable", tagColor: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30", description: "Food scraps, yard waste, compostable items" },
-  Sat: { label: "Non-Biodegradable", tag: "Non-Bio / Recyclables", tagColor: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30", description: "Plastics, metals, paper, dry waste" },
-  Sun: { label: "Biodegradable", tag: "Biodegradable", tagColor: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30", description: "Food scraps, yard waste, compostable items" },
+const wasteTypeDetails: Record<CollectionScheduleDay["waste_type"], {
+  label: string;
+  tag: string;
+  tagColor: string;
+  description: string;
+}> = {
+  BIODEGRADABLE: {
+    label: "Biodegradable",
+    tag: "Biodegradable",
+    tagColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    description: "Food scraps, yard waste, compostable items",
+  },
+  NON_BIODEGRADABLE: {
+    label: "Non-Biodegradable",
+    tag: "Non-Bio / Recyclables",
+    tagColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    description: "Plastics, metals, paper, dry waste",
+  },
 };
 
-const dayKeys = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const todayKey = dayKeys[new Date().getDay()];
-const todayWaste = wasteTypes[todayKey] || wasteTypes.Mon;
+const todayDayOfWeek = () =>
+  new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "Asia/Manila",
+  }).format(new Date()).toUpperCase();
+
+const formatScheduleTime = (time?: string | null) => {
+  if (!time) return "—";
+  const [hourValue = "0", minute = "00"] = time.split(":");
+  const hour = Number(hourValue);
+  if (Number.isNaN(hour)) return "—";
+  return `${((hour + 11) % 12) + 1}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+};
 
 const statusBadgeConfig: Record<string, { class: string; label: string }> = {
-  SUBMITTED:    { class: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30 dark:bg-amber-500/20", label: "Submitted" },
-  PENDING:      { class: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30 dark:bg-amber-500/20", label: "Pending" },
-  UNDER_REVIEW: { class: "bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-500/30 dark:bg-blue-500/20", label: "Under Review" },
-  DISPATCHED:   { class: "bg-purple-500/15 text-purple-800 dark:text-purple-300 border-purple-500/30 dark:bg-purple-500/20", label: "Dispatched" },
-  RESOLVED:     { class: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 dark:bg-emerald-500/20", label: "Resolved" },
+  SUBMITTED:    { class: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", label: "Submitted" },
+  PENDING:      { class: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", label: "Pending" },
+  UNDER_REVIEW: { class: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25", label: "Under Review" },
+  DISPATCHED:   { class: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25", label: "Dispatched" },
+  RESOLVED:     { class: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25", label: "Resolved" },
+};
+
+const formatViolationType = (type?: string) => {
+  if (!type) return "Waste Report";
+  return type
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
 };
 
 const HeroCards = () => {
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-
   const [liveTrucks, setLiveTrucks] = useState<LiveRow[]>([]);
   const [latestReport, setLatestReport] = useState<MyReportRow | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [todaySchedule, setTodaySchedule] = useState<CollectionScheduleDay | null>(null);
+  const [trucksFailed, setTrucksFailed] = useState(false);
+  const [reportsFailed, setReportsFailed] = useState(false);
+  const [scheduleFailed, setScheduleFailed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     const loadData = async () => {
       try {
-        const [trucksRes, reportsRes] = await Promise.allSettled([
+        const [trucksRes, reportsRes, scheduleRes] = await Promise.allSettled([
           fetchLiveTrucks(),
           fetchMyReports({ limit: 1, sort: "newest" }),
+          fetchCollectionSchedule(),
         ]);
 
         if (!mounted) return;
 
         if (trucksRes.status === "fulfilled") {
           setLiveTrucks(trucksRes.value || []);
+          setTrucksFailed(false);
+        } else {
+          setLiveTrucks([]);
+          setTrucksFailed(true);
         }
-        if (reportsRes.status === "fulfilled" && reportsRes.value.reports?.length > 0) {
-          setLatestReport(reportsRes.value.reports[0]);
+        if (reportsRes.status === "fulfilled") {
+          setLatestReport(reportsRes.value.reports?.[0] ?? null);
+          setReportsFailed(false);
+        } else {
+          setLatestReport(null);
+          setReportsFailed(true);
         }
-      } finally {
-        if (mounted) setIsLoading(false);
+        if (scheduleRes.status === "fulfilled") {
+          setTodaySchedule(
+            scheduleRes.value.find((schedule) => schedule.day_of_week === todayDayOfWeek()) ?? null,
+          );
+          setScheduleFailed(false);
+        } else {
+          setTodaySchedule(null);
+          setScheduleFailed(true);
+        }
+      } catch (error) {
+        console.error("Failed to load resident dashboard hero data", error);
       }
     };
 
@@ -82,170 +127,195 @@ const HeroCards = () => {
     };
   }, []);
 
-  const activeTruck = liveTrucks.find((t) => t.truck_status === "ON_THE_WAY") || liveTrucks[0];
-  const hasActive = liveTrucks.length > 0 && activeTruck && activeTruck.truck_status === "ON_THE_WAY";
+  // The live endpoint retains the most recent GPS ping for offline trucks, so only
+  // trucks currently on route count as live on the resident dashboard.
+  const activeTrucks = liveTrucks.filter((truck) => truck.truck_status === "ON_THE_WAY");
+  const activeTruck = activeTrucks[0];
+  const hasActive = activeTrucks.length > 0;
+  const todayWaste = todaySchedule ? wasteTypeDetails[todaySchedule.waste_type] : null;
+  const scheduleTime = todaySchedule
+    ? `${formatScheduleTime(todaySchedule.start_time)}${todaySchedule.end_time ? ` – ${formatScheduleTime(todaySchedule.end_time)}` : ""}`
+    : "Not scheduled";
 
   return (
     <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {/* ─── Card 1: Today's Collection Schedule ─── */}
-      <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden hover:shadow-md transition-all group flex flex-col justify-between">
-        <CardContent className="p-0">
-          <div className="h-1 bg-primary" />
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5 text-primary" />
-                Today's Schedule
-              </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${todayWaste.tagColor}`}>
-                {todayWaste.tag}
-              </span>
-            </div>
+      <Card
+        onClick={() => navigate("/resident/schedule")}
+        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group"
+      >
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Today's Schedule
+            </span>
+            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
+              {todayWaste ? todayWaste.tag : scheduleFailed ? "Unavailable" : "No collection"}
+            </span>
+          </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                <Package className="w-5 h-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-sm font-bold text-foreground truncate">{todayWaste.label}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{todayWaste.description}</p>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              <Package className="w-4 h-4" />
             </div>
-
-            <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Standard pickup starts:</span>
-              <strong className="text-foreground font-semibold">6:00 AM - 10:00 AM</strong>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+                {todayWaste ? todayWaste.label : scheduleFailed ? "Schedule unavailable" : "No collection scheduled"}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                {todayWaste
+                  ? todayWaste.description
+                  : scheduleFailed
+                    ? "The collection schedule could not be loaded right now."
+                    : "No collection schedule has been published for today."}
+              </p>
             </div>
           </div>
-        </CardContent>
-        <div className="px-4 sm:px-5 pb-4">
-          <button
-            onClick={() => navigate("/resident/schedule")}
-            className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
-          >
-            View full weekly calendar <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+
+          <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
+              Collection Time
+            </span>
+            <span className="font-semibold text-foreground tabular-nums">{scheduleTime}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+          <span>View weekly calendar</span>
+          <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>
 
       {/* ─── Card 2: Live Truck Status ─── */}
-      <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden hover:shadow-md transition-all group flex flex-col justify-between">
-        <CardContent className="p-0">
-          <div className={`h-1 ${hasActive ? "bg-primary animate-pulse" : "bg-muted-foreground/30"}`} />
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-primary" />
-                Collection Truck
+      <Card
+        onClick={() => navigate("/resident/tracking")}
+        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group"
+      >
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Collection Truck
+            </span>
+            {trucksFailed ? (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+                Status unavailable
               </span>
-              {hasActive ? (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                  Live On Route
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border">
-                  Standby
-                </span>
-              )}
-            </div>
+            ) : hasActive ? (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center gap-1.5 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live On Route
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+                No active collection
+              </span>
+            )}
+          </div>
 
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                hasActive ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted border-border text-muted-foreground"
-              }`}>
-                <Truck className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-sm font-bold text-foreground">
-                  {hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {hasActive
-                    ? `Driver: ${activeTruck.driver_name || "Assigned Driver"}`
-                    : "No trucks actively collecting right now"}
-                </p>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              <Truck className="w-4 h-4" />
             </div>
-
-            <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 text-[11px] flex items-center justify-between">
-              <span className="text-muted-foreground">Active Units:</span>
-              <span className="font-bold text-foreground">{liveTrucks.length} truck{liveTrucks.length !== 1 ? "s" : ""} online</span>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+                {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                {trucksFailed
+                  ? "Live truck information could not be loaded right now"
+                  : hasActive
+                  ? `Driver: ${activeTruck.driver_name || "Assigned Driver"}`
+                  : "No collection truck is currently on route"}
+              </p>
             </div>
           </div>
-        </CardContent>
-        <div className="px-4 sm:px-5 pb-4">
-          <button
-            onClick={() => navigate("/resident/tracking")}
-            className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
-          >
-            <MapPin className="w-3.5 h-3.5" /> Open live GPS map <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+
+          <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-muted-foreground/80" />
+              Live Trucks
+            </span>
+            <span className="font-semibold text-foreground tabular-nums">
+              {trucksFailed ? "—" : `${activeTrucks.length} truck${activeTrucks.length !== 1 ? "s" : ""} on route`}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+          <span>Open live GPS map</span>
+          <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>
 
       {/* ─── Card 3: Latest Report ─── */}
-      <Card className="border border-border/80 bg-card/80 backdrop-blur-sm overflow-hidden hover:shadow-md transition-all group flex flex-col justify-between sm:col-span-2 lg:col-span-1">
-        <CardContent className="p-0">
-          <div className="h-1 bg-earth-dark" />
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-primary" />
-                Latest Waste Report
+      <Card
+        onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
+        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group sm:col-span-2 lg:col-span-1"
+      >
+        <div className="space-y-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Latest Waste Report
+            </span>
+            {latestReport && (
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${
+                  statusBadgeConfig[latestReport.status]?.class || "bg-muted/60 text-muted-foreground border-border/80"
+                }`}
+              >
+                {statusBadgeConfig[latestReport.status]?.label || latestReport.status}
               </span>
-              {latestReport && (
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                  statusBadgeConfig[latestReport.status]?.class || "bg-muted text-muted-foreground"
-                }`}>
-                  {statusBadgeConfig[latestReport.status]?.label || latestReport.status}
-                </span>
-              )}
-            </div>
-
-            {latestReport ? (
-              <>
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0 border border-destructive/20 text-destructive">
-                    <AlertTriangle className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-sm font-bold text-foreground truncate">
-                        {latestReport.violation_type?.replace(/_/g, " ")}
-                      </h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      {latestReport.description || "Report submitted for inspection"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 text-[11px] flex items-center justify-between">
-                  <span className="text-muted-foreground font-mono">{latestReport.reference_number}</span>
-                  <span className="text-muted-foreground">
-                    {new Date(latestReport.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="py-2 text-center space-y-1">
-                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <p className="text-xs font-semibold text-foreground">No pending waste reports</p>
-                <p className="text-[11px] text-muted-foreground">Your area has zero open issues logged.</p>
-              </div>
             )}
           </div>
-        </CardContent>
-        <div className="px-4 sm:px-5 pb-4">
-          <button
-            onClick={() => navigate("/resident/my-reports")}
-            className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
-          >
-            {latestReport ? "View report history" : "Submit new report"} <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+
+          {latestReport ? (
+            <>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+                    {formatViolationType(latestReport.violation_type)}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    {latestReport.description || "Report submitted for inspection"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+                <span className="text-muted-foreground font-mono text-[11px] flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5 text-muted-foreground/80" />
+                  {latestReport.reference_number}
+                </span>
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                  {new Date(latestReport.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="py-2 text-center space-y-1">
+              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <p className="text-xs font-semibold text-foreground">
+                {reportsFailed ? "Reports unavailable" : "No waste reports yet"}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {reportsFailed
+                  ? "Your report history could not be loaded right now."
+                  : "You have not submitted a waste report."}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+          <span>{latestReport || reportsFailed ? "View report history" : "Submit new report"}</span>
+          <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>
     </div>
@@ -253,4 +323,3 @@ const HeroCards = () => {
 };
 
 export default HeroCards;
-

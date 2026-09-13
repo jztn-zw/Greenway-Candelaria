@@ -15,13 +15,10 @@ import {
 } from "@/components/ui/sheet";
 import {
   WasteReport,
-  ReportPriority,
   VIOLATION_TYPE_TO_LABEL,
   VIOLATION_LABEL_TO_BACKEND,
   STATUS_TO_LABEL,
   STATUS_LABEL_TO_BACKEND,
-  PRIORITY_TO_LABEL,
-  PRIORITY_LABEL_TO_BACKEND,
   safeFormatDate,
 } from "./types";
 import { toast } from "@/lib/toast";
@@ -59,7 +56,6 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
     id: p.id,
     url: p.url,
   })),
-  priority: PRIORITY_TO_LABEL[r.priority] || "Medium",
   status: STATUS_TO_LABEL[r.status] || "Submitted",
   statusHistory: (r.status_history || []).map((h) => ({
     id: h.id,
@@ -100,7 +96,6 @@ const AdminWasteReports = () => {
   const [violationFilter, setViolationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [barangayFilter, setBarangayFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -143,11 +138,6 @@ const AdminWasteReports = () => {
           params.barangay = barangayFilter;
         }
 
-        if (priorityFilter !== "all") {
-          params.priority =
-            PRIORITY_LABEL_TO_BACKEND[priorityFilter as ReportPriority] || priorityFilter;
-        }
-
         if (dateRange.from) {
           params.date_from = dateRange.from.toISOString();
         }
@@ -187,7 +177,6 @@ const AdminWasteReports = () => {
       statusFilter,
       violationFilter,
       barangayFilter,
-      priorityFilter,
       sortBy,
       dateRange,
       selectedId,
@@ -202,7 +191,6 @@ const AdminWasteReports = () => {
     statusFilter,
     violationFilter,
     barangayFilter,
-    priorityFilter,
     sortBy,
     dateRange,
   ]);
@@ -378,7 +366,6 @@ const AdminWasteReports = () => {
       "Barangay",
       "Landmark",
       "Submitter",
-      "Priority",
       "Status",
       "Date Submitted",
       "Description",
@@ -390,7 +377,6 @@ const AdminWasteReports = () => {
       `"${r.barangay}"`,
       `"${r.street || ""}"`,
       `"${r.submitterName}"`,
-      `"${r.priority}"`,
       `"${r.status}"`,
       `"${safeFormatDate(r.submittedAt, "yyyy-MM-dd HH:mm", "")}"`,
       `"${r.description.replace(/"/g, '""')}"`,
@@ -500,11 +486,6 @@ const AdminWasteReports = () => {
         barangayFilter={barangayFilter}
         onBarangayFilterChange={(b) => {
           setBarangayFilter(b);
-          setPage(1);
-        }}
-        priorityFilter={priorityFilter}
-        onPriorityFilterChange={(p) => {
-          setPriorityFilter(p);
           setPage(1);
         }}
         sortBy={sortBy}

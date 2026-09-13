@@ -77,7 +77,7 @@ const StatsCards = () => {
       {stats.map((s) => (
         <Card
           key={s.label}
-          className="cursor-pointer hover:shadow-md hover:border-primary/40 transition-all border border-border/80 bg-card/80 backdrop-blur-sm active:scale-[0.99] group"
+          className="rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/40 transition-all border border-border/80 bg-card/80 backdrop-blur-sm active:scale-[0.99] group"
           onClick={() => navigate(s.to)}
         >
           <CardContent className="p-4 sm:p-5">

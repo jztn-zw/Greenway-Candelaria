@@ -96,12 +96,6 @@ const getReportsAnalytics = async (filters = {}) => {
     params,
   );
 
-  // By priority
-  const [byPriority] = await pool.query(
-    `SELECT priority, COUNT(*) AS count FROM reports ${where} GROUP BY priority`,
-    params,
-  );
-
   // By barangay (top 10)
   const [byBarangay] = await pool.query(
     `SELECT
@@ -145,7 +139,6 @@ const getReportsAnalytics = async (filters = {}) => {
   return {
     by_status: byStatus,
     by_type: byType,
-    by_priority: byPriority,
     by_barangay: byBarangay,
     monthly_trend: monthly,
     total: total.count,

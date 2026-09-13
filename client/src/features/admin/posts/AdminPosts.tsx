@@ -545,8 +545,8 @@ const AdminPosts = () => {
         toast.success("Post created successfully!");
       }
       closeEditor();
-    } catch {
-      toast.error("Failed to save post");
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : "Failed to save post");
     } finally {
       setIsSaving(false);
     }

@@ -159,10 +159,8 @@ export const useRoutes = () => {
         toast.success("Route created successfully");
         return mapped;
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to create route.",
-        );
-        return null;
+        const message = err instanceof Error ? err.message : "Failed to create route.";
+        throw new Error(message);
       } finally {
         setIsSaving(false);
       }
@@ -192,10 +190,8 @@ export const useRoutes = () => {
         toast.success("Route updated");
         return mapped;
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to update route.",
-        );
-        return null;
+        const message = err instanceof Error ? err.message : "Failed to update route.";
+        throw new Error(message);
       } finally {
         setIsSaving(false);
       }

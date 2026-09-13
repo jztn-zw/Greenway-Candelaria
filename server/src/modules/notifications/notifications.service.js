@@ -6,6 +6,17 @@ const {
   emitNotificationToAdmins,
 } = require("../../sockets/notifications.socket");
 
+const NOTIFICATION_TYPES = new Set([
+  "COLLECTION_REMINDER",
+  "TRUCK_IS_NEAR",
+  "COLLECTION_DONE",
+  "REPORT_UPDATE",
+  "NEW_POST",
+  "ANNOUNCEMENT",
+  "MISSED_COLLECTION",
+  "SYSTEM",
+]);
+
 // ─── Single User Notification ──────────────────────────────
 
 const sendToUser = async ({
@@ -176,21 +187,37 @@ const getMyNotifications = async (userId, filters = {}) => {
     ${excludeExpiredAnnouncementNotifications}
   `;
   const params = [userId];
+  const countParams = [userId];
+  let filterQuery = "";
 
   if (filters.type) {
-    query += " AND n.type = ?";
-    params.push(filters.type);
+    const type = String(filters.type).toUpperCase();
+    if (!NOTIFICATION_TYPES.has(type)) {
+      throw { statusCode: 400, message: "Invalid notification type filter" };
+    }
+    filterQuery += " AND n.type = ?";
+    params.push(type);
+    countParams.push(type);
   }
 
   if (filters.is_read !== undefined && filters.is_read !== "all") {
-    query += " AND n.is_read = ?";
-    params.push(filters.is_read === "true" || filters.is_read === "1" ? 1 : 0);
+    const isRead = filters.is_read === "true" || filters.is_read === "1" ? 1 : 0;
+    filterQuery += " AND n.is_read = ?";
+    params.push(isRead);
+    countParams.push(isRead);
   }
 
+  query += filterQuery;
   query += " ORDER BY created_at DESC";
 
-  const limit = parseInt(filters.limit, 10) || 20;
-  const offset = parseInt(filters.offset, 10) || 0;
+  const requestedLimit = Number.parseInt(filters.limit, 10);
+  const requestedOffset = Number.parseInt(filters.offset, 10);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(100, Math.max(1, requestedLimit))
+    : 20;
+  const offset = Number.isFinite(requestedOffset)
+    ? Math.max(0, requestedOffset)
+    : 0;
   query += " LIMIT ? OFFSET ?";
   params.push(limit, offset);
 
@@ -200,8 +227,9 @@ const getMyNotifications = async (userId, filters = {}) => {
     `SELECT COUNT(*) AS total
      FROM notifications n
      WHERE n.user_id = ?
-     ${excludeExpiredAnnouncementNotifications}`,
-    [userId],
+     ${excludeExpiredAnnouncementNotifications}
+     ${filterQuery}`,
+    countParams,
   );
 
   return {

@@ -1,491 +1,751 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  CalendarDays,
   Clock,
   MapPin,
-  Sparkles,
-  Printer,
+  Truck,
+  ArrowRight,
   CheckCircle2,
-  Trash2,
-  Recycle,
   AlertCircle,
-  HelpCircle,
-  Package,
-  Users,
+  Sparkles,
+  Info,
+  Calendar,
+  AlertTriangle,
+  ChevronRight,
+  Check,
+  X,
+  X as CloseIcon,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CalendarGrid } from "@/features/admin/schedule/CalendarGrid";
 import { ResidentScheduleSkeleton } from "@/components/PageLoadingSkeletons";
+import {
+  CalendarEvent,
+  CollectionScheduleDay,
+  fetchCalendarEvents,
+  fetchCollectionSchedule,
+} from "@/services/scheduleService";
+import { SegmentedControl } from "@/components/common";
 import useAuthStore from "@/store/authStore";
-import { fetchCalendarEvents, fetchCollectionSchedule, CalendarEvent, CollectionScheduleDay } from "@/services/scheduleService";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const DAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const DAY_CODES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const toDateString = (year: number, month: number, day: number) =>
+  `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-const ResidentSchedule: React.FC = () => {
+const eventColor = (id: string) => {
+  let value = 0;
+  for (let index = 0; index < id.length; index += 1) value = (value * 31 + id.charCodeAt(index)) >>> 0;
+  return `hsl(${value % 360} 72% 52%)`;
+};
+
+const formatTime12 = (timeStr?: string | null) => {
+  if (!timeStr) return "";
+  try {
+    const [h, m] = timeStr.split(":");
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${m} ${ampm}`;
+  } catch {
+    return timeStr;
+  }
+};
+
+const getEventBadgeInfo = (event: CalendarEvent) => {
+  const titleLower = event.title.toLowerCase();
+  if (titleLower.includes("holiday")) {
+    return {
+      label: "Holiday Reminder",
+      badgeClass: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    };
+  }
+  if (titleLower.includes("cleanup") || titleLower.includes("clean-up")) {
+    return {
+      label: "Clean-up Drive",
+      badgeClass: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+      iconClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    };
+  }
+  if (titleLower.includes("collection") || event.event_type === "COLLECTION_SCHEDULE") {
+    return {
+      label: "Collection Schedule",
+      badgeClass: "border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10",
+      iconClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    };
+  }
+  if (event.event_type === "COMMUNITY_EVENT") {
+    return {
+      label: "Community Event",
+      badgeClass: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    };
+  }
+  return {
+    label: "Official Notice",
+    badgeClass: "border-primary/30 text-primary bg-primary/10",
+    iconClass: "bg-primary/10 text-primary border-primary/20",
+  };
+};
+
+const formatEventDisplayDate = (event: CalendarEvent) => {
+  try {
+    const rawDate = event.event_date.split("T")[0];
+    const [y, m, d] = rawDate.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const formatted = dateObj.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    if (event.start_time) {
+      return `${formatted}, ${formatTime12(event.start_time)}`;
+    }
+    return formatted;
+  } catch {
+    return event.event_date;
+  }
+};
+
+// Candelaria standard municipal collection rules by day of week
+const defaultWasteScheduleByDay: Record<number, {
+  dayName: string;
+  wasteType: "BIODEGRADABLE" | "NON_BIODEGRADABLE";
+  title: string;
+  badgeClass: string;
+  timeWindow: string;
+  accepted: string[];
+  prohibited: string[];
+  tips: string;
+}> = {
+  0: {
+    dayName: "Sunday",
+    wasteType: "BIODEGRADABLE",
+    title: "Biodegradable",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
+    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
+    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
+  },
+  1: {
+    dayName: "Monday",
+    wasteType: "BIODEGRADABLE",
+    title: "Biodegradable",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
+    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
+    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
+  },
+  2: {
+    dayName: "Tuesday",
+    wasteType: "NON_BIODEGRADABLE",
+    title: "Non-Biodegradable",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
+    prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
+    tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
+  },
+  3: {
+    dayName: "Wednesday",
+    wasteType: "BIODEGRADABLE",
+    title: "Biodegradable",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
+    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
+    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
+  },
+  4: {
+    dayName: "Thursday",
+    wasteType: "NON_BIODEGRADABLE",
+    title: "Non-Biodegradable",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
+    prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
+    tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
+  },
+  5: {
+    dayName: "Friday",
+    wasteType: "BIODEGRADABLE",
+    title: "Biodegradable",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
+    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
+    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
+  },
+  6: {
+    dayName: "Saturday",
+    wasteType: "NON_BIODEGRADABLE",
+    title: "Non-Biodegradable",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    timeWindow: "6:00 AM – 10:00 AM",
+    accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
+    prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
+    tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
+  },
+};
+
+const dayNameToIndex: Record<string, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+type ViewTab = "CALENDAR" | "WEEKLY_GUIDE";
+
+const ResidentSchedule = () => {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const barangayName = user?.barangay_name || "Candelaria";
+
+  const today = new Date();
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [collectionRules, setCollectionRules] = useState<CollectionScheduleDay[]>([]);
-  const user = useAuthStore((s) => s.user);
+  const [activeTab, setActiveTab] = useState<ViewTab>("CALENDAR");
+  const [selectedEventModal, setSelectedEventModal] = useState<CalendarEvent | null>(null);
 
-  // Dynamic Month State for full interactive calendar
-  const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [selectedDay, setSelectedDay] = useState<number | null>(() => new Date().getDate());
+  const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDateStr, setSelectedDateStr] = useState(() =>
+    toDateString(today.getFullYear(), today.getMonth(), today.getDate()),
+  );
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const monthName = currentDate.toLocaleString("default", { month: "long" });
-
-  const today = new Date();
-  const isCurrentMonth =
-    today.getFullYear() === year && today.getMonth() === month;
-  const todayDateNumber = today.getDate();
-
-  const firstDayOfWeek = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const calendarCells: (number | null)[] = useMemo(() => {
-    const cells: (number | null)[] = [];
-    for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    return cells;
-  }, [firstDayOfWeek, daysInMonth]);
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-    setSelectedDay(null);
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-    setSelectedDay(null);
-  };
-
-  const handleJumpToday = () => {
-    const n = new Date();
-    setCurrentDate(n);
-    setSelectedDay(n.getDate());
-  };
-
-  const getDayWasteSchedule = (dateNum: number) => {
-    const dow = new Date(year, month, dateNum).getDay();
-    const dayOfWeek = DAY_CODES[dow];
-    const rule = collectionRules.find((entry) => entry.day_of_week === dayOfWeek);
-    if (!rule) return null;
-    const template = rule.waste_type === "BIODEGRADABLE"
-      ? { wasteType: "bio" as const, title: "Biodegradable" as const, items: ["Food scraps", "Vegetable waste", "Compostable garden waste"] }
-      : { wasteType: "non-bio" as const, title: "Non-Biodegradable" as const, items: ["Plastic bottles & packaging", "Paper & cardboard", "Metal cans & tins"] };
-    const start = rule.start_time?.slice(0, 5) || "";
-    const end = rule.end_time?.slice(0, 5) || "";
-    return {
-      day: DAY_NAMES[dow],
-      dayShort: DAY_SHORT_NAMES[dow],
-      ...template,
-      timeWindow: start ? `${start}${end ? ` – ${end}` : ""}` : "Time to be announced",
-    };
-  };
-
-  const selectedDaySchedule = selectedDay ? getDayWasteSchedule(selectedDay) : null;
-
-  const weeklyRoutine = useMemo(() => DAY_CODES.map((dayCode, index) => {
-    const rule = collectionRules.find((entry) => entry.day_of_week === dayCode);
-    if (!rule) return null;
-    const isBio = rule.waste_type === "BIODEGRADABLE";
-    return {
-      day: DAY_NAMES[index],
-      dayShort: DAY_SHORT_NAMES[index],
-      wasteType: isBio ? "bio" : "non-bio",
-      title: isBio ? "Biodegradable" : "Non-Biodegradable",
-      timeWindow: `${rule.start_time.slice(0, 5)}${rule.end_time ? ` – ${rule.end_time.slice(0, 5)}` : ""}`,
-    };
-  }).filter((rule): rule is NonNullable<typeof rule> => Boolean(rule)), [collectionRules]);
-
-  const selectedDateStr = selectedDay
-    ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`
-    : null;
-
-  const dayPublicEvents = useMemo(() => {
-    if (!selectedDateStr) return [];
-    return events.filter((e) => {
-      const eDate = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
-      return eDate === selectedDateStr;
-    });
-  }, [events, selectedDateStr]);
+  const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
 
   useEffect(() => {
-    Promise.all([fetchCalendarEvents(), fetchCollectionSchedule()])
-      .then(([eventData, ruleData]) => {
-        setEvents(eventData);
-        setCollectionRules(ruleData);
-      })
-      .catch((err) => console.error("Failed to load schedule data", err))
-      .finally(() => setIsLoading(false));
-  }, []);
+    let isMounted = true;
+    setIsLoading(true);
 
-  if (isLoading) {
-    return <ResidentScheduleSkeleton />;
-  }
+    Promise.all([
+      fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }),
+      fetchCollectionSchedule().catch(() => []),
+    ])
+      .then(([evts, rules]) => {
+        if (isMounted) {
+          setEvents(evts || []);
+          if (Array.isArray(rules) && rules.length > 0) {
+            setCollectionRules(rules);
+          }
+        }
+      })
+      .catch((error) => console.error("Failed to load resident calendar events", error))
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [year, month]);
+
+  // Selected date events
+  const selectedEvents = useMemo(
+    () =>
+      events.filter((event) => {
+        const start = event.event_date.split("T")[0];
+        const end = event.end_date?.split("T")[0] || start;
+        return selectedDateStr >= start && selectedDateStr <= end;
+      }),
+    [events, selectedDateStr],
+  );
+
+  // Colors per event
+  const scheduleColorById = useMemo(
+    () => new Map(events.map((event) => [event.id, eventColor(event.id)])),
+    [events],
+  );
+
+  const selectedDate = useMemo(() => new Date(`${selectedDateStr}T00:00:00`), [selectedDateStr]);
+  const selectedDayOfWeek = selectedDate.getDay();
+  const isSelectedToday = selectedDateStr === todayStr;
+
+  // Resolve collection rule for selected day (merge custom DB rule if present)
+  const selectedDayCollection = useMemo(() => {
+    const base = defaultWasteScheduleByDay[selectedDayOfWeek];
+    const customRule = collectionRules.find(
+      (r) => dayNameToIndex[r.day_of_week?.toUpperCase()] === selectedDayOfWeek,
+    );
+
+    if (!customRule) return base;
+
+    const isBio = customRule.waste_type === "BIODEGRADABLE";
+    return {
+      ...base,
+      wasteType: customRule.waste_type,
+      title: isBio ? "Biodegradable" : "Non-Biodegradable",
+      badgeClass: isBio
+        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+      timeWindow: customRule.start_time
+        ? `${customRule.start_time.slice(0, 5)} ${customRule.end_time ? `– ${customRule.end_time.slice(0, 5)}` : "AM"}`
+        : base.timeWindow,
+    };
+  }, [selectedDayOfWeek, collectionRules]);
+
+  const isSelectedDayBio = selectedDayCollection.wasteType === "BIODEGRADABLE";
+
+  const changeMonth = (amount: number) => {
+    const next = new Date(year, month + amount, 1);
+    setCurrentDate(next);
+    setSelectedDateStr(toDateString(next.getFullYear(), next.getMonth(), 1));
+  };
+
+  const goToday = () => {
+    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDateStr(todayStr);
+  };
+
+  // Filtered weekly guide items
+  const filteredWeeklyGuide = useMemo(() => {
+    const days = [1, 2, 3, 4, 5, 6, 0]; // Monday to Sunday
+    return days.map((dayIndex) => {
+      const schedule = defaultWasteScheduleByDay[dayIndex];
+      const customRule = collectionRules.find(
+        (r) => dayNameToIndex[r.day_of_week?.toUpperCase()] === dayIndex,
+      );
+      const isBio = customRule ? customRule.waste_type === "BIODEGRADABLE" : schedule.wasteType === "BIODEGRADABLE";
+
+      return {
+        ...schedule,
+        dayIndex,
+        isCustom: Boolean(customRule),
+        title: isBio ? "Biodegradable" : "Non-Biodegradable",
+        badgeClass: isBio
+          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+      };
+    });
+  }, [collectionRules]);
+
+  if (isLoading) return <ResidentScheduleSkeleton />;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 shadow-sm">
-            <CalendarIcon className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
-              Waste Collection Schedule
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
-              <span>
-                Barangay: <strong className="text-foreground">{user?.barangay_name || "Candelaria Proper"}</strong>
-              </span>
-            </p>
-          </div>
+    <div className="mx-auto w-full max-w-[1400px] space-y-5 animate-in fade-in duration-300 pb-12">
+      {/* ─── Page Header ─── */}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl">
+            Resident Calendar
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            View collection days and official announcements.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.print()}
-            className="rounded-xl gap-1.5 text-xs font-semibold bg-card border-border/80 hover:bg-muted/60 text-foreground h-9 shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print Timetable</span>
-          </Button>
+        {/* View Toggle Tabs */}
+        <div className="shrink-0">
+          <SegmentedControl<ViewTab>
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { value: "CALENDAR", label: "Monthly Calendar", icon: CalendarDays },
+              { value: "WEEKLY_GUIDE", label: "Weekly Schedule Guide", icon: Truck },
+            ]}
+          />
         </div>
       </div>
 
-      {/* ── Weekly Day-by-Day Route Overview ── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm sm:text-base font-bold font-display text-foreground flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary" />
-            Weekly Routine Breakdown
-          </h2>
-          <span className="text-[11px] text-muted-foreground">Times reflect the current MENRO collection rules</span>
-        </div>
+      {/* ─── View Tab 1: Monthly Calendar ─── */}
+      {activeTab === "CALENDAR" && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
+          {/* Main Interactive Calendar */}
+          <div className="lg:col-span-2 space-y-4">
+            <CalendarGrid
+              currentDate={currentDate}
+              selectedDateStr={selectedDateStr}
+              events={events}
+              scheduleColorById={scheduleColorById}
+              onSelectDate={setSelectedDateStr}
+              onPrevMonth={() => changeMonth(-1)}
+              onNextMonth={() => changeMonth(1)}
+              onGoToday={goToday}
+              hideTodayButtonWhenOtherDateSelected
+              footer={
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                  <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Announcements
+                  </span>
+                  {selectedEvents.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">No announcements for this date.</span>
+                  ) : (
+                    selectedEvents.map((event) => {
+                      const color = scheduleColorById.get(event.id) || "hsl(160 72% 52%)";
+                      const date = event.event_date.split("T")[0];
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => setSelectedDateStr(date)}
+                          className="inline-flex max-w-[180px] items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
+                        >
+                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="truncate">{event.title}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              }
+            />
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {weeklyRoutine.map((item) => {
-            const isToday =
-              isCurrentMonth && today.getDay() === DAY_SHORT_NAMES.indexOf(item.dayShort);
-            const isBio = item.wasteType === "bio";
-
-            return (
-              <Card
-                key={item.day}
-                className={`rounded-2xl border transition-all duration-200 ${
-                  isToday
-                    ? "border-primary ring-2 ring-primary/20 bg-primary/[0.03] shadow-md"
-                    : "border-border bg-card/90 hover:border-primary/30 hover:shadow-sm"
-                }`}
-              >
-                <CardContent className="p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-display text-foreground">
-                      {item.day}
-                    </span>
-                    {isToday && (
-                      <Badge className="text-[9px] bg-primary text-primary-foreground font-bold px-1.5 py-0.2">
-                        Today
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isBio
-                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
-                          : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
-                      }`}
-                    >
-                      {item.title}
-                    </Badge>
-                    <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground/70" />
-                      {item.timeWindow}
+          {/* ─── Selected Day Detail Panel (Resident-Focused Info) ─── */}
+          <div className="space-y-4 lg:col-span-1">
+            <Card className="border border-border/80 bg-card rounded-2xl shadow-2xs overflow-hidden">
+              <CardHeader className="border-b border-border/60 p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="font-display text-base font-bold text-foreground truncate">
+                      {selectedDate.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </CardTitle>
+                    <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                      Barangay {barangayName} Collection Details
                     </p>
                   </div>
-
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Main Interactive Calendar Grid + Day Details ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Interactive Calendar Card */}
-        <Card className="lg:col-span-2 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-          <CardHeader className="p-4 sm:p-5 border-b border-border/60">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base sm:text-lg font-bold font-display text-foreground">
-                  {monthName} {year}
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Tap any day to see the exact collection guidelines
-                </CardDescription>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleJumpToday}
-                  className="text-xs h-8 px-2.5 rounded-xl mr-1"
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handlePrevMonth}
-                  className="h-8 w-8 rounded-xl"
-                  title="Previous Month"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleNextMonth}
-                  className="h-8 w-8 rounded-xl"
-                  title="Next Month"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-4 sm:p-6 space-y-4">
-            {/* Day Header Row */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center">
-              {DAY_SHORT_NAMES.map((label) => (
-                <span
-                  key={label}
-                  className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider py-1"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            {/* Calendar Cells */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {calendarCells.map((dayNum, i) => {
-                if (dayNum === null) {
-                  return <div key={`empty-${i}`} className="aspect-square rounded-xl" />;
-                }
-
-                const schedule = getDayWasteSchedule(dayNum);
-                const isSelected = selectedDay === dayNum;
-                const isTodayCell = isCurrentMonth && dayNum === todayDateNumber;
-                const isBio = schedule?.wasteType === "bio";
-                const dayDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-                const hasCommunityEvent = events.some((e) => {
-                  const eDate = typeof e.event_date === "string" ? e.event_date.split("T")[0] : "";
-                  return eDate === dayDateStr;
-                });
-
-                return (
-                  <button
-                    key={`day-${dayNum}`}
-                    type="button"
-                    onClick={() => setSelectedDay(dayNum)}
-                    className={`aspect-square rounded-xl sm:rounded-2xl p-1 sm:p-1.5 flex flex-col items-center justify-between transition-all duration-200 relative group cursor-pointer border ${
-                      isSelected
-                        ? "border-primary ring-2 ring-primary/30 bg-primary/10 shadow-sm"
-                        : isTodayCell
-                        ? "border-primary/50 bg-primary/[0.04] text-primary font-bold"
-                        : "border-border/60 hover:border-primary/40 hover:bg-muted/40"
-                    }`}
-                  >
-                    <span
-                      className={`text-xs sm:text-sm font-semibold ${
-                        isTodayCell ? "text-primary font-bold" : "text-foreground"
-                      }`}
+                  {isSelectedToday && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-border/70 text-muted-foreground bg-muted/60 shrink-0"
                     >
-                      {dayNum}
-                    </span>
-
-                    {/* Dot Indicator */}
-                    <div className="flex items-center gap-1">
-                      {schedule && (
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            isBio ? "bg-primary" : "bg-amber-500"
-                          } shadow-xs`}
-                        />
-                      )}
-                      {hasCommunityEvent && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-background" title="Official announcement event" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs text-muted-foreground flex-wrap gap-2">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-1.5 font-medium">
-                  <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-                  Biodegradable collection days
+                      Today
+                    </Badge>
+                  )}
                 </div>
-                <div className="flex items-center gap-1.5 font-medium">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  Non-biodegradable collection days
-                </div>
-                <div className="flex items-center gap-1.5 font-medium">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  Official announcement events
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Day Details Card & Guidelines */}
-        <div className="space-y-4">
-          {selectedDaySchedule ? (
-            <Card className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-              <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Selected Day
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      selectedDaySchedule.wasteType === "bio"
-                        ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
-                        : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
-                    }`}
-                  >
-                    {selectedDaySchedule.title}
-                  </Badge>
-                </div>
-                <CardTitle className="text-lg font-bold font-display text-foreground mt-1">
-                  {selectedDaySchedule.day}, {monthName} {selectedDay}, {year}
-                </CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-5 space-y-4">
-                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/60 border border-border text-xs">
-                  <Clock className="w-4 h-4 text-primary shrink-0" />
-                  <div>
-                    <p className="font-semibold text-foreground">Pickup Window: {selectedDaySchedule.timeWindow}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Please bring your bins out before the scheduled start time.</p>
+                {/* 1. Regular Waste Collection Card for Selected Day */}
+                <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                      <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> Regular Collection
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs shrink-0 whitespace-nowrap ${isSelectedDayBio ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelectedDayBio ? "bg-emerald-500" : "bg-amber-500"}`} />
+                      <span>{selectedDayCollection.title}</span>
+                    </span>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Accepted Items For This Pickup:
-                  </p>
-                  <div className="space-y-1.5">
-                    {selectedDaySchedule.items.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs text-foreground/90">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between text-xs pt-0.5 whitespace-nowrap">
+                    <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      Pickup Hours:
+                    </span>
+                    <span className="font-semibold text-foreground tabular-nums shrink-0">
+                      {selectedDayCollection.timeWindow}
+                    </span>
                   </div>
-                </div>
 
-                {/* Events explicitly published from official announcements */}
-                {dayPublicEvents.length > 0 && (
-                  <div className="space-y-2 pt-3 border-t border-border/60">
-                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" />
-                      <span>Official announcement events ({dayPublicEvents.length}):</span>
-                    </p>
-                    <div className="space-y-2">
-                      {dayPublicEvents.map((evt) => (
-                        <div
-                          key={evt.id}
-                          className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1.5 shadow-2xs"
+                  {/* Accepted items quick list */}
+                  <div className="pt-2 border-t border-border/50 space-y-2">
+                    <p className="text-[11px] font-medium text-foreground">Examples you can put out:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedDayCollection.accepted.map((item) => (
+                        <span
+                          key={item}
+                          className="inline-flex items-center text-[11px] font-medium bg-background px-2.5 py-1 rounded-lg border border-border/70 text-foreground/80 transition-colors hover:border-primary/30"
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <h5 className="font-bold text-foreground truncate">
-                              {evt.title}
-                            </h5>
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 shrink-0"
-                            >
-                              Official event
-                            </Badge>
-                          </div>
-                          {evt.description && (
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              {evt.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1 flex-wrap">
-                            {evt.start_time && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-primary" />
-                                {evt.start_time.slice(0, 5)} {evt.end_time ? `– ${evt.end_time.slice(0, 5)}` : ""}
-                              </span>
-                            )}
-                            {evt.location && (
-                              <span className="flex items-center gap-1 truncate">
-                                <MapPin className="w-3 h-3 text-primary" />
-                                {evt.location}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                          {item}
+                        </span>
                       ))}
                     </div>
                   </div>
-                )}
+
+                  <p className="text-[11px] text-muted-foreground/85 italic leading-relaxed pt-0.5">
+                    Tip: {selectedDayCollection.tips}
+                  </p>
+                </div>
+
+                {/* 2. Official Announcement Events on this date */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Special Events ({selectedEvents.length})
+                    </h3>
+                  </div>
+
+                  {selectedEvents.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center text-xs text-muted-foreground space-y-1">
+                      <CalendarDays className="mx-auto h-5 w-5 text-muted-foreground/60" />
+                      <p className="font-semibold text-foreground">No special events</p>
+                      <p className="text-[11px]">Regular municipal garbage collection proceeds as scheduled.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {selectedEvents.map((evt) => (
+                        <article
+                          key={evt.id}
+                          onClick={() => setSelectedEventModal(evt)}
+                          className="group relative rounded-xl border border-border/80 bg-background p-3.5 shadow-2xs hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer space-y-2"
+                        >
+                          <div className="flex items-start gap-2 justify-between">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <span
+                                className="mt-1 h-2 w-2 shrink-0 rounded-full shadow-2xs group-hover:scale-125 transition-transform"
+                                style={{ backgroundColor: scheduleColorById.get(evt.id) || "hsl(160 72% 52%)" }}
+                              />
+                              <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                                {evt.title}
+                              </h4>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                          </div>
+
+                          {(evt.start_time || evt.location) && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                              {evt.start_time && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
+                                  {evt.start_time.slice(0, 5)}
+                                  {evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}
+                                </span>
+                              )}
+                              {evt.location && (
+                                <span className="inline-flex items-center gap-1 truncate max-w-[160px]">
+                                  <MapPin className="w-3 h-3 text-muted-foreground" />
+                                  {evt.location}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {evt.description && (
+                            <p className="text-[11px] text-muted-foreground/90 line-clamp-2 leading-relaxed">
+                              {evt.description}
+                            </p>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Quick Links for Resident */}
+                <div className="pt-2 border-t border-border/60 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/resident/tracking")}
+                    className="w-full h-9 text-xs font-medium justify-between rounded-xl hover:bg-muted/80 hover:border-primary/30 hover:text-primary text-foreground border-border/80 cursor-pointer transition-all"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-muted-foreground" />
+                      Track Collection Truck in Real-Time
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/resident/report")}
+                    className="w-full h-9 text-xs font-medium justify-between rounded-xl hover:bg-muted/80 hover:border-primary/30 hover:text-primary text-foreground border-border/80 cursor-pointer transition-all"
+                  >
+                    <span className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                      Report Missed Pickup or Waste Issue
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          ) : dayPublicEvents.length > 0 ? (
-            <Card className="rounded-2xl border border-border bg-card shadow-sm p-5 space-y-3">
-              <CardTitle className="text-base font-bold font-display text-foreground">Official announcement events</CardTitle>
-              {dayPublicEvents.map((evt) => (
-                <div key={evt.id} className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs">
-                  <p className="font-semibold text-foreground">{evt.title}</p>
-                  {evt.description && <p className="mt-1 text-muted-foreground leading-relaxed">{evt.description}</p>}
-                </div>
-              ))}
-            </Card>
-          ) : (
-            <Card className="rounded-2xl border border-border bg-card shadow-sm p-6 text-center text-muted-foreground text-xs">
-              No collection or official announcement event is scheduled for this date.
-            </Card>
-          )}
-
-          {/* Quick Segregation Tips Card */}
-          <Card className="rounded-2xl border border-border bg-primary/[0.03] border-primary/20 shadow-sm p-4 sm:p-5 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-primary font-display">
-              <Recycle className="w-4 h-4" />
-              <span>Proper Segregation Rule</span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              MENRO Candelaria enforces a strict <strong>"No Segregation, No Collection"</strong> policy under RA 9003. Please keep your waste dry and sorted.
-            </p>
-          </Card>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ─── View Tab 2: Weekly Barangay Collection Guide ─── */}
+      {activeTab === "WEEKLY_GUIDE" && (
+        <div className="space-y-4">
+          {/* 7-Day Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredWeeklyGuide.map((day) => (
+              <Card
+                key={day.dayName}
+                className={`rounded-2xl border bg-card p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 ${
+                  day.dayIndex === today.getDay() ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold font-display text-foreground">
+                        {day.dayName}
+                      </span>
+                      {day.dayIndex === today.getDay() && (
+                        <span className="text-[10px] font-semibold bg-muted text-muted-foreground border border-border/70 px-1.5 py-0.5 rounded-md">
+                          Today
+                        </span>
+                      )}
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                      {day.title}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span>Collection window: <strong className="text-foreground">{day.timeWindow}</strong></span>
+                  </div>
+
+                  {/* Accepted items */}
+                  <div className="space-y-1.5 text-xs">
+                    <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-muted-foreground" /> Examples you can put out:
+                    </p>
+                    <ul className="space-y-1 pl-4 list-disc text-muted-foreground text-[11px]">
+                      {day.accepted.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Prohibited items */}
+                  <div className="space-y-1.5 text-xs border-t border-border/50 pt-2">
+                    <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                      <CloseIcon className="w-3.5 h-3.5 text-muted-foreground" /> Items to avoid:
+                    </p>
+                    <ul className="space-y-1 pl-4 list-disc text-muted-foreground text-[11px]">
+                      {day.prohibited.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="border-t border-border/50 pt-2.5 text-[11px] text-muted-foreground/90 italic">
+                  Tip: {day.tips}
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Legal / Policy Notice Card */}
+          <div className="rounded-2xl border border-border/80 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 text-xs text-muted-foreground">
+            <div className="w-9 h-9 rounded-xl bg-muted border border-border/80 text-muted-foreground flex items-center justify-center shrink-0">
+              <Info className="w-4 h-4" />
+            </div>
+            <div className="space-y-0.5">
+              <p className="font-semibold text-foreground">
+                Municipal Solid Waste Management Policy (R.A. 9003)
+              </p>
+              <p>
+                Garbage must be segregated at source. Unsegregated garbage, hazardous waste, or waste placed outside collection hours will not be hauled by the collection fleet.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Event Details Modal ─── */}
+      <Dialog
+        open={Boolean(selectedEventModal)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEventModal(null);
+        }}
+      >
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+          {selectedEventModal && (() => {
+            const badgeInfo = getEventBadgeInfo(selectedEventModal);
+            const displayDate = formatEventDisplayDate(selectedEventModal);
+
+            return (
+              <>
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-10 h-10 rounded-xl ${badgeInfo.iconClass} border flex items-center justify-center shrink-0 shadow-2xs`}
+                    >
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <DialogTitle className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight truncate">
+                        Announcement
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
+                        MENRO Candelaria Official Notice
+                      </DialogDescription>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEventModal(null)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+                    title="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
+                  {/* Title, Category & Date Lockup (No container) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold font-display text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
+                        {selectedEventModal.title}
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-semibold rounded-md px-2 py-0.5 border shrink-0 ${badgeInfo.badgeClass}`}
+                      >
+                        {badgeInfo.label}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-normal">
+                      <span>{displayDate}</span>
+                    </p>
+                  </div>
+
+                  {/* Description container */}
+                  <div className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 sm:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+                    {selectedEventModal.description || "No additional details or instructions provided."}
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedEventModal(null)}
+                    className="w-full sm:w-auto h-9 px-6 rounded-xl text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

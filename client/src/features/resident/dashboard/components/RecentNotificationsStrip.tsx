@@ -33,7 +33,9 @@ const RecentNotificationsStrip = () => {
     } else if (n.ref_module === "reports" && n.ref_id) {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
-      navigate("/resident/schedule");
+      // Tracking alerts are resolved against current route/GPS state by the
+      // notifications page, preventing a completed route from opening a stale view.
+      navigate("/resident/notifications");
     } else if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
       navigate(`/resident/notifications?announcement=${n.ref_id || n.id}`);
     } else {
@@ -52,9 +54,9 @@ const RecentNotificationsStrip = () => {
         </div>
         <button
           onClick={() => navigate("/resident/notifications")}
-          className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5"
+          className="group inline-flex h-8 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
         >
-          View all notifications <ChevronRight className="w-3.5 h-3.5" />
+          View all notifications <ChevronRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
         </button>
       </div>
 

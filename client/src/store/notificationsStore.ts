@@ -18,7 +18,7 @@ interface NotificationsState {
   isLoading: boolean;
   initialized: boolean;
 
-  fetchNotifications: (params?: { limit?: number; offset?: number; type?: string }) => Promise<void>;
+  fetchNotifications: (params?: { limit?: number; offset?: number; type?: string; is_read?: string }) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   clearAll: () => Promise<void>;
@@ -30,6 +30,8 @@ interface NotificationsState {
 let socketListenerRegistered = false;
 let activeNotificationUserId: string | null = null;
 let joinNotificationRooms: (() => void) | null = null;
+let notificationFetchId = 0;
+const NOTIFICATIONS_BATCH_SIZE = 100;
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   notifications: [],
@@ -39,35 +41,74 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   initialized: false,
 
   fetchNotifications: async (params = {}) => {
+    const fetchId = ++notificationFetchId;
     try {
       set({ isLoading: true });
-      const requestedLimit = params.limit ?? 100;
+      const requestedLimit = Math.min(params.limit ?? NOTIFICATIONS_BATCH_SIZE, NOTIFICATIONS_BATCH_SIZE);
       const [initialData, unread] = await Promise.all([
         notificationsService.fetchMyNotifications({ ...params, limit: requestedLimit }),
         notificationsService.fetchUnreadCount(),
       ]);
 
       // The Notifications page filters and paginates locally. Fetch the full
-      // history rather than silently treating the first API page as the whole list.
-      const data =
+      // history in bounded API batches rather than silently treating the first
+      // API page as the whole list or sending one unbounded request.
+      let data = initialData;
+      if (
         params.offset === undefined &&
         params.type === undefined &&
+        params.is_read === undefined &&
         initialData.total > initialData.notifications.length
-          ? await notificationsService.fetchMyNotifications({
-              ...params,
-              limit: initialData.total,
-              offset: 0,
-            })
-          : initialData;
+      ) {
+        const remainingPages = [];
+        for (
+          let offset = initialData.notifications.length;
+          offset < initialData.total;
+          offset += NOTIFICATIONS_BATCH_SIZE
+        ) {
+          remainingPages.push(
+            notificationsService.fetchMyNotifications({
+              limit: NOTIFICATIONS_BATCH_SIZE,
+              offset,
+            }),
+          );
+        }
+        const pages = await Promise.all(remainingPages);
+        data = {
+          ...initialData,
+          notifications: [
+            ...initialData.notifications,
+            ...pages.flatMap((page) => page.notifications),
+          ],
+        };
+      }
+
+      if (fetchId !== notificationFetchId) return;
+
+      // Preserve a real-time notification that arrived after the list query
+      // began but before it completed. Without this merge, a slow refresh can
+      // overwrite an otherwise successfully delivered socket notification.
+      const fetchedNotifications = data.notifications || [];
+      const fetchedIds = new Set(fetchedNotifications.map((notification) => notification.id));
+      const liveNotifications = get().notifications.filter(
+        (notification) =>
+          notification.user_id === activeNotificationUserId &&
+          !fetchedIds.has(notification.id),
+      );
+      const notifications = [...liveNotifications, ...fetchedNotifications];
 
       set({
-        notifications: data.notifications || [],
-        total: data.total || 0,
-        unreadCount: unread,
+        notifications,
+        total: Math.max(data.total || 0, notifications.length),
+        unreadCount: Math.max(
+          unread,
+          notifications.filter((notification) => !notification.is_read).length,
+        ),
         isLoading: false,
         initialized: true,
       });
     } catch (err) {
+      if (fetchId !== notificationFetchId) return;
       console.error("Failed to fetch notifications:", err);
       set({ isLoading: false });
     }
@@ -146,6 +187,15 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   addNotification: (newNotif: NotificationRow) => {
     set((state) => {
+      // Ignore a late event from an old socket session after another account
+      // has signed in on the same browser.
+      if (
+        activeNotificationUserId &&
+        newNotif.user_id !== activeNotificationUserId
+      ) {
+        return state;
+      }
+
       // Deduplicate: if notification with same ID is already present, do not add duplicate
       if (state.notifications.some((n) => n.id === newNotif.id)) {
         return state;

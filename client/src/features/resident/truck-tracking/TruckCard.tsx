@@ -5,7 +5,6 @@ import {
   Truck,
   MapPin,
   User,
-  MessageSquare,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
@@ -78,7 +77,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           <div className="flex items-center gap-2.5 min-w-0">
             <div
               className={cn(
-                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors border shadow-2xs",
+                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors border shadow-2xs",
                 truck.status === "on-the-way"
                   ? "bg-primary/15 border-primary/25 text-primary"
                   : "bg-muted border-border/80 text-muted-foreground"
@@ -165,16 +164,6 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-          </div>
-        )}
-
-        {/* Driver Message Banner */}
-        {truck.driverMessage && (
-          <div className="flex items-start gap-2 p-2.5 rounded-xl bg-sand/60 border border-border/80">
-            <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-            <p className="text-xs text-foreground italic leading-relaxed">
-              "{truck.driverMessage}"
-            </p>
           </div>
         )}
 
