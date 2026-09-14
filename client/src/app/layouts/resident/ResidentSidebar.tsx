@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -51,7 +51,7 @@ const ResidentSidebar = () => {
   const collapsed = state === "collapsed";
 
   const [showGearMenu, setShowGearMenu] = useState(false);
-  const [settingsRotation, setSettingsRotation] = useState(0);
+  const gearMenuRef = useRef<HTMLDivElement>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
@@ -161,26 +161,26 @@ const ResidentSidebar = () => {
         items: [{ title: "Dashboard", url: "/resident", icon: LayoutDashboard }],
       },
       {
-        label: "INFORMATION",
+        label: "COMMUNITY INFORMATION",
         items: [
           {
-            title: "Contents",
+            title: "Community Updates",
             url: "/resident/contents",
             icon: FileText,
             showDot: hasNewPost,
           },
-          { title: "Truck Tracking", url: "/resident/tracking", icon: Truck },
+          { title: "Collection Tracking", url: "/resident/tracking", icon: Truck },
         ],
       },
       {
-        label: "REPORT WASTE ISSUES",
+        label: "WASTE REPORTS",
         items: [
-          { title: "Submit Report", url: "/resident/report", icon: AlertTriangle },
+          { title: "Report an Issue", url: "/resident/report", icon: AlertTriangle },
           { title: "My Reports", url: "/resident/my-reports", icon: ClipboardList },
         ],
       },
       {
-        label: "NOTIFICATION",
+        label: "NOTIFICATIONS",
         items: [
           {
             title: "Notifications",
@@ -199,10 +199,31 @@ const ResidentSidebar = () => {
       ? location.pathname === "/resident"
       : location.pathname.startsWith(path);
 
-  const handleSettingsClick = () => {
-    setSettingsRotation((prev) => prev + 180);
-    setShowGearMenu(!showGearMenu);
-  };
+  useEffect(() => {
+    if (!showGearMenu) return;
+
+    const closeMenu = (event: PointerEvent) => {
+      if (!gearMenuRef.current?.contains(event.target as Node)) {
+        setShowGearMenu(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowGearMenu(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [showGearMenu]);
+
+  useEffect(() => {
+    if (collapsed) setShowGearMenu(false);
+  }, [collapsed]);
+
+  const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -314,7 +335,7 @@ const ResidentSidebar = () => {
             group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
         >
           {/* Top user profile row */}
-          <div className="flex items-center gap-2.5 relative">
+          <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-extrabold rounded-xl">
@@ -332,7 +353,7 @@ const ResidentSidebar = () => {
                   {fullName}
                 </p>
                 <p className="text-[10.5px] text-muted-foreground truncate leading-none mt-1">
-                  Resident · MENRO
+                  Resident
                 </p>
               </div>
 
@@ -343,8 +364,9 @@ const ResidentSidebar = () => {
                 aria-label="Settings"
               >
                 <Settings
-                  className="w-3.5 h-3.5 transition-transform duration-500 ease-in-out"
-                  style={{ transform: `rotate(${settingsRotation}deg)` }}
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
+                    showGearMenu ? "rotate-180" : "rotate-0"
+                  }`}
                 />
               </button>
             </div>

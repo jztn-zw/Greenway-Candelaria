@@ -10,6 +10,7 @@ import PhotoUploadSection from "./PhotoUploadSection";
 import DuplicateWarning from "./DuplicateWarning";
 import SuccessScreen from "./SuccessScreen";
 import ReviewModal from "./ReviewModal";
+import { compressReportImages } from "./imageCompression";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
 import { ReportFormSkeleton } from "@/components/PageLoadingSkeletons";
@@ -19,6 +20,7 @@ import {
   uploadReportPhotos,
 } from "@/services/reportsService";
 const DRAFT_STORAGE_KEY = "greenway_report_draft_v1";
+type SubmissionStage = "compressing" | "uploading" | "creating" | null;
 
 const revokePhotoPreviews = (photos: ReportFormData["photos"]) => {
   photos.forEach((photo) => URL.revokeObjectURL(photo.preview));
@@ -27,6 +29,8 @@ const revokePhotoPreviews = (photos: ReportFormData["photos"]) => {
 const ResidentSubmitReport = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionStage, setSubmissionStage] = useState<SubmissionStage>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [hasSimilarReport, setHasSimilarReport] = useState(false);
@@ -128,8 +132,12 @@ const ResidentSubmitReport = () => {
       return;
     }
 
+    // Do not leave a warning from the previously selected barangay/type on
+    // screen while the debounced check for the new selection is in progress.
+    setHasSimilarReport(false);
+
     let isCurrent = true;
-    const timer = window.setTimeout(async () => {
+    void (async () => {
       try {
         const hasSimilar = await checkSimilarReport(
           form.barangayId,
@@ -140,11 +148,10 @@ const ResidentSubmitReport = () => {
         // This is advisory only. A transient check failure must not block reports.
         if (isCurrent) setHasSimilarReport(false);
       }
-    }, 300);
+    })();
 
     return () => {
       isCurrent = false;
-      window.clearTimeout(timer);
     };
   }, [form.barangayId, form.violationType]);
 
@@ -189,17 +196,27 @@ const ResidentSubmitReport = () => {
       return;
     }
     setIsSubmitting(true);
+    setSubmissionStage("compressing");
+    setUploadProgress(0);
 
     try {
       // Step 1: Upload photos to Cloudinary
       let photoUrls: string[] = [];
       if (form.photos.length > 0) {
+        const optimizedPhotos = await compressReportImages(
+          form.photos.map((photo) => photo.file),
+          (completed, total) => setUploadProgress(Math.round((completed / total) * 100)),
+        );
+        setSubmissionStage("uploading");
+        setUploadProgress(0);
         photoUrls = await uploadReportPhotos(
-          form.photos.map((p) => p.file),
+          optimizedPhotos,
+          setUploadProgress,
         );
       }
 
       // Step 2: Clean and submit report to backend
+      setSubmissionStage("creating");
       const cleanedDescription = form.description
         .split(/\n\s*\n/)
         .map((b) => b.trim())
@@ -242,6 +259,8 @@ const ResidentSubmitReport = () => {
       toast.error(message);
     } finally {
       setIsSubmitting(false);
+      setSubmissionStage(null);
+      setUploadProgress(0);
     }
   };
 
@@ -285,7 +304,7 @@ const ResidentSubmitReport = () => {
   return (
     <div className="space-y-1">
       {/* ── Page Header ── */}
-      <div className="max-w-3xl mx-auto mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="hidden max-w-3xl mx-auto mb-6 sm:flex sm:items-center sm:justify-between sm:gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
             Submit a Waste Report
@@ -309,12 +328,13 @@ const ResidentSubmitReport = () => {
 
       {/* Main Form Container */}
       <div className="max-w-3xl mx-auto w-full space-y-5">
-        <div className="bg-card rounded-2xl border border-border/80 p-5 sm:p-7 shadow-2xs divide-y divide-border/60 space-y-6">
+        <div className="space-y-6 divide-y divide-border/60 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-7">
           <div>
             <ViolationTypeSelector
               value={form.violationType}
               onChange={(v) => update("violationType", v)}
               showError={showValidation && !form.violationType}
+              onClearDraft={hasDraft ? resetForm : undefined}
             />
           </div>
           <div className="pt-6">
@@ -349,7 +369,7 @@ const ResidentSubmitReport = () => {
           </div>
         </div>
 
-        <div className="pb-8">
+        <div className="pb-3 sm:pb-8">
           <Button
             onClick={handleReview}
             disabled={isSubmitting}
@@ -369,6 +389,8 @@ const ResidentSubmitReport = () => {
         form={form}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        submissionStage={submissionStage}
+        uploadProgress={uploadProgress}
       />
     </div>
   );

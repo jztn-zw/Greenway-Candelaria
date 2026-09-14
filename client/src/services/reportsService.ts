@@ -58,7 +58,10 @@ export interface SubmitReportPayload {
 
 // ─── Upload photos to Cloudinary via backend ───────────────
 
-export const uploadReportPhotos = async (files: File[]): Promise<string[]> => {
+export const uploadReportPhotos = async (
+  files: File[],
+  onProgress?: (percent: number) => void,
+): Promise<string[]> => {
   const form = new FormData();
   for (const file of files) {
     form.append("photos", file);
@@ -66,7 +69,13 @@ export const uploadReportPhotos = async (files: File[]): Promise<string[]> => {
   const { data } = await api.post<{ data: { urls: string[] } }>(
     "/reports/upload-photos",
     form,
-    { headers: { "Content-Type": "multipart/form-data" } },
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event) => {
+        if (!event.total) return;
+        onProgress?.(Math.round((event.loaded / event.total) * 100));
+      },
+    },
   );
   return data.data.urls;
 };

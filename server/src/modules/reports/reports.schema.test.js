@@ -30,3 +30,13 @@ test("report submissions only accept GreenWay report uploads", () => {
     false,
   );
 });
+
+test("report submissions accept versioned Cloudinary GreenWay uploads", () => {
+  assert.equal(
+    createReportSchema.safeParse({
+      ...validReport,
+      photos: ["https://res.cloudinary.com/example/image/upload/v1789456789/greenway/reports/report.jpg"],
+    }).success,
+    true,
+  );
+});

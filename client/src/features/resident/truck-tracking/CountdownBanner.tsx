@@ -18,7 +18,7 @@ const CountdownBanner = ({
 
   if (!hasSchedule) {
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
+      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs sm:flex-row sm:items-center sm:p-4">
         <div className="min-w-0 space-y-0.5">
           <h3 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
             No Scheduled Collection • {residentArea || "Your Barangay"}
@@ -27,9 +27,9 @@ const CountdownBanner = ({
             There is currently no upcoming collection schedule set for your location.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 dark:bg-muted/20 px-3 py-1.5 rounded-xl border border-border/60 shrink-0 self-start sm:self-auto">
+        <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 sm:self-auto sm:text-xs">
           <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span>Check announcements for schedule updates</span>
+          <span className="truncate">Check announcements for schedule updates</span>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ const CountdownBanner = ({
     : dayLabel;
 
   return (
-    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
+    <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs lg:flex-row lg:items-center sm:p-4">
       {/* Schedule & Location Details */}
       <div className="min-w-0 space-y-1">
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
@@ -105,9 +105,9 @@ const CountdownBanner = ({
       </div>
 
       {/* Right: Reminder Pill with neutral monochrome icon */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 dark:bg-muted/20 px-3 py-1.5 rounded-xl border border-border/60 shrink-0 self-start lg:self-auto">
+       <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto sm:text-xs">
         <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span>Please have segregated bins ready</span>
+         <span className="truncate">Please have segregated bins ready</span>
       </div>
     </div>
   );

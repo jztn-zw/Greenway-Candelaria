@@ -455,7 +455,7 @@ const MyReports = () => {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
+        <div className="hidden sm:block">
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
             My Reports
           </h1>
@@ -548,9 +548,17 @@ const MyReports = () => {
               value={sortBy}
               onValueChange={(v) => handleSortChange(v as ReportSortOption)}
             >
-              <SelectTrigger className="h-9 rounded-xl bg-card border-border/80 hover:border-primary/30 text-xs min-w-[105px] sm:min-w-[125px] shadow-2xs transition-colors">
-                <SortAsc className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-                <SelectValue />
+              <SelectTrigger
+                aria-label="Sort reports"
+                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden sm:w-auto sm:min-w-[125px] sm:justify-between sm:px-3.5 sm:[&>svg]:block"
+              >
+                <div className="flex sm:hidden">
+                  <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div className="hidden items-center gap-1 sm:flex">
+                  <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue />
+                </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border-border/80 shadow-md">
                 <SelectItem value="newest">Newest</SelectItem>
@@ -635,7 +643,7 @@ const MyReports = () => {
               <div
                 key={report.id}
                 onClick={() => openDetail(report)}
-                className="rounded-2xl border border-border/80 bg-card hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group p-4 sm:p-5 shadow-2xs space-y-3 select-none active:scale-[0.99]"
+                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99] sm:space-y-3 sm:p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3.5 min-w-0">
@@ -680,7 +688,7 @@ const MyReports = () => {
                 </div>
 
                 {previewText && (
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 font-normal">
+                  <p className="hidden break-words text-xs font-normal leading-relaxed text-muted-foreground line-clamp-2 sm:block">
                     {previewText}
                   </p>
                 )}
@@ -699,8 +707,8 @@ const MyReports = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/60 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground sm:gap-2.5 sm:pt-1">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                     <span className="font-mono font-semibold text-foreground/90 bg-muted/60 border border-border/70 px-2.5 py-0.5 rounded-lg text-[11px]">
                       {report.referenceNumber}
                     </span>
@@ -716,7 +724,7 @@ const MyReports = () => {
                   </div>
 
                   {report.photoCount > 0 && (
-                    <span className="flex items-center gap-1 text-muted-foreground font-semibold shrink-0 text-xs">
+                    <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground sm:flex">
                       <Camera className="w-3.5 h-3.5 text-muted-foreground/70" />
                       {report.photoCount} photo{report.photoCount !== 1 ? "s" : ""}
                     </span>
@@ -1062,7 +1070,7 @@ const ReportDetail = ({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative size-18 sm:size-20 shrink-0 rounded-xl overflow-hidden border border-border/80 bg-muted/20 block hover:border-primary/40 hover:shadow-sm transition-all shadow-2xs"
+                  className="group relative size-14 sm:size-16 lg:size-20 shrink-0 rounded-xl overflow-hidden border border-border/80 bg-muted/20 block hover:border-primary/40 hover:shadow-sm transition-all shadow-2xs"
                   title="View full image in new tab"
                 >
                   <img

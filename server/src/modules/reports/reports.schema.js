@@ -10,7 +10,10 @@ const reportPhotoUrl = z
         return (
           url.protocol === "https:" &&
           url.hostname === "res.cloudinary.com" &&
-          url.pathname.includes("/image/upload/greenway/reports/")
+          // Cloudinary may insert a version segment (for example, `v12345`)
+          // between `upload` and the configured GreenWay reports folder.
+          // Accept both forms while still requiring the trusted host and folder.
+          /\/image\/upload\/(?:v\d+\/)?greenway\/reports\//.test(url.pathname)
         );
       } catch {
         return false;

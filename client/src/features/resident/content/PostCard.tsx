@@ -48,7 +48,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <article
       onClick={onClick}
-      className="group relative rounded-2xl border border-border/80 bg-card shadow-2xs hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-300 flex flex-col overflow-hidden cursor-pointer select-none active:scale-[0.99]"
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99]"
     >
       {/* ── Image Area ── */}
       <div className="relative aspect-[16/10] overflow-hidden bg-muted/30 border-b border-border/60 flex items-center justify-center">
@@ -115,8 +115,8 @@ export const PostCard: React.FC<PostCardProps> = ({
         </div>
 
         {/* ── Card Footer: Reactions & Metadata ── */}
-        <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-          <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-muted-foreground">
             <span className="flex shrink-0 items-center gap-1 font-medium">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               {dateInfo.formatted}

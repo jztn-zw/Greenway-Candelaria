@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Clock,
   BookOpen,
+  ArrowDownUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -65,8 +66,11 @@ const ResidentContents = () => {
   const [openPost, setOpenPost] = useState<PostItem | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const scrollPositionRef = useRef(0);
+  const feedRequestVersionRef = useRef(0);
 
   const fetchPosts = useCallback(async () => {
+    const requestVersion = ++feedRequestVersionRef.current;
+
     try {
       setIsPageLoading(true);
       setFetchError(null);
@@ -91,6 +95,8 @@ const ResidentContents = () => {
           : Promise.resolve([]),
       ]);
 
+      if (requestVersion !== feedRequestVersionRef.current) return;
+
       setPosts(pageData.posts);
       setTotalPosts(pageData.total);
       setTotalPages(pageData.totalPages);
@@ -101,22 +107,36 @@ const ResidentContents = () => {
       if (postIdParam) {
         try {
           const target = await postsService.getById(postIdParam);
+          if (requestVersion !== feedRequestVersionRef.current) return;
           setOpenPost(target as PostItem);
         } catch {
+          if (requestVersion !== feedRequestVersionRef.current) return;
           setOpenPost(null);
           setInvalidPostLink(true);
         }
       }
     } catch (err: any) {
+      if (requestVersion !== feedRequestVersionRef.current) return;
       setFetchError(err?.message || "Failed to load community updates. Please try again.");
     } finally {
-      setIsPageLoading(false);
+      if (requestVersion === feedRequestVersionRef.current) {
+        setIsPageLoading(false);
+      }
     }
   }, [activeTab, currentPage, postIdParam, search, sortBy]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  // Breadcrumb navigation removes ?post=… directly, so the local article state
+  // must follow the URL as well. Stale requests are ignored above.
+  useEffect(() => {
+    if (postIdParam) return;
+
+    setOpenPost(null);
+    setIsDetailLoading(false);
+  }, [postIdParam]);
 
   const handleToggleLike = async (targetPost: PostItem) => {
     const prevLiked = Boolean(targetPost.is_liked);
@@ -315,12 +335,12 @@ const ResidentContents = () => {
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto space-y-6 sm:space-y-8 pb-12">
+    <div className="w-full max-w-[1400px] mx-auto pb-4 sm:pb-6">
       {/* ── Top Header ── */}
-      <div className="flex items-start sm:items-center justify-between gap-4">
+      <div className="hidden items-start justify-between gap-4 sm:mb-8 sm:flex sm:items-center">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-            Community Updates & Guides
+            Community Updates
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Official MENRO guidelines, collection updates, and eco tips.
@@ -328,9 +348,11 @@ const ResidentContents = () => {
         </div>
       </div>
 
+      <div className="space-y-4 sm:space-y-8">
+
       {/* ── Error Banner ── */}
       {fetchError && (
-        <div className="p-4 rounded-2xl border border-destructive/20 bg-destructive/5 flex items-center justify-between gap-3 text-destructive text-sm">
+        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{fetchError}</span>
@@ -342,7 +364,7 @@ const ResidentContents = () => {
       )}
 
       {invalidPostLink && (
-        <div className="p-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 flex items-center justify-between gap-3 text-sm text-foreground">
+        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>This community update is no longer available.</span>
@@ -425,9 +447,17 @@ const ResidentContents = () => {
               setSortBy(val as ResidentContentSort);
               setCurrentPage(1);
             }}>
-              <SelectTrigger className="h-9 text-xs rounded-xl bg-card border-border/80 hover:border-primary/30 min-w-[115px] sm:min-w-[140px] shadow-2xs transition-colors">
-                <span className="text-muted-foreground mr-1 hidden sm:inline">Sort by:</span>
-                <SelectValue />
+              <SelectTrigger
+                aria-label="Sort community updates"
+                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden sm:w-auto sm:min-w-[140px] sm:justify-between sm:px-3.5 sm:[&>svg]:block"
+              >
+                <div className="flex sm:hidden">
+                  <ArrowDownUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="hidden items-center sm:inline-flex">
+                  <span className="mr-1 text-muted-foreground">Sort by:</span>
+                  <SelectValue />
+                </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border-border/80 shadow-md">
                 <SelectItem value="latest">Latest</SelectItem>
@@ -448,9 +478,9 @@ const ResidentContents = () => {
             onMouseLeave={() => setPaused(false)}
             onClick={() => handleOpenPost(featured)}
           >
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-5 sm:p-7 md:p-8">
+            <div className="grid grid-cols-1 items-center gap-4 p-4 sm:gap-6 sm:p-6 md:grid-cols-12 md:gap-8 md:p-8">
               {/* Left Column: Post Details */}
-              <div className="md:col-span-7 flex flex-col justify-between space-y-3.5">
+              <div className="min-w-0 md:col-span-7 flex flex-col justify-between space-y-3.5">
                 <div className="space-y-2.5">
                   {/* Category Pill & Featured Tag */}
                   <div className="flex items-center gap-2 flex-wrap">
@@ -505,7 +535,7 @@ const ResidentContents = () => {
               </div>
 
               {/* Right Column: Featured Image */}
-              <div className="md:col-span-5">
+              <div className="min-w-0 md:col-span-5">
                 <div className="relative w-full aspect-[16/10] max-h-[280px] sm:max-h-[300px] rounded-xl overflow-hidden bg-muted/30 border border-border/70 flex items-center justify-center">
                   {featuredImage ? (
                     <>
@@ -560,7 +590,7 @@ const ResidentContents = () => {
                     );
                   }}
                   aria-label="Previous featured post"
-                  className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-background/80 hover:bg-background text-foreground hover:text-primary backdrop-blur-md border border-border shadow-xs flex items-center justify-center transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto active:scale-95"
+                  className="absolute left-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 md:left-4 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -572,14 +602,14 @@ const ResidentContents = () => {
                     nextFeatured();
                   }}
                   aria-label="Next featured post"
-                  className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-background/80 hover:bg-background text-foreground hover:text-primary backdrop-blur-md border border-border shadow-xs flex items-center justify-center transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto active:scale-95"
+                  className="absolute right-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 md:right-4 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
 
                 {/* ── Center-Down Indicator Dots ── */}
                 <div
-                  className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/80 backdrop-blur-md border border-border/70 shadow-2xs"
+                  className="absolute bottom-3 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-2.5 py-1 shadow-2xs backdrop-blur-md md:flex"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {featuredPosts.map((_, idx) => (
@@ -608,11 +638,11 @@ const ResidentContents = () => {
 
       {/* ── Main Post Grid ── */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold font-display text-foreground">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="min-w-0 text-lg font-bold font-display text-foreground">
             {activeTab === "All" ? "All Updates & Guides" : activeTab}
           </h2>
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="shrink-0 pt-1 text-xs font-medium text-muted-foreground">
             {isPageLoading
               ? "Updating…"
               : `Showing ${totalPosts} ${totalPosts === 1 ? "article" : "articles"}`}
@@ -663,7 +693,7 @@ const ResidentContents = () => {
 
         {/* ── Pagination Controls ── */}
         {totalPages > 1 && (
-          <div className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
             <p className="text-xs text-muted-foreground">
               Showing <span className="font-semibold text-foreground">{firstVisiblePost}–{lastVisiblePost}</span> of <span className="font-semibold text-foreground">{totalPosts}</span> articles
             </p>
@@ -713,6 +743,7 @@ const ResidentContents = () => {
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 };

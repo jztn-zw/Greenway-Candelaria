@@ -33,7 +33,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
@@ -59,20 +59,20 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: "MAIN",
+    label: "OVERVIEW",
     collapsible: false,
     items: [{ title: "Dashboard", url: "/admin", icon: LayoutDashboard }],
   },
   {
-    label: "CONTENT",
+    label: "COMMUNITY CONTENT",
     collapsible: true,
     items: [
-      { title: "Posts", url: "/admin/posts", icon: FileText },
+      { title: "Community Posts", url: "/admin/posts", icon: FileText },
       { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
     ],
   },
   {
-    label: "SCHEDULE",
+    label: "COLLECTION OPERATIONS",
     collapsible: true,
     items: [
       { title: "Schedule Manager", url: "/admin/schedule", icon: CalendarDays },
@@ -80,7 +80,7 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "ACCOUNTS",
+    label: "ACCOUNT MANAGEMENT",
     collapsible: true,
     items: [
       { title: "Resident Manager", url: "/admin/residents", icon: Users },
@@ -119,7 +119,7 @@ const AdminSidebar = () => {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const [showGearMenu, setShowGearMenu] = useState(false);
-  const [settingsRotation, setSettingsRotation] = useState(0);
+  const gearMenuRef = useRef<HTMLDivElement>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
@@ -128,10 +128,29 @@ const AdminSidebar = () => {
       ? location.pathname === "/admin"
       : location.pathname.startsWith(path);
 
-  const handleSettingsClick = () => {
-    setSettingsRotation((prev) => prev + 180);
-    setShowGearMenu(!showGearMenu);
-  };
+  useEffect(() => {
+    if (!showGearMenu) return;
+
+    const closeMenu = (event: PointerEvent) => {
+      if (!gearMenuRef.current?.contains(event.target as Node)) setShowGearMenu(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowGearMenu(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [showGearMenu]);
+
+  useEffect(() => {
+    if (collapsed) setShowGearMenu(false);
+  }, [collapsed]);
+
+  const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -255,7 +274,7 @@ const AdminSidebar = () => {
           className="rounded-2xl border border-border/80 bg-card/75 backdrop-blur-md p-2.5 shadow-2xs
             group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
         >
-          <div className="flex items-center gap-2.5 relative">
+          <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-extrabold rounded-xl">
@@ -273,7 +292,7 @@ const AdminSidebar = () => {
                   {fullName}
                 </p>
                 <p className="text-[10.5px] text-muted-foreground truncate leading-none mt-1">
-                  MENRO Candelaria
+                  Admin
                 </p>
               </div>
 
@@ -284,8 +303,9 @@ const AdminSidebar = () => {
                 aria-label="Settings"
               >
                 <Settings
-                  className="w-3.5 h-3.5 transition-transform duration-500 ease-in-out"
-                  style={{ transform: `rotate(${settingsRotation}deg)` }}
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
+                    showGearMenu ? "rotate-180" : "rotate-0"
+                  }`}
                 />
               </button>
             </div>

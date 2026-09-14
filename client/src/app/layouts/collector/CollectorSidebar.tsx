@@ -29,7 +29,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import {
   Dialog,
@@ -80,7 +80,7 @@ const CollectorSidebar = () => {
   const location = useLocation();
   const [showGearMenu, setShowGearMenu] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
-  const [settingsRotation, setSettingsRotation] = useState(0);
+  const gearMenuRef = useRef<HTMLDivElement>(null);
   const [isDarkMode, setIsDarkMode] = useState(() =>
     document.documentElement.classList.contains("dark")
   );
@@ -94,8 +94,7 @@ const CollectorSidebar = () => {
 
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSettingsRotation((prev) => prev + 180);
-    setShowGearMenu(!showGearMenu);
+    setShowGearMenu((isOpen) => !isOpen);
   };
 
   const handleToggleTheme = (e: React.MouseEvent) => {
@@ -108,12 +107,26 @@ const CollectorSidebar = () => {
   };
 
   useEffect(() => {
-    const handleClose = () => setShowGearMenu(false);
-    if (showGearMenu) {
-      window.addEventListener("click", handleClose);
-      return () => window.removeEventListener("click", handleClose);
-    }
+    if (!showGearMenu) return;
+
+    const closeMenu = (event: PointerEvent) => {
+      if (!gearMenuRef.current?.contains(event.target as Node)) setShowGearMenu(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowGearMenu(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, [showGearMenu]);
+
+  useEffect(() => {
+    if (collapsed) setShowGearMenu(false);
+  }, [collapsed]);
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -210,7 +223,7 @@ const CollectorSidebar = () => {
             group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
         >
           {/* Top user profile row */}
-          <div className="flex items-center gap-2.5 relative">
+          <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-extrabold rounded-xl">
@@ -228,7 +241,7 @@ const CollectorSidebar = () => {
                   {fullName}
                 </p>
                 <p className="text-[10.5px] text-muted-foreground truncate leading-none mt-1">
-                  Collector · MENRO
+                  Collector
                 </p>
               </div>
 
@@ -239,8 +252,9 @@ const CollectorSidebar = () => {
                 aria-label="Settings"
               >
                 <Settings
-                  className="w-3.5 h-3.5 transition-transform duration-500 ease-in-out"
-                  style={{ transform: `rotate(${settingsRotation}deg)` }}
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
+                    showGearMenu ? "rotate-180" : "rotate-0"
+                  }`}
                 />
               </button>
             </div>

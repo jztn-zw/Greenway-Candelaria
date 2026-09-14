@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { VIOLATION_OPTIONS, type ViolationType } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -6,18 +6,31 @@ interface ViolationTypeSelectorProps {
   value: ViolationType | null;
   onChange: (value: ViolationType) => void;
   showError?: boolean;
+  onClearDraft?: () => void;
 }
 
-const ViolationTypeSelector = ({ value, onChange, showError = false }: ViolationTypeSelectorProps) => {
+const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraft }: ViolationTypeSelectorProps) => {
   return (
     <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
-          Type of Violation
-        </h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Select the category that best matches the observed issue.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+            Type of Violation
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Select the category that best matches the observed issue.
+          </p>
+        </div>
+        {onClearDraft && (
+          <button
+            type="button"
+            onClick={onClearDraft}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/80 px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:hidden"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Clear
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

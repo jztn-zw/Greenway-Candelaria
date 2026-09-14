@@ -134,15 +134,16 @@ const PostDetail = ({
   return (
     <div
       ref={contentRef}
-      className="w-full max-w-[1000px] mx-auto space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-300"
+      className="w-full max-w-[1000px] mx-auto pb-4 sm:pb-6 animate-in fade-in duration-300"
     >
       {/* ── Top Back Navigation ── */}
-      <div>
+      <div className="hidden sm:mb-8 sm:block">
         <BackButton label="Back to Community Updates" onClick={onBack} />
       </div>
 
-      {/* ── Main Post (Unboxed Natural Layout) ── */}
-      <article className="space-y-6">
+      <div className="space-y-6 sm:space-y-8">
+        {/* ── Main Post (Unboxed Natural Layout) ── */}
+        <article className="space-y-6">
         {/* ── 1080 × 566 Responsive Landscape Image Container with Blurred Backdrop ── */}
         <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-muted/20 border border-border/80 shadow-2xs flex items-center justify-center">
           {currentImage && !imageFailed ? (
@@ -171,9 +172,9 @@ const PostDetail = ({
           )}
 
           {/* Top-left category badge */}
-          <div className="absolute top-4 left-4 z-20">
+          <div className="absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
             <span
-              className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border shadow-2xs backdrop-blur-md ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md sm:px-3 sm:py-1 sm:text-[11px] ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${getCategoryBadgeStyle(post.category).dot}`} />
               <span>{categoryLabel}</span>
@@ -182,7 +183,7 @@ const PostDetail = ({
 
           {/* Image count / index indicator if multiple images */}
           {validImages.length > 1 && (
-            <div className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-white/95 border border-white/15 shadow-2xs">
+            <div className="absolute right-3 top-3 z-20 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white/95 shadow-2xs backdrop-blur-md sm:right-4 sm:top-4">
               {activeImageIndex + 1} / {validImages.length}
             </div>
           )}
@@ -217,26 +218,26 @@ const PostDetail = ({
 
         {/* ── Post Header Info ── */}
         <div className="space-y-3 pt-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+          <h1 className="break-words text-2xl font-display font-extrabold leading-tight tracking-tight text-foreground sm:text-3xl md:text-4xl">
             {post.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5 font-medium">
+          <div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:text-sm">
+            <span className="flex max-w-full items-center gap-1.5 font-medium">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               {dateInfo.formatted}
             </span>
-            <span className="text-border">•</span>
-            <span className="flex items-center gap-1.5 font-medium">
+            <span className="hidden text-border sm:inline">•</span>
+            <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
               <User className="w-4 h-4 text-muted-foreground" />
-              {post.author_name || "MENRO Candelaria"}
+              <span className="truncate">{post.author_name || "MENRO Candelaria"}</span>
             </span>
             {post.source && (
               <>
-                <span className="text-border">•</span>
-                <span className="flex items-center gap-1.5 font-medium">
+                <span className="hidden text-border sm:inline">•</span>
+                <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  {post.source}
+                  <span className="truncate">{post.source}</span>
                 </span>
               </>
             )}
@@ -307,11 +308,11 @@ const PostDetail = ({
             </div>
           )}
         </div>
-      </article>
+        </article>
 
-      {/* ── Related Updates Section ── */}
-      {relatedPosts.length > 0 && (
-        <section className="space-y-4 pt-6 border-t border-border/60">
+        {/* ── Related Updates Section ── */}
+        {relatedPosts.length > 0 && (
+          <section className="space-y-4 pt-6 border-t border-border/60">
           <div className="flex items-center justify-between">
             <h2 className="text-base sm:text-lg font-bold font-display text-foreground">
               Related Updates
@@ -334,8 +335,9 @@ const PostDetail = ({
               />
             ))}
           </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
     </div>
   );
 };

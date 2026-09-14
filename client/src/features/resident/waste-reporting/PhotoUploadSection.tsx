@@ -120,7 +120,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
             Evidence Photos
           </h3>
@@ -149,11 +149,11 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
       {photos.length === 0 ? (
         uploadDropzone
       ) : (
-        <div className="flex items-start gap-3 overflow-x-auto pb-1.5 pt-0.5">
+        <div className="grid grid-cols-3 gap-2 pt-0.5 sm:flex sm:items-start sm:gap-3 sm:overflow-x-auto sm:pb-1.5">
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="relative size-28 sm:size-32 shrink-0 rounded-xl overflow-hidden border border-border/80 shadow-2xs group bg-muted/20"
+              className="group relative aspect-square min-w-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs sm:size-32 sm:shrink-0"
             >
               <img
                 src={photo.preview}
@@ -179,7 +179,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
             <button
               type="button"
               onClick={openFilePicker}
-              className="group size-28 sm:size-32 shrink-0 rounded-xl border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer select-none active:scale-[0.98] bg-muted/20 shadow-2xs"
+              className="group flex aspect-square min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border/80 bg-muted/20 text-muted-foreground shadow-2xs transition-all cursor-pointer select-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary active:scale-[0.98] sm:size-32 sm:shrink-0"
               aria-label={`Add more photos (${photos.length} of ${MAX_REPORT_PHOTOS})`}
             >
               <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-2xs">

@@ -38,6 +38,7 @@ const getMetadata = (notification: NotificationRow): Record<string, unknown> => 
 const isWithinLast24Hours = (value: string) => {
   const date = parseApiTimestamp(value);
   if (!date) return false;
+
   const elapsed = Date.now() - date.getTime();
   return elapsed >= 0 && elapsed < 24 * 60 * 60 * 1000;
 };
@@ -122,10 +123,10 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 const RESIDENT_PAGE_TITLES: Record<string, string> = {
   "/resident": "Dashboard",
   "/resident/schedule": "Collection Schedule",
-  "/resident/tracking": "Live Truck Tracking",
-  "/resident/my-reports": "My Waste Reports",
+  "/resident/tracking": "Truck Tracking",
+  "/resident/my-reports": "My Reports",
   "/resident/report": "Submit Report",
-  "/resident/contents": "Community & News",
+  "/resident/contents": "Community Updates",
   "/resident/notifications": "Notifications",
   "/resident/profile": "Profile & Account",
   "/resident/settings": "Settings",
@@ -133,8 +134,8 @@ const RESIDENT_PAGE_TITLES: Record<string, string> = {
 
 const getResidentPageTitle = (pathname: string) => {
   if (RESIDENT_PAGE_TITLES[pathname]) return RESIDENT_PAGE_TITLES[pathname];
-  if (pathname.startsWith("/resident/contents")) return "Community & News";
-  if (pathname.startsWith("/resident/my-reports")) return "My Waste Reports";
+  if (pathname.startsWith("/resident/contents")) return "Community Updates";
+  if (pathname.startsWith("/resident/my-reports")) return "My Reports";
   return "Resident Portal";
 };
 
@@ -187,7 +188,7 @@ const ResidentTopBar = () => {
 
   const visibleNotifications = notifications.slice(0, visibleNotificationCount);
   const hasMoreNotifications = visibleNotificationCount < notifications.length;
-  const recentDayNotificationCount = notifications.filter((notification) =>
+  const recentNotificationCount = notifications.filter((notification) =>
     isWithinLast24Hours(notification.created_at),
   ).length;
 
@@ -220,7 +221,7 @@ const ResidentTopBar = () => {
                 onClick={() => navigate("/resident/my-reports")}
                 className="font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0"
               >
-                My Waste Reports
+                My Reports
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className="font-sans tabular-nums font-bold text-foreground truncate tracking-tight">
@@ -234,7 +235,7 @@ const ResidentTopBar = () => {
                 onClick={() => navigate("/resident/contents")}
                 className="font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0"
               >
-                Community & News
+                Community Updates
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className="font-bold text-foreground truncate tracking-tight">
@@ -298,7 +299,7 @@ const ResidentTopBar = () => {
                 <span className="font-bold text-sm font-display text-foreground tracking-tight">Notifications</span>
                 {notifications.length > 0 && (
                   <span className="bg-muted text-muted-foreground border border-border/60 text-[10px] font-medium rounded-full px-2 py-0.5 leading-none">
-                    {recentDayNotificationCount} today
+                    {recentNotificationCount} recent
                   </span>
                 )}
               </div>

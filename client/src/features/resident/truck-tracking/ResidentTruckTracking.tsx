@@ -614,9 +614,9 @@ const ResidentTruckTracking = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-3.5 sm:space-y-4 px-2 sm:px-4">
+    <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-4">
       {/* ── Page Header ── */}
-      <div className="pb-1">
+      <div className="hidden pb-1 sm:mb-4 sm:block">
         <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
           Truck Tracking
         </h1>
@@ -624,6 +624,8 @@ const ResidentTruckTracking = () => {
           Track your scheduled waste collection in real time.
         </p>
       </div>
+
+      <div className="space-y-3.5 sm:space-y-4">
 
       {trackingError && (
         <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -653,7 +655,7 @@ const ResidentTruckTracking = () => {
       )}
       <CountdownBanner schedule={schedule} residentArea={residentArea} />
 
-      <div className="h-[390px] sm:h-[480px] lg:h-[580px]">
+       <div className="h-[clamp(360px,calc(100dvh-12rem),520px)] sm:h-[480px] lg:h-[580px]">
         <TrackingMap
           trucks={residentTrucks}
           focusedTruckId={focusedTruckId}
@@ -665,6 +667,7 @@ const ResidentTruckTracking = () => {
           onRouteCalculated={handleRoadRouteCalculated}
           onSelectTruck={handleTruckClick}
         />
+      </div>
       </div>
     </div>
   );
