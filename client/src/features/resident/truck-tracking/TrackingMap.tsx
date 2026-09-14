@@ -602,31 +602,31 @@ const TrackingMap = ({
       <div ref={mapElementRef} className="h-full w-full z-0" />
 
       {/* Floating Zoom Controls (Top-Right) */}
-      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[500] flex flex-col bg-card/90 backdrop-blur-md rounded-xl border border-border/80 shadow-sm overflow-hidden p-0.5 pointer-events-auto">
+      <div className="absolute top-2.5 right-2.5 lg:top-3 lg:right-3 z-[500] flex flex-col bg-card/90 backdrop-blur-md rounded-xl border border-border/80 shadow-sm overflow-hidden p-0.5 pointer-events-auto">
         <button
           type="button"
           onClick={handleZoomIn}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
           title="Zoom In"
           aria-label="Zoom in"
         >
-          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <Plus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
         </button>
         <div className="h-px bg-border/60 mx-1" />
         <button
           type="button"
           onClick={handleZoomOut}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
           title="Zoom Out"
           aria-label="Zoom out"
         >
-          <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <Minus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
         </button>
       </div>
 
       {/* Compact map context; the full collection outcome is shown above the map. */}
       {hasResidentCollectionOutcome ? (
-        <div className="absolute left-2.5 top-2.5 z-[450] max-w-[calc(100%-56px)] animate-in fade-in-50 duration-300 sm:left-3 sm:top-3">
+        <div className="absolute left-2.5 top-2.5 z-[450] max-w-[calc(100%-56px)] animate-in fade-in-50 duration-300 lg:left-3 lg:top-3">
           <div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border/80 bg-card/90 px-2.5 py-2 shadow-md backdrop-blur-md">
             <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
               isResidentMissed
@@ -643,7 +643,7 @@ const TrackingMap = ({
           </div>
         </div>
       ) : pausedResidentTruck ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] animate-in fade-in-50 slide-in-from-top-1 duration-300">
+        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] animate-in fade-in-50 slide-in-from-top-1 duration-300">
           <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-amber-500/30 shadow-md p-3.5 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -669,7 +669,7 @@ const TrackingMap = ({
           </div>
         </div>
       ) : targetTruck && routeData ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
+        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
           {isCardCollapsed ? (
             /* Collapsed Compact Status Pill */
             <button
@@ -751,7 +751,7 @@ const TrackingMap = ({
           )}
         </div>
       ) : !hasActiveTrucks && collectionDayStatus !== "paused" ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] animate-in fade-in-50 duration-300">
+        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] animate-in fade-in-50 duration-300">
           <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2">
             <div className="flex items-center gap-2.5">
               <div
@@ -776,37 +776,37 @@ const TrackingMap = ({
       ) : null}
 
       {/* Floating Map Action Controls (Bottom-Right) */}
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-sm pointer-events-auto">
+      <div className="absolute bottom-2.5 right-2.5 lg:bottom-3 lg:right-3 z-[500] flex items-center gap-1 lg:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-sm pointer-events-auto">
         {targetTruck?.coords && (
           <button
             type="button"
             onClick={handleRecenterTruck}
-            className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            className="flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
             title="Recenter on Truck"
           >
             <TruckIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">Truck</span>
+            <span className="hidden lg:inline">Truck</span>
           </button>
         )}
 
         <button
           type="button"
           onClick={handleRecenterBarangay}
-          className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Zoom to My Barangay"
         >
           <LocateFixed className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">My Brgy</span>
+          <span className="hidden lg:inline">My Brgy</span>
         </button>
 
         <button
           type="button"
           onClick={handleFitRouteBounds}
-          className="flex items-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
           title="Fit Whole Route"
         >
           <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">Fit Route</span>
+          <span className="hidden lg:inline">Fit Route</span>
         </button>
       </div>
     </div>
@@ -814,3 +814,4 @@ const TrackingMap = ({
 };
 
 export default TrackingMap;
+

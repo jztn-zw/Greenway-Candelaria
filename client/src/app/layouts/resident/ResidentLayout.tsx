@@ -6,7 +6,7 @@ import PageTransition from "@/components/PageTransition";
 
 const ResidentLayout = () => {
   return (
-    <SidebarProvider>
+    <SidebarProvider mobileBreakpoint={1024}>
       <div className="min-h-screen flex w-full">
         <ResidentSidebar />
         <div className="flex-1 flex flex-col min-w-0">

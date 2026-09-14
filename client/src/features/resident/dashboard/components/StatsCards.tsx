@@ -73,23 +73,23 @@ const StatsCards = () => {
   ];
 
   return (
-    <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
       {stats.map((s) => (
         <Card
           key={s.label}
           className="rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/40 transition-all border border-border/80 bg-card/80 backdrop-blur-sm active:scale-[0.99] group"
           onClick={() => navigate(s.to)}
         >
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-4 lg:p-5">
             <div className="flex items-center justify-between mb-3">
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border ${s.color}`}>
+              <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center border ${s.color}`}>
                 <s.icon className="w-5 h-5" />
               </div>
               <span className="w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors">
                 <ArrowUpRight className="w-4 h-4" />
               </span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
+            <p className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight">
               {s.value}
             </p>
             <p className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">
@@ -107,4 +107,5 @@ const StatsCards = () => {
 };
 
 export default StatsCards;
+
 

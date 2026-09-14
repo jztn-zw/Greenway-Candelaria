@@ -71,7 +71,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           : "border-border/80 hover:border-primary/40 hover:shadow-xs bg-card"
       )}
     >
-      <CardContent className="p-3.5 sm:p-4 space-y-3">
+      <CardContent className="p-3.5 lg:p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -300,7 +300,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                   <div
                     key={i}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2.5 sm:py-2 text-xs transition-colors",
+                      "flex items-center gap-2 px-3 py-2.5 lg:py-2 text-xs transition-colors",
                       stop.isResidentBarangay &&
                         "bg-primary/10 border-l-[3px] border-l-primary font-semibold",
                       !stop.isResidentBarangay && stop.status === "skipped" && "bg-yellow-500/5",
@@ -392,3 +392,4 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
 };
 
 export default TruckCard;
+

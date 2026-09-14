@@ -134,14 +134,14 @@ const PostDetail = ({
   return (
     <div
       ref={contentRef}
-      className="w-full max-w-[1000px] mx-auto pb-4 sm:pb-6 animate-in fade-in duration-300"
+      className="w-full max-w-[1000px] mx-auto pb-4 lg:pb-6 animate-in fade-in duration-300"
     >
       {/* ── Top Back Navigation ── */}
-      <div className="hidden sm:mb-8 sm:block">
+      <div className="hidden lg:mb-8 lg:block">
         <BackButton label="Back to Community Updates" onClick={onBack} />
       </div>
 
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
         <article className="space-y-6">
         {/* ── 1080 × 566 Responsive Landscape Image Container with Blurred Backdrop ── */}
@@ -172,9 +172,9 @@ const PostDetail = ({
           )}
 
           {/* Top-left category badge */}
-          <div className="absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
+          <div className="absolute left-3 top-3 z-20 lg:left-4 lg:top-4">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md sm:px-3 sm:py-1 sm:text-[11px] ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md lg:px-3 lg:py-1 lg:text-[11px] ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${getCategoryBadgeStyle(post.category).dot}`} />
               <span>{categoryLabel}</span>
@@ -183,7 +183,7 @@ const PostDetail = ({
 
           {/* Image count / index indicator if multiple images */}
           {validImages.length > 1 && (
-            <div className="absolute right-3 top-3 z-20 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white/95 shadow-2xs backdrop-blur-md sm:right-4 sm:top-4">
+            <div className="absolute right-3 top-3 z-20 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white/95 shadow-2xs backdrop-blur-md lg:right-4 lg:top-4">
               {activeImageIndex + 1} / {validImages.length}
             </div>
           )}
@@ -199,7 +199,7 @@ const PostDetail = ({
                   key={idx}
                   type="button"
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 ${
+                  className={`relative w-20 h-14 lg:w-24 lg:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 ${
                     isActive
                       ? "border-primary ring-2 ring-primary/30 opacity-100 shadow-xs"
                       : "border-border/70 opacity-65 hover:opacity-100 hover:border-primary/40"
@@ -218,23 +218,23 @@ const PostDetail = ({
 
         {/* ── Post Header Info ── */}
         <div className="space-y-3 pt-1">
-          <h1 className="break-words text-2xl font-display font-extrabold leading-tight tracking-tight text-foreground sm:text-3xl md:text-4xl">
+          <h1 className="break-words text-2xl font-display font-extrabold leading-tight tracking-tight text-foreground lg:text-3xl lg:text-4xl">
             {post.title}
           </h1>
 
-          <div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:text-sm">
+          <div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground md:flex-row md:flex-wrap md:items-center md:gap-3 md:text-sm">
             <span className="flex max-w-full items-center gap-1.5 font-medium">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               {dateInfo.formatted}
             </span>
-            <span className="hidden text-border sm:inline">•</span>
+            <span className="hidden text-border lg:inline">•</span>
             <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
               <User className="w-4 h-4 text-muted-foreground" />
               <span className="truncate">{post.author_name || "MENRO Candelaria"}</span>
             </span>
             {post.source && (
               <>
-                <span className="hidden text-border sm:inline">•</span>
+                <span className="hidden text-border lg:inline">•</span>
                 <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="truncate">{post.source}</span>
@@ -250,7 +250,7 @@ const PostDetail = ({
             type="button"
             onClick={handleToggleLike}
             disabled={isLiking}
-            className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 border cursor-pointer active:scale-95 shadow-2xs ${
+            className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer active:scale-95 shadow-2xs ${
               post.is_liked
                 ? "bg-destructive/10 text-destructive border-destructive/30"
                 : "bg-card text-muted-foreground border-border/80 hover:bg-muted/70 hover:text-foreground hover:border-border"
@@ -265,7 +265,7 @@ const PostDetail = ({
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 border bg-card text-muted-foreground border-border/80 hover:bg-muted/70 hover:text-foreground hover:border-border cursor-pointer active:scale-95 shadow-2xs"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 border bg-card text-muted-foreground border-border/80 hover:bg-muted/70 hover:text-foreground hover:border-border cursor-pointer active:scale-95 shadow-2xs"
           >
             {copied ? (
               <>
@@ -284,9 +284,9 @@ const PostDetail = ({
         <div className="border-t border-border/60" />
 
         {/* ── Post Body Content ── */}
-        <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-foreground/90 leading-relaxed space-y-4">
+        <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-foreground/90 leading-relaxed space-y-4">
           {post.body.split("\n\n").map((paragraph, idx) => (
-            <p key={idx} className="text-sm sm:text-base leading-relaxed text-foreground/85">
+            <p key={idx} className="text-sm lg:text-base leading-relaxed text-foreground/85">
               {paragraph}
             </p>
           ))}
@@ -314,7 +314,7 @@ const PostDetail = ({
         {relatedPosts.length > 0 && (
           <section className="space-y-4 pt-6 border-t border-border/60">
           <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-bold font-display text-foreground">
+            <h2 className="text-base lg:text-lg font-bold font-display text-foreground">
               Related Updates
             </h2>
             <button
@@ -326,7 +326,7 @@ const PostDetail = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {relatedPosts.map((rel) => (
               <PostCard
                 key={rel.id}
@@ -343,3 +343,4 @@ const PostDetail = ({
 };
 
 export default PostDetail;
+

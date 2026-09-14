@@ -27,7 +27,7 @@ const NextCollectionBanner = ({ hasActiveTrucks }: NextCollectionBannerProps) =>
   const { dayLabel, wasteType } = getNextCollectionInfo();
 
   return (
-    <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-primary/5 border border-primary/15 animate-fade-in">
+    <div className="flex items-center gap-3 p-3 lg:p-4 rounded-xl bg-primary/5 border border-primary/15 animate-fade-in">
       <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
         <CalendarDays className="w-4 h-4 text-primary" />
       </div>
@@ -37,9 +37,10 @@ const NextCollectionBanner = ({ hasActiveTrucks }: NextCollectionBannerProps) =>
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">Prepare your bins tonight.</p>
       </div>
-      <ArrowRight className="w-4 h-4 text-primary shrink-0 hidden sm:block" />
+      <ArrowRight className="w-4 h-4 text-primary shrink-0 hidden lg:block" />
     </div>
   );
 };
 
 export default NextCollectionBanner;
+

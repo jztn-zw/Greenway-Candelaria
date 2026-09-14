@@ -33,7 +33,7 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
           </p>
         </div>
 
-        <span className="text-[11px] text-muted-foreground hidden sm:inline-block">
+        <span className="text-[11px] text-muted-foreground hidden md:inline-block">
           {value.trim().length >= 10 ? (
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Ready</span>
           ) : (
@@ -77,7 +77,7 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
               ? `Describe the ${violation.label.toLowerCase()}, exact location details, and when you observed it.`
               : "Describe what you observed, when it happened, and its severity."
           }
-          className={`min-h-[120px] resize-none rounded-xl text-xs sm:text-sm leading-relaxed p-3 ${
+          className={`min-h-[120px] resize-none rounded-xl text-xs lg:text-sm leading-relaxed p-3 ${
             showError
               ? "border-destructive/80 focus-visible:ring-destructive/25"
               : "border-border/80 hover:border-border focus-visible:ring-primary/20 focus-visible:border-primary"
@@ -101,3 +101,4 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
 };
 
 export default DescriptionSection;
+

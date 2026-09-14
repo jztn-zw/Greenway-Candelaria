@@ -60,7 +60,7 @@ const RecentNotificationsStrip = () => {
         </button>
       </div>
 
-      <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:grid-cols-3">
         {notifications.map((n) => {
           const timeAgo = formatRelativeTime(n.created_at, {
             emptyLabel: "Recently",
@@ -111,4 +111,5 @@ const RecentNotificationsStrip = () => {
 };
 
 export default RecentNotificationsStrip;
+
 

@@ -22,10 +22,10 @@ const DashboardGreeting = () => {
 
   return (
     <div className="mb-1">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight">
               {greeting}, <span className="text-primary">{firstName}!</span>
             </h1>
             {barangay && (
@@ -35,12 +35,12 @@ const DashboardGreeting = () => {
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
             Here is your real-time waste collection & community activity summary.
           </p>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto shrink-0">
+        <div className="flex w-full shrink-0 items-center justify-between gap-2.5 md:w-auto md:justify-end">
           <span className="h-9 px-3.5 rounded-xl text-xs font-semibold text-muted-foreground bg-card border border-border/80 flex items-center shadow-2xs tabular-nums">
             {format(today, "EEE, MMM d, yyyy")}
           </span>
@@ -59,3 +59,4 @@ const DashboardGreeting = () => {
 };
 
 export default DashboardGreeting;
+

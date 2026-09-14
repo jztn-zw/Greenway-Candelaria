@@ -41,7 +41,7 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
   return (
     <div className="space-y-4">
       {/* ── Checklist Card ── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 lg:p-5 shadow-2xs space-y-4">
         <div>
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-xs font-bold font-display text-foreground tracking-tight flex items-center gap-1.5">
@@ -128,3 +128,4 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
 };
 
 export default FormProgressSidebar;
+

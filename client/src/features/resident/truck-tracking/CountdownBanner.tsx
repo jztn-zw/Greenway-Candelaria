@@ -18,16 +18,16 @@ const CountdownBanner = ({
 
   if (!hasSchedule) {
     return (
-      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs sm:flex-row sm:items-center sm:p-4">
+      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
         <div className="min-w-0 space-y-0.5">
-          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
+          <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
             No Scheduled Collection • {residentArea || "Your Barangay"}
           </h3>
-          <p className="text-[11px] sm:text-xs text-muted-foreground">
+          <p className="text-[11px] lg:text-xs text-muted-foreground">
             There is currently no upcoming collection schedule set for your location.
           </p>
         </div>
-        <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 sm:self-auto sm:text-xs">
+        <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
           <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <span className="truncate">Check announcements for schedule updates</span>
         </div>
@@ -51,12 +51,12 @@ const CountdownBanner = ({
     : dayLabel;
 
   return (
-    <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs lg:flex-row lg:items-center sm:p-4">
+    <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
       {/* Schedule & Location Details */}
       <div className="min-w-0 space-y-1">
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight">
+          <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
             Collection for {residentArea || "Your Location"}
           </h3>
 
@@ -87,7 +87,7 @@ const CountdownBanner = ({
         </div>
 
         {/* Sub-line: Date and Time of Start with neutral monochrome icons */}
-        <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-2 lg:gap-3 text-[11px] lg:text-xs text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span>
@@ -105,7 +105,7 @@ const CountdownBanner = ({
       </div>
 
       {/* Right: Reminder Pill with neutral monochrome icon */}
-       <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto sm:text-xs">
+       <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
         <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
          <span className="truncate">Please have segregated bins ready</span>
       </div>
@@ -114,3 +114,4 @@ const CountdownBanner = ({
 };
 
 export default CountdownBanner;
+

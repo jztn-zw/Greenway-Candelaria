@@ -13,4 +13,7 @@ export interface AssignmentData {
   wasteColor?: string;
   routeState: RouteState;
   timeElapsedMinutes: number;
+  nextStopName?: string;
+  nextStopZone?: string;
+  nextStopOrder?: number;
 }

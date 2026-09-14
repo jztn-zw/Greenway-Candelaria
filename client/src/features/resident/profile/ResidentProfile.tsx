@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Camera, Mail, Phone, Lock, User, Award, Calendar,
+  Mail, Phone, Lock, User, Award, Calendar,
   Heart, Trash2, ChevronRight, Check,
   ClipboardList, Loader2, AlertCircle, Eye, EyeOff,
-  ShieldCheck, MapPin, Sparkles, AtSign, X, LogOut,
+  ShieldCheck, MapPin, Sparkles, AtSign, X, LogOut, Paintbrush,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -18,7 +18,6 @@ import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
   updateProfile,
-  uploadAvatar,
   changePassword,
   fetchMyReportStats,
   UserProfile,
@@ -38,16 +37,16 @@ const FieldRow = ({
   placeholder?: string;
   onEdit: () => void;
 }) => (
-  <div className="flex items-center justify-between py-3 px-3 sm:px-4 -mx-3 sm:-mx-4 rounded-xl hover:bg-muted/40 transition-colors gap-3 group">
-    <div className="flex items-center gap-3.5 min-w-0 flex-1">
-      <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground border border-border/50 flex items-center justify-center shrink-0 shadow-2xs group-hover:border-primary/30 group-hover:text-primary transition-colors">
+  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
+    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs transition-colors group-hover:border-primary/30 group-hover:text-primary lg:size-10">
         <Icon className="w-4.5 h-4.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
           {label}
         </p>
-        <p className="text-sm font-medium text-foreground truncate mt-0.5">
+        <p className="mt-0.5 truncate text-[13px] font-medium text-foreground lg:text-sm">
           {masked ? (
             "••••••••"
           ) : value ? (
@@ -79,6 +78,13 @@ const FieldRow = ({
   </div>
 );
 
+const AVATAR_STYLES = [
+  { id: "forest", label: "Forest", className: "bg-gradient-to-br from-primary to-emerald-700" },
+  { id: "ocean", label: "Ocean", className: "bg-gradient-to-br from-sky-500 to-blue-700" },
+  { id: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-rose-600" },
+  { id: "violet", label: "Violet", className: "bg-gradient-to-br from-violet-500 to-fuchsia-700" },
+] as const;
+
 // ─── Main component ───────────────────────────────────────────────────────────
 const ResidentProfile = () => {
   const navigate = useNavigate();
@@ -93,8 +99,8 @@ const ResidentProfile = () => {
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarStyle, setAvatarStyle] = useState<(typeof AVATAR_STYLES)[number]["id"]>("forest");
+  const [avatarModal, setAvatarModal] = useState(false);
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
@@ -130,23 +136,13 @@ const ResidentProfile = () => {
     void load();
   }, []);
 
-  // ── Avatar upload ─────────────────────────────────────────────────────────
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setAvatarUploading(true);
-      const result = await uploadAvatar(file);
-      setProfile(result.user);
-      setUser(result.user as unknown as typeof authUser);
-      toast.success("Profile photo updated!");
-    } catch {
-      toast.error("Failed to upload photo. Please try again.");
-    } finally {
-      setAvatarUploading(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = "";
+  useEffect(() => {
+    if (!profile?.id) return;
+    const savedStyle = localStorage.getItem(`greenway:resident-avatar:${profile.id}`);
+    if (AVATAR_STYLES.some((style) => style.id === savedStyle)) {
+      setAvatarStyle(savedStyle as (typeof AVATAR_STYLES)[number]["id"]);
     }
-  };
+  }, [profile?.id]);
 
   // ── Edit field save ───────────────────────────────────────────────────────
   const openEdit = (field: string, value: string) =>
@@ -231,6 +227,14 @@ const ResidentProfile = () => {
     totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0;
   const isActiveResident =
     profile?.role?.toUpperCase() === "RESIDENT" && profile.status?.toUpperCase() === "ACTIVE";
+  const selectedAvatarStyle = AVATAR_STYLES.find((style) => style.id === avatarStyle) ?? AVATAR_STYLES[0];
+
+  const saveAvatarStyle = (styleId: (typeof AVATAR_STYLES)[number]["id"]) => {
+    setAvatarStyle(styleId);
+    if (profile?.id) localStorage.setItem(`greenway:resident-avatar:${profile.id}`, styleId);
+    setAvatarModal(false);
+    toast.success("Avatar style updated");
+  };
 
   const badges = [
     {
@@ -303,16 +307,16 @@ const ResidentProfile = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-5 md:space-y-6">
       {/* ── Profile Header Banner ─────────────────────────────────────────── */}
       <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
         {/* Subtle decorative atmospheric banner */}
-        <div className="h-32 sm:h-36 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 border-b border-border/50 relative overflow-hidden">
+        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 lg:h-36">
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
           <div className="absolute -bottom-8 left-1/3 w-36 h-36 rounded-full bg-primary/10 blur-xl pointer-events-none" />
 
           <div
-            className={`absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${
+            className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${
               isActiveResident
                 ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                 : "border-amber-500/30 text-amber-600 dark:text-amber-400"
@@ -335,55 +339,36 @@ const ResidentProfile = () => {
         </div>
 
         {/* Avatar & Core Identity */}
-        <div className="px-5 sm:px-8 pb-6 sm:pb-7 pt-0 relative">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 -mt-16 sm:-mt-18 text-center sm:text-left">
-            <div className="relative group shrink-0">
-              <Avatar className="w-24 h-24 sm:w-28 sm:h-28 ring-4 ring-background shadow-lg rounded-full">
-                <AvatarImage
-                  src={profile.avatar_url ?? undefined}
-                  alt={profile.full_name}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-700 text-primary-foreground text-3xl font-display font-bold rounded-full">
+        <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
+          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
+                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full text-3xl font-display font-bold text-primary-foreground`}>
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <button
+              <Button
                 type="button"
-                className="absolute -bottom-0.5 -right-0.5 size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-60 ring-2 ring-background"
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={avatarUploading}
-                aria-label="Change profile photo"
-                title="Upload new photo"
+                variant="outline"
+                onClick={() => setAvatarModal(true)}
+                className="h-8 gap-1.5 rounded-xl border-border/80 px-3 text-[11px] font-semibold hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
               >
-                {avatarUploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Camera className="w-3.5 h-3.5" />
-                )}
-              </button>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  void handleAvatarChange(e);
-                }}
-              />
+                <Paintbrush className="size-3.5" />
+                Customize
+              </Button>
             </div>
 
             <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 justify-center sm:justify-start">
-                <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-tight truncate">
+              <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
+                <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground lg:text-2xl">
                   {profile.full_name}
                 </h1>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto sm:mx-0">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto lg:mx-0">
                   @{profile.username}
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:justify-start md:gap-x-4 md:gap-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="font-medium text-foreground/85">
@@ -392,7 +377,7 @@ const ResidentProfile = () => {
                       : "No barangay set"}
                   </span>
                 </div>
-                <span className="hidden sm:inline text-border">•</span>
+                <span className="hidden md:inline text-border">•</span>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
                   <span>Joined {joinDate}</span>
@@ -404,7 +389,7 @@ const ResidentProfile = () => {
       </div>
 
       {/* ── Personal Information ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+      <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -419,7 +404,7 @@ const ResidentProfile = () => {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[11px] font-medium text-muted-foreground">
+          <span className="hidden md:inline-block text-[11px] font-medium text-muted-foreground">
             Tap edit to update
           </span>
         </div>
@@ -464,7 +449,7 @@ const ResidentProfile = () => {
       </div>
 
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
+      <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-5 lg:p-6 space-y-5 shadow-xs">
         <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-border/50">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -490,7 +475,7 @@ const ResidentProfile = () => {
         </div>
 
         {/* Resolution Progress Bar */}
-        <div className="p-4 sm:p-4.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 space-y-2.5">
+        <div className="p-4 lg:p-4.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 space-y-2.5">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-foreground">
@@ -518,9 +503,9 @@ const ResidentProfile = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-primary/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl sm:text-3xl font-bold font-display text-primary group-hover:scale-105 transition-transform">
+            <p className="text-2xl lg:text-3xl font-bold font-display text-primary group-hover:scale-105 transition-transform">
               {stats?.total ?? 0}
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -528,7 +513,7 @@ const ResidentProfile = () => {
             </p>
           </div>
           <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-emerald-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl sm:text-3xl font-bold font-display text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+            <p className="text-2xl lg:text-3xl font-bold font-display text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
               {stats?.resolved ?? 0}
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -536,7 +521,7 @@ const ResidentProfile = () => {
             </p>
           </div>
           <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl sm:text-3xl font-bold font-display text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+            <p className="text-2xl lg:text-3xl font-bold font-display text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
               {stats?.pending ?? 0}
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -544,7 +529,7 @@ const ResidentProfile = () => {
             </p>
           </div>
           <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-sky-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl sm:text-3xl font-bold font-display text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
+            <p className="text-2xl lg:text-3xl font-bold font-display text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
               {(stats?.in_progress ?? 0) + (stats?.under_review ?? 0)}
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -555,7 +540,7 @@ const ResidentProfile = () => {
       </div>
 
       {/* ── Badges & Recognition ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+      <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-5 lg:p-6 space-y-4 shadow-xs">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -575,20 +560,20 @@ const ResidentProfile = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {badges.map((badge) => {
             const BadgeIcon = badge.icon;
             return (
               <div
                 key={badge.id}
-                className={`p-3.5 sm:p-4 rounded-xl border flex items-start gap-3.5 transition-all ${
+                className={`p-3.5 lg:p-4 rounded-xl border flex items-start gap-3.5 transition-all ${
                   badge.earned
                     ? "bg-card border-border/80 shadow-2xs hover:border-primary/40 hover:shadow-xs"
                     : "bg-muted/15 border-border/40 opacity-70"
                 }`}
               >
                 <div
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+                  className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 border ${
                     badge.earned
                       ? `${badge.bg} ${badge.color} ${badge.border} shadow-2xs`
                       : "bg-muted text-muted-foreground border-border/50"
@@ -598,7 +583,7 @@ const ResidentProfile = () => {
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs sm:text-sm font-bold text-foreground truncate">
+                    <p className="text-xs lg:text-sm font-bold text-foreground truncate">
                       {badge.label}
                     </p>
                     {badge.earned ? (
@@ -629,7 +614,7 @@ const ResidentProfile = () => {
             onClick={() => {
               void handleLogout();
             }}
-            className="w-full flex items-center justify-between p-4 sm:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
+            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
@@ -645,7 +630,7 @@ const ResidentProfile = () => {
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors ml-4">
-              <span className="hidden sm:inline text-xs font-medium">Sign Out</span>
+              <span className="hidden lg:inline text-xs font-medium">Sign Out</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </button>
@@ -653,7 +638,7 @@ const ResidentProfile = () => {
           <button
             type="button"
             onClick={() => setDeleteModal(true)}
-            className="w-full flex items-center justify-between p-4 sm:p-4.5 hover:bg-destructive/5 active:bg-destructive/10 transition-all duration-150 group cursor-pointer text-left"
+            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-destructive/5 active:bg-destructive/10 transition-all duration-150 group cursor-pointer text-left"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive group-hover:bg-destructive/15 transition-colors flex items-center justify-center shrink-0 border border-destructive/20">
@@ -669,7 +654,7 @@ const ResidentProfile = () => {
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-destructive transition-colors ml-4">
-              <span className="hidden sm:inline text-xs font-medium">Delete</span>
+              <span className="hidden lg:inline text-xs font-medium">Delete</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </button>
@@ -681,6 +666,38 @@ const ResidentProfile = () => {
         </div>
       </div>
 
+      {/* ── Avatar Customization Modal ─────────────────────────────────────────── */}
+      <Dialog open={avatarModal} onOpenChange={setAvatarModal}>
+        <DialogContent className="w-[94vw] max-w-sm rounded-2xl border-border/80 bg-card p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-bold">Customize avatar</DialogTitle>
+            <DialogDescription className="text-xs">
+              Choose a color style for the initials avatar shown in this web portal.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            {AVATAR_STYLES.map((style) => {
+              const selected = style.id === avatarStyle;
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => saveAvatarStyle(style.id)}
+                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
+                    selected ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"
+                  }`}
+                >
+                  <span className={`flex size-10 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>
+                    {initials}
+                  </span>
+                  <span className="text-xs font-semibold text-foreground">{style.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Edit Field Modal ──────────────────────────────────────────────────── */}
       <Dialog
         open={editModal.open}
@@ -688,7 +705,7 @@ const ResidentProfile = () => {
           if (!editModal.saving) setEditModal((p) => ({ ...p, open, error: "" }));
         }}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -743,7 +760,7 @@ const ResidentProfile = () => {
                   }
                   placeholder={`Enter your ${editModal.field.toLowerCase()}`}
                   disabled={editModal.saving}
-                  className="h-11 pl-10 rounded-xl border-border/80 text-xs sm:text-sm bg-background/50 focus:bg-background focus-visible:ring-primary/20 transition-colors"
+                  className="h-11 pl-10 rounded-xl border-border/80 text-xs lg:text-sm bg-background/50 focus:bg-background focus-visible:ring-primary/20 transition-colors"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void handleEditSave();
@@ -771,7 +788,7 @@ const ResidentProfile = () => {
               variant="outline"
               onClick={() => setEditModal((p) => ({ ...p, open: false }))}
               disabled={editModal.saving}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
+              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
             >
               Cancel
             </Button>
@@ -781,7 +798,7 @@ const ResidentProfile = () => {
                 void handleEditSave();
               }}
               disabled={editModal.saving}
-              className="h-10 px-5 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
+              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
             >
               {editModal.saving ? (
                 <>
@@ -802,7 +819,7 @@ const ResidentProfile = () => {
           if (!pwModal.saving) setPwModal((p) => ({ ...p, open, error: "" }));
         }}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -841,7 +858,7 @@ const ResidentProfile = () => {
                   }
                   placeholder="Enter current password"
                   disabled={pwModal.saving}
-                  className="h-10 sm:h-10.5 rounded-xl border-border/80 text-xs sm:text-sm pr-10"
+                  className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm pr-10"
                 />
                 <button
                   type="button"
@@ -869,7 +886,7 @@ const ResidentProfile = () => {
                   }
                   placeholder="At least 8 characters"
                   disabled={pwModal.saving}
-                  className="h-10 sm:h-10.5 rounded-xl border-border/80 text-xs sm:text-sm pr-10"
+                  className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm pr-10"
                 />
                 <button
                   type="button"
@@ -900,7 +917,7 @@ const ResidentProfile = () => {
                 }
                 placeholder="Repeat new password"
                 disabled={pwModal.saving}
-                className="h-10 sm:h-10.5 rounded-xl border-border/80 text-xs sm:text-sm"
+                className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm"
               />
             </div>
             {pwModal.error && (
@@ -916,7 +933,7 @@ const ResidentProfile = () => {
               variant="outline"
               onClick={() => setPwModal((p) => ({ ...p, open: false }))}
               disabled={pwModal.saving}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
+              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
             >
               Cancel
             </Button>
@@ -926,7 +943,7 @@ const ResidentProfile = () => {
                 void handlePasswordSave();
               }}
               disabled={pwModal.saving}
-              className="h-10 px-5 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
+              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
             >
               {pwModal.saving ? (
                 <>
@@ -942,7 +959,7 @@ const ResidentProfile = () => {
 
       {/* ── Delete Account Modal ──────────────────────────────────────────────── */}
       <Dialog open={deleteModal} onOpenChange={setDeleteModal}>
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -982,7 +999,7 @@ const ResidentProfile = () => {
               type="button"
               variant="outline"
               onClick={() => setDeleteModal(false)}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
+              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
             >
               Cancel
             </Button>
@@ -995,7 +1012,7 @@ const ResidentProfile = () => {
                   "Account deletion request submitted. MENRO will process it within 7 working days."
                 );
               }}
-              className="h-10 px-5 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] cursor-pointer transition-all"
+              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold shadow-xs active:scale-[0.98] cursor-pointer transition-all"
             >
               Submit Request
             </Button>
@@ -1007,3 +1024,4 @@ const ResidentProfile = () => {
 };
 
 export default ResidentProfile;
+

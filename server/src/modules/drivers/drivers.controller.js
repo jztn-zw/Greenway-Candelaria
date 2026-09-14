@@ -7,7 +7,7 @@ const {
   adminDriverMessageSchema,
 } = require("./drivers.schema");
 const { success } = require("../../utils/apiResponse");
-const { notifyAdmins } = require("../notifications/notifications.service");
+const { notifyAdmins, sendToUser } = require("../notifications/notifications.service");
 
 const getAll = async (req, res, next) => {
   try {
@@ -69,6 +69,18 @@ const assignTruck = async (req, res, next) => {
   try {
     const { truck_id } = assignTruckSchema.parse(req.body);
     const driver = await service.assignTruck(req.params.id, truck_id);
+    if (driver.user_id) {
+      await sendToUser({
+        user_id: driver.user_id,
+        type: "SYSTEM",
+        title: driver.truck_name ? "Truck Assigned" : "Truck Assignment Updated",
+        body: driver.truck_name
+          ? `${driver.truck_name} is now assigned to you. Check your route before your next shift.`
+          : "Your truck assignment was removed. Contact dispatch if you need assistance.",
+        ref_id: driver.id,
+        ref_module: "drivers",
+      }).catch((err) => console.error("[Drivers] Truck-assignment collector notification error:", err.message));
+    }
     return success(res, driver, "Truck assigned successfully");
   } catch (err) {
     next(err);
@@ -139,6 +151,14 @@ const sendMessageToDriver = async (req, res, next) => {
       data.route_id,
       data.message,
     );
+    await sendToUser({
+      user_id: data.driver_user_id,
+      type: "SYSTEM",
+      title: "New Dispatch Message",
+      body: data.message,
+      ref_id: data.route_id || result.driver_id,
+      ref_module: "driver-messages",
+    }).catch((err) => console.error("[Drivers] Collector message notification error:", err.message));
     return success(res, result, "Driver message sent successfully", 201);
   } catch (err) {
     next(err);

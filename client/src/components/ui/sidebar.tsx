@@ -46,9 +46,10 @@ const SidebarProvider = React.forwardRef<
     defaultOpen?: boolean;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    mobileBreakpoint?: number;
   }
->(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
-  const isMobile = useIsMobile();
+>(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, mobileBreakpoint, className, style, children, ...props }, ref) => {
+  const isMobile = useIsMobile(mobileBreakpoint);
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // This is the internal state of the sidebar.

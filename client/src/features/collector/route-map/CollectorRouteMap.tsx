@@ -35,7 +35,6 @@ import { cn } from "@/lib/utils";
 import RouteProgressBar from "./components/RouteProgressBar";
 import RouteMapView from "./components/RouteMapView";
 import StopListItem from "./components/StopListItem";
-import AnimatedList from "@/components/AnimatedList";
 import SkipReasonModal from "./components/SkipReasonModal";
 import EndRouteModal from "./components/EndRouteModal";
 import { useRouteData } from "./hooks/useRouteData";
@@ -124,20 +123,32 @@ const RouteMapError = ({
   message: string;
   onRetry: () => void;
 }) => (
-  <div className="w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center py-20 gap-4">
-    <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
-      <AlertCircle className="w-7 h-7 text-destructive" />
+  <div className="w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-[360px] px-4">
+    <div className="flex flex-col items-center text-center gap-5 max-w-[280px]">
+      {/* Icon */}
+      <div className="w-11 h-11 rounded-xl bg-destructive/10 border border-destructive/15 flex items-center justify-center shrink-0">
+        <AlertCircle className="w-5 h-5 text-destructive" />
+      </div>
+
+      {/* Copy */}
+      <div className="space-y-1.5">
+        <p className="text-sm font-display font-bold text-foreground tracking-tight">
+          Could not load route
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{message}</p>
+      </div>
+
+      {/* Action */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onRetry}
+        className="gap-2 rounded-xl h-9 px-4 text-xs font-semibold border-border"
+      >
+        <RefreshCw className="w-3.5 h-3.5" />
+        Try Again
+      </Button>
     </div>
-    <div className="text-center space-y-1">
-      <p className="text-base font-display font-bold text-foreground">
-        Could not load route
-      </p>
-      <p className="text-sm text-muted-foreground max-w-xs">{message}</p>
-    </div>
-    <Button variant="outline" onClick={onRetry} className="gap-2">
-      <RefreshCw className="w-4 h-4" />
-      Try Again
-    </Button>
   </div>
 );
 
@@ -687,7 +698,7 @@ const CollectorRouteMap = () => {
         >
           {/* Geofence Arrival Alert */}
           {isWithinGeofence && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-bold animate-in fade-in">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-bold">
               <Radio className="w-4 h-4 shrink-0 animate-pulse" />
               <span className="truncate">Arrived at destination zone (within 150m)</span>
             </div>
@@ -830,10 +841,6 @@ const CollectorRouteMap = () => {
         elapsed={elapsed}
         isScheduled={isScheduledRoute}
         isPaused={isPaused}
-        currentBarangay={activeStop?.barangay ?? null}
-        currentStopNumber={activeStop?.stopNumber ?? null}
-        currentDistanceKm={activeStop?.distanceKm ?? null}
-        isWithinGeofence={isWithinGeofence}
       />
 
       {/* Amber "Route Paused" Banner (Req 6 & 7) */}
@@ -940,13 +947,11 @@ const CollectorRouteMap = () => {
 
           {/* Scrollable Stop List (Strictly scheduled order, Req 8) */}
           <div className="flex-1 min-h-[160px] overflow-y-auto pr-1">
-            <AnimatedList
-              items={autoRoutedStops}
-              getKey={(s) => s.id}
-              className="space-y-1.5"
-            >
-              {(stop) => <StopListItem stop={stop} />}
-            </AnimatedList>
+            <div className="space-y-1.5">
+              {autoRoutedStops.map((stop) => (
+                <StopListItem key={stop.id} stop={stop} />
+              ))}
+            </div>
           </div>
 
           {/* Route Lifecycle Actions: Pause & End (Pinned at Bottom of Panel, Req 4 & 5) */}

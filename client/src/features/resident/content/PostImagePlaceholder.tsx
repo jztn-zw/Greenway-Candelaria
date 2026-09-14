@@ -21,12 +21,12 @@ export const PostImagePlaceholder: React.FC<PostImagePlaceholderProps> = ({
     >
       {/* ── Ambient Radial Light Blooms ── */}
       <div
-        className={`absolute -top-12 -right-12 w-48 h-48 sm:w-56 sm:h-56 rounded-full ${
+        className={`absolute -top-12 -right-12 w-48 h-48 lg:w-56 lg:h-56 rounded-full ${
           isEvent ? "bg-amber-400/25" : "bg-emerald-300/20"
         } blur-3xl pointer-events-none`}
       />
       <div
-        className={`absolute -bottom-12 -left-12 w-48 h-48 sm:w-56 sm:h-56 rounded-full ${
+        className={`absolute -bottom-12 -left-12 w-48 h-48 lg:w-56 lg:h-56 rounded-full ${
           isEvent ? "bg-emerald-400/20" : "bg-teal-300/20"
         } blur-3xl pointer-events-none`}
       />
@@ -59,3 +59,4 @@ export const PostImagePlaceholder: React.FC<PostImagePlaceholderProps> = ({
 };
 
 export default PostImagePlaceholder;
+

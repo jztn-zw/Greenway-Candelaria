@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Timer } from "lucide-react";
+import { CheckCircle2, AlertCircle, Timer } from "lucide-react";
 
 interface Props {
   completed: number;
@@ -11,44 +11,68 @@ interface Props {
 const TodayStatsCards = ({ completed, total, skipped, timeElapsed, active }: Props) => {
   const hours = Math.floor(timeElapsed / 60);
   const mins = timeElapsed % 60;
+  const remaining = Math.max(0, total - completed - skipped);
 
   const stats = [
     {
       label: "Stops Completed",
-      value: active ? `${completed} / ${total}` : "—",
+      value: total > 0 ? `${completed} / ${total}` : "—",
+      subtext: total > 0 ? (completed === total ? "All stops finished" : `${remaining} remaining`) : "No stops scheduled",
       icon: CheckCircle2,
-      accent: "text-primary bg-primary/10",
+      accent: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
     },
     {
-      label: "Stops Skipped",
-      value: active ? String(skipped) : "—",
-      icon: XCircle,
-      accent: "text-destructive bg-destructive/10",
+      label: "Missed / Skipped",
+      value: total > 0 ? String(skipped) : "—",
+      subtext: skipped > 0 ? "Requires re-route" : "Zero missed stops",
+      icon: AlertCircle,
+      accent: skipped > 0
+        ? "text-destructive bg-destructive/10 border-destructive/20"
+        : "text-muted-foreground bg-muted/60 border-border/50",
     },
     {
-      label: "Time Elapsed",
-      value: active ? `${hours}h ${String(mins).padStart(2, "0")}m` : "—",
+      label: "Route Duration",
+      value: active ? (hours > 0 ? `${hours}h ${mins}m` : `${mins} mins`) : "Standby",
+      subtext: active ? "Active shift time" : "Shift not started",
       icon: Timer,
-      accent: "text-foreground bg-muted",
+      accent: active
+        ? "text-primary bg-primary/10 border-primary/20"
+        : "text-muted-foreground bg-muted/60 border-border/50",
     },
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {stats.map((s) => (
-        <div
-          key={s.label}
-          className="rounded-xl border border-border bg-card p-4 flex flex-col items-center text-center gap-2"
-        >
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.accent}`}>
-            <s.icon className="w-4 h-4" />
+    <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+      {stats.map((s) => {
+        const Icon = s.icon;
+        return (
+          <div
+            key={s.label}
+            className="rounded-xl border border-border/80 bg-card p-3 sm:p-4 flex flex-col justify-between text-left shadow-2xs hover:border-primary/30 transition-all min-w-0"
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                {s.label}
+              </span>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 border ${s.accent}`}>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-base sm:text-xl md:text-2xl font-bold text-foreground tabular-nums font-display tracking-tight truncate">
+                {s.value}
+              </p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate mt-0.5 font-medium">
+                {s.subtext}
+              </p>
+            </div>
           </div>
-          <p className="text-xl font-bold text-foreground tabular-nums font-display">{s.value}</p>
-          <p className="text-[11px] text-muted-foreground font-medium">{s.label}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
 
 export default TodayStatsCards;
+

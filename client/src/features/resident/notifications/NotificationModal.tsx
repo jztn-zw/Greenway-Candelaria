@@ -33,14 +33,14 @@ const NotificationModal = ({ notification, open, onOpenChange }: NotificationMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader className="px-5 py-4 border-b border-border/60 flex flex-row items-center justify-between gap-3 text-left shrink-0 space-y-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl bg-muted/60 border border-border/70 flex items-center justify-center ${config.accent} shrink-0 shadow-2xs`}>
               <Icon className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight truncate">Notification</DialogTitle>
+              <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">Notification</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">{config.label}</DialogDescription>
             </div>
           </div>
@@ -58,12 +58,12 @@ const NotificationModal = ({ notification, open, onOpenChange }: NotificationMod
               </p>
             )}
           </div>
-          <div className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 sm:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+          <div className="text-xs lg:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
             {notification.details || notification.message}
           </div>
         </div>
         <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
-          <Button type="button" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-9 px-6 rounded-xl text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer">
+          <Button type="button" onClick={() => onOpenChange(false)} className="w-full lg:w-auto h-9 px-6 rounded-xl text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer">
             Close
           </Button>
         </div>
@@ -73,3 +73,4 @@ const NotificationModal = ({ notification, open, onOpenChange }: NotificationMod
 };
 
 export default NotificationModal;
+

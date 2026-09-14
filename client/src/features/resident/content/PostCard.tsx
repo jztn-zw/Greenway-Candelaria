@@ -103,9 +103,9 @@ export const PostCard: React.FC<PostCardProps> = ({
       </div>
 
       {/* ── Content Area ── */}
-      <div className="p-4 sm:p-5 flex flex-col flex-1 justify-between gap-3">
+      <div className="p-4 lg:p-5 flex flex-col flex-1 justify-between gap-3">
         <div className="space-y-1.5">
-          <h3 className="font-display text-[15px] sm:text-base font-bold text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
+          <h3 className="font-display text-[15px] lg:text-base font-bold text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
             {post.title}
           </h3>
 
@@ -157,3 +157,4 @@ export const PostCard: React.FC<PostCardProps> = ({
 };
 
 export default PostCard;
+

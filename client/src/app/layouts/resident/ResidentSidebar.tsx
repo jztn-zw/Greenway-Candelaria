@@ -47,7 +47,7 @@ const ResidentSidebar = () => {
       .map((part) => part[0]?.toUpperCase() || "")
       .join("") || "RS";
 
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
 
   const [showGearMenu, setShowGearMenu] = useState(false);
@@ -224,6 +224,9 @@ const ResidentSidebar = () => {
   }, [collapsed]);
 
   const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -236,7 +239,10 @@ const ResidentSidebar = () => {
       {/* ── Logo Header ── */}
       <button
         type="button"
-        onClick={() => navigate("/resident")}
+        onClick={() => {
+          navigate("/resident");
+          closeMobileSidebar();
+        }}
         title="Go to Resident Dashboard"
         className="h-14 px-4 flex items-center gap-3 border-b border-border/70 shrink-0 bg-sidebar/50 text-left cursor-pointer
           group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
@@ -289,6 +295,7 @@ const ResidentSidebar = () => {
                         <NavLink
                           to={item.url}
                           end={item.url === "/resident"}
+                          onClick={closeMobileSidebar}
                           className="flex w-full h-full items-center gap-2.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
                           activeClassName=""
                         >
@@ -381,6 +388,7 @@ const ResidentSidebar = () => {
                     e.stopPropagation();
                     setShowGearMenu(false);
                     navigate("/resident/profile");
+                    closeMobileSidebar();
                   }}
                 >
                   <UserCircle className="w-4 h-4 text-muted-foreground" /> Profile
@@ -392,6 +400,7 @@ const ResidentSidebar = () => {
                     e.stopPropagation();
                     setShowGearMenu(false);
                     navigate("/resident/settings");
+                    closeMobileSidebar();
                   }}
                 >
                   <Settings className="w-4 h-4 text-muted-foreground" /> Settings

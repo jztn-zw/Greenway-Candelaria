@@ -52,7 +52,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3.5">
         <div>
           <label className="text-xs font-semibold text-foreground mb-1.5 block">Barangay</label>
           {loadingBarangays ? (
@@ -63,7 +63,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
           ) : (
             <Select value={barangayId} onValueChange={handleSelect}>
               <SelectTrigger
-                className={`w-full h-10 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+                className={`w-full h-10 rounded-xl text-xs lg:text-sm font-medium transition-all ${
                   showError
                     ? "border-destructive/80 focus:ring-destructive/25"
                     : "border-border/80 hover:border-border focus:ring-primary/20 focus:border-primary"
@@ -73,7 +73,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
               </SelectTrigger>
               <SelectContent className="max-h-60 rounded-xl">
                 {barangays.map((b) => (
-                  <SelectItem key={b.id} value={b.id} className="text-xs sm:text-sm rounded-lg py-2 cursor-pointer">
+                  <SelectItem key={b.id} value={b.id} className="text-xs lg:text-sm rounded-lg py-2 cursor-pointer">
                     {b.name}
                   </SelectItem>
                 ))}
@@ -95,7 +95,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
             onChange={(e) => onStreetChange(e.target.value)}
             placeholder="e.g. Near the public market, beside chapel"
             maxLength={200}
-            className="h-10 rounded-xl border-border/80 text-xs sm:text-sm hover:border-border focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+            className="h-10 rounded-xl border-border/80 text-xs lg:text-sm hover:border-border focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
           />
         </div>
       </div>
@@ -104,3 +104,4 @@ const LocationSection: React.FC<LocationSectionProps> = ({
 };
 
 export default LocationSection;
+

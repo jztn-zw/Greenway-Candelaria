@@ -304,12 +304,12 @@ const ResidentSubmitReport = () => {
   return (
     <div className="space-y-1">
       {/* ── Page Header ── */}
-      <div className="hidden max-w-3xl mx-auto mb-6 sm:flex sm:items-center sm:justify-between sm:gap-3">
+      <div className="hidden max-w-3xl mx-auto mb-6 md:flex md:items-center md:justify-between md:gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
             Submit a Waste Report
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
             Report waste-related violations and hazards directly to MENRO Candelaria.
           </p>
         </div>
@@ -318,7 +318,7 @@ const ResidentSubmitReport = () => {
           <button
             type="button"
             onClick={resetForm}
-            className="self-start sm:self-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/80 hover:border-destructive/30 rounded-xl px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
+            className="self-start lg:self-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/80 hover:border-destructive/30 rounded-xl px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Clear draft</span>
@@ -328,8 +328,8 @@ const ResidentSubmitReport = () => {
 
       {/* Main Form Container */}
       <div className="max-w-3xl mx-auto w-full space-y-5">
-        <div className="space-y-6 divide-y divide-border/60 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-7">
-          <div>
+        <div className="divide-y divide-border/60 md:rounded-2xl md:border md:border-border/80 md:bg-card md:p-6 md:shadow-2xs lg:p-7">
+          <div className="pb-6">
             <ViolationTypeSelector
               value={form.violationType}
               onChange={(v) => update("violationType", v)}
@@ -337,7 +337,7 @@ const ResidentSubmitReport = () => {
               onClearDraft={hasDraft ? resetForm : undefined}
             />
           </div>
-          <div className="pt-6">
+          <div className="py-6">
             <LocationSection
               barangayId={form.barangayId}
               barangayName={form.barangayName}
@@ -348,11 +348,11 @@ const ResidentSubmitReport = () => {
             />
           </div>
           {hasSimilarReport && (
-            <div className="pt-6">
+            <div className="py-6">
               <DuplicateWarning barangay={form.barangayName} />
             </div>
           )}
-          <div className="pt-6">
+          <div className="py-6">
             <DescriptionSection
               value={form.description}
               onChange={(v) => update("description", v)}
@@ -369,7 +369,7 @@ const ResidentSubmitReport = () => {
           </div>
         </div>
 
-        <div className="pb-3 sm:pb-8">
+        <div className="pb-3 lg:pb-8">
           <Button
             onClick={handleReview}
             disabled={isSubmitting}
@@ -397,3 +397,4 @@ const ResidentSubmitReport = () => {
 };
 
 export default ResidentSubmitReport;
+

@@ -27,8 +27,8 @@ interface SectionProps {
 }
 
 const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionProps) => (
-  <section className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-4 sm:p-6 space-y-4 shadow-2xs transition-all">
-    <div className="flex items-center gap-3 pb-3 border-b border-border/60">
+  <section className="space-y-3 rounded-2xl border border-border/80 bg-card/90 p-3.5 shadow-2xs backdrop-blur-sm transition-all md:space-y-4 md:p-5 lg:p-6">
+    <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5 lg:gap-3 lg:pb-3">
       <div
         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${
           iconStyle || "bg-primary/10 text-primary border-primary/20"
@@ -37,11 +37,11 @@ const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionPr
         <Icon className="w-4 h-4" />
       </div>
       <div>
-        <h2 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight">
+        <h2 className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-tight">
+          <p className="text-[11px] lg:text-xs text-muted-foreground mt-0.5 leading-tight">
             {subtitle}
           </p>
         )}
@@ -65,9 +65,9 @@ const ToggleRow = ({
   checked,
   onCheckedChange,
 }: ToggleRowProps) => (
-  <div className="flex items-center justify-between py-3 px-2 sm:px-2.5 -mx-2 sm:-mx-2.5 rounded-xl hover:bg-muted/30 transition-colors gap-3 border-b border-border/40 last:border-b-0">
+  <div className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 transition-colors hover:bg-muted/30 last:border-b-0 lg:-mx-2.5 lg:px-2.5 lg:py-3">
     <div className="min-w-0 flex-1">
-      <p className="text-xs sm:text-sm text-foreground font-semibold tracking-tight">{label}</p>
+      <p className="text-xs lg:text-sm text-foreground font-semibold tracking-tight">{label}</p>
       {description && (
         <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{description}</p>
       )}
@@ -95,7 +95,7 @@ const ActionRow = ({
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center justify-between py-3 px-2 sm:px-2.5 -mx-2 sm:-mx-2.5 w-[calc(100%+16px)] sm:w-[calc(100%+20px)] text-left hover:bg-muted/40 rounded-xl transition-all group cursor-pointer border-b border-border/40 last:border-b-0"
+    className="group -mx-2 flex w-[calc(100%+16px)] cursor-pointer items-center justify-between rounded-xl border-b border-border/40 px-2 py-2.5 text-left transition-all hover:bg-muted/40 last:border-b-0 lg:-mx-2.5 lg:w-[calc(100%+20px)] lg:px-2.5 lg:py-3"
   >
     <div className="flex items-center gap-3 min-w-0 flex-1">
       <div
@@ -106,7 +106,7 @@ const ActionRow = ({
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="text-xs sm:text-sm font-semibold text-foreground tracking-tight group-hover:text-primary transition-colors">
+        <span className="text-xs lg:text-sm font-semibold text-foreground tracking-tight group-hover:text-primary transition-colors">
           {label}
         </span>
         {description && (
@@ -237,14 +237,14 @@ const ResidentSettings = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+    <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-300 md:space-y-5 lg:space-y-6">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div className="hidden flex-col gap-2.5 md:flex md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight">
             Settings
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
             Manage your collection location, notification alerts, and display preferences
           </p>
         </div>
@@ -259,13 +259,13 @@ const ResidentSettings = () => {
       >
         <div className="space-y-1">
           {/* Primary Barangay */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-2 sm:px-2.5 -mx-2 sm:-mx-2.5 rounded-xl hover:bg-muted/30 transition-colors gap-3 border-b border-border/40">
+          <div className="-mx-2 flex flex-col justify-between gap-2.5 rounded-xl border-b border-border/40 px-2 py-2.5 transition-colors hover:bg-muted/30 md:-mx-2.5 md:flex-row md:items-center md:gap-3 md:px-2.5 md:py-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-2xs">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">Primary Barangay</p>
+                <p className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Primary Barangay</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                   Used for your weekly schedule, live truck map, and local advisories
                 </p>
@@ -281,7 +281,7 @@ const ResidentSettings = () => {
                 toast.success(`Primary Barangay set to ${found?.name || id}`);
               }}
             >
-              <SelectTrigger className="w-full sm:w-56 h-10 rounded-xl border-border/80 text-xs sm:text-sm font-medium">
+              <SelectTrigger className="w-full md:w-56 h-10 rounded-xl border-border/80 text-xs lg:text-sm font-medium">
                 <SelectValue placeholder="Select Barangay">
                   {collectionPrefs.barangayName ? `Brgy. ${collectionPrefs.barangayName}` : "Select Barangay"}
                 </SelectValue>
@@ -289,7 +289,7 @@ const ResidentSettings = () => {
               <SelectContent className="max-h-60 rounded-xl">
                 {barangays.length > 0 ? (
                   barangays.map((b) => (
-                    <SelectItem key={b.id} value={b.id} className="rounded-lg text-xs sm:text-sm font-medium">
+                    <SelectItem key={b.id} value={b.id} className="rounded-lg text-xs lg:text-sm font-medium">
                       {b.name}
                     </SelectItem>
                   ))
@@ -301,13 +301,13 @@ const ResidentSettings = () => {
           </div>
 
           {/* Collection Day Reminder Toggle */}
-          <div className="flex items-center justify-between py-3 px-2 sm:px-2.5 -mx-2 sm:-mx-2.5 rounded-xl hover:bg-muted/30 transition-colors gap-3 border-b border-border/40">
+          <div className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 transition-colors hover:bg-muted/30 lg:-mx-2.5 lg:px-2.5 lg:py-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-2xs">
                 <BellRing className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">Collection Day Reminder</p>
+                <p className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Collection Day Reminder</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                   Receive an automated alert before scheduled municipal waste pickups
                 </p>
@@ -326,13 +326,13 @@ const ResidentSettings = () => {
 
           {/* Advance Timing (Conditionally Visible) */}
           {collectionPrefs.reminderOn && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-2 sm:px-2.5 -mx-2 sm:-mx-2.5 rounded-xl hover:bg-muted/30 transition-colors gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="-mx-2 flex flex-col justify-between gap-2.5 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/30 animate-in fade-in slide-in-from-top-1 duration-200 md:-mx-2.5 md:flex-row md:items-center md:gap-3 md:px-2.5 md:py-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-2xs">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">Advance Notification Window</p>
+                  <p className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Advance Notification Window</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                     How long before the scheduled collection window you want to be alerted
                   </p>
@@ -346,13 +346,13 @@ const ResidentSettings = () => {
                   toast.success(`Reminder set to ${v === "1h" ? "1 hour" : v === "3h" ? "3 hours" : "1 day"} in advance`);
                 }}
               >
-                <SelectTrigger className="w-full sm:w-44 h-10 rounded-xl border-border/80 text-xs sm:text-sm font-medium">
+                <SelectTrigger className="w-full md:w-44 h-10 rounded-xl border-border/80 text-xs lg:text-sm font-medium">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="1h" className="rounded-lg text-xs sm:text-sm font-medium">1 hour before</SelectItem>
-                  <SelectItem value="3h" className="rounded-lg text-xs sm:text-sm font-medium">3 hours before</SelectItem>
-                  <SelectItem value="1d" className="rounded-lg text-xs sm:text-sm font-medium">1 day before</SelectItem>
+                  <SelectItem value="1h" className="rounded-lg text-xs lg:text-sm font-medium">1 hour before</SelectItem>
+                  <SelectItem value="3h" className="rounded-lg text-xs lg:text-sm font-medium">3 hours before</SelectItem>
+                  <SelectItem value="1d" className="rounded-lg text-xs lg:text-sm font-medium">1 day before</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -363,7 +363,7 @@ const ResidentSettings = () => {
       {/* ── 2. Notification Alerts ── */}
       <Section
         title="Notification Alerts"
-        subtitle="Choose which real-time notifications and municipal updates you receive"
+        subtitle="Control the notifications shown in your resident web portal"
         icon={Bell}
         iconStyle="bg-primary/10 text-primary border-primary/20"
       >
@@ -401,14 +401,14 @@ const ResidentSettings = () => {
           {/* Theme Segmented Control */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">Theme Mode</span>
+              <span className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Theme Mode</span>
               <span className="text-[11px] text-muted-foreground">{dark ? "Dark Mode Active" : "Light Mode Active"}</span>
             </div>
             <div className="grid grid-cols-2 gap-2.5 p-1 rounded-2xl bg-muted/40 border border-border/60">
               <button
                 type="button"
                 onClick={() => toggleTheme(false)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs lg:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
                   !dark
                     ? "bg-card text-foreground shadow-2xs border border-border/80 font-bold"
                     : "text-muted-foreground hover:text-foreground hover:bg-card/50"
@@ -421,7 +421,7 @@ const ResidentSettings = () => {
               <button
                 type="button"
                 onClick={() => toggleTheme(true)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs lg:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
                   dark
                     ? "bg-card text-foreground shadow-2xs border border-border/80 font-bold"
                     : "text-muted-foreground hover:text-foreground hover:bg-card/50"
@@ -436,7 +436,7 @@ const ResidentSettings = () => {
           {/* Language Selector */}
           <div className="space-y-2 pt-2 border-t border-border/50">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">Preferred Language</span>
+              <span className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Preferred Language</span>
               <span className="text-[11px] text-muted-foreground">{language === "en" ? "English" : "Filipino"}</span>
             </div>
             <div className="grid grid-cols-2 gap-2.5 p-1 rounded-2xl bg-muted/40 border border-border/60">
@@ -451,7 +451,7 @@ const ResidentSettings = () => {
                       saveSettings({ language: lang });
                       toast.success(`Language set to ${lang === "en" ? "English" : "Filipino"}`);
                     }}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs lg:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
                       isSelected
                         ? "bg-card text-foreground shadow-2xs border border-border/80 font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-card/50"
@@ -534,7 +534,7 @@ const ResidentSettings = () => {
 
       {/* Privacy Policy Modal */}
       <Dialog open={privacyModal} onOpenChange={setPrivacyModal}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
+        <DialogContent className="lg:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -580,7 +580,7 @@ const ResidentSettings = () => {
           <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
             <Button
               type="button"
-              className="rounded-xl px-5 h-9 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-xl px-5 h-9 text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
               onClick={() => setPrivacyModal(false)}
             >
               Understood
@@ -591,7 +591,7 @@ const ResidentSettings = () => {
 
       {/* Terms of Service Modal */}
       <Dialog open={termsModal} onOpenChange={setTermsModal}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
+        <DialogContent className="lg:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -634,7 +634,7 @@ const ResidentSettings = () => {
           <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
             <Button
               type="button"
-              className="rounded-xl px-5 h-9 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-xl px-5 h-9 text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
               onClick={() => setTermsModal(false)}
             >
               Close
@@ -645,7 +645,7 @@ const ResidentSettings = () => {
 
       {/* FAQ Modal */}
       <Dialog open={faqModal} onOpenChange={setFaqModal}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
+        <DialogContent className="lg:max-w-lg max-h-[85vh] flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -694,7 +694,7 @@ const ResidentSettings = () => {
           <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
             <Button
               type="button"
-              className="rounded-xl px-5 h-9 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-xl px-5 h-9 text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
               onClick={() => setFaqModal(false)}
             >
               Close
@@ -705,7 +705,7 @@ const ResidentSettings = () => {
 
       {/* Contact MENRO Modal */}
       <Dialog open={contactModal} onOpenChange={setContactModal}>
-        <DialogContent className="sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
+        <DialogContent className="lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -765,7 +765,7 @@ const ResidentSettings = () => {
           <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
             <Button
               type="button"
-              className="rounded-xl px-5 h-9 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-xl px-5 h-9 text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
               onClick={() => setContactModal(false)}
             >
               Close
@@ -776,7 +776,7 @@ const ResidentSettings = () => {
 
       {/* Bug Report Modal */}
       <Dialog open={bugModal} onOpenChange={setBugModal}>
-        <DialogContent className="sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
+        <DialogContent className="lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden">
           <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-2xs">
@@ -814,14 +814,14 @@ const ResidentSettings = () => {
             <Button
               type="button"
               variant="outline"
-              className="rounded-xl px-4 h-9 text-xs sm:text-sm font-semibold border-border/80 cursor-pointer"
+              className="rounded-xl px-4 h-9 text-xs lg:text-sm font-semibold border-border/80 cursor-pointer"
               onClick={() => setBugModal(false)}
             >
               Cancel
             </Button>
             <Button
               type="button"
-              className="rounded-xl px-5 h-9 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-xl px-5 h-9 text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
               onClick={() => {
                 if (!bugText.trim()) {
                   toast.error("Please enter a description of the issue");
@@ -842,3 +842,4 @@ const ResidentSettings = () => {
 };
 
 export default ResidentSettings;
+

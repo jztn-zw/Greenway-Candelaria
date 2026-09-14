@@ -53,7 +53,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <TooltipProvider delayDuration={100}>
       <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs">
         {/* Month Header & Controls */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-border/60">
+        <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
           <div className="flex items-center gap-2 sm:gap-2.5">
             <h2 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
               {headingLabel || headingDate}

@@ -25,7 +25,7 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
           <button
             type="button"
             onClick={onClearDraft}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/80 px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:hidden"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/80 px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive md:hidden"
           >
             <RotateCcw className="h-3 w-3" />
             Clear
@@ -33,7 +33,7 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         {VIOLATION_OPTIONS.map((option) => {
           const isSelected = value === option.value;
           const Icon = option.icon;
@@ -44,7 +44,7 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
               type="button"
               onClick={() => onChange(option.value)}
               className={cn(
-                "group relative flex flex-col items-center justify-center gap-2.5 p-3.5 sm:p-4 rounded-xl border text-center transition-all duration-150 cursor-pointer select-none touch-manipulation active:scale-[0.98]",
+                "group relative flex flex-col items-center justify-center gap-2.5 p-3.5 lg:p-4 rounded-xl border text-center transition-all duration-150 cursor-pointer select-none touch-manipulation active:scale-[0.98]",
                 isSelected
                   ? "border-primary bg-primary/10 text-primary shadow-2xs ring-1 ring-primary/25"
                   : showError
@@ -92,3 +92,4 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
 };
 
 export default ViolationTypeSelector;
+

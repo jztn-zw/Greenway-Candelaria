@@ -208,7 +208,7 @@ const ResidentTopBar = () => {
         <button
           type="button"
           onClick={toggleSidebar}
-          className="md:hidden w-8 h-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center justify-center cursor-pointer shrink-0 active:scale-95"
+          className="lg:hidden w-8 h-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center justify-center cursor-pointer shrink-0 active:scale-95"
           aria-label="Toggle Navigation Menu"
         >
           <Menu className="w-4 h-4 text-foreground" />

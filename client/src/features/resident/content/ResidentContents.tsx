@@ -335,24 +335,24 @@ const ResidentContents = () => {
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto pb-4 sm:pb-6">
+    <div className="w-full max-w-[1400px] mx-auto pb-4 lg:pb-6">
       {/* ── Top Header ── */}
-      <div className="hidden items-start justify-between gap-4 sm:mb-8 sm:flex sm:items-center">
+      <div className="hidden items-start justify-between gap-4 md:mb-6 md:flex md:items-center lg:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
             Community Updates
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
             Official MENRO guidelines, collection updates, and eco tips.
           </p>
         </div>
       </div>
 
-      <div className="space-y-4 sm:space-y-8">
+      <div className="space-y-4 md:space-y-6 lg:space-y-8">
 
       {/* ── Error Banner ── */}
       {fetchError && (
-        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{fetchError}</span>
@@ -364,7 +364,7 @@ const ResidentContents = () => {
       )}
 
       {invalidPostLink && (
-        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-stretch gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-foreground md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>This community update is no longer available.</span>
@@ -395,7 +395,7 @@ const ResidentContents = () => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs sm:text-sm shadow-2xs focus-visible:ring-primary/30"
+            className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs lg:text-sm shadow-2xs focus-visible:ring-primary/30"
           />
           {search && (
             <button
@@ -449,12 +449,12 @@ const ResidentContents = () => {
             }}>
               <SelectTrigger
                 aria-label="Sort community updates"
-                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden sm:w-auto sm:min-w-[140px] sm:justify-between sm:px-3.5 sm:[&>svg]:block"
+                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden md:w-auto md:min-w-[140px] md:justify-between md:px-3.5 md:[&>svg]:block"
               >
-                <div className="flex sm:hidden">
+                <div className="flex md:hidden">
                   <ArrowDownUp className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div className="hidden items-center sm:inline-flex">
+                <div className="hidden items-center lg:inline-flex">
                   <span className="mr-1 text-muted-foreground">Sort by:</span>
                   <SelectValue />
                 </div>
@@ -478,7 +478,7 @@ const ResidentContents = () => {
             onMouseLeave={() => setPaused(false)}
             onClick={() => handleOpenPost(featured)}
           >
-            <div className="grid grid-cols-1 items-center gap-4 p-4 sm:gap-6 sm:p-6 md:grid-cols-12 md:gap-8 md:p-8">
+            <div className="grid grid-cols-1 items-center gap-4 p-4 md:grid-cols-12 md:gap-6 md:p-6 lg:gap-8 lg:p-8">
               {/* Left Column: Post Details */}
               <div className="min-w-0 md:col-span-7 flex flex-col justify-between space-y-3.5">
                 <div className="space-y-2.5">
@@ -496,12 +496,12 @@ const ResidentContents = () => {
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-extrabold text-foreground tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                  <h2 className="text-xl lg:text-2xl lg:text-3xl font-display font-extrabold text-foreground tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-2">
                     {featured.title}
                   </h2>
 
                   {/* Metadata Row */}
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-muted-foreground pt-0.5">
+                  <div className="flex flex-wrap items-center gap-3 lg:gap-4 text-xs text-muted-foreground pt-0.5">
                     <div className="flex items-center gap-1.5 font-medium">
                       <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>{featuredDateInfo.formatted}</span>
@@ -521,7 +521,7 @@ const ResidentContents = () => {
                   </div>
 
                   {/* Excerpt */}
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  <p className="text-xs lg:text-sm text-muted-foreground leading-relaxed line-clamp-3">
                     {featured.body}
                   </p>
                 </div>
@@ -536,7 +536,7 @@ const ResidentContents = () => {
 
               {/* Right Column: Featured Image */}
               <div className="min-w-0 md:col-span-5">
-                <div className="relative w-full aspect-[16/10] max-h-[280px] sm:max-h-[300px] rounded-xl overflow-hidden bg-muted/30 border border-border/70 flex items-center justify-center">
+                <div className="relative w-full aspect-[16/10] max-h-[280px] lg:max-h-[300px] rounded-xl overflow-hidden bg-muted/30 border border-border/70 flex items-center justify-center">
                   {featuredImage ? (
                     <>
                       {/* Ambient background blur */}
@@ -590,7 +590,7 @@ const ResidentContents = () => {
                     );
                   }}
                   aria-label="Previous featured post"
-                  className="absolute left-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 md:left-4 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="absolute left-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 lg:left-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -602,7 +602,7 @@ const ResidentContents = () => {
                     nextFeatured();
                   }}
                   aria-label="Next featured post"
-                  className="absolute right-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 md:right-4 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="absolute right-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 lg:right-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -679,7 +679,7 @@ const ResidentContents = () => {
           </div>
         ) : (
           /* 3-Column Posts Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {posts.map((post) => (
               <PostCard
                 key={post.id}
@@ -749,3 +749,4 @@ const ResidentContents = () => {
 };
 
 export default ResidentContents;
+

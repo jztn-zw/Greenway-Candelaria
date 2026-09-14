@@ -452,21 +452,21 @@ const MyReports = () => {
   // ─── Main list view ────────────────────────────────────────
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 md:space-y-5 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="hidden sm:block">
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+        <div className="hidden md:block">
+          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
             My Reports
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
             View and track your submitted waste violation reports.
           </p>
         </div>
 
         <Button
           onClick={() => navigate("/resident/report")}
-          className="w-full sm:w-auto h-10 rounded-xl text-xs sm:text-sm font-bold gap-1.5 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shrink-0 cursor-pointer"
+          className="h-10 w-full shrink-0 rounded-xl bg-primary text-xs font-bold gap-1.5 shadow-xs transition-all hover:bg-primary/90 active:scale-[0.98] cursor-pointer md:w-auto md:px-4 lg:text-sm"
         >
           <Plus className="w-4 h-4" />
           <span>Submit New Report</span>
@@ -482,7 +482,7 @@ const MyReports = () => {
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search by reference number or description…"
-            className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs sm:text-sm shadow-2xs focus-visible:ring-foreground/20"
+            className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs lg:text-sm shadow-2xs focus-visible:ring-foreground/20"
           />
           {isLoading && search !== "" ? (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
@@ -506,7 +506,7 @@ const MyReports = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none flex-1 min-w-0 pr-2 -mr-1 touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
+            className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide -mr-1 touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
           >
             {REPORT_FILTER_TABS.map((tab) => {
               const count = getTabCount(tab.value);
@@ -550,14 +550,16 @@ const MyReports = () => {
             >
               <SelectTrigger
                 aria-label="Sort reports"
-                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden sm:w-auto sm:min-w-[125px] sm:justify-between sm:px-3.5 sm:[&>svg]:block"
+                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden md:w-auto md:min-w-[125px] md:justify-between md:px-3.5 md:[&>svg]:block"
               >
-                <div className="flex sm:hidden">
+                <div className="flex md:hidden">
                   <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
-                <div className="hidden items-center gap-1 sm:flex">
+                <div className="hidden items-center gap-1 md:flex">
                   <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
-                  <SelectValue />
+                  <span className="font-medium text-foreground">
+                    {sortBy === "newest" ? "Newest" : "Oldest"}
+                  </span>
                 </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border-border/80 shadow-md">
@@ -574,7 +576,7 @@ const MyReports = () => {
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="border border-border animate-pulse">
-              <CardContent className="p-4 sm:p-5">
+              <CardContent className="p-4 md:p-4.5 lg:p-5">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 rounded-xl bg-muted shrink-0" />
                   <div className="flex-1 space-y-2">
@@ -643,7 +645,7 @@ const MyReports = () => {
               <div
                 key={report.id}
                 onClick={() => openDetail(report)}
-                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99] sm:space-y-3 sm:p-5"
+                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99] md:space-y-3 md:p-4.5 lg:p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3.5 min-w-0">
@@ -659,7 +661,7 @@ const MyReports = () => {
                     </div>
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                        <span className="text-sm lg:text-base font-bold text-foreground group-hover:text-primary transition-colors">
                           {getViolationLabel(report.violationType)}
                         </span>
                         <span
@@ -682,13 +684,13 @@ const MyReports = () => {
                   </div>
 
                   <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors shrink-0 pt-0.5">
-                    <span className="hidden sm:inline text-xs">View</span>
+                    <span className="hidden md:inline text-xs">View</span>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
 
                 {previewText && (
-                  <p className="hidden break-words text-xs font-normal leading-relaxed text-muted-foreground line-clamp-2 sm:block">
+                  <p className="hidden break-words text-xs font-normal leading-relaxed text-muted-foreground line-clamp-2 lg:block">
                     {previewText}
                   </p>
                 )}
@@ -707,8 +709,8 @@ const MyReports = () => {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground sm:gap-2.5 sm:pt-1">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground lg:gap-2.5 lg:pt-1">
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-2.5">
                     <span className="font-mono font-semibold text-foreground/90 bg-muted/60 border border-border/70 px-2.5 py-0.5 rounded-lg text-[11px]">
                       {report.referenceNumber}
                     </span>
@@ -724,7 +726,7 @@ const MyReports = () => {
                   </div>
 
                   {report.photoCount > 0 && (
-                    <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground sm:flex">
+                    <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground md:flex">
                       <Camera className="w-3.5 h-3.5 text-muted-foreground/70" />
                       {report.photoCount} photo{report.photoCount !== 1 ? "s" : ""}
                     </span>
@@ -888,37 +890,37 @@ const ReportDetail = ({
   const descriptionItems = parseReportDescription(report.description);
 
   return (
-    <div className="space-y-4 sm:space-y-5 pb-8 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto space-y-0 pb-4 md:space-y-4 md:pb-6 lg:space-y-5 lg:pb-8">
       {/* Back button & top status bar */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="hidden items-center justify-between gap-3 lg:flex">
         <BackButton label="Back to My Reports" onClick={onBack} />
         {isLoading && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span className="hidden sm:inline">Syncing...</span>
+            <span className="hidden lg:inline">Syncing...</span>
           </div>
         )}
       </div>
 
       {/* Error alert if any */}
       {error && (
-        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-center gap-3">
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 lg:mb-0">
           <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
           <p className="text-xs text-destructive">{error}</p>
         </div>
       )}
 
       {/* Unified Main Card */}
-      <div className="rounded-2xl border border-border/80 bg-card shadow-2xs divide-y divide-border/60 overflow-hidden">
+      <div className="divide-y divide-border/60 md:overflow-hidden md:rounded-2xl md:border md:border-border/80 md:bg-card md:shadow-2xs">
         {/* Section 1: Header / Executive Overview */}
-        <div className="p-5 sm:p-6 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-2.5 py-4 md:space-y-3 md:p-5 lg:p-6">
+          <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
                 Reference Number
               </span>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-mono font-bold text-foreground tracking-tight">
+                <h2 className="text-lg font-mono font-bold tracking-tight text-foreground lg:text-2xl">
                   {report.referenceNumber}
                 </h2>
                 <button
@@ -939,7 +941,7 @@ const ReportDetail = ({
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "text-xs font-bold px-3 py-1 rounded-full border shadow-2xs inline-flex items-center shrink-0",
+                  "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold shadow-2xs lg:px-3 lg:py-1 lg:text-xs",
                   statusConf.className,
                 )}
               >
@@ -948,7 +950,7 @@ const ReportDetail = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-0.5">
+          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[11px] text-muted-foreground lg:gap-4 lg:text-xs">
             <span className="flex items-center gap-1.5 font-medium">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
               Submitted on{" "}
@@ -969,14 +971,14 @@ const ReportDetail = ({
         </div>
 
         {/* Section 2: Violation & Location Summary */}
-        <div className="p-5 sm:p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-3.5 py-4 md:space-y-4 md:p-5 lg:p-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             {/* Violation Details */}
             <div className="space-y-1.5">
               <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
                 Violation Type
               </span>
-              <div className="flex items-start gap-3.5 p-3.5 sm:p-4 rounded-xl bg-muted/30 dark:bg-muted/20 border border-border/70 hover:border-border transition-colors">
+              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
                 <div
                   className={cn(
                     "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs",
@@ -1007,7 +1009,7 @@ const ReportDetail = ({
               <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
                 Reported Location
               </span>
-              <div className="flex items-start gap-3.5 p-3.5 sm:p-4 rounded-xl bg-muted/30 dark:bg-muted/20 border border-border/70 hover:border-border transition-colors">
+              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-2xs">
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
@@ -1024,11 +1026,11 @@ const ReportDetail = ({
           </div>
 
           {/* Description */}
-          <div className="space-y-1.5 pt-2">
+          <div className="space-y-1.5 pt-1.5 md:pt-2">
             <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
               Incident Description
             </span>
-            <div className="max-h-56 overflow-y-auto p-4 rounded-xl bg-muted/30 dark:bg-muted/20 border border-border/70 text-sm text-foreground/90 leading-relaxed">
+            <div className="max-h-56 overflow-y-auto rounded-xl border border-border/70 bg-muted/30 p-3 text-xs leading-relaxed text-foreground/90 dark:bg-muted/20 md:p-4 md:text-sm">
               {descriptionItems.map((item, idx) =>
                 item.question && item.answer ? (
                   <div
@@ -1054,7 +1056,7 @@ const ReportDetail = ({
 
         {/* Section 3: Photo Evidence (if any) */}
         {report.photos && report.photos.length > 0 && (
-          <div className="p-5 sm:p-6 space-y-3">
+          <div className="space-y-2.5 py-4 md:p-5 lg:p-6">
             <div className="flex items-center justify-between">
               <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
                 Photo Evidence
@@ -1070,7 +1072,7 @@ const ReportDetail = ({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative size-14 sm:size-16 lg:size-20 shrink-0 rounded-xl overflow-hidden border border-border/80 bg-muted/20 block hover:border-primary/40 hover:shadow-sm transition-all shadow-2xs"
+                  className="group relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs transition-all hover:border-primary/40 hover:shadow-sm md:size-16 lg:size-20"
                   title="View full image in new tab"
                 >
                   <img
@@ -1090,7 +1092,7 @@ const ReportDetail = ({
         )}
 
         {/* Section 4: Resolution / Progress Stepper & Timeline */}
-        <div className="p-5 sm:p-6 space-y-5">
+        <div className="space-y-4 py-4 md:space-y-4 md:p-5 lg:space-y-5 lg:p-6">
           <div>
             <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
               Review & Dispatch Status
@@ -1113,7 +1115,7 @@ const ReportDetail = ({
                   <span
                     key={label}
                     className={cn(
-                      "text-[10px] sm:text-xs transition-colors",
+                      "text-[10px] md:text-xs transition-colors",
                       idx <= currentIdx
                         ? "font-bold text-foreground"
                         : "font-normal text-muted-foreground",
@@ -1176,7 +1178,7 @@ const ReportDetail = ({
 
         {/* Section 5: Official MENRO Remarks (if present) */}
         {report.adminResponse && (
-          <div className="p-5 sm:p-6 bg-muted/20 space-y-2 border-t border-border/60">
+          <div className="space-y-2 border-t border-border/60 bg-muted/20 py-4 md:p-5 lg:p-6">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
               <span className="text-[11px] uppercase tracking-wider font-bold text-foreground">
@@ -1191,7 +1193,7 @@ const ReportDetail = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 pt-3 lg:pt-2">
         {report.status === "submitted" && onCancelReport && (
           <button
             type="button"
@@ -1242,7 +1244,7 @@ const ReportDetail = ({
 
       {/* Cancel Confirmation Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="lg:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-destructive flex items-center gap-2">
               <Trash2 className="w-4 h-4 text-destructive" />
@@ -1254,7 +1256,7 @@ const ReportDetail = ({
               This will remove the report from MENRO's queue.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 pt-3">
+          <DialogFooter className="gap-2 lg:gap-0 pt-3">
             <Button
               variant="outline"
               onClick={() => setShowCancelModal(false)}
@@ -1295,3 +1297,4 @@ const ReportDetail = ({
 };
 
 export default MyReports;
+

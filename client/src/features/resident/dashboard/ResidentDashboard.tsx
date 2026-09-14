@@ -24,11 +24,11 @@ const ResidentDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-6">
+      <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
         <DashboardGreetingSkeleton />
         <HeroCardsSkeleton />
         <AnnouncementSkeleton />
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           <div className="lg:col-span-2"><CalendarSkeleton /></div>
           <div><QuickActionsAndContactSkeleton /></div>
         </div>
@@ -37,7 +37,7 @@ const ResidentDashboard = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-6">
+    <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
       {/* 1. Header */}
       <DashboardGreeting />
 
@@ -45,7 +45,7 @@ const ResidentDashboard = () => {
       <HeroCards />
 
       {/* 3. Top row: Post Carousel (left) | Announcement (right) */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch xl:gap-4">
         <div className="h-full">
           <DashboardPostCarousel />
         </div>
@@ -56,7 +56,7 @@ const ResidentDashboard = () => {
 
       {/* 4. Community calendar, followed by supporting resident information */}
       <CollectionCalendar />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch xl:gap-4">
         <EcoTipCard />
         <div>
           <QuickActionsAndContact />
@@ -67,3 +67,4 @@ const ResidentDashboard = () => {
 };
 
 export default ResidentDashboard;
+

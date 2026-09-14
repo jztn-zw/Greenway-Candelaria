@@ -23,14 +23,14 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground">Review Your Report</h2>
+          <h2 className="text-xl lg:text-2xl font-bold font-display text-foreground">Review Your Report</h2>
           <p className="text-sm text-muted-foreground">Please review the details before submitting.</p>
         </div>
       </div>
 
       {/* Violation Type */}
       <Card className="rounded-2xl border border-border/80 shadow-2xs">
-        <CardContent className="p-4 sm:p-5">
+        <CardContent className="p-4 lg:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Violation Type</p>
           {violation && (
             <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
 
       {/* Location */}
       <Card className="rounded-2xl border border-border/80 shadow-2xs">
-        <CardContent className="p-4 sm:p-5">
+        <CardContent className="p-4 lg:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Location</p>
           <div className="flex items-start gap-2">
             <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -64,7 +64,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
 
       {/* Description */}
       <Card className="rounded-2xl border border-border/80 shadow-2xs">
-        <CardContent className="p-4 sm:p-5">
+        <CardContent className="p-4 lg:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Description</p>
           <div className="flex items-start gap-2">
             <FileText className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -75,7 +75,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
 
       {/* Photos */}
       <Card className="rounded-2xl border border-border/80 shadow-2xs">
-        <CardContent className="p-4 sm:p-5">
+        <CardContent className="p-4 lg:p-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
             Photo Evidence
           </p>
@@ -87,7 +87,7 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
             <div className="grid grid-cols-3 gap-2">
               {form.photos.map((photo) => (
                 <div key={photo.id} className="rounded-xl overflow-hidden border border-border">
-                  <img src={photo.preview} alt="Evidence" className="w-full h-20 sm:h-24 object-cover" />
+                  <img src={photo.preview} alt="Evidence" className="w-full h-20 lg:h-24 object-cover" />
                 </div>
               ))}
             </div>
@@ -96,24 +96,24 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
       </Card>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      <div className="flex flex-col gap-3 pt-2 md:flex-row">
         <Button
           variant="outline"
           onClick={onBack}
-          className="sm:flex-1 min-h-[50px] sm:min-h-[54px] rounded-2xl text-sm sm:text-base font-bold gap-2"
+          className="min-h-[50px] rounded-2xl text-sm font-bold gap-2 md:flex-1 md:min-h-[54px] lg:text-base"
         >
-          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+          <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
           <span>Go Back & Edit</span>
         </Button>
         <Button
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="sm:flex-1 min-h-[50px] sm:min-h-[54px] rounded-2xl text-sm sm:text-base font-bold gap-2.5 shadow-xl shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="min-h-[50px] rounded-2xl text-sm font-bold gap-2.5 shadow-xl shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90 md:flex-1 md:min-h-[54px] lg:text-base"
         >
           {isSubmitting ? (
-            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
           ) : (
-            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Send className="w-4 h-4 lg:w-5 lg:h-5" />
           )}
           <span>{isSubmitting ? "Submitting…" : "Submit Report"}</span>
         </Button>
@@ -127,3 +127,4 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
 };
 
 export default ReviewScreen;
+

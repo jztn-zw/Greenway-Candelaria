@@ -60,8 +60,8 @@ const DashboardPostCarousel = () => {
       <Card className="h-full border border-border overflow-hidden rounded-2xl">
         <CardContent className="p-0">
           <div className="h-1 bg-primary/30 animate-pulse" />
-          <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-3.5 sm:gap-4 min-h-[165px] animate-pulse items-start sm:items-center">
-            <div className="w-full sm:w-[170px] md:w-[190px] lg:w-[200px] h-[130px] sm:h-[125px] md:h-[130px] bg-muted rounded-xl shrink-0" />
+          <div className="p-4 lg:p-5 flex flex-col md:flex-row gap-3.5 md:gap-4 min-h-[165px] animate-pulse items-start md:items-center">
+            <div className="h-[130px] w-full shrink-0 rounded-xl bg-muted md:h-[130px] md:w-[190px] lg:w-[200px]" />
             <div className="flex-1 space-y-2.5">
               <div className="h-3 w-28 bg-muted rounded" />
               <div className="h-4 w-3/4 bg-muted rounded" />
@@ -104,9 +104,9 @@ const DashboardPostCarousel = () => {
           {posts.length <= 1 && <div className="h-full bg-primary" />}
         </div>
 
-        <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-3.5 sm:gap-4 flex-1 items-start sm:items-center min-h-[165px]">
+        <div className="p-4 lg:p-5 flex flex-col md:flex-row gap-3.5 md:gap-4 flex-1 items-start md:items-center min-h-[165px]">
           {/* Post Image Container: Strictly Locked Landscape Rectangle */}
-          <div className="relative w-full sm:w-[170px] md:w-[190px] lg:w-[200px] h-[130px] sm:h-[125px] md:h-[130px] rounded-xl overflow-hidden shrink-0 bg-zinc-900/90 border border-border/60 flex items-center justify-center">
+          <div className="relative flex h-[130px] w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-zinc-900/90 md:w-[190px] lg:w-[200px]">
             {image && !imgFailed ? (
               <>
                 {/* Blurred ambient backdrop fills the sides for portrait/square images */}
@@ -147,12 +147,12 @@ const DashboardPostCarousel = () => {
               </div>
 
               {/* Title with consistent height */}
-              <p className="text-sm sm:text-base font-bold text-foreground line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem] group-hover:text-primary transition-colors leading-snug">
+              <p className="text-sm lg:text-base font-bold text-foreground line-clamp-2 min-h-[2.5rem] lg:min-h-[2.75rem] group-hover:text-primary transition-colors leading-snug">
                 {post.title}
               </p>
 
               {/* Excerpt with consistent height */}
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 min-h-[2rem] sm:min-h-[2.25rem] leading-relaxed">
+              <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 min-h-[2rem] lg:min-h-[2.25rem] leading-relaxed">
                 {post.body}
               </p>
             </div>
@@ -212,3 +212,4 @@ const DashboardPostCarousel = () => {
 };
 
 export default DashboardPostCarousel;
+

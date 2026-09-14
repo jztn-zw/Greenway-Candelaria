@@ -20,7 +20,7 @@ const EcoTipCard = () => {
 
   return (
     <Card className="h-full min-h-[210px] overflow-hidden border-0 bg-forest text-forest-foreground rounded-2xl">
-      <CardContent className="flex h-full min-h-[210px] flex-col justify-between gap-3 p-4 sm:p-5">
+      <CardContent className="flex h-full min-h-[210px] flex-col justify-between gap-3 p-4 lg:p-5">
         <div className="flex items-center gap-2">
           <Lightbulb className="w-4 h-4 shrink-0 opacity-80" />
           <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">
@@ -51,3 +51,4 @@ const EcoTipCard = () => {
 };
 
 export default EcoTipCard;
+

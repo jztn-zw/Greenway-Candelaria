@@ -17,6 +17,37 @@ const NOTIFICATION_TYPES = new Set([
   "SYSTEM",
 ]);
 
+const getPreferenceColumn = (type) => {
+  const preferenceColumns = {
+    ANNOUNCEMENT: "notif_announcements",
+    NEW_POST: "notif_new_content",
+    COLLECTION_REMINDER: "notif_collection_reminders",
+    TRUCK_IS_NEAR: "notif_truck_near",
+    COLLECTION_DONE: "notif_collection_done",
+    MISSED_COLLECTION: "notif_collection_skipped",
+    REPORT_UPDATE: "notif_report_updates",
+  };
+
+  return preferenceColumns[type] || null;
+};
+
+const isNotificationEnabledForUser = async (userId, type) => {
+  const preferenceColumn = getPreferenceColumn(type);
+  if (!preferenceColumn) return true;
+
+  const [rows] = await pool.query(
+    `SELECT u.role, COALESCE(s.${preferenceColumn}, TRUE) AS enabled
+       FROM users u
+       LEFT JOIN user_settings s ON s.user_id = u.id
+      WHERE u.id = ?`,
+    [userId],
+  );
+
+  // Notification preferences apply to the resident web portal only. Accounts
+  // without a settings record preserve the existing default-enabled behavior.
+  return rows.length === 0 || rows[0].role !== "RESIDENT" || Boolean(rows[0].enabled);
+};
+
 // ─── Single User Notification ──────────────────────────────
 
 const sendToUser = async ({
@@ -28,6 +59,8 @@ const sendToUser = async ({
   ref_module = null,
   metadata = null,
 }) => {
+  if (!(await isNotificationEnabledForUser(user_id, type))) return null;
+
   const id = generateId();
 
   await pool.query(
@@ -121,7 +154,7 @@ const sendToMany = async ({
 // ─── Notify All Active Residents ───────────────────────────
 
 const notifyAllResidents = async ({ type, title, body, ref_id, ref_module, metadata = null }) => {
-  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "COLLECTION_REMINDER" ? "notif_collection_reminders" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
+  const preferenceColumn = getPreferenceColumn(type);
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
     `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
@@ -141,7 +174,7 @@ const notifyBarangayResidents = async ({
   ref_module,
   metadata = null,
 }) => {
-  const preferenceColumn = type === "ANNOUNCEMENT" ? "notif_announcements" : type === "NEW_POST" ? "notif_new_content" : type === "COLLECTION_REMINDER" ? "notif_collection_reminders" : type === "TRUCK_IS_NEAR" ? "notif_truck_near" : type === "COLLECTION_DONE" ? "notif_collection_done" : type === "MISSED_COLLECTION" ? "notif_collection_skipped" : null;
+  const preferenceColumn = getPreferenceColumn(type);
   const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
   const [residents] = await pool.query(
     `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ? AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,

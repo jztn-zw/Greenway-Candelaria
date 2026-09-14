@@ -3,6 +3,7 @@ const generateId = require("../../utils/generateId");
 const {
   notifyBarangayResidents,
   notifyAdmins,
+  sendToUser,
 } = require("../notifications/notifications.service");
 const { emitNotificationReferenceRemoved } = require("../../sockets/notifications.socket");
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
@@ -490,6 +491,11 @@ const endRoute = async (routeId) => {
       ref_id: routeId,
       ref_module: "tracking",
     }).catch((err) => console.error("[Routes] Route-end admin notification error:", err.message));
+
+    await notifyCollectorForRoute(routeId, {
+      title: "Route Completed",
+      body: `Your ${truckName} route is complete: ${completedStops} completed and ${skippedStops} skipped out of ${totalStops} stops.`,
+    }).catch((err) => console.error("[Routes] Route-end collector notification error:", err.message));
   }
 
   // A completed route is no longer a GPS-risk case. Remove a stale alert that
@@ -501,6 +507,30 @@ const endRoute = async (routeId) => {
   emitNotificationReferenceRemoved("tracking-stale-gps", routeId);
 
   return { message: "Route ended successfully", routeId };
+};
+
+const getCollectorUserIdForRoute = async (routeId) => {
+  const [rows] = await pool.query(
+    `SELECT d.user_id
+       FROM routes r
+       JOIN drivers d ON d.id = r.driver_id
+      WHERE r.id = ?`,
+    [routeId],
+  );
+  return rows[0]?.user_id || null;
+};
+
+const notifyCollectorForRoute = async (routeId, { title, body, refModule = "routes" }) => {
+  const userId = await getCollectorUserIdForRoute(routeId);
+  if (!userId) return null;
+  return sendToUser({
+    user_id: userId,
+    type: "SYSTEM",
+    title,
+    body,
+    ref_id: routeId,
+    ref_module: refModule,
+  });
 };
 
 // Safety net for routes whose final stop was recorded but whose close request
@@ -724,7 +754,14 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
     );
   }
 
-  return getById(routeId);
+  const route = await getById(routeId);
+  if (route.driver_id) {
+    await notifyCollectorForRoute(routeId, {
+      title: "New Route Assigned",
+      body: `${route.name || "A collection route"} is assigned for ${route.day_of_week} at ${route.start_time}.`,
+    }).catch((err) => console.error("[Routes] Route-assignment collector notification error:", err.message));
+  }
+  return route;
 };
 
 // ─── Update ───────────────────────────────────────────────────────────────
@@ -889,7 +926,18 @@ const update = async (id, data) => {
     connection.release();
   }
 
-  return getById(id);
+  const updatedRoute = await getById(id);
+  if (updatedRoute.driver_id) {
+    const reassigned = existingRoute.driver_id !== updatedRoute.driver_id;
+    const stateChange = data.status && data.status !== existingRoute.status;
+    await notifyCollectorForRoute(id, {
+      title: reassigned ? "New Route Assigned" : stateChange ? `Route ${String(data.status).toLowerCase()}` : "Route Updated",
+      body: reassigned
+        ? `${updatedRoute.name || "A collection route"} is now assigned to you for ${updatedRoute.day_of_week} at ${updatedRoute.start_time}.`
+        : "Your collection route details were updated. Review the route before your shift.",
+    }).catch((err) => console.error("[Routes] Route-update collector notification error:", err.message));
+  }
+  return updatedRoute;
 };
 
 // ─── Update Stop Status ───────────────────────────────────────────────────
@@ -999,7 +1047,18 @@ const updateStopStatus = async (routeId, stopId, status, skippedReason = null) =
 // ─── Delete ───────────────────────────────────────────────────────────────
 const remove = async (id) => {
   await getById(id);
+  const collectorUserId = await getCollectorUserIdForRoute(id);
   await pool.query("DELETE FROM routes WHERE id = ?", [id]);
+  if (collectorUserId) {
+    await sendToUser({
+      user_id: collectorUserId,
+      type: "SYSTEM",
+      title: "Route Cancelled",
+      body: "A collection route assigned to you was cancelled. Check with dispatch for your updated schedule.",
+      ref_id: id,
+      ref_module: "routes",
+    }).catch((err) => console.error("[Routes] Route-cancellation collector notification error:", err.message));
+  }
   return { message: "Route deleted successfully" };
 };
 

@@ -9,7 +9,7 @@ const QuickActionsAndContact = () => {
   return (
     <Card className="flex h-full flex-col overflow-hidden border border-border/80 bg-card/80 backdrop-blur-sm rounded-2xl">
       <div>
-        <CardHeader className="pb-2 px-4 sm:px-6">
+        <CardHeader className="pb-2 px-4 lg:px-6">
           <CardTitle className="text-sm font-bold text-foreground font-display">
             MENRO Candelaria Office
           </CardTitle>
@@ -17,8 +17,8 @@ const QuickActionsAndContact = () => {
             Municipal Environment & Natural Resources
           </p>
         </CardHeader>
-        <CardContent className="px-4 sm:px-6 pb-3 space-y-2.5">
-          <div className="grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+        <CardContent className="px-4 lg:px-6 pb-3 space-y-2.5">
+          <div className="grid grid-cols-1 gap-1.5 text-xs md:grid-cols-2">
             <div className="flex items-center gap-2.5 p-2 rounded-xl bg-muted/40 border border-border/50">
               <Phone className="w-4 h-4 text-primary shrink-0" />
               <div>
@@ -58,7 +58,7 @@ const QuickActionsAndContact = () => {
         </CardContent>
       </div>
 
-      <div className="px-4 sm:px-6 pb-3.5">
+      <div className="px-4 lg:px-6 pb-3.5">
         <Button
           variant="outline"
           size="sm"
@@ -74,4 +74,5 @@ const QuickActionsAndContact = () => {
 };
 
 export default QuickActionsAndContact;
+
 

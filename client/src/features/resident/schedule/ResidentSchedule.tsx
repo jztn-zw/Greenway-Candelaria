@@ -21,6 +21,7 @@ import {
   Info,
   Calendar,
   AlertTriangle,
+  ChevronDown,
   ChevronRight,
   Check,
   X,
@@ -222,6 +223,7 @@ const ResidentSchedule = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [collectionRules, setCollectionRules] = useState<CollectionScheduleDay[]>([]);
   const [activeTab, setActiveTab] = useState<ViewTab>("CALENDAR");
+  const [expandedWeeklyDay, setExpandedWeeklyDay] = useState(today.getDay());
   const [selectedEventModal, setSelectedEventModal] = useState<CalendarEvent | null>(null);
 
   const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -341,26 +343,27 @@ const ResidentSchedule = () => {
   if (isLoading) return <ResidentScheduleSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-5 animate-in fade-in duration-300 pb-12">
+    <div className="mx-auto w-full max-w-[1400px] space-y-4 pb-8 animate-in fade-in duration-300 md:space-y-5 md:pb-10 lg:pb-12">
       {/* ─── Page Header ─── */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
+        <div className="hidden md:block">
+          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight lg:text-3xl">
             Resident Calendar
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+          <p className="mt-1 text-xs text-muted-foreground lg:text-sm">
             View collection days and official announcements.
           </p>
         </div>
 
         {/* View Toggle Tabs */}
-        <div className="shrink-0">
+        <div className="w-full shrink-0 lg:w-auto">
           <SegmentedControl<ViewTab>
+            className="flex w-full lg:inline-flex lg:w-auto [&>button]:flex-1 [&>button]:justify-center lg:[&>button]:flex-none"
             value={activeTab}
             onChange={setActiveTab}
             options={[
               { value: "CALENDAR", label: "Monthly Calendar", icon: CalendarDays },
-              { value: "WEEKLY_GUIDE", label: "Weekly Schedule Guide", icon: Truck },
+              { value: "WEEKLY_GUIDE", label: "Weekly Guide", icon: Truck },
             ]}
           />
         </div>
@@ -381,6 +384,7 @@ const ResidentSchedule = () => {
               onNextMonth={() => changeMonth(1)}
               onGoToday={goToday}
               hideTodayButtonWhenOtherDateSelected
+              compactMobileCells
               footer={
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
                   <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -413,7 +417,7 @@ const ResidentSchedule = () => {
           {/* ─── Selected Day Detail Panel (Resident-Focused Info) ─── */}
           <div className="space-y-4 lg:col-span-1">
             <Card className="border border-border/80 bg-card rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-border/60 p-4 sm:p-5">
+              <CardHeader className="border-b border-border/60 p-4 lg:p-5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <CardTitle className="font-display text-base font-bold text-foreground truncate">
@@ -439,7 +443,7 @@ const ResidentSchedule = () => {
                 </div>
               </CardHeader>
 
-              <CardContent className="p-4 sm:p-5 space-y-4">
+              <CardContent className="p-4 lg:p-5 space-y-4">
                 {/* 1. Regular Waste Collection Card for Selected Day */}
                 <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
@@ -584,79 +588,78 @@ const ResidentSchedule = () => {
       {activeTab === "WEEKLY_GUIDE" && (
         <div className="space-y-4">
           {/* 7-Day Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredWeeklyGuide.map((day) => (
-              <Card
-                key={day.dayName}
-                className={`rounded-2xl border bg-card p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 ${
-                  day.dayIndex === today.getDay() ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold font-display text-foreground">
-                        {day.dayName}
-                      </span>
-                      {day.dayIndex === today.getDay() && (
-                        <span className="text-[10px] font-semibold bg-muted text-muted-foreground border border-border/70 px-1.5 py-0.5 rounded-md">
-                          Today
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredWeeklyGuide.map((day) => {
+              const isExpanded = expandedWeeklyDay === day.dayIndex;
+
+              return (
+                <Card
+                  key={day.dayName}
+                  className={`rounded-2xl border bg-card p-3.5 shadow-2xs transition-all lg:p-5 lg:hover:shadow-md ${
+                    day.dayIndex === today.getDay() ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExpandedWeeklyDay((current) => current === day.dayIndex ? -1 : day.dayIndex)}
+                    className="w-full text-left cursor-pointer lg:cursor-default"
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="text-sm font-bold font-display text-foreground">{day.dayName}</span>
+                        {day.dayIndex === today.getDay() && (
+                          <span className="rounded-md border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Today</span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
+                          <span className={`size-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          {day.title}
                         </span>
-                      )}
+                        <ChevronDown className={`size-4 text-muted-foreground transition-transform md:hidden ${isExpanded ? "rotate-180" : ""}`} />
+                      </div>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : "bg-amber-500"}`} />
-                      {day.title}
-                    </span>
-                  </div>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="size-3.5 shrink-0" />
+                      <span>Collection: <strong className="text-foreground">{day.timeWindow}</strong></span>
+                    </div>
+                  </button>
 
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span>Collection window: <strong className="text-foreground">{day.timeWindow}</strong></span>
+                  <div className={`${isExpanded ? "block" : "hidden"} space-y-3 border-t border-border/50 pt-3 lg:mt-3 lg:block`}>
+                    <div className="space-y-1.5 text-xs">
+                      <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                        <Check className="size-3.5 text-muted-foreground" /> Examples you can put out:
+                      </p>
+                      <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
+                        {day.accepted.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+                    <div className="space-y-1.5 border-t border-border/50 pt-2 text-xs">
+                      <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                        <CloseIcon className="size-3.5 text-muted-foreground" /> Items to avoid:
+                      </p>
+                      <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
+                        {day.prohibited.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+                    <div className="border-t border-border/50 pt-2.5 text-[11px] italic text-muted-foreground/90">Tip: {day.tips}</div>
                   </div>
-
-                  {/* Accepted items */}
-                  <div className="space-y-1.5 text-xs">
-                    <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-muted-foreground" /> Examples you can put out:
-                    </p>
-                    <ul className="space-y-1 pl-4 list-disc text-muted-foreground text-[11px]">
-                      {day.accepted.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Prohibited items */}
-                  <div className="space-y-1.5 text-xs border-t border-border/50 pt-2">
-                    <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-                      <CloseIcon className="w-3.5 h-3.5 text-muted-foreground" /> Items to avoid:
-                    </p>
-                    <ul className="space-y-1 pl-4 list-disc text-muted-foreground text-[11px]">
-                      {day.prohibited.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="border-t border-border/50 pt-2.5 text-[11px] text-muted-foreground/90 italic">
-                  Tip: {day.tips}
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
 
           {/* Legal / Policy Notice Card */}
-          <div className="rounded-2xl border border-border/80 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 text-xs text-muted-foreground">
-            <div className="w-9 h-9 rounded-xl bg-muted border border-border/80 text-muted-foreground flex items-center justify-center shrink-0">
+          <div className="flex items-start gap-3 rounded-2xl border border-border/80 bg-muted/20 p-3.5 text-xs text-muted-foreground lg:items-center lg:gap-3.5 lg:p-5">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted text-muted-foreground">
               <Info className="w-4 h-4" />
             </div>
-            <div className="space-y-0.5">
-              <p className="font-semibold text-foreground">
+            <div className="min-w-0 space-y-0.5">
+              <p className="font-semibold leading-snug text-foreground">
                 Municipal Solid Waste Management Policy (R.A. 9003)
               </p>
-              <p>
+              <p className="leading-relaxed">
                 Garbage must be segregated at source. Unsegregated garbage, hazardous waste, or waste placed outside collection hours will not be hauled by the collection fleet.
               </p>
             </div>
@@ -671,7 +674,7 @@ const ResidentSchedule = () => {
           if (!open) setSelectedEventModal(null);
         }}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
           {selectedEventModal && (() => {
             const badgeInfo = getEventBadgeInfo(selectedEventModal);
             const displayDate = formatEventDisplayDate(selectedEventModal);
@@ -687,7 +690,7 @@ const ResidentSchedule = () => {
                       <Calendar className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <DialogTitle className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight truncate">
+                      <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">
                         Announcement
                       </DialogTitle>
                       <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -726,7 +729,7 @@ const ResidentSchedule = () => {
                   </div>
 
                   {/* Description container */}
-                  <div className="text-xs sm:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 sm:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+                  <div className="text-xs lg:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
                     {selectedEventModal.description || "No additional details or instructions provided."}
                   </div>
                 </div>
@@ -736,7 +739,7 @@ const ResidentSchedule = () => {
                   <Button
                     type="button"
                     onClick={() => setSelectedEventModal(null)}
-                    className="w-full sm:w-auto h-9 px-6 rounded-xl text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer"
+                    className="w-full lg:w-auto h-9 px-6 rounded-xl text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer"
                   >
                     Close
                   </Button>
@@ -751,3 +754,4 @@ const ResidentSchedule = () => {
 };
 
 export default ResidentSchedule;
+

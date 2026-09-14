@@ -91,7 +91,7 @@ const AnnouncementAndTip = () => {
       <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
         <CardContent className="p-0 flex flex-col h-full">
           <div className="h-1 bg-primary/40 shrink-0" />
-          <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px] space-y-3">
+          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px] space-y-3">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ const AnnouncementAndTip = () => {
       <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
         <CardContent className="p-0 flex flex-col h-full">
           <div className="h-1 bg-muted shrink-0" />
-          <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
+          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
@@ -128,10 +128,10 @@ const AnnouncementAndTip = () => {
                 </p>
               </div>
 
-              <p className="text-sm sm:text-base font-bold text-foreground">
+              <p className="text-sm lg:text-base font-bold text-foreground">
                 No Active Announcements
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+              <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 There are no active bulletins or notices from MENRO Candelaria right now.
               </p>
             </div>
@@ -146,7 +146,7 @@ const AnnouncementAndTip = () => {
               </button>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden sm:inline">MENRO Verified</span>
+                <span className="hidden lg:inline">MENRO Verified</span>
               </div>
             </div>
           </div>
@@ -166,7 +166,7 @@ const AnnouncementAndTip = () => {
           {/* Top accent bar matching post carousel */}
           <div className="h-1 bg-primary shrink-0" />
 
-          <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
+          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
             {/* Header row */}
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -179,12 +179,12 @@ const AnnouncementAndTip = () => {
               </div>
 
               {/* Title with matching consistent height */}
-              <p className="text-sm sm:text-base font-bold text-foreground line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem] group-hover:text-primary transition-colors leading-snug">
+              <p className="text-sm lg:text-base font-bold text-foreground line-clamp-2 min-h-[2.5rem] lg:min-h-[2.75rem] group-hover:text-primary transition-colors leading-snug">
                 {announcement.title}
               </p>
 
               {/* Excerpt with matching consistent height */}
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 min-h-[2rem] sm:min-h-[2.25rem] leading-relaxed">
+              <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 min-h-[2rem] lg:min-h-[2.25rem] leading-relaxed">
                 {announcement.body}
               </p>
             </div>
@@ -193,7 +193,7 @@ const AnnouncementAndTip = () => {
             <div className="mt-2 flex items-center justify-end border-t border-border/40 pt-2">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden sm:inline">MENRO Verified</span>
+                <span className="hidden lg:inline">MENRO Verified</span>
               </div>
             </div>
           </div>
@@ -211,3 +211,4 @@ const AnnouncementAndTip = () => {
 };
 
 export default AnnouncementAndTip;
+

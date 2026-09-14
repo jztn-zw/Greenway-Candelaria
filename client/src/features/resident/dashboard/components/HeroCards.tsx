@@ -138,15 +138,15 @@ const HeroCards = () => {
     : "Not scheduled";
 
   return (
-    <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
       {/* ─── Card 1: Today's Collection Schedule ─── */}
       <Card
         onClick={() => navigate("/resident/schedule")}
-        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
       >
-        <div className="space-y-3.5">
+          <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
               Today's Schedule
             </span>
             <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
@@ -159,7 +159,7 @@ const HeroCards = () => {
               <Package className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+              <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                 {todayWaste ? todayWaste.label : scheduleFailed ? "Schedule unavailable" : "No collection scheduled"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -172,7 +172,7 @@ const HeroCards = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+          <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
               Collection Time
@@ -181,7 +181,7 @@ const HeroCards = () => {
           </div>
         </div>
 
-        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
           <span>View weekly calendar</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
@@ -190,11 +190,11 @@ const HeroCards = () => {
       {/* ─── Card 2: Live Truck Status ─── */}
       <Card
         onClick={() => navigate("/resident/tracking")}
-        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
       >
-        <div className="space-y-3.5">
+          <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
               Collection Truck
             </span>
             {trucksFailed ? (
@@ -218,7 +218,7 @@ const HeroCards = () => {
               <Truck className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+              <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                 {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -231,7 +231,7 @@ const HeroCards = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+          <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Radio className="w-3.5 h-3.5 text-muted-foreground/80" />
               Live Trucks
@@ -242,7 +242,7 @@ const HeroCards = () => {
           </div>
         </div>
 
-        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
           <span>Open live GPS map</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
@@ -251,11 +251,11 @@ const HeroCards = () => {
       {/* ─── Card 3: Latest Report ─── */}
       <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
-        className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer group sm:col-span-2 lg:col-span-1"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
       >
-        <div className="space-y-3.5">
+          <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
               Latest Waste Report
             </span>
             {latestReport && (
@@ -276,7 +276,7 @@ const HeroCards = () => {
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-foreground font-display tracking-tight group-hover:text-primary transition-colors truncate">
+                  <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                     {formatViolationType(latestReport.violation_type)}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -285,7 +285,7 @@ const HeroCards = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs border-t border-border/50 pt-3">
+              <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
                 <span className="text-muted-foreground font-mono text-[11px] flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5 text-muted-foreground/80" />
                   {latestReport.reference_number}
@@ -313,7 +313,7 @@ const HeroCards = () => {
           )}
         </div>
 
-        <div className="flex items-center pt-1 text-xs font-semibold text-primary">
+        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
           <span>{latestReport || reportsFailed ? "View report history" : "Submit new report"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
@@ -323,3 +323,4 @@ const HeroCards = () => {
 };
 
 export default HeroCards;
+

@@ -1,24 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MapPin, Wrench, CloudOff, Droplets, Calendar,
-  MessageSquare, ChevronRight, X, Sun, LayoutDashboard,
-  Truck, AlertTriangle, Send, Clock, CheckCircle2
+  MapPin, Wrench, MessageSquare, ChevronRight, X, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/lib/toast";
-import AnimatedSection from "@/components/AnimatedSection";
 import {
   CollectorDashboardSkeleton,
 } from "@/components/PageLoadingSkeletons";
-import ShiftStatusBadge from "./components/ShiftStatusBadge";
 import AssignmentCard from "./components/AssignmentCard";
 import TodayStatsCards from "./components/TodayStatsCards";
 import TruckStatusCard from "./components/TruckStatusCard";
 import CollectorDashboardGreeting from "./components/CollectorDashboardGreeting";
+import type { ShiftStatus } from "./components/types";
 import {
   fetchDriverMe,
   fetchDriverMyMessages,
@@ -69,12 +66,6 @@ const CollectorDashboard = () => {
     loadDashboardData();
   }, []);
 
-  // Time-based greeting
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-  const driverFirstName = (driverMe?.full_name || authUser?.full_name || "Collector").split(" ")[0];
-
   // Derive Route Status & Data
   const stops = routeToday?.stops || [];
   const totalStops = stops.length;
@@ -94,8 +85,18 @@ const CollectorDashboard = () => {
     routeState = "not-started";
   }
 
-  const shiftStatus: "on-route" | "off-duty" = (routeState === "in-progress" || routeState === "not-started") ? "on-route" : "off-duty";
+  const shiftStatus: ShiftStatus =
+    routeState === "completed"
+      ? "completed"
+      : routeState === "in-progress"
+      ? "on-route"
+      : "off-duty";
   const isActive = routeState === "in-progress" || routeState === "completed";
+
+  // Identify next active stop
+  const currentStop =
+    stops.find((s: any) => s.status === "IN_PROGRESS") ||
+    stops.find((s: any) => s.status === "NOT_STARTED");
 
   // Assignment card data adapter
   const assignmentData = {
@@ -109,6 +110,9 @@ const CollectorDashboard = () => {
     skippedStops,
     estimatedStart: routeToday?.start_time ? routeToday.start_time.slice(0, 5) : "06:00 AM",
     timeElapsedMinutes: 45, // default session duration estimate
+    nextStopName: currentStop?.barangay_name,
+    nextStopZone: currentStop?.zone,
+    nextStopOrder: currentStop?.stop_order,
   };
 
   // Submit Truck Issue to Backend
@@ -139,167 +143,192 @@ const CollectorDashboard = () => {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5 pb-8">
-      {/* ── Page Header (Matching Resident Dashboard layout) ── */}
-      <AnimatedSection delay={0}>
-        <CollectorDashboardGreeting
-          driverName={driverMe?.full_name || authUser?.full_name || "Collector"}
-          truckName={driverMe?.truck_name}
-          truckPlate={driverMe?.truck_plate}
-          routeName={routeToday?.name || routeToday?.route_name}
-          wasteType={routeToday?.waste_type}
-        />
-      </AnimatedSection>
+      {/* ── Page Header / Greeting with Live Shift Status ── */}
+      <CollectorDashboardGreeting
+        driverName={driverMe?.full_name || authUser?.full_name || "Collector"}
+        truckName={driverMe?.truck_name}
+        truckPlate={driverMe?.truck_plate}
+        routeName={assignmentData.routeName}
+        wasteType={routeToday?.waste_type}
+        shiftStatus={shiftStatus}
+      />
 
-      {/* ── Assignment Card ── */}
-      <AnimatedSection delay={60}>
-        <AssignmentCard
-          data={assignmentData}
-          onAction={() => {
-            if (assignmentData.routeState === "completed") {
-              navigate("/collector/route-history");
-            } else {
-              navigate("/collector/route-map");
-            }
-          }}
-        />
-      </AnimatedSection>
+      {/* ── Today's Operational KPIs / Progress Stats (Full Width) ── */}
+      <TodayStatsCards
+        completed={completedStops}
+        total={totalStops}
+        skipped={skippedStops}
+        timeElapsed={45}
+        active={isActive}
+      />
 
-      {/* ── Quick Actions ── */}
-      <AnimatedSection delay={120}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Card 1: Live Route Map */}
-          <button
-            type="button"
-            onClick={() => navigate("/collector/route-map")}
-            className="group flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/40 transition-all text-left shadow-2xs active:scale-[0.99] cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform duration-200">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
-                  Live Route Map
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Full GPS navigation & collection stops
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-          </button>
+      {/* ── Balanced Operational Grid: 2-column on desktop/laptop, 1-column on mobile/tablet ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left Column: Hero Assignment & Navigation Controls */}
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7 xl:col-span-8">
+          {/* 1. Hero Assignment Card */}
+          <AssignmentCard
+            data={assignmentData}
+            className="flex-1"
+            onAction={() => {
+              if (assignmentData.routeState === "completed") {
+                navigate("/collector/route-history");
+              } else {
+                navigate("/collector/route-map");
+              }
+            }}
+          />
 
-          {/* Card 2: Report Breakdown */}
-          <button
-            type="button"
-            onClick={() => setIssueModalOpen(true)}
-            className="group flex items-center justify-between p-4 rounded-2xl border border-destructive/25 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10 transition-all text-left shadow-2xs active:scale-[0.99] cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center text-destructive shrink-0 group-hover:scale-105 transition-transform duration-200">
-                <Wrench className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-destructive tracking-tight">
-                  Report Truck Breakdown
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Log flat tire, engine fault, or delay
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-destructive/50 group-hover:text-destructive group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-          </button>
-        </div>
-      </AnimatedSection>
-
-      {/* ── Today's Stats ── */}
-      <AnimatedSection delay={180}>
-        <TodayStatsCards
-          completed={completedStops}
-          total={totalStops}
-          skipped={skippedStops}
-          timeElapsed={45}
-          active={isActive}
-        />
-      </AnimatedSection>
-
-      {/* ── Assigned Truck Status ── */}
-      <AnimatedSection delay={240}>
-        <TruckStatusCard
-          data={{
-            name: driverMe?.truck_name || "Assigned Truck",
-            plateNumber: driverMe?.truck_plate || "N/A",
-            status: driverMe?.truck_status || "ACTIVE",
-            availabilityStatus: driverMe?.truck_availability || "ACTIVE",
-          }}
-        />
-      </AnimatedSection>
-
-      {/* ── Recent Admin / Dispatch Messages ── */}
-      <AnimatedSection delay={300}>
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground font-display">Dispatch & Admin Messages</span>
-            </div>
+          {/* 2. Quick Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+            {/* Live Route Map Navigation */}
             <button
-              onClick={() => navigate("/collector/notifications")}
-              className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5 cursor-pointer"
+              type="button"
+              onClick={() => navigate("/collector/route-map")}
+              className="group flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/30 transition-all text-left shadow-2xs active:scale-[0.99] cursor-pointer"
             >
-              View All <ChevronRight className="w-3 h-3" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 shadow-2xs group-hover:scale-105 transition-transform duration-200">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+                    Live Route Navigation
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Turn-by-turn map & collection stops
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+            </button>
+
+            {/* Report Truck Breakdown / Delay */}
+            <button
+              type="button"
+              onClick={() => setIssueModalOpen(true)}
+              className="group flex items-center justify-between p-4 rounded-2xl border border-destructive/25 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10 transition-all text-left shadow-2xs active:scale-[0.99] cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-destructive/15 flex items-center justify-center text-destructive shrink-0 border border-destructive/25 shadow-2xs group-hover:scale-105 transition-transform duration-200">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-destructive tracking-tight">
+                    Report Truck Problem
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Log breakdown, flat tire, or delay
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-destructive/60 group-hover:text-destructive group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </button>
           </div>
-
-          {messages.length === 0 ? (
-            <div className="px-4 py-6 text-center text-muted-foreground text-sm">
-              <p>No new messages from MENRO dispatch.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  onClick={() => navigate("/collector/notifications")}
-                  className="px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer flex items-start justify-between gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground font-medium truncate">{msg.message}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {msg.sender_name || "MENRO Admin"} · {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  {!msg.is_read && (
-                    <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </AnimatedSection>
+
+        {/* Right Column: Vehicle Specs & Dispatch Communications */}
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5 xl:col-span-4">
+          {/* 3. Assigned Vehicle Status */}
+          <TruckStatusCard
+            data={{
+              name: driverMe?.truck_name || "Assigned Truck",
+              plateNumber: driverMe?.truck_plate || "N/A",
+              status: driverMe?.truck_status || "ACTIVE",
+              availabilityStatus: driverMe?.truck_availability || "ACTIVE",
+              wasteType: routeToday?.waste_type,
+            }}
+          />
+
+          {/* 4. Dispatch & Admin Messages */}
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs flex-1 flex flex-col">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/60 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold text-foreground font-display uppercase tracking-tight">
+                  Dispatch & Admin Messages
+                </span>
+              </div>
+              <button
+                onClick={() => navigate("/collector/notifications")}
+                className="text-xs text-primary font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                View All <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {messages.length === 0 ? (
+              <div className="px-5 py-8 text-center text-muted-foreground text-xs flex-1 flex items-center justify-center">
+                <p>No new dispatch messages from MENRO Admin.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60 flex-1 flex flex-col justify-start">
+                {messages.slice(0, 3).map((msg) => (
+                  <div
+                    key={msg.id}
+                    onClick={() => navigate("/collector/notifications")}
+                    className="px-4 sm:px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer flex items-start justify-between gap-3 group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm text-foreground font-medium truncate group-hover:text-primary transition-colors">
+                        {msg.message}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {msg.sender_name || "MENRO Dispatch"} ·{" "}
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    {!msg.is_read && (
+                      <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Report Truck Issue Modal ── */}
       <Dialog open={issueModalOpen} onOpenChange={setIssueModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2 text-destructive">
-              <Wrench className="w-5 h-5 text-destructive" /> Report Truck Issue
-            </DialogTitle>
-            <DialogDescription>
-              Report a breakdown or mechanical issue with truck <strong className="text-foreground">{driverMe?.truck_name || "your vehicle"}</strong> ({driverMe?.truck_plate || "N/A"}).
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0 shadow-2xs">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
+                  Report Truck Issue
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
+                  Truck {driverMe?.truck_name || "Vehicle"} ({driverMe?.truck_plate || "N/A"})
+                </DialogDescription>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIssueModalOpen(false)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="text-xs font-semibold text-foreground block mb-1.5">Issue Category</label>
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground tracking-tight block">
+                Issue Category
+              </label>
               <Select value={issueType} onValueChange={setIssueType}>
-                <SelectTrigger className="h-10 text-sm">
+                <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-border/80">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="Flat Tire">Flat Tire / Puncture</SelectItem>
                   <SelectItem value="Engine Problem">Engine Problem / Overheating</SelectItem>
                   <SelectItem value="Hydraulic Compactor Fault">Hydraulic / Compactor Fault</SelectItem>
@@ -311,31 +340,42 @@ const CollectorDashboard = () => {
               </Select>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-foreground block mb-1.5">Description & Location</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground tracking-tight block">
+                Description & Current Location
+              </label>
               <Textarea
-                className="text-xs min-h-[90px] resize-none"
-                placeholder="Describe what happened and your current location (e.g. Near Barangay Malabanban Norte church)..."
+                className="text-xs sm:text-sm min-h-[90px] rounded-xl border-border/80 resize-none"
+                placeholder="Describe what happened and where the truck is currently stopped (e.g. Near Brgy. Malabanban Norte church)..."
                 value={issueDescription}
                 onChange={(e) => setIssueDescription(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>This alert will be sent immediately to MENRO Admin dispatch.</span>
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIssueModalOpen(false)}>Cancel</Button>
-              <Button
-                variant="destructive"
-                disabled={isSubmittingIssue}
-                onClick={handleReportIssue}
-              >
-                {isSubmittingIssue ? "Submitting..." : "Send Breakdown Alert"}
-              </Button>
-            </div>
+          <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2.5 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIssueModalOpen(false)}
+              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isSubmittingIssue}
+              onClick={handleReportIssue}
+              className="h-10 px-5 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] cursor-pointer transition-all"
+            >
+              {isSubmittingIssue ? "Submitting..." : "Send Breakdown Alert"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -344,3 +384,4 @@ const CollectorDashboard = () => {
 };
 
 export default CollectorDashboard;
+

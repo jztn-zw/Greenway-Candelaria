@@ -606,7 +606,7 @@ const ResidentTruckTracking = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-3.5 sm:space-y-4 px-2 sm:px-4">
+      <div className="w-full max-w-[1600px] mx-auto space-y-3.5 px-2 md:space-y-4 md:px-4">
         <PageHeaderSkeleton />
         <MapPanelSkeleton />
       </div>
@@ -614,21 +614,21 @@ const ResidentTruckTracking = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-4">
+    <div className="w-full max-w-[1600px] mx-auto px-2 md:px-4">
       {/* ── Page Header ── */}
-      <div className="hidden pb-1 sm:mb-4 sm:block">
-        <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+      <div className="hidden pb-1 md:mb-4 md:block">
+        <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
           Truck Tracking
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+        <p className="text-xs lg:text-sm text-muted-foreground mt-1">
           Track your scheduled waste collection in real time.
         </p>
       </div>
 
-      <div className="space-y-3.5 sm:space-y-4">
+      <div className="space-y-3.5 md:space-y-4">
 
       {trackingError && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 text-foreground">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>{trackingError}</span>
@@ -636,7 +636,7 @@ const ResidentTruckTracking = () => {
           <button
             type="button"
             onClick={() => void loadDynamicData()}
-            className="inline-flex items-center gap-1.5 self-start rounded-xl border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-amber-500/10 sm:self-auto"
+            className="inline-flex items-center gap-1.5 self-start rounded-xl border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-amber-500/10 md:self-auto"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry
           </button>
@@ -655,7 +655,7 @@ const ResidentTruckTracking = () => {
       )}
       <CountdownBanner schedule={schedule} residentArea={residentArea} />
 
-       <div className="h-[clamp(360px,calc(100dvh-12rem),520px)] sm:h-[480px] lg:h-[580px]">
+       <div className="h-[clamp(360px,calc(100dvh-12rem),520px)] md:h-[500px] lg:h-[580px]">
         <TrackingMap
           trucks={residentTrucks}
           focusedTruckId={focusedTruckId}
@@ -674,3 +674,4 @@ const ResidentTruckTracking = () => {
 };
 
 export default ResidentTruckTracking;
+

@@ -11,7 +11,7 @@ export interface PaginationControlsProps {
   itemLabel?: string;
   onPageChange: (page: number) => void;
   className?: string;
-  variant?: "table" | "floating";
+  variant?: "table" | "floating" | "inline";
 }
 
 /** Shared pagination footer supporting both integrated table caps and floating pagination. */
@@ -51,18 +51,24 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   };
 
   const pages = getPages();
+  const isInline = variant === "inline";
 
   return (
     <div
       className={cn(
         variant === "table"
           ? "px-4 py-3 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-card"
-          : "flex flex-col sm:flex-row items-center justify-between gap-3 pt-3",
+          : isInline
+            ? "flex items-center justify-between gap-2 border-t border-border/50 pt-3"
+          : "flex flex-col sm:flex-row items-center justify-between gap-1.5 pt-4 sm:gap-3 sm:pt-3",
         className
       )}
     >
       {/* Left: Contextual count */}
-      <div className="text-xs text-muted-foreground order-2 sm:order-1">
+      <div className={cn(
+        "text-xs text-muted-foreground",
+        isInline ? "min-w-0 whitespace-nowrap text-[11px] sm:text-xs" : "order-2 text-center sm:order-1 sm:text-left"
+      )}>
         {totalItems != null && start != null && end != null ? (
           <>
             Showing{" "}
@@ -90,7 +96,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
       </div>
 
       {/* Right: Controls */}
-      <div className="flex items-center gap-1 order-1 sm:order-2">
+      <div className={cn("flex shrink-0 items-center gap-1", !isInline && "order-1 sm:order-2")}>
         <Button
           variant="ghost"
           size="icon"
@@ -108,7 +114,10 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
               return (
                 <span
                   key={`ellipsis-${idx}`}
-                  className="h-8 w-8 flex items-center justify-center text-xs text-muted-foreground font-mono"
+                  className={cn(
+                    "h-8 w-8 items-center justify-center text-xs text-muted-foreground font-mono",
+                    isInline ? "hidden sm:flex" : "flex"
+                  )}
                 >
                   …
                 </span>
@@ -121,7 +130,8 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 type="button"
                 onClick={() => onPageChange(p as number)}
                 className={cn(
-                  "h-8 min-w-[32px] px-2 text-xs font-mono rounded-lg transition-all cursor-pointer flex items-center justify-center select-none",
+                  "h-8 min-w-[32px] px-2 text-xs font-mono rounded-lg transition-all cursor-pointer items-center justify-center select-none",
+                  isInline && totalPages > 3 && !isCurrent ? "hidden sm:flex" : "flex",
                   isCurrent
                     ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/70 font-medium"

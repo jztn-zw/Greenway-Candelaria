@@ -1,14 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   History, MapPin, SkipForward, Target,
-  ChevronRight, Leaf, Droplet, Clock,
-  CheckCircle2, AlertTriangle, Users,
-  Truck
+  ChevronRight, Clock, CheckCircle2, AlertTriangle, Users,
+  Truck, MessageSquare,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
 import { BackButton } from "@/components/common";
 import {
   fetchDriverMyHistory,
@@ -32,10 +29,10 @@ const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
 ];
 
 const RouteHistorySkeleton = () => (
-  <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8 animate-in fade-in duration-300">
+  <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
     {/* Page Header */}
     <div className="flex items-center gap-3">
-      <Skeleton className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shrink-0" />
+      <Skeleton className="w-11 h-11 rounded-2xl shrink-0" />
       <div className="space-y-1.5">
         <Skeleton className="h-6 w-44" />
         <Skeleton className="h-3.5 w-64" />
@@ -43,98 +40,131 @@ const RouteHistorySkeleton = () => (
     </div>
 
     {/* 3 Summary KPI Cards */}
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-7 w-16" />
+        <div key={i} className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl shrink-0" />
           </div>
-          <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+          <div className="mt-2 sm:mt-3 space-y-1">
+            <Skeleton className="h-6 sm:h-8 w-14" />
+            <Skeleton className="h-3 w-24 hidden sm:block" />
+          </div>
         </div>
       ))}
     </div>
 
     {/* Filter Toolbar Skeleton */}
-    <div className="bg-card border border-border rounded-2xl p-2.5 sm:p-3 shadow-2xs space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
-      <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/60 overflow-hidden">
+    <div className="bg-card border border-border/80 rounded-2xl p-2 sm:p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+      <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border/60">
         <Skeleton className="h-8 w-24 rounded-lg shrink-0" />
-        <Skeleton className="h-8 w-28 rounded-lg shrink-0" />
+        <Skeleton className="h-8 w-24 rounded-lg shrink-0" />
         <Skeleton className="h-8 w-20 rounded-lg shrink-0" />
       </div>
-      <div className="flex items-center gap-1.5 overflow-hidden">
-        <Skeleton className="h-8 w-28 rounded-xl shrink-0" />
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-8 w-24 rounded-xl shrink-0" />
         <Skeleton className="h-8 w-28 rounded-xl shrink-0" />
         <Skeleton className="h-8 w-32 rounded-xl shrink-0" />
       </div>
     </div>
 
-    {/* Route Items List (Exact match with route card structure) */}
-    <div className="space-y-3">
+    {/* Route Items List */}
+    <div className="space-y-2.5">
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="bg-card border border-border rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 sm:gap-4 shadow-sm"
+          className="bg-card border border-border/80 rounded-2xl p-3.5 sm:p-4.5 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs"
         >
           <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
-            {/* Mini Progress Ring skeleton */}
             <Skeleton className="w-12 h-12 rounded-xl shrink-0" />
-
             <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-5 w-24 rounded-full" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-5 w-20 rounded-md" />
+                <Skeleton className="h-5 w-24 rounded-md" />
               </div>
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
                 <Skeleton className="h-3 w-28" />
                 <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-20" />
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Skeleton className="h-6 w-12 rounded-md hidden sm:block" />
-            <Skeleton className="w-5 h-5 rounded-md" />
-          </div>
+          <Skeleton className="w-4 h-4 rounded-md shrink-0" />
         </div>
       ))}
     </div>
   </div>
 );
 
-const statusBadge = (status: RouteHistoryItem["status"]) => {
+const getStatusBadge = (status: RouteHistoryItem["status"]) => {
   switch (status) {
-    case "completed": return { label: "Completed", cls: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 dark:bg-emerald-500/20 font-semibold" };
-    case "partial": return { label: "Partial", cls: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30 dark:bg-amber-500/20 font-semibold" };
-    default: return { label: "No Collection", cls: "bg-muted text-muted-foreground border-border font-medium" };
+    case "completed":
+      return {
+        label: "Completed",
+        cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25",
+        icon: CheckCircle2,
+      };
+    case "partial":
+      return {
+        label: "Partial",
+        cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25",
+        icon: AlertTriangle,
+      };
+    default:
+      return {
+        label: "No Collection",
+        cls: "bg-muted text-muted-foreground border-border/70",
+        icon: Clock,
+      };
   }
 };
 
-const ringColor = (pct: number) => (pct >= 90 ? "text-primary" : pct >= 70 ? "text-amber-500" : "text-destructive");
+const getWasteBadge = (wasteType?: string | null) => {
+  if (!wasteType) return null;
+  const lower = wasteType.toLowerCase();
+  const isBio = lower.includes("bio") && !lower.includes("non");
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
+        isBio
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25"
+          : "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/25"
+      }`}
+    >
+      {wasteType}
+    </span>
+  );
+};
 
-/* ────── Completion Ring SVG ────── */
 const MiniRing = ({ pct }: { pct: number }) => {
   const r = 18;
   const c = 2 * Math.PI * r;
-  const offset = c - (pct / 100) * c;
+  const offset = c - (Math.min(100, Math.max(0, pct)) / 100) * c;
+  const strokeClass = pct >= 90 ? "text-primary" : pct >= 70 ? "text-amber-500" : "text-destructive";
+
   return (
-    <svg width="44" height="44" className="shrink-0">
-      <circle cx="22" cy="22" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
-      <circle
-        cx="22" cy="22" r={r} fill="none"
-        stroke="currentColor"
-        strokeWidth="4" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={offset}
-        className={ringColor(pct)}
-        transform="rotate(-90 22 22)"
-      />
-      <text x="22" y="22" textAnchor="middle" dominantBaseline="central"
-        className="fill-foreground text-[10px] font-bold">
+    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="3.5" />
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          className={strokeClass}
+        />
+      </svg>
+      <span className="absolute text-[10px] font-bold font-mono text-foreground tabular-nums">
         {pct}%
-      </text>
-    </svg>
+      </span>
+    </div>
   );
 };
 
@@ -147,35 +177,6 @@ const CollectorRouteHistory = () => {
   const [selectedRoute, setSelectedRoute] = useState<RouteHistoryItem | null>(null);
   const [historyList, setHistoryList] = useState<RouteHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Tabs drag support
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!tabsContainerRef.current) return;
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    startXRef.current = e.pageX - tabsContainerRef.current.offsetLeft;
-    scrollLeftRef.current = tabsContainerRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !tabsContainerRef.current) return;
-    const x = e.pageX - tabsContainerRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.3;
-    if (Math.abs(walk) > 4) {
-      hasDraggedRef.current = true;
-    }
-    tabsContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    isDraggingRef.current = false;
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -193,7 +194,9 @@ const CollectorRouteHistory = () => {
       }
     };
     loadHistory();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Sync URL param → selectedRoute (handles deep links & topbar back nav)
@@ -225,123 +228,201 @@ const CollectorRouteHistory = () => {
 
   // Summary Metrics
   const routesCompleted = historyList.filter((e) => e.status === "completed").length;
-  const totalSkipped = historyList.reduce((s, e) => s + e.skippedStops, 0);
-  const avgCompletion = historyList.length > 0
-    ? Math.round(historyList.reduce((s, e) => s + e.completionPct, 0) / historyList.length)
-    : 100;
+  const totalSkipped = historyList.reduce((s, e) => s + (e.skippedStops || 0), 0);
+  const avgCompletion =
+    historyList.length > 0
+      ? Math.round(historyList.reduce((s, e) => s + (e.completionPct || 0), 0) / historyList.length)
+      : 100;
 
   if (isLoading) return <RouteHistorySkeleton />;
 
   /* ────── Route Detail View ────── */
   if (selectedRoute) {
     const r = selectedRoute;
+    const detailBadge = getStatusBadge(r.status);
+    const DetailStatusIcon = detailBadge.icon;
+
     return (
-      <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8 animate-in fade-in duration-300">
+      <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
         <BackButton
           label="Back to Route History"
-          onClick={() => { setSearchParams({}); setSelectedRoute(null); }}
+          onClick={() => {
+            setSearchParams({});
+            setSelectedRoute(null);
+          }}
         />
 
-        {/* Header Summary */}
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">{r.dayOfWeek}</p>
-              <h2 className="text-lg sm:text-xl font-display font-bold text-foreground">{r.date}</h2>
-              <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                <Badge className={`text-xs ${r.wasteType === "Biodegradable" ? "bg-primary/15 text-primary border-primary/20" : "bg-blue-500/15 text-blue-600 border-blue-500/20"}`}>
-                  {r.wasteType === "Biodegradable" ? <Leaf className="w-3 h-3 mr-1" /> : <Droplet className="w-3 h-3 mr-1" />}
-                  {r.wasteType}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{r.routeName}</span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                  <Truck className="w-3 h-3 text-muted-foreground" /> {r.truckPlate}
+        {/* Route Run Header Card */}
+        <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold font-display text-foreground tracking-tight">
+                  {r.routeName}
+                </h2>
+                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${detailBadge.cls}`}>
+                  <DetailStatusIcon className="w-3.5 h-3.5" />
+                  {detailBadge.label}
                 </span>
+                {getWasteBadge(r.wasteType)}
               </div>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                {r.dayOfWeek}, {r.date} · Vehicle: {r.truckName ? `${r.truckName} (${r.truckPlate})` : r.truckPlate}
+              </p>
             </div>
+
+            {r.timeOnRoute && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/60 text-xs font-semibold text-foreground shrink-0 self-start sm:self-auto">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span>Shift Duration: {r.timeOnRoute}</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-center pt-1">
-            <div className="bg-muted/40 border border-border/60 rounded-xl py-3">
-              <p className="text-lg sm:text-xl font-bold text-foreground">{r.completedStops}/{r.totalStops}</p>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">Stops Done</p>
+          {/* 4 Summary Stat Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Stops Done
+              </span>
+              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1">
+                {r.completedStops} / {r.totalStops}
+              </p>
             </div>
-            <div className="bg-muted/40 border border-border/60 rounded-xl py-3">
-              <p className="text-lg sm:text-xl font-bold text-foreground">{r.skippedStops}</p>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">Skipped</p>
+
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Skipped Stops
+              </span>
+              <p className={`text-lg sm:text-xl font-bold font-display tabular-nums mt-1 ${r.skippedStops > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+                {r.skippedStops}
+              </p>
             </div>
-            <div className="bg-muted/40 border border-border/60 rounded-xl py-3">
-              <p className="text-lg sm:text-xl font-bold text-primary">{r.completionPct}%</p>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">Completion</p>
+
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Completion Rate
+              </span>
+              <p className="text-lg sm:text-xl font-bold text-primary font-display tabular-nums mt-1">
+                {r.completionPct}%
+              </p>
+            </div>
+
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Total Time
+              </span>
+              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1">
+                {r.timeOnRoute || "N/A"}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Stop by Stop Breakdown */}
         <div className="space-y-3">
-          <h3 className="text-sm font-display font-semibold text-foreground px-1 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" /> Stop by Stop Breakdown
-          </h3>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold font-display text-foreground tracking-tight uppercase">
+                Stop by Stop Breakdown
+              </h3>
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground font-mono">
+              {r.stops?.length || 0} Total Stops
+            </span>
+          </div>
 
-          {r.stops.length === 0 ? (
-            <div className="p-6 text-center text-xs text-muted-foreground bg-card rounded-xl border border-border">
-              No stop records logged for this route.
+          {!r.stops || r.stops.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/80 bg-card p-6 text-center text-xs text-muted-foreground shadow-xs">
+              No individual stop records logged for this collection route.
             </div>
           ) : (
             <div className="space-y-2">
-              {r.stops.map((stop) => (
-                <div
-                  key={stop.stopNumber}
-                  className={`flex items-start gap-3.5 px-4 py-3 rounded-2xl border transition-colors ${
-                    stop.status === "skipped"
-                      ? "border-yellow-500/20 bg-yellow-500/5"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                    stop.status === "done"
-                      ? "bg-primary/15 text-primary border border-primary/20"
-                      : "bg-yellow-500/15 text-yellow-600 border border-yellow-500/20"
-                  }`}>
-                    {stop.stopNumber}
-                  </div>
+              {r.stops.map((stop) => {
+                const isSkipped = stop.status === "skipped";
+                return (
+                  <div
+                    key={stop.stopNumber}
+                    className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                      isSkipped
+                        ? "border-amber-500/25 bg-amber-500/5"
+                        : "border-border/80 bg-card shadow-2xs"
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                        isSkipped
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                          : "bg-primary/10 text-primary border-primary/20"
+                      }`}
+                    >
+                      {stop.stopNumber}
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground truncate">{stop.barangay}</p>
-                      {stop.status === "done" ? (
-                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-foreground truncate">
+                          {stop.barangay}
+                        </p>
+                        {isSkipped ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 shrink-0">
+                            <AlertTriangle className="w-3 h-3" /> Skipped
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+                            <CheckCircle2 className="w-3 h-3" /> Done
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap font-medium">
+                        {stop.time && <span>Time: {stop.time}</span>}
+                        {stop.residentsNotified && stop.residentsNotified > 0 && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" /> {stop.residentsNotified} residents notified
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {stop.skipReason && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300 font-medium pt-0.5">
+                          Skip Reason: <span className="font-semibold">{stop.skipReason}</span>
+                        </p>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {stop.status === "done" ? `Completed at ${stop.time}` : `Skipped`}
-                    </p>
-                    {stop.skipReason && (
-                      <p className="text-[11px] text-yellow-700 dark:text-yellow-400 font-medium mt-1 bg-yellow-500/10 px-2 py-0.5 rounded-md inline-block">
-                        Reason: {stop.skipReason}
-                      </p>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Residents Notified */}
-        {r.stops.some((s) => s.residentsNotified && s.residentsNotified > 0) && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-display font-semibold text-foreground px-1 flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
-              Residents Notified
-            </h3>
-            <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-              {r.stops.filter((s) => s.residentsNotified && s.residentsNotified > 0).map((stop) => (
-                <div key={stop.stopNumber} className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-sm text-foreground">{stop.barangay}</span>
-                  <span className="text-xs text-muted-foreground">{stop.residentsNotified} residents notified</span>
+        {/* Dispatch Communications logged during this route */}
+        {r.adminMessages && r.adminMessages.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold font-display text-foreground tracking-tight uppercase">
+                Dispatch Communications During Run
+              </h3>
+            </div>
+            <div className="rounded-2xl border border-border/80 bg-card divide-y divide-border/60 overflow-hidden shadow-xs">
+              {r.adminMessages.map((msg, idx) => (
+                <div key={idx} className="p-3.5 sm:p-4 flex items-start justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-foreground">
+                      {msg.message}
+                    </p>
+                  </div>
+                  {msg.time && (
+                    <span className="text-[11px] font-mono text-muted-foreground shrink-0 mt-0.5">
+                      {msg.time}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -353,72 +434,89 @@ const CollectorRouteHistory = () => {
 
   /* ────── Main List View ────── */
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8 animate-in fade-in duration-300">
+    <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
       {/* ── Page Header ── */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 shadow-sm text-primary">
+        <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 shadow-2xs text-primary">
           <History className="w-5 h-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display tracking-tight">
             Route History
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
             Your collection shift logs, completed stops, and performance summary
           </p>
         </div>
       </div>
 
       {/* ── 3 Summary KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Completed Routes</p>
-              <p className="text-2xl font-bold text-foreground font-display mt-0.5">{routesCompleted}</p>
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        {/* Completed Routes */}
+        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+              Completed Routes
+            </span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
+          </div>
+          <div className="mt-2 sm:mt-3">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground font-display tabular-nums tracking-tight">
+              {routesCompleted}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
+              Successfully finished runs
+            </p>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Skipped Stops</p>
-              <p className="text-2xl font-bold text-foreground font-display mt-0.5">{totalSkipped}</p>
+        {/* Skipped Stops */}
+        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+              Skipped Stops
+            </span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-600">
-              <SkipForward className="w-5 h-5" />
-            </div>
+          </div>
+          <div className="mt-2 sm:mt-3">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground font-display tabular-nums tracking-tight">
+              {totalSkipped}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
+              Total bypassed locations
+            </p>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Avg Completion</p>
-              <p className="text-2xl font-bold text-primary font-display mt-0.5">{avgCompletion}%</p>
+        {/* Avg Completion */}
+        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+              Avg Completion
+            </span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <Target className="w-5 h-5" />
-            </div>
+          </div>
+          <div className="mt-2 sm:mt-3">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary font-display tabular-nums tracking-tight">
+              {avgCompletion}%
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
+              Across all logged runs
+            </p>
           </div>
         </div>
       </div>
 
       {/* ── Filter Toolbar ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
-        {/* Left: Primary Status Segmented Pill Control */}
-        <div
-          ref={tabsContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/60 overflow-x-auto no-scrollbar"
-        >
+      <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-2.5 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {/* Status Segmented Controls */}
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border/60 overflow-x-auto no-scrollbar">
           {statusTabs.map((tab) => {
             const count = statusCounts[tab.key];
             const isActive = statusFilter === tab.key;
@@ -426,11 +524,8 @@ const CollectorRouteHistory = () => {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => {
-                  if (hasDraggedRef.current) return;
-                  setStatusFilter(tab.key);
-                }}
-                className={`flex-1 min-w-[95px] sm:min-w-0 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer ${
+                onClick={() => setStatusFilter(tab.key)}
+                className={`flex-1 sm:flex-initial h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer ${
                   isActive
                     ? "bg-card text-foreground font-bold shadow-2xs border border-border/70"
                     : "text-muted-foreground hover:text-foreground hover:bg-card/40"
@@ -439,7 +534,7 @@ const CollectorRouteHistory = () => {
                 <span>{tab.label}</span>
                 {count > 0 && (
                   <span
-                    className={`text-[10px] font-bold leading-none rounded-full flex items-center justify-center shrink-0 px-1.5 py-0.5 ${
+                    className={`text-[10px] font-bold leading-none rounded-full px-1.5 py-0.5 ${
                       isActive
                         ? "bg-primary/10 text-primary border border-primary/20"
                         : "bg-muted text-muted-foreground"
@@ -453,30 +548,22 @@ const CollectorRouteHistory = () => {
           })}
         </div>
 
-        {/* Right: Waste Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
-          <span className="text-[11px] font-semibold text-muted-foreground px-1 hidden md:inline shrink-0">
-            Waste:
-          </span>
-          {[
-            { key: "all" as WasteTypeFilter, label: "All Waste", shortLabel: "All" },
-            { key: "Biodegradable" as WasteTypeFilter, label: "Biodegradable", shortLabel: "Bio" },
-            { key: "Non-Biodegradable" as WasteTypeFilter, label: "Non-Bio", shortLabel: "Non-Bio" },
-          ].map((tab) => {
+        {/* Waste Category Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {wasteTabs.map((tab) => {
             const isActive = wasteFilter === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setWasteFilter(tab.key)}
-                className={`flex-1 sm:flex-initial h-8 px-2.5 sm:px-3 rounded-xl text-xs whitespace-nowrap transition-all duration-200 flex items-center justify-center shrink-0 select-none cursor-pointer border ${
+                className={`flex-1 sm:flex-initial h-8 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center justify-center shrink-0 select-none cursor-pointer border ${
                   isActive
-                    ? "bg-primary/15 text-primary border-primary/30 font-semibold shadow-2xs"
-                    : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70 hover:text-foreground font-medium"
+                    ? "bg-primary/10 text-primary border-primary/30 shadow-2xs"
+                    : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 }`}
               >
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.shortLabel}</span>
+                {tab.label}
               </button>
             );
           })}
@@ -485,17 +572,20 @@ const CollectorRouteHistory = () => {
 
       {/* ── Route Logs List ── */}
       {filtered.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-card/50">
-          <History className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-foreground">No route logs found</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Completed collection shifts matching your selected filter will appear here.
+        <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs">
+          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
+            <History className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground font-display">No Route Logs Found</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+            No past collection shifts match your selected status or waste filter.
           </p>
         </div>
       ) : (
         <div className="space-y-2.5">
           {filtered.map((item) => {
-            const badge = statusBadge(item.status);
+            const badge = getStatusBadge(item.status);
+            const StatusIcon = badge.icon;
             return (
               <div
                 key={item.id}
@@ -503,34 +593,46 @@ const CollectorRouteHistory = () => {
                   setSearchParams({ route: item.id, name: item.routeName });
                   setSelectedRoute(item);
                 }}
-                className="flex items-center justify-between gap-3 p-4 bg-card border border-border rounded-2xl hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer shadow-sm"
+                className="group flex items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4.5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer shadow-2xs active:scale-[0.99]"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                   <MiniRing pct={item.completionPct} />
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-foreground truncate">{item.routeName}</p>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${badge.cls}`}>
+                      <h3 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight group-hover:text-primary transition-colors truncate">
+                        {item.routeName}
+                      </h3>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border ${badge.cls}`}>
+                        <StatusIcon className="w-3 h-3" />
                         {badge.label}
                       </span>
+                      {getWasteBadge(item.wasteType)}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
-                      <span>{item.date} ({item.dayOfWeek})</span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1 font-mono">
-                        <Truck className="w-3 h-3" /> {item.truckPlate}
+                    <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap font-medium">
+                      <span>{item.dayOfWeek}, {item.date}</span>
+                      <span className="text-border">•</span>
+                      <span className="flex items-center gap-1 font-mono text-foreground/80">
+                        <Truck className="w-3 h-3 text-muted-foreground" />
+                        {item.truckName ? `${item.truckName} (${item.truckPlate})` : item.truckPlate}
                       </span>
-                      <span>·</span>
+                      <span className="text-border">•</span>
                       <span>{item.completedStops}/{item.totalStops} stops</span>
+                      {item.timeOnRoute && (
+                        <>
+                          <span className="text-border">•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            {item.timeOnRoute}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-muted-foreground shrink-0">
-                  <ChevronRight className="w-4 h-4" />
-                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
               </div>
             );
           })}

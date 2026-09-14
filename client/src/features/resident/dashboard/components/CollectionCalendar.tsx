@@ -100,7 +100,7 @@ const CollectionCalendar = () => {
                     <span className="truncate font-semibold">{event.title}</span>
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left">
+                <TooltipContent side="top" className="w-[280px] lg:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left">
                   <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
@@ -132,3 +132,4 @@ const CollectionCalendar = () => {
 };
 
 export default CollectionCalendar;
+

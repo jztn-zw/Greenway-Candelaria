@@ -77,7 +77,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
         {/* Modal Header */}
         <DialogHeader className="px-5 py-4 border-b border-border/60 flex flex-row items-center justify-between gap-3 text-left shrink-0 space-y-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -85,7 +85,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight truncate">
+              <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">
                 Review Your Report
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -115,7 +115,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground">Violation Type</p>
-                  <p className="text-xs sm:text-sm font-bold text-foreground truncate">
+                  <p className="text-xs lg:text-sm font-bold text-foreground truncate">
                     {violation ? violation.label : "General Waste Issue"}
                   </p>
                 </div>
@@ -130,7 +130,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground">Incident Location</p>
-                  <p className="text-xs sm:text-sm font-bold text-foreground">
+                  <p className="text-xs lg:text-sm font-bold text-foreground">
                     Brgy. {form.barangayName || "Candelaria"}
                   </p>
                   {form.streetOrLandmark && (
@@ -155,7 +155,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="font-semibold text-foreground">Incident Description</span>
             </div>
-            <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-sm text-foreground/90 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap break-words scrollbar-thin">
+            <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 text-xs lg:text-sm text-foreground/90 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap break-words scrollbar-thin">
               {form.description && form.description.trim() ? (
                 form.description
               ) : (
@@ -177,7 +177,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
+              <div className="grid grid-cols-5 gap-2 lg:gap-2.5">
                 {form.photos.map((photo, idx) => (
                   <div
                     key={photo.id}
@@ -207,13 +207,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
         {/* Modal Footer */}
         <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center shrink-0">
-          <div className="grid grid-cols-2 gap-3 w-full sm:space-x-0">
+          <div className="grid grid-cols-2 gap-3 w-full lg:space-x-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="w-full h-10 sm:h-10.5 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
+              className="w-full h-10 lg:h-10.5 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back & Edit</span>
@@ -222,7 +222,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               type="button"
               onClick={onSubmit}
               disabled={isSubmitting}
-              className="w-full h-10 sm:h-10.5 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
+              className="w-full h-10 lg:h-10.5 rounded-xl text-xs lg:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs active:scale-[0.99] transition-all flex items-center justify-center gap-1.5"
             >
               {isSubmitting ? (
                 <>
@@ -244,3 +244,4 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 };
 
 export default ReviewModal;
+
