@@ -13,7 +13,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Truck,
   Clock,
   MapPin,
   SkipForward,
@@ -27,6 +26,9 @@ import {
   Navigation,
   Pause,
   Play,
+  ArrowLeft,
+  History,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
@@ -46,44 +48,11 @@ import {
   endRoute,
   startMyRoute,
   setMyRoutePaused,
-  updateMyDriverStatusMessage,
-  fetchMyDriverMessages,
-  markMyDriverMessagesAsRead,
-  type DriverMessageRow,
 } from "@/services/trackingService";
-import CollectorDynamicMessages, {
-  type DynamicMessage,
-} from "./components/CollectorDynamicMessages";
 import type { SkipReason } from "./types";
 
 const getErrorMessage = (err: unknown) =>
   err instanceof Error ? err.message : "Please try again.";
-
-const parseServerTimestamp = (value: string | null | undefined): Date => {
-  if (!value) return new Date();
-
-  const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/,
-  );
-
-  if (match) {
-    const [, year, month, day, hour, minute, second, ms = "0"] = match;
-    return new Date(
-      Date.UTC(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hour),
-        Number(minute),
-        Number(second),
-        Number(ms.padEnd(3, "0")),
-      ),
-    );
-  }
-
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-};
 
 // ─── Skeleton ─────────────────────────────────────────────────────────
 
@@ -114,40 +83,151 @@ const RouteMapSkeleton = () => (
   </div>
 );
 
+// ─── Standby / No Route State ──────────────────────────────────────────
+
+interface NoScheduledRouteViewProps {
+  onRetry: () => void;
+  onViewHistory: () => void;
+  onBackToDashboard: () => void;
+  message?: string;
+}
+
+const NoScheduledRouteView = ({
+  onRetry,
+  onViewHistory,
+  onBackToDashboard,
+  message = "No route has been assigned to your truck for today. Check back later or review past route runs.",
+}: NoScheduledRouteViewProps) => (
+  <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
+    <div className="w-full max-w-lg rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-6">
+      {/* Municipal Indicator Icon */}
+      <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-2xs">
+        <CalendarClock className="w-7 h-7" />
+      </div>
+
+      {/* Copy */}
+      <div className="space-y-2">
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">
+          No collection scheduled today
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+          {message}
+        </p>
+      </div>
+
+      {/* Standby Operational Telemetry */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3.5 rounded-xl bg-muted/20 border border-border/60 text-left">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Shift status
+          </p>
+          <p className="text-xs font-bold text-foreground mt-0.5 flex items-center gap-1.5 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>Standby reserve</span>
+          </p>
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Dispatch office
+          </p>
+          <p className="text-xs font-bold text-foreground mt-0.5 truncate">
+            Candelaria MENRO
+          </p>
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Live updates
+          </p>
+          <p className="text-xs font-bold text-foreground mt-0.5 truncate">
+            Awaiting callout
+          </p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="space-y-3 pt-1">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+          <Button
+            type="button"
+            onClick={onViewHistory}
+            className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
+          >
+            <History className="w-4 h-4 mr-2" /> View route history
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBackToDashboard}
+            className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/70 cursor-pointer active:scale-[0.99] transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to dashboard
+          </Button>
+        </div>
+
+        <div className="pt-1.5">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Check for newly assigned route
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // ─── Error State ──────────────────────────────────────────────────────
 
 const RouteMapError = ({
   message,
   onRetry,
+  onBack,
 }: {
   message: string;
   onRetry: () => void;
+  onBack?: () => void;
 }) => (
-  <div className="w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-[360px] px-4">
-    <div className="flex flex-col items-center text-center gap-5 max-w-[280px]">
+  <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
+    <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-5">
       {/* Icon */}
-      <div className="w-11 h-11 rounded-xl bg-destructive/10 border border-destructive/15 flex items-center justify-center shrink-0">
-        <AlertCircle className="w-5 h-5 text-destructive" />
+      <div className="w-12 h-12 rounded-2xl bg-destructive/10 border border-destructive/15 flex items-center justify-center text-destructive mx-auto shadow-2xs">
+        <AlertCircle className="w-6 h-6" />
       </div>
 
       {/* Copy */}
       <div className="space-y-1.5">
-        <p className="text-sm font-display font-bold text-foreground tracking-tight">
+        <p className="text-base font-display font-bold text-foreground tracking-tight">
           Could not load route
         </p>
-        <p className="text-xs text-muted-foreground leading-relaxed">{message}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">{message}</p>
       </div>
 
       {/* Action */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRetry}
-        className="gap-2 rounded-xl h-9 px-4 text-xs font-semibold border-border"
-      >
-        <RefreshCw className="w-3.5 h-3.5" />
-        Try Again
-      </Button>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+        <Button
+          variant="default"
+          onClick={onRetry}
+          className="w-full sm:w-auto gap-2 rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Try again
+        </Button>
+        {onBack && (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="w-full sm:w-auto gap-2 rounded-xl h-10 px-5 text-xs font-semibold border-border cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to dashboard
+          </Button>
+        )}
+      </div>
     </div>
   </div>
 );
@@ -162,7 +242,6 @@ const CollectorRouteMap = () => {
   const [isRouteEnded, setIsRouteEnded] = useState(false);
   const [isPauseUpdating, setIsPauseUpdating] = useState(false);
   const [isStartingRoute, setIsStartingRoute] = useState(false);
-  const [messageRows, setMessageRows] = useState<DriverMessageRow[]>([]);
   // Tracks which stop is being mutated to show per-button loading states
   const [mutating, setMutating] = useState<"done" | "skip" | "end" | null>(
     null,
@@ -346,158 +425,6 @@ const CollectorRouteMap = () => {
     return distKm > 0 && distKm <= GEOFENCE_RADIUS_KM;
   }, [activeStop, truckCoords]);
 
-  const systemMessages = useMemo<DynamicMessage[]>(() => {
-    const now = Date.now();
-    const messages: DynamicMessage[] = [];
-
-    if (routeInfo) {
-      messages.push({
-        id: `route-${routeInfo.routeId}`,
-        sender: "admin",
-        senderName: "Route System",
-        text: `Today's route is ${routeInfo.routeName}. Waste type: ${routeInfo.wasteType}.`,
-        timestamp: new Date(now - 15 * 60 * 1000),
-      });
-    }
-
-    if (isScheduledRoute && routeInfo) {
-      messages.push({
-        id: `scheduled-${routeInfo.routeId}`,
-        sender: "admin",
-        senderName: "Route System",
-        text: `Route is scheduled and will start at ${routeInfo.startedAt.toLocaleTimeString(
-          "en-US",
-          {
-            hour: "numeric",
-            minute: "2-digit",
-          },
-        )}.`,
-        timestamp: new Date(now - 2 * 60 * 1000),
-      });
-    } else if (activeStop) {
-      messages.push({
-        id: `active-${activeStop.id}`,
-        sender: "admin",
-        senderName: "Route System",
-        text: `${activeStop.barangay} is the next barangay in the admin's scheduled route.`,
-        timestamp: new Date(now - 8 * 60 * 1000),
-      });
-    }
-
-    if (nextStops.length > 0) {
-      messages.push({
-        id: `queue-${nextStops.map((stop) => stop.id).join("-")}`,
-        sender: "admin",
-        senderName: "Route System",
-        text: `Upcoming queue: ${nextStops.map((stop) => stop.barangay).join(", ")}.`,
-        timestamp: new Date(now - 5 * 60 * 1000),
-      });
-    }
-
-    if (isOffline) {
-      messages.push({
-        id: `offline-${pendingSync}`,
-        sender: "admin",
-        senderName: "Route System",
-        text:
-          pendingSync > 0
-            ? `You are offline. ${pendingSync} GPS ping${pendingSync > 1 ? "s are" : " is"} queued and will sync automatically once your connection returns.`
-            : "You are offline. Route order will continue using the last known truck position until the connection returns.",
-        timestamp: new Date(now - 2 * 60 * 1000),
-      });
-    } else if (routeInfo) {
-      messages.push({
-        id: `progress-${completed}-${remaining}`,
-        sender: "admin",
-        senderName: "Route System",
-        text:
-          remaining > 0
-            ? `Progress update: ${completed}/${routeInfo.totalStops} stops completed, ${remaining} remaining.`
-            : `All ${routeInfo.totalStops} stops have been handled. You can end the route when ready.`,
-        timestamp: new Date(now - 60 * 1000),
-      });
-    }
-
-    return messages;
-  }, [
-    activeStop,
-    completed,
-    isOffline,
-    nextStops,
-    pendingSync,
-    remaining,
-    routeInfo,
-  ]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const routeId = routeInfo?.routeId;
-    if (!routeId) {
-      setMessageRows([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const loadRouteMessages = async () => {
-      try {
-        const rows = await fetchMyDriverMessages(routeId, 200);
-        if (!cancelled) {
-          setMessageRows(rows);
-        }
-      } catch {
-        if (!cancelled) {
-          setMessageRows([]);
-        }
-      }
-    };
-
-    void loadRouteMessages();
-    const interval = setInterval(loadRouteMessages, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [routeInfo?.routeId]);
-
-  const allMessages = useMemo<DynamicMessage[]>(
-    () =>
-      messageRows.map((row) => ({
-        id: `route-message-${row.id}`,
-        sender: row.sender_role?.toUpperCase() === "DRIVER" ? "collector" : "admin",
-        senderName:
-          row.sender_role?.toUpperCase() === "DRIVER"
-            ? "You"
-            : row.sender_name || "Admin",
-        text: row.message,
-        timestamp: parseServerTimestamp(row.created_at),
-      })),
-    [messageRows],
-  );
-
-  const unreadAdminCount = useMemo(
-    () =>
-      messageRows.filter(
-        (row) => row.sender_role?.toUpperCase() !== "DRIVER" && !row.is_read,
-      ).length,
-    [messageRows],
-  );
-
-  const markAdminMessagesAsRead = useCallback(async () => {
-    const routeId = routeInfo?.routeId;
-    if (!routeId) return;
-
-    await markMyDriverMessagesAsRead(routeId);
-    setMessageRows((prev) =>
-      prev.map((row) =>
-        row.sender_role?.toUpperCase() !== "DRIVER"
-          ? { ...row, is_read: true }
-          : row,
-      ),
-    );
-  }, [routeInfo?.routeId]);
-
   // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleMarkDone = useCallback(async () => {
@@ -624,63 +551,76 @@ const CollectorRouteMap = () => {
     }
   }, [routeInfo, navigate]);
 
-  const handleSendReply = useCallback(async (message: string) => {
-    try {
-      if (!routeInfo?.routeId) {
-        throw new Error("No active route for this message.");
-      }
-      await updateMyDriverStatusMessage(message, routeInfo.routeId);
-      setMessageRows((prev) => [
-        ...prev,
-        {
-          id: `local-${Date.now()}`,
-          driver_id: "",
-          route_id: routeInfo.routeId,
-          sender_user_id: "",
-          sender_role: "DRIVER",
-          sender_name: "You",
-          message,
-          is_read: true,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-      toast.success("Reply sent to admin");
-    } catch (err: unknown) {
-      toast.error("Failed to send reply", {
-        description: getErrorMessage(err),
-      });
-      throw err;
-    }
-  }, [routeInfo?.routeId]);
-  // â”€â”€â”€ Render guards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Render guards ──────────────────────────────────────────────────────────
   if (isLoading) return <RouteMapSkeleton />;
-  if (error) return <RouteMapError message={error} onRetry={refresh} />;
-  if (!routeInfo)
+
+  const isNoActiveRoute =
+    !routeInfo ||
+    error === "No active route assigned for today." ||
+    (typeof error === "string" && (
+      error.toLowerCase().includes("no active route") ||
+      error.toLowerCase().includes("no route assigned") ||
+      error.toLowerCase().includes("collection is scheduled on")
+    ));
+
+  if (isNoActiveRoute) {
+    const customMessage =
+      typeof error === "string" && error.toLowerCase().includes("collection is scheduled on")
+        ? error
+        : "No route has been assigned to your truck for today. Check back later or review past route runs.";
+
+    return <NoScheduledRouteView message={customMessage} onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} onBackToDashboard={() => navigate("/collector")} />;
+  }
+
+  if (error) {
     return (
-      <RouteMapError message="No route assigned for today." onRetry={refresh} />
+      <RouteMapError
+        message={error}
+        onRetry={refresh}
+        onBack={() => navigate("/collector")}
+      />
     );
+  }
 
   // Active Stop Card render function (used both on mobile above the map and desktop in sidebar)
   const renderActiveStopCard = () => {
     if (!hasStartedRoute && !isScheduledRoute) {
       return (
-        <div className="bg-card border border-primary/25 rounded-2xl p-5 text-center space-y-3 shrink-0 shadow-2xs">
-          <div className="w-10 h-10 mx-auto rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 text-center space-y-3.5 shrink-0 shadow-xs">
+          <div className="w-11 h-11 mx-auto rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs">
             <Navigation className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-sm font-display font-bold text-foreground">Ready to start collection?</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Start the route when you begin collecting. This starts the live GPS and route timer.
+          <div className="space-y-1">
+            <p className="text-sm sm:text-base font-display font-bold text-foreground tracking-tight">
+              Ready to begin collection route?
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
+              Start your shift run when you depart for the first stop. This activates live GPS telemetry and resident alerts.
             </p>
           </div>
+
+          <div className="p-3 rounded-xl bg-muted/20 border border-border/60 text-left flex items-center justify-between gap-3 text-xs">
+            <span className="text-muted-foreground font-medium">Initial checkpoint:</span>
+            <span className="font-bold text-foreground font-display truncate">
+              {autoRoutedStops[0]?.barangay || "First Stop"}
+            </span>
+          </div>
+
           <Button
             type="button"
             onClick={handleStartRoute}
             disabled={isStartingRoute || isPaused}
-            className="w-full h-11 rounded-xl font-bold"
+            className="w-full h-11 sm:h-12 rounded-xl font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
           >
-            {isStartingRoute ? "Starting..." : "Start Route"}
+            {isStartingRoute ? (
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin" /> Starting route...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Play className="w-4 h-4 fill-current" /> Start collection route
+              </span>
+            )}
           </Button>
         </div>
       );
@@ -690,7 +630,7 @@ const CollectorRouteMap = () => {
       return (
         <div
           className={cn(
-            "bg-card border shadow-xs rounded-2xl p-3 sm:p-4 space-y-2.5 sm:space-y-3 shrink-0 transition-all",
+            "bg-card border shadow-xs rounded-2xl p-3.5 sm:p-4 space-y-3 shrink-0 transition-all",
             isWithinGeofence
               ? "border-primary/60 bg-primary/[0.04] ring-2 ring-primary/20"
               : "border-border/80"
@@ -704,39 +644,39 @@ const CollectorRouteMap = () => {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-xs sm:text-sm font-black shrink-0 shadow-xs">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs sm:text-sm font-mono font-bold shrink-0 shadow-xs">
                 {activeStop.stopNumber}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-[11px] font-bold text-primary uppercase tracking-wider block truncate">
-                  {isWithinGeofence ? "Arrived • Target" : "Target Stop"}
-                </span>
-                <p className="text-sm sm:text-base md:text-lg font-display font-extrabold text-foreground leading-tight truncate">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  <span className="truncate">{isWithinGeofence ? "Arrived at zone" : "Current target checkpoint"}</span>
+                </div>
+                <p className="text-base sm:text-lg font-display font-bold text-foreground leading-tight truncate mt-0.5">
                   {activeStop.barangay}
                 </p>
               </div>
             </div>
 
             {activeStop.distanceKm > 0 && (
-              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold tabular-nums shrink-0 border border-border/70 bg-muted/60 text-foreground shadow-2xs">
-                <Navigation className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary shrink-0" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold tabular-nums shrink-0 border border-border/80 bg-muted/60 text-foreground font-mono shadow-2xs">
+                <Navigation className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span>{activeStop.distanceKm} km</span>
               </span>
             )}
           </div>
 
-          {/* Action Buttons: Mark as Done is dominant primary (Req 2), Skip is secondary (Req 3) */}
+          {/* Action Buttons: Mark as Done is dominant primary, Skip is secondary */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center gap-2">
-              {/* Primary Action Button: Mark as Done */}
               <Button
                 type="button"
                 onClick={handleMarkDone}
                 disabled={mutating !== null || isPaused}
                 className={cn(
-                  "flex-1 h-12 sm:h-13 rounded-xl text-xs sm:text-sm md:text-base font-extrabold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer min-w-0",
+                  "flex-1 h-12 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer min-w-0",
                   isWithinGeofence
                     ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/25 ring-2 ring-primary/30"
                     : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
@@ -745,35 +685,33 @@ const CollectorRouteMap = () => {
                 {mutating === "done" ? (
                   <span className="flex items-center gap-1.5 truncate">
                     <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                    <span>Completing...</span>
+                    <span>Saving...</span>
                   </span>
                 ) : isWithinGeofence ? (
                   <span className="flex items-center gap-1.5 truncate">
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                    <span className="truncate">Complete Stop</span>
-                    <span className="hidden min-[400px]:inline text-xs opacity-90">(Arrived)</span>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Complete stop (Arrived)</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 truncate">
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                    <span className="truncate">Mark as Done</span>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Mark stop as cleared</span>
                   </span>
                 )}
               </Button>
 
-              {/* Secondary Action Button: Skip Stop */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowSkipModal(true)}
                 disabled={mutating !== null || isPaused}
-                className="h-12 sm:h-13 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 bg-background/60 hover:bg-muted/70 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/40 active:scale-[0.98] transition-all flex items-center gap-1 sm:gap-1.5 shrink-0 cursor-pointer"
+                className="h-12 px-3.5 rounded-xl text-xs sm:text-sm font-semibold border-border/80 bg-background/60 hover:bg-muted/70 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/40 active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Skip this stop"
               >
                 <SkipForward className="w-4 h-4 shrink-0" />
-                <span>Skip<span className="hidden min-[360px]:inline"> Stop</span></span>
+                <span>Skip</span>
               </Button>
             </div>
-
           </div>
         </div>
       );
@@ -781,12 +719,12 @@ const CollectorRouteMap = () => {
 
     if (isScheduledRoute) {
       return (
-        <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-2xs">
+        <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
           <div className="w-10 h-10 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
             <Clock className="w-5 h-5" />
           </div>
           <p className="text-sm font-display font-bold text-foreground">
-            Route is Scheduled
+            Route is scheduled
           </p>
           <p className="text-xs text-muted-foreground">
             Tracking starts at{" "}
@@ -801,15 +739,15 @@ const CollectorRouteMap = () => {
     }
 
     return (
-      <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-2xs">
+      <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
         <div className="w-10 h-10 mx-auto rounded-xl bg-primary/10 flex items-center justify-center text-primary">
           <CheckCircle2 className="w-5 h-5" />
         </div>
         <p className="text-sm font-display font-bold text-foreground">
-          All Stops Completed
+          All checkpoints completed
         </p>
         <p className="text-xs text-muted-foreground">
-          Great job! You can safely end your route below.
+          Great job! You can safely conclude your shift route below.
         </p>
       </div>
     );
@@ -818,21 +756,21 @@ const CollectorRouteMap = () => {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-3 sm:space-y-4 pb-4 px-1 sm:px-0">
       {/* ── Page Header ── */}
-      <div className="flex items-center gap-2.5 sm:gap-3 pb-1">
-        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-          <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground font-display tracking-tight truncate">
-            Truck Tracking
-          </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight truncate">
+              Live route navigation
+            </h1>
+          </div>
           <p className="text-[11px] sm:text-xs md:text-sm text-muted-foreground truncate">
-            Live route navigation, stop management, and collection progress
+            Checkpoint navigation and stop collection management
           </p>
         </div>
       </div>
 
       {/* Route Command Header & Integrated Progress Bar (Req 1) */}
+
       <RouteProgressBar
         completed={completed}
         total={routeInfo.totalStops}
@@ -841,26 +779,21 @@ const CollectorRouteMap = () => {
         elapsed={elapsed}
         isScheduled={isScheduledRoute}
         isPaused={isPaused}
+        hasStarted={hasStartedRoute}
       />
 
       {/* Amber "Route Paused" Banner (Req 6 & 7) */}
       {isPaused && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-950 dark:text-amber-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/20 shadow-2xs">
           <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                  Route Paused
-                </span>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-amber-900/90 dark:text-amber-200/90 mt-0.5 font-medium leading-relaxed">
+              <span className="text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-300">
+                Route paused
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 GPS updates and collection actions are temporarily on hold. Residents and dispatchers see that your truck is paused.
               </p>
             </div>
@@ -904,25 +837,13 @@ const CollectorRouteMap = () => {
             {renderActiveStopCard()}
           </div>
 
-          {/* Messages Drawer */}
-          <div className="shrink-0">
-            <CollectorDynamicMessages
-              systemMessages={allMessages}
-              unreadCount={unreadAdminCount}
-              onOpen={() => {
-                void markAdminMessagesAsRead();
-              }}
-              onSendReply={handleSendReply}
-            />
-          </div>
-
           {/* Stop List Header */}
           <div className="flex items-center justify-between px-1 shrink-0 pt-0.5 gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <h2 className="text-xs sm:text-sm font-display font-bold text-foreground tracking-tight truncate">
-                Route Stop List
+                Collection checkpoints
               </h2>
-              <span className="text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md bg-muted/80 text-muted-foreground font-semibold tabular-nums shrink-0 border border-border/60">
+              <span className="text-[10px] px-2 py-0.5 rounded-lg bg-muted/80 text-muted-foreground font-semibold tabular-nums shrink-0 border border-border/60">
                 {autoRoutedStops.length} stops
               </span>
             </div>
@@ -930,7 +851,7 @@ const CollectorRouteMap = () => {
               {completed > 0 && (
                 <span className="inline-flex items-center gap-0.5 sm:gap-1 text-primary font-semibold">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>{completed} done</span>
+                  <span>{completed} cleared</span>
                 </span>
               )}
               {skipped > 0 && (
@@ -939,9 +860,6 @@ const CollectorRouteMap = () => {
                   <span>{skipped} skipped</span>
                 </span>
               )}
-              <span>
-                {remaining} left
-              </span>
             </div>
           </div>
 
@@ -972,12 +890,12 @@ const CollectorRouteMap = () => {
                 {isPaused ? (
                   <>
                     <Play className="w-4 h-4 shrink-0 fill-current" />
-                    <span className="truncate">Resume<span className="hidden min-[380px]:inline"> Route</span></span>
+                    <span className="truncate">Resume<span className="hidden min-[380px]:inline"> route</span></span>
                   </>
                 ) : (
                   <>
                     <Pause className="w-4 h-4 shrink-0" />
-                    <span className="truncate">Pause<span className="hidden min-[380px]:inline"> Route</span></span>
+                    <span className="truncate">Pause<span className="hidden min-[380px]:inline"> route</span></span>
                   </>
                 )}
               </Button>
@@ -997,7 +915,9 @@ const CollectorRouteMap = () => {
                 ) : (
                   <>
                     <Flag className="w-4 h-4 shrink-0" />
-                    <span className="truncate">End<span className="hidden min-[380px]:inline"> Route</span></span>
+                    <span className="truncate">
+                      {remaining === 0 ? "Conclude shift" : "End route"}
+                    </span>
                   </>
                 )}
               </Button>
@@ -1008,12 +928,12 @@ const CollectorRouteMap = () => {
               <p className="text-[10px] sm:text-[11px] text-muted-foreground dark:text-muted-foreground/90 font-medium text-center flex items-center justify-center gap-1 leading-tight px-1">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                 <span>
-                  Ending the route marks all <strong className="text-rose-600 dark:text-rose-400 font-bold">{remaining}</strong> unfinished stop{remaining > 1 ? "s" : ""} as missed/skipped.
+                  Ending route marks all <strong className="text-rose-600 dark:text-rose-400 font-bold">{remaining}</strong> unfinished stop{remaining > 1 ? "s" : ""} as missed.
                 </span>
               </p>
             ) : (
               <p className="text-[10px] sm:text-[11px] text-muted-foreground text-center leading-tight">
-                All stops completed. End route to finish your shift.
+                All stops completed. Conclude your shift to submit logs.
               </p>
             )}
           </div>

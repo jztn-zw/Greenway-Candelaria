@@ -28,7 +28,7 @@ const EndRouteModal = ({
             <AlertTriangle className="w-4 h-4" />
           </div>
           <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-            End Route?
+            Conclude collection route?
           </DialogTitle>
         </div>
         <button
@@ -44,8 +44,8 @@ const EndRouteModal = ({
       <div className="py-3">
         <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
           {remaining > 0
-            ? `You still have ${remaining} stop${remaining > 1 ? "s" : ""} remaining. Ending the route will mark every unfinished barangay as missed.`
-            : "Are you sure you want to end the route?"}
+            ? `You still have ${remaining} checkpoint${remaining > 1 ? "s" : ""} remaining. Concluding now will mark unfinished barangays as missed.`
+            : "All checkpoints are completed. Ready to conclude your collection shift?"}
         </DialogDescription>
       </div>
 
@@ -55,7 +55,7 @@ const EndRouteModal = ({
         </Button>
         <Button type="button" variant="destructive" onClick={onConfirm} className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5" />
-          Confirm End Route
+          Conclude route
         </Button>
       </div>
     </DialogContent>

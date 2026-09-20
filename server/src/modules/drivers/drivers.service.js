@@ -1,9 +1,64 @@
 const bcrypt = require("bcryptjs");
 const { pool } = require("../../config/db");
+const routeRunsService = require("../routes/routeRuns.service");
 const generateId = require("../../utils/generateId");
 const auditService = require("../audit/audit.service");
 
 // ─── Helpers ──────────────────────────────────────────────
+
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
+
+const parseStoredUtcDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  const normalized = String(value).trim().replace(" ", "T");
+  const hasTimeZone = normalized.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(normalized);
+  const date = new Date(hasTimeZone ? normalized : `${normalized}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatHistoryDate = (value) => {
+  const date = parseStoredUtcDate(value);
+  return date
+    ? new Intl.DateTimeFormat("en-US", {
+      timeZone: APP_TIME_ZONE,
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date)
+    : "Unknown date";
+};
+
+const formatHistoryWeekday = (value) => {
+  const date = parseStoredUtcDate(value);
+  return date
+    ? new Intl.DateTimeFormat("en-US", { timeZone: APP_TIME_ZONE, weekday: "long" }).format(date)
+    : "Unscheduled";
+};
+
+const formatHistoryTime = (value) => {
+  const date = parseStoredUtcDate(value);
+  return date
+    ? new Intl.DateTimeFormat("en-US", {
+      timeZone: APP_TIME_ZONE,
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date)
+    : "N/A";
+};
+
+const formatRouteDuration = (startedAt, endedAt) => {
+  const start = parseStoredUtcDate(startedAt);
+  const end = parseStoredUtcDate(endedAt);
+  if (!start || !end || end < start) return null;
+
+  const elapsedMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
+  if (elapsedMinutes < 1) return "<1m";
+  const hours = Math.floor(elapsedMinutes / 60);
+  const minutes = elapsedMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+};
 
 // Routes display the driver assigned at the time they are scheduled. When a
 // truck receives its first driver later, link only its previously unassigned
@@ -426,16 +481,15 @@ const getMessagesForAdmin = async (driverId, routeId, limit = 100) => {
 
 const markMyMessagesAsRead = async (userId, routeId) => {
   const driver = await getByUserId(userId);
-  if (!routeId) return { read: 0 };
 
   const [result] = await pool.query(
     `UPDATE driver_messages
      SET is_read = TRUE
      WHERE driver_id = ?
-       AND route_id = ?
-       AND sent_by <> ?
-       AND is_read = FALSE`,
-    [driver.id, routeId, userId],
+        AND sent_by <> ?
+        AND is_read = FALSE
+        ${routeId ? "AND route_id = ?" : ""}`,
+    routeId ? [driver.id, userId, routeId] : [driver.id, userId],
   );
 
   return { read: result.affectedRows ?? 0 };
@@ -540,6 +594,8 @@ const getActivityLog = async (driverId, limit = 30) => {
 };
 
 const getMyHistory = async (userId, limit = 50) => {
+  return routeRunsService.getHistoryForUser(userId, limit);
+
   const driver = await getByUserId(userId);
   const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 100));
 
@@ -549,18 +605,32 @@ const getMyHistory = async (userId, limit = 50) => {
        COALESCE(r.name, CONCAT('Route ', LEFT(r.id, 6))) AS route_name,
        r.day_of_week,
        r.start_time,
+       r.collection_started_at,
        r.status       AS route_status,
        COALESCE(r.waste_type, 'General') AS waste_type,
        r.created_at,
        r.updated_at,
        t.id           AS truck_id,
        t.name         AS truck_name,
-       t.plate_number AS truck_plate
-     FROM routes r
-     LEFT JOIN trucks t ON t.id = r.truck_id
-     WHERE r.driver_id = ?
-     ORDER BY r.created_at DESC
-     LIMIT ?`,
+       t.plate_number AS truck_plate,
+       activity.first_stop_completed_at,
+       activity.last_stop_completed_at
+      FROM routes r
+      LEFT JOIN trucks t ON t.id = r.truck_id
+      LEFT JOIN (
+        SELECT
+          route_id,
+          MIN(completed_at) AS first_stop_completed_at,
+          MAX(completed_at) AS last_stop_completed_at
+        FROM route_stops
+        WHERE completed_at IS NOT NULL
+        GROUP BY route_id
+      ) activity ON activity.route_id = r.id
+       WHERE r.driver_id = ?
+         AND r.status = 'INACTIVE'
+         AND (r.collection_started_at IS NOT NULL OR activity.last_stop_completed_at IS NOT NULL)
+      ORDER BY COALESCE(activity.last_stop_completed_at, r.collection_started_at) DESC
+      LIMIT ?`,
     [driver.id, safeLimit],
   );
 
@@ -577,16 +647,23 @@ const getMyHistory = async (userId, limit = 50) => {
        rs.route_id,
        rs.stop_order,
        rs.status         AS stop_status,
-       rs.completed_at,
-       rs.skipped_reason,
-       rs.distance_km,
-       b.id              AS barangay_id,
-       b.name            AS barangay_name,
-       (SELECT COUNT(*) FROM users u WHERE u.barangay_id = b.id AND u.deleted_at IS NULL) AS residents_count
-     FROM route_stops rs
-     JOIN barangays b ON b.id = rs.barangay_id
-     WHERE rs.route_id IN (${placeholders})
-     ORDER BY rs.stop_order ASC`,
+        rs.completed_at,
+        rs.skipped_reason,
+        rs.distance_km,
+        b.id              AS barangay_id,
+        b.name            AS barangay_name,
+        COUNT(n.id)       AS residents_notified
+      FROM route_stops rs
+      JOIN barangays b ON b.id = rs.barangay_id
+      LEFT JOIN notifications n
+        ON n.ref_id = rs.route_id
+       AND n.type IN ('COLLECTION_DONE', 'MISSED_COLLECTION')
+       AND JSON_UNQUOTE(JSON_EXTRACT(n.metadata, '$.stop_id')) = rs.id
+      WHERE rs.route_id IN (${placeholders})
+      GROUP BY
+        rs.id, rs.route_id, rs.stop_order, rs.status, rs.completed_at,
+        rs.skipped_reason, rs.distance_km, b.id, b.name
+      ORDER BY rs.stop_order ASC`,
     routeIds,
   );
 
@@ -595,13 +672,36 @@ const getMyHistory = async (userId, limit = 50) => {
     if (!stopsByRoute.has(stop.route_id)) {
       stopsByRoute.set(stop.route_id, []);
     }
+    const stopStatus = String(stop.stop_status || "").toUpperCase();
     stopsByRoute.get(stop.route_id).push({
-      stopNumber: stop.stop_order,
-      barangay: stop.barangay_name,
-      status: stop.stop_status === "DONE" ? "done" : stop.stop_status === "MISSED" ? "skipped" : "pending",
-      time: stop.completed_at ? new Date(stop.completed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "N/A",
-      skipReason: stop.skipped_reason || null,
-      residentsNotified: stop.residents_count || 0,
+       stopNumber: stop.stop_order,
+       barangay: stop.barangay_name,
+       status: stopStatus === "DONE" ? "done" : stopStatus === "MISSED" || stopStatus === "SKIPPED" ? "skipped" : "pending",
+       time: formatHistoryTime(stop.completed_at),
+       skipReason: stop.skipped_reason || null,
+       residentsNotified: Number(stop.residents_notified) || 0,
+     });
+   }
+
+  const [messageRows] = await pool.query(
+    `SELECT dm.route_id, dm.message, dm.created_at
+       FROM driver_messages dm
+       JOIN users sender ON sender.id = dm.sent_by
+      WHERE dm.driver_id = ?
+        AND dm.route_id IN (${placeholders})
+        AND sender.role = 'ADMIN'
+      ORDER BY dm.created_at ASC`,
+    [driver.id, ...routeIds],
+  );
+
+  const messagesByRoute = new Map();
+  for (const message of messageRows) {
+    if (!messagesByRoute.has(message.route_id)) {
+      messagesByRoute.set(message.route_id, []);
+    }
+    messagesByRoute.get(message.route_id).push({
+      time: formatHistoryTime(message.created_at),
+      message: message.message,
     });
   }
 
@@ -613,26 +713,25 @@ const getMyHistory = async (userId, limit = 50) => {
     const completionPct = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
     const status = completedStops === totalStops && totalStops > 0 ? "completed" : completedStops > 0 ? "partial" : "no-collection";
 
-    const dateObj = new Date(r.created_at);
-    const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    const dayOfWeek = r.day_of_week.charAt(0) + r.day_of_week.slice(1).toLowerCase();
+    const routeDate = r.collection_started_at || r.first_stop_completed_at || r.last_stop_completed_at;
+    const routeEndedAt = r.last_stop_completed_at;
 
     return {
       id: r.route_id,
-      date: dateStr,
-      dayOfWeek,
+      date: formatHistoryDate(routeDate),
+      dayOfWeek: formatHistoryWeekday(routeDate),
       routeName: r.route_name,
       wasteType: r.waste_type,
-      truckName: r.truck_name || "Truck A",
+      truckName: r.truck_name || "Unassigned vehicle",
       truckPlate: r.truck_plate || "N/A",
       totalStops,
       completedStops,
       skippedStops,
       completionPct,
-      timeOnRoute: "2h 45m",
+      timeOnRoute: formatRouteDuration(r.collection_started_at || r.first_stop_completed_at, routeEndedAt),
       status,
       stops,
-      adminMessages: [],
+      adminMessages: messagesByRoute.get(r.route_id) || [],
     };
   });
 };

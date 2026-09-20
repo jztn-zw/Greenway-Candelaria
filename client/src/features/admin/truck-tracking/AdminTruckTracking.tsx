@@ -66,7 +66,6 @@ import {
 } from "@/services/trackingService";
 import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
 import { useThemeMode } from "@/hooks/useThemeMode";
-import { sendNotification } from "@/services/notificationsService";
 import authService from "@/services/authService";
 
 // Config
@@ -908,19 +907,6 @@ const AdminTruckTracking = () => {
       }
 
       await sendAdminMessageToDriver(truck.driverUserId, truck.routeId, message);
-
-      void sendNotification({
-        user_ids: [truck.driverUserId],
-        type: "SYSTEM",
-        title: senderName,
-        body: message,
-        ref_id: truck.id,
-        ref_module: "tracking",
-      }).catch(() => {
-        toast.warning("Message saved, notification delayed", {
-          description: "The collector can still see the message in GreenWay.",
-        });
-      });
 
       // Add the sent message to local state so it appears in the thread
       setTrucks((prev) =>

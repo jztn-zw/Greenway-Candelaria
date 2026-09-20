@@ -79,6 +79,7 @@ const assignTruck = async (req, res, next) => {
           : "Your truck assignment was removed. Contact dispatch if you need assistance.",
         ref_id: driver.id,
         ref_module: "drivers",
+        metadata: { destination: "profile" },
       }).catch((err) => console.error("[Drivers] Truck-assignment collector notification error:", err.message));
     }
     return success(res, driver, "Truck assigned successfully");
@@ -158,6 +159,7 @@ const sendMessageToDriver = async (req, res, next) => {
       body: data.message,
       ref_id: data.route_id || result.driver_id,
       ref_module: "driver-messages",
+      metadata: { destination: "messages" },
     }).catch((err) => console.error("[Drivers] Collector message notification error:", err.message));
     return success(res, result, "Driver message sent successfully", 201);
   } catch (err) {

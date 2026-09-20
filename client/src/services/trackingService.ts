@@ -318,7 +318,7 @@ export const fetchDriverMessagesForAdmin = async (
 };
 
 export const markMyDriverMessagesAsRead = async (
-  routeId: string,
+  routeId?: string,
 ): Promise<void> => {
   await api.put("/drivers/me/messages/read", { route_id: routeId });
 };

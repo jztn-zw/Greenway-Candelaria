@@ -6,6 +6,10 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  // Keep JavaScript Date writes in UTC. User-facing formatting is explicitly
+  // converted to Asia/Manila by the application, avoiding database/server
+  // timezone drift while preserving one reliable timestamp standard.
+  timezone: "Z",
   ssl: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
   waitForConnections: true,
   connectionLimit: 5,

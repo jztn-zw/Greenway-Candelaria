@@ -16,4 +16,11 @@ export interface AssignmentData {
   nextStopName?: string;
   nextStopZone?: string;
   nextStopOrder?: number;
+  upcomingStops?: {
+    id: string;
+    name: string;
+    zone?: string;
+    order: number;
+    status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
+  }[];
 }

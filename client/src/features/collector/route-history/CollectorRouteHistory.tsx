@@ -1,11 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  History, MapPin, SkipForward, Target,
-  ChevronRight, Clock, CheckCircle2, AlertTriangle, Users,
-  Truck, MessageSquare,
+  History,
+  MapPin,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Users,
+  Truck,
+  MessageSquare,
+  Calendar,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackButton } from "@/components/common";
 import {
   fetchDriverMyHistory,
@@ -17,55 +26,39 @@ export type StatusFilter = "all" | "completed" | "partial";
 export type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable";
 
 const statusTabs: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "All Routes" },
+  { key: "all", label: "All routes" },
   { key: "completed", label: "Completed" },
   { key: "partial", label: "Partial" },
 ];
 
 const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
-  { key: "all", label: "All Waste Types" },
+  { key: "all", label: "All waste types" },
   { key: "Biodegradable", label: "Biodegradable" },
-  { key: "Non-Biodegradable", label: "Non-Biodegradable" },
+  { key: "Non-Biodegradable", label: "Non-biodegradable" },
 ];
 
 const RouteHistorySkeleton = () => (
-  <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
+  <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
     {/* Page Header */}
     <div className="flex items-center gap-3">
-      <Skeleton className="w-11 h-11 rounded-2xl shrink-0" />
-      <div className="space-y-1.5">
+      <Skeleton className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shrink-0" />
+      <div className="space-y-1.5 min-w-0 flex-1">
         <Skeleton className="h-6 w-44" />
-        <Skeleton className="h-3.5 w-64" />
+        <Skeleton className="h-3.5 w-64 max-w-full" />
       </div>
     </div>
 
-    {/* 3 Summary KPI Cards */}
-    <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl shrink-0" />
-          </div>
-          <div className="mt-2 sm:mt-3 space-y-1">
-            <Skeleton className="h-6 sm:h-8 w-14" />
-            <Skeleton className="h-3 w-24 hidden sm:block" />
-          </div>
-        </div>
-      ))}
-    </div>
-
     {/* Filter Toolbar Skeleton */}
-    <div className="bg-card border border-border/80 rounded-2xl p-2 sm:p-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+    <div className="bg-card border border-border/80 rounded-2xl p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
       <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border/60">
         <Skeleton className="h-8 w-24 rounded-lg shrink-0" />
         <Skeleton className="h-8 w-24 rounded-lg shrink-0" />
         <Skeleton className="h-8 w-20 rounded-lg shrink-0" />
       </div>
       <div className="flex items-center gap-1.5">
-        <Skeleton className="h-8 w-24 rounded-xl shrink-0" />
         <Skeleton className="h-8 w-28 rounded-xl shrink-0" />
         <Skeleton className="h-8 w-32 rounded-xl shrink-0" />
+        <Skeleton className="h-8 w-36 rounded-xl shrink-0" />
       </div>
     </div>
 
@@ -74,24 +67,24 @@ const RouteHistorySkeleton = () => (
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="bg-card border border-border/80 rounded-2xl p-3.5 sm:p-4.5 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs"
+          className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs"
         >
           <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
             <Skeleton className="w-12 h-12 rounded-xl shrink-0" />
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex items-center gap-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-5 w-20 rounded-md" />
-                <Skeleton className="h-5 w-24 rounded-md" />
+                <Skeleton className="h-4 w-44" />
+                <Skeleton className="h-5 w-20 rounded-lg" />
+                <Skeleton className="h-5 w-24 rounded-lg" />
               </div>
               <div className="flex items-center gap-3">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-3.5 w-28" />
+                <Skeleton className="h-3.5 w-24" />
               </div>
             </div>
           </div>
-          <Skeleton className="w-4 h-4 rounded-md shrink-0" />
+          <Skeleton className="w-8 h-8 rounded-xl shrink-0" />
         </div>
       ))}
     </div>
@@ -103,18 +96,18 @@ const getStatusBadge = (status: RouteHistoryItem["status"]) => {
     case "completed":
       return {
         label: "Completed",
-        cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25",
+        cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
         icon: CheckCircle2,
       };
     case "partial":
       return {
         label: "Partial",
-        cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25",
+        cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
         icon: AlertTriangle,
       };
     default:
       return {
-        label: "No Collection",
+        label: "No collection",
         cls: "bg-muted text-muted-foreground border-border/70",
         icon: Clock,
       };
@@ -125,15 +118,21 @@ const getWasteBadge = (wasteType?: string | null) => {
   if (!wasteType) return null;
   const lower = wasteType.toLowerCase();
   const isBio = lower.includes("bio") && !lower.includes("non");
+  const isRecycle = lower.includes("recycle") || lower.includes("plastic");
+  const isHazardous = lower.includes("hazard") || lower.includes("special");
+
+  const dotColor = isBio
+    ? "bg-emerald-500"
+    : isRecycle
+    ? "bg-amber-500"
+    : isHazardous
+    ? "bg-rose-500"
+    : "bg-sky-500";
+
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
-        isBio
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25"
-          : "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/25"
-      }`}
-    >
-      {wasteType}
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border border-border/70 bg-muted/60 text-foreground/85 shadow-2xs">
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+      <span>{wasteType}</span>
     </span>
   );
 };
@@ -142,12 +141,25 @@ const MiniRing = ({ pct }: { pct: number }) => {
   const r = 18;
   const c = 2 * Math.PI * r;
   const offset = c - (Math.min(100, Math.max(0, pct)) / 100) * c;
-  const strokeClass = pct >= 90 ? "text-primary" : pct >= 70 ? "text-amber-500" : "text-destructive";
+  const strokeClass =
+    pct >= 90
+      ? "text-primary"
+      : pct >= 70
+      ? "text-amber-500"
+      : "text-rose-500";
 
   return (
     <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="3.5" />
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          className="text-muted/60"
+        />
         <circle
           cx="22"
           cy="22"
@@ -210,14 +222,6 @@ const CollectorRouteHistory = () => {
     if (match) setSelectedRoute(match);
   }, [routeParam, historyList]);
 
-  const statusCounts = useMemo(() => {
-    return {
-      all: historyList.length,
-      completed: historyList.filter((e) => e.status === "completed").length,
-      partial: historyList.filter((e) => e.status === "partial").length,
-    };
-  }, [historyList]);
-
   const filtered = useMemo(() => {
     return historyList.filter((e) => {
       if (statusFilter !== "all" && e.status !== statusFilter) return false;
@@ -225,14 +229,6 @@ const CollectorRouteHistory = () => {
       return true;
     });
   }, [historyList, statusFilter, wasteFilter]);
-
-  // Summary Metrics
-  const routesCompleted = historyList.filter((e) => e.status === "completed").length;
-  const totalSkipped = historyList.reduce((s, e) => s + (e.skippedStops || 0), 0);
-  const avgCompletion =
-    historyList.length > 0
-      ? Math.round(historyList.reduce((s, e) => s + (e.completionPct || 0), 0) / historyList.length)
-      : 100;
 
   if (isLoading) return <RouteHistorySkeleton />;
 
@@ -243,9 +239,9 @@ const CollectorRouteHistory = () => {
     const DetailStatusIcon = detailBadge.icon;
 
     return (
-      <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
+      <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
         <BackButton
-          label="Back to Route History"
+          label="Back to route history"
           onClick={() => {
             setSearchParams({});
             setSelectedRoute(null);
@@ -255,12 +251,14 @@ const CollectorRouteHistory = () => {
         {/* Route Run Header Card */}
         <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
-            <div className="space-y-1 min-w-0">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-bold font-display text-foreground tracking-tight">
                   {r.routeName}
                 </h2>
-                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${detailBadge.cls}`}>
+                <span
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${detailBadge.cls}`}
+                >
                   <DetailStatusIcon className="w-3.5 h-3.5" />
                   {detailBadge.label}
                 </span>
@@ -272,89 +270,100 @@ const CollectorRouteHistory = () => {
             </div>
 
             {r.timeOnRoute && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/60 text-xs font-semibold text-foreground shrink-0 self-start sm:self-auto">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/40 border border-border/60 text-xs font-semibold text-foreground shrink-0 self-start sm:self-auto">
                 <Clock className="w-3.5 h-3.5 text-primary" />
-                <span>Shift Duration: {r.timeOnRoute}</span>
+                <span className="tabular-nums font-mono">Shift duration: {r.timeOnRoute}</span>
               </div>
             )}
           </div>
 
           {/* 4 Summary Stat Tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left">
-            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Stops Done
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Cleared checkpoints
               </span>
-              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1">
+              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1 font-mono">
                 {r.completedStops} / {r.totalStops}
               </p>
             </div>
 
-            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Skipped Stops
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Skipped checkpoints
               </span>
-              <p className={`text-lg sm:text-xl font-bold font-display tabular-nums mt-1 ${r.skippedStops > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+              <p
+                className={`text-lg sm:text-xl font-bold font-display tabular-nums mt-1 font-mono ${
+                  r.skippedStops > 0
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-foreground"
+                }`}
+              >
                 {r.skippedStops}
               </p>
             </div>
 
-            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Completion Rate
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Completion rate
               </span>
-              <p className="text-lg sm:text-xl font-bold text-primary font-display tabular-nums mt-1">
+              <p className="text-lg sm:text-xl font-bold text-primary font-display tabular-nums mt-1 font-mono">
                 {r.completionPct}%
               </p>
             </div>
 
-            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Total Time
+            <div className="bg-muted/30 border border-border/60 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Shift duration
               </span>
-              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1">
+              <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1 font-mono">
                 {r.timeOnRoute || "N/A"}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Stop by Stop Breakdown */}
+        {/* Checkpoint Breakdown */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-bold font-display text-foreground tracking-tight uppercase">
-                Stop by Stop Breakdown
+              <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+                Checkpoint breakdown
               </h3>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground font-mono">
-              {r.stops?.length || 0} Total Stops
+            <span className="text-xs font-semibold text-muted-foreground tabular-nums font-mono px-2 py-0.5 rounded-lg bg-muted/60 border border-border/60">
+              {r.stops?.length || 0} total stops
             </span>
           </div>
 
           {!r.stops || r.stops.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-card p-6 text-center text-xs text-muted-foreground shadow-xs">
-              No individual stop records logged for this collection route.
+              No individual checkpoint records logged for this collection route.
             </div>
           ) : (
             <div className="space-y-2">
               {r.stops.map((stop) => {
                 const isSkipped = stop.status === "skipped";
+                const isCleared = stop.status === "done";
                 return (
                   <div
                     key={stop.stopNumber}
-                    className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                    className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-xl border transition-all ${
                       isSkipped
                         ? "border-amber-500/25 bg-amber-500/5"
-                        : "border-border/80 bg-card shadow-2xs"
+                        : isCleared
+                          ? "border-border/80 bg-card shadow-2xs"
+                          : "border-border/70 bg-muted/25"
                     }`}
                   >
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono shrink-0 mt-0.5 border ${
                         isSkipped
                           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
-                          : "bg-primary/10 text-primary border-primary/20"
+                          : isCleared
+                            ? "bg-primary/10 text-primary border-primary/20"
+                            : "bg-muted text-muted-foreground border-border/70"
                       }`}
                     >
                       {stop.stopNumber}
@@ -362,26 +371,34 @@ const CollectorRouteHistory = () => {
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-foreground truncate">
+                        <p className="text-sm font-semibold text-foreground truncate">
                           {stop.barangay}
                         </p>
                         {isSkipped ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 shrink-0">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 shrink-0">
                             <AlertTriangle className="w-3 h-3" /> Skipped
                           </span>
+                        ) : isCleared ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+                            <CheckCircle2 className="w-3 h-3" /> Cleared
+                          </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
-                            <CheckCircle2 className="w-3 h-3" /> Done
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border/70 shrink-0">
+                            <Clock className="w-3 h-3" /> Not completed
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap font-medium">
-                        {stop.time && <span>Time: {stop.time}</span>}
+                        {stop.time && (
+                          <span className="inline-flex items-center gap-1 font-mono">
+                            <Clock className="w-3 h-3" /> {stop.time}
+                          </span>
+                        )}
                         {stop.residentsNotified && stop.residentsNotified > 0 && (
                           <>
                             <span className="text-border">•</span>
-                            <span className="flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1">
                               <Users className="w-3 h-3" /> {stop.residentsNotified} residents notified
                             </span>
                           </>
@@ -389,9 +406,12 @@ const CollectorRouteHistory = () => {
                       </div>
 
                       {stop.skipReason && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300 font-medium pt-0.5">
-                          Skip Reason: <span className="font-semibold">{stop.skipReason}</span>
-                        </p>
+                        <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 font-medium">
+                          <AlertTriangle className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                          <span>
+                            Skip reason: <strong className="font-semibold">{stop.skipReason}</strong>
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -404,11 +424,16 @@ const CollectorRouteHistory = () => {
         {/* Dispatch Communications logged during this route */}
         {r.adminMessages && r.adminMessages.length > 0 && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <MessageSquare className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-bold font-display text-foreground tracking-tight uppercase">
-                Dispatch Communications During Run
-              </h3>
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+                  Dispatch communications
+                </h3>
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground tabular-nums font-mono px-2 py-0.5 rounded-lg bg-muted/60 border border-border/60">
+                {r.adminMessages.length} message{r.adminMessages.length > 1 ? "s" : ""}
+              </span>
             </div>
             <div className="rounded-2xl border border-border/80 bg-card divide-y divide-border/60 overflow-hidden shadow-xs">
               {r.adminMessages.map((msg, idx) => (
@@ -434,140 +459,54 @@ const CollectorRouteHistory = () => {
 
   /* ────── Main List View ────── */
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-5 pb-8">
+    <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
       {/* ── Page Header ── */}
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 shadow-2xs text-primary">
-          <History className="w-5 h-5 text-primary" />
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display tracking-tight">
-            Route History
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
-            Your collection shift logs, completed stops, and performance summary
-          </p>
-        </div>
-      </div>
-
-      {/* ── 3 Summary KPI Cards ── */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-        {/* Completed Routes */}
-        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
-              Completed Routes
-            </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-3">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground font-display tabular-nums tracking-tight">
-              {routesCompleted}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight truncate">
+              Route history
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5 truncate">
+              Review previous collection shifts, verified stops, and completion performance
             </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
-              Successfully finished runs
-            </p>
-          </div>
         </div>
 
-        {/* Skipped Stops */}
-        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
-              Skipped Stops
-            </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
-              <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-3">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground font-display tabular-nums tracking-tight">
-              {totalSkipped}
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
-              Total bypassed locations
-            </p>
-          </div>
-        </div>
-
-        {/* Avg Completion */}
-        <div className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4.5 flex flex-col justify-between shadow-2xs hover:border-primary/30 transition-all">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
-              Avg Completion
-            </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </div>
-          <div className="mt-2 sm:mt-3">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary font-display tabular-nums tracking-tight">
-              {avgCompletion}%
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate font-medium">
-              Across all logged runs
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* ── Filter Toolbar ── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-2.5 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        {/* Status Segmented Controls */}
-        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl border border-border/60 overflow-x-auto no-scrollbar">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           {statusTabs.map((tab) => {
-            const count = statusCounts[tab.key];
             const isActive = statusFilter === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatusFilter(tab.key)}
-                className={`flex-1 sm:flex-initial h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer ${
+                className={`group h-9 px-3.5 rounded-xl border text-xs whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer active:scale-95 ${
                   isActive
-                    ? "bg-card text-foreground font-bold shadow-2xs border border-border/70"
-                    : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
+                    : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground font-semibold"
                 }`}
               >
                 <span>{tab.label}</span>
-                {count > 0 && (
-                  <span
-                    className={`text-[10px] font-bold leading-none rounded-full px-1.5 py-0.5 ${
-                      isActive
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
 
-        {/* Waste Category Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {wasteTabs.map((tab) => {
-            const isActive = wasteFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setWasteFilter(tab.key)}
-                className={`flex-1 sm:flex-initial h-8 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center justify-center shrink-0 select-none cursor-pointer border ${
-                  isActive
-                    ? "bg-primary/10 text-primary border-primary/30 shadow-2xs"
-                    : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                }`}
-              >
+        <Select value={wasteFilter} onValueChange={(value) => setWasteFilter(value as WasteTypeFilter)}>
+          <SelectTrigger className="h-9 w-full sm:w-[190px] rounded-xl border-border/80 bg-muted/30 text-xs font-semibold">
+            <SelectValue placeholder="All waste types" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            {wasteTabs.map((tab) => (
+              <SelectItem key={tab.key} value={tab.key} className="text-xs">
                 {tab.label}
-              </button>
-            );
-          })}
-        </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── Route Logs List ── */}
@@ -576,10 +515,25 @@ const CollectorRouteHistory = () => {
           <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
             <History className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h3 className="text-sm font-bold text-foreground font-display">No Route Logs Found</h3>
+          <h3 className="text-sm font-bold text-foreground font-display">
+            No route logs found
+          </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             No past collection shifts match your selected status or waste filter.
           </p>
+          {(statusFilter !== "all" || wasteFilter !== "all") && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setStatusFilter("all");
+                setWasteFilter("all");
+              }}
+              className="mt-4 h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Reset filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -593,17 +547,19 @@ const CollectorRouteHistory = () => {
                   setSearchParams({ route: item.id, name: item.routeName });
                   setSelectedRoute(item);
                 }}
-                className="group flex items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4.5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer shadow-2xs active:scale-[0.99]"
+                className="group flex items-center justify-between gap-3 sm:gap-4 p-4 sm:p-4.5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer shadow-2xs active:scale-[0.995]"
               >
                 <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                   <MiniRing pct={item.completionPct} />
 
-                  <div className="min-w-0 flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight group-hover:text-primary transition-colors truncate">
                         {item.routeName}
                       </h3>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border ${badge.cls}`}>
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${badge.cls}`}
+                      >
                         <StatusIcon className="w-3 h-3" />
                         {badge.label}
                       </span>
@@ -611,19 +567,25 @@ const CollectorRouteHistory = () => {
                     </div>
 
                     <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap font-medium">
-                      <span>{item.dayOfWeek}, {item.date}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                        {item.dayOfWeek}, {item.date}
+                      </span>
                       <span className="text-border">•</span>
-                      <span className="flex items-center gap-1 font-mono text-foreground/80">
-                        <Truck className="w-3 h-3 text-muted-foreground" />
+                      <span className="inline-flex items-center gap-1 font-mono text-foreground/80">
+                        <Truck className="w-3.5 h-3.5 text-muted-foreground/80" />
                         {item.truckName ? `${item.truckName} (${item.truckPlate})` : item.truckPlate}
                       </span>
                       <span className="text-border">•</span>
-                      <span>{item.completedStops}/{item.totalStops} stops</span>
+                      <span className="inline-flex items-center gap-1 font-mono">
+                        <MapPin className="w-3.5 h-3.5 text-muted-foreground/80" />
+                        {item.completedStops}/{item.totalStops} cleared
+                      </span>
                       {item.timeOnRoute && (
                         <>
                           <span className="text-border">•</span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span className="inline-flex items-center gap-1 font-mono">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
                             {item.timeOnRoute}
                           </span>
                         </>
@@ -632,7 +594,9 @@ const CollectorRouteHistory = () => {
                   </div>
                 </div>
 
-                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                <div className="w-8 h-8 rounded-xl bg-muted/40 group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center transition-all shrink-0">
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
             );
           })}

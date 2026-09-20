@@ -53,15 +53,21 @@ const validateEventDetails = async (event) => {
 /**
  * Get all calendar events with strict role-based visibility:
  * - ADMIN: Can view all (PRIVATE_EVENT, COMMUNITY_EVENT, COLLECTION_SCHEDULE)
- * - RESIDENT / GUEST: Can ONLY view PUBLIC events (PRIVATE_EVENT is strictly excluded by DB query)
+ * - DRIVER: Can read the internal private schedules created in Schedule Manager
+ * - RESIDENT / GUEST: Can ONLY view published public announcement events
  */
 const getEvents = async (filters = {}, user = null) => {
   const isAdmin = user && user.role === "ADMIN";
+  const isCollector = user && user.role === "DRIVER";
   const conditions = ["s.deleted_at IS NULL"];
   const params = [];
 
-  // Backend Security: Non-admins can NEVER query private events
-  if (!isAdmin) {
+  // Collectors need the dispatch calendar created in Schedule Manager, but
+  // remain read-only and cannot access resident-facing announcement records.
+  if (isCollector) {
+    conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
+  } else if (!isAdmin) {
+    // Residents and guests can only see active public announcements targeted to them.
     conditions.push("s.visibility = 'PUBLIC'");
     // Resident calendar content is deliberately published from announcements,
     // never directly from MENRO's internal Schedule Manager.
@@ -139,10 +145,13 @@ const getEvents = async (filters = {}, user = null) => {
 
 const getEventById = async (id, user = null) => {
   const isAdmin = user && user.role === "ADMIN";
+  const isCollector = user && user.role === "DRIVER";
   const conditions = ["s.id = ?", "s.deleted_at IS NULL"];
   const params = [id];
 
-  if (!isAdmin) {
+  if (isCollector) {
+    conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
+  } else if (!isAdmin) {
     conditions.push("s.visibility = 'PUBLIC'");
     conditions.push(`s.announcement_id IS NOT NULL AND EXISTS (
       SELECT 1 FROM announcements a

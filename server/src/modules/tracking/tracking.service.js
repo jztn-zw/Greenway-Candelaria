@@ -28,17 +28,18 @@ const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
     const [stops] = await pool.query(
       `SELECT
          rs.id AS stop_id,
-         rs.route_id,
+         rr.id AS route_id,
          rs.barangay_id,
          rs.notified_at,
          b.name AS barangay_name,
          b.latitude AS barangay_lat,
          b.longitude AS barangay_lng
-       FROM routes r
-       JOIN route_stops rs ON rs.route_id = r.id
+       FROM route_runs rr
+       JOIN route_run_stops rs ON rs.route_run_id = rr.id
        JOIN barangays b ON b.id = rs.barangay_id
-       WHERE r.truck_id = ?
-         AND r.status = 'ACTIVE'
+       WHERE rr.truck_id = ?
+         AND rr.status = 'ACTIVE'
+         AND rr.collection_started_at IS NOT NULL
          AND rs.status IN ('NOT_STARTED', 'IN_PROGRESS')
          AND b.latitude IS NOT NULL
          AND b.longitude IS NOT NULL
@@ -60,7 +61,7 @@ const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
 
     // Claim the alert atomically so simultaneous GPS pings cannot duplicate it.
     const [claimResult] = await pool.query(
-      "UPDATE route_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL",
+      "UPDATE route_run_stops SET notified_at = NOW() WHERE id = ? AND notified_at IS NULL",
       [stop.stop_id],
     );
     if (claimResult.affectedRows === 0) return;
@@ -77,7 +78,7 @@ const checkProximityAndNotify = async (truckId, truckLat, truckLng) => {
     } catch (err) {
       // Release the claim so a later GPS ping can retry a failed delivery.
       await pool.query(
-        "UPDATE route_stops SET notified_at = NULL WHERE id = ?",
+        "UPDATE route_run_stops SET notified_at = NULL WHERE id = ?",
         [stop.stop_id],
       );
       throw err;
@@ -112,7 +113,7 @@ const ping = async (userId, { latitude, longitude, truck_id }) => {
   }
 
   const [pausedRoutes] = await pool.query(
-    "SELECT id FROM routes WHERE truck_id = ? AND driver_id = ? AND status = 'PAUSED' LIMIT 1",
+    "SELECT id FROM route_runs WHERE truck_id = ? AND driver_id = ? AND status = 'PAUSED' LIMIT 1",
     [truck_id, driver.id],
   );
   if (pausedRoutes.length > 0) {
@@ -196,21 +197,21 @@ const getLive = async () => {
 const notifyStaleGpsRoutes = async () => {
   const [rows] = await pool.query(
     `SELECT
-       r.id AS route_id,
+       rr.id AS route_id,
        t.id AS truck_id,
        t.name AS truck_name,
-       COALESCE(MAX(tl.created_at), r.collection_started_at) AS last_ping,
+       COALESCE(MAX(tl.created_at), rr.collection_started_at) AS last_ping,
        TIMESTAMPDIFF(
          SECOND,
-         COALESCE(MAX(tl.created_at), r.collection_started_at),
+         COALESCE(MAX(tl.created_at), rr.collection_started_at),
          UTC_TIMESTAMP()
        ) AS seconds_since_ping
-     FROM routes r
-     JOIN trucks t ON t.id = r.truck_id
+     FROM route_runs rr
+     JOIN trucks t ON t.id = rr.truck_id
      LEFT JOIN tracking_logs tl ON tl.truck_id = t.id
-     WHERE r.status = 'ACTIVE'
-       AND r.collection_started_at IS NOT NULL
-     GROUP BY r.id, t.id, t.name, r.collection_started_at
+     WHERE rr.status = 'ACTIVE'
+       AND rr.collection_started_at IS NOT NULL
+     GROUP BY rr.id, t.id, t.name, rr.collection_started_at
      HAVING seconds_since_ping >= ?`,
     [STALE_GPS_SECONDS],
   );
@@ -229,7 +230,7 @@ const notifyStaleGpsRoutes = async () => {
     // The route may have ended while this monitor pass was preparing the
     // alert. Verify it is still actively collecting before notifying admins.
     const [activeRoute] = await pool.query(
-      "SELECT id FROM routes WHERE id = ? AND status = 'ACTIVE' AND collection_started_at IS NOT NULL LIMIT 1",
+      "SELECT id FROM route_runs WHERE id = ? AND status = 'ACTIVE' AND collection_started_at IS NOT NULL LIMIT 1",
       [route.route_id],
     );
     if (activeRoute.length === 0) continue;

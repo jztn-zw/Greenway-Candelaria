@@ -22,6 +22,7 @@ import CollectorNotifications from "@/features/collector/notifications/Collector
 import CollectorProfile from "@/features/collector/profile/CollectorProfile";
 import CollectorRouteHistory from "@/features/collector/route-history/CollectorRouteHistory";
 import CollectorRouteMap from "@/features/collector/route-map/CollectorRouteMap";
+import CollectorSchedule from "@/features/collector/schedule/CollectorSchedule";
 import LandingPage from "@/features/landing/LandingPage";
 import ResidentContents from "@/features/resident/content/ResidentContents";
 import ResidentDashboard from "@/features/resident/dashboard/ResidentDashboard";
@@ -75,6 +76,7 @@ const AppRoutes = () => (
         <Route index element={<CollectorDashboard />} />
         <Route path="route-map" element={<CollectorRouteMap />} />
         <Route path="route-history" element={<CollectorRouteHistory />} />
+        <Route path="schedule" element={<CollectorSchedule />} />
         <Route path="notifications" element={<CollectorNotifications />} />
         <Route path="profile" element={<CollectorProfile />} />
       </Route>

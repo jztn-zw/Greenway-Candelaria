@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import CollectorSidebar from "./CollectorSidebar";
 import CollectorTopBar from "./CollectorTopbar";
+import CollectorDispatchBubble from "./CollectorDispatchBubble";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import PageTransition from "@/components/PageTransition";
 import authService from "@/services/authService";
@@ -34,6 +35,7 @@ const CollectorLayout = () => {
             </PageTransition>
           </main>
         </div>
+        <CollectorDispatchBubble />
       </div>
     </SidebarProvider>
   );

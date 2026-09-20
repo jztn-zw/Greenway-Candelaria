@@ -6,6 +6,7 @@ const {
   sendToUser,
 } = require("../notifications/notifications.service");
 const { emitNotificationReferenceRemoved } = require("../../sockets/notifications.socket");
+const routeRunsService = require("./routeRuns.service");
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
 
 const getTodayRouteContext = () => {
@@ -32,6 +33,11 @@ const formatRouteData = (rows) => {
   const routesMap = new Map();
 
   for (const row of rows) {
+    // A recurring route keeps its template record between collection days. Its
+    // previous stop results must never appear as progress for a new day before
+    // the collector starts today's run.
+    const hasStartedToday = isSameCalendarDay(row.collection_started_at);
+
     if (!routesMap.has(row.route_id)) {
       routesMap.set(row.route_id, {
         route_id: row.route_id,
@@ -44,7 +50,7 @@ const formatRouteData = (rows) => {
         route_name: row.route_name ?? null,
         waste_type: row.waste_type ?? null,
         started_at: row.started_at,
-        collection_started_at: row.collection_started_at ?? null,
+        collection_started_at: hasStartedToday ? row.collection_started_at : null,
         stops: [],
         total_stops: 0,
         completed_stops: 0,
@@ -59,16 +65,16 @@ const formatRouteData = (rows) => {
         barangay_id: row.barangay_id,
         barangay_name: row.barangay_name,
         order_index: row.order_index,
-        status: row.stop_status || "NOT_STARTED",
-        completed_at: row.completed_at,
-        skipped_reason: row.skipped_reason ?? null,
+        status: hasStartedToday ? row.stop_status || "NOT_STARTED" : "NOT_STARTED",
+        completed_at: hasStartedToday ? row.completed_at : null,
+        skipped_reason: hasStartedToday ? row.skipped_reason ?? null : null,
         latitude: row.latitude,
         longitude: row.longitude,
         distance_km: row.distance_km ?? 0,
       });
 
       route.total_stops += 1;
-      if (row.stop_status === "DONE") {
+      if (hasStartedToday && row.stop_status === "DONE") {
         route.completed_stops += 1;
       }
     }
@@ -191,11 +197,14 @@ const isSameCalendarDay = (left, right = new Date()) => {
     return false;
   }
 
-  return (
-    leftDate.getFullYear() === rightDate.getFullYear() &&
-    leftDate.getMonth() === rightDate.getMonth() &&
-    leftDate.getDate() === rightDate.getDate()
-  );
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  return formatter.format(leftDate) === formatter.format(rightDate);
 };
 
 const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
@@ -343,19 +352,28 @@ const autoActivateScheduledRoutes = async () => {
   const { weekday: today, currentTime } = getTodayRouteContext();
 
   const [routes] = await pool.query(
-    `SELECT r.id, r.truck_id
-     FROM routes r
-     JOIN trucks t ON t.id = r.truck_id
-     WHERE UPPER(r.day_of_week) = ?
-       AND r.status = 'INACTIVE'
-       AND r.start_time <= ?
-       AND t.status = 'DONE'
-       AND DATE(r.updated_at) < CURDATE()
-     ORDER BY r.start_time ASC`,
+    `SELECT r.id, r.truck_id, r.collection_started_at,
+            MAX(rs.completed_at) AS last_stop_completed_at
+      FROM routes r
+      JOIN trucks t ON t.id = r.truck_id
+      LEFT JOIN route_stops rs ON rs.route_id = r.id
+      WHERE UPPER(r.day_of_week) = ?
+        AND r.status = 'INACTIVE'
+        AND r.start_time <= ?
+      GROUP BY r.id, r.truck_id, r.collection_started_at, r.start_time
+      ORDER BY r.start_time ASC`,
     [today, currentTime],
   );
 
-  if (routes.length === 0) {
+  // Do not reopen a route that already ran today. New routes and routes whose
+  // last run was on an earlier calendar day are eligible for a fresh cycle.
+  const routesToActivate = routes.filter(
+    (route) =>
+      !isSameCalendarDay(route.collection_started_at) &&
+      !isSameCalendarDay(route.last_stop_completed_at),
+  );
+
+  if (routesToActivate.length === 0) {
     return [];
   }
 
@@ -363,7 +381,7 @@ const autoActivateScheduledRoutes = async () => {
   try {
     await connection.beginTransaction();
 
-    for (const route of routes) {
+    for (const route of routesToActivate) {
       await connection.query(
         `UPDATE route_stops
          SET status = 'NOT_STARTED',
@@ -400,7 +418,7 @@ const autoActivateScheduledRoutes = async () => {
     connection.release();
   }
 
-  return routes.map((route) => route.id);
+  return routesToActivate.map((route) => route.id);
 };
 
 // ✅ FIX: End route ─────────────────────────────────────────────────────────
@@ -410,7 +428,7 @@ const autoActivateScheduledRoutes = async () => {
 const endRoute = async (routeId) => {
   // Validate route exists
   const [routeCheck] = await pool.query(
-    `SELECT r.id, r.truck_id, r.status, t.name AS truck_name
+    `SELECT r.id, r.truck_id, r.status, r.collection_started_at, t.name AS truck_name
      FROM routes r
      JOIN trucks t ON t.id = r.truck_id
      WHERE r.id = ?`,
@@ -422,6 +440,9 @@ const endRoute = async (routeId) => {
   }
 
   const { truck_id, truck_name: truckName } = routeCheck[0];
+  if (!isSameCalendarDay(routeCheck[0].collection_started_at)) {
+    throw { statusCode: 409, message: "Start today's route before ending it" };
+  }
   let shouldNotifyRouteCompletion = false;
 
   const connection = await pool.getConnection();
@@ -492,10 +513,6 @@ const endRoute = async (routeId) => {
       ref_module: "tracking",
     }).catch((err) => console.error("[Routes] Route-end admin notification error:", err.message));
 
-    await notifyCollectorForRoute(routeId, {
-      title: "Route Completed",
-      body: `Your ${truckName} route is complete: ${completedStops} completed and ${skippedStops} skipped out of ${totalStops} stops.`,
-    }).catch((err) => console.error("[Routes] Route-end collector notification error:", err.message));
   }
 
   // A completed route is no longer a GPS-risk case. Remove a stale alert that
@@ -520,7 +537,7 @@ const getCollectorUserIdForRoute = async (routeId) => {
   return rows[0]?.user_id || null;
 };
 
-const notifyCollectorForRoute = async (routeId, { title, body, refModule = "routes" }) => {
+const notifyCollectorForRoute = async (routeId, { title, body, refModule = "routes", destination = "route-map" }) => {
   const userId = await getCollectorUserIdForRoute(routeId);
   if (!userId) return null;
   return sendToUser({
@@ -530,6 +547,7 @@ const notifyCollectorForRoute = async (routeId, { title, body, refModule = "rout
     body,
     ref_id: routeId,
     ref_module: refModule,
+    metadata: { destination },
   });
 };
 
@@ -538,7 +556,7 @@ const notifyCollectorForRoute = async (routeId, { title, body, refModule = "rout
 // sessions and lets endRoute create the one correct admin summary.
 const finalizeCompletedRoutes = async () => {
   const [rows] = await pool.query(
-    `SELECT r.id
+    `SELECT r.id, r.collection_started_at
      FROM routes r
      JOIN route_stops rs ON rs.route_id = r.id
      WHERE r.status IN ('ACTIVE', 'PAUSED')
@@ -547,11 +565,13 @@ const finalizeCompletedRoutes = async () => {
         AND SUM(rs.status NOT IN ('DONE', 'MISSED', 'SKIPPED')) = 0`,
   );
 
-  for (const route of rows) {
+  const routesToFinalize = rows.filter((route) => isSameCalendarDay(route.collection_started_at));
+
+  for (const route of routesToFinalize) {
     await endRoute(route.id);
   }
 
-  return rows.map((route) => route.id);
+  return routesToFinalize.map((route) => route.id);
 };
 
 const assertNoRouteTruckDayConflict = async (
@@ -942,10 +962,20 @@ const update = async (id, data) => {
 
 // ─── Update Stop Status ───────────────────────────────────────────────────
 const updateStopStatus = async (routeId, stopId, status, skippedReason = null) => {
-  const [routeRows] = await pool.query("SELECT status FROM routes WHERE id = ?", [routeId]);
+  const [routeRows] = await pool.query(
+    "SELECT status, collection_started_at FROM routes WHERE id = ?",
+    [routeId],
+  );
   if (routeRows.length === 0) throw { statusCode: 404, message: "Route not found" };
-  if (String(routeRows[0].status || "").toUpperCase() === "PAUSED") {
+  const routeStatus = String(routeRows[0].status || "").toUpperCase();
+  if (routeStatus === "PAUSED") {
     throw { statusCode: 409, message: "Resume the route before updating collection stops" };
+  }
+  if (routeStatus !== "ACTIVE") {
+    throw { statusCode: 409, message: "Only an active route can update collection stops" };
+  }
+  if (!isSameCalendarDay(routeRows[0].collection_started_at)) {
+    throw { statusCode: 409, message: "Start today's route before updating collection stops" };
   }
 
   const [rows] = await pool.query(
@@ -960,15 +990,19 @@ const updateStopStatus = async (routeId, stopId, status, skippedReason = null) =
 
   if (rows.length === 0) throw { statusCode: 404, message: "Stop not found on this route" };
 
-  const completedAt =
-    status === "DONE" || status === "MISSED" ? new Date() : null;
-
   const stop = rows[0];
   const reason = status === "MISSED" ? skippedReason || null : null;
 
   await pool.query(
-    "UPDATE route_stops SET status = ?, completed_at = ?, skipped_reason = ? WHERE id = ?",
-    [status, completedAt, reason, stopId],
+    `UPDATE route_stops
+        SET status = ?,
+            completed_at = CASE
+              WHEN ? IN ('DONE', 'MISSED') THEN UTC_TIMESTAMP()
+              ELSE NULL
+            END,
+            skipped_reason = ?
+      WHERE id = ?`,
+    [status, status, reason, stopId],
   );
 
   const notification = status === "DONE"
@@ -1057,6 +1091,7 @@ const remove = async (id) => {
       body: "A collection route assigned to you was cancelled. Check with dispatch for your updated schedule.",
       ref_id: id,
       ref_module: "routes",
+      metadata: { destination: "route-history" },
     }).catch((err) => console.error("[Routes] Route-cancellation collector notification error:", err.message));
   }
   return { message: "Route deleted successfully" };
@@ -1124,15 +1159,15 @@ module.exports = {
   getById,
   create,
   update,
-  updateStopStatus,
+  updateStopStatus: routeRunsService.updateStopStatus,
   getMissedCollections,
   remove,
-  getMyRouteToday,
-  getAllRoutesToday,
-  autoActivateScheduledRoutes,
-  endRoute, // ✅ exported
+  getMyRouteToday: routeRunsService.getMyRouteToday,
+  getAllRoutesToday: routeRunsService.getAllRoutesToday,
+  autoActivateScheduledRoutes: routeRunsService.autoActivateScheduledRoutes,
+  endRoute: routeRunsService.endRoute,
   finalizeCompletedRoutes,
-  setRoutePaused,
-  startRoute,
+  setRoutePaused: routeRunsService.setRoutePaused,
+  startRoute: routeRunsService.startRoute,
 };
 

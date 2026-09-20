@@ -1,4 +1,7 @@
 require("dotenv").config();
+// GreenWay is a Philippines-only service. Use Manila time for all server-side
+// calendar, schedule, and human-readable time calculations.
+process.env.TZ = process.env.APP_TIME_ZONE || "Asia/Manila";
 const validateEnv = require("./config/env");
 const http = require("http");
 const { Server } = require("socket.io");

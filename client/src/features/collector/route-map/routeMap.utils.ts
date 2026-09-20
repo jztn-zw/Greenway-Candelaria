@@ -6,6 +6,3 @@ export const toFiniteNumber = (value: unknown): number | null => {
   }
   return null;
 };
-
-export const formatRouteMessageTime = (date: Date) =>
-  date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });

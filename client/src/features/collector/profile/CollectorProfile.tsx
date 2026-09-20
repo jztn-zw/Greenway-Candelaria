@@ -1,16 +1,43 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Camera, User, Mail, Phone, Lock, Shield, Calendar, LogOut,
-  Route, CheckCircle2, Truck, AlertTriangle, Eye, EyeOff, Loader2,
-  Headphones, Building2, AlertCircle, Wrench
+  Camera,
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Shield,
+  Truck,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Headphones,
+  Building2,
+  CheckCircle2,
+  Wrench,
+  KeyRound,
+  FileText,
+  Clock,
+  Sparkles,
+  ExternalLink,
+  ChevronRight,
+  LogOut,
+  ShieldCheck,
+  AtSign,
+  Pencil,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import useAuthStore from "@/store/authStore";
 import {
@@ -27,138 +54,160 @@ import {
 } from "@/services/driverManagerService";
 import { toast } from "@/lib/toast";
 
+/* ─── Skeleton Loader ─── */
 const ProfileSkeleton = () => (
-  <div className="max-w-3xl mx-auto space-y-6 pb-8 animate-in fade-in duration-300">
-    {/* Identity Card */}
-    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-        <Skeleton className="w-20 h-20 sm:w-24 sm:h-24 rounded-full shrink-0" />
-        <div className="flex-1 space-y-2 text-center sm:text-left min-w-0">
-          <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-5 w-24 rounded-full" />
-            <Skeleton className="h-5 w-20 rounded-full" />
-          </div>
-          <Skeleton className="h-4 w-52" />
-          <div className="flex items-center justify-center sm:justify-start gap-3 pt-1 flex-wrap">
-            <Skeleton className="h-3.5 w-28" />
-            <Skeleton className="h-3.5 w-32" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Assigned Truck & Equipment Card */}
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Skeleton className="w-4 h-4 rounded" />
-        <Skeleton className="h-4 w-48" />
-      </div>
-      <div className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1.5">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-3.5 w-28" />
-          </div>
-          <Skeleton className="h-6 w-20 rounded-full" />
-        </div>
-        <Skeleton className="h-10 w-full rounded-xl" />
-      </div>
-    </div>
-
-    {/* Personal Information */}
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Skeleton className="w-4 h-4 rounded" />
-        <Skeleton className="h-4 w-36" />
-      </div>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between py-3 border-b border-border/60 last:border-b-0">
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-8 h-8 rounded-xl shrink-0" />
-            <div className="space-y-1.5">
-              <Skeleton className="h-2.5 w-16" />
-              <Skeleton className="h-4 w-36" />
+  <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5 pb-8 animate-in fade-in duration-300">
+    {/* Identity Hero Banner Skeleton */}
+    <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+      <div className="h-28 lg:h-36 bg-muted/40 border-b border-border/50" />
+      <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
+        <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
+          <Skeleton className="size-20 lg:size-28 rounded-full ring-4 ring-background shrink-0" />
+          <div className="flex-1 space-y-2 text-center md:text-left min-w-0">
+            <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-60 max-w-full" />
+            <div className="flex items-center justify-center md:justify-start gap-3 pt-1 flex-wrap">
+              <Skeleton className="h-3.5 w-36" />
+              <Skeleton className="h-3.5 w-40" />
             </div>
           </div>
-          <Skeleton className="h-3 w-10" />
         </div>
-      ))}
+      </div>
     </div>
 
-    {/* Account Security */}
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Skeleton className="w-4 h-4 rounded" />
-        <Skeleton className="h-4 w-32" />
-      </div>
-      <div className="flex items-center justify-between py-3">
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-8 h-8 rounded-xl shrink-0" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-2.5 w-16" />
-            <Skeleton className="h-4 w-24" />
+    {/* Assigned Truck Skeleton */}
+    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+      <div className="flex items-center justify-between pb-3 border-b border-border/60">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="w-8 h-8 rounded-lg" />
+          <div className="space-y-1">
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-3 w-56" />
           </div>
         </div>
-        <Skeleton className="h-3 w-14" />
-      </div>
-    </div>
-
-    {/* MENRO Support */}
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Skeleton className="w-4 h-4 rounded" />
-        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-6 w-24 rounded-lg" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2">
-            <Skeleton className="h-4 w-36" />
-            <Skeleton className="h-3 w-48" />
-            <Skeleton className="h-3.5 w-28" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+    </div>
+
+    {/* Personal Information Skeleton */}
+    <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
+      <div className="flex items-center gap-2.5 pb-2 border-b border-border/50">
+        <Skeleton className="w-8 h-8 rounded-lg" />
+        <div className="space-y-1">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+      </div>
+      <div className="divide-y divide-border/50">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="-mx-2 flex items-center justify-between gap-3 px-2 py-2.5 md:-mx-4 md:px-4 md:py-3"
+          >
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9 lg:size-10 rounded-xl shrink-0" />
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+            </div>
+            <Skeleton className="h-8.5 w-14 rounded-xl" />
           </div>
         ))}
+      </div>
+    </div>
+
+    {/* Dispatch Support Skeleton */}
+    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+      <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+        <Skeleton className="w-8 h-8 rounded-lg" />
+        <div className="space-y-1">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <Skeleton className="h-16 w-full rounded-xl" />
       </div>
     </div>
   </div>
 );
 
-/* ─── Section Wrapper ─── */
-const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
-  <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-    <h2 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-      <Icon className="w-4 h-4 text-primary" /> {title}
-    </h2>
-    {children}
-  </section>
-);
-
-/* ─── Editable Field Row ─── */
+/* ─── Field Row Component (Improved Action Buttons & High Contrast) ─── */
 const FieldRow = ({
-  label, value, icon: Icon, masked, onEdit,
+  label,
+  value,
+  placeholder,
+  icon: Icon,
+  masked,
+  isEmail,
+  onEdit,
 }: {
-  label: string; value: string; icon: React.ElementType; masked?: boolean; onEdit?: () => void;
+  label: string;
+  value: string;
+  placeholder?: string;
+  icon: React.ElementType;
+  masked?: boolean;
+  isEmail?: boolean;
+  onEdit?: () => void;
 }) => (
-  <div className="flex items-center justify-between py-3 border-b border-border/60 last:border-b-0">
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4" />
+  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
+    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs transition-colors group-hover:border-primary/30 group-hover:text-primary lg:size-10">
+        <Icon className="w-4.5 h-4.5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-        <p className="text-sm font-medium text-foreground truncate">{masked ? "••••••••" : (value || "—")}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+          {label}
+        </p>
+        <p className="mt-0.5 truncate text-[13px] font-medium text-foreground lg:text-sm">
+          {masked ? (
+            "••••••••"
+          ) : value ? (
+            value
+          ) : (
+            <span className="text-muted-foreground/60 font-normal italic">
+              {placeholder || "—"}
+            </span>
+          )}
+        </p>
       </div>
     </div>
-    {onEdit && (
-      <button onClick={onEdit} className="text-xs text-primary hover:underline font-semibold shrink-0 ml-3 cursor-pointer">
-        {masked ? "Change" : "Edit"}
-      </button>
-    )}
+    {isEmail ? (
+      <span className="h-8 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium bg-muted/60 text-muted-foreground border border-border/70 shrink-0 select-none">
+        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <span>Registered email</span>
+      </span>
+    ) : onEdit ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onEdit}
+        className="h-8 px-3 rounded-lg text-xs font-semibold border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/40 active:scale-95 transition-all shrink-0 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+      >
+        {masked ? (
+          <KeyRound className="w-3.5 h-3.5" />
+        ) : (
+          <Pencil className="w-3.5 h-3.5" />
+        )}
+        <span>{masked ? "Change" : "Edit"}</span>
+      </Button>
+    ) : null}
   </div>
 );
 
 const CollectorProfile = () => {
   const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
   const authUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -170,14 +219,41 @@ const CollectorProfile = () => {
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
-    open: boolean; field: string; value: string; saving: boolean; error: string;
-  }>({ open: false, field: "", value: "", saving: false, error: "" });
+    open: boolean;
+    field: string;
+    label: string;
+    value: string;
+    saving: boolean;
+    error: string;
+  }>({
+    open: false,
+    field: "",
+    label: "",
+    value: "",
+    saving: false,
+    error: "",
+  });
 
   // Password modal
   const [pwModal, setPwModal] = useState<{
-    open: boolean; oldPw: string; newPw: string; confirmPw: string;
-    showOld: boolean; showNew: boolean; saving: boolean; error: string;
-  }>({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
+    open: boolean;
+    oldPw: string;
+    newPw: string;
+    confirmPw: string;
+    showOld: boolean;
+    showNew: boolean;
+    saving: boolean;
+    error: string;
+  }>({
+    open: false,
+    oldPw: "",
+    newPw: "",
+    confirmPw: "",
+    showOld: false,
+    showNew: false,
+    saving: false,
+    error: "",
+  });
 
   // Truck breakdown report modal
   const [breakdownModal, setBreakdownModal] = useState(false);
@@ -191,21 +267,23 @@ const CollectorProfile = () => {
       try {
         setIsLoading(true);
         const [prof, drv] = await Promise.all([
-          fetchProfile(),
-          fetchDriverMe(),
+          fetchProfile().catch(() => null),
+          fetchDriverMe().catch(() => null),
         ]);
         if (isMounted) {
-          setProfile(prof);
-          setDriverData(drv);
+          if (prof) setProfile(prof);
+          if (drv) setDriverData(drv);
         }
-      } catch (err) {
+      } catch {
         toast.error("Failed to load driver profile");
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
-    load();
-    return () => { isMounted = false; };
+    void load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +292,7 @@ const CollectorProfile = () => {
     try {
       setAvatarUploading(true);
       const { avatar_url } = await uploadAvatar(file);
-      setProfile((prev) => prev ? { ...prev, avatar_url } : null);
+      setProfile((prev) => (prev ? { ...prev, avatar_url } : null));
       if (authUser) setUser({ ...authUser, avatar_url });
       toast.success("Profile photo updated");
     } catch {
@@ -231,17 +309,26 @@ const CollectorProfile = () => {
     }
     try {
       setEditModal((m) => ({ ...m, saving: true, error: "" }));
-      const payload: Partial<UserProfile> = { [editModal.field]: editModal.value.trim() };
+      const payload: Partial<UserProfile> = {
+        [editModal.field]: editModal.value.trim(),
+      };
       const updated = await updateProfile(payload);
       setProfile(updated);
       if (authUser) setUser({ ...authUser, ...payload });
       toast.success("Profile updated");
       setEditModal((m) => ({ ...m, open: false, saving: false }));
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response: { data: { message?: string } } }).response?.data?.message === "string"
+          ? (err as { response: { data: { message: string } } }).response.data.message
+          : "Update failed";
       setEditModal((m) => ({
         ...m,
         saving: false,
-        error: err.response?.data?.message || "Update failed",
+        error: errMsg,
       }));
     }
   };
@@ -252,7 +339,10 @@ const CollectorProfile = () => {
       return;
     }
     if (pwModal.newPw.length < 8) {
-      setPwModal((m) => ({ ...m, error: "New password must be at least 8 characters" }));
+      setPwModal((m) => ({
+        ...m,
+        error: "New password must be at least 8 characters",
+      }));
       return;
     }
     if (pwModal.newPw !== pwModal.confirmPw) {
@@ -261,14 +351,33 @@ const CollectorProfile = () => {
     }
     try {
       setPwModal((m) => ({ ...m, saving: true, error: "" }));
-      await changePassword({ old_password: pwModal.oldPw, new_password: pwModal.newPw });
+      await changePassword({
+        old_password: pwModal.oldPw,
+        new_password: pwModal.newPw,
+      });
       toast.success("Password changed successfully");
-      setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
-    } catch (err: any) {
+      setPwModal({
+        open: false,
+        oldPw: "",
+        newPw: "",
+        confirmPw: "",
+        showOld: false,
+        showNew: false,
+        saving: false,
+        error: "",
+      });
+    } catch (err: unknown) {
+      const errMsg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response: { data: { message?: string } } }).response?.data?.message === "string"
+          ? (err as { response: { data: { message: string } } }).response.data.message
+          : "Failed to update password";
       setPwModal((m) => ({
         ...m,
         saving: false,
-        error: err.response?.data?.message || "Failed to update password",
+        error: errMsg,
       }));
     }
   };
@@ -276,9 +385,11 @@ const CollectorProfile = () => {
   const handleReportBreakdown = async () => {
     try {
       setReportingBreakdown(true);
-      const msg = `[TRUCK BREAKDOWN] ${breakdownReason}${breakdownNote ? ` - Note: ${breakdownNote}` : ""}`;
+      const msg = `[TRUCK ISSUE] ${breakdownReason}${
+        breakdownNote ? ` — Details: ${breakdownNote}` : ""
+      }`;
       await updateMyDriverStatus(msg);
-      toast.success("Truck breakdown reported to MENRO Dispatch");
+      toast.success("Truck issue reported to MENRO Dispatch");
       setBreakdownModal(false);
       setBreakdownNote("");
     } catch {
@@ -288,269 +399,576 @@ const CollectorProfile = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/", { replace: true });
+  };
+
   if (isLoading) return <ProfileSkeleton />;
 
-  const displayName = profile?.full_name || authUser?.full_name || "Juan Dela Cruz";
-  const displayEmail = profile?.email || authUser?.email || "juan.delacruz@menro.gov.ph";
-  const displayPhone = profile?.phone || "0917 123 4567";
-  const initials = displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  // Derived display details without fake mock fallbacks
+  const displayName = profile?.full_name || authUser?.full_name || "Collector Staff";
+  const displayEmail = profile?.email || authUser?.email || "driver@menro.gov.ph";
+  const displayPhone = profile?.phone || driverData?.phone || "";
+  const displayUsername = profile?.username || authUser?.username || "—";
+  const initials =
+    displayName
+      .split(" ")
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "DR";
+
+  const hasAssignedTruck = Boolean(driverData?.truck_plate || driverData?.truck_name);
+  const truckName = driverData?.truck_name || "Assigned Truck";
+  const truckPlate = driverData?.truck_plate || "";
+  const isUnderMaintenance = driverData?.truck_availability === "UNDER_MAINTENANCE";
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-5 pb-8 animate-in fade-in duration-300">
-      {/* ── Top Driver Identity Card ── */}
-      <div className="rounded-2xl border border-border bg-card p-6 sm:p-7 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-          <div className="relative group">
-            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-2 ring-primary/20 shadow-md">
-              <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xl">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+    <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5 pb-8 animate-in fade-in duration-300">
+      {/* ── 1. Profile Header Banner (Resident-style) ── */}
+      <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+        {/* Atmospheric banner with gradient and subtle decorative glows */}
+        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 lg:h-36">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-8 left-1/3 w-36 h-36 rounded-full bg-primary/10 blur-xl pointer-events-none" />
 
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={avatarUploading}
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-transform active:scale-95 cursor-pointer"
-              title="Change Profile Photo"
-            >
-              {avatarUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Camera className="w-4 h-4" />
-              )}
-            </button>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+          <div className="absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-md border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span>Active Collector</span>
           </div>
+        </div>
 
-          <div className="flex-1 text-center sm:text-left space-y-1.5">
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                {displayName}
-              </h1>
-              <Badge className="bg-primary/15 text-primary border-primary/20 text-xs">
-                Collector / Driver
-              </Badge>
+        {/* Avatar & Core Identity */}
+        <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
+          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <div className="relative group">
+                <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
+                  <AvatarImage src={profile?.avatar_url || ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl lg:text-3xl font-display">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-transform active:scale-95 cursor-pointer"
+                  title="Change profile photo"
+                >
+                  {avatarUploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              MENRO Candelaria · Solid Waste Management Division
-            </p>
-            <div className="flex items-center justify-center sm:justify-start gap-3 text-xs text-muted-foreground pt-1 flex-wrap">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Active Account
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5" /> {displayEmail}
-              </span>
+
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
+                <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground lg:text-2xl">
+                  {displayName}
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 w-fit mx-auto md:mx-0">
+                  Collector / Driver
+                </span>
+                {displayUsername && displayUsername !== "—" && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto md:mx-0">
+                    @{displayUsername}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:justify-start md:gap-x-4 md:gap-y-1.5 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-foreground/85">
+                    MENRO Candelaria · Solid Waste Management
+                  </span>
+                </div>
+                <span className="hidden md:inline text-border">•</span>
+                <div className="flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                  <span className="truncate">{displayEmail}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Assigned Truck & Equipment Card ── */}
-      <Section title="Assigned Vehicle & Equipment" icon={Truck}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Assigned Truck</p>
-            <p className="text-base font-bold text-foreground flex items-center gap-2">
-              <Truck className="w-4 h-4 text-primary" />
-              {driverData?.truck_name || "Truck A"}
-            </p>
-            <p className="text-xs text-muted-foreground font-mono">
-              Plate: {driverData?.truck_plate || "GHW 1234"}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Vehicle Status</p>
-            <div className="pt-0.5">
-              <Badge className={driverData?.truck_availability === "UNDER_MAINTENANCE"
-                ? "bg-destructive/15 text-destructive border-destructive/25 text-xs font-semibold"
-                : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 dark:bg-emerald-500/20 text-xs font-semibold"
-              }>
-                {driverData?.truck_availability === "UNDER_MAINTENANCE" ? "Under Maintenance" : "Operational / Ready"}
-              </Badge>
+      {/* ── 2. Assigned Vehicle & Equipment ── */}
+      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+              <Truck className="w-4 h-4" />
             </div>
-            <p className="text-[11px] text-muted-foreground pt-0.5">
-              Assigned by MENRO Supervisor
+            <div>
+              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+                Assigned vehicle & equipment
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Current truck assignment and operational fleet status
+              </p>
+            </div>
+          </div>
+          {hasAssignedTruck && (
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
+                isUnderMaintenance
+                  ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/25"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isUnderMaintenance ? "bg-rose-500" : "bg-emerald-500"
+                }`}
+              />
+              {isUnderMaintenance ? "Under maintenance" : "Operational / Ready"}
+            </span>
+          )}
+        </div>
+
+        {hasAssignedTruck ? (
+          <div className="space-y-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Vehicle plate number
+                </p>
+                <p className="text-base sm:text-lg font-bold font-display text-foreground font-mono">
+                  {truckPlate}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Unit designation
+                </p>
+                <p className="text-base sm:text-lg font-bold font-display text-foreground">
+                  {truckName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+              <p className="text-xs text-muted-foreground text-center sm:text-left">
+                Assigned by MENRO Candelaria Fleet Operations
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBreakdownModal(true)}
+                className="w-full sm:w-auto h-9 px-4 gap-1.5 rounded-xl text-xs font-semibold border-amber-500/30 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer shadow-2xs"
+              >
+                <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>Report truck issue</span>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
+            <p className="text-sm font-semibold text-foreground">
+              No vehicle currently assigned
             </p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Your supervisor will assign a collection truck to your account before scheduled route shifts.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. Personal Information (Resident-style) ── */}
+      <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
+        <div className="flex items-center justify-between pb-2 border-b border-border/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <User className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+                Personal Information
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Manage your profile details and security credentials
+              </p>
+            </div>
+          </div>
+          <span className="hidden md:inline-block text-[11px] font-medium text-muted-foreground">
+            Tap edit to update
+          </span>
+        </div>
+
+        <div className="divide-y divide-border/50">
+          <FieldRow
+            label="Full Name"
+            value={displayName}
+            icon={User}
+            onEdit={() =>
+              setEditModal({
+                open: true,
+                field: "full_name",
+                label: "Full Name",
+                value: displayName,
+                saving: false,
+                error: "",
+              })
+            }
+          />
+          <FieldRow
+            label="Username"
+            value={displayUsername}
+            icon={AtSign}
+            onEdit={() =>
+              setEditModal({
+                open: true,
+                field: "username",
+                label: "Username",
+                value: displayUsername,
+                saving: false,
+                error: "",
+              })
+            }
+          />
+          <FieldRow
+            label="Email Address"
+            value={displayEmail}
+            icon={Mail}
+            isEmail
+          />
+          <FieldRow
+            label="Phone Number"
+            value={displayPhone}
+            icon={Phone}
+            placeholder="No phone number added"
+            onEdit={() =>
+              setEditModal({
+                open: true,
+                field: "phone",
+                label: "Phone Number",
+                value: displayPhone,
+                saving: false,
+                error: "",
+              })
+            }
+          />
+          <FieldRow
+            label="Security Password"
+            value=""
+            icon={Lock}
+            masked
+            onEdit={() =>
+              setPwModal((m) => ({
+                ...m,
+                open: true,
+                oldPw: "",
+                newPw: "",
+                confirmPw: "",
+                error: "",
+              }))
+            }
+          />
+        </div>
+      </div>
+
+      {/* ── 4. Dispatch & Emergency Support ── */}
+      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+              <Headphones className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+                Dispatch & emergency support
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Municipal contacts for route assistance, dispatch updates, and towing
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="pt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setBreakdownModal(true)}
-            className="w-full text-xs h-9 gap-1.5 border-yellow-500/40 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/10 rounded-xl cursor-pointer"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-3.5 sm:p-4 rounded-xl border border-border/60 bg-muted/30 flex items-center justify-between gap-3">
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 truncate">
+                <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>MENRO Candelaria Office</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                Municipal Hall Compound, Candelaria
+              </p>
+            </div>
+            <a
+              href="tel:0425854111"
+              className="inline-flex items-center gap-1 text-xs font-mono font-bold text-primary hover:underline shrink-0 bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded-lg transition-colors"
+            >
+              (042) 585-4111
+            </a>
+          </div>
+
+          <div className="p-3.5 sm:p-4 rounded-xl border border-amber-500/25 bg-amber-500/5 flex items-center justify-between gap-3">
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 truncate">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Dispatch Emergency Line</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                Route assistance & emergency towing
+              </p>
+            </div>
+            <a
+              href="tel:+639171234567"
+              className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-800 dark:text-amber-300 hover:underline shrink-0 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 rounded-lg transition-colors"
+            >
+              +63 917 123 4567
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 5. Actions / Log Out ── */}
+      <div className="space-y-3 pb-8">
+        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => {
+              void handleLogout();
+            }}
+            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
           >
-            <Wrench className="w-3.5 h-3.5" />
-            Report Issue with Assigned Truck
-          </Button>
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
+                <LogOut className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                  Log Out
+                </p>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                  Sign out of your session on this device
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors ml-4">
+              <span className="hidden lg:inline text-xs font-medium">Sign Out</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </button>
         </div>
-      </Section>
 
-      {/* ── Contact & Personal Details ── */}
-      <Section title="Personal Information" icon={User}>
-        <FieldRow
-          label="Full Name"
-          value={displayName}
-          icon={User}
-          onEdit={() => setEditModal({ open: true, field: "full_name", value: displayName, saving: false, error: "" })}
-        />
-        <FieldRow
-          label="Phone Number"
-          value={displayPhone}
-          icon={Phone}
-          onEdit={() => setEditModal({ open: true, field: "phone", value: displayPhone, saving: false, error: "" })}
-        />
-        <FieldRow
-          label="Email Address"
-          value={displayEmail}
-          icon={Mail}
-        />
-        <FieldRow
-          label="Username"
-          value={profile?.username || authUser?.username || "—"}
-          icon={Shield}
-        />
-      </Section>
-
-      {/* ── Account Security ── */}
-      <Section title="Account Security" icon={Lock}>
-        <FieldRow
-          label="Password"
-          value="••••••••"
-          icon={Lock}
-          masked
-          onEdit={() => setPwModal((m) => ({ ...m, open: true, oldPw: "", newPw: "", confirmPw: "", error: "" }))}
-        />
-      </Section>
-
-      {/* ── MENRO Dispatch & Emergency Contacts ── */}
-      <Section title="MENRO Dispatch & Emergency Support" icon={Headphones}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1">
-            <p className="font-bold text-foreground flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-primary" /> MENRO Candelaria Office
-            </p>
-            <p className="text-muted-foreground">Municipal Hall Compound, Candelaria, Quezon</p>
-            <p className="text-primary font-mono font-semibold pt-1">(042) 585-4111</p>
-          </div>
-
-          <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1">
-            <p className="font-bold text-foreground flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Dispatch Emergency Line
-            </p>
-            <p className="text-muted-foreground">For route assistance & towing</p>
-            <p className="text-amber-700 dark:text-amber-400 font-mono font-semibold pt-1">+63 917 123 4567</p>
-          </div>
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70 pt-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/60" />
+          <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
         </div>
-      </Section>
+      </div>
 
       {/* ── Edit Modal ── */}
-      <Dialog open={editModal.open} onOpenChange={(open) => setEditModal((m) => ({ ...m, open }))}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="capitalize">
-              Edit {editModal.field === "full_name" ? "Full Name" : editModal.field}
+      <Dialog
+        open={editModal.open}
+        onOpenChange={(open) => setEditModal((m) => ({ ...m, open }))}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xl bg-background">
+          <DialogHeader className="text-left space-y-1">
+            <DialogTitle className="text-base font-bold font-display text-foreground">
+              Edit {editModal.label.toLowerCase()}
             </DialogTitle>
-            <DialogDescription>Update your collector profile information.</DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Update your collector profile information. Changes are reflected across dispatch logs.
+            </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>New Value</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                {editModal.label}
+              </Label>
               <Input
                 value={editModal.value}
-                onChange={(e) => setEditModal((m) => ({ ...m, value: e.target.value, error: "" }))}
-                placeholder="Enter new value"
-                className="rounded-xl"
+                onChange={(e) =>
+                  setEditModal((m) => ({
+                    ...m,
+                    value: e.target.value,
+                    error: "",
+                  }))
+                }
+                placeholder={`Enter your ${editModal.label.toLowerCase()}`}
+                className="rounded-xl h-10 text-xs sm:text-sm border-border/80"
               />
-              {editModal.error && <p className="text-xs text-destructive">{editModal.error}</p>}
+              {editModal.error && (
+                <p className="text-xs text-destructive font-medium">
+                  {editModal.error}
+                </p>
+              )}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditModal((m) => ({ ...m, open: false }))} className="rounded-xl">
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditModal((m) => ({ ...m, open: false }))}
+                className="rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSaveField} disabled={editModal.saving} className="rounded-xl">
-                {editModal.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+              <Button
+                type="button"
+                onClick={handleSaveField}
+                disabled={editModal.saving}
+                className="rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer"
+              >
+                {editModal.saving ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </span>
+                ) : (
+                  "Save changes"
+                )}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* ── Password Modal ── */}
-      <Dialog open={pwModal.open} onOpenChange={(open) => setPwModal((m) => ({ ...m, open }))}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>Enter your current password and a new secure password.</DialogDescription>
+      {/* ── Change Password Modal ── */}
+      <Dialog
+        open={pwModal.open}
+        onOpenChange={(open) => setPwModal((m) => ({ ...m, open }))}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xl bg-background">
+          <DialogHeader className="text-left space-y-1">
+            <DialogTitle className="text-base font-bold font-display text-foreground">
+              Change password
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Enter your current password followed by your new password.
+            </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3.5 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Current Password</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                Current password
+              </Label>
               <div className="relative">
                 <Input
                   type={pwModal.showOld ? "text" : "password"}
                   value={pwModal.oldPw}
-                  onChange={(e) => setPwModal((m) => ({ ...m, oldPw: e.target.value, error: "" }))}
-                  className="rounded-xl pr-10"
+                  onChange={(e) =>
+                    setPwModal((m) => ({ ...m, oldPw: e.target.value, error: "" }))
+                  }
+                  className="rounded-xl h-10 text-xs sm:text-sm pr-10 border-border/80"
                 />
                 <button
                   type="button"
-                  onClick={() => setPwModal((m) => ({ ...m, showOld: !m.showOld }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    setPwModal((m) => ({ ...m, showOld: !m.showOld }))
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {pwModal.showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {pwModal.showOld ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">New Password</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                New password
+              </Label>
               <div className="relative">
                 <Input
                   type={pwModal.showNew ? "text" : "password"}
                   value={pwModal.newPw}
-                  onChange={(e) => setPwModal((m) => ({ ...m, newPw: e.target.value, error: "" }))}
-                  className="rounded-xl pr-10"
+                  onChange={(e) =>
+                    setPwModal((m) => ({ ...m, newPw: e.target.value, error: "" }))
+                  }
+                  className="rounded-xl h-10 text-xs sm:text-sm pr-10 border-border/80"
                 />
                 <button
                   type="button"
-                  onClick={() => setPwModal((m) => ({ ...m, showNew: !m.showNew }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    setPwModal((m) => ({ ...m, showNew: !m.showNew }))
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {pwModal.showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {pwModal.showNew ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Confirm New Password</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                Confirm new password
+              </Label>
               <Input
                 type="password"
                 value={pwModal.confirmPw}
-                onChange={(e) => setPwModal((m) => ({ ...m, confirmPw: e.target.value, error: "" }))}
-                className="rounded-xl"
+                onChange={(e) =>
+                  setPwModal((m) => ({
+                    ...m,
+                    confirmPw: e.target.value,
+                    error: "",
+                  }))
+                }
+                className="rounded-xl h-10 text-xs sm:text-sm border-border/80"
               />
             </div>
 
-            {pwModal.error && <p className="text-xs text-destructive">{pwModal.error}</p>}
+            {pwModal.error && (
+              <p className="text-xs text-destructive font-medium">
+                {pwModal.error}
+              </p>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setPwModal((m) => ({ ...m, open: false }))} className="rounded-xl">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPwModal((m) => ({ ...m, open: false }))}
+                className="rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSavePassword} disabled={pwModal.saving} className="rounded-xl">
-                {pwModal.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}
+              <Button
+                type="button"
+                onClick={handleSavePassword}
+                disabled={pwModal.saving}
+                className="rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer"
+              >
+                {pwModal.saving ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating...</span>
+                  </span>
+                ) : (
+                  "Update password"
+                )}
               </Button>
             </div>
           </div>
@@ -559,52 +977,77 @@ const CollectorProfile = () => {
 
       {/* ── Truck Breakdown Report Modal ── */}
       <Dialog open={breakdownModal} onOpenChange={setBreakdownModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-yellow-600">
-              <AlertTriangle className="w-5 h-5" /> Report Truck Issue
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xl bg-background">
+          <DialogHeader className="text-left space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-base font-bold font-display text-foreground">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <span>Report truck issue</span>
             </DialogTitle>
-            <DialogDescription>
-              Submit an urgent breakdown notice for your assigned truck ({driverData?.truck_name || "Truck A"}).
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Submit an urgent maintenance notice for your assigned truck{" "}
+              <strong className="font-semibold text-foreground">
+                ({truckPlate || truckName})
+              </strong>
+              .
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+
+          <div className="space-y-3.5 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Issue Type</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                Issue category
+              </Label>
               <select
                 value={breakdownReason}
                 onChange={(e) => setBreakdownReason(e.target.value)}
-                className="w-full h-9 rounded-xl border border-border bg-background px-3 text-xs"
+                className="w-full h-10 rounded-xl border border-border/80 bg-background px-3 text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20"
               >
-                <option value="Flat Tire / Puncture">Flat Tire / Puncture</option>
-                <option value="Engine Overheating">Engine Overheating / Stall</option>
-                <option value="Compactor Hydraulic Failure">Compactor Hydraulic Failure</option>
-                <option value="Brake / Steering Issue">Brake / Steering Issue</option>
-                <option value="Fuel / Oil Leak">Fuel / Oil Leak</option>
-                <option value="Road Accident">Road Accident / Minor Collision</option>
+                <option value="Flat Tire / Puncture">Flat tire / Puncture</option>
+                <option value="Engine Overheating">Engine overheating / Stall</option>
+                <option value="Compactor Hydraulic Failure">Compactor hydraulic failure</option>
+                <option value="Brake / Steering Issue">Brake / Steering issue</option>
+                <option value="Fuel / Oil Leak">Fuel / Oil leak</option>
+                <option value="Road Accident">Road accident / Minor collision</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Location & Details (Optional)</Label>
+              <Label className="text-xs font-semibold text-foreground">
+                Location & details (optional)
+              </Label>
               <Input
                 value={breakdownNote}
                 onChange={(e) => setBreakdownNote(e.target.value)}
-                placeholder="e.g. Near Barangay Malabanban Norte church"
-                className="rounded-xl text-xs"
+                placeholder="e.g. Near Barangay Malabanban Norte chapel"
+                className="rounded-xl h-10 text-xs sm:text-sm border-border/80"
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setBreakdownModal(false)} className="rounded-xl text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setBreakdownModal(false)}
+                className="rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer"
+              >
                 Cancel
               </Button>
               <Button
+                type="button"
                 onClick={handleReportBreakdown}
                 disabled={reportingBreakdown}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl text-xs"
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-10 px-4 text-xs font-semibold cursor-pointer shadow-xs"
               >
-                {reportingBreakdown ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Alert to Dispatch"}
+                {reportingBreakdown ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Submitting...</span>
+                  </span>
+                ) : (
+                  "Send alert to dispatch"
+                )}
               </Button>
             </div>
           </div>

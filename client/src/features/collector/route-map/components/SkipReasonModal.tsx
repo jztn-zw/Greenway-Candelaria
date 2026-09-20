@@ -52,7 +52,7 @@ const SkipReasonModal = ({
               <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4" />
               </span>
-              Skip Stop
+              Skip checkpoint
             </DialogTitle>
           </DialogHeader>
           <button
@@ -107,7 +107,7 @@ const SkipReasonModal = ({
             className="h-9 px-4 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
             onClick={handleConfirm}
           >
-            Confirm Skip
+            Confirm skip
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Map,
+  CalendarDays,
   History,
   Bell,
   LogOut,
@@ -46,17 +47,18 @@ import { cn } from "@/lib/utils";
 const navGroups = [
   {
     label: "OVERVIEW",
-    items: [{ title: "Dashboard", url: "/collector", icon: LayoutDashboard }],
+    items: [{ title: "Collector dashboard", url: "/collector", icon: LayoutDashboard }],
   },
   {
     label: "OPERATIONS",
     items: [
-      { title: "Route & Map", url: "/collector/route-map", icon: Map },
+      { title: "Live route tracking", url: "/collector/route-map", icon: Map },
+      { title: "Schedule", url: "/collector/schedule", icon: CalendarDays },
       { title: "Route History", url: "/collector/route-history", icon: History },
     ],
   },
   {
-    label: "NOTIFICATION",
+    label: "NOTIFICATIONS",
     items: [
       { title: "Notifications", url: "/collector/notifications", icon: Bell },
     ],

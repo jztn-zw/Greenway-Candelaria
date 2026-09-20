@@ -65,17 +65,6 @@ const typeIcons: Record<string, React.ElementType> = {
   SYSTEM: Bell,
 };
 
-const typeLabels: Record<string, string> = {
-  COLLECTION_REMINDER: "Collection",
-  TRUCK_IS_NEAR: "Fleet",
-  COLLECTION_DONE: "Done",
-  MISSED_COLLECTION: "Alert",
-  ANNOUNCEMENT: "Announcement",
-  REPORT_UPDATE: "Report",
-  NEW_POST: "Content",
-  SYSTEM: "System",
-};
-
 const AdminNotifications: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -300,10 +289,7 @@ const AdminNotifications: React.FC = () => {
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                        {typeLabels[n.type] || "Alert"}
-                      </span>
+                    <div className="min-w-0">
                       <h3
                         className={`text-sm font-semibold truncate ${
                           isUnread

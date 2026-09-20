@@ -271,13 +271,24 @@ const AdminCollectionSchedule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2">
             <CalendarGrid
+              className="lg:h-[620px]"
+              fillHeight
+              compactMobileCells
               currentDate={currentDate}
               selectedDateStr={selectedDateStr}
               events={filteredEvents}
               scheduleColorById={scheduleColorById}
               onSelectDate={setSelectedDateStr}
-              onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-              onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+              onPrevMonth={() => {
+                const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+                setCurrentDate(previousMonth);
+                setSelectedDateStr(`${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, "0")}-01`);
+              }}
+              onNextMonth={() => {
+                const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+                setCurrentDate(nextMonth);
+                setSelectedDateStr(`${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`);
+              }}
               onGoToday={() => {
                 const today = new Date();
                 setCurrentDate(today);
@@ -285,6 +296,7 @@ const AdminCollectionSchedule: React.FC = () => {
                   `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
                 );
               }}
+              hideTodayButtonWhenOtherDateSelected
             />
           </div>
 

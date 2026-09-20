@@ -300,8 +300,14 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     const truckIcon = createCollectorTruckPinIcon();
     L.marker(truckCoords, { icon: truckIcon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
 
-    // Auto-fit only on first load or when stop set changes, and only if user did not manually interact
-    if (!hasAutoFittedRef.current && !userInteractedRef.current) {
+    // On smaller screens, preserve the collector's map position instead of
+    // automatically moving the viewport as route data refreshes. The manual
+    // Recenter and Fit Route controls remain available at every screen size.
+    const isSmallScreen = window.matchMedia("(max-width: 767px)").matches;
+
+    // Auto-fit only on larger screens, on first load or when stop set changes,
+    // and only if the collector has not manually interacted with the map.
+    if (!isSmallScreen && !hasAutoFittedRef.current && !userInteractedRef.current) {
       const bounds = L.latLngBounds([...allCoords, truckCoords]);
       if (bounds.isValid()) {
         map.fitBounds(bounds, {

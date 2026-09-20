@@ -20,7 +20,6 @@ import { AlertTriangle } from "lucide-react";
 const AdminDashboard = () => {
   const {
     isLoading,
-    isRefreshing,
     error,
     overview,
     reportsAnalytics,
@@ -31,7 +30,6 @@ const AdminDashboard = () => {
     barangays,
     routes,
     attention,
-    refetch,
   } = useAdminDashboard();
 
   if (isLoading) {
@@ -50,7 +48,7 @@ const AdminDashboard = () => {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
       {/* ── 1. Executive Hero Header ── */}
-      <DashboardHeader isRefreshing={isRefreshing} onRefresh={refetch} />
+      <DashboardHeader />
 
       {error && (
         <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">

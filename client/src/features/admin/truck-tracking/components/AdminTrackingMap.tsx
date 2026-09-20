@@ -371,14 +371,15 @@ const AdminTrackingMap = ({
   }, [passedActiveTruck, trucks, focusedTruckId]);
 
   const isAllCompleted = useMemo(
-    () =>
-      trucks.length > 0 &&
-      trucks.every(
-        (t) =>
-          t.status === "offline" ||
-          t.status === "done" ||
-          (t.totalBarangays > 0 && t.completedBarangays >= t.totalBarangays),
-      ),
+    () => {
+      const trucksWithRoutes = trucks.filter((truck) => truck.totalBarangays > 0);
+      return (
+        trucksWithRoutes.length > 0 &&
+        trucksWithRoutes.every(
+          (truck) => truck.completedBarangays >= truck.totalBarangays,
+        )
+      );
+    },
     [trucks],
   );
 

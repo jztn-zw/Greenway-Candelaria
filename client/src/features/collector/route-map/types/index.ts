@@ -22,7 +22,7 @@ export interface RouteInfo {
   totalStops: number;
   startedAt: Date;
   collectionStartedAt: Date | null;
-  routeStatus: "ACTIVE" | "PAUSED" | "INACTIVE";
+  routeStatus: "SCHEDULED" | "ACTIVE" | "PAUSED" | "COMPLETED" | "PARTIAL" | "CANCELLED";
 }
 
 export type SkipReason =

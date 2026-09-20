@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   Calendar as CalendarIcon,
   MoreHorizontal,
@@ -10,13 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CalendarEvent } from "@/services/scheduleService";
+import { cn } from "@/lib/utils";
 
 interface SelectedDayPanelProps {
   selectedDateStr: string;
   events: CalendarEvent[];
   scheduleColorById: Map<string, string>;
-  onEditEvent: (event: CalendarEvent) => void;
-  onDeleteEvent: (event: CalendarEvent) => void;
+  onEditEvent?: (event: CalendarEvent) => void;
+  onDeleteEvent?: (event: CalendarEvent) => void;
+  className?: string;
 }
 
 export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
@@ -25,6 +27,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
   scheduleColorById,
   onEditEvent,
   onDeleteEvent,
+  className,
 }) => {
   const dateObj = new Date(selectedDateStr + "T00:00:00");
   const formattedDate = !isNaN(dateObj.getTime())
@@ -40,9 +43,14 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
   const formatShortDate = (value: string) => new Date(`${value.split("T")[0]}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col h-[620px] max-h-[72vh] overflow-hidden">
+    <div
+      className={cn(
+        "bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col overflow-hidden min-h-[340px] max-h-[480px] lg:max-h-none lg:h-[620px]",
+        className
+      )}
+    >
       {/* Header */}
-      <div className="pb-3.5 mb-3.5 border-b border-border/60">
+      <div className="pb-3.5 mb-3.5 border-b border-border/60 shrink-0">
         <h3 className="text-sm sm:text-base font-bold text-foreground font-display">
           {formattedDate}
         </h3>
@@ -61,7 +69,9 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
             <div className="space-y-0.5">
               <p className="text-xs font-bold text-foreground">No events on this day</p>
               <p className="text-[11px] text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
-                Click "New Schedule / Event" above to create an internal task or public drive.
+                {onEditEvent
+                  ? 'Click "New Internal Schedule" above to create an internal task or public drive.'
+                  : "No collection duties or events scheduled for this date."}
               </p>
             </div>
           </div>
@@ -83,17 +93,19 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                       </h4>
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button type="button" className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors" title="Schedule actions">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-28">
-                      <DropdownMenuItem onClick={() => onEditEvent(evt)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDeleteEvent(evt)} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {onEditEvent && onDeleteEvent && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors" title="Schedule actions">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-28">
+                        <DropdownMenuItem onClick={() => onEditEvent(evt)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDeleteEvent(evt)} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
                 {evt.description && (

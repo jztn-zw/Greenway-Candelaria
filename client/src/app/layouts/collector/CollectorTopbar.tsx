@@ -5,11 +5,6 @@ import {
   Bell,
   Sun,
   Moon,
-  Route,
-  SkipForward,
-  CheckCircle2,
-  Shield,
-  MessageSquareText,
   CheckCheck,
   ChevronRight,
 } from "lucide-react";
@@ -19,25 +14,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
-
-const getCollectorNotificationStyle = (type: string) => {
-  switch (type) {
-    case "COLLECTION_REMINDER":
-      return { Icon: Route, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
-    case "MISSED_COLLECTION":
-      return { Icon: SkipForward, style: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" };
-    case "COLLECTION_DONE":
-      return { Icon: CheckCircle2, style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
-    case "REPORT_UPDATE":
-      return { Icon: MessageSquareText, style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
-    default:
-      return { Icon: Shield, style: "bg-primary/10 text-primary border-primary/20" };
-  }
-};
+import {
+  getCollectorNotificationDestination,
+  getCollectorNotificationTitle,
+  getCollectorNotificationVisual,
+} from "@/features/collector/notifications/notificationRouting";
 
 const COLLECTOR_PAGE_TITLES: Record<string, string> = {
   "/collector": "Driver Dashboard",
@@ -74,20 +58,26 @@ const CollectorTopBar = () => {
     setDark(nextDark);
   };
 
-  const handleNotificationClick = async (n: NotificationRow) => {
+  const handleNotificationClick = (n: NotificationRow) => {
     if (!n.is_read) {
-      await markAsRead(n.id);
+      void markAsRead(n.id);
     }
     setBellOpen(false);
 
-    if (n.ref_module === "routes") {
-      navigate("/collector/route-map");
+    if (n.ref_module === "driver-messages") {
+      window.dispatchEvent(new Event("collector:open-messages"));
+      return;
+    }
+
+    const destination = getCollectorNotificationDestination(n);
+    if (destination) {
+      navigate(destination);
     } else {
       navigate("/collector/notifications");
     }
   };
 
-  const recentNotifications = notifications.slice(0, 5);
+  const recentNotifications = notifications;
 
   return (
     <header className="h-14 border-b border-border/80 bg-background/95 backdrop-blur-md flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
@@ -185,7 +175,7 @@ const CollectorTopBar = () => {
             </div>
 
             {/* Notifications Scroll Area */}
-            <ScrollArea className="max-h-[380px]">
+            <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
               <div className="p-2 space-y-1">
                 {recentNotifications.length === 0 ? (
                   <div className="py-10 px-4 text-center">
@@ -197,7 +187,8 @@ const CollectorTopBar = () => {
                   </div>
                 ) : (
                   recentNotifications.map((n) => {
-                    const { Icon, style: avatarStyle } = getCollectorNotificationStyle(n.type);
+                    const { Icon, style: avatarStyle } = getCollectorNotificationVisual(n);
+                    const title = getCollectorNotificationTitle(n);
                     const isUnread = !n.is_read;
                     return (
                       <button
@@ -219,7 +210,7 @@ const CollectorTopBar = () => {
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-snug break-words">
-                              {n.title}
+                              {title}
                             </p>
                             {isUnread && (
                               <span className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20 shrink-0 mt-1" title="Unread" />
@@ -241,7 +232,7 @@ const CollectorTopBar = () => {
                   })
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Popover Footer */}
             <div className="border-t border-border/70 p-2 bg-muted/20">

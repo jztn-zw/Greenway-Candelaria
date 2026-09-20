@@ -3,27 +3,30 @@ import { useNavigate } from "react-router-dom";
 import {
   Bell,
   CheckCheck,
-  CalendarClock,
-  Truck,
-  CheckCircle2,
-  AlertTriangle,
-  Megaphone,
-  FileText,
   Trash2,
-  Route,
-  SkipForward,
+  Clock,
+  MoreHorizontal,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
 import { formatRelativeTime } from "@/utils/date";
 import CollectorNotificationModal from "./CollectorNotificationModal";
+import { NotificationsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import {
-  PageHeaderSkeleton,
-  NotificationsPageSkeleton,
-} from "@/components/PageLoadingSkeletons";
+  getCollectorNotificationCategory,
+  getCollectorNotificationDestination,
+  getCollectorNotificationTitle,
+  getCollectorNotificationVisual,
+} from "./notificationRouting";
 
 const PAGE_SIZE = 15;
 
@@ -35,36 +38,6 @@ const tabs: { key: CollectorCategory; label: string }[] = [
   { key: "dispatch", label: "Dispatch Alerts" },
   { key: "announcements", label: "Announcements" },
 ];
-
-const typeCategoryMap: Record<string, CollectorCategory> = {
-  COLLECTION_REMINDER: "routes",
-  TRUCK_IS_NEAR: "routes",
-  COLLECTION_DONE: "routes",
-  MISSED_COLLECTION: "routes",
-  REPORT_UPDATE: "dispatch",
-  SYSTEM: "dispatch",
-  ANNOUNCEMENT: "announcements",
-};
-
-const typeIcons: Record<string, React.ElementType> = {
-  COLLECTION_REMINDER: Route,
-  TRUCK_IS_NEAR: Truck,
-  COLLECTION_DONE: CheckCircle2,
-  MISSED_COLLECTION: SkipForward,
-  REPORT_UPDATE: FileText,
-  ANNOUNCEMENT: Megaphone,
-  SYSTEM: Bell,
-};
-
-const typeLabels: Record<string, string> = {
-  COLLECTION_REMINDER: "Schedule",
-  TRUCK_IS_NEAR: "Proximity",
-  COLLECTION_DONE: "Done",
-  MISSED_COLLECTION: "Skipped",
-  REPORT_UPDATE: "Dispatch",
-  ANNOUNCEMENT: "Announcement",
-  SYSTEM: "System",
-};
 
 const CollectorNotifications = () => {
   const navigate = useNavigate();
@@ -130,7 +103,7 @@ const CollectorNotifications = () => {
 
   const filtered = useMemo(() => {
     if (activeTab === "all") return notifications;
-    return notifications.filter((n) => typeCategoryMap[n.type] === activeTab);
+    return notifications.filter((n) => getCollectorNotificationCategory(n) === activeTab);
   }, [notifications, activeTab]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -142,21 +115,27 @@ const CollectorNotifications = () => {
   const tabUnread = (cat: CollectorCategory) => {
     if (cat === "all") return unreadCount;
     return notifications.filter(
-      (n) => !n.is_read && typeCategoryMap[n.type] === cat,
+      (n) => !n.is_read && getCollectorNotificationCategory(n) === cat,
     ).length;
   };
 
-  const handleClick = async (n: NotificationRow) => {
+  const handleClick = (n: NotificationRow) => {
     if (!n.is_read) {
-      await markAsRead(n.id);
+      void markAsRead(n.id);
     }
 
-    if (n.ref_module === "routes") {
-      navigate("/collector/route-map");
+    if (n.ref_module === "driver-messages") {
+      window.dispatchEvent(new Event("collector:open-messages"));
+      return;
+    }
+
+    const destination = getCollectorNotificationDestination(n);
+    if (destination) {
+      navigate(destination);
     } else {
       setModalNotification({
         id: n.id,
-        title: n.title,
+        title: getCollectorNotificationTitle(n),
         message: n.body,
         time: formatRelativeTime(n.created_at),
         type: n.type.toLowerCase().replace("_", "-") as any,
@@ -170,39 +149,35 @@ const CollectorNotifications = () => {
   }
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 animate-in fade-in duration-300">
+    <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
       {/* ── Page Header ── */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 shadow-sm">
-          <Bell className="w-5 h-5 text-primary" />
-        </div>
+      <div className="hidden items-center justify-between gap-4 lg:flex">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
-              Notifications
-            </h1>
-            {unreadCount > 0 && (
-              <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full border border-primary/20">
-                {unreadCount} unread
-              </span>
-            )}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">Notifications</h1>
+            {unreadCount > 0 && <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full border border-primary/20 shadow-2xs">{unreadCount} unread</span>}
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Live route alerts, dispatch updates, and municipal announcements
-          </p>
+          <p className="text-xs lg:text-sm text-muted-foreground mt-1">Live route alerts, dispatch updates, and municipal announcements</p>
         </div>
+        {(unreadCount > 0 || notifications.length > 0) && (
+          <div className="flex items-center gap-2 shrink-0">
+            {unreadCount > 0 && <Button variant="outline" size="sm" onClick={markAllAsRead} className="gap-1.5 text-xs h-9 px-3 rounded-xl border-border/80 bg-card hover:bg-muted/70 text-foreground font-semibold shadow-2xs transition-all active:scale-[0.98] cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
+            {notifications.length > 0 && <Button variant="ghost" size="sm" onClick={clearAll} className="gap-1.5 text-xs h-9 px-3 rounded-xl border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold transition-all active:scale-[0.98] cursor-pointer"><Trash2 className="w-3.5 h-3.5" /><span>Clear all</span></Button>}
+          </div>
+        )}
       </div>
 
       {/* ── Category Filter Tabs (Smooth native mobile scroll + slide drag) ── */}
-      <div
-        ref={tabsContainerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none pr-4 -mx-1 px-1 touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
-      >
-        {tabs.map((tab) => {
+      <div className="flex items-center gap-2">
+        <div
+          ref={tabsContainerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth lg:pr-4"
+        >
+          {tabs.map((tab) => {
           const count = tabUnread(tab.key);
           const isActive = activeTab === tab.key;
           return (
@@ -232,102 +207,71 @@ const CollectorNotifications = () => {
               )}
             </button>
           );
-        })}
-      </div>
-
-      {/* ── Actions Row below Category Tabs (Right-aligned: Mark all read & Clear all) ── */}
-      {(unreadCount > 0 || notifications.length > 0) && (
-        <div className="flex items-center justify-end gap-2 px-1">
-          {unreadCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={markAllAsRead}
-              className="gap-1.5 text-xs h-8 px-3 rounded-xl border-border/80 bg-card hover:bg-muted/60 text-foreground font-semibold shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <CheckCheck className="w-3.5 h-3.5 text-primary" />
-              <span>Mark all read</span>
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAll}
-              className="gap-1.5 text-xs h-8 px-3 rounded-xl border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear all</span>
-            </Button>
-          )}
+          })}
         </div>
-      )}
+        {(unreadCount > 0 || notifications.length > 0) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="size-9 shrink-0 rounded-xl border-border/80 bg-card text-muted-foreground shadow-2xs lg:hidden" title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44 lg:hidden">
+              {unreadCount > 0 && <DropdownMenuItem onSelect={markAllAsRead} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark all as read</DropdownMenuItem>}
+              {notifications.length > 0 && <DropdownMenuItem onSelect={clearAll} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="h-3.5 w-3.5" />Clear all notifications</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
 
       {/* ── Notification List ── */}
       {paginated.length > 0 ? (
-        <Card className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60">
+        <div className="rounded-2xl border border-border/80 overflow-hidden divide-y divide-border/60 bg-card shadow-2xs">
           {paginated.map((n) => {
-            const Icon = typeIcons[n.type] || Bell;
+            const { Icon, style: iconStyle } = getCollectorNotificationVisual(n);
+            const title = getCollectorNotificationTitle(n);
             const isUnread = !n.is_read;
             return (
               <div
                 key={n.id}
                 onClick={() => handleClick(n)}
-                className={`p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-muted/40 transition-colors cursor-pointer ${
-                  isUnread ? "bg-primary/[0.03]" : ""
+                className={`group flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-muted/50 active:bg-muted/70 dark:hover:bg-muted/30 md:gap-4 md:p-4 lg:p-5 ${
+                  isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
                 }`}
               >
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 border border-primary/20 shadow-xs">
+                <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 group-hover:scale-105 ${iconStyle}`}>
                   <Icon className="w-5 h-5" />
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                        {typeLabels[n.type] || "Alert"}
-                      </span>
-                      <h3
-                        className={`text-sm truncate ${
-                          isUnread
-                            ? "text-foreground font-bold"
-                            : "text-foreground/90 font-medium"
-                        }`}
-                      >
-                        {n.title}
-                      </h3>
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatRelativeTime(n.created_at)}
-                    </span>
+                  <p className={`text-sm leading-snug break-words group-hover:text-primary transition-colors ${isUnread ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}>{title}</p>
+                  {n.body && <p className="break-words pt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-1 lg:line-clamp-2">{n.body}</p>}
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium pt-1">
+                    <Clock className="w-3 h-3 text-muted-foreground/70" />
+                    <span>{formatRelativeTime(n.created_at)}</span>
                   </div>
-
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {n.body}
-                  </p>
                 </div>
 
                 {isUnread && (
-                  <span className="w-2.5 h-2.5 bg-primary rounded-full shrink-0 mt-3" />
+                  <div className="flex items-center self-center shrink-0 pl-1" title="Unread notification"><span className="w-2.5 h-2.5 bg-primary rounded-full ring-4 ring-primary/15 shadow-xs" /></div>
                 )}
+                <div className="flex items-center self-center shrink-0 pl-1"><ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" /></div>
               </div>
             );
           })}
-        </Card>
+        </div>
       ) : (
-        <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-card/50">
-          <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-foreground">
+        <div className="p-16 text-center border border-dashed border-border/80 rounded-2xl bg-card/50 shadow-2xs">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary"><Bell className="w-6 h-6" /></div>
+          <h3 className="text-base font-bold font-display text-foreground">
             No driver alerts found
           </h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             Route dispatches, proximity alerts, and system updates will appear here in real-time.
           </p>
         </div>
       )}
 
       {/* ── Pagination ── */}
-      <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} />
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} variant="inline" />
 
       {/* ── Details Modal ── */}
       {modalNotification && (

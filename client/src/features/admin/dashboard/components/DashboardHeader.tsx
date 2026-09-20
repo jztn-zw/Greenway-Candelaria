@@ -36,12 +36,7 @@ const statusConfig: Record<SystemStatus, { label: string; icon: React.ElementTyp
   },
 };
 
-interface DashboardHeaderProps {
-  isRefreshing?: boolean;
-  onRefresh?: () => void;
-}
-
-const DashboardHeader = ({ isRefreshing = false, onRefresh }: DashboardHeaderProps) => {
+const DashboardHeader = () => {
   const [time, setTime] = useState(new Date());
   const navigate = useNavigate();
   const systemStatus: SystemStatus = "operational";

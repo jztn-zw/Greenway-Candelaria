@@ -190,11 +190,6 @@ export const useRouteData = (): UseRouteDataReturn => {
         ]);
         if (cancelled) return;
 
-        const routeStartAt = route ? parseRouteStartedAt(route.started_at) : null;
-        const isScheduleUnlocked = routeStartAt
-          ? routeStartAt.getTime() <= Date.now()
-          : true;
-
         if (!route) {
           setError("No active route assigned for today.");
           setStops([]);
@@ -204,25 +199,6 @@ export const useRouteData = (): UseRouteDataReturn => {
 
         if (isRouteFinished(route)) {
           setError("No active route assigned for today.");
-          setStops([]);
-          setRouteInfo(null);
-          return;
-        }
-
-        if (!isScheduleUnlocked) {
-          const scheduleDate = routeStartAt.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          });
-          const scheduleTime = routeStartAt.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-          setError(
-            `Collection is scheduled on ${scheduleDate} at ${scheduleTime}.`,
-          );
           setStops([]);
           setRouteInfo(null);
           return;
