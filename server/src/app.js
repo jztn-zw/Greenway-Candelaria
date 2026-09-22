@@ -16,7 +16,10 @@ app.use(helmet({ contentSecurityPolicy: false }));
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.CLIENT_URL_DEV
-];
+].filter(Boolean);
+
+const isLocalDevOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 
 app.use(
   cors({
@@ -24,7 +27,7 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
