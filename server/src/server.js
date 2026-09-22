@@ -18,7 +18,11 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
 const allowedOrigins = new Set(
-  [process.env.CLIENT_URL, process.env.CLIENT_URL_DEV].filter(Boolean),
+  [
+    process.env.CLIENT_URL,
+    process.env.CLIENT_URL_DEV,
+    process.env.CLIENT_URL_MOB,
+  ].filter(Boolean),
 );
 
 const isLocalDevOrigin = (origin) => {
