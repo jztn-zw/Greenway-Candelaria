@@ -21,6 +21,7 @@ export const safeFormatDate = (
     const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value || "";
     if (formatStr === "h:mm a") return `${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
     if (formatStr === "MMM d, h:mm a") return `${part("month")} ${part("day")}, ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
+    if (formatStr === "MMM d, yyyy · h:mm a") return `${part("month")} ${part("day")}, ${part("year")} · ${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
     if (formatStr === "yyyy-MM-dd HH:mm") {
       const numeric = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
       const numericPart = (type: Intl.DateTimeFormatPartTypes) => numeric.find((item) => item.type === type)?.value || "";

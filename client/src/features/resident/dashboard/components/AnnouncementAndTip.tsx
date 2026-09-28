@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useResidentQuery, useResidentFetch } from "@/lib/residentQuery";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ShieldCheck } from "lucide-react";
@@ -10,6 +11,12 @@ import {
 } from "@/services/announcementsService";
 import ResidentAnnouncementModal from "../../announcements/ResidentAnnouncementModal";
 import type { AnnouncementDetail } from "../../announcements/ResidentAnnouncementModal";
+import type { Announcement } from "@/features/admin/announcements/types";
+
+type ResidentAnnouncementListItem = Announcement & {
+  is_featured?: boolean | number;
+  featured?: boolean | number;
+};
 
 interface ActiveAnnouncement {
   id: string;
@@ -29,47 +36,18 @@ const formatNoticeType = (type?: string) => {
 
 const AnnouncementAndTip = () => {
   const navigate = useNavigate();
-  const [announcement, setAnnouncement] = useState<ActiveAnnouncement | null>(null);
-  const [loading, setLoading] = useState(true);
   const [announcementDetail, setAnnouncementDetail] =
     useState<AnnouncementDetail | null>(null);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchLatestAnnouncement = async () => {
-      try {
-        const list = await fetchAnnouncements({ status: "ACTIVE" });
-        if (mounted && Array.isArray(list) && list.length > 0) {
-          const featured =
-            list.find((item: any) => item.is_featured || item.featured) || list[0];
-
-          setAnnouncement({
-            id: featured.id,
-            title: featured.title,
-            body: featured.body || "Read official updates from MENRO Candelaria.",
-            type: formatNoticeType(featured.type),
-          });
-        } else if (mounted) {
-          setAnnouncement(null);
-        }
-      } catch {
-        if (mounted) {
-          setAnnouncement(null);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchLatestAnnouncement();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const announcementQuery = useResidentQuery("announcements", ["active"], () => fetchAnnouncements({ status: "ACTIVE" }));
+  const residentList = (announcementQuery.data ?? []) as ResidentAnnouncementListItem[];
+  const featured = residentList.find((item) => item.is_featured || item.featured) ?? residentList[0];
+  const announcement: ActiveAnnouncement | null = featured
+    ? { id: featured.id, title: featured.title, body: featured.body || "", type: formatNoticeType(featured.type) } : null;
+  const loading = announcementQuery.isLoading;
+  const loadFailed = announcementQuery.isError;
+  const fetchResident = useResidentFetch();
 
   const openAnnouncement = async () => {
     if (!announcement?.id) {
@@ -77,7 +55,7 @@ const AnnouncementAndTip = () => {
       return;
     }
     try {
-      const detail = await fetchAnnouncementById(announcement.id);
+      const detail = await fetchResident("announcements", ["detail", announcement.id], () => fetchAnnouncementById(announcement.id));
       setAnnouncementDetail(detail as AnnouncementDetail);
       setIsAnnouncementModalOpen(true);
     } catch {
@@ -129,10 +107,12 @@ const AnnouncementAndTip = () => {
               </div>
 
               <p className="text-sm lg:text-base font-bold text-foreground">
-                No Active Announcements
+                {loadFailed ? "Announcements unavailable" : "No Active Announcements"}
               </p>
               <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                There are no active bulletins or notices from MENRO Candelaria right now.
+                {loadFailed
+                  ? "Official notices could not be loaded right now."
+                  : "There are no active bulletins or notices from MENRO Candelaria right now."}
               </p>
             </div>
 

@@ -16,12 +16,6 @@ const getHandshakeToken = (socket) => {
 };
 
 const authenticateSocketUser = async (socket, allowedRoles = null) => {
-  const cachedUser = socket.data?.authUser;
-  const cachedExpiry = Number(socket.data?.authSessionExpiresAt || 0);
-  if (cachedUser && cachedExpiry > Date.now()) {
-    return !allowedRoles || allowedRoles.has(cachedUser.role) ? cachedUser : null;
-  }
-
   const token = getHandshakeToken(socket);
   if (!token) return null;
 
@@ -33,9 +27,11 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
          u.role,
          u.status,
          u.barangay_id,
-         s.expires_at
+         u.street_id,
+         d.truck_id AS assigned_truck_id
        FROM sessions s
        JOIN users u ON u.id = s.user_id
+       LEFT JOIN drivers d ON d.user_id = u.id
        WHERE s.token IN (?, ?)
          AND s.expires_at > NOW()
          AND u.id = ?
@@ -49,11 +45,6 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
     }
     if (allowedRoles && !allowedRoles.has(user.role)) return null;
 
-    const expiresAt = new Date(user.expires_at).getTime();
-    socket.data.authUser = user;
-    socket.data.authSessionExpiresAt = Number.isFinite(expiresAt)
-      ? expiresAt
-      : Date.now() + 60_000;
     return user;
   } catch {
     return null;

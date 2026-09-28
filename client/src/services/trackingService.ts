@@ -13,9 +13,9 @@ import authService from "@/services/authService";
 export interface LiveRow {
   truck_id: string;
   truck_name: string;
-  truck_plate: string;
+  truck_plate?: string;
   truck_status: string; // "ON_THE_WAY" | "OFFLINE" | "SCHEDULED" | "DONE"
-  driver_name: string;
+  driver_name?: string;
   latitude: number;
   longitude: number;
   last_ping: string; // ISO datetime
@@ -24,12 +24,13 @@ export interface LiveRow {
 export interface TruckRow {
   id: string;
   name: string;
-  plate_number: string;
+  plate_number?: string;
   status: string;
   waste_type?: string;
 }
 
 export interface DriverRow {
+  account_status?: string;
   id: string;
   user_id: string;
   full_name: string;
@@ -42,6 +43,10 @@ export interface RouteStopRow {
   id: string;
   barangay_id: string;
   barangay_name: string;
+  street_id?: string | null;
+  stop_name?: string | null;
+  coverage_path?: [number, number][] | string | null;
+  stops_before?: number;
   order_index: number;
   status: string; // "DONE" | "IN_PROGRESS" | "NOT_STARTED" | "SKIPPED"
   completed_at?: string | null;
@@ -53,6 +58,7 @@ export interface RouteStopRow {
 
 export interface TruckRouteRow {
   route_id: string;
+  template_route_id?: string | null;
   route_status?: string | null;
   truck_id: string;
   truck_name: string;
@@ -63,6 +69,8 @@ export interface TruckRouteRow {
   route_name?: string;
   started_at?: string;
   collection_started_at?: string | null;
+  paused_at?: string | null;
+  total_paused_seconds?: number;
   stops: RouteStopRow[];
   completed_stops: number;
   total_stops: number;
@@ -88,6 +96,9 @@ export interface RouteStopHistoryItem {
   skipped_reason?: string | null;
   barangay_id: string;
   barangay_name: string;
+  street_id?: string | null;
+  stop_name?: string | null;
+  coverage_path?: [number, number][] | string | null;
   latitude: number | string;
   longitude: number | string;
 }
@@ -99,8 +110,9 @@ export interface TruckHistoryData {
 
 export interface MissedCollectionRow {
   id: string;
-  status: "MISSED" | "SKIPPED";
+  status: "MISSED";
   event_at?: string | null;
+  run_date: string;
   reason?: string | null;
   barangay_id: string;
   barangay: string;
@@ -135,7 +147,7 @@ export interface AdminTrackingOverview {
 
 /**
  * GET /tracking/live
- * Returns latest GPS ping per truck. Public endpoint — no auth required.
+ * Returns latest GPS ping per truck for authenticated system roles.
  */
 export const fetchLiveTrucks = async (): Promise<LiveRow[]> => {
   const res = await api.get<{ data: LiveRow[] } | LiveRow[]>("/tracking/live");
@@ -151,7 +163,7 @@ export const fetchAdminTrackingOverview = async (): Promise<AdminTrackingOvervie
 
 /**
  * GET /trucks
- * Returns full list of trucks (id, name, plate, status, waste_type).
+ * Returns the authenticated role's truck list (id, name, plate, status, waste_type).
  */
 export const fetchAllTrucks = async (): Promise<TruckRow[]> => {
   const res = await api.get<{ data: TruckRow[] }>("/trucks");
@@ -172,21 +184,21 @@ export const fetchAllDrivers = async (): Promise<DriverRow[]> => {
  * Returns all GPS pings for a specific truck.
  * Requires ADMIN role.
  */
-export const fetchTruckHistory = async (
-  truckId: string,
-  date?: string,
-): Promise<TruckHistoryData> => {
-  const res = await api.get(`/tracking/${truckId}/history`, {
-    params: { date, limit: 5000 },
-  });
-  const data = res.data?.data;
-  if (Array.isArray(data)) {
-    return { logs: data, stops: [] };
-  }
-  return {
-    logs: Array.isArray(data?.logs) ? data.logs : [],
-    stops: Array.isArray(data?.stops) ? data.stops : [],
-  };
+export const fetchTruckHistory = async (truckId: string, date?: string): Promise<TruckHistoryData> => {
+  const logs: HistoryRow[] = [];
+  let stops: RouteStopHistoryItem[] = [];
+  let cursor: string | undefined;
+  const seen = new Set<string>();
+  do {
+    const res = await api.get(`/tracking/${truckId}/history`, { params: { date, limit: 5000, cursor } });
+    const data = res.data?.data;
+    logs.push(...(data?.logs ?? []));
+    stops = data?.stops ?? stops;
+    cursor = data?.next_cursor || undefined;
+    if (cursor && seen.has(cursor)) throw new Error("History pagination did not advance.");
+    if (cursor) seen.add(cursor);
+  } while (cursor);
+  return { logs, stops };
 };
 
 /**
@@ -213,18 +225,13 @@ export const fetchMissedCollections = async (
  * The driver sees only their own route; the backend filters by auth token.
  */
 export const fetchTodayRoutes = async (): Promise<TruckRouteRow[]> => {
-  try {
-    const res = await api.get<{ data: TruckRouteRow[] }>("/routes/today");
-    return res.data.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await api.get<{ data: TruckRouteRow[] }>("/routes/today");
+  return res.data.data ?? [];
 };
 
 /**
  * GET /routes/today/mine
- * Returns the authenticated driver's route for today (single route).
- * Falls back to fetchTodayRoutes()[0] if this endpoint doesn't exist.
+ * Returns the authenticated driver's current route for today, or null when none exists.
  */
 export const fetchMyRoute = async (): Promise<TruckRouteRow | null> => {
   const currentUser = authService.getCurrentUser();
@@ -233,12 +240,8 @@ export const fetchMyRoute = async (): Promise<TruckRouteRow | null> => {
     return null;
   }
 
-  try {
-    const res = await api.get<{ data: TruckRouteRow }>("/routes/today/mine");
-    return res.data.data ?? null;
-  } catch {
-    return null;
-  }
+  const res = await api.get<{ data: TruckRouteRow | null }>("/routes/today/mine");
+  return res.data.data;
 };
 
 // ─── New: Driver-facing API calls ─────────────────────────────────────────────
@@ -246,7 +249,7 @@ export const fetchMyRoute = async (): Promise<TruckRouteRow | null> => {
 /**
  * POST /tracking/ping
  * Driver sends their current GPS location.
- * Backend updates truck status to ON_THE_WAY.
+ * Backend accepts fresh samples only for the active, started run.
  *
  * @param truckId   - The truck assigned to this driver
  * @param latitude  - Current GPS latitude
@@ -256,6 +259,8 @@ export const pingLocation = async (
   truckId: string,
   latitude: number,
   longitude: number,
+  sample?: { route_run_id: string; sample_id: string; captured_at: string },
+  signal?: AbortSignal,
 ): Promise<void> => {
   const currentUser = authService.getCurrentUser();
   const role = String(currentUser?.role ?? "").toUpperCase();
@@ -263,7 +268,7 @@ export const pingLocation = async (
     return;
   }
 
-  await api.post("/tracking/ping", { truck_id: truckId, latitude, longitude });
+  await api.post("/tracking/ping", { truck_id: truckId, latitude, longitude, ...sample }, { signal });
 };
 
 /** Pause or resume the authenticated collector's current route. */
@@ -296,9 +301,10 @@ export const updateMyDriverStatusMessage = async (
 export const fetchMyDriverMessages = async (
   routeId?: string,
   limit = 100,
+  options?: { view: "collector"; message_id?: string },
 ): Promise<DriverMessageRow[]> => {
   const res = await api.get<{ data: DriverMessageRow[] }>("/drivers/me/messages", {
-    params: { limit, route_id: routeId },
+    params: { limit, route_id: routeId, ...options },
   });
   return res.data.data ?? [];
 };
@@ -311,7 +317,7 @@ export const fetchDriverMessagesForAdmin = async (
   const res = await api.get<{ data: DriverMessageRow[] }>(
     `/drivers/${driverId}/messages`,
     {
-      params: { limit, route_id: routeId },
+      params: { limit, route_id: routeId, view: "web" },
     },
   );
   return res.data.data ?? [];
@@ -319,8 +325,9 @@ export const fetchDriverMessagesForAdmin = async (
 
 export const markMyDriverMessagesAsRead = async (
   routeId?: string,
+  ids?: string[],
 ): Promise<void> => {
-  await api.put("/drivers/me/messages/read", { route_id: routeId });
+  await api.put("/drivers/me/messages/read", { route_id: routeId, ids });
 };
 /**
  * POST /drivers/messages
@@ -375,7 +382,7 @@ export const skipStop = async (
 
 /**
  * PATCH /routes/:routeId/end
- * End the current route. Backend sets route status to DONE and truck to OFFLINE.
+ * End the current route. Backend finalizes stop outcomes and derives COMPLETED or PARTIAL.
  *
  * @param routeId - The route to end
  */

@@ -12,6 +12,8 @@ router.put("/change-password", authenticate, controller.changePassword);
 router.post("/avatar", authenticate, uploadLimiter, uploadAvatar.single("avatar"), controller.uploadAvatar);
 router.get("/settings", authenticate, controller.getSettings);
 router.put("/settings", authenticate, controller.updateSettings);
+router.get("/admin-settings", authenticate, authorize("ADMIN"), controller.getAdminSettings);
+router.put("/admin-settings", authenticate, authorize("ADMIN"), controller.updateAdminSettings);
 
 
 // Admin routes

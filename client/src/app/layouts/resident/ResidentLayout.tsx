@@ -4,10 +4,13 @@ import ResidentTopBar from "./ResidentTopbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import PageTransition from "@/components/PageTransition";
 
+import ResidentLiveSync from "./ResidentLiveSync";
+
 const ResidentLayout = () => {
   return (
     <SidebarProvider mobileBreakpoint={1024}>
       <div className="min-h-screen flex w-full">
+        <ResidentLiveSync />
         <ResidentSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <ResidentTopBar />

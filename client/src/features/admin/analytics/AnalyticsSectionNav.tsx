@@ -1,14 +1,15 @@
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BarChart3, Building2, AlertTriangle, Users, Truck } from "lucide-react";
+import { LayoutDashboard, BarChart3, Building2, AlertTriangle, Users, Truck, CircleAlert } from "lucide-react";
 
 const sections = [
-  { id: "overview", label: "Executive Overview", icon: LayoutDashboard },
-  { id: "collection-performance", label: "Collections", icon: BarChart3 },
-  { id: "barangay-compliance", label: "Barangay Compliance", icon: Building2 },
-  { id: "waste-reports", label: "Reports & Incidents", icon: AlertTriangle },
-  { id: "resident-engagement", label: "Resident Engagement", icon: Users },
-  { id: "truck-driver", label: "Fleet & Drivers", icon: Truck },
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "collection-performance", label: "Collection efficiency", icon: BarChart3 },
+  { id: "missed-collections", label: "Missed collections", icon: CircleAlert },
+  { id: "waste-reports", label: "Reports & incidents", icon: AlertTriangle },
+  { id: "resident-engagement", label: "Residents", icon: Users },
+  { id: "truck-driver", label: "Driver operations", icon: Truck },
+  { id: "barangay-compliance", label: "Barangay coverage", icon: Building2 },
 ];
 
 interface Props {

@@ -314,7 +314,7 @@ const AuditLogTable = ({
                                   <span>Security & Origin Traceability</span>
                                 </div>
                                 <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                                  Tamper-Proof
+                                  Audit Record
                                 </span>
                               </div>
 

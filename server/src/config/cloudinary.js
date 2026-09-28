@@ -57,6 +57,35 @@ const uploadBufferToCloudinary = (buffer, options = {}) =>
     uploadStream.end(buffer);
   });
 
+const getCloudinaryPublicId = (url) => {
+  if (typeof url !== "string" || !url.trim()) return null;
+
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.endsWith("res.cloudinary.com")) return null;
+
+    const uploadMarker = "/upload/";
+    const markerIndex = parsed.pathname.indexOf(uploadMarker);
+    if (markerIndex === -1) return null;
+
+    let assetPath = decodeURIComponent(
+      parsed.pathname.slice(markerIndex + uploadMarker.length),
+    );
+    assetPath = assetPath.replace(/^v\d+\//, "");
+    assetPath = assetPath.replace(/\.[^/.]+$/, "");
+    return assetPath || null;
+  } catch {
+    return null;
+  }
+};
+
+const deleteCloudinaryImage = async (url) => {
+  const publicId = getCloudinaryPublicId(url);
+  if (!publicId) return false;
+  await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+  return true;
+};
+
 // The existing routes and file-size limits remain unchanged.
 const upload = createImageUploader(10 * 1024 * 1024);
 const uploadReports = createImageUploader(10 * 1024 * 1024, 5);
@@ -68,5 +97,7 @@ module.exports = {
   uploadReports,
   uploadAvatar,
   uploadBufferToCloudinary,
+  deleteCloudinaryImage,
+  getCloudinaryPublicId,
 };
 

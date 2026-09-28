@@ -1,45 +1,43 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import {
+KPIRowSkeleton,
+PageHeaderSkeleton,
+SplitPanelSkeleton,
+ToolbarSkeleton,
+} from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Download, FileText, RefreshCw, AlertTriangle } from "lucide-react";
-import ReportKPIs from "./ReportKPIs";
-import ReportFilters from "./ReportFilters";
-import ReportListTable from "./ReportListTable";
-import ReportDetailPanel from "./ReportDetailPanel";
 import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
+Sheet,
+SheetContent,
+SheetDescription,
+SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  WasteReport,
-  VIOLATION_TYPE_TO_LABEL,
-  VIOLATION_LABEL_TO_BACKEND,
-  STATUS_TO_LABEL,
-  STATUS_LABEL_TO_BACKEND,
-  safeFormatDate,
-} from "./types";
+import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
-  PageHeaderSkeleton,
-  KPIRowSkeleton,
-  ToolbarSkeleton,
-  SplitPanelSkeleton,
-} from "@/components/PageLoadingSkeletons";
-import {
-  fetchAdminReports,
-  fetchAdminReportById,
-  updateAdminReportStatus,
-  flagAdminReport,
-  addAdminReportNote,
-  deleteReport,
-  type AdminReportItem,
-  type AdminReportsKPIs,
+addAdminReportNote as apiaddAdminReportNote,
+deleteReport as apideleteReport,
+flagAdminReport as apiflagAdminReport,
+updateAdminReportStatus as apiupdateAdminReportStatus,
+fetchAdminReportById,
+fetchAdminReports,
+type AdminReportItem,
+type AdminReportsKPIs,
+type AdminReportsParams,
 } from "@/services/reportsService";
-import { format } from "date-fns";
-
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import ReportDetailPanel from "./ReportDetailPanel";
+import ReportFilters from "./ReportFilters";
+import ReportKPIs from "./ReportKPIs";
+import ReportListTable from "./ReportListTable";
+import {
+STATUS_LABEL_TO_BACKEND,
+STATUS_TO_LABEL,
+VIOLATION_LABEL_TO_BACKEND,
+VIOLATION_TYPE_TO_LABEL,
+WasteReport,
+} from "./types";
 const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   id: r.id,
   referenceNumber: r.reference_number,
@@ -79,10 +77,11 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
 });
 
 const AdminWasteReports = () => {
+  const updateAdminReportStatus = useAdminMutation(apiupdateAdminReportStatus, "reports", "residents", "notifications");
+  const addAdminReportNote = useAdminMutation(apiaddAdminReportNote, "reports", "residents", "notifications");
+  const flagAdminReport = useAdminMutation(apiflagAdminReport, "reports", "residents", "notifications");
+  const deleteReport = useAdminMutation(apideleteReport, "reports", "residents", "notifications");
   const [searchParams] = useSearchParams();
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isTableLoading, setIsTableLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // List data
   const [reports, setReports] = useState<WasteReport[]>([]);
@@ -91,8 +90,10 @@ const AdminWasteReports = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
 
+
   // Filter state
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [appliedSearch, setAppliedSearch] = useState(() => searchParams.get("search") ?? "");
   const [violationFilter, setViolationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [barangayFilter, setBarangayFilter] = useState("all");
@@ -102,136 +103,91 @@ const AdminWasteReports = () => {
   // Selection & Detail state
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<WasteReport | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isFlagDialogOpen, setIsFlagDialogOpen] = useState(false);
   const notificationReportId = searchParams.get("report");
 
-  // Search debounce ref
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailVersionRef = useRef(0);
+  const openedNotificationIdRef = useRef<string | null>(null);
 
-  // Load reports from API
-  const loadReports = useCallback(
-    async (currentPage = page, currentSearch = search) => {
-      setIsTableLoading(true);
-      setError(null);
-      try {
-        const params: Record<string, string | number> = {
-          page: currentPage,
-          limit: 10,
-          sort: sortBy,
-        };
+  const closeReport = () => {
+    detailVersionRef.current += 1;
+    setSelectedId(null);
+    setSelectedReport(null);
+  };
 
-        if (currentSearch.trim()) {
-          params.search = currentSearch.trim();
-        }
+  const buildReportParams = useCallback((requestedPage: number, limit: number): AdminReportsParams => {
+    const params: AdminReportsParams = {
+      page: requestedPage,
+      limit,
+      sort: sortBy,
+    };
 
-        if (statusFilter !== "all") {
-          params.status = STATUS_LABEL_TO_BACKEND[statusFilter] || statusFilter;
-        }
+    if (appliedSearch.trim()) params.search = appliedSearch.trim();
+    if (statusFilter !== "all") params.status = STATUS_LABEL_TO_BACKEND[statusFilter] || statusFilter;
+    if (violationFilter !== "all") {
+      params.violation_type = VIOLATION_LABEL_TO_BACKEND[violationFilter] || violationFilter;
+    }
+    if (barangayFilter !== "all") params.barangay = barangayFilter;
+    if (dateRange.from) params.date_from = dateRange.from.toISOString();
+    if (dateRange.to) {
+      const to = new Date(dateRange.to);
+      to.setHours(23, 59, 59, 999);
+      params.date_to = to.toISOString();
+    }
+    return params;
+  }, [appliedSearch, statusFilter, violationFilter, barangayFilter, sortBy, dateRange]);
 
-        if (violationFilter !== "all") {
-          params.violation_type =
-            VIOLATION_LABEL_TO_BACKEND[violationFilter] || violationFilter;
-        }
-
-        if (barangayFilter !== "all") {
-          params.barangay = barangayFilter;
-        }
-
-        if (dateRange.from) {
-          params.date_from = dateRange.from.toISOString();
-        }
-
-        if (dateRange.to) {
-          const to = new Date(dateRange.to);
-          to.setHours(23, 59, 59, 999);
-          params.date_to = to.toISOString();
-        }
-
-        const data = await fetchAdminReports(params);
-        const mapped = data.reports.map(mapAdminReport);
-        setReports(mapped);
-        setTotal(data.total);
-        setTotalPages(data.totalPages || 1);
-        setKpis(data.kpis);
-
-        // Keep selected report updated if it's in the list
-        if (selectedId) {
-          const found = mapped.find((r) => r.id === selectedId);
-          if (found && !selectedReport?.internalNotes?.length) {
-            setSelectedReport(found);
-          }
-        }
-      } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load waste reports.",
-        );
-      } finally {
-        setIsTableLoading(false);
-        setIsInitialLoading(false);
-      }
-    },
-    [
-      page,
-      search,
-      statusFilter,
-      violationFilter,
-      barangayFilter,
-      sortBy,
-      dateRange,
-      selectedId,
-      selectedReport?.internalNotes?.length,
-    ],
-  );
+  const fetchAdmin = useAdminFetch();
+  const reportParams = buildReportParams(page, 10);
+  const listQuery = useAdminQuery("reports", ["list", reportParams], () => fetchAdminReports(reportParams));
+  const hasLoadedRef = useRef(false);
+  if (listQuery.isSuccess) hasLoadedRef.current = true;
+  const isInitialLoading = listQuery.isLoading && !hasLoadedRef.current;
+  const isTableLoading = listQuery.isFetching;
+  const error = listQuery.error?.message ?? null;
+  const loadReports = listQuery.refetch;
+  useEffect(() => {
+    const data = listQuery.data;
+    if (!data) return;
+    setReports(data.reports.map(mapAdminReport)); setTotal(data.total);
+    setTotalPages(data.totalPages || 1); setKpis(data.kpis);
+    if (data.page !== page) setPage(data.page);
+  }, [listQuery.data, page]);
 
   useEffect(() => {
-    loadReports(page, search);
-  }, [
-    page,
-    statusFilter,
-    violationFilter,
-    barangayFilter,
-    sortBy,
-    dateRange,
-  ]);
-
-  // Debounced search
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setPage(1);
-      loadReports(1, value);
+      setAppliedSearch(search.trim());
     }, 400);
-  };
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  // Select report and fetch full detail
-  const handleSelectReport = async (id: string) => {
+  const handleSearchChange = (value: string) => setSearch(value);
+
+  // The selected detail observes the same invalidation events as the list.
+  const detailQuery = useAdminQuery("reports", ["detail", selectedId],
+    () => fetchAdminReportById(selectedId!), { enabled: !!selectedId });
+  const isLoadingDetail = detailQuery.isLoading;
+  useEffect(() => {
+    if (selectedId && detailQuery.data?.id === selectedId) setSelectedReport(mapAdminReport(detailQuery.data));
+  }, [selectedId, detailQuery.data]);
+  useEffect(() => {
+    if (detailQuery.error) toast.error(detailQuery.error.message);
+  }, [detailQuery.error]);
+  const handleSelectReport = useCallback((id: string) => {
+    detailVersionRef.current += 1;
     setSelectedId(id);
-    const existing = reports.find((r) => r.id === id);
-    if (existing) {
-      setSelectedReport(existing);
-    }
-    setIsLoadingDetail(true);
-    try {
-      const full = await fetchAdminReportById(id);
-      setSelectedReport(mapAdminReport(full));
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to load report details",
-      );
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
+    setSelectedReport(reports.find((report) => report.id === id) ?? null);
+  }, [reports]);
 
   // A report notification links directly to this detail panel. If the report
   // was deleted or is otherwise unavailable, keep the user on the valid
   // reports page rather than leaving an empty or broken detail target.
   useEffect(() => {
-    if (!notificationReportId || selectedId === notificationReportId) return;
+    if (!notificationReportId || openedNotificationIdRef.current === notificationReportId) return;
+    openedNotificationIdRef.current = notificationReportId;
     void handleSelectReport(notificationReportId);
-  }, [notificationReportId]);
+  }, [notificationReportId, handleSelectReport]);
 
   const selectedReportIndex = reports.findIndex((report) => report.id === selectedId);
   const selectPreviousReport = () => {
@@ -249,15 +205,16 @@ const AdminWasteReports = () => {
     officialResponse?: string,
   ) => {
     if (!selectedId) return;
+    const reportId = selectedId;
+    const detailVersion = detailVersionRef.current;
     try {
-      const updated = await updateAdminReportStatus(selectedId, {
+      const updated = await updateAdminReportStatus(reportId, {
         status,
         admin_response: officialResponse,
       });
       const mapped = mapAdminReport(updated);
-      setSelectedReport(mapped);
+      if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
       toast.success(`Report status updated to ${mapped.status}`);
-      loadReports();
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to update report status",
@@ -268,14 +225,14 @@ const AdminWasteReports = () => {
 
   // Quick status change from table dropdown
   const handleQuickStatusChange = async (id: string, newStatus: string) => {
+    const detailVersion = detailVersionRef.current;
     try {
       const updated = await updateAdminReportStatus(id, { status: newStatus });
       const mapped = mapAdminReport(updated);
       toast.success(`Report ${mapped.referenceNumber} status updated to ${mapped.status}`);
-      if (selectedId === id) {
+      if (selectedId === id && detailVersion === detailVersionRef.current) {
         setSelectedReport(mapped);
       }
-      loadReports();
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to update status",
@@ -286,11 +243,17 @@ const AdminWasteReports = () => {
   // Internal Note add
   const handleAddNote = async (note: string) => {
     if (!selectedId) return;
+    const reportId = selectedId;
+    const detailVersion = detailVersionRef.current;
     try {
-      await addAdminReportNote(selectedId, note);
+      await addAdminReportNote(reportId, note);
       // Re-fetch detail to get full populated note list
-      const full = await fetchAdminReportById(selectedId);
-      setSelectedReport(mapAdminReport(full));
+      if (detailVersion === detailVersionRef.current) {
+        const full = await fetchAdmin("reports", ["detail", reportId], () => fetchAdminReportById(reportId));
+        if (detailVersion === detailVersionRef.current) {
+          setSelectedReport(mapAdminReport(full));
+        }
+      }
       toast.success("Internal note added successfully");
     } catch (err: unknown) {
       toast.error(
@@ -310,14 +273,11 @@ const AdminWasteReports = () => {
     resolve?: boolean;
   }) => {
     if (!selectedId) return;
-    try {
-      const updated = await flagAdminReport(selectedId, payload);
-      const mapped = mapAdminReport(updated);
-      setSelectedReport(mapped);
-      loadReports();
-    } catch (err: unknown) {
-      throw err;
-    }
+    const reportId = selectedId;
+    const detailVersion = detailVersionRef.current;
+    const updated = await flagAdminReport(reportId, payload);
+    const mapped = mapAdminReport(updated);
+    if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
   };
 
   // Quick flag from table dropdown
@@ -325,14 +285,14 @@ const AdminWasteReports = () => {
     id: string,
     payload: { is_false?: boolean; is_duplicate?: boolean },
   ) => {
+    const detailVersion = detailVersionRef.current;
     try {
       const updated = await flagAdminReport(id, payload);
       const mapped = mapAdminReport(updated);
       toast.success(`Report ${mapped.referenceNumber} flagged`);
-      if (selectedId === id) {
+      if (selectedId === id && detailVersion === detailVersionRef.current) {
         setSelectedReport(mapped);
       }
-      loadReports();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to flag report");
     }
@@ -340,63 +300,22 @@ const AdminWasteReports = () => {
 
   // Delete report
   const handleDeleteReport = async (id: string) => {
+    const detailVersion = detailVersionRef.current;
     try {
       const res = await deleteReport(id);
-      toast.success(`Report ${res.reference_number || "item"} deleted successfully`);
-      setSelectedId(null);
-      setSelectedReport(null);
-      loadReports(page, search);
+      toast.success(`Report ${res.reference_number || "item"} removed from active lists`);
+      if (selectedId === id && detailVersion === detailVersionRef.current) {
+        closeReport();
+      }
+      if (reports.length === 1 && reports[0].id === id && page > 1) {
+        setPage(page - 1);
+      }
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete report",
       );
       throw err;
     }
-  };
-
-  // Export CSV of loaded reports
-  const handleExportCSV = () => {
-    if (reports.length === 0) {
-      toast.info("No reports to export");
-      return;
-    }
-    const headers = [
-      "Reference Number",
-      "Violation Type",
-      "Barangay",
-      "Landmark",
-      "Submitter",
-      "Status",
-      "Date Submitted",
-      "Description",
-    ];
-
-    const rows = reports.map((r) => [
-      `"${r.referenceNumber}"`,
-      `"${r.violationType}"`,
-      `"${r.barangay}"`,
-      `"${r.street || ""}"`,
-      `"${r.submitterName}"`,
-      `"${r.status}"`,
-      `"${safeFormatDate(r.submittedAt, "yyyy-MM-dd HH:mm", "")}"`,
-      `"${r.description.replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `greenway_waste_reports_${safeFormatDate(new Date(), "yyyyMMdd_HHmm")}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("CSV export downloaded");
   };
 
   if (isInitialLoading && !error) {
@@ -423,17 +342,7 @@ const AdminWasteReports = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10 px-4 rounded-xl font-semibold shadow-2xs gap-2 cursor-pointer active:scale-95 text-xs bg-card"
-            onClick={handleExportCSV}
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export CSV
-          </Button>
-        </div>
+
       </div>
 
       {/* ── Error State Banner ── */}
@@ -454,7 +363,7 @@ const AdminWasteReports = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadReports(page, search)}
+              onClick={() => void loadReports()}
               className="h-9 px-3 text-xs rounded-xl gap-1.5 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -480,8 +389,7 @@ const AdminWasteReports = () => {
         onStatusFilterChange={(s) => {
           setStatusFilter(s);
           setPage(1);
-          setSelectedId(null);
-          setSelectedReport(null);
+          closeReport();
         }}
         barangayFilter={barangayFilter}
         onBarangayFilterChange={(b) => {
@@ -522,10 +430,7 @@ const AdminWasteReports = () => {
       <Sheet
         open={Boolean(selectedReport)}
         onOpenChange={(open) => {
-          if (!open) {
-            setSelectedId(null);
-            setSelectedReport(null);
-          }
+          if (!open) closeReport();
         }}
       >
         <SheetContent
@@ -541,10 +446,7 @@ const AdminWasteReports = () => {
               key={selectedReport.id}
               report={selectedReport}
               isLoading={isLoadingDetail}
-              onClose={() => {
-                setSelectedId(null);
-                setSelectedReport(null);
-              }}
+              onClose={closeReport}
               onUpdateStatus={handleUpdateStatus}
               onAddNote={handleAddNote}
               onFlagReport={handleFlagReport}

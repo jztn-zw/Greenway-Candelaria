@@ -56,7 +56,7 @@ const start = async () => {
 
     initSockets(io);
     startRouteScheduler(io);
-    startTrackingMonitor();
+    startTrackingMonitor(io);
     startPostScheduler();
     startAnnouncementScheduler();
     startScheduleReminderScheduler();

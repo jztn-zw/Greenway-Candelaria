@@ -4,6 +4,26 @@ import type { Announcement } from "@/features/admin/announcements/types";
 export interface GetAllFilters {
   status?: string;
   type?: string;
+  search?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AnnouncementPage {
+  items: Announcement[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  statusCounts: Record<string, number>;
+  metrics: {
+    active: number;
+    scheduled: number;
+    drafts: number;
+    totalRecipients: number;
+    totalReads: number;
+  };
 }
 
 export interface CreatePayload {
@@ -42,6 +62,10 @@ const buildQuery = (filters: GetAllFilters): string => {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.type) params.set("type", filters.type);
+  if (filters.search) params.set("search", filters.search);
+  if (filters.sort) params.set("sort", filters.sort);
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
   const query = params.toString();
   return query ? `?${query}` : "";
 };
@@ -50,6 +74,9 @@ const buildQuery = (filters: GetAllFilters): string => {
 
 export const fetchAnnouncements = (filters: GetAllFilters = {}) =>
   api.get(`/announcements${buildQuery(filters)}`).then(unwrap<Announcement[]>);
+
+export const fetchAdminAnnouncementsPage = (filters: GetAllFilters) =>
+  api.get(`/announcements${buildQuery(filters)}`).then(unwrap<AnnouncementPage>);
 
 export const fetchAnnouncementById = (id: string) =>
   api.get(`/announcements/${id}`).then(unwrap<Announcement>);

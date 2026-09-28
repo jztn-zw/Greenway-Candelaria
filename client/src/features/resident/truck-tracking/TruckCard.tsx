@@ -239,7 +239,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                   {truck.arrivedAtResident || truck.residentStopStatus === "in-progress"
                     ? "The truck is in your barangay now!"
                     : truck.eta !== null
-                      ? `Est. arrival: ~${truck.eta} mins`
+                      ? `Est. driving time: ~${truck.eta} mins`
                       : "Calculating road route..."}
                 </p>
               </div>

@@ -1,3 +1,4 @@
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,16 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import {
   Leaf,
   Trash2,
@@ -38,7 +30,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DAYS, WASTE_MAP } from "../constants";
-import BarangayOrderList from "./BarangayOrderList";
 import type { RouteData, RouteForm, Day } from "../hooks/useRoutes";
 import type { Truck } from "../hooks/useTrucks";
 import type { Driver } from "../hooks/useDrivers";
@@ -221,12 +212,19 @@ const RouteFormPanel = ({
           )}
         </CardContent>
 
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Delete this route?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. The route will be permanently removed and the deletion will be recorded in the Audit Log.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel disabled={isDeletingRoute}>Cancel</AlertDialogCancel><AlertDialogAction disabled={isDeletingRoute} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDelete(selectedRoute)}>{isDeletingRoute ? "Deleting..." : "Delete permanently"}</AlertDialogAction></AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete this route?"
+          icon={<Trash2 />}
+          variant="destructive"
+          description="This action cannot be undone. The route will be permanently removed and the deletion will be recorded in the Audit Log."
+          confirmLabel="Delete permanently"
+          isPending={isDeletingRoute}
+          pendingLabel="Deleting..."
+          closeOnConfirm
+          onConfirm={() => { if (selectedRoute) onDelete(selectedRoute); }}
+        />
       </Card>
     );
   }
@@ -366,18 +364,13 @@ const RouteFormPanel = ({
         </div>
         </section>
 
-        {/* Barangay list */}
+        {/* This legacy panel is retained for the route details layout. Street
+            assignment now lives in RouteEditorModal, where a barangay is
+            selected before its available street stops are loaded. */}
         <section className="rounded-xl border border-border/70 bg-muted/10 p-4">
-          <BarangayOrderList
-            form={form}
-            barangaySearch={barangaySearch}
-            setBarangaySearch={setBarangaySearch}
-            availableBarangays={availableBarangays}
-            isLoadingBarangays={isLoadingBarangays}
-            onAdd={onAddBarangay}
-            onRemove={onRemoveBarangay}
-            onMove={onMoveBarangay}
-          />
+          <p className="text-xs font-medium text-muted-foreground">
+            Street stop selection is available in the collection route editor.
+          </p>
         </section>
 
         {/* Action buttons */}
@@ -444,34 +437,19 @@ const RouteFormPanel = ({
         </div>
 
         {/* Delete confirmation dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this route?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. The route will be permanently removed and the deletion will be recorded in the Audit Log.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeletingRoute}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={isDeletingRoute}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => {
-                  if (selectedRoute) onDelete(selectedRoute);
-                }}
-              >
-                {isDeletingRoute ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
-                  </span>
-                ) : (
-                  "Delete permanently"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete this route?"
+          icon={<Trash2 />}
+          variant="destructive"
+          description="This action cannot be undone. The route will be permanently removed and the deletion will be recorded in the Audit Log."
+          confirmLabel="Delete permanently"
+          isPending={isDeletingRoute}
+          pendingLabel="Deleting..."
+          closeOnConfirm
+          onConfirm={() => { if (selectedRoute) onDelete(selectedRoute); }}
+        />
       </CardContent>
     </Card>
   );

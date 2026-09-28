@@ -12,7 +12,17 @@ export interface PaginatedPostFilters extends PostFilters {
   page: number;
   limit: number;
   search?: string;
-  sort?: "latest" | "oldest" | "most-reacted";
+  sort?: "latest" | "oldest" | "most-reacted" | "views";
+}
+
+export interface AdminPostStats {
+  totalPosts: number;
+  published: number;
+  drafts: number;
+  scheduled: number;
+  archived: number;
+  totalViews: number;
+  totalReacts: number;
 }
 
 export interface PaginatedPosts<T> {
@@ -21,6 +31,7 @@ export interface PaginatedPosts<T> {
   page: number;
   limit: number;
   totalPages: number;
+  stats?: AdminPostStats;
 }
 
 const postsService = {
@@ -34,6 +45,10 @@ const postsService = {
     });
 
     return data.data.url; // Cloudinary URL string
+  },
+
+  deleteUnusedImage: async (url: string): Promise<void> => {
+    await api.delete("/posts/upload-image", { data: { url } });
   },
 
   // ─── Get all posts

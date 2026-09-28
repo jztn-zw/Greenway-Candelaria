@@ -4,6 +4,8 @@ export type NotificationType =
   | "collection-done"
   | "schedule-change"
   | "system-announcement"
+  | "announcement"
+  | "system"
   | "missed-collection"
   | "report-update"
   | "new-content";
@@ -28,6 +30,8 @@ export const categoryForType: Record<NotificationType, NotificationCategory> = {
   "schedule-change": "collection",
   "missed-collection": "collection",
   "system-announcement": "announcements",
+  announcement: "announcements",
+  system: "all",
   "report-update": "reports",
   "new-content": "content",
 };

@@ -6,11 +6,6 @@ import {
   Bell,
   Sun,
   Moon,
-  FileText,
-  AlertTriangle,
-  Megaphone,
-  Truck,
-  Newspaper,
   CheckCheck,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -19,43 +14,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import useNotifications from "@/hooks/useNotifications";
+import AdminNotificationModal, { type AdminNotificationDetail } from "@/features/admin/notifications/AdminNotificationModal";
+import { getAdminNotificationDestination, getNotificationHeadline, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
+import useNotifications from "@/features/admin/notifications/useAdminNotifications";
 import { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime } from "@/utils/date";
-
-const getAdminNotificationStyle = (type: string) => {
-  switch (type) {
-    case "REPORT_UPDATE":
-    case "REPORT_FILED":
-      return { Icon: FileText, style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
-    case "MISSED_COLLECTION":
-      return { Icon: AlertTriangle, style: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" };
-    case "TRUCK_IS_NEAR":
-      return { Icon: Truck, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
-    case "ANNOUNCEMENT":
-      return { Icon: Megaphone, style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
-    case "NEW_POST":
-      return { Icon: Newspaper, style: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" };
-    default:
-      return { Icon: Bell, style: "bg-primary/10 text-primary border-primary/20" };
-  }
-};
-
-const getReadableNotificationTitle = (notification: NotificationRow) => {
-  const title = (notification.title || "Notification").trim();
-  // Older notifications can contain the same title twice, separated by a colon.
-  const repeatedTitle = title.match(/^(.+?):\s*\1$/i);
-  return repeatedTitle ? repeatedTitle[1] : title.replace(/[🚨⚠️]/g, "").trim();
-};
+import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
 
 const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin": "Admin Dashboard",
   "/admin/reports": "Waste Reports",
+  "/admin/bug-reports": "Bug Reports",
   "/admin/posts": "News & Articles",
   "/admin/announcements": "Announcements",
   "/admin/schedule": "Collection Schedule",
   "/admin/routes": "Route Management",
+  "/admin/barangays": "Barangay Manager",
   "/admin/residents": "Resident Accounts",
   "/admin/drivers": "Collector Manager",
   "/admin/tracking": "Live Truck Fleet",
@@ -82,6 +55,15 @@ const AdminTopBar = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toggleSidebar } = useSidebar();
   const pageTitle = getAdminPageTitle(location.pathname);
+  const isCollectorProfile =
+    location.pathname.startsWith("/admin/drivers") && Boolean(searchParams.get("collectorId"));
+  const collectorName = searchParams.get("collectorName") || "Collector Profile";
+  const isTruckProfile =
+    location.pathname.startsWith("/admin/drivers") && Boolean(searchParams.get("truckId"));
+  const truckName = searchParams.get("truckName") || "Truck Details";
+  const isResidentProfile =
+    location.pathname.startsWith("/admin/residents") && Boolean(searchParams.get("residentId"));
+  const residentName = searchParams.get("residentName") || "Resident Profile";
 
   const postParam = searchParams.get("post");
   const postTitle = searchParams.get("title");
@@ -100,7 +82,9 @@ const AdminTopBar = () => {
       : postTitle || "Article Details";
 
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
-  const [bellOpen, setBellOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
+  const [modalNotification, setModalNotification] = useState<AdminNotificationDetail | null>(null);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
@@ -112,28 +96,26 @@ const AdminTopBar = () => {
   };
 
   const handleNotificationClick = async (n: NotificationRow) => {
-    if (!n.is_read) {
-      await markAsRead(n.id);
-    }
-    setBellOpen(false);
-
-    if ((n.ref_module === "reports" || n.type === "REPORT_UPDATE") && n.ref_id) {
-      navigate(`/admin/reports?report=${encodeURIComponent(n.ref_id)}`);
-    } else if ((n.ref_module === "posts" || n.type === "NEW_POST") && n.ref_id) {
-      navigate(`/admin/posts?post=${encodeURIComponent(n.ref_id)}`);
-    } else if (n.ref_module === "posts" || n.type === "NEW_POST") {
-      navigate("/admin/posts");
-    } else if (n.ref_module === "announcements") {
-      navigate("/admin/announcements");
-    } else if (n.ref_module === "tracking") {
-      navigate("/admin/tracking");
-    } else {
-      navigate("/admin/notifications");
-    }
+    if (!n.is_read) await markAsRead(n.id);
+    setPopoverOpen(false);
+    const destination = getAdminNotificationDestination(n);
+    if (destination) navigate(destination);
+    else setModalNotification({ id: n.id, title: getNotificationHeadline(n).prefix,
+      message: n.body, type: n.type, time: formatRelativeTime(n.created_at),
+      ref_module: n.ref_module, metadata: n.metadata });
   };
 
-  const recentNotifications = notifications.slice(0, 5);
-
+  const visibleNotifications = notifications.slice(0, visibleNotificationCount);
+  const hasMoreNotifications = visibleNotificationCount < notifications.length;
+  const recentNotificationCount = notifications.filter((notification) => {
+    const timestamp = parseApiTimestamp(notification.created_at)?.getTime();
+    if (timestamp === undefined) return false;
+    const elapsed = Date.now() - timestamp;
+    return elapsed >= 0 && elapsed < 86_400_000;
+  }).length;
+  const loadMoreNotifications = () => {
+    if (hasMoreNotifications) setVisibleNotificationCount((count) => Math.min(count + 6, notifications.length));
+  };
   return (
     <header className="h-14 border-b border-border/80 bg-background/95 backdrop-blur-md flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
       {/* Left */}
@@ -147,7 +129,70 @@ const AdminTopBar = () => {
           <Menu className="w-4 h-4 text-foreground" />
         </button>
         <div className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
-          {isPostSubView ? (
+          {isCollectorProfile ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete("collectorId");
+                    next.delete("collectorName");
+                    return next;
+                  });
+                }}
+                className="hover:underline text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
+              >
+                Collector Manager
+              </button>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+              <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
+                {collectorName}
+              </span>
+            </>
+          ) : isTruckProfile ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete("truckId");
+                    next.delete("truckName");
+                    return next;
+                  });
+                }}
+                className="hover:underline text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
+              >
+                Collector Manager
+              </button>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+              <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
+                {truckName}
+              </span>
+            </>
+          ) : isResidentProfile ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete("residentId");
+                    next.delete("residentName");
+                    return next;
+                  });
+                }}
+                className="hover:underline text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
+              >
+                Resident Accounts
+              </button>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+              <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
+                {residentName}
+              </span>
+            </>
+          ) : isPostSubView ? (
             <>
               <button
                 type="button"
@@ -214,8 +259,17 @@ const AdminTopBar = () => {
           <Moon className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
         </button>
 
-        {/* Notifications */}
-        <Popover open={bellOpen} onOpenChange={setBellOpen}>
+        {/* Notifications Popover */}
+        <Popover
+          open={popoverOpen}
+          onOpenChange={(open) => {
+            setPopoverOpen(open);
+            if (open) {
+              setVisibleNotificationCount(6);
+
+            }
+          }}
+        >
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -233,21 +287,17 @@ const AdminTopBar = () => {
           <PopoverContent
             align="end"
             sideOffset={8}
-            className="w-[360px] sm:w-[410px] p-0 shadow-2xl rounded-2xl border border-border/80 bg-card overflow-hidden"
+            className="w-[min(360px,calc(100vw-24px))] sm:w-[410px] p-0 shadow-2xl rounded-2xl border border-border/80 bg-card overflow-hidden"
           >
             {/* Popover Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/70 bg-muted/25">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm font-display text-foreground tracking-tight">Notifications</span>
-                {unreadCount > 0 ? (
-                  <span className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold rounded-full px-2 py-0.5 leading-none">
-                    {unreadCount} new
-                  </span>
-                ) : recentNotifications.length > 0 ? (
+                {notifications.length > 0 && (
                   <span className="bg-muted text-muted-foreground border border-border/60 text-[10px] font-medium rounded-full px-2 py-0.5 leading-none">
-                    {recentNotifications.length} recent
+                    {recentNotificationCount} recent
                   </span>
-                ) : null}
+                )}
               </div>
               {unreadCount > 0 && (
                 <button
@@ -262,17 +312,26 @@ const AdminTopBar = () => {
             </div>
 
             {/* Notifications Scroll Area */}
-            <ScrollArea className="max-h-[380px]">
+            <div
+              className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin"
+              onScroll={(event) => {
+                const viewport = event.currentTarget;
+                const remaining = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+                if (remaining < 32) loadMoreNotifications();
+              }}
+            >
               <div className="p-2 space-y-1">
-                {recentNotifications.length > 0 ? (
-                  recentNotifications.map((n) => {
-                    const { Icon, style: avatarStyle } = getAdminNotificationStyle(n.type);
+                {visibleNotifications.length > 0 ? (
+                  visibleNotifications.map((n) => {
+                    const headline = getNotificationHeadline(n);
+                    const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
                     const isUnread = !n.is_read;
+
                     return (
                       <button
                         key={n.id}
                         type="button"
-                        onClick={() => handleNotificationClick(n)}
+                        onClick={() => void handleNotificationClick(n)}
                         className={`w-full p-2.5 sm:p-3 rounded-xl text-left flex items-start gap-3 transition-all duration-150 cursor-pointer group relative border ${
                           isUnread
                             ? "bg-primary/[0.04] border-primary/15 hover:bg-primary/[0.08]"
@@ -287,8 +346,18 @@ const AdminTopBar = () => {
                         {/* Content */}
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-snug break-words">
-                              {getReadableNotificationTitle(n)}
+                            <p className="text-xs leading-snug break-words">
+                              <span className="font-semibold text-foreground">
+                                {headline.prefix}
+                              </span>
+                              {headline.connector && (
+                                <span className="text-muted-foreground font-normal"> {headline.connector} </span>
+                              )}
+                              {headline.highlight && (
+                                <span className="font-semibold text-foreground">
+                                  {headline.highlight}
+                                </span>
+                              )}
                             </p>
                             {isUnread && (
                               <span className="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20 shrink-0 mt-1" title="Unread" />
@@ -317,15 +386,20 @@ const AdminTopBar = () => {
                     <p className="text-[11px] text-muted-foreground mt-0.5">You're all caught up!</p>
                   </div>
                 )}
+                {hasMoreNotifications && (
+                  <div className="py-3 text-center text-[11px] font-medium text-muted-foreground">
+                    Scroll for older notifications
+                  </div>
+                )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Popover Footer */}
             <div className="border-t border-border/70 p-2 bg-muted/20">
               <button
                 type="button"
                 onClick={() => {
-                  setBellOpen(false);
+                  setPopoverOpen(false);
                   navigate("/admin/notifications");
                 }}
                 className="w-full py-2 px-3 rounded-xl text-center text-xs font-semibold text-foreground hover:text-primary hover:bg-muted/70 transition-all flex items-center justify-center gap-1.5 cursor-pointer group"
@@ -336,6 +410,7 @@ const AdminTopBar = () => {
             </div>
           </PopoverContent>
         </Popover>
+        <AdminNotificationModal notification={modalNotification} open={Boolean(modalNotification)} onOpenChange={(open) => { if (!open) setModalNotification(null); }} />
       </div>
     </header>
   );

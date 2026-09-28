@@ -31,7 +31,7 @@ const sanitize = (data) => {
 
 // ─── Centralized Audit Logger ──────────────────────────────
 
-const log = async ({
+const insertLog = async (executor, {
   user_id,
   action,
   module,
@@ -40,13 +40,13 @@ const log = async ({
   new_value = null,
   ip_address = null,
 }) => {
-  if (!action || !module) return null;
-  if (!user_id && !ACTIONS_ALLOWING_ANONYMOUS_ACTOR.has(action)) return null;
+  if (!action || !module || (!user_id && !ACTIONS_ALLOWING_ANONYMOUS_ACTOR.has(action))) {
+    throw new Error("Audit entry requires an action, module, and actor");
+  }
 
   const id = generateId();
 
-  try {
-    await pool.query(
+  await executor.query(
       `INSERT INTO audit_logs
          (id, user_id, action, module, record_id, old_value, new_value, ip_address, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
@@ -61,7 +61,16 @@ const log = async ({
         ip_address,
       ],
     );
-    return id;
+  return id;
+};
+
+// Use the caller's transaction when the audit entry must commit with a change.
+const logInTransaction = (connection, entry) => insertLog(connection, entry);
+const logRequired = (entry) => insertLog(pool, entry);
+
+const log = async (entry) => {
+  try {
+    return await insertLog(pool, entry);
   } catch (err) {
     // Non-blocking: fail-safe so business operations are not aborted
     console.error("[AuditLog] ❌ Failed to record audit log:", err.message);
@@ -163,7 +172,7 @@ const getAll = async (filters = {}) => {
      FROM audit_logs al
      LEFT JOIN users u ON u.id = al.user_id
      ${whereClause}
-     ORDER BY al.created_at ${orderDir}
+     ORDER BY al.created_at ${orderDir}, al.id ${orderDir}
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
@@ -182,9 +191,11 @@ const getAll = async (filters = {}) => {
        SUM(CASE WHEN action LIKE '%DELETE%' OR action LIKE '%DEACTIVATE%' OR action LIKE '%BAN%' THEN 1 ELSE 0 END) AS deletions,
        SUM(CASE WHEN action LIKE '%FAILED_LOGIN%' OR action LIKE '%BAN%' OR action LIKE '%DELETE%' THEN 1 ELSE 0 END) AS critical_actions,
        SUM(CASE WHEN action LIKE '%FAILED_LOGIN%' THEN 1 ELSE 0 END) AS failed_logins
+       , SUM(CASE WHEN action LIKE 'UPDATE%' OR action LIKE 'ASSIGN%' OR action LIKE 'CHANGE%' OR action LIKE 'FLAG%' THEN 1 ELSE 0 END) AS modifications
      FROM audit_logs al
      LEFT JOIN users u ON u.id = al.user_id
-     WHERE NOT (al.action = 'USER_LOGIN' AND u.role = 'RESIDENT')`,
+     ${whereClause}`,
+    params,
   );
 
   const kpis = {
@@ -192,6 +203,7 @@ const getAll = async (filters = {}) => {
     deletions: Number(kpiRows[0]?.deletions || 0),
     criticalActions: Number(kpiRows[0]?.critical_actions || 0),
     failedLogins: Number(kpiRows[0]?.failed_logins || 0),
+    modifications: Number(kpiRows[0]?.modifications || 0),
   };
 
   return {
@@ -257,6 +269,8 @@ const getFilterOptions = async () => {
 
 module.exports = {
   log,
+  logInTransaction,
+  logRequired,
   getAll,
   getById,
   getFilterOptions,

@@ -1,15 +1,18 @@
 import { CalendarDays, Clock, Info } from "lucide-react";
 import type { CollectionSchedule } from "./types";
 import { cn } from "@/lib/utils";
+import { formatManilaDateTime } from "@/utils/date";
 
 interface CountdownBannerProps {
   schedule: CollectionSchedule;
   residentArea?: string;
+  collectionFinishedToday?: boolean;
 }
 
 const CountdownBanner = ({
   schedule,
   residentArea,
+  collectionFinishedToday = false,
 }: CountdownBannerProps) => {
   const hasSchedule =
     schedule.nextCollectionDay !== "soon" &&
@@ -21,10 +24,12 @@ const CountdownBanner = ({
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
         <div className="min-w-0 space-y-0.5">
           <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
-            No Scheduled Collection • {residentArea || "Your Barangay"}
+            {collectionFinishedToday ? "No Collection Scheduled Tomorrow" : "No Scheduled Collection"} • {residentArea || "Your Barangay"}
           </h3>
           <p className="text-[11px] lg:text-xs text-muted-foreground">
-            There is currently no upcoming collection schedule set for your location.
+            {collectionFinishedToday
+              ? "Today's street collection has ended, and this street has no collection scheduled tomorrow."
+              : "There is currently no upcoming collection schedule set for your location."}
           </p>
         </div>
         <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
@@ -46,8 +51,8 @@ const CountdownBanner = ({
     rawDay.toLowerCase() === "today" || rawDay.toLowerCase() === "tomorrow";
   const formattedDate = schedule.nextCollectionDate
     ? isRelative
-      ? `${dayLabel} (${schedule.nextCollectionDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })})`
-      : `${dayLabel}, ${schedule.nextCollectionDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      ? `${dayLabel} (${formatManilaDateTime(schedule.nextCollectionDate, { weekday: "short", month: "short", day: "numeric" })})`
+      : `${dayLabel}, ${formatManilaDateTime(schedule.nextCollectionDate, { month: "short", day: "numeric" })}`
     : dayLabel;
 
   return (
@@ -57,7 +62,7 @@ const CountdownBanner = ({
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
-            Collection for {residentArea || "Your Location"}
+            {collectionFinishedToday ? "Tomorrow's collection for" : "Collection for"} {residentArea || "Your Location"}
           </h3>
 
           {schedule.wasteType && (
@@ -107,7 +112,11 @@ const CountdownBanner = ({
       {/* Right: Reminder Pill with neutral monochrome icon */}
        <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
         <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-         <span className="truncate">Please have segregated bins ready</span>
+         <span className="truncate">
+           {collectionFinishedToday
+             ? "Today's street collection has ended"
+             : "Please have segregated bins ready"}
+         </span>
       </div>
     </div>
   );

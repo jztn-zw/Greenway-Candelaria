@@ -1,12 +1,6 @@
-﻿import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import React from "react";
+
 import {
   Select,
   SelectContent,
@@ -14,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Loader2, X, Leaf, Trash2 } from "lucide-react";
+import { Copy, Leaf, Trash2 } from "lucide-react";
 import { DAYS, WASTE_MAP } from "../constants";
 import type { Day } from "../hooks/useRoutes";
 
@@ -37,35 +31,19 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
   isSaving,
   onDuplicate,
 }) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-            <Copy className="w-4 h-4" />
-          </div>
-          <div>
-            <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
-              Duplicate Collection Route
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              Copy this route sequence to another operating day.
-            </DialogDescription>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-          title="Close"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="space-y-3.5 py-3">
+  <ConfirmationDialog
+    kind="dialog"
+    open={open}
+    onOpenChange={onOpenChange}
+    title="Duplicate Collection Route"
+    description="Copy this route sequence to another operating day."
+    icon={<Copy />}
+    confirmLabel="Duplicate Route"
+    isPending={isSaving}
+    pendingLabel="Duplicating..."
+    onConfirm={onDuplicate}
+  >
+    <div className="space-y-3.5">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Choose a target day. The route will be cloned with the same vehicle, driver, start time, and ordered barangay sequence.
         </p>
@@ -102,39 +80,7 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
           </Select>
         </div>
       </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2.5 pt-3.5 border-t border-border/60">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={isSaving}
-          className="h-9 text-xs rounded-xl border-border/80 px-4 cursor-pointer"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          onClick={onDuplicate}
-          disabled={isSaving}
-          className="h-9 text-xs rounded-xl font-bold px-5 shadow-sm gap-1.5 cursor-pointer"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Duplicating...</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-          <span>Duplicate Route</span>
-            </>
-          )}
-        </Button>
-      </div>
-    </DialogContent>
-  </Dialog>
+  </ConfirmationDialog>
 );
 
 export default DuplicateDialog;

@@ -1,43 +1,44 @@
 import React from "react";
-import { Announcement } from "./types";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  announcements: Announcement[];
+  metrics: {
+    active: number;
+    scheduled: number;
+    drafts: number;
+    totalRecipients: number;
+    totalReads: number;
+  };
 }
 
-const AnnouncementKPIs: React.FC<Props> = ({ announcements }) => {
-  const active = announcements.filter((a) => a.status === "Active" && !a.archived);
-  const scheduled = announcements.filter((a) => a.status === "Scheduled" && !a.archived);
-  const drafts = announcements.filter((a) => a.status === "Draft" && !a.archived);
-
-  const totalSent = active.reduce((sum, a) => sum + a.totalRecipients, 0);
-  const totalRead = active.reduce((sum, a) => sum + a.readCount, 0);
-  const avgReadRate = totalSent > 0 ? Math.round((totalRead / totalSent) * 100) : 0;
+const AnnouncementKPIs: React.FC<Props> = ({ metrics }) => {
+  const avgReadRate = metrics.totalRecipients > 0
+    ? Math.round((metrics.totalReads / metrics.totalRecipients) * 100)
+    : 0;
 
   const kpis = [
     {
       label: "Active Notices",
-      value: active.length,
+      value: metrics.active,
       trend: "Live to residents",
       tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
     {
       label: "Avg. Read Rate",
       value: `${avgReadRate}%`,
-      trend: `${totalRead.toLocaleString()} total reads`,
+      trend: `${metrics.totalReads.toLocaleString()} total reads`,
       tag: "bg-muted/70 text-muted-foreground border-border/80",
     },
     {
       label: "Scheduled",
-      value: scheduled.length,
-      trend: scheduled.length > 0 ? "Queued to dispatch" : "None queued",
+      value: metrics.scheduled,
+      trend: metrics.scheduled > 0 ? "Queued to dispatch" : "None queued",
       tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     },
     {
       label: "Drafts",
-      value: drafts.length,
-      trend: drafts.length > 0 ? "In preparation" : "All dispatched",
+      value: metrics.drafts,
+      trend: metrics.drafts > 0 ? "In preparation" : "All dispatched",
       tag: "bg-muted/70 text-muted-foreground border-border/80",
     },
   ];

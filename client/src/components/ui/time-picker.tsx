@@ -8,7 +8,10 @@ export interface TimePickerProps {
   value: string; // "HH:mm" in 24-hour format
   onChange: (time24: string) => void;
   className?: string;
+  containerClassName?: string;
   disabled?: boolean;
+  dropdownSide?: "top" | "bottom";
+  dropdownAlign?: "left" | "right";
 }
 
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -27,7 +30,7 @@ function parseTime24(timeStr: string) {
     hour12,
     minute: m,
     period,
-    formatted: `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`,
+    formatted: `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period.toUpperCase()}`,
   };
 }
 
@@ -46,7 +49,7 @@ function parseUserTypedTime(input: string): string | null {
   const match12 = clean.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
   if (!match12) return null;
 
-  let h = parseInt(match12[1], 10);
+  const h = parseInt(match12[1], 10);
   const m = parseInt(match12[2], 10);
   const period = match12[3] as "am" | "pm" | undefined;
 
@@ -65,7 +68,10 @@ export function TimePicker({
   value,
   onChange,
   className,
+  containerClassName,
   disabled = false,
+  dropdownSide = "top",
+  dropdownAlign = "right",
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -153,7 +159,10 @@ export function TimePicker({
   };
 
   return (
-    <div ref={containerRef} className="relative inline-block w-full max-w-[150px]">
+    <div
+      ref={containerRef}
+      className={cn("relative inline-block w-full max-w-[150px]", containerClassName)}
+    >
       {/* Time Input Trigger */}
       <div
         className={cn(
@@ -169,7 +178,8 @@ export function TimePicker({
           onBlur={handleInputBlur}
           onFocus={() => setIsOpen(true)}
           placeholder="12:00 am"
-          className="w-full bg-transparent text-xs font-medium text-foreground outline-none tracking-wide"
+          aria-label="Time"
+          className="w-full bg-transparent text-xs font-semibold tabular-nums tracking-wide text-foreground outline-none placeholder:text-muted-foreground/70"
         />
         <button
           type="button"
@@ -187,7 +197,11 @@ export function TimePicker({
       {/* 3-Column Dropdown Picker matching GreenWay Design */}
       {isOpen && (
         <div
-          className="absolute bottom-[44px] right-0 z-[80] w-[210px] rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95 select-none"
+          className={cn(
+            "absolute z-[80] w-[210px] select-none overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95",
+            dropdownSide === "top" ? "bottom-[44px]" : "top-[44px]",
+            dropdownAlign === "right" ? "right-0" : "left-0",
+          )}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >

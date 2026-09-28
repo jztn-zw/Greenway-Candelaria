@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, X, Truck as TruckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Truck, TruckOperationalStatus, Driver } from "../types";
 
 interface TruckEditorModalProps {
@@ -30,8 +31,6 @@ interface TruckEditorModalProps {
     name: string;
     model: string;
     plateNumber: string;
-    assignedDriverId: string | null;
-    wasteType: string;
     status: TruckOperationalStatus;
   }) => Promise<void>;
 }
@@ -50,6 +49,7 @@ const TruckEditorModal = ({
   const [formPlate, setFormPlate] = useState("");
   const [formStatus, setFormStatus] = useState<TruckOperationalStatus>("Active");
   const [errors, setErrors] = useState<Partial<Record<"name" | "model" | "plate" | "form", string>>>({});
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const clearError = (field: keyof typeof errors) => setErrors((current) => {
     if (!current[field]) return current;
@@ -69,6 +69,7 @@ const TruckEditorModal = ({
   };
 
   useEffect(() => {
+    setShowDiscardConfirm(false);
     if (!open) return;
 
     if (editingTruck) {
@@ -83,8 +84,22 @@ const TruckEditorModal = ({
   }, [open, editingTruck]);
 
   const handleOpenChange = (v: boolean) => {
-    if (!v) resetForm();
+    if (!v) {
+      setShowDiscardConfirm(false);
+      resetForm();
+    }
     onOpenChange(v);
+  };
+
+  const isDirty = formName !== (editingTruck?.name ?? "")
+    || formModel !== (editingTruck?.model ?? "")
+    || formPlate !== (editingTruck?.plateNumber ?? "")
+    || formStatus !== (editingTruck?.status ?? "Active");
+
+  const handleRequestClose = () => {
+    if (isSaving) return;
+    if (isDirty) setShowDiscardConfirm(true);
+    else handleOpenChange(false);
   };
 
   const handleSave = async () => {
@@ -98,7 +113,7 @@ const TruckEditorModal = ({
       return;
     }
     try {
-      await onSave({ name: formName.trim(), model: formModel.trim(), plateNumber: formPlate.trim(), assignedDriverId: null, wasteType: "Biodegradable", status: formStatus });
+      await onSave({ name: formName.trim(), model: formModel.trim(), plateNumber: formPlate.trim(), status: formStatus });
       handleOpenChange(false);
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : "Unable to save this truck. Please try again." });
@@ -106,7 +121,8 @@ const TruckEditorModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleRequestClose(); }}>
       <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
@@ -127,7 +143,9 @@ const TruckEditorModal = ({
           </div>
           <button
             type="button"
-            onClick={() => handleOpenChange(false)}
+            onClick={handleRequestClose}
+            disabled={isSaving}
+            aria-label="Close truck editor"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
             title="Close"
           >
@@ -210,7 +228,7 @@ const TruckEditorModal = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => handleOpenChange(false)}
+            onClick={handleRequestClose}
             disabled={isSaving}
             className="h-9 px-4 rounded-xl text-xs font-semibold border-border/80 cursor-pointer"
           >
@@ -236,6 +254,19 @@ const TruckEditorModal = ({
         </div>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesDialog
+      isOpen={open && showDiscardConfirm}
+      onClose={() => setShowDiscardConfirm(false)}
+      onDiscard={() => handleOpenChange(false)}
+      title={isEditing ? "Discard Truck Changes?" : "Discard New Truck?"}
+      description={isEditing
+        ? "You have unsaved changes to this truck record. If you leave now, your edits will be lost."
+        : "You have unsaved information for this new truck. If you leave now, the entered vehicle details will be discarded."}
+      discardLabel={isEditing ? "Discard Changes" : "Discard"}
+      keepEditingLabel="Keep Editing"
+      isSaving={isSaving}
+    />
+    </>
   );
 };
 

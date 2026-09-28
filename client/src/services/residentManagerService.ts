@@ -9,7 +9,6 @@ export interface ResidentListRow {
   email: string;
   phone: string | null;
   status: ResidentAccountStatus;
-  ban_reason: string | null;
   created_at: string;
   last_login_at: string | null;
   barangay_name: string | null;
@@ -73,7 +72,10 @@ export const fetchResidents = async (
     },
   });
 
-  return data.data ?? { data: [], pagination: { total: 0, page: 1, limit: 12, total_pages: 1 } };
+  if (!data.data || !Array.isArray(data.data.data) || !data.data.pagination) {
+    throw new Error("Invalid resident response from server.");
+  }
+  return data.data;
 };
 
 export const fetchResidentById = async (
@@ -105,5 +107,6 @@ export const fetchResidentReports = async (
   const { data } = await api.get<{ data: ResidentReportRow[] }>(
     `/users/${id}/reports`,
   );
-  return data.data ?? [];
+  if (!Array.isArray(data.data)) throw new Error("Invalid resident report response from server.");
+  return data.data;
 };

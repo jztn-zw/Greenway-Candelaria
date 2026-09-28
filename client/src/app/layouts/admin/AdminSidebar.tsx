@@ -17,6 +17,8 @@ import {
   ChevronDown,
   Navigation,
   CalendarDays,
+  MapPinned,
+  Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,8 +35,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useEffect, useRef, useState } from "react";
-import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
 import {
@@ -47,7 +49,7 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   title: string;
   url: string;
-  icon: any;
+  icon: ComponentType<{ className?: string }>;
   hidden?: boolean;
 }
 
@@ -77,6 +79,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Schedule Manager", url: "/admin/schedule", icon: CalendarDays },
       { title: "Route Manager", url: "/admin/routes", icon: Route },
+      { title: "Barangay Manager", url: "/admin/barangays", icon: MapPinned },
     ],
   },
   {
@@ -101,6 +104,13 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Analytics Dashboard", url: "/admin/analytics", icon: BarChart3 },
       { title: "Audit Logs", url: "/admin/audit-logs", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "SYSTEM SUPPORT",
+    collapsible: true,
+    items: [
+      { title: "Bug Reports", url: "/admin/bug-reports", icon: Bug },
     ],
   },
 ];
@@ -314,7 +324,7 @@ const AdminSidebar = () => {
               <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2">
                 <button
                   type="button"
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors rounded-lg mx-1"
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
                   onClick={(event) => {
                     event.stopPropagation();
                     setShowGearMenu(false);
@@ -325,7 +335,7 @@ const AdminSidebar = () => {
                 </button>
                 <button
                   type="button"
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors rounded-lg mx-1"
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
                   onClick={(event) => {
                     event.stopPropagation();
                     setShowGearMenu(false);
@@ -354,9 +364,15 @@ const AdminSidebar = () => {
           </button>
         </div>
 
-        <LogoutConfirmModal
+        <ConfirmationDialog
+          kind="dialog"
           open={showLogoutModal}
           onOpenChange={setShowLogoutModal}
+          title="Log Out of GreenWay?"
+          description="Are you sure you want to end your active session? You will need your credentials to sign back in."
+          icon={<LogOut />}
+          variant="destructive"
+          confirmLabel="Log Out"
           onConfirm={() => {
             void handleLogout();
           }}

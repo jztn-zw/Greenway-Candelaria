@@ -17,11 +17,11 @@ export interface DriverActivityApiRow {
   route_id: string;
   date: string;
   route: string;
-  barangays_completed: number;
-  barangays_total: number;
+  status: "COMPLETED" | "PARTIAL";
+  completed_stops: number;
+  total_stops: number;
   start_time: string;
   end_time: string;
-  status_messages: string[];
 }
 
 export interface TruckApiRow {
@@ -32,13 +32,13 @@ export interface TruckApiRow {
   status?: string;
   availability_status?: string | null;
   driver_id?: string | null;
-  waste_type?: string | null;
   created_at?: string;
 }
 
 export const fetchDrivers = async (): Promise<DriverApiRow[]> => {
   const res = await api.get<{ data: DriverApiRow[] }>("/drivers");
-  return res.data.data ?? [];
+  if (!Array.isArray(res.data.data)) throw new Error("Invalid collector response from server.");
+  return res.data.data;
 };
 
 export const createDriver = async (payload: {
@@ -66,10 +66,14 @@ export const updateDriver = async (
 };
 
 export const updateDriverAccountStatus = async (
-  userId: string,
+  driverId: string,
   status: "ACTIVE" | "DEACTIVATED",
 ): Promise<void> => {
-  await api.put(`/users/${userId}/status`, { status });
+  await api.put(`/drivers/${driverId}/account-status`, { status });
+};
+
+export const resetDriverPassword = async (driverId: string, password: string): Promise<void> => {
+  await api.post(`/drivers/${driverId}/reset-password`, { password });
 };
 
 export const deleteDriver = async (driverId: string): Promise<void> => {
@@ -84,12 +88,14 @@ export const fetchDriverActivity = async (
     `/drivers/${driverId}/activity`,
     { params: { limit } },
   );
-  return res.data.data ?? [];
+  if (!Array.isArray(res.data.data)) throw new Error("Invalid collector activity response from server.");
+  return res.data.data;
 };
 
 export const fetchTrucks = async (): Promise<TruckApiRow[]> => {
   const res = await api.get<{ data: TruckApiRow[] }>("/trucks");
-  return res.data.data ?? [];
+  if (!Array.isArray(res.data.data)) throw new Error("Invalid truck response from server.");
+  return res.data.data;
 };
 
 export const createTruck = async (payload: {
@@ -122,6 +128,7 @@ export const deleteTruck = async (truckId: string): Promise<void> => {
 
 export interface DriverMeData {
   id: string;
+  created_at?: string;
   status_msg?: string | null;
   user_id: string;
   full_name: string;
@@ -135,6 +142,7 @@ export interface DriverMeData {
   truck_plate?: string | null;
   truck_status?: string | null;
   truck_availability?: string | null;
+  truck_model?: string | null;
   last_login?: string | null;
 }
 
@@ -149,13 +157,20 @@ export interface DriverMessageRow {
   created_at: string;
 }
 
-export const fetchDriverMe = async (): Promise<DriverMeData | null> => {
-  try {
-    const res = await api.get<{ data: DriverMeData }>("/drivers/me");
-    return res.data.data;
-  } catch (error) {
-    return null;
-  }
+export const fetchDriverMe = async (): Promise<DriverMeData> => {
+  const res = await api.get<{ data: DriverMeData }>("/drivers/me");
+  return res.data.data;
+};
+
+export type CollectorDashboardProfile = Pick<DriverMeData,
+  "full_name" | "truck_id" | "truck_name" | "truck_plate" | "truck_status" | "truck_availability" | "truck_model"
+>;
+
+export const fetchCollectorDashboardProfile = async (): Promise<CollectorDashboardProfile> => {
+  const res = await api.get<{ data: CollectorDashboardProfile }>("/drivers/me", {
+    params: { view: "dashboard" },
+  });
+  return res.data.data;
 };
 
 export const fetchDriverMyMessages = async (): Promise<DriverMessageRow[]> => {
@@ -167,11 +182,16 @@ export const fetchDriverMyMessages = async (): Promise<DriverMessageRow[]> => {
   }
 };
 
-export const updateMyDriverStatus = async (status_msg: string): Promise<void> => {
-  await api.put("/drivers/me/status", { status_msg });
+export const reportTruckBreakdown = async (report: {
+  category: string;
+  description: string;
+  urgent: boolean;
+}): Promise<void> => {
+  await api.post("/drivers/me/breakdowns", report);
 };
 
 export interface RouteHistoryStop {
+  id?: string;
   stopNumber: number;
   barangay: string;
   status: "done" | "skipped" | "pending";
@@ -192,19 +212,36 @@ export interface RouteHistoryItem {
   completedStops: number;
   skippedStops: number;
   completionPct: number;
-  timeOnRoute: string;
+  timeOnRoute: string | null;
   status: "completed" | "partial" | "no-collection";
   stops: RouteHistoryStop[];
-  adminMessages: { time: string; message: string }[];
+  adminMessages?: { time: string; message: string }[];
 }
 
-export const fetchDriverMyHistory = async (limit = 50): Promise<RouteHistoryItem[]> => {
+export const fetchDriverMyHistory = async (limit = 50, throwOnError = false): Promise<RouteHistoryItem[]> => {
   try {
     const res = await api.get<{ data: RouteHistoryItem[] }>("/drivers/me/history", {
       params: { limit },
     });
     return res.data.data ?? [];
   } catch (error) {
+    if (throwOnError) throw error;
     return [];
   }
+};
+
+export interface CollectorHistoryFilters {
+  status?: "all" | "completed" | "partial" | "no-collection";
+  waste_type?: "all" | "Biodegradable" | "Non-Biodegradable" | "General";
+  cursor?: string;
+}
+export interface CollectorHistoryPage { items: RouteHistoryItem[]; total: number; nextCursor: string | null }
+export const fetchCollectorHistoryPage = async (filters: CollectorHistoryFilters = {}): Promise<CollectorHistoryPage> => {
+  const res = await api.get<{ data: CollectorHistoryPage }>("/drivers/me/history", { params: { view: "collector", limit: 15, ...filters } });
+  return res.data.data;
+};
+export const fetchCollectorHistoryRun = async (id: string): Promise<RouteHistoryItem> => {
+  const res = await api.get<{ data: CollectorHistoryPage }>("/drivers/me/history", { params: { view: "collector", limit: 1, run_id: id } });
+  if (!res.data.data.items[0]) throw new Error("Route history not found");
+  return res.data.data.items[0];
 };

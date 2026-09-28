@@ -84,67 +84,61 @@ const registerNotificationsSocket = (io) => {
 // ── Get the Socket.IO instance (for use in other modules) ───────────────────
 const getIO = () => ioInstance;
 
-// ── Emit a notification to a specific user ───────────────────────────────────
-const emitNotificationToUser = (userId, notification) => {
+// Saved notifications remain available over HTTP if a socket delivery fails.
+const emitAuthorized = async (room, event, payload, allowed) => {
+  if (!ioInstance) return;
   try {
-    if (!ioInstance) {
-      console.warn("[Socket:Notifications] ⚠️ IO not initialized — cannot emit to user:", userId);
-      return;
+    const sockets = await ioInstance.in(room).fetchSockets();
+    for (const socket of sockets) {
+      const user = await authenticateSocketUser(socket);
+      if (user && allowed(user)) socket.emit(event, payload);
+      else await socket.leave(room);
     }
-    if (!userId) {
-      console.warn("[Socket:Notifications] ⚠️ emitNotificationToUser called with no userId");
-      return;
-    }
-    ioInstance.to(`user:${userId}`).emit("notification:new", notification);
-  } catch (err) {
-    console.error(
-      `[Socket:Notifications] ❌ Failed to emit notification to user ${userId}:`,
-      err.message,
-    );
-  }
+  } catch (error) { console.error("[Notifications] Delivery failed:", error.message); }
 };
-
-// ── Emit a notification to all users in a barangay ───────────────────────────
-const emitNotificationToBarangay = (barangayId, notification) => {
-  try {
-    if (!ioInstance) {
-      console.warn("[Socket:Notifications] ⚠️ IO not initialized — cannot emit to barangay:", barangayId);
-      return;
-    }
-    if (!barangayId) {
-      console.warn("[Socket:Notifications] ⚠️ emitNotificationToBarangay called with no barangayId");
-      return;
-    }
-    ioInstance.to(`barangay:${barangayId}`).emit("notification:new", notification);
-  } catch (err) {
-    console.error(
-      `[Socket:Notifications] ❌ Failed to emit notification to barangay ${barangayId}:`,
-      err.message,
-    );
-  }
-};
-
-// ── Emit a notification to all admins ────────────────────────────────────────
-const emitNotificationToAdmins = (notification) => {
-  try {
-    if (!ioInstance) {
-      console.warn("[Socket:Notifications] ⚠️ IO not initialized — cannot emit to admins");
-      return;
-    }
-    ioInstance.to("role:admins").emit("notification:new", notification);
-  } catch (err) {
-    console.error(
-      "[Socket:Notifications] ❌ Failed to emit notification to admins:",
-      err.message,
-    );
-  }
-};
+const emitNotificationToUser = (userId, notification) =>
+  void emitAuthorized(`user:${userId}`, "notification:new", notification, (user) => user.id === userId);
+const emitNotificationToBarangay = (barangayId, notification) =>
+  void emitAuthorized(`barangay:${barangayId}`, "notification:new", notification, (user) =>
+    user.barangay_id === barangayId && (!notification.metadata?.street_id || user.street_id === notification.metadata.street_id));
+const emitNotificationToAdmins = (notification) =>
+  void emitAuthorized("role:admins", "notification:new", notification, (user) => user.role === "ADMIN");
 
 // Remove an in-memory notification immediately when its source is no longer
 // available (for example, an archived or expired announcement).
 const emitNotificationReferenceRemoved = (ref_module, ref_id) => {
   if (!ioInstance || !ref_module || !ref_id) return;
-  ioInstance.emit("notification:remove_ref", { ref_module, ref_id });
+  if (ref_module === "tracking-stale-gps") {
+    // Personal rooms are sufficient for persisted admin notifications.
+    void (async () => {
+      const sockets = await ioInstance.fetchSockets();
+      for (const socket of sockets) {
+        const user = await authenticateSocketUser(socket, new Set(["ADMIN"]));
+        if (user) socket.emit("notification:remove_ref", { ref_module, ref_id });
+      }
+    })().catch((error) => console.error("[Notifications] Removal delivery failed:", error.message));
+  } else {
+    void (async () => {
+      const { pool } = require("../config/db");
+      const [recipients] = await pool.query(
+        "SELECT DISTINCT user_id FROM notifications WHERE ref_module = ? AND ref_id = ?", [ref_module, ref_id]);
+      for (const { user_id } of recipients) emitNotificationReferenceRemovedToUser(user_id, ref_module, ref_id);
+    })().catch((error) => console.error("[Notifications] Removal delivery failed:", error.message));
+  }
+};
+
+const emitNotificationReferenceRemovedToUser = (userId, ref_module, ref_id) => {
+  if (!ioInstance || !userId || !ref_module || !ref_id) return;
+  void emitAuthorized(`user:${userId}`, "notification:remove_ref", { ref_module, ref_id }, (user) => user.id === userId);
+};
+
+const emitNotificationReferenceUpdatedToUser = (userId, ref_module, ref_id, changes) => {
+  if (!ioInstance || !userId || !ref_module || !ref_id) return;
+  void emitAuthorized(`user:${userId}`, "notification:update_ref", {
+    ref_module,
+    ref_id,
+    changes,
+  }, (user) => user.id === userId);
 };
 
 module.exports = {
@@ -154,4 +148,6 @@ module.exports = {
   emitNotificationToBarangay,
   emitNotificationToAdmins,
   emitNotificationReferenceRemoved,
+  emitNotificationReferenceRemovedToUser,
+  emitNotificationReferenceUpdatedToUser,
 };

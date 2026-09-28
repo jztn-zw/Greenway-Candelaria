@@ -1,11 +1,11 @@
 export interface DriverActivity {
   date: string;
   route: string;
-  barangaysCompleted: number;
-  barangaysTotal: number;
+  status: "Completed" | "Partial";
+  completedStops: number;
+  totalStops: number;
   startTime: string;
   endTime: string;
-  statusMessages: string[];
 }
 
 export interface Driver {
@@ -15,7 +15,6 @@ export interface Driver {
   username: string;
   email: string;
   contactNumber: string;
-  licenseNumber: string;
   truckId: string | null;
   status: "Active" | "Deactivated";
   lastLogin: string;
@@ -31,7 +30,6 @@ export interface Truck {
   model: string;
   plateNumber: string;
   assignedDriverId: string | null;
-  wasteType: string;
   status: TruckOperationalStatus;
   liveStatus?: "OFFLINE" | "SCHEDULED" | "ON_THE_WAY" | "DONE";
   dateAdded: string;

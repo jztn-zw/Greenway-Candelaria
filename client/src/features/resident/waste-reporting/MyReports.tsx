@@ -1,7 +1,9 @@
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { FilterTabCount } from "@/components/common/FilterTabCount";
+import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import {
   useState,
   useEffect,
-  useCallback,
   useRef,
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,15 +38,6 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import { BackButton } from "@/components/common";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { MyReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import type { SubmittedReport, ReportStatus } from "./types";
@@ -61,8 +54,6 @@ import {
   fetchMyReportById,
   fetchMyReportStats,
   deleteReport,
-  type MyReportsParams,
-  type ReportStats,
 } from "@/services/reportsService";
 import {
   mapMyReport,
@@ -129,22 +120,36 @@ const cleanDescriptionPreview = (rawDesc: string): string => {
 const MyReports = () => {
   const navigate = useNavigate();
 
-  // List state
-  const [reports, setReports]       = useState<SubmittedReport[]>([]);
-  const [total, setTotal]           = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [page, setPage]             = useState(1);
-  const [isLoading, setIsLoading]   = useState(true);
-  const [error, setError]           = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   // Filters
   const [search, setSearch]       = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState<ReportFilterTab>("all");
   const [sortBy, setSortBy]       = useState<ReportSortOption>("newest");
-  const [stats, setStats]         = useState<ReportStats | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const reportParam = searchParams.get("report");
+  const listQuery = useResidentQuery("reports", ["list", page, debouncedSearch, activeTab, sortBy],
+    () => fetchMyReports({ page, search: debouncedSearch, status: activeTab, sort: sortBy }), { keepPreviousData: true });
+  useEffect(() => {
+    if (!listQuery.isPlaceholderData && listQuery.data && listQuery.data.page !== page) setPage(listQuery.data.page);
+  }, [listQuery.data, listQuery.isPlaceholderData, page]);
+  const reports = (listQuery.data?.reports ?? []).map(mapMyReport);
+  const total = listQuery.data?.total ?? 0;
+  const totalPages = listQuery.data?.totalPages ?? 0;
+  const isLoading = listQuery.isLoading;
+  const error = listQuery.error?.message ?? null;
+  const statsQuery = useResidentQuery("reports", ["stats"], fetchMyReportStats);
+  const stats = statsQuery.data;
+  const detailQuery = useResidentQuery("reports", ["detail", reportParam],
+    () => fetchMyReportById(reportParam!), { enabled: !!reportParam });
+  const inaccessible = [403, 404].includes((detailQuery.error as { response?: { status?: number } } | null)?.response?.status ?? 0);
+  const selectedReport = reportParam && !inaccessible && detailQuery.data ? mapMyReport(detailQuery.data) : null;
+  const isLoadingDetail = detailQuery.isLoading;
+  const detailError = detailQuery.error?.message ?? null;
+  const cancelReport = useResidentMutation(deleteReport, "reports");
+  const loadReports = () => listQuery.refetch();
   const firstReportNumber = total === 0 ? 0 : (page - 1) * 10 + 1;
   const lastReportNumber = Math.min(firstReportNumber + reports.length - 1, total);
   const paginationItems: Array<number | "ellipsis"> = (() => {
@@ -162,77 +167,17 @@ const MyReports = () => {
     return items;
   })();
 
-  // Load live statistics from /reports/my/stats
-  const loadStats = useCallback(async () => {
-    try {
-      const data = await fetchMyReportStats();
-      setStats(data);
-    } catch {
-      // stats failure is non-fatal
-    }
-  }, []);
-
   useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
-
-  // Detail state
-  const [selectedReport, setSelectedReport]       = useState<SubmittedReport | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail]     = useState(false);
-  const [detailError, setDetailError]             = useState<string | null>(null);
-
-  // Debounce ref for search
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isInitialLoadRef = useRef(true);
-  const listRequestIdRef = useRef(0);
-  const detailRequestIdRef = useRef(0);
-
-  useEffect(() => {
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, []);
-
-  // ─── Load reports ─────────────────────────────────────────
-
-  const loadReports = useCallback(
-    async (params: MyReportsParams & { page: number }) => {
-      const requestId = ++listRequestIdRef.current;
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await fetchMyReports(params);
-        if (requestId !== listRequestIdRef.current) return;
-        setReports(result.reports.map(mapMyReport));
-        setTotal(result.total);
-        setTotalPages(result.totalPages);
-      } catch (err: unknown) {
-        if (requestId !== listRequestIdRef.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load reports.",
-        );
-      } finally {
-        if (requestId !== listRequestIdRef.current) return;
-        setIsLoading(false);
-        isInitialLoadRef.current = false;
-      }
-    },
-    [],
-  );
-
-  // Re-fetch whenever filters or page change
-  useEffect(() => {
-    loadReports({ page, search, status: activeTab, sort: sortBy });
-  }, [page, activeTab, sortBy, loadReports]);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   // Debounced search — waits 400ms after typing stops, resets to page 1
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      setPage(1);
-      loadReports({ page: 1, search: value, status: activeTab, sort: sortBy });
-    }, 400);
   };
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -285,93 +230,19 @@ const MyReports = () => {
 
   // ─── Open report detail ────────────────────────────────────
 
-  const openDetail = async (report: SubmittedReport) => {
-    const requestId = ++detailRequestIdRef.current;
+  const openDetail = (report: SubmittedReport) => {
     setSearchParams({ report: report.id, ref: report.referenceNumber });
-    setSelectedReport(report); // show cached data immediately
-    setDetailError(null);
-    setIsLoadingDetail(true);
-    try {
-      const fresh = await fetchMyReportById(report.id);
-      if (requestId !== detailRequestIdRef.current) return;
-      setSelectedReport(mapMyReport(fresh));
-    } catch (err: unknown) {
-      if (requestId !== detailRequestIdRef.current) return;
-      const msg = err instanceof Error ? err.message : "Failed to load report.";
-      if (msg.includes("403") || msg.toLowerCase().includes("access")) {
-        setDetailError("You do not have access to this report.");
-      } else {
-        setDetailError(msg);
-      }
-    } finally {
-      if (requestId !== detailRequestIdRef.current) return;
-      setIsLoadingDetail(false);
-    }
   };
+  const closeDetail = () => setSearchParams({});
 
-  const closeDetail = () => {
-    detailRequestIdRef.current += 1;
-    setSearchParams({});
-    setSelectedReport(null);
-    setDetailError(null);
-    setIsLoadingDetail(false);
+  const statusCounts: Record<ReportFilterTab, number> = {
+    all: stats?.total ?? total,
+    submitted: stats?.pending ?? 0,
+    "under-review": stats?.under_review ?? 0,
+    dispatched: stats?.in_progress ?? 0,
+    resolved: stats?.resolved ?? 0,
   };
-
-  // Sync URL search param with selectedReport
-  useEffect(() => {
-    if (!reportParam) {
-      detailRequestIdRef.current += 1;
-      if (selectedReport) {
-        setSelectedReport(null);
-      }
-      return;
-    }
-    if (selectedReport?.id === reportParam) return;
-
-    let active = true;
-    const requestId = ++detailRequestIdRef.current;
-    setIsLoadingDetail(true);
-    setDetailError(null);
-    fetchMyReportById(reportParam)
-      .then((fresh) => {
-        if (active && requestId === detailRequestIdRef.current) {
-          setSelectedReport(mapMyReport(fresh));
-        }
-      })
-      .catch((err: unknown) => {
-        if (active && requestId === detailRequestIdRef.current) {
-          const msg = err instanceof Error ? err.message : "Failed to load report.";
-          setDetailError(msg);
-        }
-      })
-      .finally(() => {
-        if (active && requestId === detailRequestIdRef.current) setIsLoadingDetail(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [reportParam]);
-
-  // ─── Stats mapping & Tab counts ───────────────────────────
-
-  const getTabCount = (tabValue: ReportFilterTab): number => {
-    if (!stats) return tabValue === "all" ? total : 0;
-    switch (tabValue) {
-      case "all":
-        return stats.total;
-      case "submitted":
-        return stats.pending;
-      case "under-review":
-        return stats.under_review;
-      case "dispatched":
-        return stats.in_progress;
-      case "resolved":
-        return stats.resolved;
-      default:
-        return 0;
-    }
-  };
+  const hasStats = Boolean(stats);
 
   const getViolationLabel = (type: string) =>
     VIOLATION_OPTIONS.find((v) => v.value === type)?.label ?? type;
@@ -384,11 +255,10 @@ const MyReports = () => {
 
   const handleCancelReport = async (id: string) => {
     try {
-      await deleteReport(id);
+      await cancelReport(id);
       toast.success("Report cancelled successfully");
       closeDetail();
-      void loadStats();
-      loadReports({ page: 1, search, status: activeTab, sort: sortBy });
+      setPage(1);
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to cancel report",
@@ -396,6 +266,10 @@ const MyReports = () => {
       throw err;
     }
   };
+
+  if (reportParam && detailError && !selectedReport) return (
+    <div role="alert"><p>{detailError}</p></div>
+  );
 
   // ─── Detail view ──────────────────────────────────────────
 
@@ -405,7 +279,6 @@ const MyReports = () => {
         report={selectedReport}
         isLoading={isLoadingDetail}
         error={detailError}
-        onBack={closeDetail}
         onCancelReport={handleCancelReport}
         onResubmit={() => {
           navigate("/resident/report");
@@ -416,13 +289,13 @@ const MyReports = () => {
   }
 
   // ─── Initial Page Loading Skeleton (only on true initial boot) ─────────
-  if (isLoading && isInitialLoadRef.current) {
+  if (isLoading || isLoadingDetail) {
     return <MyReportsPageSkeleton />;
   }
 
   // ─── Error state ──────────────────────────────────────────
 
-  if (error && !isLoading) {
+  if ((error || detailError) && !isLoading && !reports.length) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
@@ -438,7 +311,7 @@ const MyReports = () => {
           variant="outline"
           size="sm"
           onClick={() =>
-            loadReports({ page, search, status: activeTab, sort: sortBy })
+            loadReports()
           }
           className="gap-2 rounded-xl"
         >
@@ -453,6 +326,7 @@ const MyReports = () => {
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6">
+      {error && <p role="alert" className="text-destructive">Reports could not be refreshed. Last known information is shown.</p>}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
         <div className="hidden md:block">
@@ -501,6 +375,8 @@ const MyReports = () => {
         <div className="flex items-center justify-between gap-2.5">
           {/* Status Filter Tabs (Smooth native mobile scroll + slide drag) */}
           <div
+            role="group"
+            aria-label="Report status filters"
             ref={tabsContainerRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -509,34 +385,22 @@ const MyReports = () => {
             className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide -mr-1 touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
           >
             {REPORT_FILTER_TABS.map((tab) => {
-              const count = getTabCount(tab.value);
               const isActive = activeTab === tab.value;
               return (
                 <button
                   key={tab.value}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={(e) => handleTabClick(tab.value, e)}
                   className={cn(
-                    "group flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border shrink-0 active:scale-95 cursor-pointer",
+                    "flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border shrink-0 active:scale-95 cursor-pointer",
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground font-semibold",
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold",
                   )}
                 >
                   <span>{tab.label}</span>
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold leading-none rounded-full flex items-center justify-center shrink-0 transition-colors",
-                        count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5",
-                        isActive
-                          ? "bg-primary-foreground/20 text-primary-foreground"
-                          : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
+                  {isActive && (hasStats || tab.value === "all") && <FilterTabCount count={statusCounts[tab.value]} />}
                 </button>
               );
             })}
@@ -571,6 +435,7 @@ const MyReports = () => {
         </div>
       </div>
 
+      <div className="space-y-4">
       {/* Report List */}
       {isLoading ? (
         <div className="space-y-3">
@@ -740,12 +605,12 @@ const MyReports = () => {
 
       {/* Pagination */}
       {!isLoading && total > 0 && (
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
           <p className="text-xs text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{firstReportNumber}–{lastReportNumber}</span> of <span className="font-semibold text-foreground">{total}</span> report{total !== 1 ? "s" : ""}
           </p>
           {totalPages > 1 && (
-            <nav className="flex items-center gap-1" aria-label="Report pages">
+            <nav className="flex items-center justify-end gap-1.5" aria-label="Report pages">
               <button
                 type="button"
                 disabled={page === 1}
@@ -756,7 +621,7 @@ const MyReports = () => {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               {paginationItems.map((item, index) => item === "ellipsis" ? (
-                <span key={`ellipsis-${index}`} className="w-7 text-center text-xs text-muted-foreground">…</span>
+                <span key={`ellipsis-${index}`} className="flex h-9 w-7 items-center justify-center text-xs text-muted-foreground">…</span>
               ) : (
                 <button
                   key={item}
@@ -781,6 +646,7 @@ const MyReports = () => {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };
@@ -846,14 +712,12 @@ const ReportDetail = ({
   report,
   isLoading,
   error,
-  onBack,
   onCancelReport,
   onResubmit,
 }: {
   report: SubmittedReport;
   isLoading: boolean;
   error: string | null;
-  onBack: () => void;
   onCancelReport?: (id: string) => Promise<void>;
   onResubmit: () => void;
 }) => {
@@ -891,16 +755,12 @@ const ReportDetail = ({
 
   return (
     <div className="max-w-3xl mx-auto space-y-0 pb-4 md:space-y-4 md:pb-6 lg:space-y-5 lg:pb-8">
-      {/* Back button & top status bar */}
-      <div className="hidden items-center justify-between gap-3 lg:flex">
-        <BackButton label="Back to My Reports" onClick={onBack} />
-        {isLoading && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {isLoading && (
+          <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span className="hidden lg:inline">Syncing...</span>
+            <span>Syncing...</span>
           </div>
-        )}
-      </div>
+      )}
 
       {/* Error alert if any */}
       {error && (
@@ -1243,58 +1103,19 @@ const ReportDetail = ({
       </div>
 
       {/* Cancel Confirmation Modal */}
-      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <DialogContent className="lg:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-destructive flex items-center gap-2">
-              <Trash2 className="w-4 h-4 text-destructive" />
-              Cancel Report Submission
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel and withdraw report{" "}
-              <strong className="text-foreground">{report.referenceNumber}</strong>?
-              This will remove the report from MENRO's queue.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 lg:gap-0 pt-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelModal(false)}
-              disabled={isCancelling}
-              className="rounded-xl"
-            >
-              Keep Report
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={isCancelling}
-              className="rounded-xl"
-              onClick={async () => {
-                if (!onCancelReport) return;
-                try {
-                  setIsCancelling(true);
-                  await onCancelReport(report.id);
-                  setShowCancelModal(false);
-                } finally {
-                  setIsCancelling(false);
-                }
-              }}
-            >
-              {isCancelling ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Cancelling...
-                </>
-              ) : (
-                "Yes, Cancel Report"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmationDialog kind="dialog" open={showCancelModal} onOpenChange={setShowCancelModal}
+        title="Cancel Report Submission" icon={<Trash2 />} variant="destructive" cancelLabel="Keep Report"
+        description={<>Withdraw report <strong className="text-foreground">{report.referenceNumber}</strong> from MENRO's queue?</>}
+        confirmLabel="Yes, Cancel Report" isPending={isCancelling} pendingLabel="Cancelling..."
+        confirmDisabled={!onCancelReport}
+        onConfirm={async () => {
+          if (!onCancelReport || isCancelling) return;
+          try { setIsCancelling(true); await onCancelReport(report.id); setShowCancelModal(false); }
+          catch { /* The parent shows the request error; keep this dialog open for retry. */ }
+          finally { setIsCancelling(false); }
+        }} />
     </div>
   );
 };
 
 export default MyReports;
-

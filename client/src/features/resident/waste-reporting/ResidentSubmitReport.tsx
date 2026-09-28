@@ -1,3 +1,5 @@
+import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
+import useAuthStore from "@/store/authStore";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -13,13 +15,11 @@ import ReviewModal from "./ReviewModal";
 import { compressReportImages } from "./imageCompression";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
-import { ReportFormSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   checkSimilarReport,
   submitReport,
   uploadReportPhotos,
 } from "@/services/reportsService";
-const DRAFT_STORAGE_KEY = "greenway_report_draft_v1";
 type SubmissionStage = "compressing" | "uploading" | "creating" | null;
 
 const revokePhotoPreviews = (photos: ReportFormData["photos"]) => {
@@ -27,17 +27,20 @@ const revokePhotoPreviews = (photos: ReportFormData["photos"]) => {
 };
 
 const ResidentSubmitReport = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const userId = useAuthStore((state) => state.user?.id);
+  const draftStorageKey = `greenway_report_draft_v2:${userId}`;
+  const createReport = useResidentMutation(submitReport, "reports");
+  const uploadPhotos = useResidentMutation(uploadReportPhotos);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStage, setSubmissionStage] = useState<SubmissionStage>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const [hasSimilarReport, setHasSimilarReport] = useState(false);
 
   const [form, setForm] = useState<ReportFormData>(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const saved = localStorage.getItem(draftStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -110,14 +113,15 @@ const ResidentSubmitReport = () => {
       );
 
       if (hasPersistableDraft) {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        localStorage.setItem(draftStorageKey, JSON.stringify(draftData));
       } else {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(draftStorageKey);
       }
     } catch {
       // Ignore storage errors
     }
   }, [
+    draftStorageKey,
     form.violationType,
     form.barangayId,
     form.barangayName,
@@ -126,34 +130,10 @@ const ResidentSubmitReport = () => {
     form.description,
   ]);
 
-  useEffect(() => {
-    if (!form.barangayId || !form.violationType) {
-      setHasSimilarReport(false);
-      return;
-    }
-
-    // Do not leave a warning from the previously selected barangay/type on
-    // screen while the debounced check for the new selection is in progress.
-    setHasSimilarReport(false);
-
-    let isCurrent = true;
-    void (async () => {
-      try {
-        const hasSimilar = await checkSimilarReport(
-          form.barangayId,
-          VIOLATION_TYPE_MAP[form.violationType],
-        );
-        if (isCurrent) setHasSimilarReport(hasSimilar);
-      } catch {
-        // This is advisory only. A transient check failure must not block reports.
-        if (isCurrent) setHasSimilarReport(false);
-      }
-    })();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [form.barangayId, form.violationType]);
+  const similarQuery = useResidentQuery("reports", ["similar", form.barangayId, form.violationType],
+    () => checkSimilarReport(form.barangayId, VIOLATION_TYPE_MAP[form.violationType!]),
+    { enabled: !!form.barangayId && !!form.violationType });
+  const hasSimilarReport = similarQuery.data ?? false;
 
   const [submitted, setSubmitted] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -190,6 +170,7 @@ const ResidentSubmitReport = () => {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (!canSubmit || !form.violationType || !form.barangayId) {
       setShowValidation(true);
       setReviewModalOpen(false);
@@ -209,7 +190,7 @@ const ResidentSubmitReport = () => {
         );
         setSubmissionStage("uploading");
         setUploadProgress(0);
-        photoUrls = await uploadReportPhotos(
+        photoUrls = await uploadPhotos(
           optimizedPhotos,
           setUploadProgress,
         );
@@ -229,7 +210,7 @@ const ResidentSubmitReport = () => {
         })
         .join("\n\n");
 
-      const created = await submitReport({
+      const created = await createReport({
         barangay_id: form.barangayId,
         violation_type: VIOLATION_TYPE_MAP[form.violationType],
         landmark: form.streetOrLandmark || undefined,
@@ -241,7 +222,7 @@ const ResidentSubmitReport = () => {
 
       // Step 3: Clear saved draft from localStorage
       try {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(draftStorageKey);
       } catch {
         // Ignore
       }
@@ -267,7 +248,7 @@ const ResidentSubmitReport = () => {
   const resetForm = () => {
     revokePhotoPreviews(form.photos);
     try {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      localStorage.removeItem(draftStorageKey);
     } catch {
       // Ignore
     }
@@ -286,19 +267,10 @@ const ResidentSubmitReport = () => {
     setShowValidation(false);
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
-
   if (submitted) {
     return (
       <SuccessScreen referenceNumber={referenceNumber} onSubmitAnother={resetForm} />
     );
-  }
-
-  if (isLoading) {
-    return <ReportFormSkeleton />;
   }
 
   return (

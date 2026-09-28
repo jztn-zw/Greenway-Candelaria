@@ -1,5 +1,5 @@
 const service = require("./tracking.service");
-const { pingSchema } = require("./tracking.schema");
+const { pingSchema, roadRouteQuerySchema } = require("./tracking.schema");
 const { success } = require("../../utils/apiResponse");
 const { broadcastLiveUpdate } = require("../../sockets/tracking.socket");
 
@@ -20,7 +20,7 @@ const ping = async (req, res, next) => {
 
 const getLive = async (req, res, next) => {
   try {
-    const live = await service.getLive();
+    const live = await service.getLive(req.user);
     return success(res, live, "Live tracking fetched successfully");
   } catch (err) {
     next(err);
@@ -32,6 +32,7 @@ const getHistory = async (req, res, next) => {
     const logs = await service.getHistory(req.params.truckId, {
       date: req.query.date,
       limit: req.query.limit,
+      cursor: req.query.cursor,
     });
     return success(res, logs, "Tracking history fetched successfully");
   } catch (err) {
@@ -59,10 +60,7 @@ const clearHistory = async (req, res, next) => {
 
 const getRoadRoute = async (req, res, next) => {
   try {
-    const { fromLng, fromLat, toLng, toLat } = req.query;
-    if (!fromLng || !fromLat || !toLng || !toLat) {
-      return res.status(400).json({ success: false, message: "Missing coordinates" });
-    }
+    const { fromLng, fromLat, toLng, toLat } = roadRouteQuerySchema.parse(req.query);
     const route = await service.fetchRoadRoute(fromLng, fromLat, toLng, toLat);
     return success(res, route, "Road route fetched successfully");
   } catch (err) {

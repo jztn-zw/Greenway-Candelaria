@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/common";
 import {
   Table,
   TableBody,
@@ -23,14 +22,14 @@ import {
 import type { Resident } from "./types";
 
 const reportStatusStyles: Record<string, string> = {
-  Pending:
+  Submitted:
     "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
   "Under Review":
     "bg-background/95 dark:bg-zinc-900/90 text-sky-700 dark:text-sky-300 border-sky-500/40 dark:border-sky-400/40 backdrop-blur-md shadow-2xs",
+  Dispatched:
+    "bg-background/95 dark:bg-zinc-900/90 text-violet-700 dark:text-violet-300 border-violet-500/40 dark:border-violet-400/40 backdrop-blur-md shadow-2xs",
   Resolved:
     "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
-  Dismissed:
-    "bg-background/95 dark:bg-zinc-900/90 text-muted-foreground border-border/80 backdrop-blur-md shadow-2xs",
 };
 
 const residentStatusStyles: Record<string, string> = {
@@ -44,11 +43,10 @@ const residentStatusStyles: Record<string, string> = {
 
 interface Props {
   resident: Resident;
-  onBack: () => void;
   onToggleStatus?: (resident: Resident) => void;
 }
 
-const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
+const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
   const initials = resident.fullName
     .split(" ")
     .map((n) => n[0])
@@ -58,18 +56,13 @@ const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
-      {/* ── Top Navigation & Page Header ── */}
-      <div className="space-y-3">
-        <BackButton label="Back to Residents" onClick={onBack} />
-
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
-            Resident Profile
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Detailed resident verification, account information, and waste report history.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+          Resident Profile
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Detailed resident verification, account information, and waste report history.
+        </p>
       </div>
 
       {/* ── Resident Profile Overview Card ── */}
@@ -116,7 +109,7 @@ const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
                 ) : (
                   <>
                     <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                    Reactivate
+                    {resident.status === "Banned" ? "Unban" : "Reactivate"}
                   </>
                 )}
               </Button>
@@ -153,7 +146,7 @@ const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
               Barangay
             </span>
             <p className="text-xs sm:text-sm font-medium text-foreground">
-              {resident.barangay ? `Barangay ${resident.barangay}` : "Unassigned"}
+              {resident.barangay === "Unassigned" ? "Unassigned" : `Barangay ${resident.barangay}`}
             </p>
           </div>
 
@@ -184,8 +177,11 @@ const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
               Account Status
             </span>
             <p className="text-xs sm:text-sm font-medium text-foreground">
-              {resident.status === "Active" ? "Verified & Active" : "Account Deactivated"}
+              {resident.status === "Active" ? "Account Active" : resident.status === "Banned" ? "Account Banned" : "Account Deactivated"}
             </p>
+            {resident.status === "Banned" && resident.banReason ? (
+              <p className="text-xs text-muted-foreground">Reason: {resident.banReason}</p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -253,7 +249,7 @@ const ResidentProfileView = ({ resident, onBack, onToggleStatus }: Props) => {
                           variant="outline"
                           className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
                             reportStatusStyles[r.status] ||
-                            reportStatusStyles.Pending
+                            reportStatusStyles.Submitted
                           }`}
                         >
                           {r.status}

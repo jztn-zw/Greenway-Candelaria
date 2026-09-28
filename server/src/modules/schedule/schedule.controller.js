@@ -1,10 +1,9 @@
 const service = require("./schedule.service");
 const {
-  updateScheduleSchema,
-  createScheduleRuleSchema,
   updateReminderSchema,
   createEventSchema,
   updateEventSchema,
+  eventFiltersSchema,
 } = require("./schedule.schema");
 const { success } = require("../../utils/apiResponse");
 
@@ -12,7 +11,7 @@ const { success } = require("../../utils/apiResponse");
 
 const getEvents = async (req, res, next) => {
   try {
-    const events = await service.getEvents(req.query, req.user);
+    const events = await service.getEvents(eventFiltersSchema.parse(req.query), req.user);
     return success(res, events, "Calendar events fetched successfully");
   } catch (err) {
     next(err);
@@ -57,32 +56,12 @@ const deleteEvent = async (req, res, next) => {
   }
 };
 
-// ─── Legacy 7-Day Collection Schedule ─────────────────────
+// ─── Route-derived Resident Collection Schedule ───────────
 
 const getAll = async (req, res, next) => {
   try {
-    const schedule = await service.getAll();
+    const schedule = await service.getAll(req.user.id);
     return success(res, schedule, "Schedule fetched successfully");
-  } catch (err) {
-    next(err);
-  }
-};
-
-const update = async (req, res, next) => {
-  try {
-    const data = updateScheduleSchema.parse(req.body);
-    const entry = await service.update(req.params.id, data, req.user.id);
-    return success(res, entry, "Schedule updated successfully");
-  } catch (err) {
-    next(err);
-  }
-};
-
-const createRule = async (req, res, next) => {
-  try {
-    const data = createScheduleRuleSchema.parse(req.body);
-    const entry = await service.createRule(data, req.user.id);
-    return success(res, entry, "Collection rule created successfully", 201);
   } catch (err) {
     next(err);
   }
@@ -100,7 +79,7 @@ const getReminder = async (req, res, next) => {
 const updateReminder = async (req, res, next) => {
   try {
     const data = updateReminderSchema.parse(req.body);
-    const reminder = await service.updateReminder(data);
+    const reminder = await service.updateReminder(data, req.user.id, req.ip);
     return success(res, reminder, "Reminder settings updated");
   } catch (err) {
     next(err);
@@ -114,8 +93,6 @@ module.exports = {
   updateEvent,
   deleteEvent,
   getAll,
-  createRule,
-  update,
   getReminder,
   updateReminder,
 };

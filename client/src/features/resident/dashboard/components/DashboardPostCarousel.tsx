@@ -1,3 +1,4 @@
+import { useResidentQuery } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,30 +16,17 @@ const AUTO_INTERVAL = 5000;
 
 const DashboardPostCarousel = () => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* fetch */
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const data = await postsService.getAll({ status: "PUBLISHED" });
-        const list: PostItem[] = Array.isArray(data) ? data : data?.data || [];
-        if (mounted) setPosts(list.slice(0, 12));
-      } catch {
-        // silent — dashboard must not break
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-    void load();
-    return () => { mounted = false; };
-  }, []);
+  const postsQuery = useResidentQuery("posts", ["dashboard"],
+    () => postsService.getPage<PostItem>({ status: "PUBLISHED", page: 1, limit: 12 }));
+  const posts = postsQuery.data?.posts ?? [];
+  const isLoading = postsQuery.isLoading;
+  const loadFailed = postsQuery.isError;
+  useEffect(() => { setActiveIndex((index) => Math.min(index, Math.max(0, posts.length - 1))); }, [posts.length]);
 
   useEffect(() => {
     setImgFailed(false);
@@ -74,7 +62,22 @@ const DashboardPostCarousel = () => {
     );
   }
 
-  if (posts.length === 0) return null;
+  if (posts.length === 0) {
+    return (
+      <Card className="h-full rounded-2xl border border-border">
+        <CardContent className="flex min-h-[165px] flex-col justify-center p-5">
+          <p className="text-sm font-bold text-foreground">
+            {loadFailed ? "Community updates unavailable" : "No community updates yet"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {loadFailed
+              ? "Published posts could not be loaded right now."
+              : "Published MENRO posts will appear here."}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const post = posts[activeIndex];
   const catStyle = getCategoryBadgeStyle(post.category);

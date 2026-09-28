@@ -1,7 +1,8 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useAdminQuery } from "@/lib/adminQuery";
 import api from "@/lib/api";
 
 export interface AnalyticsOverview {
+  as_of_date: string;
   users: {
     total: number;
     residents: number;
@@ -64,47 +65,33 @@ export interface DashboardTruck {
   id: string;
   name: string;
   plate_number: string;
-  status?: "OFFLINE" | "SCHEDULED" | "ON_THE_WAY" | "DONE";
+  run_status?: "SCHEDULED" | "ACTIVE" | "PAUSED" | "COMPLETED" | "PARTIAL" | "CANCELLED" | null;
   availability_status?: "ACTIVE" | "UNDER_MAINTENANCE";
   driver_name?: string;
   current_route?: string;
-  completed_barangays?: number;
-  total_barangays?: number;
+  completed_stops: number;
+  total_stops: number;
 }
 
 export interface DashboardBarangay {
   id: string;
   name: string;
-  zone: string;
   truck_name?: string;
   status?: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
-}
-
-export interface DashboardRouteStop {
-  id: string;
-  barangay_id: string;
-  barangay_name: string;
-  stop_order: number;
-  status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
-}
-
-export interface DashboardRoute {
-  id: string;
-  day_of_week: string;
-  truck_id: string;
-  truck_name: string;
-  truck_plate: string;
-  driver_name: string | null;
-  start_time: string;
-  status: "ACTIVE" | "INACTIVE";
-  name?: string | null;
-  waste_type?: string | null;
-  stops: DashboardRouteStop[];
 }
 
 export interface DashboardAttention {
   awaiting_triage: number;
   maintenance_trucks: number;
+  missed_stops: number;
+  items: Array<{
+    id: string;
+    kind: "report" | "missed_stop" | "maintenance";
+    target_id: string;
+    title: string;
+    description: string;
+    occurred_at: string | null;
+  }>;
 }
 
 interface DashboardPayload {
@@ -115,69 +102,26 @@ interface DashboardPayload {
   activityLogs: DashboardAuditLog[];
   trucks: DashboardTruck[];
   barangays: DashboardBarangay[];
-  routes: DashboardRoute[];
   attention: DashboardAttention;
 }
 
 export const useAdminDashboard = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
-  const [reportsAnalytics, setReportsAnalytics] = useState<ReportsAnalytics | null>(null);
-  const [usersAnalytics, setUsersAnalytics] = useState<UsersAnalytics | null>(null);
-  const [recentReports, setRecentReports] = useState<DashboardReport[]>([]);
-  const [activityLogs, setActivityLogs] = useState<DashboardAuditLog[]>([]);
-  const [trucks, setTrucks] = useState<DashboardTruck[]>([]);
-  const [barangays, setBarangays] = useState<DashboardBarangay[]>([]);
-  const [routes, setRoutes] = useState<DashboardRoute[]>([]);
-  const [attention, setAttention] = useState<DashboardAttention | null>(null);
-
-  const fetchDashboardData = useCallback(async (isSilent = false) => {
-    if (!isSilent) setIsLoading(true);
-    else setIsRefreshing(true);
-    setError(null);
-
-    try {
-      const response = await api.get<{ data: DashboardPayload }>("/dashboard");
-      const dashboard = response.data.data;
-
-      setOverview(dashboard.overview);
-      setReportsAnalytics(dashboard.reportsAnalytics);
-      setUsersAnalytics(dashboard.usersAnalytics);
-      setRecentReports(dashboard.recentReports ?? []);
-      setActivityLogs(dashboard.activityLogs ?? []);
-      setTrucks(dashboard.trucks ?? []);
-      setBarangays(dashboard.barangays ?? []);
-      setRoutes(dashboard.routes ?? []);
-      setAttention(dashboard.attention ?? null);
-    } catch (err: unknown) {
-      console.error("[useAdminDashboard] Error loading dashboard data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load dashboard data");
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
+  const query = useAdminQuery("dashboard", [], async () => {
+    const response = await api.get<{ data: DashboardPayload }>("/dashboard");
+    return response.data.data;
+  }, { refetchInterval: 60_000 });
   return {
-    isLoading,
-    isRefreshing,
-    error,
-    overview,
-    reportsAnalytics,
-    usersAnalytics,
-    recentReports,
-    activityLogs,
-    trucks,
-    barangays,
-    routes,
-    attention,
-    refetch: () => fetchDashboardData(true),
+    isLoading: query.isLoading,
+    isRefreshing: query.isFetching && !query.isLoading,
+    error: query.error?.message ?? null,
+    overview: query.data?.overview ?? null,
+    reportsAnalytics: query.data?.reportsAnalytics ?? null,
+    usersAnalytics: query.data?.usersAnalytics ?? null,
+    recentReports: query.data?.recentReports ?? [],
+    activityLogs: query.data?.activityLogs ?? [],
+    trucks: query.data?.trucks ?? [],
+    barangays: query.data?.barangays ?? [],
+    attention: query.data?.attention ?? null,
+    refetch: () => query.refetch(),
   };
 };

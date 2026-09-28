@@ -24,6 +24,11 @@ const startRouteScheduler = (io) => {
           routeIds: activatedRouteIds,
         });
       }
+      try {
+        await routeService.dispatchDueDriverRouteNotifications();
+      } catch (error) {
+        console.error("[RouteScheduler] Failed to send driver route notifications:", error);
+      }
     } catch (error) {
       console.error("[RouteScheduler] Failed to auto-activate routes:", error);
     } finally {

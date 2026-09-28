@@ -22,6 +22,7 @@ export const DEFAULT_FORM: RouteForm = {
   truckId: "",
   driverId: "",
   startTime: "06:00",
+  selectedBarangayId: "",
   barangays: [],
 };
 

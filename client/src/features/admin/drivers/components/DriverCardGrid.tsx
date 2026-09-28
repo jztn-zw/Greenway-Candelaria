@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Truck,
   Phone,
@@ -74,12 +74,16 @@ const DriverCardGrid = ({
     });
   }, [drivers, search, statusFilter, assignmentFilter]);
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, assignmentFilter]);
+  useEffect(() => { setCurrentPage((page) => Math.min(page, totalPages)); }, [totalPages]);
 
   const paginated = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const start = (visiblePage - 1) * ITEMS_PER_PAGE;
     return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
+  }, [filtered, visiblePage]);
 
   return (
     <div className="space-y-5">
@@ -211,7 +215,7 @@ const DriverCardGrid = ({
       {/* ── Pagination ── */}
       {totalPages > 1 && (
         <PaginationControls
-          currentPage={currentPage}
+          currentPage={visiblePage}
           totalPages={totalPages}
           totalItems={filtered.length}
           pageSize={ITEMS_PER_PAGE}

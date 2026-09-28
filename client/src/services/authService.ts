@@ -8,6 +8,7 @@ export interface RegisterData {
   password: string;
   phone?: string;
   barangay_id?: string;
+  street_id?: string;
 }
 
 export interface LoginData {
@@ -25,6 +26,9 @@ export interface User {
   avatar_url: string | null;
   barangay_id: string | null;
   barangay_name?: string | null;
+  street_id?: string | null;
+  street_name?: string | null;
+  street_area?: string | null;
 }
 
 export interface AuthResponse {

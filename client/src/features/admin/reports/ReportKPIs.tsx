@@ -31,19 +31,19 @@ const ReportKPIs = ({ reports = [], kpis }: ReportKPIsProps) => {
     {
       label: "Pending Review",
       value: pending,
-      subtext: pending > 0 ? "Requires verification" : "All reviewed",
+      subtext: "Submitted or under review",
       tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     },
     {
       label: "In Dispatch",
       value: dispatched,
-      subtext: dispatched > 0 ? "Crews actively deployed" : "No active dispatches",
+      subtext: "Reports marked dispatched",
       tag: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
     },
     {
       label: "Resolved Cases",
       value: resolved,
-      subtext: `${resolved} remediated on site`,
+      subtext: "Reports marked resolved",
       tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
   ];

@@ -1,3 +1,4 @@
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import React, { useState } from "react";
 import {
   Dialog,
@@ -6,19 +7,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import {
   X,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WASTE_MAP, formatTime12h } from "../constants";
@@ -168,7 +161,12 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 <span className="text-[10px] text-muted-foreground font-medium">Sequence follows the numbered markers</span>
               </div>
               <RouteStopsMap
-                stops={orderedStops.map((stop) => ({ id: stop.barangayId, name: stop.barangayName }))}
+                stops={orderedStops.map((stop) => ({
+                  id: stop.id,
+                  name: stop.stopName,
+                  barangayId: stop.barangayId,
+                  coveragePath: stop.coveragePath,
+                }))}
                 barangays={barangays}
                 className="h-44"
               />
@@ -184,7 +182,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
               <div className="border border-border/70 rounded-xl max-h-48 overflow-y-auto divide-y divide-border/60 bg-muted/15 scrollbar-thin">
                 {orderedStops.map((stop, index) => (
                   <div
-                    key={stop.barangayId}
+                    key={stop.id}
                     className="flex items-center justify-between px-3.5 py-2 text-xs hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -192,7 +190,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                         <span className="text-[10px] font-bold font-mono">{index + 1}</span>
                       </div>
                       <span className="font-semibold text-foreground truncate">
-                        {stop.barangayName}
+                        {stop.stopName}
                       </span>
                     </div>
 
@@ -275,37 +273,23 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
       </Dialog>
 
       {/* Delete Confirmation Alert Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-2xl border-border/80">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-bold text-foreground">
-              Delete Collection Route?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground">
-              This action cannot be undone. The route for {route.day} ({route.truckName}) will be permanently removed, and this deletion will be recorded in the MENRO Audit Logs.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={isDeleting}
-              className="rounded-xl text-xs h-9"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isDeleting}
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                onClose();
-                onDelete(route);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl text-xs h-9 font-bold"
-            >
-              {isDeleting ? "Deleting..." : "Delete permanently"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Collection Route?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>The inactive route template for {route.day} ({route.truckName}) will be removed and recorded in the MENRO Audit Logs. Completed daily route history will be preserved.</>}
+        confirmLabel="Delete permanently"
+        isPending={isDeleting}
+        pendingLabel="Deleting..."
+        closeOnConfirm
+        onConfirm={() => {
+          setDeleteDialogOpen(false);
+          onClose();
+          onDelete(route);
+        }}
+      />
     </>
   );
 };

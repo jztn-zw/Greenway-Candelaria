@@ -1,3 +1,6 @@
+import { useResidentFetch } from "@/lib/residentQuery";
+import { FilterTabCount } from "@/components/common/FilterTabCount";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -26,11 +29,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import useNotifications from "@/hooks/useNotifications";
+import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
 import { formatRelativeTime } from "@/utils/date";
 import NotificationModal from "./NotificationModal";
+import type { NotificationType, ResidentNotification } from "./types";
 import ResidentAnnouncementModal from "../announcements/ResidentAnnouncementModal";
 import type { AnnouncementDetail } from "../announcements/ResidentAnnouncementModal";
 import { fetchAnnouncementById } from "@/services/announcementsService";
@@ -86,6 +90,17 @@ const typeLabels: Record<string, string> = {
   SYSTEM: "System",
 };
 
+const modalTypeByNotificationType: Record<NotificationRow["type"], NotificationType> = {
+  COLLECTION_REMINDER: "collection-reminder",
+  TRUCK_IS_NEAR: "truck-near",
+  COLLECTION_DONE: "collection-done",
+  REPORT_UPDATE: "report-update",
+  NEW_POST: "new-content",
+  ANNOUNCEMENT: "announcement",
+  MISSED_COLLECTION: "missed-collection",
+  SYSTEM: "system",
+};
+
 const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
   if (!notification.metadata) return {};
   if (typeof notification.metadata === "string") {
@@ -107,11 +122,11 @@ const isFreshLivePing = (value?: string | null) => {
   return !Number.isNaN(timestamp) && Date.now() - timestamp <= 120_000;
 };
 
-const isActiveTruckNearAlert = async (notification: NotificationRow) => {
+const isActiveTruckNearAlert = async (notification: NotificationRow, fetchResident: ReturnType<typeof useResidentFetch>) => {
   if (notification.type !== "TRUCK_IS_NEAR" || !notification.ref_id) return false;
 
   try {
-    const [routes, liveTrucks] = await Promise.all([fetchTodayRoutes(), fetchLiveTrucks()]);
+    const [routes, liveTrucks] = await Promise.all([fetchResident("tracking", ["today"], fetchTodayRoutes), fetchResident("tracking", ["live"], fetchLiveTrucks)]);
     const route = routes.find((item) => item.route_id === notification.ref_id);
     if (String(route?.route_status || "").toUpperCase() !== "ACTIVE") return false;
 
@@ -127,7 +142,9 @@ const isActiveTruckNearAlert = async (notification: NotificationRow) => {
 };
 
 const getNotificationHeadline = (n: NotificationRow) => {
-  const cleanTitle = (n.title || "").replace(/[🚨⚠️]/g, "").trim();
+  const cleanTitle = (n.title || "")
+    .replace(/🚨|⚠️|⚠/g, "")
+    .trim();
 
   if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
     return {
@@ -204,11 +221,13 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 };
 
 const ResidentNotifications = () => {
+  const fetchResident = useResidentFetch();
   const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
     isLoading,
+    error: notificationsError,
     fetchNotifications,
     markAsRead,
     markAllAsRead,
@@ -219,15 +238,10 @@ const ResidentNotifications = () => {
   const announcementParam = searchParams.get("announcement");
 
   const [activeTab, setActiveTab] = useState<NotificationCategory>("all");
-  const [modalNotification, setModalNotification] = useState<{
-    id: string;
-    title: string;
-    message: string;
-    time: string;
-    type: any;
-    details?: string;
-  } | null>(null);
+  const [modalNotification, setModalNotification] = useState<ResidentNotification | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<{
     id?: string | null;
@@ -238,12 +252,6 @@ const ResidentNotifications = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Refresh when this page opens so notifications whose announcements expired
-  // while the resident kept the app open are removed immediately.
-  useEffect(() => {
-    void fetchNotifications();
-  }, [fetchNotifications]);
-
   // Sync ?announcement=<id> query parameter from URL
   useEffect(() => {
     if (announcementParam) {
@@ -253,7 +261,7 @@ const ResidentNotifications = () => {
       let cancelled = false;
       void (async () => {
         try {
-          const detail = await fetchAnnouncementById(announcementParam);
+          const detail = await fetchResident("announcements", ["detail", announcementParam], () => fetchAnnouncementById(announcementParam));
           if (!cancelled) {
             setSelectedAnnouncement({
               id: announcementParam,
@@ -270,7 +278,7 @@ const ResidentNotifications = () => {
         cancelled = true;
       };
     }
-  }, [announcementParam, notifications]);
+  }, [announcementParam, notifications, fetchResident]);
 
   const handleAnnouncementModalChange = (open: boolean) => {
     setAnnouncementModalOpen(open);
@@ -352,7 +360,8 @@ const ResidentNotifications = () => {
         title: n.title,
         message: n.body,
         time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
-        type: n.type.toLowerCase().replace("_", "-") as any,
+        type: modalTypeByNotificationType[n.type],
+        read: true,
       });
       setModalOpen(true);
     };
@@ -362,17 +371,19 @@ const ResidentNotifications = () => {
     } else if (n.ref_module === "reports" && n.ref_id) {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
-      if (await isActiveTruckNearAlert(n)) {
+      if (await isActiveTruckNearAlert(n, fetchResident)) {
         navigate("/resident/tracking");
       } else {
         openNotificationDetails();
       }
+    } else if (n.type === "COLLECTION_REMINDER") {
+      navigate("/resident/schedule");
     } else if (n.type === "ANNOUNCEMENT" || n.ref_module === "announcements") {
       // Check availability before opening the modal. Expired announcements are
       // intentionally unavailable to residents, so show only a clear message.
       if (n.ref_id) {
         try {
-          const detail = await fetchAnnouncementById(n.ref_id);
+          const detail = await fetchResident("announcements", ["detail", n.ref_id], () => fetchAnnouncementById(n.ref_id!));
           setSelectedAnnouncement({
             id: n.ref_id,
             notification: n,
@@ -404,6 +415,7 @@ const ResidentNotifications = () => {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
+      {notificationsError && <p role="alert" className="text-destructive">Could not refresh notifications. <button onClick={() => void fetchNotifications()}>Retry</button></p>}
       {/* ── Page Header ── */}
       <div className="hidden items-center justify-between gap-4 lg:flex">
         <div>
@@ -440,7 +452,7 @@ const ResidentNotifications = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearAll}
+                onClick={() => setConfirmClear(true)}
                 className="gap-1.5 text-xs h-9 px-3 rounded-xl border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold transition-all active:scale-[0.98] cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -472,23 +484,11 @@ const ResidentNotifications = () => {
               className={`group h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 active:scale-95 border cursor-pointer ${
                 isActive
                   ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
-                  : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground font-semibold"
+                  : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
               }`}
             >
               <span>{tab.label}</span>
-              {count > 0 && (
-                <span
-                  className={`text-[10px] font-bold leading-none rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                    count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
-                  } ${
-                    isActive
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
+              {isActive && count > 0 && <FilterTabCount count={count} />}
             </button>
           );
           })}
@@ -515,7 +515,7 @@ const ResidentNotifications = () => {
                 </DropdownMenuItem>
               )}
               {notifications.length > 0 && (
-                <DropdownMenuItem onSelect={clearAll} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <DropdownMenuItem onSelect={() => setConfirmClear(true)} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                   Clear all notifications
                 </DropdownMenuItem>
@@ -615,6 +615,15 @@ const ResidentNotifications = () => {
       <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} variant="inline" />
 
       {/* ── Modal for Announcements ── */}
+      <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear} title="Clear all notification history?"
+        description="This permanently deletes notifications in every category. This cannot be undone."
+        icon={<Trash2 />} variant="destructive" confirmLabel="Clear all" isPending={isClearing} pendingLabel="Clearing..."
+        onConfirm={async () => {
+          if (isClearing) return;
+          setIsClearing(true);
+          try { await clearAll(); setCurrentPage(1); setConfirmClear(false); }
+          finally { setIsClearing(false); }
+        }} />
       <ResidentAnnouncementModal
         open={announcementModalOpen}
         onOpenChange={handleAnnouncementModalChange}
@@ -629,7 +638,7 @@ const ResidentNotifications = () => {
         <NotificationModal
           open={modalOpen}
           onOpenChange={setModalOpen}
-          notification={modalNotification as any}
+          notification={modalNotification}
         />
       )}
     </div>
@@ -637,4 +646,3 @@ const ResidentNotifications = () => {
 };
 
 export default ResidentNotifications;
-

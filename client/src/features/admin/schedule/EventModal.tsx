@@ -37,6 +37,7 @@ import {
 } from "@/services/scheduleService";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { getManilaCalendarDate, calendarDateKey } from "@/components/calendar/calendar.utils";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState(defaultDate);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
-    if (!defaultDate) return new Date();
+    if (!defaultDate) return getManilaCalendarDate();
     const parts = defaultDate.split("-").map(Number);
     return new Date(parts[0], parts[1] - 1, parts[2]);
   });
@@ -77,11 +78,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const today = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }, []);
-  const todayDate = format(today, "yyyy-MM-dd");
+  const todayDate = calendarDateKey(getManilaCalendarDate());
 
   const isEditing = Boolean(event);
 
@@ -103,7 +100,7 @@ export const EventModal: React.FC<EventModalProps> = ({
         const parts = defaultDate.split("-").map(Number);
         setSelectedDate(new Date(parts[0], parts[1] - 1, parts[2]));
       } else {
-        setSelectedDate(new Date());
+        setSelectedDate(getManilaCalendarDate());
       }
       setEndDate("");
       setDescription("");
@@ -119,7 +116,7 @@ export const EventModal: React.FC<EventModalProps> = ({
     }
     if (!eventDate) {
       nextErrors.eventDate = "Select a scheduled date.";
-    } else if (eventDate < todayDate) {
+    } else if (eventDate < todayDate && eventDate !== event?.event_date.split("T")[0]) {
       nextErrors.eventDate = "Scheduled date cannot be in the past.";
     }
     if (endDate && endDate < eventDate) {

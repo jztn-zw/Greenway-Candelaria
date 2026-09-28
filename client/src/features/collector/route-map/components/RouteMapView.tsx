@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-// @ts-ignore
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteStop } from "../types";
@@ -8,7 +7,7 @@ import { getRoadRoute, type RoadRouteResult } from "@/services/roadRoutingServic
 
 interface RouteMapViewProps {
   stops: RouteStop[];
-  truckCoords: [number, number];
+  truckCoords: [number, number] | null;
   activeStopCoords?: [number, number] | null;
   onActiveRouteChange?: (route: RoadRouteResult | null) => void;
 }
@@ -36,6 +35,19 @@ const statusColor = (status: RouteStop["status"]) => {
   }
 };
 
+const coverageColor = (status: RouteStop["status"]) => {
+  switch (status) {
+    case "in-progress":
+      return "#16a34a";
+    case "done":
+      return "#166534";
+    case "skipped":
+      return "#f59e0b";
+    default:
+      return "#94a3b8";
+  }
+};
+
 const statusLabel = (status: RouteStop["status"]) => {
   switch (status) {
     case "done": return "Completed";
@@ -45,6 +57,11 @@ const statusLabel = (status: RouteStop["status"]) => {
   }
 };
 
+const escapeHtml = (value: string) => {
+  const element = document.createElement("span");
+  element.textContent = value;
+  return element.innerHTML;
+};
 const formatDistance = (distanceKm: number) =>
   distanceKm > 0 ? `${distanceKm.toFixed(1)} km away` : "At current location";
 
@@ -92,6 +109,19 @@ const createStopTeardropIcon = (stop: RouteStop) => {
     iconSize: [width, height],
     iconAnchor: [width / 2, height],
     popupAnchor: [0, -height],
+  });
+};
+
+const createCoverageOrderIcon = (stop: RouteStop) => {
+  const color = coverageColor(stop.status);
+  const isActive = stop.status === "in-progress";
+  const size = isActive ? 30 : 26;
+
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #fff;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.32);${isActive ? "outline:3px solid rgba(34,197,94,.28);" : ""}">${stop.stopNumber}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 };
 
@@ -149,7 +179,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       maxBounds: BOUNDS,
       maxBoundsViscosity: 0.6,
       worldCopyJump: false,
-    }).setView(truckCoords, 14);
+    }).setView([14.0388, 121.4285], 14);
 
     L.tileLayer(OSM_URL, {
       maxZoom: MAX_ZOOM,
@@ -203,6 +233,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
           // Route glow outer casing
           L.polyline(result.coordinates, {
             color: "#2563eb",
+            dashArray: result.source === "haversine" ? "8 8" : undefined,
             weight: 6,
             opacity: 0.7,
             lineCap: "round",
@@ -229,13 +260,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     return () => {
       isCurrent = false;
     };
-  }, [
-    truckCoords[0],
-    truckCoords[1],
-    activeStopCoords?.[0],
-    activeStopCoords?.[1],
-    onActiveRouteChange,
-  ]);
+  }, [truckCoords, activeStopCoords, onActiveRouteChange]);
 
   // Update markers
   useEffect(() => {
@@ -244,26 +269,68 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     if (!layer || !map) return;
     layer.clearLayers();
 
-    const stopsKey = stops.map((s) => s.id).join("|");
+    const stopsKey = stops
+      .map((stop) => `${stop.id}:${stop.coveragePath?.length ?? 0}`)
+      .join("|");
     if (stopsKey !== lastStopsKeyRef.current) {
       lastStopsKeyRef.current = stopsKey;
       hasAutoFittedRef.current = false;
     }
 
-    const allCoords = stops.map((s) => s.coords);
+    const allCoords = stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]);
 
-    // Stop markers with teardrop shape
+    // Render full street coverage. Pins remain only as a fallback for legacy
+    // stops that do not have a saved street path.
     stops.forEach((stop) => {
+      if (stop.hasCoordinates === false) return;
       const isActive = stop.status === "in-progress";
       const color = statusColor(stop.status);
+
+      if (stop.coveragePath && stop.coveragePath.length >= 2) {
+        L.polyline(stop.coveragePath, {
+          color: "#ffffff",
+          weight: isActive ? 10 : 8,
+          opacity: 0.9,
+          lineCap: "round",
+          lineJoin: "round",
+          interactive: false,
+        }).addTo(layer);
+
+        const coverageLine = L.polyline(stop.coveragePath, {
+          color: coverageColor(stop.status),
+          weight: isActive ? 7 : 5,
+          opacity: stop.status === "done" ? 0.68 : 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(layer);
+
+        const tooltip = document.createElement("div");
+        tooltip.className = "text-xs";
+        const title = document.createElement("strong");
+        title.textContent = `${stop.stopNumber}. ${stop.barangay}`;
+        const status = document.createElement("div");
+        status.textContent = statusLabel(stop.status);
+        status.style.color = coverageColor(stop.status);
+        status.style.fontSize = "11px";
+        tooltip.append(title, status);
+        coverageLine.bindTooltip(tooltip, { sticky: true, direction: "top" });
+
+        L.marker(stop.coveragePath[0], {
+          icon: createCoverageOrderIcon(stop),
+          interactive: false,
+          zIndexOffset: isActive ? 500 : 0,
+        }).addTo(layer);
+        return;
+      }
+
       const pinIcon = createStopTeardropIcon(stop);
 
       const marker = L.marker(stop.coords, { icon: pinIcon, zIndexOffset: isActive ? 500 : 0 });
 
       const progressInfo = stop.status === "done" && stop.completedAt
-        ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.7;margin-top:4px">Completed at ${stop.completedAt}</div>`
+        ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.7;margin-top:4px">Completed at ${escapeHtml(stop.completedAt)}</div>`
         : stop.status === "skipped" && stop.skippedReason
-        ? `<div style="font-size:11px;color:hsl(38,92%,40%);margin-top:4px">${stop.skippedReason}</div>`
+        ? `<div style="font-size:11px;color:hsl(38,92%,40%);margin-top:4px">${escapeHtml(stop.skippedReason)}</div>`
         : stop.status === "not-yet" && stop.distanceKm > 0
         ? `<div style="font-size:11px;opacity:0.6;margin-top:4px">${formatDistance(stop.distanceKm)}</div>`
         : "";
@@ -275,7 +342,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
               ${stop.stopNumber}
             </div>
             <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:13px;color:inherit">${stop.barangay}</div>
+              <div style="font-weight:700;font-size:13px;color:inherit">${escapeHtml(stop.barangay)}</div>
               <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
                 <span style="font-size:11px;font-weight:600;color:${color}">${statusLabel(stop.status)}</span>
               </div>
@@ -298,7 +365,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     // Truck marker with custom teardrop icon
     const truckIcon = createCollectorTruckPinIcon();
-    L.marker(truckCoords, { icon: truckIcon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
+    if (truckCoords) L.marker(truckCoords, { icon: truckIcon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
 
     // On smaller screens, preserve the collector's map position instead of
     // automatically moving the viewport as route data refreshes. The manual
@@ -308,7 +375,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     // Auto-fit only on larger screens, on first load or when stop set changes,
     // and only if the collector has not manually interacted with the map.
     if (!isSmallScreen && !hasAutoFittedRef.current && !userInteractedRef.current) {
-      const bounds = L.latLngBounds([...allCoords, truckCoords]);
+      const bounds = L.latLngBounds([...allCoords, ...(truckCoords ? [truckCoords] : [])]);
       if (bounds.isValid()) {
         map.fitBounds(bounds, {
           padding: [36, 36],
@@ -321,7 +388,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
   const handleRecenter = () => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !truckCoords) return;
 
     userInteractedRef.current = true;
     hasAutoFittedRef.current = true;
@@ -334,8 +401,8 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     if (isAlreadyFocused) {
       const bounds = L.latLngBounds([
-        ...stops.map((stop) => stop.coords),
-        truckCoords,
+        ...stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]),
+        ...(truckCoords ? [truckCoords] : []),
       ]);
 
       if (bounds.isValid()) {
@@ -362,8 +429,8 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     map.stop();
 
     const bounds = L.latLngBounds([
-      ...stops.map((stop) => stop.coords),
-      truckCoords,
+      ...stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]),
+      ...(truckCoords ? [truckCoords] : []),
     ]);
 
     if (bounds.isValid()) {
@@ -410,6 +477,18 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
+      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/80 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-2xs backdrop-blur-md sm:left-3 sm:top-3">
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-green-600" /> Current
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-green-900" /> Done
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+        </span>
+      </div>
+
       {/* Floating Map Action Controls (Bottom-Right) */}
       <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs">
         <button
@@ -435,7 +514,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
       <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
         <span className="text-[10px] sm:text-[11px] font-display font-semibold text-foreground truncate">
-          Candelaria, Quezon
+          {activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
         </span>
       </div>
     </div>

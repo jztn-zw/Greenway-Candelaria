@@ -1,3 +1,7 @@
+import { AdminMessenger } from "./components/AdminMessenger";
+import { useAdminQuery } from "@/lib/adminQuery";
+import useAdminNotifications from "@/features/admin/notifications/useAdminNotifications";
+import useAuthStore from "@/store/authStore";
 /**
  * AdminTruckTracking.tsx
  *
@@ -10,63 +14,44 @@
  *  4. Reconcile the full snapshot once per minute while connected.
  */
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { io } from "socket.io-client";
 import {
-  Truck,
-  MapPin,
-  CheckCircle2,
-  AlertTriangle,
-  Navigation,
-  Wifi,
-  WifiOff,
-  RotateCw,
-  RotateCcw,
-  ShieldCheck,
-  X,
-  Radio,
-  PanelRightClose,
-} from "lucide-react";
-import AdminTrackingMap, {
-  type ReplayTargetStopInfo,
-  type ReplayCompletedStopInfo,
-} from "./components/AdminTrackingMap";
+KPIRowSkeleton,
+MapPanelSkeleton,
+PageHeaderSkeleton,
+} from "@/components/PageLoadingSkeletons";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
 import { useScheduledRouteOrder } from "@/features/collector/route-map/hooks/useAutoRoute";
 import type { RouteStop } from "@/features/collector/route-map/types";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+import authService from "@/services/authService";
+import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
+import {
+fetchAdminTrackingOverview,
+type AdminTrackingOverview,
+type DriverMessageRow,
+type DriverRow,
+type LiveRow,
+type TruckRouteRow,
+type TruckRow,
+} from "@/services/trackingService";
+import {
+Navigation,
+PanelRightClose,
+RotateCcw,
+Truck
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import AdminTrackingMap from "./components/AdminTrackingMap";
 import AdminTruckCard from "./components/AdminTruckCard";
 import RouteReplay from "./components/RouteReplay";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import type { ReplayTargetLocation } from "./utils/replayTrip";
 import type { AdminTruck, TruckStatus } from "./types";
-import { toast } from "@/lib/toast";
-import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
-import {
-  PageHeaderSkeleton,
-  KPIRowSkeleton,
-  MapPanelSkeleton,
-} from "@/components/PageLoadingSkeletons";
-import {
-  fetchAdminTrackingOverview,
-  updateTruckStatus,
-  sendAdminMessageToDriver,
-  type DriverMessageRow,
-  type DriverRow,
-  type LiveRow,
-  type TruckRow,
-  type TruckRouteRow,
-} from "@/services/trackingService";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
-import { useThemeMode } from "@/hooks/useThemeMode";
-import authService from "@/services/authService";
+import { isNewerMessage, loadSeenMessages, messagePosition, saveSeenMessages, unreadDriverMessageCount } from "./messageUnread";
 
 // Config
 const SOCKET_URL =
@@ -77,39 +62,32 @@ const FALLBACK_SYNC_INTERVAL = 8_000;
 const RECONCILE_INTERVAL = 15_000;
 const DRIVER_STALE_MS = 120_000;
 
-const buildRouteMap = (routes: TruckRouteRow[]) => {
+const buildRouteMap = (routes: TruckRouteRow[], selectedByTruck: Record<string, string> = {}) => {
   const map = new Map<string, TruckRouteRow>();
-
-  const isFinished = (route: TruckRouteRow) => {
-    if (String(route.route_status || "").toUpperCase() === "INACTIVE") {
-      return true;
-    }
-
-    const stops = route.stops ?? [];
-    return stops.length > 0 && stops.every((stop) => isTerminalStopStatus(stop.status));
+  const priority: Record<string, number> = {
+    ACTIVE: 0, PAUSED: 1, SCHEDULED: 2, COMPLETED: 3, PARTIAL: 4, CANCELLED: 5,
   };
 
   for (const route of routes) {
+    if (String(route.route_status || "").toUpperCase() === "CANCELLED") continue;
     const current = map.get(route.truck_id);
     if (!current) {
       map.set(route.truck_id, route);
       continue;
     }
-
-    const currentIsActive = String(current.route_status || "").toUpperCase() === "ACTIVE";
-    const candidateIsActive = String(route.route_status || "").toUpperCase() === "ACTIVE";
-
-    if (candidateIsActive !== currentIsActive) {
-      map.set(route.truck_id, candidateIsActive ? route : current);
+    if (selectedByTruck[route.truck_id] === route.route_id) {
+      map.set(route.truck_id, route);
       continue;
     }
+    if (selectedByTruck[route.truck_id] === current.route_id) continue;
 
-    if (isFinished(current) !== isFinished(route)) {
-      map.set(route.truck_id, isFinished(route) ? current : route);
-      continue;
+    const candidateRank = priority[String(route.route_status || "").toUpperCase()] ?? 6;
+    const currentRank = priority[String(current.route_status || "").toUpperCase()] ?? 6;
+    if (candidateRank < currentRank ||
+      (candidateRank === currentRank &&
+        `${route.started_at ?? ""}:${route.route_id}` < `${current.started_at ?? ""}:${current.route_id}`)) {
+      map.set(route.truck_id, route);
     }
-
-    map.set(route.truck_id, route);
   }
 
   return map;
@@ -242,6 +220,27 @@ const normaliseStopState = (
   return map[raw?.toUpperCase()] ?? "not-started";
 };
 
+const normalizeCoveragePath = (
+  value: TruckRouteRow["stops"][number]["coverage_path"],
+): [number, number][] | null => {
+  if (!value) return null;
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return null;
+    const points = parsed.flatMap((point): [number, number][] => {
+      if (!Array.isArray(point) || point.length < 2) return [];
+      const latitude = Number(point[0]);
+      const longitude = Number(point[1]);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? [[latitude, longitude]]
+        : [];
+    });
+    return points.length >= 2 ? points : null;
+  } catch {
+    return null;
+  }
+};
+
 const resolveCurrentBarangay = (
   route: TruckRouteRow | undefined,
   fallback: string,
@@ -251,15 +250,15 @@ const resolveCurrentBarangay = (
   const stops = route.stops.slice().sort((a, b) => a.order_index - b.order_index);
 
   const inProgress = stops.find((stop) => stop.status?.toUpperCase() === "IN_PROGRESS");
-  if (inProgress) return inProgress.barangay_name;
+  if (inProgress) return inProgress.stop_name ?? inProgress.barangay_name;
 
   // Follow the collection route's ordered next stop rather than the nearest
   // barangay, which can be a different stop when roads curve or loop.
   const nextNotStarted = stops.find((stop) => stop.status?.toUpperCase() === "NOT_STARTED");
-  if (nextNotStarted) return nextNotStarted.barangay_name;
+  if (nextNotStarted) return nextNotStarted.stop_name ?? nextNotStarted.barangay_name;
 
   const lastDone = [...stops].reverse().find((stop) => stop.status?.toUpperCase() === "DONE");
-  if (lastDone) return lastDone.barangay_name;
+  if (lastDone) return lastDone.stop_name ?? lastDone.barangay_name;
 
   return fallback;
 };
@@ -305,6 +304,13 @@ const resolveTrackedTruckStatus = ({
     return "paused";
   }
 
+  if (route && (["COMPLETED", "PARTIAL"].includes(String(route.route_status || "").toUpperCase()) || isRouteFinished(route))) {
+    return "offline";
+  }
+  if (String(route?.route_status || "").toUpperCase() === "SCHEDULED") {
+    return "scheduled";
+  }
+
   // A fresh GPS ping is the source of truth for a truck that has just resumed
   // tracking. This prevents a previously cached OFFLINE value from masking a
   // successful collector update in the admin view.
@@ -315,14 +321,11 @@ const resolveTrackedTruckStatus = ({
   // Explicit persisted overrides take precedence over route inference.
   if (persistedTruckStatus === "offline" || persistedTruckStatus === "done") return "offline";
 
-  if (route && isRouteFinished(route)) {
-    return "offline";
-  }
-
   if (route) {
-    return liveStatus === "on-the-way" && hasFreshPing
-      ? "on-the-way"
-      : "scheduled";
+    if (String(route.route_status || "").toUpperCase() === "ACTIVE") {
+      return "offline";
+    }
+    return "scheduled";
   }
 
   if (liveStatus === "on-the-way" && !hasFreshPing) {
@@ -361,10 +364,7 @@ const mapDriverMessageRow = (
   text: row.message,
   timestamp: row.created_at,
   sender: row.sender_role?.toUpperCase() === "DRIVER" ? ("driver" as const) : ("admin" as const),
-  senderName:
-    row.sender_role?.toUpperCase() === "DRIVER"
-      ? pickDriverName(row.sender_name, fallbackDriverName, "Driver")
-      : "You",
+  senderName: pickDriverName(row.sender_name, fallbackDriverName, "MENRO Admin"),
   senderRole: row.sender_role,
   isRead: row.is_read,
 });
@@ -375,15 +375,19 @@ const attachTruckMessages = (
 ): AdminTruck[] => {
   const rowsByRoute = new Map<string, DriverMessageRow[]>();
   for (const row of rows) {
-    if (!row.route_id) continue;
-    if (!rowsByRoute.has(row.route_id)) rowsByRoute.set(row.route_id, []);
-    rowsByRoute.get(row.route_id)?.push(row);
+    if (!rowsByRoute.has(row.driver_id)) rowsByRoute.set(row.driver_id, []);
+    rowsByRoute.get(row.driver_id)?.push(row);
+  }
+  for (const routeRows of rowsByRoute.values()) {
+    routeRows.sort((a, b) =>
+      a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+    );
   }
 
   return trucks.map((truck) => ({
     ...truck,
-    driverMessages: truck.routeId
-      ? (rowsByRoute.get(truck.routeId) ?? []).map((row) =>
+    driverMessages: truck.driverId
+      ? (rowsByRoute.get(truck.driverId) ?? []).map((row) =>
           mapDriverMessageRow(row, truck.driver),
         )
       : [],
@@ -429,6 +433,8 @@ const buildRouteSnapshotFromTruck = (
 const buildTruckList = (
   allTrucks: TruckRow[],
   routeMap: Map<string, TruckRouteRow>,
+  operationalRouteMap: Map<string, TruckRouteRow>,
+  allRoutes: TruckRouteRow[],
   liveRows: LiveRow[],
   drivers: DriverRow[],
   barangays: BarangayLocationRow[] = [],
@@ -448,12 +454,14 @@ const buildTruckList = (
   return allTrucks.map((truck): AdminTruck => {
     const live = liveMap.get(truck.id);
     const route = routeMap.get(truck.id);
+    const operationalRoute = operationalRouteMap.get(truck.id);
     const assignedDriver = driverByTruckId.get(truck.id);
     const routeDriver =
       route?.driver_id ? driverById.get(route.driver_id) : undefined;
 
     const stops =
       route?.stops.map((s) => {
+        const coveragePath = normalizeCoveragePath(s.coverage_path);
         const stopLat =
           s.latitude !== undefined &&
           s.latitude !== null &&
@@ -485,29 +493,32 @@ const buildTruckList = (
             : null;
 
         const coords: [number, number] | undefined =
-          stopLat !== null && stopLng !== null
+          coveragePath?.[0] ??
+          (stopLat !== null && stopLng !== null
             ? [stopLat, stopLng]
             : bLat !== null && bLng !== null
               ? [bLat, bLng]
-              : undefined;
+              : undefined);
 
         return {
-          name: s.barangay_name,
+          name: s.stop_name ?? s.barangay_name,
           state: normaliseStopState(s.status),
           completedAt: s.completed_at ?? undefined,
+          skippedReason: s.skipped_reason ?? undefined,
           coords,
+          coveragePath,
         };
       }) ?? [];
 
     const resolvedStatus = resolveTrackedTruckStatus({
       truckStatus: truck.status,
       live,
-      route,
+      route: operationalRoute,
     });
     const isFinishedOrOffline =
       resolvedStatus === "offline" ||
       resolvedStatus === "done" ||
-      (Number(route?.total_stops) > 0 && Number(route?.completed_stops) >= Number(route?.total_stops));
+      (Number(operationalRoute?.total_stops) > 0 && Number(operationalRoute?.completed_stops) >= Number(operationalRoute?.total_stops));
 
     const finalStatus: TruckStatus = isFinishedOrOffline ? "offline" : resolvedStatus;
     const liveCoords = live && !isFinishedOrOffline ? ([live.latitude, live.longitude] as [number, number]) : null;
@@ -515,25 +526,24 @@ const buildTruckList = (
     return {
       id: truck.id,
       driverId:
-        assignedDriver?.id ??
-        routeDriver?.id ??
-        route?.driver_id ??
-        null,
+        route ? (route.driver_id ?? null) : (assignedDriver?.id ?? null),
       routeId: route?.route_id ?? null,
+      routeChoices: allRoutes
+        .filter((candidate) => candidate.truck_id === truck.id && candidate.route_status !== "CANCELLED")
+        .map((candidate) => ({
+          id: candidate.route_id,
+          name: candidate.route_name || `Route ${candidate.started_at || ""}`.trim(),
+          status: String(candidate.route_status || "SCHEDULED"),
+        })),
       driverUserId:
-        assignedDriver?.user_id ??
-        routeDriver?.user_id ??
-        route?.driver_user_id ??
-        null,
+        route ? (route.driver_user_id ?? routeDriver?.user_id ?? null) : (assignedDriver?.user_id ?? null),
       name: truck.name,
       plateNumber: truck.plate_number,
       status: finalStatus,
       wasteType: route?.waste_type ?? truck.waste_type ?? "Not assigned",
       driver: pickDriverName(
-        routeDriver?.full_name,
-        assignedDriver?.full_name,
-        route?.driver_name,
-        live?.driver_name,
+        route ? route.driver_name : assignedDriver?.full_name,
+        route ? routeDriver?.full_name : live?.driver_name,
       ),
       currentBarangay: resolveCurrentBarangay(route, "No route stop yet"),
       completedBarangays: route?.completed_stops ?? 0,
@@ -555,12 +565,13 @@ const buildTruckList = (
 const mergeLiveIntoTrucks = (
   prev: AdminTruck[],
   liveRows: LiveRow[],
+  operationalRouteMap: Map<string, TruckRouteRow>,
 ): AdminTruck[] => {
   const byId = new Map(liveRows.map((r) => [r.truck_id, r]));
 
   return prev.map((truck) => {
     const row = byId.get(truck.id);
-    const routeSnapshot = buildRouteSnapshotFromTruck(truck);
+    const routeSnapshot = operationalRouteMap.get(truck.id) ?? buildRouteSnapshotFromTruck(truck);
 
     if (!row) {
       const rawStatus = resolveTrackedTruckStatus({
@@ -569,8 +580,7 @@ const mergeLiveIntoTrucks = (
       });
       const isFinished =
         rawStatus === "offline" ||
-        rawStatus === "done" ||
-        (truck.totalBarangays > 0 && truck.completedBarangays >= truck.totalBarangays);
+        rawStatus === "done";
       const status: TruckStatus = isFinished ? "offline" : rawStatus;
 
       return {
@@ -589,8 +599,7 @@ const mergeLiveIntoTrucks = (
     });
     const isFinished =
       rawStatus === "offline" ||
-      rawStatus === "done" ||
-      (truck.totalBarangays > 0 && truck.completedBarangays >= truck.totalBarangays);
+      rawStatus === "done";
     const status: TruckStatus = isFinished ? "offline" : rawStatus;
 
     return {
@@ -599,7 +608,7 @@ const mergeLiveIntoTrucks = (
       coords: status === "on-the-way" || status === "paused" ? [row.latitude, row.longitude] : null,
       lastGpsUpdate: isFinished ? "-" : elapsedLabel(row.last_ping),
       lastPingIso: isFinished ? null : row.last_ping,
-      driver: pickDriverName(truck.driver, row.driver_name),
+      driver: truck.routeId ? truck.driver : pickDriverName(truck.driver, row.driver_name),
     };
   });
 };
@@ -610,34 +619,58 @@ type TrackingSidebarTab = "FLEET" | "REPLAY";
 type TrackingStatusFilter = "ALL" | TruckStatus;
 
 const AdminTruckTracking = () => {
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const [trucks, setTrucks] = useState<AdminTruck[]>([]);
+  const [todayRoutes, setTodayRoutes] = useState<TruckRouteRow[]>([]);
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
   const [replayPath, setReplayPath] = useState<
     [number, number][] | undefined
   >();
   const [replayIndex, setReplayIndex] = useState<number | undefined>();
-  const [replayTargetStop, setReplayTargetStop] =
-    useState<ReplayTargetStopInfo | null>(null);
-  const [replayLegPath, setReplayLegPath] = useState<
-    [number, number][] | undefined
-  >();
-  const [replayCompletedStops, setReplayCompletedStops] = useState<
-    ReplayCompletedStopInfo[]
-  >([]);
+  const [replayTargetLocation, setReplayTargetLocation] = useState<ReplayTargetLocation | null>(null);
+  const [replayCompletedTargets, setReplayCompletedTargets] = useState<ReplayTargetLocation[]>([]);
+  const [replaySkippedTargets, setReplaySkippedTargets] = useState<ReplayTargetLocation[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [socketConnected, setSocketConnected] = useState(false);
   const [lastSyncSuccess, setLastSyncSuccess] = useState(true);
+  const [overviewFailed, setOverviewFailed] = useState(false);
   const [mobileView, setMobileView] = useState<"MAP" | "LIST">("MAP");
   const [sidebarTab, setSidebarTab] = useState<TrackingSidebarTab>("FLEET");
   const [isFleetPanelMinimized, setIsFleetPanelMinimized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pendingStatusOverride, setPendingStatusOverride] = useState<{
-    truckId: string;
-    truckName: string;
-    targetStatus: TruckStatus;
-  } | null>(null);
   const mapTheme = useThemeMode();
+  const adminId = useAuthStore((state) => state.user?.id);
+  const [seenMessages, setSeenMessages] = useState(() => loadSeenMessages(adminId));
+  useEffect(() => { setSeenMessages(loadSeenMessages(adminId)); }, [adminId]);
+  const markConversationViewed = useCallback((driverId: string, message: { id: string; created_at: string }) => {
+    if (!adminId) return;
+    const position = messagePosition(message.id, message.created_at);
+    if (!position) return;
+    setSeenMessages((previous) => {
+      if (!isNewerMessage(position, previous[driverId])) return previous;
+      const next = { ...previous, [driverId]: position };
+      saveSeenMessages(adminId, next);
+      return next;
+    });
+  }, [adminId]);
+  const { notifications, markAsRead: markNotificationAsRead } = useAdminNotifications();
+  const unreadMessageNotifications = useMemo(() => {
+    const byDriver = new Map<string, string[]>();
+    for (const notification of notifications) {
+      if (notification.is_read || notification.ref_module !== "driver-messages") continue;
+      let driverId = notification.ref_id;
+      if (!driverId) {
+        try {
+          const metadata = typeof notification.metadata === "string" ? JSON.parse(notification.metadata) : notification.metadata;
+          if (metadata && typeof metadata.driver_id === "string") driverId = metadata.driver_id;
+        } catch { /* Older notifications can have malformed metadata. */ }
+      }
+      if (!driverId) continue;
+      const ids = byDriver.get(driverId) ?? [];
+      ids.push(notification.id);
+      byDriver.set(driverId, ids);
+    }
+    return byDriver;
+  }, [notifications]);
 
   // The compact Fleet shortcut belongs only to the wide, side-by-side workspace.
   // Reset it when crossing into the single-view tablet/mobile layout so no
@@ -653,71 +686,61 @@ const AdminTruckTracking = () => {
     return () => wideLayout.removeEventListener("change", resetCompactFleet);
   }, []);
 
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const routeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trucksRef = useRef<AdminTruck[]>([]);
+  const liveVersionRef = useRef(0);
+  const latestLiveRowsRef = useRef<LiveRow[]>([]);
+  const selectedRouteByTruckRef = useRef<Record<string, string>>({});
+  const operationalRouteMapRef = useRef(new Map<string, TruckRouteRow>());
+  const overviewSnapshotRef = useRef<{ overview: AdminTrackingOverview; barangays: BarangayLocationRow[] } | null>(null);
   trucksRef.current = trucks;
 
-  const refreshTrackingData = useCallback(async () => {
-    try {
-      const [overview, barangays] = await Promise.all([
-        fetchAdminTrackingOverview(),
-        fetchBarangays().catch(() => []),
-      ]);
+  const overviewQuery = useAdminQuery("tracking", ["overview"], async () => {
+    const liveVersion = liveVersionRef.current;
+    const [overview, barangays] = await Promise.all([fetchAdminTrackingOverview(), fetchBarangays()]);
+    return { overview, barangays, liveVersion };
+  }, { refetchInterval: socketConnected ? RECONCILE_INTERVAL : FALLBACK_SYNC_INTERVAL, staleTime: 0 });
+  const { refetch: refetchOverview } = overviewQuery;
+  const isPageLoading = overviewQuery.isLoading;
+  const refreshTrackingData = useCallback(() => refetchOverview({ cancelRefetch: false, throwOnError: true }), [refetchOverview]);
+  useEffect(() => {
+    if (!overviewQuery.data) return;
+    const { overview, barangays, liveVersion } = overviewQuery.data;
+      const operationalRouteMap = buildRouteMap(overview.routes);
       const merged = buildTruckList(
         overview.trucks,
-        buildRouteMap(overview.routes),
+        buildRouteMap(overview.routes, selectedRouteByTruckRef.current),
+        operationalRouteMap,
+        overview.routes,
         overview.live,
         overview.drivers,
         barangays,
       );
-      setTrucks(attachTruckMessages(merged, overview.messages));
+      overviewSnapshotRef.current = { overview, barangays };
+      operationalRouteMapRef.current = operationalRouteMap;
+      if (liveVersion === liveVersionRef.current) latestLiveRowsRef.current = overview.live;
+      const withLive = liveVersion === liveVersionRef.current
+        ? merged : mergeLiveIntoTrucks(merged, latestLiveRowsRef.current, operationalRouteMap);
+      setTodayRoutes(overview.routes);
+      setTrucks(attachTruckMessages(withLive, overview.messages));
       setFocusedTruckId((prev) => {
         if (prev) return prev;
-        const firstActive = merged.find(
+        const firstActive = withLive.find(
           (t) => t.status === "on-the-way" && Boolean(t.coords),
         );
         return firstActive ? firstActive.id : null;
       });
       setLastSyncSuccess(true);
-    } catch (err) {
-      setLastSyncSuccess(false);
-      throw err;
-    }
-  }, []);
+      setOverviewFailed(false);
+  }, [overviewQuery.data]);
+  useEffect(() => {
+    if (overviewQuery.error) { setLastSyncSuccess(false); setOverviewFailed(true); }
+  }, [overviewQuery.error]);
 
   //  Live clock 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
-
-  // Background tab throttling: trigger sync on tab focus if socket is disconnected
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (!document.hidden && !socketConnected) {
-        void refreshTrackingData().catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [socketConnected, refreshTrackingData]);
-
-  //  Initial data load 
-  useEffect(() => {
-    const loadInitial = async () => {
-      try {
-        await refreshTrackingData();
-      } catch (err) {
-        console.error("[AdminTruckTracking] Initial load failed:", err);
-        toast.error("Failed to load tracking data");
-      } finally {
-        setIsPageLoading(false);
-      }
-    };
-
-    loadInitial();
-  }, [refreshTrackingData]);
 
   //  Socket.IO with background throttling 
   useEffect(() => {
@@ -734,30 +757,14 @@ const AdminTruckTracking = () => {
       reconnectionDelay: 2000,
     });
 
-    const stopFallbackSync = () => {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    };
-
     const startFallbackSync = () => {
-      if (pollTimerRef.current) return;
-      if (!document.hidden) {
-        void refreshTrackingData().catch(() => {});
-      }
-      pollTimerRef.current = setInterval(() => {
-        if (!document.hidden) {
-          void refreshTrackingData().catch(() => {});
-        }
-      }, FALLBACK_SYNC_INTERVAL);
+      if (!document.hidden) void refreshTrackingData().catch(() => {});
     };
 
     socket.on("connect", () => {
       setSocketConnected(true);
       setLastSyncSuccess(true);
       socket.emit("tracking:join");
-      stopFallbackSync();
     });
 
     socket.on("disconnect", () => {
@@ -772,23 +779,21 @@ const AdminTruckTracking = () => {
 
     // Full snapshot sent to this client on first join
     socket.on("live:snapshot", (liveRows: LiveRow[]) => {
-      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows));
+      liveVersionRef.current += 1;
+      latestLiveRowsRef.current = liveRows;
+      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));
       setLastSyncSuccess(true);
     });
 
     // Incremental update after each driver ping
     socket.on("live:update", (liveRows: LiveRow[]) => {
-      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows));
+      liveVersionRef.current += 1;
+      latestLiveRowsRef.current = liveRows;
+      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));
       setLastSyncSuccess(true);
     });
 
-    socket.on("routes:update", () => {
-      void refreshTrackingData().catch(() => {});
-      if (routeRefreshTimerRef.current) clearTimeout(routeRefreshTimerRef.current);
-      routeRefreshTimerRef.current = setTimeout(() => {
-        void refreshTrackingData().catch(() => {});
-      }, 750);
-    });
+    // AdminLiveSync owns route-change HTTP refreshes for the admin layout.
 
     socket.on("live:error", (err: { code?: string; message: string }) => {
       console.error("[socket] live:error", err.message);
@@ -804,22 +809,8 @@ const AdminTruckTracking = () => {
       window.clearTimeout(connectTimer);
       socket.emit("tracking:leave");
       socket.disconnect();
-      stopFallbackSync();
-      if (routeRefreshTimerRef.current) clearTimeout(routeRefreshTimerRef.current);
     };
   }, [refreshTrackingData]);
-
-  // A slow reconciliation heals any missed route/message events without competing with live socket
-  useEffect(() => {
-    if (!socketConnected) return;
-    const interval = setInterval(() => {
-      if (!document.hidden) {
-        void refreshTrackingData().catch(() => {});
-      }
-    }, RECONCILE_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [socketConnected, refreshTrackingData]);
 
   //  Handlers 
 
@@ -831,111 +822,22 @@ const AdminTruckTracking = () => {
     setFocusedTruckId(truckId);
   }, []);
 
-  const executeStatusChange = useCallback(
-    async (truckId: string, status: TruckStatus) => {
-      // Optimistic update
-      setTrucks((prev) =>
-        prev.map((t) => (t.id === truckId ? { ...t, status } : t)),
-      );
-
-      try {
-        await updateTruckStatus(
-          truckId,
-          status.toUpperCase().replace(/-/g, "_"),
-        );
-
-        toast.success(`Status updated to "${status}"`, {
-          description: "Change reflected on the resident-facing page.",
-        });
-      } catch {
-        toast.error("Failed to update status", {
-          description: "The change was not saved. Please try again.",
-        });
-
-        try {
-          await refreshTrackingData();
-        } catch {
-          // Ignore secondary fetch failure
-        }
-      } finally {
-        setPendingStatusOverride(null);
-      }
-    },
-    [refreshTrackingData],
-  );
-
-  const handleStatusChange = useCallback(
-    (truckId: string, status: TruckStatus) => {
-      const truck = trucksRef.current.find((t) => t.id === truckId);
-      const truckName = truck?.name || "Selected vehicle";
-
-      // Mark Done or Offline require explicit confirmation to avoid accidental route termination
-      if (status === "done" || status === "offline") {
-        setPendingStatusOverride({
-          truckId,
-          truckName,
-          targetStatus: status,
-        });
-        return;
-      }
-
-      void executeStatusChange(truckId, status);
-    },
-    [executeStatusChange],
-  );
-
-  const handleSendDriverMessage = useCallback(
-    async (truck: AdminTruck, message: string) => {
-      if (!truck.driverUserId) {
-        toast.error("No driver assigned", {
-          description: "Assign a driver to this truck before sending a message.",
-        });
-        return;
-      }
-
-      const currentUser = authService.getCurrentUser();
-      const senderName =
-        currentUser?.username?.trim() ||
-        currentUser?.full_name?.trim() ||
-        "Dispatch";
-
-      if (!truck.routeId) {
-        toast.error("No active route", {
-          description: "This truck has no active route ID for message threading.",
-        });
-        return;
-      }
-
-      await sendAdminMessageToDriver(truck.driverUserId, truck.routeId, message);
-
-      // Add the sent message to local state so it appears in the thread
-      setTrucks((prev) =>
-        prev.map((t) =>
-          t.id === truck.id
-            ? {
-                ...t,
-                driverMessages: [
-                  ...t.driverMessages,
-                  {
-                    id: `msg-admin-${Date.now()}`,
-                    text: message,
-                    timestamp: new Date().toISOString(),
-                    sender: "admin" as const,
-                    senderName: senderName,
-                    senderRole: "ADMIN",
-                  },
-                ],
-              }
-            : t,
-        ),
-      );
-
-      toast.success(`Message sent to ${truck.driver}`, {
-        description: message,
-      });
-    },
-    [],
-  );
+  const handleRouteChange = useCallback((truckId: string, routeId: string) => {
+    selectedRouteByTruckRef.current = { ...selectedRouteByTruckRef.current, [truckId]: routeId };
+    const snapshot = overviewSnapshotRef.current;
+    if (!snapshot) return;
+    const { overview, barangays } = snapshot;
+    const rebuilt = buildTruckList(
+      overview.trucks,
+      buildRouteMap(overview.routes, selectedRouteByTruckRef.current),
+      operationalRouteMapRef.current,
+      overview.routes,
+      latestLiveRowsRef.current,
+      overview.drivers,
+      barangays,
+    );
+    setTrucks(attachTruckMessages(rebuilt, overview.messages));
+  }, []);
 
   //  Recompute elapsed labels every tick 
   const displayTrucks = useMemo(
@@ -1002,6 +904,7 @@ const AdminTruckTracking = () => {
         completedAt: s.completedAt,
         skippedReason: s.skippedReason,
         coords: s.coords!,
+        coveragePath: s.coveragePath ?? null,
         distanceKm: 0,
       }));
   }, [activeTruck?.id, activeTruck?.route]);
@@ -1014,25 +917,25 @@ const AdminTruckTracking = () => {
   const activeStopCoords = activeStop?.coords ?? null;
 
   //  KPI calculations 
-  const activeTrucks = displayTrucks.filter((t) => t.status === "on-the-way").length;
-  const totalCompleted = trucks.reduce(
-    (sum, t) => sum + t.completedBarangays,
-    0,
-  );
-  const totalStops = trucks.reduce((sum, t) => sum + t.totalBarangays, 0);
+  const activeRouteTruckIds = new Set(todayRoutes
+    .filter((route) => String(route.route_status || "").toUpperCase() === "ACTIVE")
+    .map((route) => route.truck_id));
+  const activeTrucks = displayTrucks.filter((truck) =>
+    activeRouteTruckIds.has(truck.id) && truck.status === "on-the-way",
+  ).length;
+  const countedRoutes = todayRoutes.filter((route) => route.route_status !== "CANCELLED");
+  const totalCompleted = countedRoutes.reduce((sum, route) => sum + Number(route.completed_stops || 0), 0);
+  const totalStops = countedRoutes.reduce((sum, route) => sum + Number(route.total_stops || 0), 0);
   const completionPct =
     totalStops > 0 ? Math.round((totalCompleted / totalStops) * 100) : 0;
-  const doneTrucks = trucks.filter(
-    (t) =>
-      t.status === "offline" ||
-      t.status === "done" ||
-      (t.totalBarangays > 0 && t.completedBarangays >= t.totalBarangays),
+  const doneRoutes = countedRoutes.filter((route) =>
+    ["COMPLETED", "PARTIAL"].includes(String(route.route_status || "").toUpperCase()),
   ).length;
 
   const animatedActive = useCountUp(activeTrucks);
   const animatedCompletion = useCountUp(completionPct);
   const animatedCompleted = useCountUp(totalCompleted);
-  const animatedDone = useCountUp(doneTrucks);
+  const animatedDone = useCountUp(doneRoutes);
 
   //  Render 
   if (isPageLoading) {
@@ -1047,6 +950,7 @@ const AdminTruckTracking = () => {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
+      <AdminMessenger drivers={overviewQuery.data?.overview.drivers ?? []} unreadMessageNotifications={unreadMessageNotifications} markNotificationAsRead={markNotificationAsRead} onConversationViewed={markConversationViewed} />
       {/* -- Page Header -- */}
       <div className="flex items-center justify-between gap-4 pb-1">
         <div>
@@ -1068,27 +972,27 @@ const AdminTruckTracking = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
         {[
           {
-            title: "Active Fleet",
+            title: "Trucks En Route",
             value: `${animatedActive}/${displayTrucks.length}`,
-            description: `${activeTrucks} vehicles on live duty`,
+            description: `${activeTrucks} trucks reporting live GPS`,
             tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
           },
           {
-            title: "Barangays Covered",
+            title: "Stops Completed",
             value: `${animatedCompleted}/${totalStops}`,
-            description: `${totalStops - totalCompleted} remaining stops`,
+            description: `${Math.max(0, totalStops - totalCompleted)} remaining stops`,
             tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
           },
           {
             title: "Fleet Progress",
             value: `${animatedCompletion}%`,
-            description: "Overall municipal progress",
+            description: "Today's scheduled stop progress",
             tag: "bg-muted/70 text-muted-foreground border-border/80",
           },
           {
-            title: "Routes Finished",
-            value: `${animatedDone}/${displayTrucks.length}`,
-            description: `${doneTrucks} trucks completed routes`,
+            title: "Routes Closed",
+            value: `${animatedDone}/${countedRoutes.length}`,
+            description: `${doneRoutes} completed or partial runs`,
             tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
           },
         ].map((kpi, idx) => (
@@ -1180,9 +1084,9 @@ const AdminTruckTracking = () => {
             onDeselectTruck={() => setFocusedTruckId(null)}
             replayPath={replayPath}
             replayIndex={replayIndex}
-            replayTargetStop={replayTargetStop}
-            replayLegPath={replayLegPath}
-            replayCompletedStops={replayCompletedStops}
+            replayTargetLocation={replayTargetLocation}
+            replayCompletedTargets={replayCompletedTargets}
+            replaySkippedTargets={replaySkippedTargets}
             fleetControlCollapsed={isFleetPanelMinimized}
             theme={mapTheme}
           />
@@ -1227,9 +1131,9 @@ const AdminTruckTracking = () => {
                       if (tab.id === "FLEET") {
                         setReplayPath(undefined);
                         setReplayIndex(undefined);
-                        setReplayTargetStop(null);
-                        setReplayLegPath(undefined);
-                        setReplayCompletedStops([]);
+                        setReplayTargetLocation(null);
+                        setReplayCompletedTargets([]);
+                        setReplaySkippedTargets([]);
                       }
                       setSidebarTab(tab.id);
                     }}
@@ -1267,21 +1171,28 @@ const AdminTruckTracking = () => {
                   <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border/80 bg-muted/10 space-y-2">
                     <Truck className="w-8 h-8 text-muted-foreground/40 mx-auto" />
                     <p className="text-xs font-semibold text-foreground">
-                      No fleet vehicles found
+                      {overviewFailed ? "Could not load fleet vehicles" : "No fleet vehicles found"}
                     </p>
                     <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
-                      There are currently no trucks configured for live tracking.
+                      {overviewFailed
+                        ? "The tracking service did not return the fleet list. Try again."
+                        : "There are currently no trucks configured for live tracking."}
                     </p>
+                    {overviewFailed && (
+                      <Button variant="outline" size="sm" disabled={isRefreshing} onClick={() => void handleManualRefresh()}>
+                        {isRefreshing ? "Retrying..." : "Retry"}
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   displayTrucks.map((truck) => (
                     <AdminTruckCard
                       key={truck.id}
                       truck={truck}
+                      unreadMessageCount={unreadDriverMessageCount(truck.driverMessages, truck.driverId ? seenMessages[truck.driverId] : undefined)}
                       isSelected={focusedTruckId === truck.id}
                       onClick={() => handleTruckClick(truck.id)}
-                      onStatusChange={handleStatusChange}
-                      onSendMessage={handleSendDriverMessage}
+                      onRouteChange={(routeId) => handleRouteChange(truck.id, routeId)}
                     />
                   ))
                 )}
@@ -1293,9 +1204,9 @@ const AdminTruckTracking = () => {
                 trucks={trucks}
                 onReplayPath={setReplayPath}
                 onReplayIndex={setReplayIndex}
-                onReplayTargetStop={setReplayTargetStop}
-                onReplayLegPath={setReplayLegPath}
-                onReplayCompletedStops={setReplayCompletedStops}
+                onReplayTargetLocation={setReplayTargetLocation}
+                onReplayCompletedTargets={setReplayCompletedTargets}
+                onReplaySkippedTargets={setReplaySkippedTargets}
               />
             )}
           </div>
@@ -1304,88 +1215,7 @@ const AdminTruckTracking = () => {
         </div>
       </div>
 
-      {/* Manual Status Override Confirmation Dialog */}
-      <AlertDialog
-        open={Boolean(pendingStatusOverride)}
-        onOpenChange={(open) => {
-          if (!open) setPendingStatusOverride(null);
-        }}
-      >
-        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <AlertDialogTitle className="text-base font-semibold text-foreground font-display">
-                Confirm Status Override
-              </AlertDialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPendingStatusOverride(null)}
-              className="rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-              aria-label="Close dialog"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
 
-          {/* Body */}
-          <div className="px-5 py-4">
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to manually set{" "}
-              <strong className="text-foreground font-semibold">
-                {pendingStatusOverride?.truckName}
-              </strong>{" "}
-              status to{" "}
-              <strong className="text-foreground font-semibold uppercase">
-                {pendingStatusOverride?.targetStatus}
-              </strong>
-              ?
-              {pendingStatusOverride?.targetStatus === "done" && (
-                <span className="block mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 font-medium text-xs">
-                  Marking a truck as Done will deactivate any unfinished stops on its route and mark them as Missed.
-                </span>
-              )}
-              {pendingStatusOverride?.targetStatus === "offline" && (
-                <span className="block mt-2.5 p-2.5 rounded-xl bg-muted/60 border border-border/60 text-foreground font-medium text-xs">
-                  The vehicle telemetry will be marked offline for all dispatchers and residents.
-                </span>
-              )}
-            </AlertDialogDescription>
-          </div>
-
-          {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-border/60 bg-muted/20">
-            <AlertDialogCancel
-              onClick={() => setPendingStatusOverride(null)}
-              className="h-9 px-4 rounded-xl text-xs font-semibold hover:bg-muted cursor-pointer"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingStatusOverride) {
-                  void executeStatusChange(
-                    pendingStatusOverride.truckId,
-                    pendingStatusOverride.targetStatus,
-                  );
-                }
-              }}
-              className={cn(
-                "h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer shadow-xs",
-                pendingStatusOverride?.targetStatus === "done" || pendingStatusOverride?.targetStatus === "offline"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
-              Confirm Override
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Footer */}
       <p className="text-[11px] text-muted-foreground text-center pt-1">

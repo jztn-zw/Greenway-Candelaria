@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
-  fetchAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
-  permanentlyDeleteArchivedAnnouncement,
-  resendAnnouncementToUnread,
-  fetchBarangayList,
+createAnnouncement as apicreateAnnouncement,
+deleteAnnouncement as apideleteAnnouncement,
+permanentlyDeleteArchivedAnnouncement as apipermanentlyDeleteArchivedAnnouncement,
+resendAnnouncementToUnread as apiresendAnnouncementToUnread,
+updateAnnouncement as apiupdateAnnouncement,
+fetchAdminAnnouncementsPage,
+fetchBarangayList,
 } from "@/services/announcementsService";
+import { useCallback, useEffect, useState } from "react";
 import { Announcement, AnnouncementStatus, EditorForm } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     calendarEndTime: (raw.calendar_end_time as string | null) ?? null,
     calendarLocation: (raw.calendar_location as string | null) ?? null,
     readCount: Number(raw.read_count ?? 0),
-    totalRecipients: 0,
+    totalRecipients: Number(raw.recipient_count ?? 0),
     archived: raw.status === "ARCHIVED",
     edited: raw.updated_at !== raw.created_at,
     createdBy: (raw.created_by_name as string) ?? "Admin",
@@ -117,70 +118,100 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useAnnouncements = () => {
+interface AnnouncementQuery {
+  page: number;
+  limit: number;
+  search: string;
+  status: string;
+  type: string;
+  sort: string;
+}
+
+const statusToApi: Record<string, string> = {
+  Active: "ACTIVE",
+  Scheduled: "SCHEDULED",
+  Draft: "DRAFT",
+  Archived: "ARCHIVED",
+};
+
+const typeToApi: Record<string, string> = {
+  "Schedule Change": "SCHEDULE_CHANGE",
+  "Holiday Reminder": "HOLIDAY_REMINDER",
+  "Community Event": "COMMUNITY_EVENT",
+  "Emergency Advisory": "EMERGENCY_ADVISORY",
+  "General Notice": "GENERAL_NOTICE",
+  "System Maintenance": "SYSTEM_MAINTENANCE",
+};
+
+export const useAnnouncements = (query: AnnouncementQuery) => {
+  const createAnnouncement = useAdminMutation(apicreateAnnouncement, "announcements", "schedule", "notifications");
+  const updateAnnouncement = useAdminMutation(apiupdateAnnouncement, "announcements", "schedule", "notifications");
+  const deleteAnnouncement = useAdminMutation(apideleteAnnouncement, "announcements", "schedule", "notifications");
+  const permanentlyDeleteArchivedAnnouncement = useAdminMutation(apipermanentlyDeleteArchivedAnnouncement, "announcements", "schedule", "notifications");
+  const resendAnnouncementToUnread = useAdminMutation(apiresendAnnouncementToUnread, "announcements", "schedule", "notifications");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [barangayOptions, setBarangayOptions] = useState<
     { id: string; name: string }[]
   >([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadInitialData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const [annRaw, brgyRaw] = await Promise.all([
-        fetchAnnouncements(),
-        fetchBarangayList(),
-      ]);
-      setAnnouncements((annRaw as any[]).map(mapFromApi));
-      setBarangayOptions(brgyRaw);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load data.";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [metrics, setMetrics] = useState({
+    active: 0,
+    scheduled: 0,
+    drafts: 0,
+    totalRecipients: 0,
+    totalReads: 0,
+  });
 
+  const pageQuery = useAdminQuery("announcements", ["list", query], () => fetchAdminAnnouncementsPage({
+    page: query.page, limit: query.limit, search: query.search.trim() || undefined,
+    status: statusToApi[query.status], type: typeToApi[query.type], sort: query.sort,
+  }));
+  const barangaysQuery = useAdminQuery("barangays", ["announcement-options"], fetchBarangayList);
+  const isLoading = pageQuery.isLoading || barangaysQuery.isLoading;
+  const error = pageQuery.error?.message ?? barangaysQuery.error?.message ?? null;
+  const loadInitialData = () => Promise.all([pageQuery.refetch(), barangaysQuery.refetch()]);
   useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+    if (!pageQuery.data) return;
+    const pageData = pageQuery.data;
+    setAnnouncements((pageData.items as unknown as Record<string, unknown>[]).map(mapFromApi));
+    setTotalItems(pageData.total); setTotalPages(pageData.totalPages);
+    setStatusCounts(pageData.statusCounts); setMetrics(pageData.metrics);
+  }, [pageQuery.data]);
+  useEffect(() => { if (barangaysQuery.data) setBarangayOptions(barangaysQuery.data); }, [barangaysQuery.data]);
+  useEffect(() => { if (error) toast.error(error); }, [error]);
 
   const createNew = useCallback(async (form: EditorForm): Promise<void> => {
     try {
       setIsSaving(true);
       const payload = formToPayload(form);
-      const raw = await createAnnouncement(payload);
-      const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-      setAnnouncements((prev) => [mapped, ...prev]);
+      await createAnnouncement(payload);
       toast.success("Announcement saved successfully");
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : "Failed to create the announcement.");
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [createAnnouncement]);
 
   const updateExisting = useCallback(
     async (id: string, form: EditorForm): Promise<void> => {
       try {
         setIsSaving(true);
         const payload = formToPayload(form);
-        const raw = await updateAnnouncement(id, payload);
-        const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-        setAnnouncements((prev) => prev.map((a) => (a.id === id ? mapped : a)));
-        toast.success("Announcement updated");
+        await updateAnnouncement(id, payload);
+          toast.success("Announcement updated");
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : "Failed to update the announcement.");
       } finally {
         setIsSaving(false);
       }
     },
-    [],
+    [updateAnnouncement],
   );
 
   const remove = useCallback(
@@ -195,7 +226,7 @@ export const useAnnouncements = () => {
       );
       try {
         await deleteAnnouncement(id);
-        toast.success("Announcement archived. It can be restored within 30 days.");
+          toast.success("Announcement archived. It can be restored within 30 days.");
         return true;
       } catch (err) {
         setAnnouncements(previous);
@@ -203,22 +234,19 @@ export const useAnnouncements = () => {
         return false;
       }
     },
-    [announcements],
+    [announcements, deleteAnnouncement],
   );
 
   const toggleArchive = useCallback(
     async (ann: Announcement): Promise<boolean> => {
       const isArchived = ann.status === "Archived";
-      const nextStatus = isArchived ? ("Active" as AnnouncementStatus) : ("Archived" as AnnouncementStatus);
       const previous = announcements;
 
       try {
-        const raw = await updateAnnouncement(ann.id, {
+        await updateAnnouncement(ann.id, {
           status: isArchived ? "ACTIVE" : "ARCHIVED",
         });
-        const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-        setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? mapped : a)));
-        toast.success(isArchived ? "Announcement restored" : "Announcement archived");
+          toast.success(isArchived ? "Announcement restored" : "Announcement archived");
         return true;
       } catch (err) {
         setAnnouncements(previous);
@@ -226,7 +254,7 @@ export const useAnnouncements = () => {
         return false;
       }
     },
-    [announcements],
+    [announcements, updateAnnouncement],
   );
 
   const permanentlyDelete = useCallback(
@@ -235,7 +263,7 @@ export const useAnnouncements = () => {
       setAnnouncements((prev) => prev.filter((announcement) => announcement.id !== id));
       try {
         await permanentlyDeleteArchivedAnnouncement(id);
-        toast.success("Archived announcement permanently deleted");
+          toast.success("Archived announcement permanently deleted");
         return true;
       } catch (err) {
         setAnnouncements(previous);
@@ -243,7 +271,7 @@ export const useAnnouncements = () => {
         return false;
       }
     },
-    [announcements],
+    [announcements, permanentlyDeleteArchivedAnnouncement],
   );
 
   const duplicate = useCallback(async (ann: Announcement): Promise<boolean> => {
@@ -261,9 +289,7 @@ export const useAnnouncements = () => {
         showOnResidentCalendar: false,
         calendarDate: "",
       });
-      const raw = await createAnnouncement(payload);
-      const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-      setAnnouncements((prev) => [mapped, ...prev]);
+      await createAnnouncement(payload);
       toast.success("Duplicated as draft");
       return true;
     } catch (err) {
@@ -272,24 +298,20 @@ export const useAnnouncements = () => {
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [createAnnouncement]);
 
   /* --- RESTORED MISSING FUNCTIONS BELOW --- */
 
   const sendNow = useCallback(async (ann: Announcement): Promise<boolean> => {
     try {
-      const raw = await updateAnnouncement(ann.id, { status: "ACTIVE" });
-      const mapped = mapFromApi(raw as unknown as Record<string, unknown>);
-      setAnnouncements((prev) =>
-        prev.map((a) => (a.id === ann.id ? mapped : a)),
-      );
+      await updateAnnouncement(ann.id, { status: "ACTIVE" });
       toast.success("Announcement sent!");
       return true;
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to send announcement.");
         return false;
     }
-  }, []);
+  }, [updateAnnouncement]);
 
   const cancelSchedule = useCallback(
     async (ann: Announcement): Promise<boolean> => {
@@ -309,7 +331,7 @@ export const useAnnouncements = () => {
           status: "DRAFT",
           scheduled_at: null,
         });
-        toast.success("Schedule cancelled");
+          toast.success("Schedule cancelled");
         return true;
       } catch (err) {
         setAnnouncements((prev) =>
@@ -319,7 +341,7 @@ export const useAnnouncements = () => {
         return false;
       }
     },
-    [],
+    [updateAnnouncement],
   );
 
   const resendToUnread = useCallback(async (ann: Announcement): Promise<boolean> => {
@@ -338,7 +360,7 @@ export const useAnnouncements = () => {
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [resendAnnouncementToUnread]);
 
   return {
     announcements,
@@ -346,6 +368,10 @@ export const useAnnouncements = () => {
     isLoading,
     isSaving,
     error,
+    totalItems,
+    totalPages,
+    statusCounts,
+    metrics,
     loadAnnouncements: loadInitialData,
     createNew,
     updateExisting,

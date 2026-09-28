@@ -1,74 +1,50 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { SearchInput } from "@/components/common/SearchInput";
+import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
 import {
-  Plus,
-  Truck,
-  Loader2,
-  Users,
-  CheckCircle2,
-  ShieldCheck,
-  Trash2,
-  X,
-  KeyRound,
-  Copy,
-  RotateCcw,
-} from "lucide-react";
+DriverManagerSkeleton,
+PageHeaderSkeleton,
+} from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
+
+import {
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import { useAdminMutation, useAdminQuery, useAdminResource } from "@/lib/adminQuery";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
-import { SearchInput } from "@/components/common/SearchInput";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { toast } from "@/lib/toast";
-import type { Driver, Truck as TruckType } from "./types";
-import {
-  PageHeaderSkeleton,
-  DriverManagerSkeleton,
-} from "@/components/PageLoadingSkeletons";
-import {
-  fetchDrivers,
-  createDriver,
-  updateDriver,
-  updateDriverAccountStatus,
-  deleteDriver as deleteDriverApi,
-  fetchDriverActivity,
-  fetchTrucks,
-  createTruck,
-  updateTruck,
-  deleteTruck as deleteTruckApi,
+createDriver as apicreateDriver,
+createTruck as apicreateTruck,
+deleteDriver as apideleteDriverApi,
+deleteTruck as apideleteTruckApi,
+updateDriver as apiupdateDriver,
+updateDriverAccountStatus as apiupdateDriverAccountStatus,
+updateTruck as apiupdateTruck,
+fetchDriverActivity,
+fetchDrivers,
+fetchTrucks,
 } from "@/services/driverManagerService";
+import { Plus, RotateCcw, Trash2, Truck, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-  createTemporaryDriverPassword,
-  mapDriverActivityRow,
-  mapDriverRow,
-  mapTruckRow,
-  toAvailabilityStatus,
+mapDriverActivityRow,
+mapDriverRow,
+mapTruckRow,
+toAvailabilityStatus,
 } from "./driverManager.utils";
+import type { Driver, Truck as TruckType } from "./types";
 
 import DriverCardGrid from "./components/DriverCardGrid";
 import DriverDetailView from "./components/DriverDetailView";
 import DriverEditorModal from "./components/DriverEditorModal";
+import ResetDriverPasswordDialog from "./components/ResetDriverPasswordDialog";
 import TruckCardGrid from "./components/TruckCardGrid";
 import TruckDetailView from "./components/TruckDetailView";
 import TruckEditorModal from "./components/TruckEditorModal";
@@ -76,21 +52,24 @@ import TruckEditorModal from "./components/TruckEditorModal";
 type Tab = "drivers" | "trucks";
 
 const AdminDrivers = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const createDriver = useAdminMutation(apicreateDriver, "drivers", "trucks", "routes", "tracking");
+  const updateDriver = useAdminMutation(apiupdateDriver, "drivers", "trucks", "routes", "tracking");
+  const updateDriverAccountStatus = useAdminMutation(apiupdateDriverAccountStatus, "drivers", "trucks", "routes", "tracking");
+  const deleteDriverApi = useAdminMutation(apideleteDriverApi, "drivers", "trucks", "routes", "tracking");
+  const createTruck = useAdminMutation(apicreateTruck, "drivers", "trucks", "routes", "tracking");
+  const updateTruck = useAdminMutation(apiupdateTruck, "drivers", "trucks", "routes", "tracking");
+  const deleteTruckApi = useAdminMutation(apideleteTruckApi, "drivers", "trucks", "routes", "tracking");
   const [activeTab, setActiveTab] = useState<Tab>("drivers");
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [trucks, setTrucks] = useState<TruckType[]>([]);
 
   const [driverSearch, setDriverSearch] = useState("");
   const [driverStatusFilter, setDriverStatusFilter] = useState("all");
   const [driverAssignmentFilter, setDriverAssignmentFilter] = useState<"all" | "assigned" | "unassigned">("all");
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDriverId = searchParams.get("collectorId");
   const [driverEditorOpen, setDriverEditorOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [deleteDriverTarget, setDeleteDriverTarget] = useState<Driver | null>(null);
-  const [resetPwResult, setResetPwResult] = useState<{ name: string; password: string } | null>(null);
-  const [driverActivities, setDriverActivities] = useState<Record<string, Driver["activityLog"]>>({});
-  const [isActivityLoading, setIsActivityLoading] = useState(false);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<Driver | null>(null);
   const [isSavingDriver, setIsSavingDriver] = useState(false);
   const [isSavingTruck, setIsSavingTruck] = useState(false);
   const [isDeletingDriver, setIsDeletingDriver] = useState(false);
@@ -99,75 +78,25 @@ const AdminDrivers = () => {
   const [truckSearch, setTruckSearch] = useState("");
   const [truckStatusFilter, setTruckStatusFilter] = useState("all");
   const [truckDriverFilter, setTruckDriverFilter] = useState<"all" | "assigned" | "unassigned">("all");
-  const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
+  const selectedTruckId = searchParams.get("truckId");
   const [truckEditorOpen, setTruckEditorOpen] = useState(false);
   const [editingTruck, setEditingTruck] = useState<TruckType | null>(null);
   const [deleteTruckTarget, setDeleteTruckTarget] = useState<TruckType | null>(null);
 
-  const loadData = useCallback(async () => {
-    const [driversResult, trucksResult] = await Promise.allSettled([
-      fetchDrivers(),
-      fetchTrucks(),
-    ]);
-
-    if (driversResult.status === "fulfilled") {
-      setDrivers(driversResult.value.map(mapDriverRow));
-    } else {
-      toast.error("Failed to load drivers");
-    }
-
-    if (trucksResult.status === "fulfilled") {
-      setTrucks(trucksResult.value.map(mapTruckRow));
-    } else {
-      toast.error("Failed to load trucks");
-    }
-  }, []);
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await loadData();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void init();
-  }, [loadData]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadActivity = async () => {
-      if (!selectedDriverId) return;
-      setIsActivityLoading(true);
-
-      try {
-        const rows = await fetchDriverActivity(selectedDriverId, 30);
-        if (!cancelled) {
-          setDriverActivities((prev) => ({
-            ...prev,
-            [selectedDriverId]: rows.map(mapDriverActivityRow),
-          }));
-        }
-      } catch (err) {
-        if (!cancelled) {
-          toast.error("Failed to load driver activity", {
-            description: err instanceof Error ? err.message : "Please try again.",
-          });
-          setDriverActivities((prev) => ({ ...prev, [selectedDriverId]: [] }));
-        }
-      } finally {
-        if (!cancelled) setIsActivityLoading(false);
-      }
-    };
-
-    void loadActivity();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedDriverId]);
+  const driversQuery = useAdminResource<Driver[]>("drivers", ["manager"], async () => (await fetchDrivers()).map(mapDriverRow), []);
+  const trucksQuery = useAdminResource<TruckType[]>("trucks", ["manager"], async () => (await fetchTrucks()).map(mapTruckRow), []);
+  const { data: drivers, setData: setDrivers } = driversQuery;
+  const { data: trucks, setData: setTrucks } = trucksQuery;
+  const isLoading = driversQuery.isLoading || trucksQuery.isLoading;
+  const driversError = driversQuery.error?.message ?? "";
+  const trucksError = trucksQuery.error?.message ?? "";
+  const loadData = () => Promise.all([driversQuery.refetch(), trucksQuery.refetch()]);
+  const activityQuery = useAdminQuery("drivers", ["activity", selectedDriverId], async () =>
+    (await fetchDriverActivity(selectedDriverId!, 30)).map(mapDriverActivityRow), { enabled: !!selectedDriverId });
+  const isActivityLoading = activityQuery.isLoading;
+  const activityError = activityQuery.error?.message ?? "";
+  const driverActivities = useMemo(() => ({ [selectedDriverId ?? ""]: activityQuery.data ?? [] }), [selectedDriverId, activityQuery.data]);
+  useEffect(() => { if (selectedTruckId) setActiveTab("trucks"); }, [selectedTruckId]);
 
   const selectedDriver = useMemo(() => {
     const base = drivers.find((d) => d.id === selectedDriverId) ?? null;
@@ -182,6 +111,27 @@ const AdminDrivers = () => {
     () => trucks.find((t) => t.id === selectedTruckId) ?? null,
     [trucks, selectedTruckId],
   );
+
+  const openTruckProfile = (truck: TruckType) => {
+    setActiveTab("trucks");
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("collectorId");
+      next.delete("collectorName");
+      next.set("truckId", truck.id);
+      next.set("truckName", truck.name);
+      return next;
+    });
+  };
+
+  const closeTruckProfile = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("truckId");
+      next.delete("truckName");
+      return next;
+    });
+  };
 
   // Executive KPI stats
   const totalCollectors = drivers.length;
@@ -201,20 +151,20 @@ const AdminDrivers = () => {
 
   const driverStatusTabs: FilterPillItem[] = useMemo(
     () => [
-      { id: "all", label: "All Collectors", count: totalCollectors },
-      { id: "Active", label: "Active", count: activeCollectors },
-      { id: "Deactivated", label: "Deactivated", count: deactivatedCollectors },
+      { id: "all", label: "All Collectors", count: driversError ? undefined : totalCollectors },
+      { id: "Active", label: "Active", count: driversError ? undefined : activeCollectors },
+      { id: "Deactivated", label: "Deactivated", count: driversError ? undefined : deactivatedCollectors },
     ],
-    [totalCollectors, activeCollectors, deactivatedCollectors]
+    [totalCollectors, activeCollectors, deactivatedCollectors, driversError]
   );
 
   const truckStatusTabs: FilterPillItem[] = useMemo(
     () => [
-      { id: "all", label: "All Trucks", count: totalTrucks },
-      { id: "Active", label: "Operational", count: activeTrucks },
-      { id: "Under Maintenance", label: "Maintenance", count: maintTrucks },
+      { id: "all", label: "All Trucks", count: trucksError ? undefined : totalTrucks },
+      { id: "Active", label: "Operational", count: trucksError ? undefined : activeTrucks },
+      { id: "Under Maintenance", label: "Maintenance", count: trucksError ? undefined : maintTrucks },
     ],
-    [totalTrucks, activeTrucks, maintTrucks]
+    [totalTrucks, activeTrucks, maintTrucks, trucksError]
   );
 
   const entityOptions: SegmentedControlOption<Tab>[] = useMemo(
@@ -252,9 +202,26 @@ const AdminDrivers = () => {
   };
 
   const openDriverEditorFromDetail = (driver: Driver) => {
-    setSelectedDriverId(null);
     setEditingDriver(driver);
     setDriverEditorOpen(true);
+  };
+
+  const openDriverProfile = (driver: Driver) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("collectorId", driver.id);
+      next.set("collectorName", driver.fullName);
+      return next;
+    });
+  };
+
+  const closeDriverProfile = () => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("collectorId");
+      next.delete("collectorName");
+      return next;
+    });
   };
 
   const handleSaveDriver = async (data: {
@@ -263,7 +230,6 @@ const AdminDrivers = () => {
     username?: string;
     password?: string;
     contactNumber: string;
-    licenseNumber: string;
     truckId: string | null;
   }) => {
     setIsSavingDriver(true);
@@ -282,8 +248,7 @@ const AdminDrivers = () => {
           ...(data.truckId ? { truck_id: data.truckId } : {}),
         });
 
-        await loadData();
-        return { username: data.username, password: data.password };
+          return { username: data.username, password: data.password };
       }
 
       await updateDriver(editingDriver.id, {
@@ -292,7 +257,13 @@ const AdminDrivers = () => {
         truck_id: data.truckId,
       });
 
-      await loadData();
+      if (selectedDriverId === editingDriver.id) {
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.set("collectorName", data.fullName);
+          return next;
+        });
+      }
       toast.success("Driver updated");
       return {};
     } finally {
@@ -303,21 +274,11 @@ const AdminDrivers = () => {
   const toggleDriverStatus = async (d: Driver) => {
     const nextStatus = d.status === "Active" ? "DEACTIVATED" : "ACTIVE";
 
-    await updateDriverAccountStatus(d.userId, nextStatus);
+    await updateDriverAccountStatus(d.id, nextStatus);
 
-    if (nextStatus === "DEACTIVATED") {
-      await updateDriver(d.id, { truck_id: null });
-    }
-
-    await loadData();
     toast.success(
       `${d.fullName} ${nextStatus === "ACTIVE" ? "reactivated" : "deactivated"}`,
     );
-  };
-
-  const resetPassword = (d: Driver) => {
-    const pw = createTemporaryDriverPassword();
-    setResetPwResult({ name: d.fullName, password: pw });
   };
 
   const deleteDriver = async () => {
@@ -326,10 +287,9 @@ const AdminDrivers = () => {
     setIsDeletingDriver(true);
     try {
       await deleteDriverApi(deleteDriverTarget.id);
-      await loadData();
-      toast.success(`${deleteDriverTarget.fullName} deleted`);
+      toast.success(`${deleteDriverTarget.fullName} removed from the manager`);
       setDeleteDriverTarget(null);
-      if (selectedDriverId === deleteDriverTarget.id) setSelectedDriverId(null);
+      if (selectedDriverId === deleteDriverTarget.id) closeDriverProfile();
     } finally {
       setIsDeletingDriver(false);
     }
@@ -341,7 +301,7 @@ const AdminDrivers = () => {
   };
 
   const openTruckEditorFromDetail = (truck: TruckType) => {
-    setSelectedTruckId(null);
+    closeTruckProfile();
     setEditingTruck(truck);
     setTruckEditorOpen(true);
   };
@@ -350,8 +310,6 @@ const AdminDrivers = () => {
     name: string;
     model: string;
     plateNumber: string;
-    assignedDriverId: string | null;
-    wasteType: string;
     status: string;
   }): Promise<void> => {
     setIsSavingTruck(true);
@@ -364,8 +322,7 @@ const AdminDrivers = () => {
           availability_status: toAvailabilityStatus(data.status as TruckType["status"]),
         });
 
-        await loadData();
-        toast.success("Truck added");
+          toast.success("Truck added");
         return;
       }
 
@@ -376,7 +333,13 @@ const AdminDrivers = () => {
         availability_status: toAvailabilityStatus(data.status as TruckType["status"]),
       });
 
-      await loadData();
+      if (selectedTruckId === editingTruck.id) {
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.set("truckName", data.name);
+          return next;
+        });
+      }
       toast.success("Truck updated");
       return;
     } catch (err) {
@@ -390,7 +353,6 @@ const AdminDrivers = () => {
     const next = t.status === "Active" ? "UNDER_MAINTENANCE" : "ACTIVE";
 
     await updateTruck(t.id, { availability_status: next });
-    await loadData();
 
     toast.success(
       `${t.name} marked as ${next === "ACTIVE" ? "Active" : "Under Maintenance"}`,
@@ -403,10 +365,9 @@ const AdminDrivers = () => {
     setIsDeletingTruck(true);
     try {
       await deleteTruckApi(deleteTruckTarget.id);
-      await loadData();
       toast.success(`${deleteTruckTarget.name} deleted`);
       setDeleteTruckTarget(null);
-      if (selectedTruckId === deleteTruckTarget.id) setSelectedTruckId(null);
+      if (selectedTruckId === deleteTruckTarget.id) closeTruckProfile();
     } finally {
       setIsDeletingTruck(false);
     }
@@ -414,21 +375,40 @@ const AdminDrivers = () => {
 
   if (selectedDriver) {
     return (
-      <DriverDetailView
-        driver={selectedDriver}
-        trucks={trucks}
-        isActivityLoading={isActivityLoading}
-        onBack={() => setSelectedDriverId(null)}
-        onEdit={openDriverEditorFromDetail}
-        onResetPassword={resetPassword}
-        onToggleStatus={(driver) => {
-          void toggleDriverStatus(driver).catch((err) => {
-            toast.error("Failed to update driver status", {
-              description: err instanceof Error ? err.message : "Please try again.",
+      <>
+        <DriverDetailView
+          driver={selectedDriver}
+          trucks={trucks}
+          isActivityLoading={isActivityLoading}
+          activityError={activityError}
+          onRetryActivity={() => activityQuery.refetch()}
+          onEdit={openDriverEditorFromDetail}
+          onResetPassword={setResetPasswordTarget}
+          onToggleStatus={(driver) => {
+            void toggleDriverStatus(driver).catch((err) => {
+              toast.error("Failed to update driver status", {
+                description: err instanceof Error ? err.message : "Please try again.",
+              });
             });
-          });
-        }}
-      />
+          }}
+        />
+        <DriverEditorModal
+          open={driverEditorOpen}
+          onOpenChange={setDriverEditorOpen}
+          editingDriver={editingDriver}
+          trucks={trucks}
+          drivers={drivers}
+          isSaving={isSavingDriver}
+          onSave={handleSaveDriver}
+        />
+        {resetPasswordTarget ? (
+          <ResetDriverPasswordDialog
+            key={resetPasswordTarget.id}
+            driver={resetPasswordTarget}
+            onClose={() => setResetPasswordTarget(null)}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -437,7 +417,6 @@ const AdminDrivers = () => {
       <TruckDetailView
         truck={selectedTruck}
         drivers={drivers}
-        onBack={() => setSelectedTruckId(null)}
         onEdit={openTruckEditorFromDetail}
         onToggleStatus={(truck) => {
           void toggleTruckStatus(truck).catch((err) => {
@@ -488,27 +467,27 @@ const AdminDrivers = () => {
         {[
           {
             title: "Total Collectors",
-            value: totalCollectors,
-            subtext: `${activeCollectors} active · ${deactivatedCollectors} deactivated`,
+            value: driversError ? "—" : totalCollectors,
+            subtext: driversError ? "Collector data unavailable" : `${activeCollectors} active · ${deactivatedCollectors} deactivated`,
             tag: "bg-muted/70 text-muted-foreground border-border/80",
           },
           {
             title: "Active Personnel",
-            value: activeCollectors,
-            subtext: "Ready for route dispatch",
+            value: driversError ? "—" : activeCollectors,
+            subtext: driversError ? "Collector data unavailable" : "Accounts marked active",
             tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
           },
           {
             title: "Fleet Trucks",
-            value: totalTrucks,
-            subtext: `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
+            value: trucksError ? "—" : totalTrucks,
+            subtext: trucksError ? "Fleet data unavailable" : `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
             tag: "bg-muted/70 text-muted-foreground border-border/80",
           },
           {
             title: "Assigned Fleet",
-            value: assignedTrucks,
+            value: trucksError ? "—" : assignedTrucks,
             subtext:
-              totalTrucks > 0
+              trucksError ? "Fleet data unavailable" : totalTrucks > 0
                 ? `${Math.round((assignedTrucks / totalTrucks) * 100)}% vehicles paired`
                 : "No vehicles in fleet",
             tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
@@ -642,16 +621,26 @@ const AdminDrivers = () => {
       </section>
 
       {/* ── Main Content Grid ── */}
-      {activeTab === "drivers" ? (
+      {activeTab === "drivers" && driversError ? (
+        <div className="rounded-2xl border border-border/80 bg-card p-10 text-center text-sm">
+          <p role="alert" className="text-destructive">Could not load collectors. {driversError}</p>
+          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadData()}>Retry</Button>
+        </div>
+      ) : activeTab === "trucks" && trucksError ? (
+        <div className="rounded-2xl border border-border/80 bg-card p-10 text-center text-sm">
+          <p role="alert" className="text-destructive">Could not load trucks. {trucksError}</p>
+          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadData()}>Retry</Button>
+        </div>
+      ) : activeTab === "drivers" ? (
         <DriverCardGrid
           drivers={drivers}
           trucks={trucks}
           search={driverSearch}
           statusFilter={driverStatusFilter}
           assignmentFilter={driverAssignmentFilter}
-          onView={(driver) => setSelectedDriverId(driver.id)}
+          onView={openDriverProfile}
           onEdit={openDriverEditor}
-          onResetPassword={resetPassword}
+          onResetPassword={setResetPasswordTarget}
           onToggleStatus={(driver) => {
             void toggleDriverStatus(driver).catch((err) => {
               toast.error("Failed to update driver status", {
@@ -668,7 +657,7 @@ const AdminDrivers = () => {
           search={truckSearch}
           statusFilter={truckStatusFilter}
           driverFilter={truckDriverFilter}
-          onView={(truck) => setSelectedTruckId(truck.id)}
+          onView={openTruckProfile}
           onEdit={openTruckEditor}
           onToggleStatus={(truck) => {
             void toggleTruckStatus(truck).catch((err) => {
@@ -702,189 +691,50 @@ const AdminDrivers = () => {
       />
 
       {/* ── Delete Collector Confirmation Modal ── */}
-      <Dialog
+      <ConfirmationDialog
+        kind="dialog"
         open={!!deleteDriverTarget}
         onOpenChange={(open) => !open && setDeleteDriverTarget(null)}
-      >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Delete Collector Account?
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDeleteDriverTarget(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Description */}
-          <div className="py-2.5">
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to permanently delete{" "}
-              <strong className="text-foreground font-semibold">
-                {deleteDriverTarget?.fullName}
-              </strong>
-              &apos;s collector account (@{deleteDriverTarget?.username})? Any
-              assigned truck will be unlinked. This action cannot be undone.
-            </DialogDescription>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isDeletingDriver}
-              onClick={() => {
-                void deleteDriver().catch((err) => {
-                  toast.error("Failed to delete driver", {
-                    description:
-                      err instanceof Error ? err.message : "Please try again.",
-                  });
-                });
-              }}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5"
-            >
-              {isDeletingDriver ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : null}
-              {isDeletingDriver ? "Deleting..." : "Delete Permanently"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        title="Remove Collector Account?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>Remove <strong className="font-semibold text-foreground">{deleteDriverTarget?.fullName}</strong>&apos;s collector account (@{deleteDriverTarget?.username}) from the manager? Sign-in access will end and the truck will be unlinked. Saved route history remains.</>}
+        confirmLabel="Remove Account"
+        isPending={isDeletingDriver}
+        pendingLabel="Removing..."
+        onConfirm={() => {
+          void deleteDriver().catch((err) => {
+            toast.error("Failed to delete driver", { description: err instanceof Error ? err.message : "Please try again." });
+          });
+        }}
+      />
 
       {/* ── Delete Truck Confirmation Modal ── */}
-      <Dialog
+      <ConfirmationDialog
+        kind="dialog"
         open={!!deleteTruckTarget}
         onOpenChange={(open) => !open && setDeleteTruckTarget(null)}
-      >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Delete Truck Record?
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDeleteTruckTarget(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        title="Delete Truck Record?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>Are you sure you want to permanently delete <strong className="font-semibold text-foreground">{deleteTruckTarget?.name}</strong> ({deleteTruckTarget?.plateNumber}) from the municipal fleet? This action cannot be undone.</>}
+        confirmLabel="Delete Permanently"
+        isPending={isDeletingTruck}
+        pendingLabel="Deleting..."
+        onConfirm={() => {
+          void deleteTruck().catch((err) => {
+            toast.error("Failed to delete truck", { description: err instanceof Error ? err.message : "Please try again." });
+          });
+        }}
+      />
 
-          {/* Description */}
-          <div className="py-2.5">
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to permanently delete{" "}
-              <strong className="text-foreground font-semibold">
-                {deleteTruckTarget?.name}
-              </strong>{" "}
-              ({deleteTruckTarget?.plateNumber}) from the municipal fleet? This
-              action cannot be undone.
-            </DialogDescription>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isDeletingTruck}
-              onClick={() => {
-                void deleteTruck().catch((err) => {
-                  toast.error("Failed to delete truck", {
-                    description:
-                      err instanceof Error ? err.message : "Please try again.",
-                  });
-                });
-              }}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5"
-            >
-              {isDeletingTruck ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : null}
-              {isDeletingTruck ? "Deleting..." : "Delete Permanently"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Password Reset Success Modal ── */}
-      <Dialog
-        open={!!resetPwResult}
-        onOpenChange={() => setResetPwResult(null)}
-      >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <KeyRound className="w-4 h-4" />
-              </div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
-                Password Reset Successful
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setResetPwResult(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="space-y-3 py-2">
-            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              A new temporary password has been generated for{" "}
-              <strong className="text-foreground font-semibold">
-                {resetPwResult?.name}
-              </strong>
-              .
-            </DialogDescription>
-
-            <div className="bg-muted/50 border border-border/70 rounded-xl p-4 font-mono text-center text-lg font-bold tracking-wider text-foreground select-all">
-              {resetPwResult?.password}
-            </div>
-
-            <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-              Share this password with the collector securely. They will be
-              required to change it upon their next login.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(resetPwResult?.password || "");
-                toast.success("Password copied to clipboard");
-              }}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5"
-            >
-              <Copy className="w-3.5 h-3.5" /> Copy Password
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {resetPasswordTarget ? (
+        <ResetDriverPasswordDialog
+          key={resetPasswordTarget.id}
+          driver={resetPasswordTarget}
+          onClose={() => setResetPasswordTarget(null)}
+        />
+      ) : null}
     </div>
   );
 };

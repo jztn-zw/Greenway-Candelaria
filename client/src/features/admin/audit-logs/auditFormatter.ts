@@ -35,6 +35,10 @@ const ACTION_LABELS: Record<string, string> = {
   UNBAN_USER: "Unbanned Account",
   DELETE_USER: "Deleted Account",
   UPDATE_LANDING_CONTENT: "Updated Landing Page",
+  UPDATE_BARANGAY_SERVICE: "Updated Collection Service",
+  CREATE_BARANGAY_STREET: "Added Street",
+  UPDATE_BARANGAY_STREET: "Updated Street",
+  DELETE_BARANGAY_STREET: "Deleted Street",
 };
 
 const MODULE_LABELS: Record<string, AuditModule> = {
@@ -45,13 +49,15 @@ const MODULE_LABELS: Record<string, AuditModule> = {
   users: "Accounts",
   residents: "Resident Manager",
   drivers: "Driver Manager",
-  trucks: "Route Manager",
+  trucks: "Truck Manager",
   schedule: "Collection Schedule",
   auth: "Accounts",
   barangays: "Barangay Manager",
   "landing-content": "Landing Page",
 };
 
+// Audit payloads contain legacy values with varying shapes.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const formatStatus = (s: any) => {
   if (!s || typeof s !== "string") return String(s || "");
   return s
@@ -60,6 +66,7 @@ const formatStatus = (s: any) => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getCleanValueString = (val: any): string => {
   if (val === null || val === undefined) return "";
   if (typeof val === "string") return formatStatus(val);
@@ -317,25 +324,30 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
 
     case "CREATE_TRUCK":
       summary = `Registered collection truck "${newVal.name || "Truck"}" (Plate: ${newVal.plate_number || "N/A"}).`;
-      afterValue = "Active";
+      afterValue = formatStatus(newVal.availability_status || "Active");
       break;
 
-    case "UPDATE_TRUCK":
+    case "UPDATE_TRUCK": {
       summary = `Updated truck details for "${newVal.name || oldVal.name || "Truck"}".`;
-      if (oldVal.status !== newVal.status && (oldVal.status || newVal.status)) {
-        beforeValue = formatStatus(oldVal.status);
-        afterValue = formatStatus(newVal.status);
+      const changes = ["name", "plate_number", "truck_model", "availability_status", "status"]
+        .filter((field) => oldVal[field] !== newVal[field]);
+      if (changes.length) {
+        beforeValue = changes.map((field) => `${formatStatus(field)}: ${formatStatus(oldVal[field])}`).join("; ");
+        afterValue = changes.map((field) => `${formatStatus(field)}: ${formatStatus(newVal[field])}`).join("; ");
       }
       break;
+    }
 
     case "DELETE_TRUCK":
-      summary = `Decommissioned collection truck "${oldVal.name || affectedRecord}" (Plate: ${oldVal.plate_number || "N/A"}).`;
-      beforeValue = "Active";
+      summary = `Deleted collection truck "${oldVal.name || affectedRecord}" (Plate: ${oldVal.plate_number || "N/A"}).${oldVal.driver ? ` Unassigned ${oldVal.driver}.` : ""}`;
+      beforeValue = formatStatus(oldVal.availability_status || "Active");
       afterValue = "Deleted";
       break;
 
     case "ASSIGN_DRIVER_TRUCK":
-      summary = `Assigned driver ${newVal.driver || "Driver"} to truck "${newVal.truck || "Unassigned"}".`;
+      summary = newVal.truck
+        ? `Assigned driver ${newVal.driver || "Driver"} to truck "${newVal.truck}".`
+        : `Unassigned driver ${newVal.driver || oldVal.driver || "Driver"} from truck "${oldVal.truck || "Unknown"}".`;
       beforeValue = oldVal.truck ? `Truck: ${oldVal.truck}` : "Unassigned";
       afterValue = newVal.truck ? `Truck: ${newVal.truck}` : "Unassigned";
       break;
@@ -382,6 +394,6 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     severity,
     beforeValue: beforeValue || undefined,
     afterValue: afterValue || undefined,
-    ipAddress: row.ip_address || "127.0.0.1",
+    ipAddress: row.ip_address || "Unavailable",
   };
 };

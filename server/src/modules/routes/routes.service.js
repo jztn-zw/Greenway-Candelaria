@@ -3,10 +3,12 @@ const generateId = require("../../utils/generateId");
 const {
   notifyBarangayResidents,
   notifyAdmins,
-  sendToUser,
+  sendToMany,
+  emitStoredNotifications,
 } = require("../notifications/notifications.service");
-const { emitNotificationReferenceRemoved } = require("../../sockets/notifications.socket");
 const routeRunsService = require("./routeRuns.service");
+const { assertCollectionReadyForStops, hasUsableCoveragePath } = require("./collectionReadiness");
+const auditService = require("../audit/audit.service");
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
 
 const getTodayRouteContext = () => {
@@ -64,6 +66,8 @@ const formatRouteData = (rows) => {
         id: row.stop_id,
         barangay_id: row.barangay_id,
         barangay_name: row.barangay_name,
+        street_id: row.street_id ?? null,
+        stop_name: row.stop_name ?? row.barangay_name,
         order_index: row.order_index,
         status: hasStartedToday ? row.stop_status || "NOT_STARTED" : "NOT_STARTED",
         completed_at: hasStartedToday ? row.completed_at : null,
@@ -83,22 +87,90 @@ const formatRouteData = (rows) => {
   return Array.from(routesMap.values());
 };
 
-const assertUniqueStopBarangays = (stops = []) => {
+const getStopKey = (stop) => {
+  if (stop.street_id) {
+    return `street:${String(stop.street_id).trim()}`;
+  }
+  return `barangay:${String(stop.barangay_id || "").trim()}`;
+};
+
+const formatStreetName = (street) => {
+  if (!street?.area) return street?.name || null;
+  return `${street.name} (${street.area})`;
+};
+
+const assertUniqueRouteStops = (stops = []) => {
   const seen = new Set();
 
   for (const stop of stops) {
-    const key = String(stop.barangay_id || "").trim();
-    if (!key) continue;
+    const key = getStopKey(stop);
+    if (key.endsWith(":")) continue;
 
     if (seen.has(key)) {
       throw {
         statusCode: 409,
-        message: "A route cannot contain the same barangay more than once",
+        message: "A route cannot contain the same collection stop more than once",
       };
     }
 
     seen.add(key);
   }
+};
+
+const resolveRouteStops = async (executor, stops = []) => {
+  const streetIds = Array.from(
+    new Set(
+      stops
+        .map((stop) => String(stop.street_id || "").trim())
+        .filter(Boolean),
+    ),
+  );
+
+  const streetById = new Map();
+  if (streetIds.length > 0) {
+    const [streets] = await executor.query(
+      `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path
+       FROM barangay_streets bs
+       JOIN barangays b ON b.id = bs.barangay_id
+       WHERE bs.id IN (${streetIds.map(() => "?").join(", ")})
+         AND b.collection_service_available = 1`,
+      streetIds,
+    );
+    streets.forEach((street) => streetById.set(street.id, street));
+  }
+
+  const resolved = [];
+  for (const stop of stops) {
+    const streetId = String(stop.street_id || "").trim();
+    if (streetId) {
+      const street = streetById.get(streetId);
+      if (!street) {
+        throw { statusCode: 404, message: "Street is unavailable" };
+      }
+      if (!hasUsableCoveragePath(street.coverage_path)) {
+        throw {
+          statusCode: 409,
+          message: `${formatStreetName(street)} needs a coverage path before it can be scheduled`,
+        };
+      }
+      resolved.push({
+        ...stop,
+        barangay_id: street.barangay_id,
+        street_id: street.id,
+        stop_name: formatStreetName(street),
+      });
+      continue;
+    }
+
+    const barangayId = String(stop.barangay_id || "").trim();
+    const [barangays] = await executor.query("SELECT id, name FROM barangays WHERE id = ?", [barangayId]);
+    if (barangays.length === 0) {
+      throw { statusCode: 404, message: "Barangay not found" };
+    }
+    resolved.push({ ...stop, barangay_id: barangayId, street_id: null, stop_name: barangays[0].name });
+  }
+
+  return resolved;
 };
 
 const assertNoActiveRouteBarangayConflicts = async (
@@ -115,11 +187,40 @@ const assertNoActiveRouteBarangayConflicts = async (
     ),
   );
 
-  if (!dayOfWeek || barangayIds.length === 0) {
+  const streetIds = Array.from(
+    new Set(
+      stops
+        .map((stop) => String(stop.street_id || "").trim())
+        .filter(Boolean),
+    ),
+  );
+  const genericBarangayIds = Array.from(
+    new Set(
+      stops
+        .filter((stop) => !stop.street_id)
+        .map((stop) => String(stop.barangay_id || "").trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (!dayOfWeek || (barangayIds.length === 0 && streetIds.length === 0)) {
     return;
   }
 
-  const params = [String(dayOfWeek).toUpperCase(), ...barangayIds];
+  const whereParts = [];
+  const params = [String(dayOfWeek).toUpperCase()];
+  if (streetIds.length > 0) {
+    whereParts.push(`rs.street_id IN (${streetIds.map(() => "?").join(", ")})`);
+    params.push(...streetIds);
+  }
+  if (barangayIds.length > 0) {
+    whereParts.push(`(rs.street_id IS NULL AND rs.barangay_id IN (${barangayIds.map(() => "?").join(", ")}))`);
+    params.push(...barangayIds);
+  }
+  if (genericBarangayIds.length > 0) {
+    whereParts.push(`rs.barangay_id IN (${genericBarangayIds.map(() => "?").join(", ")})`);
+    params.push(...genericBarangayIds);
+  }
   let excludeClause = "";
 
   if (excludeRouteId) {
@@ -132,13 +233,16 @@ const assertNoActiveRouteBarangayConflicts = async (
        r.id AS route_id,
        COALESCE(r.name, t.name, 'Unnamed route') AS route_name,
        b.id AS barangay_id,
-       b.name AS barangay_name
+       b.name AS barangay_name,
+       bs.name AS street_name,
+       bs.area AS street_area
      FROM routes r
      JOIN route_stops rs ON rs.route_id = r.id
      JOIN barangays b ON b.id = rs.barangay_id
-      LEFT JOIN trucks t ON t.id = r.truck_id
+     LEFT JOIN barangay_streets bs ON bs.id = rs.street_id
+     LEFT JOIN trucks t ON t.id = r.truck_id
       WHERE UPPER(r.day_of_week) = ?
-        AND rs.barangay_id IN (${barangayIds.map(() => "?").join(", ")})
+        AND (${whereParts.join(" OR ")})
        ${excludeClause}
      ORDER BY b.name ASC
      LIMIT 1`,
@@ -152,16 +256,16 @@ const assertNoActiveRouteBarangayConflicts = async (
   const conflict = rows[0];
   throw {
     statusCode: 409,
-      message: `${conflict.barangay_name} already has a ${String(dayOfWeek).toLowerCase()} collection route`,
+      message: `${formatStreetName({ name: conflict.street_name, area: conflict.street_area }) || conflict.barangay_name} already has a ${String(dayOfWeek).toLowerCase()} collection route`,
   };
 };
 
-const resolveAssignedTruckId = async (driverId, providedTruckId) => {
+const resolveAssignedTruckId = async (driverId, providedTruckId, executor = pool) => {
   if (!driverId) {
     return providedTruckId;
   }
 
-  const [driverRows] = await pool.query(
+  const [driverRows] = await executor.query(
     "SELECT id, truck_id FROM drivers WHERE id = ?",
     [driverId],
   );
@@ -205,6 +309,73 @@ const isSameCalendarDay = (left, right = new Date()) => {
   });
 
   return formatter.format(leftDate) === formatter.format(rightDate);
+};
+
+const getManilaDateContext = () => {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { date: `${values.year}-${values.month}-${values.day}`, weekday: values.weekday.toUpperCase() };
+};
+
+const getTodayRun = async (connection, routeId) => {
+  const { date } = getManilaDateContext();
+  const [rows] = await connection.query(
+    "SELECT id, status FROM route_runs WHERE route_id = ? AND run_date = ? FOR UPDATE",
+    [routeId, date],
+  );
+  return rows[0] || null;
+};
+
+const syncTodayScheduledRun = async (connection, routeId, routeSnapshot) => {
+  const run = await getTodayRun(connection, routeId);
+  if (!run) return;
+  if (["ACTIVE", "PAUSED"].includes(run.status)) {
+    throw { statusCode: 409, message: "Today's route run has already started. Finish it before changing this route." };
+  }
+  if (["COMPLETED", "PARTIAL"].includes(run.status)) return;
+
+  const { weekday } = getManilaDateContext();
+  if (routeSnapshot.status !== "ACTIVE" || routeSnapshot.day_of_week !== weekday) {
+    await connection.query("UPDATE route_runs SET status = 'CANCELLED' WHERE id = ?", [run.id]);
+    return;
+  }
+
+  await connection.query(
+    `UPDATE route_runs SET truck_id = ?, driver_id = ?, route_name = ?, waste_type = ?,
+       scheduled_start_time = ?, status = 'SCHEDULED', collection_started_at = NULL, ended_at = NULL,
+       truck_name_snapshot = (SELECT name FROM trucks WHERE id = ?),
+       truck_plate_snapshot = (SELECT plate_number FROM trucks WHERE id = ?)
+     WHERE id = ?`,
+    [routeSnapshot.truck_id, routeSnapshot.driver_id, routeSnapshot.name, routeSnapshot.waste_type, routeSnapshot.start_time, routeSnapshot.truck_id, routeSnapshot.truck_id, run.id],
+  );
+  await connection.query("DELETE FROM route_run_stops WHERE route_run_id = ?", [run.id]);
+  const [stops] = await connection.query(
+    `SELECT rs.id, rs.barangay_id, rs.street_id, rs.stop_order, rs.distance_km,
+            bs.coverage_path,
+            COALESCE(CASE WHEN bs.area IS NULL THEN bs.name ELSE CONCAT(bs.name, ' (', bs.area, ')') END, b.name) AS stop_name
+     FROM route_stops rs
+     JOIN barangays b ON b.id = rs.barangay_id
+     LEFT JOIN barangay_streets bs ON bs.id = rs.street_id
+     WHERE rs.route_id = ? ORDER BY rs.stop_order`,
+    [routeId],
+  );
+  for (const stop of stops) {
+    await connection.query(
+      `INSERT INTO route_run_stops
+       (id, route_run_id, template_stop_id, barangay_id, street_id, stop_name, coverage_path, stop_order, distance_km)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [generateId(), run.id, stop.id, stop.barangay_id, stop.street_id, stop.stop_name,
+        typeof stop.coverage_path === "string" ? stop.coverage_path : JSON.stringify(stop.coverage_path),
+        stop.stop_order, stop.distance_km || 0],
+    );
+  }
 };
 
 const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
@@ -262,270 +433,6 @@ const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
   return "resume-reset";
 };
 
-// ─── Get today's route for the authenticated driver ───────────────────────
-const getMyRouteToday = async (userId) => {
-  const { weekday: today } = getTodayRouteContext();
-
-  const [rows] = await pool.query(
-    `SELECT
-       r.id           AS route_id,
-       r.status       AS route_status,
-       r.truck_id,
-       t.name         AS truck_name,
-       d.id           AS driver_id,
-       d.user_id      AS driver_user_id,
-       u.full_name    AS driver_name,
-       r.name         AS route_name,
-       r.waste_type,
-       r.start_time   AS started_at,
-       r.collection_started_at,
-       rs.id          AS stop_id,
-       rs.barangay_id,
-       b.name         AS barangay_name,
-       rs.stop_order  AS order_index,
-       rs.status      AS stop_status,
-       rs.completed_at,
-       rs.skipped_reason,
-       b.latitude,
-       b.longitude,
-       rs.distance_km
-     FROM routes r
-     JOIN trucks  t  ON r.truck_id  = t.id
-     JOIN drivers d  ON r.driver_id = d.id
-     JOIN users   u  ON d.user_id   = u.id
-     LEFT JOIN route_stops rs ON r.id = rs.route_id
-     LEFT JOIN barangays   b  ON rs.barangay_id = b.id
-     WHERE UPPER(r.day_of_week) = ?
-       AND d.user_id = ?
-     ORDER BY CASE WHEN r.status = 'ACTIVE' THEN 0 ELSE 1 END,
-              r.updated_at DESC,
-              r.created_at DESC,
-              rs.stop_order ASC`,
-    [today, userId],
-  );
-
-  const formattedRoutes = formatRouteData(rows);
-  return formattedRoutes.length > 0 ? formattedRoutes[0] : null;
-};
-
-// ─── Get all active routes today (Admin) ─────────────────────────────────
-const getAllRoutesToday = async () => {
-  const { weekday: today } = getTodayRouteContext();
-
-  const [rows] = await pool.query(
-    `SELECT
-       r.id           AS route_id,
-       r.status       AS route_status,
-       r.truck_id,
-       t.name         AS truck_name,
-       d.id           AS driver_id,
-       d.user_id      AS driver_user_id,
-       u.full_name    AS driver_name,
-       r.name         AS route_name,
-       r.waste_type,
-       r.start_time   AS started_at,
-       r.collection_started_at,
-       rs.id          AS stop_id,
-       rs.barangay_id,
-       b.name         AS barangay_name,
-       rs.stop_order  AS order_index,
-       rs.status      AS stop_status,
-       rs.completed_at,
-       rs.skipped_reason,
-       b.latitude,
-       b.longitude
-     FROM routes r
-     JOIN  trucks  t ON r.truck_id = t.id
-     LEFT JOIN drivers d ON r.driver_id = d.id
-     LEFT JOIN users   u ON d.user_id   = u.id
-     LEFT JOIN route_stops rs ON r.id = rs.route_id
-     LEFT JOIN barangays   b  ON rs.barangay_id = b.id
-     WHERE UPPER(r.day_of_week) = ?
-     ORDER BY r.id, rs.stop_order ASC`,
-    [today],
-  );
-
-  return formatRouteData(rows);
-};
-
-const autoActivateScheduledRoutes = async () => {
-  const { weekday: today, currentTime } = getTodayRouteContext();
-
-  const [routes] = await pool.query(
-    `SELECT r.id, r.truck_id, r.collection_started_at,
-            MAX(rs.completed_at) AS last_stop_completed_at
-      FROM routes r
-      JOIN trucks t ON t.id = r.truck_id
-      LEFT JOIN route_stops rs ON rs.route_id = r.id
-      WHERE UPPER(r.day_of_week) = ?
-        AND r.status = 'INACTIVE'
-        AND r.start_time <= ?
-      GROUP BY r.id, r.truck_id, r.collection_started_at, r.start_time
-      ORDER BY r.start_time ASC`,
-    [today, currentTime],
-  );
-
-  // Do not reopen a route that already ran today. New routes and routes whose
-  // last run was on an earlier calendar day are eligible for a fresh cycle.
-  const routesToActivate = routes.filter(
-    (route) =>
-      !isSameCalendarDay(route.collection_started_at) &&
-      !isSameCalendarDay(route.last_stop_completed_at),
-  );
-
-  if (routesToActivate.length === 0) {
-    return [];
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    for (const route of routesToActivate) {
-      await connection.query(
-        `UPDATE route_stops
-         SET status = 'NOT_STARTED',
-             completed_at = NULL,
-             skipped_reason = NULL,
-             notified_at = NULL,
-             collection_done_notified_at = NULL,
-             collection_skipped_notified_at = NULL
-         WHERE route_id = ?`,
-        [route.id],
-      );
-
-      await connection.query(
-        `UPDATE routes
-         SET status = 'ACTIVE',
-             collection_started_at = NULL
-         WHERE id = ?`,
-        [route.id],
-      );
-
-      await connection.query(
-        `UPDATE trucks
-         SET status = 'SCHEDULED'
-         WHERE id = ?`,
-        [route.truck_id],
-      );
-    }
-
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-
-  return routesToActivate.map((route) => route.id);
-};
-
-// ✅ FIX: End route ─────────────────────────────────────────────────────────
-// - Marks all NOT_STARTED / IN_PROGRESS stops as MISSED
-// - Sets the route status to INACTIVE
-// - Resets the truck status to OFFLINE
-const endRoute = async (routeId) => {
-  // Validate route exists
-  const [routeCheck] = await pool.query(
-    `SELECT r.id, r.truck_id, r.status, r.collection_started_at, t.name AS truck_name
-     FROM routes r
-     JOIN trucks t ON t.id = r.truck_id
-     WHERE r.id = ?`,
-    [routeId],
-  );
-
-  if (routeCheck.length === 0) {
-    throw { statusCode: 404, message: "Route not found" };
-  }
-
-  const { truck_id, truck_name: truckName } = routeCheck[0];
-  if (!isSameCalendarDay(routeCheck[0].collection_started_at)) {
-    throw { statusCode: 409, message: "Start today's route before ending it" };
-  }
-  let shouldNotifyRouteCompletion = false;
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    // Mark all remaining (not done/skipped) stops as MISSED
-    await connection.query(
-      `UPDATE route_stops
-       SET status = 'MISSED',
-           completed_at = COALESCE(completed_at, UTC_TIMESTAMP())
-       WHERE route_id = ?
-         AND status NOT IN ('DONE', 'SKIPPED', 'MISSED')`,
-      [routeId],
-    );
-
-    // Claim route closure atomically. Concurrent final-stop and monitor calls
-    // may both reach this function, but only the caller that changes ACTIVE /
-    // PAUSED to INACTIVE may send the admin completion notification.
-    const [routeUpdate] = await connection.query(
-      `UPDATE routes
-       SET status = 'INACTIVE'
-       WHERE id = ?
-         AND status <> 'INACTIVE'`,
-      [routeId],
-    );
-    shouldNotifyRouteCompletion = routeUpdate.affectedRows > 0;
-
-    // Mark truck as DONE so admin/resident views reflect completed route immediately
-    await connection.query(
-      `UPDATE trucks SET status = 'DONE' WHERE id = ?`,
-      [truck_id],
-    );
-
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-
-  // One concise operational summary is useful to dispatchers; repeated end
-  // requests for an already inactive route must not create notification spam.
-  if (shouldNotifyRouteCompletion) {
-    const [summaryRows] = await pool.query(
-      `SELECT
-         COUNT(*) AS total_stops,
-         SUM(status = 'DONE') AS completed_stops,
-         SUM(status IN ('SKIPPED', 'MISSED')) AS skipped_stops
-       FROM route_stops
-       WHERE route_id = ?`,
-      [routeId],
-    );
-    const summary = summaryRows[0] || {};
-    const completedStops = Number(summary.completed_stops) || 0;
-    const skippedStops = Number(summary.skipped_stops) || 0;
-    const totalStops = Number(summary.total_stops) || 0;
-    const fullyCompleted = totalStops > 0 && completedStops === totalStops;
-
-    await notifyAdmins({
-      type: "SYSTEM",
-      title: fullyCompleted
-        ? `Collection Completed: ${truckName}`
-        : `Route Completed: ${truckName}`,
-      body: `${truckName} completed its route: ${completedStops} completed, ${skippedStops} skipped out of ${totalStops} stops.`,
-      ref_id: routeId,
-      ref_module: "tracking",
-    }).catch((err) => console.error("[Routes] Route-end admin notification error:", err.message));
-
-  }
-
-  // A completed route is no longer a GPS-risk case. Remove a stale alert that
-  // may have been created moments before the final stop was processed.
-  await pool.query(
-    "DELETE FROM notifications WHERE ref_module = 'tracking-stale-gps' AND ref_id = ?",
-    [routeId],
-  );
-  emitNotificationReferenceRemoved("tracking-stale-gps", routeId);
-
-  return { message: "Route ended successfully", routeId };
-};
-
 const getCollectorUserIdForRoute = async (routeId) => {
   const [rows] = await pool.query(
     `SELECT d.user_id
@@ -535,43 +442,6 @@ const getCollectorUserIdForRoute = async (routeId) => {
     [routeId],
   );
   return rows[0]?.user_id || null;
-};
-
-const notifyCollectorForRoute = async (routeId, { title, body, refModule = "routes", destination = "route-map" }) => {
-  const userId = await getCollectorUserIdForRoute(routeId);
-  if (!userId) return null;
-  return sendToUser({
-    user_id: userId,
-    type: "SYSTEM",
-    title,
-    body,
-    ref_id: routeId,
-    ref_module: refModule,
-    metadata: { destination },
-  });
-};
-
-// Safety net for routes whose final stop was recorded but whose close request
-// was interrupted. It keeps completed operations from appearing as active GPS
-// sessions and lets endRoute create the one correct admin summary.
-const finalizeCompletedRoutes = async () => {
-  const [rows] = await pool.query(
-    `SELECT r.id, r.collection_started_at
-     FROM routes r
-     JOIN route_stops rs ON rs.route_id = r.id
-     WHERE r.status IN ('ACTIVE', 'PAUSED')
-     GROUP BY r.id
-     HAVING COUNT(*) > 0
-        AND SUM(rs.status NOT IN ('DONE', 'MISSED', 'SKIPPED')) = 0`,
-  );
-
-  const routesToFinalize = rows.filter((route) => isSameCalendarDay(route.collection_started_at));
-
-  for (const route of routesToFinalize) {
-    await endRoute(route.id);
-  }
-
-  return routesToFinalize.map((route) => route.id);
 };
 
 const assertNoRouteTruckDayConflict = async (
@@ -608,57 +478,17 @@ const assertNoRouteTruckDayConflict = async (
   }
 };
 
-// Persist a collector's pause so every tracking view shares the same state.
-const setRoutePaused = async (routeId, userId, paused) => {
-  const [rows] = await pool.query(
-    `SELECT r.id, r.status, r.truck_id
-     FROM routes r
-     JOIN drivers d ON d.id = r.driver_id
-     WHERE r.id = ? AND d.user_id = ?`,
-    [routeId, userId],
-  );
-
-  if (rows.length === 0) {
-    throw { statusCode: 404, message: "Route not found for this collector" };
-  }
-
-  const route = rows[0];
-  const currentStatus = String(route.status || "").toUpperCase();
-  const nextStatus = paused ? "PAUSED" : "ACTIVE";
-
-  if (currentStatus === "INACTIVE") {
-    throw { statusCode: 409, message: "A completed route cannot be paused or resumed" };
-  }
-
-  if (currentStatus !== nextStatus) {
-    await pool.query("UPDATE routes SET status = ? WHERE id = ?", [nextStatus, routeId]);
-  }
-
-  return { routeId, status: nextStatus, truckId: route.truck_id };
-};
-
-const startRoute = async (routeId, userId) => {
-  const [rows] = await pool.query(
-    `SELECT r.id, r.status
-     FROM routes r
-     JOIN drivers d ON d.id = r.driver_id
-     WHERE r.id = ? AND d.user_id = ?`,
-    [routeId, userId],
-  );
-  if (rows.length === 0) throw { statusCode: 404, message: "Route not found for this collector" };
-  if (String(rows[0].status || "").toUpperCase() !== "ACTIVE") {
-    throw { statusCode: 409, message: "Only an active route can be started" };
-  }
-
-  await pool.query(
-    "UPDATE routes SET collection_started_at = COALESCE(collection_started_at, UTC_TIMESTAMP()) WHERE id = ?",
-    [routeId],
-  );
-  return getById(routeId);
-};
-
 // ─── Get by ID ────────────────────────────────────────────────────────────
-const getById = async (id) => {
+const getById = async (id, viewer = null) => {
+  const viewerRole = String(viewer?.role || "ADMIN").toUpperCase();
+  const accessClause = viewerRole === "RESIDENT"
+    ? `AND r.status = 'ACTIVE' AND r.driver_id IS NOT NULL AND u.status = 'ACTIVE' AND u.deleted_at IS NULL AND EXISTS (
+         SELECT 1 FROM users resident JOIN route_stops access_stop ON access_stop.route_id = r.id
+         WHERE resident.id = ? AND resident.barangay_id = access_stop.barangay_id
+           AND (access_stop.street_id IS NULL OR access_stop.street_id = resident.street_id)
+       )`
+    : viewerRole === "DRIVER" ? "AND d.user_id = ?" : "";
+  const accessParams = accessClause ? [viewer.id] : [];
   const [rows] = await pool.query(
     `SELECT
        r.*,
@@ -669,8 +499,8 @@ const getById = async (id) => {
      JOIN  trucks  t ON t.id = r.truck_id
      LEFT JOIN drivers d ON d.id = r.driver_id
      LEFT JOIN users   u ON u.id = d.user_id
-     WHERE r.id = ?`,
-    [id],
+     WHERE r.id = ? ${accessClause}`,
+    [id, ...accessParams],
   );
 
   if (rows.length === 0) {
@@ -678,17 +508,36 @@ const getById = async (id) => {
   }
 
   const route = rows[0];
+  if (viewerRole === "RESIDENT") {
+    route.driver_id = null;
+    route.driver_name = null;
+    route.truck_plate = null;
+  }
 
+  const residentStopClause = viewerRole === "RESIDENT"
+    ? `AND EXISTS (
+         SELECT 1 FROM users resident WHERE resident.id = ?
+           AND resident.barangay_id = rs.barangay_id
+           AND (rs.street_id IS NULL OR rs.street_id = resident.street_id)
+       )`
+    : "";
   const [stops] = await pool.query(
     `SELECT
        rs.*,
        b.name AS barangay_name,
-       NULL   AS zone
+       COALESCE(
+         CASE WHEN bs.area IS NULL THEN bs.name
+              ELSE CONCAT(bs.name, ' (', bs.area, ')') END,
+         b.name
+       ) AS stop_name,
+       bs.coverage_path,
+       NULL AS zone
      FROM route_stops rs
      JOIN barangays b ON b.id = rs.barangay_id
-     WHERE rs.route_id = ?
+      LEFT JOIN barangay_streets bs ON bs.id = rs.street_id
+     WHERE rs.route_id = ? ${residentStopClause}
      ORDER BY rs.stop_order ASC`,
-    [id],
+    residentStopClause ? [id, viewer.id] : [id],
   );
 
   route.stops = stops;
@@ -696,7 +545,7 @@ const getById = async (id) => {
 };
 
 // ─── Get All ──────────────────────────────────────────────────────────────
-const getAll = async (filters = {}) => {
+const getAll = async (filters = {}, viewer = null) => {
   let query = `
     SELECT
       r.*,
@@ -710,6 +559,20 @@ const getAll = async (filters = {}) => {
   `;
   const params = [];
   const where = [];
+  const viewerRole = String(viewer?.role || "ADMIN").toUpperCase();
+
+  if (viewerRole === "RESIDENT") {
+    where.push("r.status = 'ACTIVE' AND r.driver_id IS NOT NULL AND u.status = 'ACTIVE' AND u.deleted_at IS NULL");
+    where.push(`EXISTS (
+      SELECT 1 FROM users resident JOIN route_stops access_stop ON access_stop.route_id = r.id
+      WHERE resident.id = ? AND resident.barangay_id = access_stop.barangay_id
+        AND (access_stop.street_id IS NULL OR access_stop.street_id = resident.street_id)
+    )`);
+    params.push(viewer.id);
+  } else if (viewerRole === "DRIVER") {
+    where.push("d.user_id = ?");
+    params.push(viewer.id);
+  }
 
   if (filters.day_of_week) {
     where.push("r.day_of_week = ?");
@@ -727,13 +590,32 @@ const getAll = async (filters = {}) => {
   const [routes] = await pool.query(query, params);
 
   for (const route of routes) {
+    if (viewerRole === "RESIDENT") {
+      route.driver_id = null;
+      route.driver_name = null;
+    route.truck_plate = null;
+    }
+    const residentStopClause = viewerRole === "RESIDENT"
+      ? `AND EXISTS (SELECT 1 FROM users resident WHERE resident.id = ?
+           AND resident.barangay_id = rs.barangay_id
+           AND (rs.street_id IS NULL OR rs.street_id = resident.street_id))`
+      : "";
     const [stops] = await pool.query(
-      `SELECT rs.*, b.name AS barangay_name, NULL AS zone
+      `SELECT
+         rs.*, b.name AS barangay_name,
+         COALESCE(
+           CASE WHEN bs.area IS NULL THEN bs.name
+                ELSE CONCAT(bs.name, ' (', bs.area, ')') END,
+           b.name
+         ) AS stop_name,
+         bs.coverage_path,
+         NULL AS zone
        FROM route_stops rs
        JOIN barangays b ON b.id = rs.barangay_id
-       WHERE rs.route_id = ?
+       LEFT JOIN barangay_streets bs ON bs.id = rs.street_id
+       WHERE rs.route_id = ? ${residentStopClause}
        ORDER BY rs.stop_order ASC`,
-      [route.id],
+      residentStopClause ? [route.id, viewer.id] : [route.id],
     );
     route.stops = stops;
   }
@@ -742,54 +624,57 @@ const getAll = async (filters = {}) => {
 };
 
 // ─── Create ───────────────────────────────────────────────────────────────
-const create = async ({ truck_id, driver_id, day_of_week, start_time, name, waste_type, stops }) => {
-  assertUniqueStopBarangays(stops);
-
-  const effectiveTruckId = await resolveAssignedTruckId(driver_id, truck_id);
-
-  await assertNoRouteTruckDayConflict(pool, day_of_week, effectiveTruckId);
-  await assertNoActiveRouteBarangayConflicts(pool, day_of_week, stops);
-
-  const [truckCheck] = await pool.query("SELECT id FROM trucks WHERE id = ?", [effectiveTruckId]);
-  if (truckCheck.length === 0) throw { statusCode: 404, message: "Truck not found" };
-
-  for (const stop of stops) {
-    const [bCheck] = await pool.query("SELECT id FROM barangays WHERE id = ?", [stop.barangay_id]);
-    if (bCheck.length === 0)
-      throw { statusCode: 404, message: `Barangay not found: ${stop.barangay_id}` };
+const create = async ({ truck_id, driver_id, day_of_week, start_time, name, waste_type, status, stops }, adminId) => {
+  const routeId = generateId();
+  const routeStatus = status || (driver_id ? "ACTIVE" : "INACTIVE");
+  if (routeStatus === "ACTIVE" && !driver_id) {
+    throw { statusCode: 400, message: "Assign a collector before enabling this route" };
   }
 
-  const routeId = generateId();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const resolvedStops = await resolveRouteStops(connection, stops);
+    assertUniqueRouteStops(resolvedStops);
+    await assertCollectionReadyForStops(connection, resolvedStops);
+    const effectiveTruckId = await resolveAssignedTruckId(driver_id, truck_id, connection);
 
-   await pool.query(
-    `INSERT INTO routes (id, truck_id, driver_id, day_of_week, start_time, name, waste_type)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [routeId, effectiveTruckId, driver_id || null, day_of_week, start_time, name || null, waste_type || null],
-  );
+    if (routeStatus === "ACTIVE") {
+      await assertNoRouteTruckDayConflict(connection, day_of_week, effectiveTruckId);
+      await assertNoActiveRouteBarangayConflicts(connection, day_of_week, resolvedStops);
+    }
+    const [truckCheck] = await connection.query("SELECT id FROM trucks WHERE id = ?", [effectiveTruckId]);
+    if (truckCheck.length === 0) throw { statusCode: 404, message: "Truck not found" };
 
-  for (const stop of stops) {
-    await pool.query(
-      `INSERT INTO route_stops (id, route_id, barangay_id, stop_order) VALUES (?, ?, ?, ?)`,
-      [generateId(), routeId, stop.barangay_id, stop.stop_order],
+    await connection.query(
+      `INSERT INTO routes (id, truck_id, driver_id, day_of_week, start_time, name, waste_type, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [routeId, effectiveTruckId, driver_id || null, day_of_week, start_time, name || null, waste_type || null, routeStatus],
     );
+    for (const stop of resolvedStops) {
+      await connection.query(
+        `INSERT INTO route_stops (id, route_id, barangay_id, street_id, stop_order) VALUES (?, ?, ?, ?, ?)`,
+        [generateId(), routeId, stop.barangay_id, stop.street_id, stop.stop_order],
+      );
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 
   const route = await getById(routeId);
-  if (route.driver_id) {
-    await notifyCollectorForRoute(routeId, {
-      title: "New Route Assigned",
-      body: `${route.name || "A collection route"} is assigned for ${route.day_of_week} at ${route.start_time}.`,
-    }).catch((err) => console.error("[Routes] Route-assignment collector notification error:", err.message));
-  }
+  await auditService.log({ user_id: adminId, action: "CREATE_ROUTE", module: "routes", record_id: routeId, new_value: route });
   return route;
 };
 
 // ─── Update ───────────────────────────────────────────────────────────────
-const update = async (id, data) => {
+const update = async (id, data, adminId) => {
   const existingRoute = await getById(id);
-  if (data.stops) {
-    assertUniqueStopBarangays(data.stops);
-  }
+  const resolvedStops = data.stops ? await resolveRouteStops(pool, data.stops) : null;
+  if (resolvedStops) assertUniqueRouteStops(resolvedStops);
 
   const fields = [];
   const params = [];
@@ -836,13 +721,19 @@ const update = async (id, data) => {
 
     const nextDayOfWeek = data.day_of_week || existingRoute.day_of_week;
     const nextStatus = data.status || existingRoute.status;
-    const nextStops = data.stops || existingRoute.stops;
+    if (String(nextStatus).toUpperCase() === "ACTIVE" && !nextDriverId) {
+      throw { statusCode: 400, message: "Assign a collector before enabling this route" };
+    }
+    const nextStops = resolvedStops || existingRoute.stops;
     const wasInactive =
       String(existingRoute.status || "").toUpperCase() === "INACTIVE";
     const isScheduled = ["ACTIVE", "PAUSED"].includes(
       String(nextStatus).toUpperCase(),
     );
 
+    if (isScheduled || resolvedStops) {
+      await assertCollectionReadyForStops(connection, nextStops);
+    }
     if (isScheduled) {
       await assertNoRouteTruckDayConflict(
         connection,
@@ -866,21 +757,21 @@ const update = async (id, data) => {
       );
     }
 
-    if (data.stops) {
+    if (resolvedStops) {
       const [existingStops] = await connection.query(
-        `SELECT id, barangay_id, status
+        `SELECT id, barangay_id, street_id, status
          FROM route_stops
          WHERE route_id = ?`,
         [id],
       );
 
-      const existingByBarangayId = new Map(
-        existingStops.map((stop) => [stop.barangay_id, stop]),
+      const existingByStopKey = new Map(
+        existingStops.map((stop) => [getStopKey(stop), stop]),
       );
-      const nextBarangayIds = new Set(data.stops.map((stop) => stop.barangay_id));
+      const nextStopKeys = new Set(resolvedStops.map(getStopKey));
 
       const removedStops = existingStops.filter(
-        (stop) => !nextBarangayIds.has(stop.barangay_id),
+        (stop) => !nextStopKeys.has(getStopKey(stop)),
       );
       const blockedRemoval = removedStops.find(
         (stop) => String(stop.status || "").toUpperCase() !== "NOT_STARTED",
@@ -890,12 +781,12 @@ const update = async (id, data) => {
         throw {
           statusCode: 409,
           message:
-            "Cannot remove barangays from a route after collection progress has started",
+            "Cannot remove collection stops from a route after collection progress has started",
         };
       }
 
-      for (const stop of data.stops) {
-        const existingStop = existingByBarangayId.get(stop.barangay_id);
+      for (const stop of resolvedStops) {
+        const existingStop = existingByStopKey.get(getStopKey(stop));
         if (existingStop) {
           await connection.query(
             `UPDATE route_stops
@@ -907,19 +798,14 @@ const update = async (id, data) => {
         }
 
         await connection.query(
-          `INSERT INTO route_stops (id, route_id, barangay_id, stop_order)
-           VALUES (?, ?, ?, ?)`,
-          [generateId(), id, stop.barangay_id, stop.stop_order],
+          `INSERT INTO route_stops (id, route_id, barangay_id, street_id, stop_order)
+           VALUES (?, ?, ?, ?, ?)`,
+          [generateId(), id, stop.barangay_id, stop.street_id, stop.stop_order],
         );
       }
 
-      if (removedStops.length > 0) {
-        await connection.query(
-          `DELETE FROM route_stops
-           WHERE route_id = ?
-             AND barangay_id IN (${removedStops.map(() => "?").join(", ")})`,
-          [id, ...removedStops.map((stop) => stop.barangay_id)],
-        );
+      for (const stop of removedStops) {
+        await connection.query("DELETE FROM route_stops WHERE id = ?", [stop.id]);
       }
     }
 
@@ -938,6 +824,16 @@ const update = async (id, data) => {
       );
     }
 
+    const changesRunPlan = ["truck_id", "driver_id", "day_of_week", "start_time", "name", "waste_type", "status", "stops"]
+      .some((field) => Object.prototype.hasOwnProperty.call(data, field));
+    if (changesRunPlan) {
+      const [snapshots] = await connection.query(
+        "SELECT id, truck_id, driver_id, day_of_week, start_time, name, waste_type, status FROM routes WHERE id = ?",
+        [id],
+      );
+      await syncTodayScheduledRun(connection, id, snapshots[0]);
+    }
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -947,207 +843,94 @@ const update = async (id, data) => {
   }
 
   const updatedRoute = await getById(id);
-  if (updatedRoute.driver_id) {
-    const reassigned = existingRoute.driver_id !== updatedRoute.driver_id;
-    const stateChange = data.status && data.status !== existingRoute.status;
-    await notifyCollectorForRoute(id, {
-      title: reassigned ? "New Route Assigned" : stateChange ? `Route ${String(data.status).toLowerCase()}` : "Route Updated",
-      body: reassigned
-        ? `${updatedRoute.name || "A collection route"} is now assigned to you for ${updatedRoute.day_of_week} at ${updatedRoute.start_time}.`
-        : "Your collection route details were updated. Review the route before your shift.",
-    }).catch((err) => console.error("[Routes] Route-update collector notification error:", err.message));
-  }
+  await auditService.log({ user_id: adminId, action: "UPDATE_ROUTE", module: "routes", record_id: id, old_value: existingRoute, new_value: updatedRoute });
   return updatedRoute;
 };
 
-// ─── Update Stop Status ───────────────────────────────────────────────────
-const updateStopStatus = async (routeId, stopId, status, skippedReason = null) => {
-  const [routeRows] = await pool.query(
-    "SELECT status, collection_started_at FROM routes WHERE id = ?",
-    [routeId],
-  );
-  if (routeRows.length === 0) throw { statusCode: 404, message: "Route not found" };
-  const routeStatus = String(routeRows[0].status || "").toUpperCase();
-  if (routeStatus === "PAUSED") {
-    throw { statusCode: 409, message: "Resume the route before updating collection stops" };
-  }
-  if (routeStatus !== "ACTIVE") {
-    throw { statusCode: 409, message: "Only an active route can update collection stops" };
-  }
-  if (!isSameCalendarDay(routeRows[0].collection_started_at)) {
-    throw { statusCode: 409, message: "Start today's route before updating collection stops" };
-  }
-
-  const [rows] = await pool.query(
-    `SELECT rs.id, rs.status, rs.barangay_id, b.name AS barangay_name, r.truck_id, t.name AS truck_name
-     FROM route_stops rs
-     JOIN routes r ON r.id = rs.route_id
-     JOIN barangays b ON b.id = rs.barangay_id
-     JOIN trucks t ON t.id = r.truck_id
-     WHERE rs.id = ? AND rs.route_id = ?`,
-    [stopId, routeId],
-  );
-
-  if (rows.length === 0) throw { statusCode: 404, message: "Stop not found on this route" };
-
-  const stop = rows[0];
-  const reason = status === "MISSED" ? skippedReason || null : null;
-
-  await pool.query(
-    `UPDATE route_stops
-        SET status = ?,
-            completed_at = CASE
-              WHEN ? IN ('DONE', 'MISSED') THEN UTC_TIMESTAMP()
-              ELSE NULL
-            END,
-            skipped_reason = ?
-      WHERE id = ?`,
-    [status, status, reason, stopId],
-  );
-
-  const notification = status === "DONE"
-    ? {
-        column: "collection_done_notified_at",
-        type: "COLLECTION_DONE",
-        title: `Collection Completed: ${stop.barangay_name}`,
-        body: "Waste collection was completed in your barangay.",
-      }
-    : status === "MISSED"
-      ? {
-          column: "collection_skipped_notified_at",
-          type: "MISSED_COLLECTION",
-          title: `Collection Skipped: ${stop.barangay_name}`,
-          body: reason
-            ? `Waste collection in ${stop.barangay_name} was skipped. Reason: ${reason}.`
-            : `Waste collection in ${stop.barangay_name} was skipped.`,
-        }
-    : null;
-
-  if (notification) {
-    const [claimResult] = await pool.query(
-      `UPDATE route_stops SET ${notification.column} = NOW()
-       WHERE id = ? AND ${notification.column} IS NULL`,
-      [stopId],
-    );
-
-    if (claimResult.affectedRows > 0) {
-      try {
-        await notifyBarangayResidents({
-          barangay_id: stop.barangay_id,
-          type: notification.type,
-          title: notification.title,
-          body: notification.body,
-          ref_id: routeId,
-          ref_module: "tracking",
-          metadata: { route_id: routeId, stop_id: stopId, barangay_id: stop.barangay_id },
-        });
-
-        if (status === "MISSED") {
-          await notifyAdmins({
-            type: "SYSTEM",
-            title: `Collection Skipped: ${stop.truck_name}`,
-            body: `${stop.barangay_name} was skipped${reason ? `. Reason: ${reason}` : "."}`,
-            ref_id: stopId,
-            ref_module: "tracking",
-          });
-        }
-      } catch (err) {
-        await pool.query(
-          `UPDATE route_stops SET ${notification.column} = NULL WHERE id = ?`,
-          [stopId],
-        );
-        console.error("[Routes] Stop notification error:", err.message);
-      }
-    }
-  }
-
-  // The final completed or skipped stop closes the route automatically. This
-  // keeps the truck state, resident outcome, and admin route-summary
-  // notification consistent even when the collector does not press End Route.
-  const [remainingRows] = await pool.query(
-    `SELECT COUNT(*) AS remaining
-     FROM route_stops
-     WHERE route_id = ?
-       AND status NOT IN ('DONE', 'SKIPPED', 'MISSED')`,
-    [routeId],
-  );
-  if (Number(remainingRows[0]?.remaining) === 0) {
-    return endRoute(routeId);
-  }
-
-  return getById(routeId);
-};
-
 // ─── Delete ───────────────────────────────────────────────────────────────
-const remove = async (id) => {
-  await getById(id);
-  const collectorUserId = await getCollectorUserIdForRoute(id);
-  await pool.query("DELETE FROM routes WHERE id = ?", [id]);
-  if (collectorUserId) {
-    await sendToUser({
-      user_id: collectorUserId,
-      type: "SYSTEM",
-      title: "Route Cancelled",
-      body: "A collection route assigned to you was cancelled. Check with dispatch for your updated schedule.",
-      ref_id: id,
-      ref_module: "routes",
-      metadata: { destination: "route-history" },
-    }).catch((err) => console.error("[Routes] Route-cancellation collector notification error:", err.message));
+const remove = async (id, adminId) => {
+  const existingRoute = await getById(id);
+  if (existingRoute.status !== "INACTIVE") {
+    throw { statusCode: 409, message: "Pause this route before deleting it" };
   }
+  const { date } = getManilaDateContext();
+  const [liveRuns] = await pool.query(
+    "SELECT id FROM route_runs WHERE route_id = ? AND run_date = ? AND status IN ('SCHEDULED','ACTIVE','PAUSED') LIMIT 1",
+    [id, date],
+  );
+  if (liveRuns.length > 0) {
+    throw { statusCode: 409, message: "Cancel or finish today's route run before deleting this route" };
+  }
+  const [historyForeignKeys] = await pool.query(
+    `SELECT DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = 'fk_route_runs_template' LIMIT 1`,
+  );
+  if (historyForeignKeys[0]?.DELETE_RULE !== "SET NULL") {
+    throw { statusCode: 503, message: "Route history protection migration must be applied before deleting routes" };
+  }
+  const collectorUserId = await getCollectorUserIdForRoute(id);
+  const connection = await pool.getConnection();
+  let delivery = { notifications: [] };
+  try {
+    await connection.beginTransaction();
+    await connection.query("DELETE FROM routes WHERE id = ?", [id]);
+    await auditService.logInTransaction(connection, { user_id: adminId, action: "DELETE_ROUTE", module: "routes", record_id: id, old_value: existingRoute });
+    if (collectorUserId) {
+      delivery = await sendToMany({ user_ids: [collectorUserId], type: "SYSTEM", title: "Route Cancelled",
+        body: "A collection route assigned to you was cancelled. Check with dispatch for your updated schedule.",
+        ref_id: id, ref_module: "routes", metadata: { destination: "notification", route_name: existingRoute.name },
+        db: connection, emit: false });
+    }
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+  emitStoredNotifications(delivery.notifications);
   return { message: "Route deleted successfully" };
 };
 
 // ─── Missed Collection Log (Admin) ────────────────────────────────────────────
 const getMissedCollections = async (filters = {}) => {
   const params = [];
-  const where = ["rs.status IN ('MISSED', 'SKIPPED')"];
+  const where = ["rrs.status = 'MISSED'"];
 
   if (filters.truck_id) {
-    where.push("r.truck_id = ?");
+    where.push("rr.truck_id = ?");
     params.push(filters.truck_id);
   }
 
   if (filters.barangay_id) {
-    where.push("rs.barangay_id = ?");
+    where.push("rrs.barangay_id = ?");
     params.push(filters.barangay_id);
   }
 
-  const days = Number.parseInt(String(filters.days ?? "30"), 10);
-  if (Number.isFinite(days) && days > 0) {
-    where.push(
-      "(rs.completed_at IS NULL OR rs.completed_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY))",
-    );
-    params.push(days);
-  }
+  const requestedDays = Number.parseInt(String(filters.days ?? "30"), 10);
+  const days = Number.isFinite(requestedDays) ? Math.min(365, Math.max(1, requestedDays)) : 30;
+  const { date } = getManilaDateContext();
+  where.push("rr.run_date >= DATE_SUB(?, INTERVAL ? DAY)");
+  params.push(date, days - 1);
 
   const [rows] = await pool.query(
     `SELECT
-       rs.id                    AS id,
-       rs.status                AS status,
-       rs.completed_at          AS event_at,
-       rs.skipped_reason        AS reason,
-       rs.barangay_id           AS barangay_id,
+       rrs.id                   AS id,
+       rrs.status               AS status,
+       rrs.completed_at         AS event_at,
+       rr.run_date              AS run_date,
+       rrs.skipped_reason       AS reason,
+       rrs.barangay_id          AS barangay_id,
        b.name                   AS barangay,
-       r.id                     AS route_id,
-       r.truck_id               AS truck_id,
+       rr.id                    AS route_id,
+       rr.truck_id              AS truck_id,
        t.name                   AS truck,
        COALESCE(u.full_name, 'Unassigned') AS driver,
-       (
-         SELECT rp.reference_number
-         FROM reports rp
-         WHERE rp.barangay_id = rs.barangay_id
-           AND rp.violation_type = 'MISSED_COLLECTION'
-         ORDER BY rp.created_at DESC
-         LIMIT 1
-       ) AS resident_report_link
-     FROM route_stops rs
-     JOIN routes r       ON r.id = rs.route_id
-     JOIN trucks t       ON t.id = r.truck_id
-     JOIN barangays b    ON b.id = rs.barangay_id
-     LEFT JOIN drivers d ON d.id = r.driver_id
+       NULL AS resident_report_link
+     FROM route_run_stops rrs
+     JOIN route_runs rr  ON rr.id = rrs.route_run_id
+     JOIN trucks t       ON t.id = rr.truck_id
+     JOIN barangays b    ON b.id = rrs.barangay_id
+     LEFT JOIN drivers d ON d.id = rr.driver_id
      LEFT JOIN users u   ON u.id = d.user_id
      WHERE ${where.join(" AND ")}
-     ORDER BY COALESCE(rs.completed_at, UTC_TIMESTAMP()) DESC`,
+     ORDER BY rr.run_date DESC, rrs.completed_at DESC, rrs.id DESC`,
     params,
   );
 
@@ -1165,8 +948,9 @@ module.exports = {
   getMyRouteToday: routeRunsService.getMyRouteToday,
   getAllRoutesToday: routeRunsService.getAllRoutesToday,
   autoActivateScheduledRoutes: routeRunsService.autoActivateScheduledRoutes,
+  dispatchDueDriverRouteNotifications: routeRunsService.dispatchDueDriverRouteNotifications,
   endRoute: routeRunsService.endRoute,
-  finalizeCompletedRoutes,
+  finalizeCompletedRoutes: require("./routeLifecycle.service").finalizeCompletedRoutes,
   setRoutePaused: routeRunsService.setRoutePaused,
   startRoute: routeRunsService.startRoute,
 };

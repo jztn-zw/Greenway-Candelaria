@@ -104,7 +104,7 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
       actor: log.user_name || "System",
       actionText: formatActionTitle(log.action),
       moduleBadge: formatModuleBadge(log.module),
-      timeAgo: formatRelativeTime(log.created_at, { emptyLabel: "Recently" }),
+      timeAgo: formatRelativeTime(log.created_at, { emptyLabel: "Time unavailable" }),
       tone,
     };
   });

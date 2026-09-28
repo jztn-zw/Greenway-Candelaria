@@ -127,129 +127,6 @@ export const CalendarSkeleton = () => (
   </Card>
 );
 
-/* ─── Resident Dashboard Skeletons ─── */
-
-export const HeroCardsSkeleton = () => (
-  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-    {Array.from({ length: 3 }).map((_, i) => (
-      <Card key={i} className="border border-border overflow-hidden">
-        <CardContent className="p-0">
-          <Skeleton className="h-1 w-full" />
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-4 w-16 rounded-full" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-            </div>
-            <Skeleton className="h-3 w-20" />
-          </div>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
-
-export const StatsCardsSkeleton = () => (
-  <div className="grid gap-3 grid-cols-3">
-    {Array.from({ length: 3 }).map((_, i) => (
-      <Card key={i} className="border border-border">
-        <CardContent className="p-3 sm:p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <Skeleton className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
-            <Skeleton className="w-3 h-3 rounded hidden sm:block" />
-          </div>
-          <Skeleton className="h-7 w-10" />
-          <Skeleton className="h-2.5 w-20" />
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
-
-export const NotificationsStripSkeleton = () => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-3 w-32" />
-      <Skeleton className="h-3 w-14" />
-    </div>
-    <div className="grid gap-2 grid-cols-1 sm:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
-          <Skeleton className="w-7 h-7 rounded-full shrink-0" />
-          <div className="flex-1 space-y-1.5">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-2.5 w-3/4" />
-            <Skeleton className="h-2 w-12" />
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-export const AnnouncementSkeleton = () => (
-  <div className="grid gap-3 grid-cols-1 md:grid-cols-5">
-    <Card className="md:col-span-3 border border-border overflow-hidden">
-      <CardContent className="p-0">
-        <Skeleton className="h-1 w-full" />
-        <div className="p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-3 w-32" />
-            <Skeleton className="h-4 w-10 rounded-full" />
-          </div>
-          <Skeleton className="h-5 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
-          <Skeleton className="h-3 w-16" />
-        </div>
-      </CardContent>
-    </Card>
-    <div className="md:col-span-2">
-      <Skeleton className="h-full min-h-[160px] rounded-xl" />
-    </div>
-  </div>
-);
-
-export const EngagementSkeleton = () => (
-  <Card className="border border-border overflow-hidden">
-    <CardContent className="p-4 sm:p-5">
-      <div className="flex items-center gap-4">
-        <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-        <div className="flex gap-4">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-3 w-24" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-export const QuickActionsAndContactSkeleton = () => (
-  <Card className="border border-border overflow-hidden rounded-2xl shadow-sm">
-    <CardContent className="p-4 sm:p-5 space-y-4">
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-10 w-full rounded-xl" />
-      </div>
-      <div className="pt-2 border-t border-border/60 space-y-2">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-12 w-full rounded-xl" />
-      </div>
-    </CardContent>
-  </Card>
-);
-
 export const BannerSkeleton = () => (
   <div className="flex items-center gap-3 p-3 sm:p-4 rounded-2xl border border-border bg-card shadow-sm">
     <Skeleton className="w-10 h-10 rounded-2xl shrink-0" />
@@ -726,20 +603,13 @@ export const SettingsSkeleton = () => (
       </div>
     </div>
 
-    {/* Section 1: Collection Preferences */}
+    {/* Section 1: Collection Reminders */}
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
       <div className="flex items-center gap-1.5">
         <Skeleton className="w-3.5 h-3.5 rounded" />
         <Skeleton className="h-3.5 w-40" />
       </div>
       <div className="space-y-3">
-        <div className="flex items-center justify-between py-2 border-b border-border/60">
-          <div className="space-y-1">
-            <Skeleton className="h-3.5 w-32" />
-            <Skeleton className="h-3 w-56" />
-          </div>
-          <Skeleton className="w-48 sm:w-56 h-9 rounded-xl shrink-0" />
-        </div>
         <div className="flex items-center justify-between py-2 border-b border-border/60">
           <div className="space-y-1">
             <Skeleton className="h-3.5 w-36" />
@@ -795,19 +665,7 @@ export const SettingsSkeleton = () => (
       </div>
     </div>
 
-    {/* Section 4: Language Preference */}
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="w-3.5 h-3.5 rounded" />
-        <Skeleton className="h-3.5 w-36" />
-      </div>
-      <div className="grid grid-cols-2 gap-3 pt-1">
-        <Skeleton className="h-10 rounded-xl" />
-        <Skeleton className="h-10 rounded-xl" />
-      </div>
-    </div>
-
-    {/* Section 5: About & Legal */}
+    {/* Section 4: About & Legal */}
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
       <div className="flex items-center gap-1.5">
         <Skeleton className="w-3.5 h-3.5 rounded" />
@@ -824,7 +682,7 @@ export const SettingsSkeleton = () => (
       ))}
     </div>
 
-    {/* Section 6: Help & Support */}
+    {/* Section 5: Help & Support */}
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4 shadow-sm">
       <div className="flex items-center gap-1.5">
         <Skeleton className="w-3.5 h-3.5 rounded" />
@@ -885,19 +743,6 @@ export const AdminSettingsSkeleton = () => (
           </div>
         </div>
         <Skeleton className="h-6 w-11 rounded-full" />
-      </div>
-    </div>
-
-    {/* Language */}
-    <div className="bg-card border border-border rounded-xl p-5 sm:p-6 space-y-5">
-      <div className="flex items-center gap-2">
-        <Skeleton className="w-3.5 h-3.5 rounded" />
-        <Skeleton className="h-3 w-32" />
-      </div>
-      <Skeleton className="h-3 w-56" />
-      <div className="flex gap-3">
-        <Skeleton className="h-10 flex-1 rounded-lg" />
-        <Skeleton className="h-10 flex-1 rounded-lg" />
       </div>
     </div>
 
@@ -1467,102 +1312,6 @@ export const ContentGridSkeleton = () => (
           <Skeleton className="h-3 w-20 mx-auto" />
           <Skeleton className="h-8 w-8 mx-auto" />
           <Skeleton className="h-3 w-24 mx-auto" />
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-/* ─── Submit a Report Form Skeleton (1:1 with ResidentSubmitReport.tsx) ─── */
-export const ReportFormSkeleton = () => (
-  <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-    {/* Page Header */}
-    <div className="mb-4 sm:mb-6">
-      <div className="flex items-center gap-3">
-        <Skeleton className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shrink-0" />
-        <div className="space-y-1.5 min-w-0">
-          <Skeleton className="h-6 w-44" />
-          <Skeleton className="h-3.5 w-72" />
-        </div>
-      </div>
-    </div>
-
-    {/* 2-column flex layout */}
-    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
-      {/* Left Main Form */}
-      <div className="flex-1 w-full space-y-4 sm:space-y-5">
-        {/* Section 1: Violation Type */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-4 h-4 rounded" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-2xl" />
-            ))}
-          </div>
-        </div>
-
-        {/* Section 2: Location */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-4 h-4 rounded" />
-            <Skeleton className="h-4 w-36" />
-          </div>
-          <Skeleton className="h-11 w-full rounded-xl" />
-          <Skeleton className="h-11 w-full rounded-xl" />
-          <Skeleton className="h-[220px] w-full rounded-2xl" />
-        </div>
-
-        {/* Section 3: Description */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-4 h-4 rounded" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-          <Skeleton className="h-28 w-full rounded-xl" />
-        </div>
-
-        {/* Section 4: Photos */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-4 h-4 rounded" />
-            <Skeleton className="h-4 w-36" />
-          </div>
-          <Skeleton className="h-32 w-full rounded-2xl" />
-        </div>
-
-        {/* Submit Review Button */}
-        <Skeleton className="h-14 w-full rounded-2xl mt-2" />
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="w-full lg:w-72 xl:w-80 shrink-0 space-y-4">
-        {/* Step Checklist Card */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-4 shadow-sm">
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-2.5 w-full rounded-full" />
-          </div>
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="w-6 h-6 rounded-full shrink-0" />
-                <Skeleton className="h-3.5 w-32" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Guidelines Card */}
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3 shadow-sm">
-          <Skeleton className="h-4 w-28" />
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-4/5" />
-            <Skeleton className="h-3 w-3/4" />
-          </div>
         </div>
       </div>
     </div>

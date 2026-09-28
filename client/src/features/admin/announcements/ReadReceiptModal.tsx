@@ -1,27 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogDescription,
+DialogTitle
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAdminQuery } from "@/lib/adminQuery";
 import {
-  Users,
-  Eye,
-  BarChart3,
-  Search,
-  X,
-  TrendingDown,
-} from "lucide-react";
-import { Announcement } from "./types";
-import {
-  fetchReadReceipts,
-  type AnnouncementAnalytics,
+fetchReadReceipts
 } from "@/services/announcementsService";
+import {
+BarChart3,
+Eye,
+Search,
+TrendingDown,
+Users,
+X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Announcement } from "./types";
 
 interface Props {
   announcement: Announcement;
@@ -31,35 +30,11 @@ interface Props {
 
 const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
   const [search, setSearch] = useState("");
-  const [analytics, setAnalytics] = useState<AnnouncementAnalytics | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-    setSearch("");
-    setIsLoading(true);
-    setLoadError(null);
-    setAnalytics(null);
-
-    fetchReadReceipts(announcement.id)
-      .then((data) => {
-        if (!cancelled) setAnalytics(data);
-      })
-      .catch((error) => {
-        console.error("[Read analytics] Failed to load", error);
-        if (!cancelled) setLoadError("Analytics could not be loaded. Please try again.");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [announcement.id, open]);
+  const query = useAdminQuery("announcements", ["receipts", announcement.id], () => fetchReadReceipts(announcement.id), { enabled: open });
+  const analytics = query.data;
+  const isLoading = query.isLoading;
+  const loadError = query.error ? "Analytics could not be loaded. Please try again." : null;
+  useEffect(() => { if (open) setSearch(""); }, [announcement.id, open]);
 
   // Filter & sort by lowest read rate first
   const filteredAndSortedStats = useMemo(() => {

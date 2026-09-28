@@ -1,56 +1,50 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
-  PageHeaderSkeleton,
-  KPIRowSkeleton,
-  RouteManagerSkeleton,
-} from "@/components/PageLoadingSkeletons";
-import { useRoutes, RouteData, RouteForm, Day } from "./hooks/useRoutes";
-import { useBarangays } from "./hooks/useBarangays";
-import { useTrucks } from "./hooks/useTrucks";
-import { useDrivers } from "./hooks/useDrivers";
-import { DAYS, DEFAULT_FORM } from "./constants";
-import {
-  FilterPillTabs,
-  FilterPillItem,
-  SegmentedControl,
-  SegmentedControlOption,
-  SearchInput,
+FilterPillItem,
+FilterPillTabs,
+SearchInput,
+SegmentedControl,
+SegmentedControlOption,
 } from "@/components/common";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+KPIRowSkeleton,
+PageHeaderSkeleton,
+RouteManagerSkeleton,
+} from "@/components/PageLoadingSkeletons";
+
 import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import { useAdminQuery } from "@/lib/adminQuery";
+import { fetchBarangayStreets, type BarangayStreetRow } from "@/services/barangaysService";
 import {
-  Route as RouteIcon,
-  Plus,
-  RotateCcw,
-  LayoutGrid,
-  TableProperties,
-  PauseCircle,
-  PlayCircle,
-  AlertCircle,
+AlertCircle,
+LayoutGrid,
+PauseCircle,
+PlayCircle,
+Plus,
+RotateCcw,
+TableProperties,
+Trash2,
 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { DAYS, DEFAULT_FORM } from "./constants";
+import { useBarangays } from "./hooks/useBarangays";
+import { useDrivers } from "./hooks/useDrivers";
+import { Day, RouteData, RouteForm, useRoutes } from "./hooks/useRoutes";
+import { useTrucks } from "./hooks/useTrucks";
 
-import RouteKPIs from "./components/RouteKPIs";
-import RouteDayView from "./components/RouteDayView";
-import RouteTable from "./components/RouteTable";
-import RouteEditorModal from "./components/RouteEditorModal";
-import RouteDetailModal from "./components/RouteDetailModal";
 import DuplicateDialog from "./components/DuplicateDialog";
+import RouteDayView from "./components/RouteDayView";
+import RouteDetailModal from "./components/RouteDetailModal";
+import RouteEditorModal from "./components/RouteEditorModal";
+import RouteKPIs from "./components/RouteKPIs";
+import RouteTable from "./components/RouteTable";
 
 type ViewMode = "DAY_VIEW" | "TABLE_VIEW";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
@@ -91,9 +85,12 @@ const AdminRouteManager: React.FC = () => {
   const [duplicateTargetDay, setDuplicateTargetDay] = useState<Day>("Tuesday");
   const [duplicatingRoute, setDuplicatingRoute] = useState<RouteData | null>(null);
 
-  const [barangaySearch, setBarangaySearch] = useState("");
   const [form, setForm] = useState<RouteForm>(DEFAULT_FORM);
+  const [availableStreets, setAvailableStreets] = useState<BarangayStreetRow[]>([]);
+  const [isLoadingStreets, setIsLoadingStreets] = useState(false);
+  const [isCollectionAvailable, setIsCollectionAvailable] = useState(false);
   const [deletingRouteId, setDeletingRouteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RouteData | null>(null);
   const [togglingRouteId, setTogglingRouteId] = useState<string | null>(null);
   const [statusTarget, setStatusTarget] = useState<RouteData | null>(null);
 
@@ -157,23 +154,27 @@ const AdminRouteManager: React.FC = () => {
     setSelectedRouteId(null);
     setIsCreating(true);
     setForm(DEFAULT_FORM);
-    setBarangaySearch("");
     setIsEditorOpen(true);
   };
 
   const startEdit = (route: RouteData) => {
     setIsCreating(false);
     setSelectedRouteId(route.id);
-    setBarangaySearch("");
     setForm({
       day: route.day,
       truckId: route.truckId,
       driverId: route.driverId ?? "",
       startTime: route.startTime,
+      selectedBarangayId: route.stops[0]?.barangayId ?? "",
       barangays: route.stops
         .slice()
         .sort((a, b) => a.stopOrder - b.stopOrder)
-        .map((s) => ({ id: s.barangayId, name: s.barangayName })),
+        .map((s) => ({
+          id: s.streetId ?? s.barangayId,
+          name: s.stopName,
+          barangayId: s.barangayId,
+          coveragePath: s.coveragePath,
+        })),
     });
     setIsEditorOpen(true);
   };
@@ -190,11 +191,20 @@ const AdminRouteManager: React.FC = () => {
   };
 
   // ── Barangay sequence management ──
-  const addBarangay = (b: { id: string; name: string }) => {
-    if (!form.barangays.find((x) => x.id === b.id)) {
-      setForm((prev) => ({ ...prev, barangays: [...prev.barangays, b] }));
+  const addBarangay = (street: BarangayStreetRow) => {
+    if (!form.barangays.find((x) => x.id === street.id)) {
+      setForm((prev) => ({
+        ...prev,
+        barangays: [...prev.barangays, {
+          id: street.id,
+          name: `${street.name}${street.area ? ` (${street.area})` : ""}`,
+          barangayId: street.barangay_id ?? prev.selectedBarangayId,
+          latitude: street.latitude,
+          longitude: street.longitude,
+          coveragePath: street.coverage_path ?? null,
+        }],
+      }));
     }
-    setBarangaySearch("");
   };
 
   const removeBarangay = (id: string) => {
@@ -223,7 +233,7 @@ const AdminRouteManager: React.FC = () => {
     });
   };
 
-  // A truck and a barangay may appear in only one schedule for a day.
+  // A truck and a collection street may appear in only one schedule for a day.
   // The route currently being edited is excluded so its own selections remain valid.
   const scheduledRoutesForFormDay = useMemo(
     () => routes.filter(
@@ -241,34 +251,36 @@ const AdminRouteManager: React.FC = () => {
     return trucks.filter((truck) => !scheduledTruckIds.has(truck.id));
   }, [trucks, scheduledRoutesForFormDay]);
 
-  const availableBarangays = useMemo(() => {
-    const scheduledBarangayIds = new Set(
+  const selectableStreets = useMemo(() => {
+    const scheduledStreetIds = new Set(
       scheduledRoutesForFormDay.flatMap((route) =>
-        route.stops.map((stop) => stop.barangayId),
+        route.stops
+          .map((stop) => stop.streetId)
+          .filter((id): id is string => Boolean(id)),
       ),
     );
 
-    return barangays.filter(
-      (b) =>
-        !form.barangays.find((x) => x.id === b.id) &&
-        !scheduledBarangayIds.has(b.id) &&
-        b.name.toLowerCase().includes(barangaySearch.toLowerCase())
+    return availableStreets.filter(
+      (street) =>
+        !form.barangays.some((stop) => stop.id === street.id) &&
+        !scheduledStreetIds.has(street.id),
     );
-  }, [barangays, form.barangays, barangaySearch, scheduledRoutesForFormDay]);
+  }, [availableStreets, form.barangays, scheduledRoutesForFormDay]);
 
-  // Changing the day can make the current truck unavailable. Clear it rather
-  // than silently allowing an invalid assignment to be submitted.
+  const streetsQuery = useAdminQuery("barangays", ["route-streets", form.selectedBarangayId], () => fetchBarangayStreets(form.selectedBarangayId), { enabled: isEditorOpen && !!form.selectedBarangayId });
   useEffect(() => {
-    if (!isEditorOpen || !form.truckId) return;
-    if (availableTrucks.some((truck) => truck.id === form.truckId)) return;
-
-    setForm((previous) => ({ ...previous, truckId: "", driverId: "" }));
-  }, [isEditorOpen, form.truckId, availableTrucks, setForm]);
+    setAvailableStreets(isEditorOpen ? streetsQuery.data?.streets ?? [] : []);
+    setIsCollectionAvailable(isEditorOpen && (streetsQuery.data?.collection_service_available ?? false));
+    setIsLoadingStreets(streetsQuery.isLoading);
+  }, [isEditorOpen, streetsQuery.data, streetsQuery.isLoading]);
 
   // ── CRUD handlers ──
   const handleSave = async () => {
     if (!form.truckId || form.barangays.length === 0) {
       throw new Error("Complete the required route details before saving.");
+    }
+    if (!availableTrucks.some((truck) => truck.id === form.truckId)) {
+      throw new Error("This truck is no longer available for the selected day. Please select another truck.");
     }
     if (isCreating) {
       const result = await createNew(form);
@@ -343,7 +355,11 @@ const AdminRouteManager: React.FC = () => {
   const totalRoutes = routes.length;
   const activeRoutes = routes.filter((r) => r.active).length;
   const coveredBarangays = useMemo(() => {
-    return new Set(routes.filter((r) => r.active).flatMap((r) => r.barangays)).size;
+    return new Set(
+      routes
+        .filter((route) => route.active)
+        .flatMap((route) => route.stops.map((stop) => stop.barangayId)),
+    ).size;
   }, [routes]);
   const totalBarangays = barangays.length || 0;
 
@@ -485,7 +501,7 @@ const AdminRouteManager: React.FC = () => {
           onEdit={startEdit}
           onDuplicate={handleOpenDuplicate}
           onToggleActive={setStatusTarget}
-          onDelete={handleDelete}
+          onDelete={setDeleteTarget}
           isTogglingId={togglingRouteId}
           isDeletingId={deletingRouteId}
         />
@@ -498,7 +514,7 @@ const AdminRouteManager: React.FC = () => {
           onEdit={startEdit}
           onDuplicate={handleOpenDuplicate}
           onToggleActive={setStatusTarget}
-          onDelete={handleDelete}
+          onDelete={setDeleteTarget}
           isTogglingId={togglingRouteId}
           isDeletingId={deletingRouteId}
         />
@@ -518,10 +534,11 @@ const AdminRouteManager: React.FC = () => {
         isLoadingTrucks={isLoadingTrucks}
         isLoadingDrivers={isLoadingDrivers}
         isLoadingBarangays={isLoadingBarangays}
-        barangaySearch={barangaySearch}
-        setBarangaySearch={setBarangaySearch}
-        availableBarangays={availableBarangays}
         barangays={barangays}
+        availableStopPoints={selectableStreets}
+        isLoadingStopPoints={isLoadingStreets}
+        isCollectionAvailable={isCollectionAvailable}
+        onSelectBarangay={(selectedBarangayId) => setForm((previous) => ({ ...previous, selectedBarangayId }))}
         onAddBarangay={addBarangay}
         onRemoveBarangay={removeBarangay}
         onMoveBarangay={moveBarangay}
@@ -555,32 +572,36 @@ const AdminRouteManager: React.FC = () => {
         onDuplicate={handleDuplicate}
       />
 
-      <AlertDialog open={Boolean(statusTarget)} onOpenChange={(open) => !open && setStatusTarget(null)}>
-        <AlertDialogContent className="rounded-2xl border-border/80 sm:max-w-md">
-          <AlertDialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-1">
-              {statusTarget?.active ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
-            </div>
-            <AlertDialogTitle className="text-base font-bold font-display">
-              {statusTarget?.active ? "Pause this collection route?" : "Enable this collection route?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs leading-relaxed">
-              {statusTarget?.active
-                ? "Pausing removes the route from active operations. Its saved truck, collector, schedule, and stop order will remain available for later use."
-                : "Enabling returns this route to active operations. GreenWay will check for same-day barangay conflicts before applying the change."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl h-9 text-xs">Keep current status</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => void confirmStatusChange()}
-              className="rounded-xl h-9 text-xs font-bold"
-            >
-              {statusTarget?.active ? "Pause Route" : "Enable Route"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete collection route?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description="This removes the inactive route template. Completed daily route history will be preserved in the system."
+        confirmLabel="Delete route"
+        confirmDisabled={!deleteTarget || deletingRouteId === deleteTarget.id}
+        closeOnConfirm
+        onConfirm={() => {
+          const target = deleteTarget;
+          setDeleteTarget(null);
+          if (target) void handleDelete(target);
+        }}
+      />
+
+      <ConfirmationDialog
+        open={Boolean(statusTarget)}
+        onOpenChange={(open) => !open && setStatusTarget(null)}
+        title={statusTarget?.active ? "Pause this collection route?" : "Enable this collection route?"}
+        icon={statusTarget?.active ? <PauseCircle /> : <PlayCircle />}
+        description={statusTarget?.active
+          ? "Pausing removes the route from active operations. Its saved truck, collector, schedule, and stop order will remain available for later use."
+          : "Enabling returns this route to active operations. GreenWay will check for same-day barangay conflicts before applying the change."}
+        cancelLabel="Keep current status"
+        confirmLabel={statusTarget?.active ? "Pause Route" : "Enable Route"}
+        onConfirm={() => void confirmStatusChange()}
+        closeOnConfirm
+      />
     </div>
   );
 };

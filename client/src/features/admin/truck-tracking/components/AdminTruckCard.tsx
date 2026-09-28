@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Truck,
   MapPin,
@@ -10,35 +9,16 @@ import {
   ChevronDown,
   ChevronUp,
   MessageSquare,
-  Send,
   Clock,
   CheckCircle2,
-  Loader2,
   AlertTriangle,
   Radio,
-  Settings2,
   Route as RouteIcon,
-  X,
 } from "lucide-react";
 import AnimatedList from "@/components/AnimatedList";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminTruck, TruckStatus } from "../types";
 import { cn } from "@/lib/utils";
-import { toast } from "@/lib/toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 /** Convert time strings like "6:05 AM", "7:45 PM", or "18:30" -> "6:05am" / "7:45pm" */
 const formatTime12h = (raw: string): string => {
@@ -68,72 +48,12 @@ const formatTime12h = (raw: string): string => {
   return raw;
 };
 
-const parseServerTimestamp = (timestamp: string): Date | null => {
-  const raw = String(timestamp || "").trim();
-  if (!raw) return null;
-
-  const mysqlMatch = raw.match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/,
-  );
-
-  if (mysqlMatch) {
-    const [, year, month, day, hour, minute, second, ms = "0"] = mysqlMatch;
-    const localDate = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-      Number(ms.padEnd(3, "0")),
-    );
-    const utcDate = new Date(
-      Date.UTC(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hour),
-        Number(minute),
-        Number(second),
-        Number(ms.padEnd(3, "0")),
-      ),
-    );
-
-    const now = Date.now();
-    return Math.abs(now - localDate.getTime()) <= Math.abs(now - utcDate.getTime())
-      ? localDate
-      : utcDate;
-  }
-
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-/** Format message timestamp to relative or short time */
-const formatMessageTime = (timestamp: string): string => {
-  const d = parseServerTimestamp(timestamp);
-  if (!d) return timestamp;
-  const now = Date.now();
-  const diffMs = now - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
-
 interface AdminTruckCardProps {
   truck: AdminTruck;
+  unreadMessageCount: number;
   isSelected: boolean;
   onClick: () => void;
-  onStatusChange: (truckId: string, status: TruckStatus) => void;
-  onSendMessage: (truck: AdminTruck, message: string) => Promise<void>;
+  onRouteChange: (routeId: string) => void;
 }
 
 const statusConfig: Record<TruckStatus, { label: string; className: string }> = {
@@ -144,182 +64,21 @@ const statusConfig: Record<TruckStatus, { label: string; className: string }> = 
   offline: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
 };
 
-const MessageThread = ({
-  truck,
-  onSendMessage,
-}: {
-  truck: AdminTruck;
-  onSendMessage: (truck: AdminTruck, message: string) => Promise<void>;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const [messageText, setMessageText] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const sorted = [...truck.driverMessages].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-
-  useEffect(() => {
-    if (expanded && scrollRef.current) {
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
-    }
-  }, [expanded, sorted.length]);
-
-  const handleSend = async () => {
-    const trimmed = messageText.trim();
-    if (!trimmed) return;
-    if (!truck.driverUserId) {
-      toast.error("No driver assigned", {
-        description: "Assign a driver to this truck before sending a message.",
-      });
-      return;
-    }
-    try {
-      setIsSending(true);
-      await onSendMessage(truck, trimmed);
-      setMessageText("");
-    } catch {
-      toast.error("Message could not be sent", {
-        description: "Check the connection and try again.",
-      });
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  return (
-    <div className="border-t border-border/60" onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span className="flex items-center gap-1.5 font-semibold">
-          <MessageSquare className="w-3.5 h-3.5 text-primary" />
-          <span>Messages</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          {truck.driverMessages.length > 0 && (
-            <Badge
-              variant="outline"
-              className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20 font-semibold"
-            >
-              {truck.driverMessages.length}
-            </Badge>
-          )}
-          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
-        </span>
-      </button>
-
-      {expanded && (
-        <div className="px-4 pb-3 space-y-2.5">
-          <div
-            ref={scrollRef}
-            className="max-h-[168px] overflow-y-auto space-y-2 pr-1 scrollbar-thin"
-          >
-            {sorted.length === 0 ? (
-              <div className="min-h-16 rounded-xl border border-dashed border-border/70 bg-muted/15 flex items-center justify-center px-3 text-center">
-                <p className="text-[11px] text-muted-foreground">No messages yet. Send the driver a quick update.</p>
-              </div>
-            ) : (
-              sorted.map((msg) => {
-                const isAdmin = msg.sender === "admin";
-                return (
-                  <div
-                    key={msg.id}
-                    className={cn("flex", isAdmin ? "justify-end" : "justify-start")}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[84%] px-3 py-2 rounded-xl border text-xs shadow-2xs",
-                        isAdmin
-                          ? "bg-primary text-primary-foreground border-primary rounded-br-xs"
-                          : "bg-muted/70 text-foreground border-border/60 rounded-bl-xs"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "mb-1 flex items-center justify-between gap-2 text-[10px]",
-                          isAdmin
-                            ? "text-primary-foreground/80"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        <p className="font-semibold">
-                          {isAdmin ? "You" : msg.senderName || truck.driver || "Driver"}
-                        </p>
-                        <p className="tabular-nums whitespace-nowrap">
-                          {formatMessageTime(msg.timestamp)}
-                        </p>
-                      </div>
-                      <p className="leading-relaxed">{msg.text}</p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Quick 1-Click Dispatch Prompts */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            {[
-              "Report current location",
-              "Proceed to next stop",
-              "Return to MENRO Depot",
-            ].map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => setMessageText(prompt)}
-                className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors cursor-pointer"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-background/60 p-1 transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
-            <Input
-              className="h-7 min-w-0 flex-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0"
-              placeholder="Message driver..."
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void handleSend()}
-              disabled={isSending}
-            />
-            <Button
-              size="sm"
-              className="h-7 w-7 rounded-lg p-0 cursor-pointer shrink-0"
-              onClick={() => void handleSend()}
-              disabled={!messageText.trim() || isSending}
-            >
-              {isSending ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Send className="w-3 h-3" />
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+const MessageThread = ({ truck, unreadMessageCount }: { truck: AdminTruck; unreadMessageCount: number }) => <div className="border-t border-border/60 p-3" onClick={(event) => event.stopPropagation()}>
+  <Button type="button" variant="outline" size="sm" disabled={!truck.driverId} onClick={() => window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: { driverId: truck.driverId } }))} className={cn("gap-1.5", unreadMessageCount > 0 && "border-primary/40 bg-primary/5 text-foreground hover:bg-primary/10")}>
+    <MessageSquare className="size-4" />Messages
+    {unreadMessageCount > 0 && <span aria-label={`${unreadMessageCount} new collector message${unreadMessageCount === 1 ? "" : "s"}`} className="ml-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}
+  </Button>
+</div>;
 
 const AdminTruckCard = ({
   truck,
+  unreadMessageCount,
   isSelected,
   onClick,
-  onStatusChange,
-  onSendMessage,
+  onRouteChange,
 }: AdminTruckCardProps) => {
   const [routeExpanded, setRouteExpanded] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<TruckStatus | null>(null);
   const status = statusConfig[truck.status];
   const isNear = truck.barangaysAway !== null && truck.barangaysAway <= 3 && truck.status === "on-the-way";
   const progressPct = truck.totalBarangays > 0
@@ -386,41 +145,29 @@ const AdminTruckCard = ({
               >
                 {status.label}
               </Badge>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer transition-colors"
-                    title="Manual Status Override"
-                  >
-                    <Settings2 className="w-3.5 h-3.5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-2 rounded-xl shadow-lg border border-border" align="end">
-                  <p className="text-[10px] text-muted-foreground mb-1.5 font-medium px-1">Manual status override</p>
-                  <div className="space-y-0.5">
-                    {(["scheduled", "on-the-way", "paused", "offline"] as TruckStatus[]).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={cn(
-                          "w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer",
-                          truck.status === s
-                            ? "bg-primary/10 text-primary font-bold"
-                            : "hover:bg-muted text-foreground"
-                        )}
-                        disabled={truck.status === s}
-                        onClick={() => setPendingStatus(s)}
-                      >
-                        {statusConfig[s].label}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+
             </div>
           </div>
+
+          {truck.routeChoices.length > 1 && truck.routeId && (
+            <div className="mt-3" onClick={(event) => event.stopPropagation()}>
+              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Showing route
+              </span>
+              <Select value={truck.routeId} onValueChange={onRouteChange}>
+                <SelectTrigger className="h-8 w-full rounded-lg text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {truck.routeChoices.map((route) => (
+                    <SelectItem key={route.id} value={route.id}>
+                      {route.name} · {route.status.toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {!isSelected && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2">
@@ -550,7 +297,9 @@ const AdminTruckCard = ({
           )}
         </div>
 
-        {isSelected && <MessageThread truck={truck} onSendMessage={onSendMessage} />}
+        {isSelected && truck.routeId && truck.driverUserId && (
+          <MessageThread key={truck.driverId} truck={truck} unreadMessageCount={unreadMessageCount} />
+        )}
 
         {/* Route Details Accordion */}
         {isSelected && <div className="border-t border-border/60">
@@ -663,63 +412,6 @@ const AdminTruckCard = ({
           )}
         </div>}
       </CardContent>
-      <AlertDialog
-        open={pendingStatus !== null}
-        onOpenChange={(open) => !open && setPendingStatus(null)}
-      >
-        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <AlertDialogTitle className="text-base font-semibold text-foreground font-display">
-                Confirm Status Override
-              </AlertDialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPendingStatus(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-              aria-label="Close dialog"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="px-5 py-4">
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Change <strong className="text-foreground font-semibold">{truck.name}</strong> from{" "}
-              <strong className="text-foreground font-semibold uppercase">{status.label}</strong> to{" "}
-              <strong className="text-foreground font-semibold uppercase">
-                {pendingStatus ? statusConfig[pendingStatus].label : "the selected status"}
-              </strong>
-              ? This immediately updates the resident-facing tracking view.
-            </AlertDialogDescription>
-          </div>
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border/60 bg-muted/20">
-            <AlertDialogCancel
-              onClick={() => setPendingStatus(null)}
-              className="h-9 px-4 rounded-xl text-xs font-semibold hover:bg-muted cursor-pointer"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className={cn(
-                "h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer shadow-xs",
-                pendingStatus === "offline"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-              onClick={() => {
-                if (pendingStatus) onStatusChange(truck.id, pendingStatus);
-                setPendingStatus(null);
-              }}
-            >
-              Confirm Override
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 };

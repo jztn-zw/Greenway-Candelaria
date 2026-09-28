@@ -18,7 +18,7 @@ import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
 import {
-  getCollectorNotificationDestination,
+  openCollectorNotification,
   getCollectorNotificationTitle,
   getCollectorNotificationVisual,
 } from "@/features/collector/notifications/notificationRouting";
@@ -36,19 +36,21 @@ const getCollectorPageTitle = (pathname: string) => {
   return "Driver Portal";
 };
 
+import CollectorNotificationModal from "@/features/collector/notifications/CollectorNotificationModal";
+
 const CollectorTopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toggleSidebar } = useSidebar();
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const [selectedNotification, setSelectedNotification] = useState<NotificationRow | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { recentNotifications, unreadCount, markAsRead, markAllAsRead, isMutating, error, fetchNotifications } = useNotifications();
   const pageTitle = getCollectorPageTitle(location.pathname);
 
   const [searchParams] = useSearchParams();
   const routeParam = searchParams.get("route");
-  const nameParam  = searchParams.get("name");
   const isNestedRoute = location.pathname.startsWith("/collector/route-history") && Boolean(routeParam);
 
   const toggleTheme = () => {
@@ -64,22 +66,15 @@ const CollectorTopBar = () => {
     }
     setBellOpen(false);
 
-    if (n.ref_module === "driver-messages") {
-      window.dispatchEvent(new Event("collector:open-messages"));
-      return;
-    }
+    if (openCollectorNotification(n, navigate)) return;
 
-    const destination = getCollectorNotificationDestination(n);
-    if (destination) {
-      navigate(destination);
-    } else {
-      navigate("/collector/notifications");
-    }
+    setSelectedNotification(n);
   };
 
-  const recentNotifications = notifications;
+
 
   return (
+    <>
     <header className="h-14 border-b border-border/80 bg-background/95 backdrop-blur-md flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -103,7 +98,7 @@ const CollectorTopBar = () => {
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className="font-bold text-foreground truncate tracking-tight">
-                {nameParam ?? "Route Detail"}
+                Route Detail
               </span>
             </>
           ) : (
@@ -165,7 +160,7 @@ const CollectorTopBar = () => {
               {unreadCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => markAllAsRead()}
+                  disabled={isMutating} onClick={() => void markAllAsRead()}
                   className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1.5 cursor-pointer transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
@@ -177,7 +172,7 @@ const CollectorTopBar = () => {
             {/* Notifications Scroll Area */}
             <div className="max-h-[380px] overflow-y-auto overscroll-contain scrollbar-thin">
               <div className="p-2 space-y-1">
-                {recentNotifications.length === 0 ? (
+                {error ? <div role="alert" className="p-3 text-xs"><p>{error}</p><button type="button" onClick={() => void fetchNotifications()}>Retry</button></div> : recentNotifications.length === 0 ? (
                   <div className="py-10 px-4 text-center">
                     <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center mx-auto mb-2.5 text-muted-foreground/60">
                       <Bell className="w-4 h-4" />
@@ -194,7 +189,7 @@ const CollectorTopBar = () => {
                       <button
                         key={n.id}
                         type="button"
-                        onClick={() => handleNotificationClick(n)}
+                        disabled={isMutating} onClick={() => handleNotificationClick(n)}
                         className={`w-full p-2.5 sm:p-3 rounded-xl text-left flex items-start gap-3 transition-all duration-150 cursor-pointer group relative border ${
                           isUnread
                             ? "bg-primary/[0.04] border-primary/15 hover:bg-primary/[0.08]"
@@ -252,6 +247,8 @@ const CollectorTopBar = () => {
         </Popover>
       </div>
     </header>
+    <CollectorNotificationModal notification={selectedNotification} open={Boolean(selectedNotification)} onOpenChange={(open) => { if (!open) setSelectedNotification(null); }} />
+    </>
   );
 };
 

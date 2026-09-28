@@ -1,4 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { FilterTabCount } from "@/components/common/FilterTabCount";
+import { collectorKey, collectorQueryDefaults, useCollectorQuery } from "@/lib/collectorQuery";
+import useAuthStore from "@/store/authStore";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   History,
@@ -7,34 +11,33 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Users,
   Truck,
-  MessageSquare,
   Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BackButton } from "@/components/common";
 import {
-  fetchDriverMyHistory,
+  fetchCollectorHistoryPage,
+  fetchCollectorHistoryRun,
   RouteHistoryItem,
 } from "@/services/driverManagerService";
-import { toast } from "@/lib/toast";
 
-export type StatusFilter = "all" | "completed" | "partial";
-export type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable";
+type StatusFilter = "all" | "completed" | "partial" | "no-collection";
+type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable" | "General";
 
 const statusTabs: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All routes" },
   { key: "completed", label: "Completed" },
   { key: "partial", label: "Partial" },
+  { key: "no-collection", label: "No collection" },
 ];
 
 const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
   { key: "all", label: "All waste types" },
   { key: "Biodegradable", label: "Biodegradable" },
   { key: "Non-Biodegradable", label: "Non-biodegradable" },
+  { key: "General", label: "General" },
 ];
 
 const RouteHistorySkeleton = () => (
@@ -180,57 +183,41 @@ const MiniRing = ({ pct }: { pct: number }) => {
   );
 };
 
+const vehicleLabel = (route: RouteHistoryItem) => {
+  const name = route.truckName || "Historical vehicle unavailable";
+  return route.truckPlate && route.truckPlate !== "N/A" ? `${name} (${route.truckPlate})` : name;
+};
+
 /* ────── Main Component ────── */
 const CollectorRouteHistory = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const routeParam = searchParams.get("route");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [wasteFilter, setWasteFilter] = useState<WasteTypeFilter>("all");
-  const [selectedRoute, setSelectedRoute] = useState<RouteHistoryItem | null>(null);
-  const [historyList, setHistoryList] = useState<RouteHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadHistory = async () => {
-      try {
-        setIsLoading(true);
-        const data = await fetchDriverMyHistory(50);
-        if (isMounted) {
-          setHistoryList(data);
-        }
-      } catch {
-        toast.error("Failed to load route history");
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-    loadHistory();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Sync URL param → selectedRoute (handles deep links & topbar back nav)
-  useEffect(() => {
-    if (!routeParam) {
-      if (selectedRoute) setSelectedRoute(null);
-      return;
-    }
-    if (selectedRoute?.id === routeParam) return;
-    const match = historyList.find((r) => r.id === routeParam);
-    if (match) setSelectedRoute(match);
-  }, [routeParam, historyList]);
-
-  const filtered = useMemo(() => {
-    return historyList.filter((e) => {
-      if (statusFilter !== "all" && e.status !== statusFilter) return false;
-      if (wasteFilter !== "all" && e.wasteType !== wasteFilter) return false;
-      return true;
-    });
-  }, [historyList, statusFilter, wasteFilter]);
-
-  if (isLoading) return <RouteHistorySkeleton />;
+  const user = useAuthStore((state) => state.user);
+  const history = useInfiniteQuery({
+    queryKey: collectorKey(user?.id, "history", "list", statusFilter, wasteFilter),
+    queryFn: ({ pageParam }) => fetchCollectorHistoryPage({ status: statusFilter, waste_type: wasteFilter, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    ...collectorQueryDefaults, enabled: user?.role === "DRIVER" && !routeParam,
+  });
+  const detail = useCollectorQuery("history", ["detail", routeParam], () => fetchCollectorHistoryRun(routeParam!), { enabled: Boolean(routeParam) });
+  const selectedRoute = routeParam ? detail.data ?? null : null;
+  const historyList = [...new Map((history.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
+  const isLoading = routeParam ? detail.isLoading : history.isLoading || history.isFetchingNextPage;
+  const failure = routeParam ? detail.error : history.error;
+  const error = failure ? "Route history could not be loaded. Please try again." : null;
+  const notFound = Boolean(routeParam && (failure as { response?: { status?: number } } | null)?.response?.status === 404);
+  const nextCursor = history.hasNextPage;
+  const total = history.data?.pages[0]?.total ?? 0;
+  const retry = () => { if (routeParam) void detail.refetch(); else void history.refetch(); };
+  const changeStatus = (status: StatusFilter) => setStatusFilter(status);
+  const changeWaste = (waste: WasteTypeFilter) => setWasteFilter(waste);
+  const filtered = historyList;
+  if (isLoading && (routeParam || historyList.length === 0)) return <RouteHistorySkeleton />;
+  if (routeParam && selectedRoute?.id !== routeParam && !error && !notFound) return <RouteHistorySkeleton />;
+  if (routeParam && selectedRoute?.id !== routeParam) return <div role="alert" className="rounded-xl border border-border p-5"><h2 className="font-bold">{notFound ? "Route not found" : "Could not load route history"}</h2><p>{notFound ? "This route is unavailable or does not belong to your account." : error}</p>{!notFound && <Button onClick={() => retry()}>Retry</Button>}</div>;
 
   /* ────── Route Detail View ────── */
   if (selectedRoute) {
@@ -240,14 +227,6 @@ const CollectorRouteHistory = () => {
 
     return (
       <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
-        <BackButton
-          label="Back to route history"
-          onClick={() => {
-            setSearchParams({});
-            setSelectedRoute(null);
-          }}
-        />
-
         {/* Route Run Header Card */}
         <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
@@ -265,16 +244,10 @@ const CollectorRouteHistory = () => {
                 {getWasteBadge(r.wasteType)}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                {r.dayOfWeek}, {r.date} · Vehicle: {r.truckName ? `${r.truckName} (${r.truckPlate})` : r.truckPlate}
+                {r.dayOfWeek}, {r.date} · Vehicle: {vehicleLabel(r)}
               </p>
             </div>
 
-            {r.timeOnRoute && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/40 border border-border/60 text-xs font-semibold text-foreground shrink-0 self-start sm:self-auto">
-                <Clock className="w-3.5 h-3.5 text-primary" />
-                <span className="tabular-nums font-mono">Shift duration: {r.timeOnRoute}</span>
-              </div>
-            )}
           </div>
 
           {/* 4 Summary Stat Tiles */}
@@ -314,10 +287,10 @@ const CollectorRouteHistory = () => {
 
             <div className="bg-muted/30 border border-border/60 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between">
               <span className="text-xs font-medium text-muted-foreground">
-                Shift duration
+                Active collection time
               </span>
               <p className="text-lg sm:text-xl font-bold text-foreground font-display tabular-nums mt-1 font-mono">
-                {r.timeOnRoute || "N/A"}
+                {r.timeOnRoute ?? "Unavailable"}
               </p>
             </div>
           </div>
@@ -348,7 +321,7 @@ const CollectorRouteHistory = () => {
                 const isCleared = stop.status === "done";
                 return (
                   <div
-                    key={stop.stopNumber}
+                    key={stop.id ?? stop.stopNumber}
                     className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-xl border transition-all ${
                       isSkipped
                         ? "border-amber-500/25 bg-amber-500/5"
@@ -391,18 +364,11 @@ const CollectorRouteHistory = () => {
 
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap font-medium">
                         {stop.time && (
-                          <span className="inline-flex items-center gap-1 font-mono">
+                          <span title="Active collection time" className="inline-flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3" /> {stop.time}
                           </span>
                         )}
-                        {stop.residentsNotified && stop.residentsNotified > 0 && (
-                          <>
-                            <span className="text-border">•</span>
-                            <span className="inline-flex items-center gap-1">
-                              <Users className="w-3 h-3" /> {stop.residentsNotified} residents notified
-                            </span>
-                          </>
-                        )}
+
                       </div>
 
                       {stop.skipReason && (
@@ -421,38 +387,7 @@ const CollectorRouteHistory = () => {
           )}
         </div>
 
-        {/* Dispatch Communications logged during this route */}
-        {r.adminMessages && r.adminMessages.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
-                  Dispatch communications
-                </h3>
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground tabular-nums font-mono px-2 py-0.5 rounded-lg bg-muted/60 border border-border/60">
-                {r.adminMessages.length} message{r.adminMessages.length > 1 ? "s" : ""}
-              </span>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-card divide-y divide-border/60 overflow-hidden shadow-xs">
-              {r.adminMessages.map((msg, idx) => (
-                <div key={idx} className="p-3.5 sm:p-4 flex items-start justify-between gap-3">
-                  <div className="space-y-0.5 min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-foreground">
-                      {msg.message}
-                    </p>
-                  </div>
-                  {msg.time && (
-                    <span className="text-[11px] font-mono text-muted-foreground shrink-0 mt-0.5">
-                      {msg.time}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
       </div>
     );
   }
@@ -482,20 +417,21 @@ const CollectorRouteHistory = () => {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setStatusFilter(tab.key)}
+                aria-pressed={isActive} onClick={() => changeStatus(tab.key)}
                 className={`group h-9 px-3.5 rounded-xl border text-xs whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0 select-none cursor-pointer active:scale-95 ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
-                    : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground font-semibold"
+                    : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
                 }`}
               >
                 <span>{tab.label}</span>
+                {isActive && history.isSuccess && <FilterTabCount count={total} />}
               </button>
             );
           })}
         </div>
 
-        <Select value={wasteFilter} onValueChange={(value) => setWasteFilter(value as WasteTypeFilter)}>
+        <Select value={wasteFilter} onValueChange={(value) => changeWaste(value as WasteTypeFilter)}>
           <SelectTrigger className="h-9 w-full sm:w-[190px] rounded-xl border-border/80 bg-muted/30 text-xs font-semibold">
             <SelectValue placeholder="All waste types" />
           </SelectTrigger>
@@ -509,8 +445,9 @@ const CollectorRouteHistory = () => {
         </Select>
       </div>
 
+      {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button disabled={isLoading} onClick={() => retry()}>Retry</Button></div>}
       {/* ── Route Logs List ── */}
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs">
           <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
             <History className="w-6 h-6 text-muted-foreground" />
@@ -526,8 +463,8 @@ const CollectorRouteHistory = () => {
               type="button"
               variant="outline"
               onClick={() => {
-                setStatusFilter("all");
-                setWasteFilter("all");
+                changeStatus("all");
+                changeWaste("all");
               }}
               className="mt-4 h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer"
             >
@@ -541,13 +478,13 @@ const CollectorRouteHistory = () => {
             const badge = getStatusBadge(item.status);
             const StatusIcon = badge.icon;
             return (
-              <div
+              <button
+                type="button"
                 key={item.id}
                 onClick={() => {
-                  setSearchParams({ route: item.id, name: item.routeName });
-                  setSelectedRoute(item);
+                  setSearchParams({ route: item.id });
                 }}
-                className="group flex items-center justify-between gap-3 sm:gap-4 p-4 sm:p-4.5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer shadow-2xs active:scale-[0.995]"
+                className="group w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary flex items-center justify-between gap-3 sm:gap-4 p-4 sm:p-4.5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer shadow-2xs active:scale-[0.995]"
               >
                 <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
                   <MiniRing pct={item.completionPct} />
@@ -574,7 +511,7 @@ const CollectorRouteHistory = () => {
                       <span className="text-border">•</span>
                       <span className="inline-flex items-center gap-1 font-mono text-foreground/80">
                         <Truck className="w-3.5 h-3.5 text-muted-foreground/80" />
-                        {item.truckName ? `${item.truckName} (${item.truckPlate})` : item.truckPlate}
+                        {vehicleLabel(item)}
                       </span>
                       <span className="text-border">•</span>
                       <span className="inline-flex items-center gap-1 font-mono">
@@ -584,7 +521,7 @@ const CollectorRouteHistory = () => {
                       {item.timeOnRoute && (
                         <>
                           <span className="text-border">•</span>
-                          <span className="inline-flex items-center gap-1 font-mono">
+                          <span title="Active collection time" className="inline-flex items-center gap-1 font-mono">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
                             {item.timeOnRoute}
                           </span>
@@ -597,11 +534,12 @@ const CollectorRouteHistory = () => {
                 <div className="w-8 h-8 rounded-xl bg-muted/40 group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center transition-all shrink-0">
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform" />
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       )}
+      {nextCursor && <Button variant="outline" disabled={isLoading} onClick={() => void history.fetchNextPage()}>{isLoading ? "Loading…" : `Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
     </div>
   );
 };

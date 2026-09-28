@@ -71,12 +71,12 @@ export function FilterPillTabs<T extends string = string>({
               "group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 select-none",
               isActive
                 ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25"
-                : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
             <span>{tab.label}</span>
-            {hasCount && (
+            {isActive && hasCount && (
               <span
                 className={cn(
                   "inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] tabular-nums transition-colors",

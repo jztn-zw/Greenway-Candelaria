@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { FormDialogHeader } from "@/components/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
+import { useResidentQuery } from "@/lib/residentQuery";
+import React, { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   CalendarDays,
@@ -24,11 +24,10 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
-  X,
   X as CloseIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { CalendarGrid } from "@/features/admin/schedule/CalendarGrid";
+import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { ResidentScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   CalendarEvent,
@@ -38,6 +37,7 @@ import {
 } from "@/services/scheduleService";
 import { SegmentedControl } from "@/components/common";
 import useAuthStore from "@/store/authStore";
+import { formatDateOnly, getManilaNow } from "@/utils/date";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -99,106 +99,55 @@ const getEventBadgeInfo = (event: CalendarEvent) => {
 };
 
 const formatEventDisplayDate = (event: CalendarEvent) => {
-  try {
-    const rawDate = event.event_date.split("T")[0];
-    const [y, m, d] = rawDate.split("-").map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const formatted = dateObj.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const rawDate = event.event_date.split("T")[0];
+  const formatted = formatDateOnly(rawDate, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }, event.event_date);
 
-    if (event.start_time) {
-      return `${formatted}, ${formatTime12(event.start_time)}`;
-    }
-    return formatted;
-  } catch {
-    return event.event_date;
-  }
+  return event.start_time
+    ? `${formatted}, ${formatTime12(event.start_time)}`
+    : formatted;
 };
 
-// Candelaria standard municipal collection rules by day of week
-const defaultWasteScheduleByDay: Record<number, {
-  dayName: string;
-  wasteType: "BIODEGRADABLE" | "NON_BIODEGRADABLE";
+const wasteGuidance: Record<NonNullable<CollectionScheduleDay["waste_type"]>, {
   title: string;
   badgeClass: string;
-  timeWindow: string;
   accepted: string[];
   prohibited: string[];
   tips: string;
 }> = {
-  0: {
-    dayName: "Sunday",
-    wasteType: "BIODEGRADABLE",
+  BIODEGRADABLE: {
     title: "Biodegradable",
     badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
     accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
     prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
     tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
   },
-  1: {
-    dayName: "Monday",
-    wasteType: "BIODEGRADABLE",
-    title: "Biodegradable",
-    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
-    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
-    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
-    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
-  },
-  2: {
-    dayName: "Tuesday",
-    wasteType: "NON_BIODEGRADABLE",
+  NON_BIODEGRADABLE: {
     title: "Non-Biodegradable",
     badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
     accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
     prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
     tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
   },
-  3: {
-    dayName: "Wednesday",
-    wasteType: "BIODEGRADABLE",
-    title: "Biodegradable",
-    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
-    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
-    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
-    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
-  },
-  4: {
-    dayName: "Thursday",
-    wasteType: "NON_BIODEGRADABLE",
-    title: "Non-Biodegradable",
-    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
-    accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
-    prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
-    tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
-  },
-  5: {
-    dayName: "Friday",
-    wasteType: "BIODEGRADABLE",
-    title: "Biodegradable",
-    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
-    accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
-    prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
-    tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
-  },
-  6: {
-    dayName: "Saturday",
-    wasteType: "NON_BIODEGRADABLE",
-    title: "Non-Biodegradable",
-    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-    timeWindow: "6:00 AM – 10:00 AM",
-    accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
-    prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
-    tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
-  },
+};
+
+const generalCollectionGuidance = {
+  title: "Waste collection",
+  badgeClass: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25",
+  accepted: [] as string[],
+  prohibited: [] as string[],
+  tips: "Follow your barangay's waste segregation guidance.",
+};
+
+const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const formatScheduleWindow = (startTime?: string | null, endTime?: string | null) => {
+  const start = formatTime12(startTime);
+  const end = formatTime12(endTime);
+  return [start, end].filter(Boolean).join(" – ") || "Time not set";
 };
 
 const dayNameToIndex: Record<string, number> = {
@@ -218,48 +167,28 @@ const ResidentSchedule = () => {
   const user = useAuthStore((s) => s.user);
   const barangayName = user?.barangay_name || "Candelaria";
 
-  const today = new Date();
-  const [isLoading, setIsLoading] = useState(true);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [collectionRules, setCollectionRules] = useState<CollectionScheduleDay[]>([]);
+  const today = getManilaNow();
   const [activeTab, setActiveTab] = useState<ViewTab>("CALENDAR");
-  const [expandedWeeklyDay, setExpandedWeeklyDay] = useState(today.getDay());
+  const [expandedWeeklyDay, setExpandedWeeklyDay] = useState(today.weekdayIndex);
   const [selectedEventModal, setSelectedEventModal] = useState<CalendarEvent | null>(null);
 
-  const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [currentDate, setCurrentDate] = useState(() => new Date(today.year, today.month - 1, 1));
   const [selectedDateStr, setSelectedDateStr] = useState(() =>
-    toDateString(today.getFullYear(), today.getMonth(), today.getDate()),
+    today.dateKey,
   );
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = today.dateKey;
 
-  useEffect(() => {
-    let isMounted = true;
-    setIsLoading(true);
-
-    Promise.all([
-      fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }),
-      fetchCollectionSchedule().catch(() => []),
-    ])
-      .then(([evts, rules]) => {
-        if (isMounted) {
-          setEvents(evts || []);
-          if (Array.isArray(rules) && rules.length > 0) {
-            setCollectionRules(rules);
-          }
-        }
-      })
-      .catch((error) => console.error("Failed to load resident calendar events", error))
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [year, month]);
+  const calendarQuery = useResidentQuery("schedule", ["calendar", year, month],
+    () => fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }));
+  const scheduleQuery = useResidentQuery("schedule", ["collection"], fetchCollectionSchedule);
+  const events = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
+  const collectionRules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
+  const isLoading = calendarQuery.isLoading || scheduleQuery.isLoading;
+  const calendarError = calendarQuery.isError;
+  const scheduleError = scheduleQuery.isError;
 
   // Selected date events
   const selectedEvents = useMemo(
@@ -278,34 +207,29 @@ const ResidentSchedule = () => {
     [events],
   );
 
-  const selectedDate = useMemo(() => new Date(`${selectedDateStr}T00:00:00`), [selectedDateStr]);
-  const selectedDayOfWeek = selectedDate.getDay();
+  const selectedDayOfWeek = useMemo(() => {
+    const [selectedYear, selectedMonth, selectedDay] = selectedDateStr.split("-").map(Number);
+    return new Date(Date.UTC(selectedYear, selectedMonth - 1, selectedDay)).getUTCDay();
+  }, [selectedDateStr]);
   const isSelectedToday = selectedDateStr === todayStr;
 
-  // Resolve collection rule for selected day (merge custom DB rule if present)
+  // Route Manager is the source of collection days for this resident's address.
   const selectedDayCollection = useMemo(() => {
-    const base = defaultWasteScheduleByDay[selectedDayOfWeek];
     const customRule = collectionRules.find(
       (r) => dayNameToIndex[r.day_of_week?.toUpperCase()] === selectedDayOfWeek,
     );
-
-    if (!customRule) return base;
-
-    const isBio = customRule.waste_type === "BIODEGRADABLE";
+    if (!customRule) return null;
+    const guidance = customRule.waste_type ? wasteGuidance[customRule.waste_type] : generalCollectionGuidance;
     return {
-      ...base,
+      ...guidance,
+      dayName: dayNames[selectedDayOfWeek],
       wasteType: customRule.waste_type,
-      title: isBio ? "Biodegradable" : "Non-Biodegradable",
-      badgeClass: isBio
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-      timeWindow: customRule.start_time
-        ? `${customRule.start_time.slice(0, 5)} ${customRule.end_time ? `– ${customRule.end_time.slice(0, 5)}` : "AM"}`
-        : base.timeWindow,
+      routeName: customRule.route_name,
+      timeWindow: formatScheduleWindow(customRule.start_time, customRule.end_time),
     };
   }, [selectedDayOfWeek, collectionRules]);
 
-  const isSelectedDayBio = selectedDayCollection.wasteType === "BIODEGRADABLE";
+  const isSelectedDayBio = selectedDayCollection?.wasteType === "BIODEGRADABLE";
 
   const changeMonth = (amount: number) => {
     const next = new Date(year, month + amount, 1);
@@ -314,30 +238,28 @@ const ResidentSchedule = () => {
   };
 
   const goToday = () => {
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCurrentDate(new Date(today.year, today.month - 1, 1));
     setSelectedDateStr(todayStr);
   };
 
   // Filtered weekly guide items
   const filteredWeeklyGuide = useMemo(() => {
-    const days = [1, 2, 3, 4, 5, 6, 0]; // Monday to Sunday
-    return days.map((dayIndex) => {
-      const schedule = defaultWasteScheduleByDay[dayIndex];
-      const customRule = collectionRules.find(
-        (r) => dayNameToIndex[r.day_of_week?.toUpperCase()] === dayIndex,
-      );
-      const isBio = customRule ? customRule.waste_type === "BIODEGRADABLE" : schedule.wasteType === "BIODEGRADABLE";
-
-      return {
-        ...schedule,
-        dayIndex,
-        isCustom: Boolean(customRule),
-        title: isBio ? "Biodegradable" : "Non-Biodegradable",
-        badgeClass: isBio
-          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
-          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-      };
-    });
+    return collectionRules
+      .map((rule) => {
+        const dayIndex = dayNameToIndex[rule.day_of_week?.toUpperCase()];
+        if (dayIndex === undefined) return null;
+        return {
+          ...(rule.waste_type ? wasteGuidance[rule.waste_type] : generalCollectionGuidance),
+          id: rule.id,
+          routeName: rule.route_name,
+          dayName: dayNames[dayIndex],
+          dayIndex,
+          wasteType: rule.waste_type,
+          timeWindow: formatScheduleWindow(rule.start_time, rule.end_time),
+        };
+      })
+      .filter((day): day is NonNullable<typeof day> => Boolean(day))
+      .sort((a, b) => ((a.dayIndex + 6) % 7) - ((b.dayIndex + 6) % 7));
   }, [collectionRules]);
 
   if (isLoading) return <ResidentScheduleSkeleton />;
@@ -374,6 +296,11 @@ const ResidentSchedule = () => {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
           {/* Main Interactive Calendar */}
           <div className="lg:col-span-2 space-y-4">
+            {calendarError && (
+              <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                Calendar announcements could not be loaded. Please try again later.
+              </p>
+            )}
             <CalendarGrid
               currentDate={currentDate}
               selectedDateStr={selectedDateStr}
@@ -421,7 +348,7 @@ const ResidentSchedule = () => {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <CardTitle className="font-display text-base font-bold text-foreground truncate">
-                      {selectedDate.toLocaleDateString("en-US", {
+                      {formatDateOnly(selectedDateStr, {
                         weekday: "long",
                         month: "short",
                         day: "numeric",
@@ -445,16 +372,19 @@ const ResidentSchedule = () => {
 
               <CardContent className="p-4 lg:p-5 space-y-4">
                 {/* 1. Regular Waste Collection Card for Selected Day */}
+                {selectedDayCollection ? (
                 <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                       <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> Regular Collection
                     </span>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs shrink-0 whitespace-nowrap ${isSelectedDayBio ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelectedDayBio ? "bg-emerald-500" : "bg-amber-500"}`} />
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs shrink-0 whitespace-nowrap ${selectedDayCollection.badgeClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelectedDayBio ? "bg-emerald-500" : selectedDayCollection.wasteType ? "bg-amber-500" : "bg-sky-500"}`} />
                       <span>{selectedDayCollection.title}</span>
                     </span>
                   </div>
+
+                  {selectedDayCollection.routeName && <p className="text-xs font-medium text-foreground">{selectedDayCollection.routeName}</p>}
 
                   <div className="flex items-center justify-between text-xs pt-0.5 whitespace-nowrap">
                     <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
@@ -467,7 +397,7 @@ const ResidentSchedule = () => {
                   </div>
 
                   {/* Accepted items quick list */}
-                  <div className="pt-2 border-t border-border/50 space-y-2">
+                  {selectedDayCollection.accepted.length > 0 && <div className="pt-2 border-t border-border/50 space-y-2">
                     <p className="text-[11px] font-medium text-foreground">Examples you can put out:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedDayCollection.accepted.map((item) => (
@@ -479,12 +409,19 @@ const ResidentSchedule = () => {
                         </span>
                       ))}
                     </div>
-                  </div>
+                  </div>}
 
                   <p className="text-[11px] text-muted-foreground/85 italic leading-relaxed pt-0.5">
                     Tip: {selectedDayCollection.tips}
                   </p>
                 </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center text-xs text-muted-foreground space-y-1">
+                    <CalendarDays className="mx-auto h-5 w-5 text-muted-foreground/60" />
+                    <p className="font-semibold text-foreground">No collection schedule</p>
+                    <p className="text-[11px]">No active collection route covers your address on this day.</p>
+                  </div>
+                )}
 
                 {/* 2. Official Announcement Events on this date */}
                 <div className="space-y-2.5">
@@ -498,15 +435,20 @@ const ResidentSchedule = () => {
                     <div className="rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center text-xs text-muted-foreground space-y-1">
                       <CalendarDays className="mx-auto h-5 w-5 text-muted-foreground/60" />
                       <p className="font-semibold text-foreground">No special events</p>
-                      <p className="text-[11px]">Regular municipal garbage collection proceeds as scheduled.</p>
+                      <p className="text-[11px]">
+                        {selectedDayCollection
+                          ? "Your scheduled collection route remains in effect."
+                          : "No collection or special event is published for this date."}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2.5">
                       {selectedEvents.map((evt) => (
-                        <article
+                        <button
+                          type="button"
                           key={evt.id}
                           onClick={() => setSelectedEventModal(evt)}
-                          className="group relative rounded-xl border border-border/80 bg-background p-3.5 shadow-2xs hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer space-y-2"
+                          className="group relative w-full rounded-xl border border-border/80 bg-background p-3.5 text-left shadow-2xs hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer space-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <div className="flex items-start gap-2 justify-between">
                             <div className="flex items-start gap-2 min-w-0">
@@ -544,7 +486,7 @@ const ResidentSchedule = () => {
                               {evt.description}
                             </p>
                           )}
-                        </article>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -588,15 +530,28 @@ const ResidentSchedule = () => {
       {activeTab === "WEEKLY_GUIDE" && (
         <div className="space-y-4">
           {/* 7-Day Cards Grid */}
+          {scheduleError ? (
+            <div role="alert" className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
+              <AlertTriangle className="mx-auto size-6 text-destructive" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Schedule unavailable</p>
+              <p className="mt-1 text-xs text-muted-foreground">The weekly collection schedule could not be loaded.</p>
+            </div>
+          ) : filteredWeeklyGuide.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 text-center">
+              <CalendarDays className="mx-auto size-6 text-muted-foreground/60" />
+              <p className="mt-2 text-sm font-semibold text-foreground">No weekly schedule published</p>
+              <p className="mt-1 text-xs text-muted-foreground">Collection days appear when an active route covers your address.</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredWeeklyGuide.map((day) => {
               const isExpanded = expandedWeeklyDay === day.dayIndex;
 
               return (
                 <Card
-                  key={day.dayName}
+                  key={day.id}
                   className={`rounded-2xl border bg-card p-3.5 shadow-2xs transition-all lg:p-5 lg:hover:shadow-md ${
-                    day.dayIndex === today.getDay() ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
+                    day.dayIndex === today.weekdayIndex ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
                   }`}
                 >
                   <button
@@ -608,13 +563,13 @@ const ResidentSchedule = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="text-sm font-bold font-display text-foreground">{day.dayName}</span>
-                        {day.dayIndex === today.getDay() && (
+                        {day.dayIndex === today.weekdayIndex && (
                           <span className="rounded-md border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Today</span>
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"}`}>
-                          <span className={`size-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${day.badgeClass}`}>
+                          <span className={`size-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : day.wasteType ? "bg-amber-500" : "bg-sky-500"}`} />
                           {day.title}
                         </span>
                         <ChevronDown className={`size-4 text-muted-foreground transition-transform md:hidden ${isExpanded ? "rotate-180" : ""}`} />
@@ -624,31 +579,33 @@ const ResidentSchedule = () => {
                       <Clock className="size-3.5 shrink-0" />
                       <span>Collection: <strong className="text-foreground">{day.timeWindow}</strong></span>
                     </div>
+                    {day.routeName && <p className="mt-1 text-xs text-muted-foreground">{day.routeName}</p>}
                   </button>
 
                   <div className={`${isExpanded ? "block" : "hidden"} space-y-3 border-t border-border/50 pt-3 lg:mt-3 lg:block`}>
-                    <div className="space-y-1.5 text-xs">
+                    {day.accepted.length > 0 && <div className="space-y-1.5 text-xs">
                       <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
                         <Check className="size-3.5 text-muted-foreground" /> Examples you can put out:
                       </p>
                       <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
                         {day.accepted.map((item) => <li key={item}>{item}</li>)}
                       </ul>
-                    </div>
-                    <div className="space-y-1.5 border-t border-border/50 pt-2 text-xs">
+                    </div>}
+                    {day.prohibited.length > 0 && <div className="space-y-1.5 border-t border-border/50 pt-2 text-xs">
                       <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
                         <CloseIcon className="size-3.5 text-muted-foreground" /> Items to avoid:
                       </p>
                       <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
                         {day.prohibited.map((item) => <li key={item}>{item}</li>)}
                       </ul>
-                    </div>
+                    </div>}
                     <div className="border-t border-border/50 pt-2.5 text-[11px] italic text-muted-foreground/90">Tip: {day.tips}</div>
                   </div>
                 </Card>
               );
             })}
           </div>
+          )}
 
           {/* Legal / Policy Notice Card */}
           <div className="flex items-start gap-3 rounded-2xl border border-border/80 bg-muted/20 p-3.5 text-xs text-muted-foreground lg:items-center lg:gap-3.5 lg:p-5">
@@ -674,42 +631,16 @@ const ResidentSchedule = () => {
           if (!open) setSelectedEventModal(null);
         }}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogContent className={modalStyles.content}>
           {selectedEventModal && (() => {
             const badgeInfo = getEventBadgeInfo(selectedEventModal);
             const displayDate = formatEventDisplayDate(selectedEventModal);
 
             return (
               <>
-                {/* Header */}
-                <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-10 h-10 rounded-xl ${badgeInfo.iconClass} border flex items-center justify-center shrink-0 shadow-2xs`}
-                    >
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">
-                        Announcement
-                      </DialogTitle>
-                      <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                        MENRO Candelaria Official Notice
-                      </DialogDescription>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEventModal(null)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
-                    title="Close"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
+                <FormDialogHeader title="Announcement" description="MENRO Candelaria Official Notice" icon={<Calendar />} onClose={() => setSelectedEventModal(null)} />
                 {/* Modal Body */}
-                <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
+                <div className={modalStyles.body}>
                   {/* Title, Category & Date Lockup (No container) */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -729,17 +660,17 @@ const ResidentSchedule = () => {
                   </div>
 
                   {/* Description container */}
-                  <div className="text-xs lg:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+                  <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">
                     {selectedEventModal.description || "No additional details or instructions provided."}
                   </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
+                <div className={modalStyles.footer}>
                   <Button
                     type="button"
                     onClick={() => setSelectedEventModal(null)}
-                    className="w-full lg:w-auto h-9 px-6 rounded-xl text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer"
+                    className={modalStyles.primaryButton}
                   >
                     Close
                   </Button>
@@ -754,4 +685,3 @@ const ResidentSchedule = () => {
 };
 
 export default ResidentSchedule;
-

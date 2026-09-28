@@ -1,32 +1,41 @@
+const { truckScope } = require("../tracking/trackingAccess");
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const auditService = require("../audit/audit.service");
 
-const getAll = async () => {
+// Resolve one current collector per truck, including databases with legacy
+// duplicate assignments. A derived table works on MySQL and TiDB; subqueries
+// inside JOIN conditions are not supported by every deployment database.
+const truckSelect = `SELECT
+  t.*,
+  assignment.driver_id,
+  u.full_name AS driver_name
+  FROM trucks t
+  LEFT JOIN (
+    SELECT d.truck_id, MIN(d.id) AS driver_id
+    FROM drivers d
+    JOIN users active_user ON active_user.id = d.user_id AND active_user.deleted_at IS NULL
+    WHERE d.truck_id IS NOT NULL
+    GROUP BY d.truck_id
+  ) assignment ON assignment.truck_id = t.id
+  LEFT JOIN drivers d ON d.id = assignment.driver_id
+  LEFT JOIN users u ON u.id = d.user_id`;
+
+const getAll = async (viewer = { role: "ADMIN" }) => {
+  const scope = truckScope(viewer);
+  const select = viewer.role === "ADMIN" ? truckSelect : "SELECT t.id, t.name, t.status FROM trucks t";
   const [trucks] = await pool.query(
-    `SELECT 
-       t.*,
-       d.id       AS driver_id,
-       u.full_name AS driver_name
-     FROM trucks t
-     LEFT JOIN drivers d ON d.truck_id = t.id
-     LEFT JOIN users u   ON u.id = d.user_id
-     ORDER BY t.created_at ASC`,
+    `${select} WHERE ${scope.sql} ORDER BY t.created_at ASC`, scope.params,
   );
   return trucks;
 };
 
-const getById = async (id) => {
+const getById = async (id, viewer = { role: "ADMIN" }) => {
+  const scope = truckScope(viewer);
+  const select = viewer.role === "ADMIN" ? truckSelect : "SELECT t.id, t.name, t.status FROM trucks t";
   const [rows] = await pool.query(
-    `SELECT 
-       t.*,
-       d.id        AS driver_id,
-       u.full_name AS driver_name
-     FROM trucks t
-     LEFT JOIN drivers d ON d.truck_id = t.id
-     LEFT JOIN users u   ON u.id = d.user_id
-     WHERE t.id = ?`,
-    [id],
+    `${select} WHERE t.id = ? AND ${scope.sql}`,
+    [id, ...scope.params],
   );
 
   if (rows.length === 0) {
@@ -41,7 +50,7 @@ const create = async ({
   plate_number,
   truck_model,
   availability_status = "ACTIVE",
-}) => {
+}, actorUserId, ipAddress = null) => {
   // Check duplicate plate
   const [existing] = await pool.query(
     "SELECT id FROM trucks WHERE plate_number = ?",
@@ -53,39 +62,56 @@ const create = async ({
 
   const id = generateId();
 
-  await pool.query(
-    `INSERT INTO trucks (id, name, plate_number, truck_model, availability_status)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, name, plate_number, truck_model, availability_status],
-  );
-
-  const created = await getById(id);
-
-  auditService.log({
-    user_id: "admin",
-    action: "CREATE_TRUCK",
-    module: "trucks",
-    record_id: id,
-    new_value: { name, plate_number, truck_model, availability_status },
-  }).catch(() => {});
-
-  return created;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      `INSERT INTO trucks (id, name, plate_number, truck_model, availability_status)
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, name, plate_number, truck_model, availability_status],
+    );
+    await auditService.logInTransaction(connection, {
+      user_id: actorUserId, action: "CREATE_TRUCK", module: "trucks",
+      record_id: id, ip_address: ipAddress,
+      new_value: { name, plate_number, truck_model, availability_status },
+    });
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    if (error.code === "ER_DUP_ENTRY") throw { statusCode: 409, message: "Plate number already exists" };
+    throw error;
+  } finally {
+    connection.release();
+  }
+  return getById(id);
 };
 
-const update = async (id, data, actorUserId = "admin") => {
-  const existing = await getById(id);
+const update = async (id, data, actorUserId, ipAddress = null) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.query("SELECT * FROM trucks WHERE id = ? FOR UPDATE", [id]);
+    if (!rows.length) throw { statusCode: 404, message: "Truck not found" };
+    const existing = rows[0];
+    if (data.status && data.status !== existing.status) {
+      throw { statusCode: 409, message: "Truck status is derived from collection runs and GPS. Use route controls to change collection state." };
+    }
+    if (data.availability_status && data.availability_status !== existing.availability_status) {
+      const [runs] = await connection.query("SELECT id FROM route_runs WHERE truck_id = ? AND (status IN ('ACTIVE','PAUSED') OR (status = 'SCHEDULED' AND run_date = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) LIMIT 1 FOR UPDATE", [id]);
+      if (runs.length) throw { statusCode: 409, message: "Route status is managed by its run. Finish or cancel the run before changing truck availability or status." };
+    }
 
   const fields = [];
   const params = [];
 
-  if (data.name) {
+  if (data.name && data.name !== existing.name) {
     fields.push("name = ?");
     params.push(data.name);
   }
 
-  if (data.plate_number) {
+  if (data.plate_number && data.plate_number !== existing.plate_number) {
     // Check duplicate plate excluding current truck
-    const [existingPlate] = await pool.query(
+    const [existingPlate] = await connection.query(
       "SELECT id FROM trucks WHERE plate_number = ? AND id != ?",
       [data.plate_number, id],
     );
@@ -96,61 +122,74 @@ const update = async (id, data, actorUserId = "admin") => {
     params.push(data.plate_number);
   }
 
-  if (data.status) {
+  if (data.status && data.status !== existing.status) {
     fields.push("status = ?");
     params.push(data.status);
   }
 
-  if (data.truck_model) {
+  if (data.truck_model && data.truck_model !== existing.truck_model) {
     fields.push("truck_model = ?");
     params.push(data.truck_model);
   }
 
-  if (data.availability_status) {
+  if (data.availability_status && data.availability_status !== existing.availability_status) {
     fields.push("availability_status = ?");
     params.push(data.availability_status);
   }
 
-  if (fields.length === 0) return getById(id);
+  if (fields.length === 0) {
+    await connection.commit();
+    return getById(id);
+  }
 
   params.push(id);
 
-  await pool.query(
+  await connection.query(
     `UPDATE trucks SET ${fields.join(", ")} WHERE id = ?`,
     params,
   );
 
-  const updated = await getById(id);
-
-  auditService.log({
-    user_id: actorUserId,
-    action: "UPDATE_TRUCK",
-    module: "trucks",
-    record_id: id,
-    old_value: { name: existing.name, plate_number: existing.plate_number, status: existing.status },
-    new_value: { name: updated.name, plate_number: updated.plate_number, status: updated.status },
-  }).catch(() => {});
-
-  return updated;
+  const [updatedRows] = await connection.query("SELECT * FROM trucks WHERE id = ?", [id]);
+  const updated = updatedRows[0];
+  const auditedFields = ["name", "plate_number", "status", "truck_model", "availability_status"];
+  await auditService.logInTransaction(connection, {
+    user_id: actorUserId, action: "UPDATE_TRUCK", module: "trucks",
+    record_id: id, ip_address: ipAddress,
+    old_value: Object.fromEntries(auditedFields.map((field) => [field, existing[field]])),
+    new_value: Object.fromEntries(auditedFields.map((field) => [field, updated[field]])),
+  });
+  await connection.commit();
+  return getById(id);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
 
-const remove = async (id) => {
+const remove = async (id, actorUserId, ipAddress = null) => {
   const existing = await getById(id);
 
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    const [routeRefs] = await connection.query(
-      "SELECT COUNT(*) AS total FROM routes WHERE truck_id = ?",
-      [id],
+    const [lockedTrucks] = await connection.query("SELECT id FROM trucks WHERE id = ? FOR UPDATE", [id]);
+    if (!lockedTrucks.length) throw { statusCode: 404, message: "Truck not found" };
+
+    const [[usage]] = await connection.query(
+      `SELECT
+         (SELECT COUNT(*) FROM routes WHERE truck_id = ?) AS routes,
+         (SELECT COUNT(*) FROM route_runs WHERE truck_id = ?) AS route_runs,
+         (SELECT COUNT(*) FROM tracking_logs WHERE truck_id = ?) AS tracking_logs`,
+      [id, id, id],
     );
-    const routeCount = Number(routeRefs?.[0]?.total || 0);
-    if (routeCount > 0) {
+    if (Number(usage.routes) + Number(usage.route_runs) + Number(usage.tracking_logs) > 0) {
       throw {
         statusCode: 409,
         message:
-          "Truck cannot be deleted because it is already used by route records. Remove/archive related routes first.",
+          "Truck has route or tracking history and cannot be deleted.",
       };
     }
 
@@ -158,18 +197,20 @@ const remove = async (id) => {
     await connection.query("UPDATE drivers SET truck_id = NULL WHERE truck_id = ?", [
       id,
     ]);
-    await connection.query("DELETE FROM tracking_logs WHERE truck_id = ?", [id]);
     await connection.query("DELETE FROM trucks WHERE id = ?", [id]);
-
-    await connection.commit();
-
-    auditService.log({
-      user_id: "admin",
+    await auditService.logInTransaction(connection, {
+      user_id: actorUserId,
       action: "DELETE_TRUCK",
       module: "trucks",
       record_id: id,
-      old_value: { name: existing.name, plate_number: existing.plate_number },
-    }).catch(() => {});
+      ip_address: ipAddress,
+      old_value: {
+        name: existing.name, plate_number: existing.plate_number,
+        availability_status: existing.availability_status,
+        driver: existing.driver_name || null,
+      },
+    });
+    await connection.commit();
 
     return { message: "Truck deleted successfully" };
   } catch (error) {

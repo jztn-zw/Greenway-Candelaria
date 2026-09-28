@@ -1,346 +1,318 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Camera, User, Mail, Phone, Lock, Shield, Bell, Calendar, LogOut,
-  Monitor, Smartphone, Laptop, ClipboardList, FileText, Megaphone,
-  CheckCircle2, AlertTriangle, Truck, Users, Route
-} from "lucide-react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { FormDialogHeader } from "@/components/FormDialog";
+import { formDialogStyles } from "@/components/formDialogStyles";
+import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AdminProfileSkeleton } from "@/components/PageLoadingSkeletons";
-import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import { useAdminAction, useAdminResource } from "@/lib/adminQuery";
+import { toast } from "@/lib/toast";
+import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
+import { formatManilaDateTime } from "@/utils/date";
+import { AlertCircle, AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Loader2, Lock, LogOut, Mail, Paintbrush, Phone, ShieldCheck, User } from "lucide-react";
+import { useEffect, useState, type ElementType, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
-/* ─── Mock Data ─── */
-const profileData = {
-  name: "Maria Santos",
-  username: "msantos",
-  email: "maria.santos@menro.gov.ph",
-  phone: "+63 912 876 5432",
-  role: "Administrator",
-  joinDate: "March 2024",
-  avatar: "MS",
-};
+const avatarStyles = [
+  { id: "forest", label: "Forest", className: "bg-gradient-to-br from-primary to-emerald-700" },
+  { id: "ocean", label: "Ocean", className: "bg-gradient-to-br from-sky-500 to-blue-700" },
+  { id: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-rose-600" },
+  { id: "violet", label: "Violet", className: "bg-gradient-to-br from-violet-500 to-fuchsia-700" },
+] as const;
+type AvatarStyle = (typeof avatarStyles)[number]["id"];
+type EditableField = "full_name" | "username" | "phone";
+const fieldLabels: Record<EditableField, string> = { full_name: "Full Name", username: "Username", phone: "Phone Number" };
+const errorMessage = (error: unknown, fallback: string) =>
+  (error as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
 
-const activityStats = [
-  { label: "Total Actions This Month", value: 142, icon: ClipboardList },
-  { label: "Posts Published", value: 18, icon: FileText },
-  { label: "Announcements Sent", value: 7, icon: Megaphone },
-  { label: "Reports Resolved", value: 34, icon: CheckCircle2 },
-];
+const profileInputClass = formDialogStyles.input;
+const profileButtonClass = formDialogStyles.primaryButton;
 
-const notifPreferences = [
-  { key: "newReport", label: "New Report Submitted", description: "When a resident submits a new waste report", icon: FileText },
-  { key: "driverStatus", label: "Driver Status Message", description: "When a driver sends a status message", icon: Truck },
-  { key: "newResident", label: "New Resident Registered", description: "When a new resident creates an account", icon: Users },
-  { key: "failedLogin", label: "Failed Login Detected", description: "When a failed login attempt is recorded", icon: AlertTriangle },
-  { key: "missingRoute", label: "Route Has No Truck Assigned", description: "When a collection day has no assigned route", icon: Route },
-];
+const ProfileDialog = ({ open, onOpenChange, title, description, icon: Icon, pending = false, children, footer }: {
+  open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string;
+  icon: ElementType; pending?: boolean; children: ReactNode; footer: ReactNode;
+}) => (
+  <Dialog open={open} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}>
+    <DialogContent className={formDialogStyles.content}>
+      <FormDialogHeader title={title} description={description} icon={<Icon />} onClose={() => onOpenChange(false)} disabled={pending} closeLabel={`Close ${title.toLowerCase()}`} />
+      <div className={formDialogStyles.body}>{children}</div>
+      <div className={formDialogStyles.footer}>{footer}</div>
+    </DialogContent>
+  </Dialog>
+);
 
-const sessions = [
-  { id: "1", device: "Chrome on Windows", icon: Monitor, location: "Candelaria, Quezon", lastActive: "Active now", current: true },
-  { id: "2", device: "Safari on iPhone", icon: Smartphone, location: "Lucena City", lastActive: "2 hours ago", current: false },
-  { id: "3", device: "Firefox on MacBook", icon: Laptop, location: "Manila", lastActive: "Yesterday", current: false },
-];
-
-/* ─── Section Wrapper ─── */
-const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
-  <section className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4">
-    <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/70 flex items-center gap-1.5">
-      <Icon className="w-3.5 h-3.5" /> {title}
-    </h2>
+const Section = ({ title, description, icon: Icon, children }: {
+  title: string; description: string; icon: ElementType; children: React.ReactNode;
+}) => (
+  <section className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:p-5 lg:p-6">
+    <div className="flex items-center gap-2.5 border-b border-border/50 pb-2">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></div>
+      <div><h2 className="font-display text-sm font-bold text-foreground">{title}</h2><p className="text-xs text-muted-foreground">{description}</p></div>
+    </div>
     {children}
   </section>
 );
 
-/* ─── Editable Field Row ─── */
-const FieldRow = ({
-  label, value, icon: Icon, masked, onEdit,
-}: {
-  label: string; value: string; icon: React.ElementType; masked?: boolean; onEdit: () => void;
+const ProfileField = ({ label, value, icon: Icon, onEdit, action = "Edit" }: {
+  label: string; value: string | null | undefined; icon: ElementType; onEdit?: () => void; action?: string;
 }) => (
-  <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-        <p className="text-sm text-foreground truncate">{masked ? "••••••••" : value}</p>
-      </div>
+  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
+    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs group-hover:border-primary/30 group-hover:text-primary lg:size-10"><Icon className="size-4" /></div>
+      <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:text-[11px]">{label}</p><p className="mt-0.5 truncate text-[13px] font-medium text-foreground lg:text-sm">{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
     </div>
-    <button onClick={onEdit} className="text-xs text-primary hover:underline font-medium shrink-0 ml-3">
-      {masked ? "Change" : "Edit"}
-    </button>
+    {onEdit ? <Button type="button" variant="outline" size="sm" onClick={onEdit} className="h-8 shrink-0 rounded-xl border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary shadow-none hover:border-primary/55 hover:bg-primary/15 hover:text-primary">{action}</Button>
+      : <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/70 bg-muted/70 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground"><ShieldCheck className="size-3.5 text-primary" /> Registered email</span>}
   </div>
 );
 
-/* ─── Main Component ─── */
 const AdminProfile = () => {
   const navigate = useNavigate();
+  const authUser = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const logout = useAuthStore((state) => state.logout);
-  const [isLoading, setIsLoading] = useState(true);
-  const [editModal, setEditModal] = useState<{ open: boolean; field: string; value: string }>({ open: false, field: "", value: "" });
-  const [logoutModal, setLogoutModal] = useState(false);
-  const [logoutAllModal, setLogoutAllModal] = useState(false);
-
-  const [notifToggles, setNotifToggles] = useState<Record<string, boolean>>({
-    newReport: true,
-    driverStatus: true,
-    newResident: true,
-    failedLogin: true,
-    missingRoute: false,
-  });
-
-  const [twoFactor, setTwoFactor] = useState(false);
-  const enforce2FASystemWide = false; // Would come from settings context
-
-  const openEdit = (field: string, value: string) => setEditModal({ open: true, field, value });
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const profileQuery = useAdminResource<UserProfile | null>("profile", [], fetchProfile, null);
+  const { data: profile, setData: setProfile, isLoading: loading, isError: loadError, refetch: loadProfile } = profileQuery;
+  const runAction = useAdminAction("profile");
+  const [avatarStyle, setAvatarStyle] = useState<AvatarStyle>("forest");
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [edit, setEdit] = useState<{ field: EditableField; value: string; error: string; saving: boolean } | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [password, setPassword] = useState({ current: "", next: "", confirm: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [discardTarget, setDiscardTarget] = useState<"profile" | "password" | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!profile?.id) return;
+    const saved = localStorage.getItem(`greenway:admin-avatar:${profile.id}`);
+    if (avatarStyles.some(({ id }) => id === saved)) setAvatarStyle(saved as AvatarStyle);
+  }, [profile?.id]);
 
-  const handleLogout = async () => {
-    setLogoutModal(false);
-    await logout();
-    navigate("/", { replace: true });
+  const saveEdit = async () => {
+    if (!edit || !profile || edit.saving) return;
+    const value = edit.value.trim();
+    const invalid = edit.field === "full_name" ? value.length < 2
+      : edit.field === "username" ? !/^[a-zA-Z0-9_]{3,50}$/.test(value)
+      : value.length > 20 || !/^[0-9+()\-\s]*$/.test(value);
+    if (invalid) {
+      setEdit({ ...edit, error: edit.field === "username" ? "Use 3–50 letters, numbers, or underscores." : edit.field === "phone" ? "Enter a valid phone number." : "Enter at least 2 characters." });
+      return;
+    }
+    setEdit({ ...edit, saving: true, error: "" });
+    try {
+      const updated = await runAction(() => updateProfile({ [edit.field]: value } as UpdateProfilePayload));
+      setProfile(updated);
+      if (authUser) setUser({ ...authUser, ...updated });
+      setDiscardTarget(null);
+      setEdit(null);
+      toast.success("Profile updated.");
+    } catch (error) {
+      setEdit((current) => current && { ...current, saving: false, error: errorMessage(error, "Could not update your profile.") });
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="max-w-3xl mx-auto">
-        <AdminProfileSkeleton />
-      </div>
-    );
-  }
+  const savePassword = async () => {
+    if (savingPassword) return;
+    if (!password.current || password.next.length < 8 || password.next !== password.confirm) {
+      setPasswordError("Enter your current password and a matching new password of at least 8 characters.");
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError("");
+    try {
+      await runAction(() => changePassword({ old_password: password.current, new_password: password.next }));
+      setPassword({ current: "", next: "", confirm: "" });
+      toast.success("Password changed. Please sign in again.");
+      clearAuth();
+      navigate("/", { replace: true });
+    } catch (error) {
+      setPasswordError(errorMessage(error, "Could not change your password."));
+    } finally { setSavingPassword(false); }
+  };
+  const handleLogout = async () => {
+    try { await logout(); } finally { navigate("/", { replace: true }); }
+  };
+
+  const closePassword = () => {
+    if (savingPassword) return;
+    setDiscardTarget(null);
+    setPasswordOpen(false);
+    setPassword({ current: "", next: "", confirm: "" });
+    setPasswordError("");
+    setShowPassword(false);
+  };
+
+  const requestCloseEdit = () => {
+    if (!edit || edit.saving) return;
+    if (edit.value !== (profile?.[edit.field] ?? "")) setDiscardTarget("profile");
+    else setEdit(null);
+  };
+
+  const requestClosePassword = () => {
+    if (savingPassword) return;
+    if (password.current || password.next || password.confirm) setDiscardTarget("password");
+    else closePassword();
+  };
+
+  if (loading) return <div className="mx-auto max-w-3xl"><ProfileSkeleton /></div>;
+  if (loadError || !profile) return <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 py-16"><AlertCircle className="size-10 text-destructive" /><p className="text-sm text-muted-foreground">Could not load your profile.</p><Button variant="outline" onClick={() => void loadProfile()}>Try again</Button></div>;
+
+  const initials = profile.full_name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "A";
+  const selectedStyle = avatarStyles.find(({ id }) => id === avatarStyle) ?? avatarStyles[0];
+  const joined = formatManilaDateTime(profile.created_at, { year: "numeric", month: "long" });
+  const lastSignIn = profile.last_login_at
+    ? formatManilaDateTime(profile.last_login_at, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    : "Not recorded";
+  const isActive = profile.status === "ACTIVE";
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* ── Profile Header ── */}
-      <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-          <div className="relative">
-            <Avatar className="w-20 h-20">
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-display font-bold">
-                {profileData.avatar}
-              </AvatarFallback>
-            </Avatar>
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-accent transition-colors">
-              <Camera className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-center sm:text-left flex-1 min-w-0">
-            <h1 className="text-xl font-display font-bold text-foreground">{profileData.name}</h1>
-            <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">
-              <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-semibold">
-                {profileData.role}
-              </Badge>
+    <div className="mx-auto max-w-3xl space-y-5 md:space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
+        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 lg:h-36">
+          <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-emerald-400/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-8 left-1/3 size-36 rounded-full bg-primary/10 blur-xl" />
+          <div className={`absolute right-3.5 top-3.5 inline-flex items-center gap-2 rounded-full border bg-background/90 px-3 py-1.5 text-xs font-semibold shadow-xs backdrop-blur-md lg:right-4 lg:top-4 ${isActive ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-amber-500/30 text-amber-600 dark:text-amber-400"}`}><span className={`size-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-amber-500"}`} />{isActive ? "Active Administrator" : profile.status.toLowerCase()}</div>
+        </div>
+        <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
+          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28"><AvatarFallback className={`${selectedStyle.className} rounded-full font-display text-3xl font-bold text-primary-foreground`}>{initials}</AvatarFallback></Avatar>
+              <Button type="button" variant="outline" onClick={() => setAvatarOpen(true)} className="h-8 gap-1.5 rounded-xl border-border/80 px-3 text-[11px] font-semibold hover:border-primary/40 hover:bg-primary/5 hover:text-primary"><Paintbrush className="size-3.5" /> Customize</Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1 justify-center sm:justify-start">
-              <Calendar className="w-3 h-3" /> Joined {profileData.joinDate}
-            </p>
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-col items-center gap-1.5 md:flex-row md:gap-3"><h1 className="max-w-full truncate font-display text-lg font-bold tracking-tight text-foreground lg:text-2xl">{profile.full_name}</h1><span className="w-fit rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">@{profile.username}</span></div>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground md:justify-start"><span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Administrator</span><span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span></div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Personal Information ── */}
-      <Section title="Personal Information" icon={User}>
-        <div>
-          <FieldRow label="Full Name" value={profileData.name} icon={User} onEdit={() => openEdit("Full Name", profileData.name)} />
-          <FieldRow label="Username" value={profileData.username} icon={User} onEdit={() => openEdit("Username", profileData.username)} />
-          <FieldRow label="Email Address" value={profileData.email} icon={Mail} onEdit={() => openEdit("Email Address", profileData.email)} />
-          <FieldRow label="Phone Number" value={profileData.phone} icon={Phone} onEdit={() => openEdit("Phone Number", profileData.phone)} />
-          <FieldRow label="Password" value="" icon={Lock} masked onEdit={() => openEdit("Password", "")} />
+      <Section title="Personal Information" description="Your profile details and sign-in credentials" icon={User}>
+        <div className="divide-y divide-border/50">
+          <ProfileField label="Full Name" value={profile.full_name} icon={User} onEdit={() => setEdit({ field: "full_name", value: profile.full_name, error: "", saving: false })} />
+          <ProfileField label="Username" value={profile.username} icon={AtSign} onEdit={() => setEdit({ field: "username", value: profile.username, error: "", saving: false })} />
+          <ProfileField label="Email Address" value={profile.email} icon={Mail} />
+          <ProfileField label="Phone Number" value={profile.phone} icon={Phone} onEdit={() => setEdit({ field: "phone", value: profile.phone ?? "", error: "", saving: false })} />
+          <ProfileField label="Security Password" value="••••••••" icon={Lock} action="Change" onEdit={() => setPasswordOpen(true)} />
         </div>
       </Section>
 
-      {/* ── Activity Summary ── */}
-      <Section title="Activity Summary" icon={ClipboardList}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {activityStats.map((item) => (
-            <div key={item.label} className="rounded-lg bg-muted/50 p-3.5 text-center space-y-1">
-              <item.icon className="w-4 h-4 text-primary mx-auto" />
-              <p className="text-lg font-display font-bold text-foreground">{item.value}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{item.label}</p>
-            </div>
+      <Section title="Account Overview" description="Current account details from GreenWay" icon={ShieldCheck}>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[{ label: "Role", value: "Administrator", icon: ShieldCheck }, { label: "Status", value: profile.status.charAt(0) + profile.status.slice(1).toLowerCase(), icon: User }, { label: "Last sign-in", value: lastSignIn, icon: Clock3 }].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="rounded-xl border border-border/80 bg-muted/20 p-3.5"><Icon className="mb-2 size-4 text-primary" /><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>
           ))}
         </div>
       </Section>
 
-      {/* ── Notification Preferences ── */}
-      <Section title="Notification Preferences" icon={Bell}>
-        <div>
-          {notifPreferences.map((n) => (
-            <div key={n.key} className="flex items-center justify-between py-3 border-b border-border last:border-b-0 gap-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  <n.icon className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm text-foreground font-medium">{n.label}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{n.description}</p>
-                </div>
-              </div>
-              <Switch
-                checked={notifToggles[n.key]}
-                onCheckedChange={(v) => setNotifToggles((prev) => ({ ...prev, [n.key]: v }))}
-              />
-            </div>
+      <button type="button" onClick={() => setLogoutOpen(true)} className="flex w-full items-center justify-between rounded-2xl border border-border/80 bg-card p-4 text-left shadow-xs transition-colors hover:bg-muted/40"><span className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground"><LogOut className="size-4" /></span><span><span className="block text-sm font-semibold text-foreground">Log Out</span><span className="block text-xs text-muted-foreground">Sign out of this device</span></span></span><ChevronRight className="size-4 text-muted-foreground" /></button>
+
+      <ProfileDialog
+        open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize avatar"
+        description="Choose an initials color for this browser." icon={Paintbrush}
+        footer={<Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} className={profileButtonClass}>Close</Button>}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {avatarStyles.map((style) => (
+            <button key={style.id} type="button" aria-label={style.label} aria-pressed={avatarStyle === style.id}
+              onClick={() => { setAvatarStyle(style.id); localStorage.setItem(`greenway:admin-avatar:${profile.id}`, style.id); setAvatarOpen(false); }}
+              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${avatarStyle === style.id ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"}`}
+            >
+              <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
+              <span className="text-xs font-semibold text-foreground">{style.label}</span>
+            </button>
           ))}
         </div>
-      </Section>
+      </ProfileDialog>
 
-      {/* ── Active Sessions ── */}
-      <Section title="Active Sessions" icon={Monitor}>
-        <div className="space-y-1">
-          {sessions.map((s) => (
-            <div key={s.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <s.icon className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{s.device}</p>
-                    {s.current && <Badge variant="secondary" className="text-[9px] bg-primary/10 text-primary">Current</Badge>}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">{s.location} · {s.lastActive}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+      <ProfileDialog
+        open={Boolean(edit)} onOpenChange={(open) => { if (!open) requestCloseEdit(); }}
+        title={`Edit ${edit ? fieldLabels[edit.field] : "Profile"}`}
+        description={`Update your ${edit ? fieldLabels[edit.field].toLowerCase() : "profile"}.`} icon={User} pending={edit?.saving}
+        footer={<>
+          <Button type="button" variant="outline" onClick={requestCloseEdit} disabled={edit?.saving} className={profileButtonClass}>Cancel</Button>
+          <Button type="button" onClick={() => void saveEdit()} disabled={edit?.saving} className={profileButtonClass}>
+            {edit?.saving && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+            {edit?.saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </>}
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="admin-profile-edit" className="text-xs font-semibold">{edit ? fieldLabels[edit.field] : "Value"}</Label>
+          <Input id="admin-profile-edit" value={edit?.value ?? ""}
+            onChange={(event) => setEdit((current) => current && { ...current, value: event.target.value, error: "" })}
+            onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void saveEdit(); } }}
+            disabled={edit?.saving} className={profileInputClass} autoFocus
+            aria-invalid={Boolean(edit?.error)} aria-describedby={edit?.error ? "admin-profile-edit-error" : undefined}
+          />
+          {edit?.error && <p id="admin-profile-edit-error" role="alert" className="text-xs leading-relaxed text-destructive">{edit.error}</p>}
         </div>
-        <button
-          className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
-            bg-destructive/5 text-destructive border border-destructive/15
-            hover:bg-destructive/10 hover:border-destructive/25 transition-all duration-200"
-          onClick={() => setLogoutAllModal(true)}
-        >
-          Log Out of All Devices
-        </button>
-      </Section>
+      </ProfileDialog>
 
-      {/* ── Two-Factor Authentication ── */}
-      <Section title="Two-Factor Authentication" icon={Shield}>
-        <div className="flex items-center justify-between py-2 gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">Enable Two-Factor Authentication</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {enforce2FASystemWide
-                  ? "Two-Factor Authentication is required by your system administrator"
-                  : "Add an extra layer of security to your account"
-                }
-              </p>
-            </div>
+      <ProfileDialog
+        open={passwordOpen} onOpenChange={(open) => { if (!open) requestClosePassword(); else setPasswordOpen(true); }}
+        title="Change Password" description="You will be signed out after updating." icon={Lock} pending={savingPassword}
+        footer={<>
+          <Button type="button" variant="outline" onClick={requestClosePassword} disabled={savingPassword} className={profileButtonClass}>Cancel</Button>
+          <Button type="button" onClick={() => void savePassword()} disabled={savingPassword} className={profileButtonClass}>
+            {savingPassword && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+            {savingPassword ? "Updating..." : "Change Password"}
+          </Button>
+        </>}
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="admin-current-password" className="text-xs font-semibold">Current password</Label>
+          <div className="relative">
+            <Input id="admin-current-password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+              value={password.current} onChange={(event) => setPassword((value) => ({ ...value, current: event.target.value }))}
+              disabled={savingPassword} className={`${profileInputClass} pr-10`} autoFocus
+            />
+            <button type="button" onClick={() => setShowPassword((value) => !value)} disabled={savingPassword}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+            >{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>
           </div>
-          <Switch
-            checked={enforce2FASystemWide ? true : twoFactor}
-            onCheckedChange={enforce2FASystemWide ? undefined : setTwoFactor}
-            disabled={enforce2FASystemWide}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="admin-new-password" className="text-xs font-semibold">New password</Label>
+          <Input id="admin-new-password" type="password" autoComplete="new-password" value={password.next}
+            onChange={(event) => setPassword((value) => ({ ...value, next: event.target.value }))}
+            disabled={savingPassword} className={profileInputClass} aria-describedby="admin-password-hint"
+          />
+          <p id="admin-password-hint" className="text-[11px] leading-relaxed text-muted-foreground">Use at least 8 characters.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="admin-confirm-password" className="text-xs font-semibold">Confirm new password</Label>
+          <Input id="admin-confirm-password" type="password" autoComplete="new-password" value={password.confirm}
+            onChange={(event) => setPassword((value) => ({ ...value, confirm: event.target.value }))}
+            disabled={savingPassword} className={profileInputClass}
           />
         </div>
-        {enforce2FASystemWide && (
-          <div className="flex items-center gap-2 text-xs text-primary bg-primary/5 rounded-lg px-3 py-2">
-            <Lock className="w-3.5 h-3.5" />
-            <span>This setting is enforced system-wide and cannot be changed individually.</span>
-          </div>
-        )}
-      </Section>
-
-      {/* ── Log Out ── */}
-      <div className="space-y-3 pb-4">
-        <button
-          onClick={() => setLogoutModal(true)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-            bg-destructive/5 text-destructive border border-destructive/15
-            hover:bg-destructive/10 hover:border-destructive/25 transition-all duration-200 group"
-        >
-          <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/15 transition-colors">
-            <LogOut className="w-4 h-4" />
-          </div>
-          <div className="text-left">
-            <span className="block font-semibold">Log Out</span>
-            <span className="block text-[10px] text-destructive/70 font-normal">Sign out of your current session</span>
-          </div>
-        </button>
-        <p className="text-[10px] text-muted-foreground text-center">
-          In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)
-        </p>
-      </div>
-
-      {/* ── Edit Field Modal ── */}
-      <Dialog open={editModal.open} onOpenChange={(open) => setEditModal((prev) => ({ ...prev, open }))}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display">{editModal.field === "Password" ? "Change Password" : `Edit ${editModal.field}`}</DialogTitle>
-            <DialogDescription>
-              {editModal.field === "Password"
-                ? "Enter your current password and a new password below."
-                : `Update your ${editModal.field.toLowerCase()} below.`
-              }
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {editModal.field === "Password" ? (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label>Current Password</Label>
-                  <Input type="password" placeholder="Enter current password" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>New Password</Label>
-                  <Input type="password" placeholder="Enter new password" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Confirm new password" />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>{editModal.field}</Label>
-                <Input defaultValue={editModal.value} placeholder={`Enter ${editModal.field.toLowerCase()}`} />
-              </div>
-            )}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setEditModal((prev) => ({ ...prev, open: false }))}>Cancel</Button>
-              <Button onClick={() => setEditModal((prev) => ({ ...prev, open: false }))}>Save</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Logout Confirmation ── */}
-      <LogoutConfirmModal
-        open={logoutModal}
-        onOpenChange={setLogoutModal}
-        onConfirm={() => {
-          void handleLogout();
+        {passwordError && <p role="alert" className="text-xs leading-relaxed text-destructive">{passwordError}</p>}
+      </ProfileDialog>
+      <UnsavedChangesDialog
+        isOpen={discardTarget !== null}
+        onClose={() => setDiscardTarget(null)}
+        onDiscard={() => {
+          if (discardTarget === "password") closePassword();
+          else if (!edit?.saving) { setDiscardTarget(null); setEdit(null); }
         }}
-        title="Log Out of GreenWay?"
-        description="Are you sure you want to log out of your current administrative session?"
+        title={discardTarget === "password" ? "Discard Password Changes?" : "Discard Profile Changes?"}
+        description={discardTarget === "password"
+          ? "Your entered passwords will be cleared."
+          : "Your unsaved profile changes will be lost."}
+        discardLabel="Discard Changes"
+        isSaving={discardTarget === "password" ? savingPassword : edit?.saving}
       />
-
-      {/* ── Logout All Modal ── */}
-      <LogoutConfirmModal
-        open={logoutAllModal}
-        onOpenChange={setLogoutAllModal}
-        onConfirm={() => setLogoutAllModal(false)}
-        title="Log Out of All Devices?"
-        description="This will terminate all active sessions across all devices except this current browser."
-        confirmLabel="Log Out All"
-      />
+      <ConfirmationDialog kind="dialog" open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={() => void handleLogout()} title="Log Out of GreenWay?" description="Sign out of your current administrator session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" />
     </div>
   );
 };

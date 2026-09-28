@@ -11,7 +11,7 @@ router.get(
   controller.getMyRouteToday,
 );
 
-router.get("/today", authenticate, controller.getAllRoutesToday);
+router.get("/today", authenticate, authorize("ADMIN", "RESIDENT"), controller.getAllRoutesToday);
 
 router.get(
   "/missed-collections",
@@ -22,9 +22,9 @@ router.get(
 
 // ── EXISTING ROUTES BELOW ──
 
-// Public — residents and drivers can view routes
-router.get("/", controller.getAll);
-router.get("/:id", controller.getById);
+// Route assignments expose operational details and require a signed-in system role.
+router.get("/", authenticate, authorize("ADMIN", "RESIDENT", "DRIVER"), controller.getAll);
+router.get("/:id", authenticate, authorize("ADMIN", "RESIDENT", "DRIVER"), controller.getById);
 
 // Driver / Admin — mark stop progress
 router.put(

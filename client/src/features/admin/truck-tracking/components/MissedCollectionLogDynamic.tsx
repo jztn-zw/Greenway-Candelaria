@@ -1,25 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
+import { useAdminQuery } from "@/lib/adminQuery";
 import {
-  AlertTriangle,
-  ExternalLink,
-  Loader2,
-  RotateCw,
-} from "lucide-react";
-import type { AdminTruck } from "../types";
-import {
-  fetchMissedCollections,
-  type MissedCollectionRow,
+fetchMissedCollections
 } from "@/services/trackingService";
-import { useNavigate } from "react-router-dom";
+import {
+AlertTriangle,
+Loader2,
+RotateCw,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import type { AdminTruck } from "../types";
 
 interface MissedCollectionLogProps {
   trucks: AdminTruck[];
@@ -38,51 +36,10 @@ const formatEntryDate = (value?: string | null) => {
 };
 
 const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
-  const navigate = useNavigate();
   const [truckFilter, setTruckFilter] = useState("all");
   const [barangayFilter, setBarangayFilter] = useState("all");
-  const [entries, setEntries] = useState<MissedCollectionRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const loadEntries = async () => {
-    setIsLoading(true);
-    try {
-      const rows = await fetchMissedCollections({ days: 30 });
-      setEntries(rows);
-    } catch {
-      setEntries([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const rows = await fetchMissedCollections({ days: 30 });
-        if (!cancelled) setEntries(rows);
-      } catch {
-        if (!cancelled) setEntries([]);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    load();
-    const interval = setInterval(() => {
-      if (!document.hidden) {
-        void load();
-      }
-    }, 30_000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+  const { data: entries = [], isFetching: isLoading, isError: error, refetch: loadEntries } =
+    useAdminQuery("tracking", ["missed", 30], () => fetchMissedCollections({ days: 30 }), { refetchInterval: 30_000 });
 
   const filtered = useMemo(
     () =>
@@ -138,7 +95,7 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
           variant="outline"
           size="sm"
           className="h-8.5 px-2.5 rounded-xl text-xs shrink-0 cursor-pointer"
-          onClick={loadEntries}
+          onClick={() => void loadEntries()}
           disabled={isLoading}
           title="Refresh missed stops log"
         >
@@ -152,22 +109,27 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
 
       {/* Entry List */}
       <div className="space-y-2">
+        {error && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+            Could not refresh missed collection records. Showing the last loaded results.
+          </div>
+        )}
         {isLoading && filtered.length === 0 ? (
           <div className="text-center py-10 text-xs text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
             Loading missed collection logs...
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && !error ? (
           <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border/80 bg-muted/10 space-y-1">
             <AlertTriangle className="w-6 h-6 text-muted-foreground/40 mx-auto" />
             <p className="text-xs font-semibold text-foreground">
               No missed collections recorded
             </p>
             <p className="text-[11px] text-muted-foreground">
-              All scheduled stops are currently on track or completed.
+              No missed stops were found in the last 30 days.
             </p>
           </div>
-        ) : (
+        ) : filtered.length > 0 ? (
           filtered.map((entry) => (
             <div
               key={entry.id}
@@ -182,7 +144,7 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
                     {entry.barangay}
                   </span>
                   <Badge variant="outline" className="text-[10px] font-medium border-border/60 shrink-0">
-                    {formatEntryDate(entry.event_at)}
+                    {entry.event_at ? formatEntryDate(entry.event_at) : entry.run_date.slice(0, 10)}
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -193,24 +155,10 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
                     {entry.reason}
                   </p>
                 )}
-                {entry.resident_report_link && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                    onClick={() =>
-                      navigate(
-                        `/admin/reports?search=${encodeURIComponent(entry.resident_report_link || "")}`,
-                      )
-                    }
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>View Related Report</span>
-                  </button>
-                )}
               </div>
             </div>
           ))
-        )}
+        ) : null}
       </div>
     </div>
   );

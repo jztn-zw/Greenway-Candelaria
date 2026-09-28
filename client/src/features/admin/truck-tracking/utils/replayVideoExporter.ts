@@ -1,42 +1,16 @@
-/**
- * replayVideoExporter.ts
- *
- * Client-side video file generator and exporter.
- * Renders leg-by-leg truck route replay frames to an HTML5 canvas and
- * records them into a downloadable video file (.mp4 or .webm) using the
- * browser MediaRecorder API.
- *
- * Map strictly ONLY renders:
- * 1. The moving truck
- * 2. The active target barangay
- * 3. The corresponding route path
- */
-
-export interface ExportLeg {
-  stopNumber: number;
-  totalStops: number;
-  targetName: string;
-  fromCoords: [number, number];
-  targetCoords: [number, number];
-  path: [number, number][];
-  timestamps?: string[];
-  distanceKm: number;
-}
+import { formatReplayTime, sampleReplayTrip, type ReplayTrip } from "./replayTrip";
 
 export interface ExportVideoOptions {
   truckName: string;
   plateNumber: string;
-  driverName?: string;
   dateStr: string;
-  legs: ExportLeg[];
-  onProgress?: (percent: number, statusText: string) => void;
+  trip: ReplayTrip;
+  signal?: AbortSignal;
+  onProgress?: (percent: number) => void;
 }
 
 export const getSupportedVideoMimeType = (): { mimeType: string; extension: string } => {
-  if (typeof MediaRecorder === "undefined") {
-    return { mimeType: "video/webm", extension: "webm" };
-  }
-
+  if (typeof MediaRecorder === "undefined") throw new Error("Video recording is not supported by this browser.");
   const candidates = [
     { mimeType: "video/mp4;codecs=avc1", extension: "mp4" },
     { mimeType: "video/mp4", extension: "mp4" },
@@ -44,633 +18,206 @@ export const getSupportedVideoMimeType = (): { mimeType: string; extension: stri
     { mimeType: "video/webm;codecs=vp8", extension: "webm" },
     { mimeType: "video/webm", extension: "webm" },
   ];
-
-  for (const c of candidates) {
-    if (MediaRecorder.isTypeSupported(c.mimeType)) {
-      return c;
-    }
-  }
-
-  return { mimeType: "video/webm", extension: "webm" };
+  const supported = candidates.find(({ mimeType }) => MediaRecorder.isTypeSupported(mimeType));
+  if (!supported) throw new Error("No supported video format is available.");
+  return supported;
 };
 
-// Calculate heading angle in radians between two coordinates
-const getHeadingAngle = (from: [number, number], to: [number, number]): number => {
-  const dLat = to[0] - from[0];
-  const dLon = to[1] - from[1];
-  return Math.atan2(dLon, dLat);
-};
-
-const formatTimestamp = (raw?: string): string => {
-  if (!raw) return "--:--:--";
-  try {
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return "--:--:--";
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
-  } catch {
-    return "--:--:--";
-  }
-};
-
-/**
- * Exports a route replay to an actual video file (.mp4 or .webm)
- * strictly showing ONLY the truck, active target barangay, and active route path.
- */
-export const exportReplayVideo = async (options: ExportVideoOptions): Promise<void> => {
-  const { truckName, plateNumber, driverName = "Assigned Driver", dateStr, legs, onProgress } = options;
-
-  if (legs.length === 0) {
-    throw new Error("No route legs available to export.");
-  }
-
+// Render one condensed full-trip animation, with no street transitions or
+// inferred collection completion. The trail and timestamp come from GPS records.
+export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip, signal, onProgress }: ExportVideoOptions): Promise<void> => {
+  if (trip.path.length < 2) throw new Error("At least two GPS records are required.");
+  const checkAbort = () => {
+    if (signal?.aborted) throw new DOMException("Video export cancelled.", "AbortError");
+  };
+  checkAbort();
   const { mimeType, extension } = getSupportedVideoMimeType();
-
-  // Canvas setup: 1280x720 (720p 16:9 HD)
   const width = 1280;
   const height = 720;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not initialize 2D canvas context.");
+  if (!ctx || typeof canvas.captureStream !== "function") throw new Error("Video capture is unavailable.");
 
-  // Compute global bounding box across all legs
-  let minLat = 90;
-  let maxLat = -90;
-  let minLng = 180;
-  let maxLng = -180;
-
-  legs.forEach((leg) => {
-    leg.path.forEach(([lat, lng]) => {
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    });
-    [leg.fromCoords, leg.targetCoords].forEach(([lat, lng]) => {
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    });
-  });
-
-  // Add 12% padding to bounds
-  const latSpan = Math.max(0.015, maxLat - minLat);
-  const lngSpan = Math.max(0.02, maxLng - minLng);
-  minLat -= latSpan * 0.12;
-  maxLat += latSpan * 0.12;
-  minLng -= lngSpan * 0.12;
-  maxLng += lngSpan * 0.12;
-
-  // Projection: [lat, lng] -> [canvasX, canvasY]
-  const plot = ([lat, lng]: [number, number]): [number, number] => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * (width - 240) + 120;
-    const y = height - 120 - ((lat - minLat) / (maxLat - minLat)) * (height - 240);
-    return [x, y];
+  const styles = getComputedStyle(document.documentElement);
+  const color = (token: string, fallback: string) => "hsl(" + (styles.getPropertyValue(token).trim() || fallback) + ")";
+  const palette = {
+    background: color("--background", "150 10% 8%"),
+    card: color("--card", "150 10% 11%"),
+    foreground: color("--foreground", "40 20% 93%"),
+    muted: color("--muted-foreground", "160 5% 45%"),
+    border: color("--border", "150 8% 18%"),
+    primary: color("--primary", "145 55% 42%"),
+    primaryForeground: color("--primary-foreground", "0 0% 100%"),
   };
 
-  // Preload OpenStreetMap background tiles (CORS anonymous)
-  const tiles: { img: HTMLImageElement; x: number; y: number; w: number; h: number }[] = [];
-  try {
-    const zoom = 14;
-    const latToTileY = (lat: number, z: number) =>
-      Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * Math.pow(2, z));
-    const lonToTileX = (lon: number, z: number) =>
-      Math.floor(((lon + 180) / 360) * Math.pow(2, z));
-
-    const minTileX = lonToTileX(minLng, zoom);
-    const maxTileX = lonToTileX(maxLng, zoom);
-    const minTileY = latToTileY(maxLat, zoom);
-    const maxTileY = latToTileY(minLat, zoom);
-
-    if (maxTileX - minTileX <= 4 && maxTileY - minTileY <= 4) {
-      const tilePromises: Promise<void>[] = [];
-      for (let tx = minTileX; tx <= maxTileX; tx++) {
-        for (let ty = minTileY; ty <= maxTileY; ty++) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
-          const p = new Promise<void>((resolve) => {
-            img.onload = () => {
-              const n = Math.pow(2, zoom);
-              const lon1 = (tx / n) * 360 - 180;
-              const lon2 = ((tx + 1) / n) * 360 - 180;
-              const lat1 = (Math.atan(Math.sinh(Math.PI * (1 - (2 * ty) / n))) * 180) / Math.PI;
-              const lat2 = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (ty + 1)) / n))) * 180) / Math.PI;
-
-              const [x1, y1] = plot([lat1, lon1]);
-              const [x2, y2] = plot([lat2, lon2]);
-              tiles.push({ img, x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
-              resolve();
-            };
-            img.onerror = () => resolve();
-          });
-          tilePromises.push(p);
-        }
-      }
-      await Promise.race([
-        Promise.all(tilePromises),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
-    }
-  } catch {
-    // Fall back to cartographic grid
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  for (const [lat, lng] of trip.path) {
+    minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+    minLng = Math.min(minLng, lng); maxLng = Math.max(maxLng, lng);
   }
+  const latPadding = Math.max(0.002, maxLat - minLat) * 0.15;
+  const lngPadding = Math.max(0.002, maxLng - minLng) * 0.15;
+  minLat -= latPadding; maxLat += latPadding;
+  minLng -= lngPadding; maxLng += lngPadding;
+  const plot = ([lat, lng]: [number, number]): [number, number] => [
+    ((lng - minLng) / (maxLng - minLng)) * (width - 160) + 80,
+    height - 120 - ((lat - minLat) / (maxLat - minLat)) * (height - 240),
+  ];
 
-  // Setup MediaStream & MediaRecorder
-  const stream = canvas.captureStream(30);
-  const recordedChunks: Blob[] = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType,
-    videoBitsPerSecond: 3_500_000,
-  });
-
-  recorder.ondataavailable = (event) => {
-    if (event.data && event.data.size > 0) {
-      recordedChunks.push(event.data);
+  const tiles: { image: HTMLImageElement; x: number; y: number; w: number; h: number }[] = [];
+  // Retain the geographic background when tiles are available. Failed tiles
+  // leave the recorded GPS trail visible on the themed canvas.
+  const zoom = 14;
+  const n = 2 ** zoom;
+  const tileX = (lng: number) => Math.floor(((lng + 180) / 360) * n);
+  const tileY = (lat: number) => Math.floor(((1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2) * n);
+  const minX = tileX(minLng), maxX = tileX(maxLng), minY = tileY(maxLat), maxY = tileY(minLat);
+  if (maxX - minX <= 4 && maxY - minY <= 4) {
+    const loads: Promise<void>[] = [];
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        loads.push(new Promise<void>((resolve) => {
+          const image = new Image();
+          image.crossOrigin = "anonymous";
+          image.onload = () => {
+            const lat1 = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+            const lat2 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+            const [x1, y1] = plot([lat1, x / n * 360 - 180]);
+            const [x2, y2] = plot([lat2, (x + 1) / n * 360 - 180]);
+            tiles.push({ image, x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
+            resolve();
+          };
+          image.onerror = () => resolve();
+          image.src = "https://tile.openstreetmap.org/" + zoom + "/" + x + "/" + y + ".png";
+        }));
+      }
     }
-  };
+    await Promise.race([Promise.all(loads), new Promise((resolve) => window.setTimeout(resolve, 1500))]);
+  }
+  checkAbort();
 
-  const recordingFinishedPromise = new Promise<void>((resolve) => {
-    recorder.onstop = () => resolve();
-  });
-
-  recorder.start();
-
-  // Draw background frame (map + grid)
-  const drawBackground = () => {
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(0, 0, width, height);
-
-    if (tiles.length > 0) {
-      ctx.save();
-      ctx.globalAlpha = 0.55;
-      tiles.forEach((t) => {
-        ctx.drawImage(t.img, t.x, t.y, t.w, t.h);
-      });
-      ctx.restore();
-    }
-
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
-    ctx.lineWidth = 1;
-    for (let gx = 0; gx <= width; gx += 80) {
-      ctx.beginPath();
-      ctx.moveTo(gx, 0);
-      ctx.lineTo(gx, height);
-      ctx.stroke();
-    }
-    for (let gy = 0; gy <= height; gy += 80) {
-      ctx.beginPath();
-      ctx.moveTo(0, gy);
-      ctx.lineTo(width, gy);
-      ctx.stroke();
-    }
-  };
-
-  // Draw ONLY the active leg route path
-  const drawActiveLegRoutePath = (leg: ExportLeg, traversedCoords: [number, number][]) => {
-    if (leg.path.length < 2) return;
-
-    // Outer bright casing for the active leg
-    ctx.strokeStyle = "rgba(37, 99, 235, 0.4)";
-    ctx.lineWidth = 7;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+  const drawPath = (points: [number, number][], stroke: string, lineWidth: number) => {
+    if (points.length < 2) return;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctx.beginPath();
-    const [sx, sy] = plot(leg.path[0]);
-    ctx.moveTo(sx, sy);
-    for (let i = 1; i < leg.path.length; i++) {
-      const [px, py] = plot(leg.path[i]);
+    const [x, y] = plot(points[0]);
+    ctx.moveTo(x, y);
+    for (const point of points.slice(1)) {
+      const [px, py] = plot(point);
       ctx.lineTo(px, py);
     }
     ctx.stroke();
-
-    // Inner crisp road line
-    ctx.strokeStyle = "#60a5fa";
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    for (let i = 1; i < leg.path.length; i++) {
-      const [px, py] = plot(leg.path[i]);
-      ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-
-    // Traversed portion highlighted in primary green
-    if (traversedCoords.length >= 2) {
-      ctx.strokeStyle = "rgba(34, 197, 94, 0.5)";
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      const [tx, ty] = plot(traversedCoords[0]);
-      ctx.moveTo(tx, ty);
-      for (let i = 1; i < traversedCoords.length; i++) {
-        const [px, py] = plot(traversedCoords[i]);
-        ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-
-      ctx.strokeStyle = "#10b981";
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      for (let i = 1; i < traversedCoords.length; i++) {
-        const [px, py] = plot(traversedCoords[i]);
-        ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-    }
   };
-
-  // Draw all stops: completed ones stay on map with checkmarks, active one with target halo & badge
-  const drawStops = (currentLegIdx: number, isCurrentLegDone = false) => {
-    legs.forEach((leg, idx) => {
-      const [tx, ty] = plot(leg.targetCoords);
-      const isCompleted = idx < currentLegIdx || (idx === currentLegIdx && isCurrentLegDone);
-      const isTarget = idx === currentLegIdx && !isCurrentLegDone;
-
-      if (isCompleted) {
-        // Green completed pin with checkmark - STAYS ON MAP
-        ctx.fillStyle = "#16a34a";
-        ctx.beginPath();
-        ctx.arc(tx, ty, 11, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        // White checkmark
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(tx - 4, ty);
-        ctx.lineTo(tx - 1, ty + 3);
-        ctx.lineTo(tx + 5, ty - 3.5);
-        ctx.stroke();
-
-        // Label bubble
-        const labelText = leg.targetName;
-        ctx.font = "bold 11px Inter, sans-serif";
-        const tw = ctx.measureText(labelText).width;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
-        ctx.strokeStyle = "#16a34a";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(tx - tw / 2 - 8, ty - 32, tw + 16, 18, 5);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(labelText, tx, ty - 23);
-      } else if (isTarget) {
-        // Active target pin with pulsing blue halo and Target banner
-        ctx.fillStyle = "rgba(59, 130, 246, 0.35)";
-        ctx.beginPath();
-        ctx.arc(tx, ty, 22, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#2563eb";
-        ctx.beginPath();
-        ctx.arc(tx, ty, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 11px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(leg.stopNumber), tx, ty);
-
-        // Target label banner
-        const labelText = `TARGET ${leg.stopNumber}: ${leg.targetName}`;
-        ctx.font = "bold 12px Inter, sans-serif";
-        const tw = ctx.measureText(labelText).width;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
-        ctx.strokeStyle = "#3b82f6";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(tx - tw / 2 - 10, ty - 36, tw + 20, 22, 6);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(labelText, tx, ty - 25);
-      }
-    });
-  };
-
-  // Draw moving truck with directional heading
-  const drawTruck = (coords: [number, number], angle: number) => {
-    const [tx, ty] = plot(coords);
-
-    ctx.save();
-    ctx.translate(tx, ty);
-    ctx.rotate(angle);
-
-    // Active ping ripple
-    ctx.fillStyle = "rgba(34, 197, 94, 0.35)";
-    ctx.beginPath();
-    ctx.arc(0, 0, 24, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Core truck pin
-    ctx.fillStyle = "#15803d";
-    ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Direction arrow
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(7, 7);
-    ctx.lineTo(0, 4);
-    ctx.lineTo(-7, 7);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
-  };
-
-  // Draw Top HUD Header
-  const drawTopHeader = (currentLeg: ExportLeg) => {
-    ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
-    ctx.fillRect(0, 0, width, 68);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, 68);
-    ctx.lineTo(width, 68);
-    ctx.stroke();
-
-    ctx.fillStyle = "#10b981";
-    ctx.beginPath();
-    ctx.arc(36, 34, 14, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 15px Inter, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("GREENWAY FLEET REPLAY", 60, 26);
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText(`${truckName} (${plateNumber}) - ${driverName}`, 60, 44);
-
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "bold 13px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(`Shift Date: ${dateStr}`, width / 2, 34);
-
-    const targetBadgeText = `Active Target: ${currentLeg.targetName} (${currentLeg.stopNumber}/${currentLeg.totalStops})`;
-    ctx.font = "bold 12px Inter, sans-serif";
-    const badgeW = ctx.measureText(targetBadgeText).width + 24;
-    const badgeX = width - badgeW - 24;
-
-    ctx.fillStyle = "rgba(16, 185, 129, 0.18)";
-    ctx.strokeStyle = "#10b981";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(badgeX, 18, badgeW, 32, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#34d399";
-    ctx.textAlign = "center";
-    ctx.fillText(targetBadgeText, badgeX + badgeW / 2, 34);
-  };
-
-  // Draw Bottom Telemetry Bar with Speed, GPS Time, Status
-  const drawBottomBar = (currentLeg: ExportLeg, totalProgressPct: number, currentTimestamp?: string) => {
-    const barHeight = 60;
-    const barY = height - barHeight;
-
-    ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
-    ctx.fillRect(0, barY, width, barHeight);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, barY);
-    ctx.lineTo(width, barY);
-    ctx.stroke();
-
-    // Leg Distance
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("LEG DISTANCE", 32, barY + 20);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 15px Inter, sans-serif";
-    ctx.fillText(`${currentLeg.distanceKm.toFixed(1)} km`, 32, barY + 40);
-
-    // Live GPS Time
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.fillText("HISTORICAL GPS TIME", 160, barY + 20);
-
-    ctx.fillStyle = "#38bdf8";
-    ctx.font = "bold 15px Inter, sans-serif";
-    ctx.fillText(formatTimestamp(currentTimestamp), 160, barY + 40);
-
-    // Telemetry Status
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.fillText("COLLECTION STATUS", 340, barY + 20);
-
-    ctx.fillStyle = "#34d399";
-    ctx.font = "bold 14px Inter, sans-serif";
-    ctx.fillText(`En route to ${currentLeg.targetName}`, 340, barY + 40);
-
-    // Progress Bar
-    const pBarW = 280;
-    const pBarX = width - pBarW - 32;
-    const pBarY = barY + 26;
-
-    ctx.fillStyle = "rgba(51, 65, 85, 0.6)";
-    ctx.beginPath();
-    ctx.roundRect(pBarX, pBarY, pBarW, 10, 5);
-    ctx.fill();
-
-    const filledW = Math.max(8, (pBarW * totalProgressPct) / 100);
-    ctx.fillStyle = "#10b981";
-    ctx.beginPath();
-    ctx.roundRect(pBarX, pBarY, filledW, 10, 5);
-    ctx.fill();
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillText(`Route Progress: ${Math.round(totalProgressPct)}%`, width - 32, barY + 16);
-  };
-
-  // Draw Leg Completion Transition Card
-  const drawTargetReachedCard = (leg: ExportLeg) => {
-    ctx.save();
-    ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
-    ctx.fillRect(0, 0, width, height);
-
-    const cardW = 440;
-    const cardH = 140;
-    const cardX = (width - cardW) / 2;
-    const cardY = (height - cardH) / 2;
-
-    ctx.fillStyle = "rgba(15, 23, 42, 0.96)";
-    ctx.strokeStyle = "#10b981";
+  const drawEndpoint = (point: [number, number], label: string) => {
+    const [x, y] = plot(point);
+    ctx.fillStyle = palette.card;
+    ctx.strokeStyle = palette.primary;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, cardH, 16);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#10b981";
-    ctx.beginPath();
-    ctx.arc(cardX + 44, cardY + cardH / 2, 22, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cardX + 36, cardY + cardH / 2);
-    ctx.lineTo(cardX + 42, cardY + cardH / 2 + 6);
-    ctx.lineTo(cardX + 52, cardY + cardH / 2 - 6);
-    ctx.stroke();
-
-    ctx.fillStyle = "#34d399";
-    ctx.font = "bold 13px Inter, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(`TARGET ${leg.stopNumber} COMPLETED`, cardX + 80, cardY + 45);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 20px Inter, sans-serif";
-    ctx.fillText(leg.targetName, cardX + 80, cardY + 75);
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText("Departing to next target barangay...", cardX + 80, cardY + 102);
-
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = palette.foreground;
+    ctx.font = "600 12px Inter, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText(label, x, y - 12);
+  };
+  const drawFrame = (progress: number) => {
+    const sample = sampleReplayTrip(trip, progress);
+    ctx.fillStyle = palette.background;
+    ctx.fillRect(0, 0, width, height);
+    ctx.save(); ctx.globalAlpha = 0.55;
+    for (const tile of tiles) ctx.drawImage(tile.image, tile.x, tile.y, tile.w, tile.h);
     ctx.restore();
+    drawPath(trip.path, palette.muted, 3);
+    drawPath([...trip.path.slice(0, sample.index + 1), sample.coords], palette.primary, 5);
+    drawEndpoint(trip.path[0], "Start");
+    drawEndpoint(trip.path[trip.path.length - 1], "End");
+
+    const [x, y] = plot(sample.coords);
+    ctx.fillStyle = palette.primary;
+    ctx.strokeStyle = palette.primaryForeground;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = palette.card;
+    ctx.fillRect(0, 0, width, 76);
+    ctx.fillRect(0, height - 76, width, 76);
+    ctx.fillStyle = palette.foreground;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.font = "600 20px Poppins, sans-serif";
+    ctx.fillText("Route replay", 32, 27);
+    ctx.fillStyle = palette.muted;
+    ctx.font = "13px Inter, sans-serif";
+    ctx.fillText(truckName + (plateNumber ? " · " + plateNumber : ""), 32, 53, width - 260);
+    ctx.textAlign = "right";
+    ctx.fillText(dateStr, width - 32, 38);
+
+    ctx.textAlign = "left";
+    ctx.fillText("Replay time", 32, height - 53);
+    ctx.fillStyle = palette.foreground;
+    ctx.font = "600 15px Inter, sans-serif";
+    ctx.fillText(formatReplayTime(sample.timestamp), 32, height - 29);
+    ctx.fillStyle = palette.muted;
+    ctx.font = "13px Inter, sans-serif";
+    ctx.fillText("Estimated trip distance", 245, height - 53);
+    ctx.fillStyle = palette.foreground;
+    ctx.font = "600 15px Inter, sans-serif";
+    ctx.fillText(trip.distanceKm.toFixed(1) + " km", 245, height - 29);
+    ctx.textAlign = "right";
+    ctx.fillText(progress === 1 ? "Replay complete" : "Replay progress: " + Math.round(progress * 100) + "%", width - 32, height - 47);
+    ctx.fillStyle = palette.border;
+    ctx.fillRect(width - 312, height - 27, 280, 5);
+    ctx.fillStyle = palette.primary;
+    ctx.fillRect(width - 312, height - 27, 280 * progress, 5);
+    if (tiles.length) {
+      ctx.fillStyle = palette.foreground;
+      ctx.font = "10px Inter, sans-serif";
+      ctx.fillText("© OpenStreetMap contributors", width - 12, height - 86);
+    }
   };
 
-  // Render Loop strictly focused on each target leg
-  const totalLegs = legs.length;
-  const TRANSITION_FRAMES = 18;
-
-  for (let lIdx = 0; lIdx < totalLegs; lIdx++) {
-    const leg = legs[lIdx];
-    const legPoints = leg.path.length >= 1 ? leg.path : [leg.fromCoords, leg.targetCoords];
-    const legTimestamps = leg.timestamps || [];
-
-    const numPoints = legPoints.length;
-    const targetFrames = Math.max(numPoints, 45);
-
-    for (let f = 0; f < targetFrames; f++) {
-      const pointProgress = (f / (targetFrames - 1 || 1)) * (numPoints - 1);
-      const lowIndex = Math.floor(pointProgress);
-      const highIndex = Math.min(numPoints - 1, lowIndex + 1);
-      const remainder = pointProgress - lowIndex;
-
-      const currentLat = legPoints[lowIndex][0] + (legPoints[highIndex][0] - legPoints[lowIndex][0]) * remainder;
-      const currentLng = legPoints[lowIndex][1] + (legPoints[highIndex][1] - legPoints[lowIndex][1]) * remainder;
-      const currentCoords: [number, number] = [currentLat, currentLng];
-
-      const nextLat = legPoints[highIndex][0];
-      const nextLng = legPoints[highIndex][1];
-      const heading = getHeadingAngle(currentCoords, [nextLat, nextLng]);
-
-      const currentTimestamp = legTimestamps[lowIndex] || legTimestamps[0];
-      const totalProgressPct = ((lIdx + f / targetFrames) / totalLegs) * 100;
-
-      const traversedPath = legPoints.slice(0, lowIndex + 1);
-      if (remainder > 0.05) {
-        traversedPath.push(currentCoords);
-      }
-
-      // Draw background, active route path, all completed pins (with checkmarks) & active target pin, moving truck, and HUD
-      drawBackground();
-      drawActiveLegRoutePath(leg, traversedPath);
-      drawStops(lIdx, false);
-      drawTruck(currentCoords, heading);
-      drawTopHeader(leg);
-      drawBottomBar(leg, totalProgressPct, currentTimestamp);
-
-      if (onProgress) {
-        onProgress(
-          Math.round(totalProgressPct),
-          `Rendering Target ${lIdx + 1}/${totalLegs}: ${leg.targetName}`,
-        );
-      }
-
-      await new Promise((r) => setTimeout(r, 16));
+  const stream = canvas.captureStream(30);
+  let recorder: MediaRecorder | undefined;
+  try {
+    const chunks: Blob[] = [];
+    recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3_500_000 });
+    let recordingError: Error | null = null;
+    const finished = new Promise<void>((resolve) => {
+      recorder!.onstop = () => resolve();
+      recorder!.onerror = () => { recordingError = new Error("Video recording failed."); resolve(); };
+    });
+    recorder.ondataavailable = ({ data }) => { if (data.size) chunks.push(data); };
+    drawFrame(0);
+    recorder.start();
+    // A condensed 6–60 second overview, traversing the entire recorded trail.
+    const frames = Math.max(180, Math.min(1800, trip.path.length));
+    for (let frame = 0; frame < frames; frame++) {
+      checkAbort();
+      if (recordingError) throw recordingError;
+      const progress = frame / (frames - 1);
+      drawFrame(progress);
+      onProgress?.(Math.min(99, Math.round(progress * 100)));
+      await new Promise((resolve) => window.setTimeout(resolve, 1000 / 30));
     }
-
-    // Target reached transition celebration - active target becomes completed with checkmark
-    for (let tf = 0; tf < TRANSITION_FRAMES; tf++) {
-      drawBackground();
-      drawActiveLegRoutePath(leg, legPoints);
-      drawStops(lIdx, true);
-      drawTopHeader(leg);
-      drawBottomBar(leg, ((lIdx + 1) / totalLegs) * 100, legTimestamps[legTimestamps.length - 1]);
-      drawTargetReachedCard(leg);
-
-      await new Promise((r) => setTimeout(r, 16));
-    }
+    recorder.stop();
+    await finished;
+    checkAbort();
+    if (recordingError) throw recordingError;
+    const video = new Blob(chunks, { type: mimeType });
+    if (!video.size) throw new Error("No video frames were recorded.");
+    const url = URL.createObjectURL(video);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = truckName.replace(/[^a-zA-Z0-9_-]/g, "_") + "_" + dateStr + "_Route_Replay." + extension;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 15000);
+    onProgress?.(100);
+  } finally {
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    stream.getTracks().forEach((track) => track.stop());
   }
-
-  // End of route final frame
-  for (let ef = 0; ef < 24; ef++) {
-    drawBackground();
-    drawStops(totalLegs, true);
-    ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = "#10b981";
-    ctx.font = "bold 26px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("SHIFT REPLAY COMPLETE", width / 2, height / 2 - 20);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "15px Inter, sans-serif";
-    ctx.fillText(`All ${totalLegs} Target Barangays Successfully Completed`, width / 2, height / 2 + 16);
-
-    await new Promise((r) => setTimeout(r, 16));
-  }
-
-  if (onProgress) {
-    onProgress(100, "Finalizing video file...");
-  }
-
-  recorder.stop();
-  await recordingFinishedPromise;
-
-  const videoBlob = new Blob(recordedChunks, { type: mimeType });
-  const downloadUrl = URL.createObjectURL(videoBlob);
-  const cleanTruckName = truckName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const filename = `${cleanTruckName}_${dateStr}_Route_Replay.${extension}`;
-
-  const anchor = document.createElement("a");
-  anchor.href = downloadUrl;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-
-  setTimeout(() => {
-    URL.revokeObjectURL(downloadUrl);
-  }, 15_000);
 };

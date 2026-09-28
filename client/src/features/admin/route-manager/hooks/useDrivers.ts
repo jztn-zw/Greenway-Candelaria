@@ -1,7 +1,8 @@
 // src/pages/admin/hooks/useDrivers.ts
-import { useState, useEffect } from "react";
-import { toast } from "@/lib/toast";
+import { useAdminQuery } from "@/lib/adminQuery";
 import api from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { useEffect } from "react";
 
 export interface Driver {
   id: string; // drivers.id (not user id)
@@ -11,23 +12,10 @@ export interface Driver {
 }
 
 export const useDrivers = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const { data } = await api.get<{ data: Driver[] }>("/drivers");
-        setDrivers(data.data);
-      } catch (err) {
-        toast.error("Failed to load drivers.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  return { drivers, isLoading };
+  const query = useAdminQuery("drivers", ["route-options"], async () => {
+    const { data } = await api.get<{ data: Driver[] }>("/drivers");
+    return data.data;
+  });
+  useEffect(() => { if (query.error) toast.error("Failed to load drivers."); }, [query.error]);
+  return { drivers: query.data ?? [], isLoading: query.isLoading };
 };

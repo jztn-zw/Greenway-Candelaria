@@ -1,13 +1,16 @@
+import CollectorLiveSync from "./CollectorLiveSync";
 import { Navigate, Outlet } from "react-router-dom";
 import CollectorSidebar from "./CollectorSidebar";
 import CollectorTopBar from "./CollectorTopbar";
 import CollectorDispatchBubble from "./CollectorDispatchBubble";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import PageTransition from "@/components/PageTransition";
-import authService from "@/services/authService";
+import useAuthStore from "@/store/authStore";
+
+import { CollectorTrackingProvider } from "@/features/collector/route-map/CollectorTrackingProvider";
 
 const CollectorLayout = () => {
-  const user = authService.getCurrentUser();
+  const user = useAuthStore((state) => state.user);
 
   if (!user) {
     return <Navigate to="/" replace />;
@@ -24,7 +27,9 @@ const CollectorLayout = () => {
   }
 
   return (
+    <CollectorTrackingProvider key={user.id}>
     <SidebarProvider>
+      <CollectorLiveSync />
       <div className="min-h-screen flex w-full">
         <CollectorSidebar />
         <div className="flex-1 flex flex-col min-w-0">
@@ -35,9 +40,10 @@ const CollectorLayout = () => {
             </PageTransition>
           </main>
         </div>
-        <CollectorDispatchBubble />
+        <CollectorDispatchBubble key={user.id} />
       </div>
     </SidebarProvider>
+    </CollectorTrackingProvider>
   );
 };
 

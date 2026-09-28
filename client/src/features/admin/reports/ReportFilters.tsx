@@ -1,29 +1,29 @@
-import { Search, SlidersHorizontal, ArrowUpDown, X, Calendar as CalendarIcon, RotateCcw } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
+DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { useState, useEffect } from "react";
-import { ViolationType, ReportStatus } from "./types";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
-import type { AdminReportsKPIs } from "@/services/reportsService";
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import { useAdminQuery } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
+import { fetchBarangays } from "@/services/barangaysService";
+import type { AdminReportsKPIs } from "@/services/reportsService";
+import { format } from "date-fns";
+import { ArrowUpDown, Calendar as CalendarIcon, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
+import { useState } from "react";
+import { ReportStatus, ViolationType } from "./types";
 
 interface ReportFiltersProps {
   search: string;
@@ -73,13 +73,7 @@ const ReportFilters = ({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [modalCalendarOpen, setModalCalendarOpen] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-  const [barangays, setBarangays] = useState<BarangayLocationRow[]>([]);
-
-  useEffect(() => {
-    fetchBarangays()
-      .then((data) => setBarangays(data))
-      .catch(() => setBarangays([]));
-  }, []);
+  const { data: barangays = [] } = useAdminQuery("barangays", ["locations"], fetchBarangays);
 
   const totalCount = kpis ? kpis.total : total;
 
@@ -131,11 +125,11 @@ const ReportFilters = ({
                   className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 snap-start select-none ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <span>{tab.key === "all" ? "All" : tab.label}</span>
-                  {tab.count !== undefined && (
+                  {isActive && tab.count !== undefined && (
                     <span
                       className={`inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] ${
                         tab.count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
@@ -189,11 +183,6 @@ const ReportFilters = ({
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   <span>Filters</span>
-                  {secondaryFilterCount > 0 && (
-                    <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                      {secondaryFilterCount}
-                    </span>
-                  )}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-2xl border border-border/80 p-5 bg-card/95 backdrop-blur-md shadow-2xl gap-0">
@@ -329,11 +318,6 @@ const ReportFilters = ({
         <div className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filters
-          {activeFilterCount > 0 && (
-            <Badge className="h-4 min-w-4 justify-center rounded-full border-0 bg-primary/15 px-1 text-[9px] text-primary hover:bg-primary/15">
-              {activeFilterCount}
-            </Badge>
-          )}
         </div>
 
         {/* Violation Type */}

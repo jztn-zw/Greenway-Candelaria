@@ -6,6 +6,7 @@ export interface RouteStopInfo {
   barangay: string;
   status: RouteStopStatus;
   coords?: [number, number] | null;
+  coveragePath?: [number, number][] | null;
   completedAt?: string;
   skippedReason?: string;
   isResidentBarangay?: boolean;

@@ -80,8 +80,8 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
     id: r.id,
     ref: r.reference_number || r.id?.slice(0, 8)?.toUpperCase() || "WR-REF",
     type: formatViolationType(r.violation_type),
-    barangay: r.barangay_name || "Candelaria",
-    date: formatRelativeTime(r.created_at, { emptyLabel: "Recently" }),
+    barangay: r.barangay_name || "Location unavailable",
+    date: formatRelativeTime(r.created_at, { emptyLabel: "Time unavailable" }),
     status: formatStatusLabel(r.status),
     reporter: r.reporter_name || "Resident",
   }));
@@ -140,7 +140,7 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                         No recent reports submitted
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        New community waste reports will appear here automatically
+                        New community waste reports appear after the next refresh.
                       </p>
                     </TableCell>
                   </TableRow>
@@ -151,7 +151,7 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
 
                     return (
                       <TableRow
-                        key={r.ref}
+                        key={r.id}
                         onClick={() => navigate(r.id ? `/admin/reports?report=${r.id}` : "/admin/reports")}
                         className="cursor-pointer hover:bg-muted/40 transition-colors group"
                       >

@@ -3,9 +3,9 @@ const controller = require("./trucks.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 
-// Public — resident and driver can see trucks
-router.get("/", controller.getAll);
-router.get("/:id", controller.getById);
+// Fleet details are available only to authenticated GreenWay roles.
+router.get("/", authenticate, authorize("ADMIN", "RESIDENT", "DRIVER"), controller.getAll);
+router.get("/:id", authenticate, authorize("ADMIN", "RESIDENT", "DRIVER"), controller.getById);
 
 // Admin only
 router.post(

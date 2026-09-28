@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useResidentQuery } from "@/lib/residentQuery";
 import { Card } from "@/components/ui/card";
 import {
   Package,
@@ -12,46 +12,39 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchLiveTrucks, LiveRow } from "@/services/trackingService";
-import { fetchMyReports, MyReportRow } from "@/services/reportsService";
-import {
-  CollectionScheduleDay,
-  fetchCollectionSchedule,
-} from "@/services/scheduleService";
+import { fetchLiveTrucks } from "@/services/trackingService";
+import { fetchMyReports } from "@/services/reportsService";
+import { fetchRoutes, type ApiRoute, type ApiRouteStop } from "@/services/routesService";
+import { formatManilaDateTime, getManilaNow } from "@/utils/date";
+import useAuthStore from "@/store/authStore";
+import { formatCollectionTime, normaliseId } from "../../truck-tracking/truckTracking.utils";
 
-const wasteTypeDetails: Record<CollectionScheduleDay["waste_type"], {
+const wasteTypeDetails: Record<"BIODEGRADABLE" | "NON_BIODEGRADABLE", {
   label: string;
   tag: string;
   tagColor: string;
-  description: string;
 }> = {
   BIODEGRADABLE: {
     label: "Biodegradable",
     tag: "Biodegradable",
     tagColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-    description: "Food scraps, yard waste, compostable items",
   },
   NON_BIODEGRADABLE: {
     label: "Non-Biodegradable",
     tag: "Non-Bio / Recyclables",
     tagColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-    description: "Plastics, metals, paper, dry waste",
   },
 };
 
-const todayDayOfWeek = () =>
-  new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    timeZone: "Asia/Manila",
-  }).format(new Date()).toUpperCase();
-
-const formatScheduleTime = (time?: string | null) => {
-  if (!time) return "—";
-  const [hourValue = "0", minute = "00"] = time.split(":");
-  const hour = Number(hourValue);
-  if (Number.isNaN(hour)) return "—";
-  return `${((hour + 11) % 12) + 1}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+const getWasteTypeDetails = (value?: string | null) => {
+  const normalized = value?.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  if (normalized === "BIODEGRADABLE" || normalized === "NON_BIODEGRADABLE") {
+    return wasteTypeDetails[normalized];
+  }
+  return null;
 };
+
+type ResidentRoute = { route: ApiRoute; stop: ApiRouteStop };
 
 const statusBadgeConfig: Record<string, { class: string; label: string }> = {
   SUBMITTED:    { class: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", label: "Submitted" },
@@ -71,77 +64,59 @@ const formatViolationType = (type?: string) => {
 
 const HeroCards = () => {
   const navigate = useNavigate();
-  const [liveTrucks, setLiveTrucks] = useState<LiveRow[]>([]);
-  const [latestReport, setLatestReport] = useState<MyReportRow | null>(null);
-  const [todaySchedule, setTodaySchedule] = useState<CollectionScheduleDay | null>(null);
-  const [trucksFailed, setTrucksFailed] = useState(false);
-  const [reportsFailed, setReportsFailed] = useState(false);
-  const [scheduleFailed, setScheduleFailed] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadData = async () => {
-      try {
-        const [trucksRes, reportsRes, scheduleRes] = await Promise.allSettled([
-          fetchLiveTrucks(),
-          fetchMyReports({ limit: 1, sort: "newest" }),
-          fetchCollectionSchedule(),
-        ]);
-
-        if (!mounted) return;
-
-        if (trucksRes.status === "fulfilled") {
-          setLiveTrucks(trucksRes.value || []);
-          setTrucksFailed(false);
-        } else {
-          setLiveTrucks([]);
-          setTrucksFailed(true);
-        }
-        if (reportsRes.status === "fulfilled") {
-          setLatestReport(reportsRes.value.reports?.[0] ?? null);
-          setReportsFailed(false);
-        } else {
-          setLatestReport(null);
-          setReportsFailed(true);
-        }
-        if (scheduleRes.status === "fulfilled") {
-          setTodaySchedule(
-            scheduleRes.value.find((schedule) => schedule.day_of_week === todayDayOfWeek()) ?? null,
-          );
-          setScheduleFailed(false);
-        } else {
-          setTodaySchedule(null);
-          setScheduleFailed(true);
-        }
-      } catch (error) {
-        console.error("Failed to load resident dashboard hero data", error);
-      }
-    };
-
-    void loadData();
-    const interval = setInterval(() => void loadData(), 12000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+  const user = useAuthStore((state) => state.user);
+  const residentStreetId = normaliseId(user?.street_id);
+  const residentBarangayId = normaliseId(user?.barangay_id);
+  const addressMissing = !residentStreetId && !residentBarangayId;
+  const liveQuery = useResidentQuery("tracking", ["live"], fetchLiveTrucks, { refetchInterval: 15_000 });
+  const reportsQuery = useResidentQuery("reports", ["latest"], () => fetchMyReports({ limit: 1, sort: "newest" }));
+  const routesQuery = useResidentQuery("routes", ["templates"], fetchRoutes, { enabled: !addressMissing });
+  const liveTrucks = liveQuery.data ?? [];
+  const latestReport = reportsQuery.data?.reports[0] ?? null;
+  const scheduleLoading = routesQuery.isLoading;
+  const trucksFailed = liveQuery.isError;
+  const reportsFailed = reportsQuery.isError;
+  const scheduleFailed = routesQuery.isError;
+  const today = getManilaNow().weekday.toUpperCase();
+  const todayRoute = (routesQuery.data ?? [])
+    .filter((route) => route.day_of_week?.toUpperCase() === today)
+    .map((route) => ({ route, stop: route.stops.find((stop) =>
+      normaliseId(stop.barangay_id) === residentBarangayId &&
+      (!stop.street_id || normaliseId(stop.street_id) === residentStreetId)) }))
+    .filter((entry): entry is ResidentRoute => Boolean(entry.stop))
+    .sort((first, second) => first.route.start_time.localeCompare(second.route.start_time))[0] ?? null;
 
   // The live endpoint retains the most recent GPS ping for offline trucks, so only
   // trucks currently on route count as live on the resident dashboard.
   const activeTrucks = liveTrucks.filter((truck) => truck.truck_status === "ON_THE_WAY");
   const activeTruck = activeTrucks[0];
   const hasActive = activeTrucks.length > 0;
-  const todayWaste = todaySchedule ? wasteTypeDetails[todaySchedule.waste_type] : null;
-  const scheduleTime = todaySchedule
-    ? `${formatScheduleTime(todaySchedule.start_time)}${todaySchedule.end_time ? ` – ${formatScheduleTime(todaySchedule.end_time)}` : ""}`
-    : "Not scheduled";
+  const todayWaste = getWasteTypeDetails(todayRoute?.route.waste_type);
+  const routeStopName = todayRoute?.stop.stop_name || todayRoute?.stop.barangay_name;
+  const scheduleTime = todayRoute
+    ? formatCollectionTime(todayRoute.route.start_time)
+    : scheduleLoading || scheduleFailed ? "—" : "Not scheduled";
+  const scheduleDestination = addressMissing ? "/resident/profile" : "/resident/tracking";
+  const scheduleBadge = addressMissing ? "Address needed"
+    : scheduleLoading ? "Loading"
+      : scheduleFailed ? "Unavailable"
+        : todayRoute ? todayWaste?.tag ?? "Scheduled" : "No collection";
+  const scheduleTitle = addressMissing ? "Set your collection address"
+    : scheduleLoading ? "Checking today's route"
+      : scheduleFailed ? "Schedule unavailable"
+        : todayRoute ? `${todayWaste?.label ?? "Waste"} collection` : "No collection scheduled";
+  const scheduleDescription = addressMissing
+    ? "Add your barangay and street to see your collection route."
+    : scheduleLoading ? "Looking up your registered collection stop."
+      : scheduleFailed ? "The collection route could not be loaded right now."
+        : todayRoute ? `Scheduled for ${routeStopName}.`
+          : `No route covers your registered ${residentStreetId ? "street" : "barangay"} today.`;
 
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
       {/* ─── Card 1: Today's Collection Schedule ─── */}
       <Card
-        onClick={() => navigate("/resident/schedule")}
+        onClick={() => navigate(scheduleDestination)}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
       >
           <div className="space-y-3 lg:space-y-3.5">
@@ -149,8 +124,8 @@ const HeroCards = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
               Today's Schedule
             </span>
-            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
-              {todayWaste ? todayWaste.tag : scheduleFailed ? "Unavailable" : "No collection"}
+            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${todayRoute && todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
+              {scheduleBadge}
             </span>
           </div>
 
@@ -160,14 +135,10 @@ const HeroCards = () => {
             </div>
             <div className="min-w-0">
               <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
-                {todayWaste ? todayWaste.label : scheduleFailed ? "Schedule unavailable" : "No collection scheduled"}
+                {scheduleTitle}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                {todayWaste
-                  ? todayWaste.description
-                  : scheduleFailed
-                    ? "The collection schedule could not be loaded right now."
-                    : "No collection schedule has been published for today."}
+                {scheduleDescription}
               </p>
             </div>
           </div>
@@ -182,7 +153,7 @@ const HeroCards = () => {
         </div>
 
         <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
-          <span>View weekly calendar</span>
+          <span>{addressMissing ? "Update collection address" : "View route details"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>
@@ -292,7 +263,7 @@ const HeroCards = () => {
                 </span>
                 <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
-                  {new Date(latestReport.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatManilaDateTime(latestReport.created_at, { month: "short", day: "numeric" }, "—")}
                 </span>
               </div>
             </>

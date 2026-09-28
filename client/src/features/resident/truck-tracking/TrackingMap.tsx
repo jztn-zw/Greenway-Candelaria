@@ -1,5 +1,5 @@
+import { useResidentFetch } from "@/lib/residentQuery";
 import { useEffect, useMemo, useRef, useState } from "react";
-// @ts-ignore
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Truck, CollectionDayStatus } from "./types";
@@ -32,6 +32,7 @@ interface TrackingMapProps {
   focusedTruckId: string | null;
   residentBarangayCoords: [number, number] | null;
   residentAreaName: string;
+  residentBarangayName?: string | null;
   lockedToBarangay: boolean;
   collectionDayStatus: CollectionDayStatus;
   nextCollectionInfo?: string;
@@ -51,25 +52,43 @@ const MAX_ZOOM = 17;
 
 const getBarangayPopupContent = (
   areaName: string,
+  barangayName: string | null | undefined,
   isCompleted: boolean,
   completedAt?: string
 ) => {
+  const formattedBarangay = barangayName
+    ? /^brgy\.?\s/i.test(barangayName)
+      ? barangayName
+      : `Brgy. ${barangayName}`
+    : "Registered collection area";
+
+  const root = document.createElement("div");
+  root.style.cssText = `font-family:Inter,sans-serif;font-size:${isCompleted ? "12px" : "13px"};min-width:${isCompleted ? "165px" : "140px"};line-height:1.4;`;
+  const heading = document.createElement("div");
+  heading.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;";
+  const title = document.createElement("strong");
+  title.style.cssText = `color:${isCompleted ? "#0f172a" : "inherit"};font-size:13px;`;
+  title.textContent = areaName;
+  heading.append(title);
   if (isCompleted) {
-    return `<div style="font-family:Inter,sans-serif;font-size:12px;min-width:165px;line-height:1.4;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
-        <strong style="color:#0f172a;font-size:13px;">${areaName}</strong>
-        <span style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;">Done</span>
-      </div>
-      <div style="color:#059669;font-size:11px;font-weight:600;">
-        Collection Completed ${completedAt ? `• ${completedAt}` : ""}
-      </div>
-      <span style="color:#64748b;font-size:10px;display:block;margin-top:2px;">Your registered barangay</span>
-    </div>`;
+    const badge = document.createElement("span");
+    badge.style.cssText = "background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;";
+    badge.textContent = "Done";
+    heading.append(badge);
   }
-  return `<div style="font-family:Inter,sans-serif;font-size:13px;min-width:140px">
-    <strong>${areaName}</strong><br/>
-    <span style="color:#666;font-size:11px">Your registered barangay</span>
-  </div>`;
+  root.append(heading);
+
+  if (isCompleted) {
+    const completion = document.createElement("div");
+    completion.style.cssText = "color:#059669;font-size:11px;font-weight:600;";
+    completion.textContent = `Collection Completed${completedAt ? ` • ${completedAt}` : ""}`;
+    root.append(completion);
+  }
+  const area = document.createElement("span");
+  area.style.cssText = `color:${isCompleted ? "#64748b" : "#666"};font-size:${isCompleted ? "10px" : "11px"};display:block;margin-top:2px;`;
+  area.textContent = formattedBarangay;
+  root.append(area);
+  return root;
 };
 
 const createBarangayPinIcon = (isCompleted = false, isMissed = false) => {
@@ -153,16 +172,19 @@ const TrackingMap = ({
   focusedTruckId,
   residentBarangayCoords,
   residentAreaName,
+  residentBarangayName,
   lockedToBarangay,
   collectionDayStatus,
   nextCollectionInfo,
   onSelectTruck,
   onRouteCalculated,
 }: TrackingMapProps) => {
+  const fetchResident = useResidentFetch();
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const residentLayerRef = useRef<L.Marker | null>(null);
   const trucksLayerRef = useRef<L.LayerGroup | null>(null);
+  const coverageLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const lastViewModeRef = useRef<"bounds" | "focused" | "barangay" | null>(null);
   const lastFocusedTruckIdRef = useRef<string | null>(null);
@@ -183,9 +205,10 @@ const TrackingMap = ({
   const isResidentCompleted =
     residentStopStatus === "done" ||
     (!residentStopStatus && collectionDayStatus === "completed");
-  // Keep live route information visible after this barangay is served. The
-  // tracking day only finishes once the collector closes the entire route.
+  // The resident truck remains visible while the street is awaiting service;
+  // once this street is done, its truck and road path are cleared from the map.
   const hasResidentCollectionOutcome = collectionDayStatus === "completed";
+  const isResidentTrackingComplete = isResidentCompleted;
 
   const residentCompletedAt = residentTruck?.residentStopCompletedAt;
 
@@ -193,32 +216,39 @@ const TrackingMap = ({
     () =>
       trucks.filter(
         (truck) =>
-          truck.status === "on-the-way" && truck.coords && !hasResidentCollectionOutcome,
+          truck.status === "on-the-way" &&
+          truck.coords &&
+          !hasResidentCollectionOutcome &&
+          !(isResidentTrackingComplete && truck.isResidentTruck),
       ),
-    [trucks, hasResidentCollectionOutcome]
+    [trucks, hasResidentCollectionOutcome, isResidentTrackingComplete]
   );
-  // A paused route has no live ETA or green route line, but residents still
+  // A paused route has no live ETA or blue route line, but residents still
   // waiting for collection can see the truck's last known location.
   const pausedTrucks = useMemo(
     () =>
       trucks.filter(
         (truck) =>
-          truck.status === "paused" && truck.coords && !hasResidentCollectionOutcome,
+          truck.status === "paused" &&
+          truck.coords &&
+          !hasResidentCollectionOutcome &&
+          !(isResidentTrackingComplete && truck.isResidentTruck),
       ),
-    [trucks, hasResidentCollectionOutcome],
+    [trucks, hasResidentCollectionOutcome, isResidentTrackingComplete],
   );
   const visibleTrucks = useMemo(
     () => [...activeTrucks, ...pausedTrucks],
     [activeTrucks, pausedTrucks],
   );
   const pausedResidentTruck = useMemo(
-    () => pausedTrucks.find((truck) => truck.isResidentTruck) ?? pausedTrucks[0] ?? null,
-    [pausedTrucks],
+    () => trucks.find((truck) => truck.isResidentTruck && truck.status === "paused") ?? null,
+    [trucks],
   );
   const hasActiveTrucks = activeTrucks.length > 0;
 
   // Selected or primary active truck heading towards resident
   const targetTruck = useMemo(() => {
+    if (isResidentTrackingComplete) return null;
     if (focusedTruckId) {
       const found = activeTrucks.find((t) => t.id === focusedTruckId);
       if (found) return found;
@@ -226,54 +256,18 @@ const TrackingMap = ({
     const residentActiveTruck = activeTrucks.find((t) => t.isResidentTruck);
     if (residentActiveTruck) return residentActiveTruck;
     return activeTrucks[0] ?? null;
-  }, [activeTrucks, focusedTruckId]);
+  }, [activeTrucks, focusedTruckId, isResidentTrackingComplete]);
 
-  const stopsBeforeResident = useMemo(() => {
-    if (!targetTruck) return 0;
-    const residentStopIndex = targetTruck.routeStops.findIndex(
-      (stop) => stop.isResidentBarangay,
-    );
-    return targetTruck.routeStops
-      .slice(0, residentStopIndex >= 0 ? residentStopIndex : 0)
-      .filter((stop) => stop.status !== "done" && stop.status !== "skipped").length;
-  }, [targetTruck]);
+  const stopsBeforeResident = targetTruck?.barangaysAway ?? 0;
+  // Other areas' coordinates are private. This estimates direct travel only.
+  const arrivalWaypoints = useMemo((): [number, number][] =>
+    targetTruck?.coords && residentBarangayCoords ? [targetTruck.coords, residentBarangayCoords] : [],
+    [targetTruck, residentBarangayCoords]);
 
-  // The resident ETA follows the remaining scheduled collection stops, while
-  // the visible green line stays focused on the direct live route home.
-  const arrivalWaypoints = useMemo((): [number, number][] => {
-    if (!targetTruck?.coords || !residentBarangayCoords) return [];
-
-    const residentStopIndex = targetTruck.routeStops.findIndex(
-      (stop) => stop.isResidentBarangay,
-    );
-    const firstUnfinishedIndex = targetTruck.routeStops.findIndex(
-      (stop) => stop.status !== "done" && stop.status !== "skipped",
-    );
-
-    if (
-      residentStopIndex < 0 ||
-      firstUnfinishedIndex < 0 ||
-      firstUnfinishedIndex > residentStopIndex
-    ) {
-      return [];
-    }
-
-    const stopsBeforeResident = targetTruck.routeStops.slice(
-      firstUnfinishedIndex,
-      residentStopIndex,
-    );
-    if (stopsBeforeResident.some((stop) => !stop.coords)) return [];
-
-    return [
-      targetTruck.coords,
-      ...stopsBeforeResident.map((stop) => stop.coords as [number, number]),
-      residentBarangayCoords,
-    ];
-  }, [targetTruck, residentBarangayCoords]);
-
-  const arrivalWaypointsKey = arrivalWaypoints
-    .map(([latitude, longitude]) => `${latitude.toFixed(5)},${longitude.toFixed(5)}`)
-    .join(";");
+  const targetTruckLatitude = targetTruck?.coords?.[0] ?? null;
+  const targetTruckLongitude = targetTruck?.coords?.[1] ?? null;
+  const residentLatitude = residentBarangayCoords?.[0] ?? null;
+  const residentLongitude = residentBarangayCoords?.[1] ?? null;
 
   useEffect(() => {
     if (!mapElementRef.current || mapRef.current) return;
@@ -296,6 +290,7 @@ const TrackingMap = ({
       maxZoom: MAX_ZOOM,
     }).addTo(map);
 
+    coverageLayerRef.current = L.layerGroup().addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
     trucksLayerRef.current = L.layerGroup().addTo(map);
     const resizeObserver = new ResizeObserver(() => {
@@ -315,6 +310,7 @@ const TrackingMap = ({
       resizeObserver.disconnect();
       residentLayerRef.current = null;
       trucksLayerRef.current = null;
+      coverageLayerRef.current = null;
       routeLayerRef.current = null;
       map.remove();
       mapRef.current = null;
@@ -327,6 +323,7 @@ const TrackingMap = ({
 
     const popup = getBarangayPopupContent(
       residentAreaName,
+      residentBarangayName,
       isResidentCompleted,
       residentCompletedAt,
     );
@@ -334,18 +331,59 @@ const TrackingMap = ({
     const residentMarker = residentLayerRef.current;
 
     if (!residentMarker) {
-      residentLayerRef.current = L.marker(residentBarangayCoords, {
+      const marker = L.marker(residentBarangayCoords, {
         icon,
         zIndexOffset: 500,
-      }) as any;
-      residentLayerRef.current.bindPopup(popup).addTo(map);
+      });
+      marker.bindPopup(popup).addTo(map);
+      residentLayerRef.current = marker;
       return;
     }
 
     residentMarker.setIcon(icon);
     residentMarker.setLatLng(residentBarangayCoords);
     residentMarker.setPopupContent(popup);
-  }, [residentAreaName, residentBarangayCoords, isResidentCompleted, isResidentMissed, residentCompletedAt]);
+  }, [residentAreaName, residentBarangayName, residentBarangayCoords, isResidentCompleted, isResidentMissed, residentCompletedAt]);
+
+  // Street paths are snapshotted with the route run. They show what has been
+  // served already without changing when an admin later edits a street path.
+  useEffect(() => {
+    const layer = coverageLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    targetTruck?.routeStops
+      .filter((stop) => stop.isResidentBarangay)
+      .forEach((stop) => {
+        if (!stop.coveragePath || stop.coveragePath.length < 2) return;
+
+        const color = stop.status === "in-progress"
+          ? "#f59e0b"
+          : stop.status === "done"
+            ? "#166534"
+            : stop.status === "skipped"
+              ? "#dc2626"
+              : "#94a3b8";
+
+        L.polyline(stop.coveragePath, {
+          color: "#ffffff",
+          weight: stop.status === "in-progress" ? 9 : 7,
+          opacity: 0.9,
+          lineCap: "round",
+          lineJoin: "round",
+          interactive: false,
+        }).addTo(layer);
+
+        L.polyline(stop.coveragePath, {
+          color,
+          weight: stop.status === "in-progress" ? 6 : 4.5,
+          opacity: stop.status === "done" ? 0.68 : 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+          interactive: false,
+        }).addTo(layer);
+      });
+  }, [targetTruck?.id, targetTruck?.routeStops]);
 
   // Road snapping route calculation and polyline rendering
   useEffect(() => {
@@ -353,15 +391,24 @@ const TrackingMap = ({
     if (!routeLayer) return;
     routeLayer.clearLayers();
 
-    if (!targetTruck?.coords || !residentBarangayCoords) {
+    if (
+      !targetTruck ||
+      targetTruckLatitude === null ||
+      targetTruckLongitude === null ||
+      residentLatitude === null ||
+      residentLongitude === null
+    ) {
       setRouteData(null);
       return;
     }
 
+    const truckCoordinates: [number, number] = [targetTruckLatitude, targetTruckLongitude];
+    const residentCoordinates: [number, number] = [residentLatitude, residentLongitude];
+
     let isMounted = true;
     setIsCalculatingRoute(true);
 
-    getRoadRoute(targetTruck.coords, residentBarangayCoords)
+    fetchResident("road-routing", [truckCoordinates, residentCoordinates], () => getRoadRoute(truckCoordinates, residentCoordinates))
       .then((result) => {
         if (!isMounted) return;
         setRouteData(result);
@@ -398,11 +445,12 @@ const TrackingMap = ({
       isMounted = false;
     };
   }, [
-    targetTruck?.id,
-    targetTruck?.coords?.[0],
-    targetTruck?.coords?.[1],
-    residentBarangayCoords?.[0],
-    residentBarangayCoords?.[1],
+    fetchResident,
+    targetTruck,
+    targetTruckLatitude,
+    targetTruckLongitude,
+    residentLatitude,
+    residentLongitude,
     onRouteCalculated,
   ]);
 
@@ -416,7 +464,7 @@ const TrackingMap = ({
 
     let isMounted = true;
     setArrivalRouteData(null);
-    getMultiStopRoadRoute(arrivalWaypoints)
+    fetchResident("road-routing", ["multi", arrivalWaypoints], () => getMultiStopRoadRoute(arrivalWaypoints))
       .then((result) => {
         if (isMounted) setArrivalRouteData(result);
       })
@@ -427,7 +475,7 @@ const TrackingMap = ({
     return () => {
       isMounted = false;
     };
-  }, [arrivalWaypointsKey]);
+  }, [arrivalWaypoints, fetchResident]);
 
   const estimatedArrivalMinutes =
     arrivalRouteData?.durationMinutes ?? routeData?.durationMinutes ?? null;
@@ -445,12 +493,16 @@ const TrackingMap = ({
 
       const marker = L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
 
-      marker.bindPopup(
-        `<div style="font-family:Inter,sans-serif;font-size:13px">
-          <strong>${truck.name}</strong> · ${truck.plateNumber}<br/>
-          <span>${truck.status === "paused" ? "Paused — last known location" : truck.driver || "Assigned Driver"}</span>
-        </div>`
-      );
+      const popup = document.createElement("div");
+      popup.style.cssText = "font-family:Inter,sans-serif;font-size:13px;";
+      const truckTitle = document.createElement("strong");
+      truckTitle.textContent = `${truck.name} · ${truck.plateNumber}`;
+      const details = document.createElement("span");
+      details.textContent = truck.status === "paused"
+        ? "Paused — last known location"
+        : truck.driver || "Assigned Driver";
+      popup.append(truckTitle, document.createElement("br"), details);
+      marker.bindPopup(popup);
 
       if (onSelectTruck) {
         marker.on("click", () => onSelectTruck(truck.id));
@@ -520,7 +572,17 @@ const TrackingMap = ({
 
   const handleFitRouteBounds = () => {
     if (!mapRef.current) return;
-    if (routeData && routeData.coordinates.length > 1) {
+    const coveragePoints = targetTruck?.routeStops
+      .filter((stop) => stop.isResidentBarangay)
+      .flatMap(
+      (stop) => stop.coveragePath ?? [],
+    ) ?? [];
+    if (coveragePoints.length > 1) {
+      mapRef.current.fitBounds(L.latLngBounds(coveragePoints), {
+        padding: [48, 48],
+        maxZoom: 16,
+      });
+    } else if (routeData && routeData.coordinates.length > 1) {
       const latLngs = routeData.coordinates.map(([lat, lng]) => L.latLng(lat, lng));
       mapRef.current.fitBounds(L.latLngBounds(latLngs), {
         padding: [48, 48],
@@ -638,7 +700,7 @@ const TrackingMap = ({
             <span className="truncate text-xs font-semibold text-foreground">{residentAreaName}</span>
             <span className="shrink-0 text-muted-foreground">·</span>
             <span className={`shrink-0 text-[11px] font-semibold ${isResidentMissed ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
-              {isResidentMissed ? "Collection missed" : "Collection complete"}
+              {isResidentMissed ? "Street skipped" : "Street collection done"}
             </span>
           </div>
         </div>
@@ -664,7 +726,7 @@ const TrackingMap = ({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
-              Collection is temporarily paused. This pin shows the truck's last known location.
+              Collection is temporarily paused. {pausedResidentTruck.coords ? "The pin shows the last known location." : "No GPS location is available yet."}
             </p>
           </div>
         </div>
@@ -719,7 +781,7 @@ const TrackingMap = ({
                 <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-primary" />
-                    Road Distance
+                    {routeData.source === "haversine" ? "Straight-line distance" : "Road distance"}
                   </span>
                   <span className="text-sm font-extrabold font-display text-foreground tracking-tight mt-0.5">
                     {routeData.distanceKm} km
@@ -729,21 +791,22 @@ const TrackingMap = ({
                 <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3 text-primary" />
-                    Est. Arrival
+                    Travel estimate
                   </span>
                   <span className="text-sm font-extrabold font-display text-primary tracking-tight mt-0.5">
-                    ~{estimatedArrivalMinutes ?? routeData.durationMinutes} mins
+                    ~{estimatedArrivalMinutes ?? routeData.durationMinutes} mins driving
                   </span>
                 </div>
               </div>
 
+              <p className="text-[10px] text-muted-foreground">Excludes collection time at other stops; arrival is not guaranteed.</p>
               <div className="flex items-center text-[11px] text-muted-foreground pt-0.5">
                 <span className="flex items-center gap-1.5 truncate">
                   <RouteIcon className="w-3 h-3 text-primary shrink-0" />
                   <span className="truncate">
                     {stopsBeforeResident > 0
-                      ? `${stopsBeforeResident} stop${stopsBeforeResident === 1 ? "" : "s"} before your barangay`
-                      : "Your barangay is next"}
+                      ? `${stopsBeforeResident} stop${stopsBeforeResident === 1 ? "" : "s"} before your area`
+                      : "Your area is next"}
                   </span>
                 </span>
               </div>
@@ -775,6 +838,20 @@ const TrackingMap = ({
         </div>
       ) : null}
 
+      {targetTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
+        <div className="absolute bottom-2.5 left-2.5 z-[450] flex items-center gap-2 rounded-xl border border-border/80 bg-card/90 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-sm backdrop-blur-md lg:bottom-3 lg:left-3">
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-500" /> Current
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-green-800" /> Done
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+          </span>
+        </div>
+      )}
+
       {/* Floating Map Action Controls (Bottom-Right) */}
       <div className="absolute bottom-2.5 right-2.5 lg:bottom-3 lg:right-3 z-[500] flex items-center gap-1 lg:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-sm pointer-events-auto">
         {targetTruck?.coords && (
@@ -793,10 +870,10 @@ const TrackingMap = ({
           type="button"
           onClick={handleRecenterBarangay}
           className="flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
-          title="Zoom to My Barangay"
+          title="Zoom to My Collection Area"
         >
           <LocateFixed className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden lg:inline">My Brgy</span>
+          <span className="hidden lg:inline">My Area</span>
         </button>
 
         <button

@@ -1,3 +1,5 @@
+import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
+
 export interface PostItem {
   id: string;
   title: string;
@@ -82,20 +84,18 @@ export function parsePostDate(dateStr?: string | null): {
   if (!dateStr) {
     return { month: "—", day: "—", formatted: "Recent" };
   }
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return {
-        month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-        day: d.getDate().toString(),
-        formatted: d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-      };
-    }
-  } catch {}
+  const date = parseApiTimestamp(dateStr);
+  if (date) {
+    return {
+      month: formatManilaDateTime(date, { month: "short" }).toUpperCase(),
+      day: formatManilaDateTime(date, { day: "numeric" }),
+      formatted: formatManilaDateTime(date, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    };
+  }
 
   const match = String(dateStr).match(/([a-zA-Z]+)\s+(\d+),\s*(\d+)/);
   if (match) {

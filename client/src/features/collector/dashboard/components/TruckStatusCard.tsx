@@ -16,7 +16,7 @@ interface Props {
 }
 
 const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
-  if (!data || !data.plateNumber) {
+  if (!data) {
     return (
       <div className={`rounded-2xl border border-dashed border-border/80 bg-card p-5 sm:p-6 text-center shadow-xs ${className || ""}`}>
         <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-2.5 text-muted-foreground border border-border/50">
@@ -49,11 +49,11 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
           <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/25 shrink-0">
             <Wrench className="w-3 h-3" /> Under maintenance
           </span>
-        ) : (
+        ) : data.availabilityStatus === "ACTIVE" ? (
           <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
             <ShieldCheck className="w-3 h-3" /> Road ready
           </span>
-        )}
+        ) : <span className="text-xs text-muted-foreground">Readiness unavailable</span>}
       </div>
 
       {/* Middle: Balanced 3-Column Vehicle Telemetry Grid */}
@@ -67,7 +67,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
               {data.name || "Truck"}
             </p>
             <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight truncate">
-              {data.model || "Compactor"}
+              {data.model || "Model unavailable"}
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
           </span>
           <div className="min-w-0 mt-1">
             <p className="text-xs sm:text-sm font-bold font-mono text-foreground leading-tight break-words [overflow-wrap:anywhere]">
-              {data.plateNumber}
+              {data.plateNumber || "Unavailable"}
             </p>
             <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight truncate">
               Registered

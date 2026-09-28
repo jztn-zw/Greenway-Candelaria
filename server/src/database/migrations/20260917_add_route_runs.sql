@@ -2,7 +2,7 @@
 -- one independent route run and an immutable copy of its ordered stops.
 CREATE TABLE route_runs (
   id varchar(36) NOT NULL,
-  route_id varchar(36) NOT NULL,
+  route_id varchar(36) DEFAULT NULL,
   run_date date NOT NULL,
   truck_id varchar(36) NOT NULL,
   driver_id varchar(36) DEFAULT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE route_runs (
   KEY idx_route_runs_date_status (run_date, status),
   KEY idx_route_runs_driver_date (driver_id, run_date),
   KEY idx_route_runs_truck_date (truck_id, run_date),
-  CONSTRAINT fk_route_runs_template FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE,
+  CONSTRAINT fk_route_runs_template FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL,
   CONSTRAINT fk_route_runs_truck FOREIGN KEY (truck_id) REFERENCES trucks(id) ON DELETE CASCADE,
   CONSTRAINT fk_route_runs_driver FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

@@ -6,23 +6,17 @@
  * Re-fetches after mutations (mark done, skip) via the `refresh` callback.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useCallback } from "react";
+import { useCollectorQuery } from "@/lib/collectorQuery";
+import { getManilaNow } from "@/utils/date";
 import { fetchMyRoute } from "@/services/trackingService";
 import type { TruckRouteRow } from "@/services/trackingService";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
 import type { RouteStop, RouteInfo } from "../types";
 import { toFiniteNumber } from "../routeMap.utils";
 
 const CANDELARIA_CENTER: [number, number] = [14.0388, 121.4285];
-const ROUTE_REFRESH_MS = 10_000;
+const ROUTE_REFRESH_MS = 30_000;
 
-const normalizeBarangayName = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/^brgy\.?\s*/i, "")
-    .replace(/^barangay\s+/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
 const parseRouteStartedAt = (value: string | null | undefined): Date => {
   if (!value) return new Date();
 
@@ -54,9 +48,8 @@ const parseRouteStartedAt = (value: string | null | undefined): Date => {
   const timeOnlyMatch = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (timeOnlyMatch) {
     const [, hour, minute, second = "0"] = timeOnlyMatch;
-    const scheduled = new Date();
-    scheduled.setHours(Number(hour), Number(minute), Number(second), 0);
-    return scheduled;
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    return new Date(`${today}T${hour}:${minute}:${second}+08:00`);
   }
 
   return new Date();
@@ -87,36 +80,44 @@ const isRouteFinished = (route: TruckRouteRow) => {
   return route.stops.every((stop) => isTerminalStopStatus(stop.status));
 };
 
+const normalizeCoveragePath = (
+  value: TruckRouteRow["stops"][number]["coverage_path"],
+): [number, number][] | null => {
+  if (!value) return null;
+
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return null;
+    const points = parsed.flatMap((point): [number, number][] => {
+      if (!Array.isArray(point) || point.length < 2) return [];
+      const latitude = Number(point[0]);
+      const longitude = Number(point[1]);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? [[latitude, longitude]]
+        : [];
+    });
+    return points.length >= 2 ? points : null;
+  } catch {
+    return null;
+  }
+};
+
 // Map backend stops → frontend RouteStop[]
 const mapStops = (
   raw: TruckRouteRow["stops"],
-  barangays: BarangayLocationRow[],
 ): RouteStop[] => {
-  const barangayById = new Map(barangays.map((barangay) => [barangay.id, barangay]));
-  const barangayByName = new Map(
-    barangays.map((barangay) => [normalizeBarangayName(barangay.name), barangay]),
-  );
-
   return raw
     .slice()
     .sort((a, b) => a.order_index - b.order_index)
     .map((s, idx) => {
+      const coveragePath = normalizeCoveragePath(s.coverage_path);
       const stopLat = toFiniteNumber(s.latitude);
       const stopLng = toFiniteNumber(s.longitude);
 
-      const matchedBarangay =
-        barangayById.get(s.barangay_id) ??
-        barangayByName.get(normalizeBarangayName(s.barangay_name));
-
-      const barangayLat = toFiniteNumber(matchedBarangay?.latitude);
-      const barangayLng = toFiniteNumber(matchedBarangay?.longitude);
-
-      const coords =
-        stopLat !== null && stopLng !== null
+      const coords = coveragePath?.[0] ??
+        (stopLat !== null && stopLng !== null
           ? ([stopLat, stopLng] as [number, number])
-          : barangayLat !== null && barangayLng !== null
-            ? ([barangayLat, barangayLng] as [number, number])
-            : CANDELARIA_CENTER;
+          : CANDELARIA_CENTER);
 
       const distanceKm = toFiniteNumber(s.distance_km);
 
@@ -124,16 +125,18 @@ const mapStops = (
         id: s.id,
         barangayId: s.barangay_id,
         stopNumber: s.order_index ?? idx + 1,
-        barangay: s.barangay_name,
+        barangay: s.stop_name ?? s.barangay_name,
         status: mapStatus(s.status),
         completedAt: s.completed_at
-          ? new Date(s.completed_at).toLocaleTimeString("en-US", {
+          ? parseRouteStartedAt(s.completed_at).toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
             })
           : undefined,
         skippedReason: s.skipped_reason ?? undefined,
         coords,
+        hasCoordinates: Boolean(coveragePath?.length || (stopLat !== null && stopLng !== null)),
+        coveragePath,
         distanceKm: distanceKm ?? 0,
       };
     });
@@ -141,7 +144,10 @@ const mapStops = (
 
 // Map backend route → frontend RouteInfo
 const mapRouteInfo = (raw: TruckRouteRow): RouteInfo => ({
+  pausedAt: raw.paused_at ? parseRouteStartedAt(raw.paused_at) : null,
+  totalPausedSeconds: Number(raw.total_paused_seconds) || 0,
   routeId: raw.route_id,
+  templateRouteId: raw.template_route_id,
   truckId: raw.truck_id,
   routeName: raw.route_name ?? `${raw.truck_name} Route`,
   wasteType: (raw.waste_type as RouteInfo["wasteType"]) ?? "Biodegradable",
@@ -161,131 +167,19 @@ interface UseRouteDataReturn {
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
-  /** Optimistically update a stop's status locally (before API confirms) */
-  updateStopLocally: (stopId: string, patch: Partial<RouteStop>) => void;
 }
 
 export const useRouteData = (): UseRouteDataReturn => {
-  const [stops, setStops] = useState<RouteStop[]>([]);
-  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0); // bump to re-fetch
-  const hasLoadedOnceRef = useRef(false);
+  const route = useCollectorQuery("routes", ["current", getManilaNow().dateKey], fetchMyRoute, { refetchInterval: ROUTE_REFRESH_MS });
+  const { refetch } = route;
+  const refresh = useCallback(() => { void refetch(); }, [refetch]);
+  const mapped = useMemo(() => {
+    if (!route.data || isRouteFinished(route.data)) return { stops: [], routeInfo: null };
+    return { stops: mapStops(route.data.stops), routeInfo: mapRouteInfo(route.data) };
+  }, [route.data]);
 
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      if (!hasLoadedOnceRef.current) {
-        setIsLoading(true);
-      }
-
-      try {
-        const [route, barangays] = await Promise.all([
-          fetchMyRoute(),
-          fetchBarangays().catch(() => []),
-        ]);
-        if (cancelled) return;
-
-        if (!route) {
-          setError("No active route assigned for today.");
-          setStops([]);
-          setRouteInfo(null);
-          return;
-        }
-
-        if (isRouteFinished(route)) {
-          setError("No active route assigned for today.");
-          setStops([]);
-          setRouteInfo(null);
-          return;
-        }
-
-        setError(null);
-        setRouteInfo(mapRouteInfo(route));
-        setStops(mapStops(route.stops, barangays));
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load route data.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          hasLoadedOnceRef.current = true;
-          setIsLoading(false);
-        }
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [tick]);
-
-
-  // Keep collector route data fresh so new admin assignments appear without relogin.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTick((t) => t + 1);
-    }, ROUTE_REFRESH_MS);
-
-    return () => clearInterval(id);
-  }, []);
-
-  // Refresh immediately when user returns to this tab/window.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (!document.hidden) {
-        setTick((t) => t + 1);
-      }
-    };
-
-    const handleFocus = () => {
-      setTick((t) => t + 1);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, []);
-
-  /**
-   * Optimistic update — immediately reflect changes in the UI before the
-   * API responds. If the API fails, call `refresh()` to re-sync from server.
-   */
-  const updateStopLocally = useCallback(
-    (stopId: string, patch: Partial<RouteStop>) => {
-      setStops((prev) => {
-        const updated = prev.map((s) =>
-          s.id === stopId ? { ...s, ...patch } : s,
-        );
-
-        // Auto-advance: set the next "not-yet" stop to "in-progress"
-        const wasActive =
-          prev.find((s) => s.id === stopId)?.status === "in-progress";
-        if (wasActive) {
-          const nextIdx = updated.findIndex((s) => s.status === "not-yet");
-          if (nextIdx !== -1) {
-            updated[nextIdx] = { ...updated[nextIdx], status: "in-progress" };
-          }
-        }
-
-        return updated;
-      });
-    },
-    [],
-  );
-
-  return { stops, routeInfo, isLoading, error, refresh, updateStopLocally };
+  const error = route.error ? route.error instanceof Error ? route.error.message : "Failed to load route data." : null;
+  return { ...mapped, isLoading: route.isLoading, error, refresh };
 };
 
 

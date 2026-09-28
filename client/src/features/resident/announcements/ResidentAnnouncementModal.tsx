@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { FormDialogHeader } from "@/components/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
+import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
+import React, { useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Megaphone,
-  X,
   CalendarClock,
   CalendarDays,
   Sparkles,
@@ -175,62 +175,38 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   showExactTime = false,
   footerDetails,
 }) => {
-  const [announcement, setAnnouncement] = useState<AnnouncementDetail | null>(null);
-  const targetId =
-    announcementId ||
-    (notification?.ref_module === "announcements" ? notification.ref_id : null);
-  const displayAnnouncement =
-    initialAnnouncement?.id === targetId ? initialAnnouncement : announcement;
-
+  const targetId = announcementId || (notification?.ref_module === "announcements" ? notification.ref_id : null);
+  const query = useResidentQuery("announcements", ["detail", targetId], () => fetchAnnouncementById(targetId!),
+    { enabled: open && !!targetId && !disableReadTracking });
+  const displayAnnouncement = (query.data as unknown as AnnouncementDetail | undefined) ?? (initialAnnouncement?.id === targetId ? initialAnnouncement : null);
+  const markRead = useResidentMutation(markAnnouncementAsRead);
+  const readId = useRef<string | null>(null);
+  const notificationReadId = useRef<string | null>(null);
   useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-
-    if (!disableReadTracking && notification && !notification.is_read && onMarkRead) {
+    if (!open) { readId.current = null; notificationReadId.current = null; return; }
+    if (disableReadTracking) return;
+    if (targetId && query.isSuccess && readId.current !== targetId) {
+      readId.current = targetId;
+      void markRead(targetId).catch(() => { readId.current = null; });
+    }
+    if (notification && !notification.is_read && onMarkRead && notificationReadId.current !== notification.id) {
+      notificationReadId.current = notification.id;
       onMarkRead(notification.id);
     }
-
-    if (initialAnnouncement?.id === targetId) {
-      // The notification page preloads this detail before opening the modal.
-      // This avoids a second request and lets every field render immediately.
-      setAnnouncement(initialAnnouncement);
-      if (!disableReadTracking && targetId) {
-        void markAnnouncementAsRead(targetId).catch(() => {});
-      }
-    } else if (targetId) {
-      // Render the notification's title and body immediately. The full
-      // announcement only adds metadata, so it can load in the background.
-      setAnnouncement(null);
-      void (async () => {
-        try {
-          if (!disableReadTracking) {
-            void markAnnouncementAsRead(targetId).catch(() => {});
-          }
-          const data = await fetchAnnouncementById(targetId);
-          if (!cancelled) {
-            setAnnouncement(data as unknown as AnnouncementDetail);
-          }
-        } catch {
-          if (cancelled) return;
-          setAnnouncement(null);
-          toast.info("This announcement is no longer available.");
-          onOpenChange(false);
-        }
-      })();
-    } else {
-      setAnnouncement(null);
+  }, [open, targetId, disableReadTracking, markRead, notification, onMarkRead, query.isSuccess]);
+  useEffect(() => {
+    const status = (query.error as { response?: { status?: number } } | null)?.response?.status;
+    if (open && (status === 403 || status === 404)) {
+      toast.info("This announcement is no longer available.");
+      onOpenChange(false);
     }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, announcementId, initialAnnouncement, notification, onMarkRead, targetId, disableReadTracking]);
+  }, [query.error, open, onOpenChange]);
 
   if (!open) return null;
 
   // Resolve display values
   const title = (displayAnnouncement?.title || notification?.title || "Official Announcement")
-    .replace(/[🚨⚠️]/g, "")
+    .replace(/🚨|⚠️|⚠/g, "")
     .trim();
   const body = displayAnnouncement?.body || notification?.body || "";
   const createdAt = displayAnnouncement?.sent_at || displayAnnouncement?.created_at || notification?.created_at;
@@ -238,6 +214,8 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   // A notification has no announcement category. Do not temporarily label it
   // as "General Notice" while the full announcement is loading.
   const hasLoadedDetails = Boolean(displayAnnouncement && displayAnnouncement.id === targetId);
+  const loadingDetails = !disableReadTracking && !hasLoadedDetails && query.isLoading;
+  const detailsError = !disableReadTracking && query.isError;
   const mappedType = hasLoadedDetails
     ? mapToAnnouncementType(displayAnnouncement?.type)
     : null;
@@ -245,9 +223,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   const announcementTime = formatAnnouncementTime(createdAt);
   const activeCategory = mappedType ? categoryConfig[mappedType] : null;
   const CategoryIcon = activeCategory?.icon || Megaphone;
-  const iconBg = activeCategory?.iconBg || "bg-primary/10";
   const iconText = activeCategory?.iconText || "text-primary";
-  const iconBorder = activeCategory?.iconBorder || "border-primary/20";
 
   const handleClose = () => {
     if (!disableReadTracking && notification && !notification.is_read && onMarkRead) {
@@ -258,36 +234,15 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl ${iconBg} ${iconText} border ${iconBorder} flex items-center justify-center shrink-0 shadow-2xs`}
-            >
-              <CategoryIcon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">
-                {headerTitle}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                {headerDescription}
-              </DialogDescription>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
-            title="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+      <DialogContent className={modalStyles.content}>
+        <FormDialogHeader title={headerTitle} description={headerDescription} icon={<CategoryIcon className={iconText} />} onClose={handleClose} />
         {/* Modal Body */}
-        <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
+        <div className={modalStyles.body}>
+          {loadingDetails && <p role="status" className="text-xs text-muted-foreground">Loading announcement…</p>}
+          {detailsError && <div role="alert" className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3.5">
+            <p className="text-xs leading-relaxed text-destructive">Announcement details could not be loaded. Please try again.</p>
+            <Button type="button" variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()} className={modalStyles.cancelButton}>Retry</Button>
+          </div>}
           {/* Title, Category & Date Lockup (No container) */}
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -321,9 +276,9 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
           </div>
 
           {/* Description container */}
-          <div className="text-xs lg:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+          {(body || (!loadingDetails && !detailsError)) && <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">
             {body || "No additional details or instructions provided."}
-          </div>
+          </div>}
         </div>
 
         {footerDetails && (
@@ -331,11 +286,11 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
         )}
 
         {/* Modal Footer */}
-        <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
+        <div className={modalStyles.footer}>
           <Button
             type="button"
             onClick={handleClose}
-            className="w-full lg:w-auto h-9 px-6 rounded-xl text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer"
+            className={modalStyles.primaryButton}
           >
             Close
           </Button>
@@ -346,4 +301,3 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
 };
 
 export default ResidentAnnouncementModal;
-

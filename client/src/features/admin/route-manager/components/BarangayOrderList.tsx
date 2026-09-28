@@ -1,27 +1,38 @@
-import React, { useRef, useState, useCallback, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
-  Plus,
   ChevronUp,
   ChevronDown,
-  Search,
-  X,
+  GripVertical,
   Loader2,
   MapPin,
+  Plus,
+  Search,
+  Trash2,
+  X,
+  Layers,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { BarangayStreetRow } from "@/services/barangaysService";
 import type { RouteForm } from "../hooks/useRoutes";
 import type { Barangay } from "../hooks/useBarangays";
 
 interface BarangayOrderListProps {
   form: RouteForm;
-  barangaySearch: string;
-  setBarangaySearch: (v: string) => void;
-  availableBarangays: Barangay[];
+  barangays: Barangay[];
+  availableStopPoints: BarangayStreetRow[];
   isLoadingBarangays: boolean;
-  onAdd: (b: { id: string; name: string }) => void;
+  isLoadingStopPoints: boolean;
+  isCollectionAvailable: boolean;
+  onSelectBarangay: (barangayId: string) => void;
+  onAdd: (point: BarangayStreetRow) => void;
+  onAddAll?: (points: BarangayStreetRow[]) => void;
+  onClearAll?: () => void;
   onRemove: (id: string) => void;
   onMove: (idx: number, direction: "up" | "down") => void;
   onReorder?: (sourceIdx: number, targetIdx: number) => void;
@@ -30,305 +41,345 @@ interface BarangayOrderListProps {
 
 export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
   form,
-  barangaySearch,
-  setBarangaySearch,
-  availableBarangays,
+  barangays,
+  availableStopPoints,
   isLoadingBarangays,
+  isLoadingStopPoints,
+  isCollectionAvailable,
+  onSelectBarangay,
   onAdd,
+  onAddAll,
+  onClearAll,
   onRemove,
   onMove,
   onReorder,
   error,
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [overIdx, setOverIdx] = useState<number | null>(null);
-  const dragItemRef = useRef<number | null>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleDragStart = useCallback((e: React.DragEvent, idx: number) => {
-    dragItemRef.current = idx;
-    setDragIdx(idx);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(idx));
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setOverIdx((prev) => (prev === idx ? prev : idx));
-  }, []);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [streetFilter, setStreetFilter] = useState("");
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, targetIdx: number) => {
-      e.preventDefault();
-      const sourceIdx = dragItemRef.current;
-      if (sourceIdx !== null && sourceIdx !== targetIdx) {
-        if (onReorder) {
-          onReorder(sourceIdx, targetIdx);
-        } else {
-          if (sourceIdx < targetIdx) {
-            for (let i = sourceIdx; i < targetIdx; i++) {
-              onMove(i, "down");
-            }
-          } else {
-            for (let i = sourceIdx; i > targetIdx; i--) {
-              onMove(i, "up");
-            }
-          }
-        }
+    (event: React.DragEvent, targetIndex: number) => {
+      event.preventDefault();
+      if (dragIndex !== null && dragIndex !== targetIndex) {
+        onReorder?.(dragIndex, targetIndex);
       }
-      setDragIdx(null);
-      setOverIdx(null);
-      dragItemRef.current = null;
+      setDragIndex(null);
     },
-    [onReorder, onMove]
+    [dragIndex, onReorder]
   );
 
-  const handleDragEnd = useCallback(() => {
-    setDragIdx(null);
-    setOverIdx(null);
-    dragItemRef.current = null;
-  }, []);
+  const filteredAvailable = useMemo(() => {
+    if (!streetFilter.trim()) return availableStopPoints;
+    const q = streetFilter.toLowerCase().trim();
+    return availableStopPoints.filter((p) =>
+      `${p.name} ${p.area ?? ""}`.toLowerCase().includes(q)
+    );
+  }, [availableStopPoints, streetFilter]);
+
+  const handleAddAll = () => {
+    if (onAddAll) {
+      onAddAll(filteredAvailable);
+    } else {
+      filteredAvailable.forEach((point) => onAdd(point));
+    }
+  };
+
+  const selectedBarangay = barangays.find((b) => b.id === form.selectedBarangayId);
 
   return (
-    <div className="space-y-3.5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <Label className={cn("text-xs font-bold", error ? "text-destructive" : "text-foreground")}>
-            Collection Sequence & Stops
+    <div className="space-y-4" aria-label="Street collection stops">
+      {/* ── Street Selector Box ── */}
+      <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 space-y-3 shadow-2xs">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            Pick Barangay & Add Streets
           </Label>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Order in which the assigned truck will visit barangays.
-          </p>
+          {selectedBarangay && (
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {availableStopPoints.length} available to add
+            </span>
+          )}
         </div>
-        <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 rounded-full px-2.5 py-0.5 tabular-nums">
-          {form.barangays.length} {form.barangays.length === 1 ? "stop" : "stops"}
-        </span>
+
+        <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          {/* Barangay Dropdown */}
+          <div className="grid grid-rows-[1.25rem_auto] gap-1">
+            <span className="flex h-5 items-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Barangay
+            </span>
+            <SearchableSelect
+              value={form.selectedBarangayId}
+              onValueChange={(val) => {
+                setStreetFilter("");
+                onSelectBarangay(val);
+              }}
+              disabled={isLoadingBarangays}
+              options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
+              placeholder={isLoadingBarangays ? "Loading barangays..." : "Select a barangay"}
+              searchPlaceholder="Search barangays..."
+              leadingIcon={<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+              className="h-10 rounded-xl border-border/80 bg-background text-xs shadow-2xs focus:ring-primary/20"
+            />
+          </div>
+
+          {/* Available Streets Selector */}
+          <div className="grid grid-rows-[1.25rem_auto] gap-1">
+            <div className="flex h-5 items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Available Streets
+              </span>
+              {filteredAvailable.length > 0 && isCollectionAvailable && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddAll}
+                  className="h-5 px-1.5 text-[11px] font-bold text-primary hover:text-primary hover:bg-primary/10 rounded cursor-pointer"
+                  title="Add all listed streets to route"
+                >
+                  + Add All ({filteredAvailable.length})
+                </Button>
+              )}
+            </div>
+
+            <div
+              className={cn(
+                "min-h-9 rounded-xl border border-border/80 bg-background/70 p-2 shadow-2xs",
+                (!form.selectedBarangayId ||
+                  isLoadingStopPoints ||
+                  !isCollectionAvailable ||
+                  availableStopPoints.length === 0) &&
+                  "flex h-10 items-center px-3 py-0",
+              )}
+            >
+              {!form.selectedBarangayId ? (
+                <p className="min-w-0 truncate text-xs text-muted-foreground">
+                  Select a barangay first to see streets.
+                </p>
+              ) : isLoadingStopPoints ? (
+                <p className="flex min-w-0 items-center gap-2 truncate text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading streets…
+                </p>
+              ) : !isCollectionAvailable ? (
+                <p
+                  className="min-w-0 truncate text-xs text-amber-600 dark:text-amber-400"
+                  title="Collection service is not available for this barangay yet."
+                >
+                  Collection is not available yet.
+                </p>
+              ) : availableStopPoints.length === 0 ? (
+                <p
+                  className="min-w-0 truncate text-xs text-muted-foreground"
+                  title="All available streets are already added or scheduled."
+                >
+                  All available streets are already added or scheduled.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {availableStopPoints.length > 4 && (
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
+                      <Input
+                        value={streetFilter}
+                        onChange={(e) => setStreetFilter(e.target.value)}
+                        placeholder="Filter streets..."
+                        className="h-7 text-xs pl-7 rounded-lg bg-muted/30 border-border/70"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1 scrollbar-thin">
+                    {filteredAvailable.length === 0 ? (
+                      <p className="px-1 py-1 text-xs text-muted-foreground">
+                        No streets match &quot;{streetFilter}&quot;.
+                      </p>
+                    ) : (
+                      filteredAvailable.map((point) => {
+                        const label = `${point.name}${point.area ? ` (${point.area})` : ""}`;
+                        const hasCoveragePath = Boolean(point.coverage_path && point.coverage_path.length >= 2);
+                        return (
+                          <Button
+                            key={point.id}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAdd(point)}
+                            className="h-7 gap-1 rounded-lg border-border/70 bg-card px-2.5 text-[11px] font-medium hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all cursor-pointer"
+                            title={hasCoveragePath
+                              ? `Add ${label} to route`
+                              : `${label} needs a coverage path in Barangay Manager`}
+                          >
+                            <Plus className="h-3 w-3 text-emerald-500" />
+                            <span>{label}</span>
+                            {!hasCoveragePath && (
+                              <AlertTriangle className="h-3 w-3 text-amber-500" aria-label="Coverage path missing" />
+                            )}
+                          </Button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Combobox Input: Click to browse ALL barangays + Search to filter ── */}
-      <div ref={dropdownRef} className="relative">
-        <div className="relative">
-          {isLoadingBarangays ? (
-            <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          )}
-
-          <Input
-            aria-label="Search or browse barangays to add"
-            placeholder={
-              isLoadingBarangays
-                ? "Loading barangays..."
-                : "Click to browse all barangays or type to search..."
-            }
-            value={barangaySearch}
-            onFocus={() => setIsDropdownOpen(true)}
-            onClick={() => setIsDropdownOpen(true)}
-            onChange={(e) => {
-              setBarangaySearch(e.target.value);
-              setIsDropdownOpen(true);
-            }}
-            disabled={isLoadingBarangays}
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "route-stops-error" : undefined}
-            className={cn("pl-9 pr-16 h-9 text-xs rounded-xl bg-background shadow-2xs", error ? "border-destructive/70 text-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:ring-primary/20")}
-          />
-
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {barangaySearch && (
-              <button
-                type="button"
-                onClick={() => setBarangaySearch("")}
-                aria-label="Clear search"
-                className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
-              aria-label="Toggle all barangays list"
-              className="text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer"
-            >
-              <ChevronDown
-                className={cn(
-                  "w-3.5 h-3.5 transition-transform duration-200",
-                  isDropdownOpen && "rotate-180"
-                )}
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Floating Dropdown: Shows ALL Available Barangays ── */}
-        {isDropdownOpen && (
-          <div className="absolute left-0 right-0 top-full mt-1.5 z-40 rounded-xl border border-border/80 bg-popover shadow-xl overflow-hidden animate-in fade-in-50 zoom-in-95">
-            {/* Dropdown Header */}
-            <div className="px-3.5 py-2 bg-muted/40 border-b border-border/60 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Available Barangays in Candelaria
-              </span>
-              <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border/60 tabular-nums">
-                {availableBarangays.length} available
-              </span>
-            </div>
-
-            {/* Scrollable list of ALL available barangays */}
-            <div className="max-h-56 overflow-y-auto divide-y divide-border/60">
-              {isLoadingBarangays ? (
-                <div className="p-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <span>Loading barangays...</span>
-                </div>
-              ) : availableBarangays.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground space-y-1">
-                  {barangaySearch ? (
-                    <>
-                      <p className="font-semibold text-foreground">No matching barangays</p>
-                      <p className="text-[11px]">No available barangay matches "{barangaySearch}"</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-semibold text-foreground">All barangays added</p>
-                      <p className="text-[11px]">All barangays are assigned to this route or scheduled on this day.</p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                availableBarangays.map((b) => (
-                  <button
-                    type="button"
-                    key={b.id}
-                    onClick={() => {
-                      onAdd({ id: b.id, name: b.name });
-                    }}
-                    className="w-full text-left px-3.5 py-2.5 text-xs text-foreground hover:bg-primary/5 transition-colors flex items-center justify-between gap-2 group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <MapPin className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                      <span className="font-semibold truncate group-hover:text-primary transition-colors">
-                        {b.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {b.zone && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground font-mono">
-                          Zone {b.zone}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground px-2 py-0.5 rounded-md transition-all shadow-2xs">
-                        <Plus className="w-3 h-3" /> Add
-                      </span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-        </div>
-        {error && <p id="route-stops-error" className="text-[11px] font-medium text-destructive -mt-1.5">{error}</p>}
-
-        {/* ── Collection Sequence: Ordered Stops List ── */}
-        <div className={cn("border rounded-xl overflow-hidden divide-y divide-border/60 max-h-64 sm:max-h-72 overflow-y-auto bg-background/50 shadow-2xs", error ? "border-destructive/70" : "border-border/80")}>
-        {form.barangays.length === 0 ? (
-          <div className="p-6 text-center space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <p className="text-xs font-bold text-foreground">No collection stops assigned yet</p>
-            <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-              Click the search box above to browse all available barangays and add them in collection order.
-            </p>
-          </div>
-        ) : (
-          form.barangays.map((b, idx) => (
-            <div
-              key={b.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, idx)}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDrop={(e) => handleDrop(e, idx)}
-              onDragEnd={handleDragEnd}
+      {/* ── Ordered Stops Sequence ── */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <Label
               className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 group transition-all select-none relative",
-                dragIdx === idx && "opacity-30 bg-muted/60 scale-[0.99]",
-                overIdx === idx &&
-                  dragIdx !== null &&
-                  dragIdx !== idx &&
-                  (dragIdx > idx
-                    ? "bg-primary/10 border-t-2 border-t-primary"
-                    : "bg-primary/10 border-b-2 border-b-primary"),
-                dragIdx === null && "hover:bg-muted/40 cursor-grab active:cursor-grabbing"
+                "text-xs font-bold flex items-center gap-1.5",
+                error ? "text-destructive" : "text-foreground"
               )}
             >
-              {/* Order index badge */}
-              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-extrabold font-mono">{idx + 1}</span>
+              <Layers className="w-3.5 h-3.5 text-primary" />
+              Route Stop Sequence
+            </Label>
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-primary">
+              {form.barangays.length} {form.barangays.length === 1 ? "stop" : "stops"}
+            </span>
+          </div>
+
+          {form.barangays.length > 0 && onClearAll && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClearAll}
+              className="h-6 px-2 text-[11px] text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Clear Stops
+            </Button>
+          )}
+        </div>
+
+        {error && <p className="text-[11px] font-medium text-destructive px-1">{error}</p>}
+
+        <div
+          className={cn(
+            "max-h-72 overflow-y-auto rounded-2xl border divide-y divide-border/50 bg-background/50 shadow-2xs scrollbar-thin",
+            error ? "border-destructive/70" : "border-border/80"
+          )}
+        >
+          {form.barangays.length === 0 ? (
+            <div className="space-y-2 p-8 text-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+                <MapPin className="h-5 w-5" />
               </div>
-
-              {/* Barangay Name */}
-              <span className="text-xs font-bold text-foreground flex-1 truncate">{b.name}</span>
-
-              {/* Up/Down buttons */}
-              <div className="flex items-center gap-0.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onMove(idx, "up")}
-                  disabled={idx === 0}
-                  className="w-6 h-6 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-25 cursor-pointer"
-                  title="Move stop up"
-                  aria-label={`Move ${b.name} up`}
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onMove(idx, "down")}
-                  disabled={idx === form.barangays.length - 1}
-                  className="w-6 h-6 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-25 cursor-pointer"
-                  title="Move stop down"
-                  aria-label={`Move ${b.name} down`}
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-
-              {/* Remove button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemove(b.id)}
-                className="w-6 h-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                title={`Remove ${b.name}`}
-                aria-label={`Remove ${b.name} from route`}
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
+              <p className="text-xs font-bold text-foreground">
+                No collection stops added yet
+              </p>
+              <p className="mx-auto max-w-xs text-[11px] leading-relaxed text-muted-foreground">
+                Select a barangay above to pick and add streets in their intended collection sequence.
+              </p>
             </div>
-          ))
-        )}
+          ) : (
+            form.barangays.map((stop, index) => {
+              const barangayName = barangays.find(
+                (b) => b.id === stop.barangayId
+              )?.name;
+
+              return (
+                <div
+                  key={stop.id}
+                  draggable
+                  onDragStart={(event) => {
+                    setDragIndex(index);
+                    event.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => handleDrop(event, index)}
+                  onDragEnd={() => setDragIndex(null)}
+                  className={cn(
+                    "flex items-center gap-2.5 px-3 py-2 transition-colors",
+                    dragIndex === index
+                      ? "bg-muted/60 opacity-40"
+                      : "hover:bg-muted/30"
+                  )}
+                >
+                  <GripVertical
+                    className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-grab shrink-0"
+                    aria-hidden="true"
+                  />
+
+                  {/* Order Number Badge */}
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+                    <span className="text-[11px] font-black tabular-nums">
+                      {index + 1}
+                    </span>
+                  </div>
+
+                  {/* Street Name & Barangay Badge */}
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className="truncate text-xs font-bold text-foreground">
+                      {stop.name}
+                    </span>
+                    {barangayName && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60 shrink-0 hidden sm:inline-block">
+                        {barangayName}
+                      </span>
+                    )}
+                  </div>
+
+                  {stop.coveragePath && stop.coveragePath.length >= 2 ? (
+                    <CheckCircle2
+                      className="h-3.5 w-3.5 shrink-0 text-emerald-500"
+                      aria-label="Coverage path saved"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      className="h-3.5 w-3.5 shrink-0 text-amber-500"
+                      aria-label="Coverage path missing"
+                    />
+                  )}
+
+                  {/* Ordering & Delete Controls */}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onMove(index, "up")}
+                      disabled={index === 0}
+                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer disabled:opacity-20"
+                      title="Move up"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onMove(index, "down")}
+                      disabled={index === form.barangays.length - 1}
+                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer disabled:opacity-20"
+                      title="Move down"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onRemove(stop.id)}
+                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer ml-1"
+                      title="Remove stop"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

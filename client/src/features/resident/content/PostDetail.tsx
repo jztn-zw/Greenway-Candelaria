@@ -1,7 +1,7 @@
+import { useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
-import { Heart, Calendar, User, MapPin, ArrowRight, FileText, Share2, Check } from "lucide-react";
+import { Heart, Calendar, User, MapPin, FileText, Share2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { BackButton } from "@/components/common";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
@@ -10,7 +10,6 @@ import PostCard from "./PostCard";
 
 interface PostDetailProps {
   post: PostItem;
-  onBack: () => void;
   relatedPosts: PostItem[];
   onOpenPost: (post: PostItem) => void;
   onPostUpdated?: (updated: PostItem) => void;
@@ -18,15 +17,18 @@ interface PostDetailProps {
 
 const PostDetail = ({
   post: initialPost,
-  onBack,
   relatedPosts,
   onOpenPost,
   onPostUpdated,
 }: PostDetailProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [post, setPost] = useState<PostItem>(initialPost);
+  const detail = useResidentResource<PostItem>("posts", ["detail", initialPost.id], () => postsService.getById(initialPost.id), initialPost);
+  const post = detail.data;
+  const setPost = detail.setData;
+  const isLoading = detail.isLoading;
+  const like = useResidentMutation(postsService.like, "posts");
+  const unlike = useResidentMutation(postsService.unlike, "posts");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [copied, setCopied] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -49,29 +51,6 @@ const PostDetail = ({
     return () => clearInterval(timer);
   }, [validImages.length, activeImageIndex]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchLatestDetail = async () => {
-      try {
-        setIsLoading(true);
-        const fresh = await postsService.getById(initialPost.id);
-        if (isMounted && fresh) {
-          setPost(fresh);
-          onPostUpdated?.(fresh);
-        }
-      } catch (err) {
-        // Fall back to initial post if error
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchLatestDetail();
-    return () => {
-      isMounted = false;
-    };
-  }, [initialPost.id]);
-
   const handleToggleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
@@ -93,9 +72,9 @@ const PostDetail = ({
 
     try {
       if (nextLiked) {
-        await postsService.like(post.id);
+        await like(post.id);
       } else {
-        await postsService.unlike(post.id);
+        await unlike(post.id);
       }
     } catch {
       // Revert if error
@@ -136,11 +115,6 @@ const PostDetail = ({
       ref={contentRef}
       className="w-full max-w-[1000px] mx-auto pb-4 lg:pb-6 animate-in fade-in duration-300"
     >
-      {/* ── Top Back Navigation ── */}
-      <div className="hidden lg:mb-8 lg:block">
-        <BackButton label="Back to Community Updates" onClick={onBack} />
-      </div>
-
       <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
         <article className="space-y-6">
@@ -317,13 +291,6 @@ const PostDetail = ({
             <h2 className="text-base lg:text-lg font-bold font-display text-foreground">
               Related Updates
             </h2>
-            <button
-              type="button"
-              onClick={onBack}
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
-            >
-              View all updates <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">

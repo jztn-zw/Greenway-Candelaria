@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   Bell,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import useNotifications from "@/hooks/useNotifications";
+import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
 
@@ -44,7 +44,9 @@ const isWithinLast24Hours = (value: string) => {
 };
 
 const getNotificationHeadline = (n: NotificationRow) => {
-  const cleanTitle = (n.title || "").replace(/[🚨⚠️]/g, "").trim();
+  const cleanTitle = (n.title || "")
+    .replace(/🚨|⚠️|⚠/g, "")
+    .trim();
 
   if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
     return {
@@ -178,6 +180,8 @@ const ResidentTopBar = () => {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
+    } else if (n.type === "COLLECTION_REMINDER") {
+      navigate("/resident/schedule");
     } else if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
       const targetId = n.ref_id || n.id;
       navigate(`/resident/notifications?announcement=${targetId}`);
@@ -213,41 +217,41 @@ const ResidentTopBar = () => {
         >
           <Menu className="w-4 h-4 text-foreground" />
         </button>
-        <div className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
           {isNestedReport ? (
             <>
-              <button
-                type="button"
-                onClick={() => navigate("/resident/my-reports")}
-                className="font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0"
+              <Link
+                to="/resident/my-reports"
+                aria-label="Back to My Reports"
+                className="rounded-sm font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 My Reports
-              </button>
+              </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-sans tabular-nums font-bold text-foreground truncate tracking-tight">
+              <span aria-current="page" className="font-sans tabular-nums font-bold text-foreground truncate tracking-tight">
                 {refParam ? refParam : "Report Details"}
               </span>
             </>
           ) : isNestedPost ? (
             <>
-              <button
-                type="button"
-                onClick={() => navigate("/resident/contents")}
-                className="font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0"
+              <Link
+                to="/resident/contents"
+                aria-label="Back to Community Updates"
+                className="rounded-sm font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Community Updates
-              </button>
+              </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-bold text-foreground truncate tracking-tight">
+              <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
                 Article
               </span>
             </>
           ) : (
-            <span className="font-bold text-foreground truncate tracking-tight">
+            <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
               {pageTitle}
             </span>
           )}
-        </div>
+        </nav>
       </div>
 
       {/* Right */}

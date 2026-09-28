@@ -1,37 +1,27 @@
-import { useState, useEffect } from "react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import {
-  AlertOctagon,
-  AlertTriangle,
-  Copy,
-  Loader2,
-  ExternalLink,
-  Trash2,
-  X,
-  Check,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogDescription,
+DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  WasteReport,
-  ReportStatus,
-  STATUS_LABEL_TO_BACKEND,
-  violationBadgeStyles,
-  safeFormatDate,
-} from "./types";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { fetchAdminReports, type AdminReportItem } from "@/services/reportsService";
+import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Loader2, Search, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+ReportStatus,
+safeFormatDate,
+STATUS_LABEL_TO_BACKEND,
+violationBadgeStyles,
+WasteReport,
+} from "./types";
 
 interface ReportDetailPanelProps {
   report: WasteReport | null;
@@ -71,6 +61,7 @@ const ReportDetailPanel = ({
   hasPrevious = false,
   hasNext = false,
 }: ReportDetailPanelProps) => {
+  const fetchAdmin = useAdminFetch();
   const [officialResponse, setOfficialResponse] = useState(report?.officialResponse || "");
   const [internalNote, setInternalNote] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<ReportStatus>(report?.status || "Submitted");
@@ -89,14 +80,25 @@ const ReportDetailPanel = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const reportId = report?.id;
+  const reportStatus = report?.status;
+  const reportResponse = report?.officialResponse;
 
+  const previousReport = useRef({ id: reportId, status: reportStatus, response: reportResponse || "" });
   useEffect(() => {
-    if (report) {
-      setSelectedStatus(report.status);
-      setOfficialResponse(report.officialResponse || "");
+    if (!reportId || !reportStatus) return;
+    const previous = previousReport.current;
+    if (previous.id !== reportId) {
+      setSelectedStatus(reportStatus);
+      setOfficialResponse(reportResponse || "");
       setInternalNote("");
+    } else {
+      // Refresh untouched fields, preserving text and status choices being edited.
+      setSelectedStatus((current) => current === previous.status ? reportStatus : current);
+      setOfficialResponse((current) => current === previous.response ? reportResponse || "" : current);
     }
-  }, [report?.id, report?.status, report?.officialResponse]);
+    previousReport.current = { id: reportId, status: reportStatus, response: reportResponse || "" };
+  }, [reportId, reportStatus, reportResponse]);
 
   useEffect(() => {
     if (flagType !== "duplicate" || duplicateReference.trim().length < 2) {
@@ -115,18 +117,21 @@ const ReportDetailPanel = ({
     const timer = window.setTimeout(async () => {
       setIsSearchingDuplicates(true);
       try {
-        const result = await fetchAdminReports({
+        const params = {
           search: duplicateReference.trim(),
           barangay_id: report?.barangayId,
           limit: 8,
           sort: "date-desc",
-        });
+        };
+        const result = await fetchAdmin("reports", ["duplicate-search", params], () => fetchAdminReports(params));
         if (active) {
           setDuplicateMatches(
             result.reports.filter(
               (candidate) =>
                 candidate.id !== report?.id &&
                 candidate.status !== "RESOLVED" &&
+                !candidate.is_duplicate &&
+                !candidate.is_false &&
                 candidate.barangay_id === report?.barangayId,
             ),
           );
@@ -141,7 +146,7 @@ const ReportDetailPanel = ({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [duplicateReference, flagType, report?.id, report?.barangayId, selectedDuplicateCandidate]);
+  }, [duplicateReference, flagType, report?.id, report?.barangayId, selectedDuplicateCandidate, fetchAdmin]);
 
   if (!report) {
     return (
@@ -395,6 +400,7 @@ const ReportDetailPanel = ({
               const isCurrent = report.status === st;
               const isPast = idx < currentStepIndex;
               const isFuture = idx > currentStepIndex;
+              const wasRecorded = report.statusHistory?.some((entry) => entry.status === st);
 
               return (
                 <button
@@ -405,10 +411,11 @@ const ReportDetailPanel = ({
                   className={cn(
                     "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg text-center transition-all border",
                     isCurrent && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs cursor-default",
-                    isPast && "bg-primary/10 border-primary/20 text-primary font-medium cursor-not-allowed opacity-85",
+                    isPast && wasRecorded && "bg-primary/10 border-primary/20 text-primary font-medium cursor-not-allowed opacity-85",
+                    isPast && !wasRecorded && "bg-muted/30 border-border/70 text-muted-foreground cursor-not-allowed",
                     isFuture && "bg-background border-border/70 text-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer shadow-2xs",
                   )}
-                  title={isPast ? "Completed step" : isCurrent ? "Current status" : `Move to ${st}`}
+                  title={isPast ? (wasRecorded ? "Recorded status" : "Stage skipped") : isCurrent ? "Current status" : `Move to ${st}`}
                 >
                   <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
                     {st}
@@ -876,103 +883,48 @@ const ReportDetailPanel = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showResolveModal} onOpenChange={(open) => !open && setShowResolveModal(false)}>
-        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border-border/80 shadow-2xl [&>button:last-child]:hidden">
-          <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
-            <div>
-              <DialogTitle className="text-base font-bold font-display">Resolve this report?</DialogTitle>
-              <DialogDescription className="mt-1 text-xs text-muted-foreground">
-                This finalizes the report. Its status cannot be changed again, and the resident will be notified.
-              </DialogDescription>
-            </div>
-            <button type="button" onClick={() => setShowResolveModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-2.5 py-4 text-xs leading-relaxed text-muted-foreground">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
-            <p>Confirm only after the issue has been fully handled. To prevent incorrect records, resolved reports cannot be reopened or moved to another status.</p>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-border/60 pt-3.5">
-            <Button variant="outline" onClick={() => setShowResolveModal(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={() => { setShowResolveModal(false); void handleStatusSubmit("Resolved"); }} disabled={isUpdatingStatus} className="rounded-xl">
-              {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, resolve report"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmationDialog
+        kind="dialog"
+        open={showResolveModal}
+        onOpenChange={(open) => !open && setShowResolveModal(false)}
+        className="z-[200]"
+        title="Resolve this report?"
+        icon={<Check />}
+        description="This finalizes the report. Its status cannot be changed again, and the resident will be notified."
+        confirmLabel="Yes, resolve report"
+        isPending={isUpdatingStatus}
+        pendingLabel="Resolving..."
+        onConfirm={() => { setShowResolveModal(false); void handleStatusSubmit("Resolved"); }}
+      >
+        <p>Confirm only after the issue has been fully handled. To prevent incorrect records, resolved reports cannot be reopened or moved to another status.</p>
+      </ConfirmationDialog>
 
       {/* ── Delete Confirmation Modal ── */}
-      <Dialog open={showDeleteModal} onOpenChange={(open) => !open && setShowDeleteModal(false)}>
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Delete Waste Report?
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="py-2.5">
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to delete report{" "}
-              <strong className="text-foreground font-semibold">
-                {report.referenceNumber}
-              </strong>
-              ? This action will soft-delete the report from active queues and record an entry in the Audit Log.
-            </DialogDescription>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowDeleteModal(false)}
-              disabled={isDeleting}
-              className="rounded-xl h-9 text-xs px-4 cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isDeleting}
-              onClick={async () => {
-                if (!onDeleteReport) return;
-                try {
-                  setIsDeleting(true);
-                  await onDeleteReport(report.id);
-                  setShowDeleteModal(false);
-                  if (onClose) onClose();
-                } finally {
-                  setIsDeleting(false);
-                }
-              }}
-              className="h-9 px-4 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete Permanently"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmationDialog
+        kind="dialog"
+        open={showDeleteModal}
+        onOpenChange={(open) => !open && setShowDeleteModal(false)}
+        title="Remove Waste Report?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>Are you sure you want to remove report <strong className="font-semibold text-foreground">{report.referenceNumber}</strong>? It will be removed from active lists, and the action will be recorded in the Audit Log.</>}
+        confirmLabel="Remove Report"
+        isPending={isDeleting}
+        pendingLabel="Removing..."
+        onConfirm={async () => {
+          if (!onDeleteReport) return;
+          try {
+            setIsDeleting(true);
+            await onDeleteReport(report.id);
+            setShowDeleteModal(false);
+            if (onClose) onClose();
+          } catch {
+            // The parent displays the error; keep the confirmation open for retry.
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 };

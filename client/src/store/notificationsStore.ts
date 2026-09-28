@@ -1,292 +1,183 @@
 import { create } from "zustand";
-import notificationsService, {
-  NotificationRow,
-} from "@/services/notificationsService";
+import notificationsService, { type NotificationRow, type NotificationFilters } from "@/services/notificationsService";
+import useAuthStore from "@/store/authStore";
 import { getSocket } from "@/lib/socket";
 import { toast } from "@/lib/toast";
+import { getCollectorNotificationCategory } from "@/features/collector/notifications/notificationRouting";
 
-interface UserInfo {
-  id: string;
-  role?: string;
-  barangay_id?: string;
-}
-
+interface UserInfo { id: string; role?: string; barangay_id?: string }
 interface NotificationsState {
+  userId: string | null;
   notifications: NotificationRow[];
+  recentNotifications: NotificationRow[];
   unreadCount: number;
   total: number;
   isLoading: boolean;
+  isMutating: boolean;
+  error: string | null;
   initialized: boolean;
-
-  fetchNotifications: (params?: { limit?: number; offset?: number; type?: string; is_read?: string }) => Promise<void>;
+  category: NonNullable<NotificationFilters["category"]>;
+  nextCursor: string | null;
+  fetchNotifications: (params?: NotificationFilters) => Promise<void>;
+  loadMore: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   clearAll: () => Promise<void>;
   addNotification: (notification: NotificationRow) => void;
   removeNotificationsByReference: (reference: { ref_module: string; ref_id: string }) => void;
+  updateNotificationsByReference: (reference: { ref_module: string; ref_id: string; changes: Partial<NotificationRow> }) => void;
+  resetSession: () => void;
   initSocket: (user: UserInfo) => () => void;
 }
+let session = 0;
+let request = 0;
+let arrival = 0;
+const arrivals = new Map<string, number>();
+const removals = new Map<string, number>();
+let registered = false;
+let joinRooms: (() => void) | null = null;
+const empty = { notifications: [] as NotificationRow[], recentNotifications: [] as NotificationRow[], unreadCount: 0, total: 0, isLoading: false,
+  isMutating: false, error: null, initialized: false, category: "all" as const, nextCursor: null };
+const unique = (rows: NotificationRow[]) => [...new Map(rows.map((row) => [row.id, row])).values()];
 
-let socketListenerRegistered = false;
-let activeNotificationUserId: string | null = null;
-let joinNotificationRooms: (() => void) | null = null;
-let notificationFetchId = 0;
-const NOTIFICATIONS_BATCH_SIZE = 100;
-
-export const useNotificationsStore = create<NotificationsState>((set, get) => ({
-  notifications: [],
-  unreadCount: 0,
-  total: 0,
-  isLoading: false,
-  initialized: false,
-
-  fetchNotifications: async (params = {}) => {
-    const fetchId = ++notificationFetchId;
+export const useNotificationsStore = create<NotificationsState>((set, get) => {
+  // Mutations commit only after server success. No old snapshot can overwrite
+  // another account or a notification received while the request was pending.
+  const mutate = async (operation: () => Promise<void>, commit: () => void) => {
+    if (get().isMutating || !get().userId) return;
+    const epoch = session;
+    set({ isMutating: true });
     try {
-      set({ isLoading: true });
-      const requestedLimit = Math.min(params.limit ?? NOTIFICATIONS_BATCH_SIZE, NOTIFICATIONS_BATCH_SIZE);
-      const [initialData, unread] = await Promise.all([
-        notificationsService.fetchMyNotifications({ ...params, limit: requestedLimit }),
-        notificationsService.fetchUnreadCount(),
-      ]);
-
-      // The Notifications page filters and paginates locally. Fetch the full
-      // history in bounded API batches rather than silently treating the first
-      // API page as the whole list or sending one unbounded request.
-      let data = initialData;
-      if (
-        params.offset === undefined &&
-        params.type === undefined &&
-        params.is_read === undefined &&
-        initialData.total > initialData.notifications.length
-      ) {
-        const remainingPages = [];
-        for (
-          let offset = initialData.notifications.length;
-          offset < initialData.total;
-          offset += NOTIFICATIONS_BATCH_SIZE
-        ) {
-          remainingPages.push(
-            notificationsService.fetchMyNotifications({
-              limit: NOTIFICATIONS_BATCH_SIZE,
-              offset,
-            }),
-          );
-        }
-        const pages = await Promise.all(remainingPages);
-        data = {
-          ...initialData,
-          notifications: [
-            ...initialData.notifications,
-            ...pages.flatMap((page) => page.notifications),
-          ],
-        };
+      await operation();
+      if (epoch !== session) return;
+      commit();
+    } catch {
+      if (epoch === session) toast.error("Could not update notifications. Please try again.");
+    } finally {
+      if (epoch === session) set({ isMutating: false });
+    }
+  };
+  return {
+    ...empty, userId: null,
+    resetSession: () => {
+      session++; request++; arrivals.clear(); removals.clear();
+      if (get().userId) {
+        const socket = getSocket();
+        if (joinRooms) socket.off("connect", joinRooms);
+        socket.disconnect();
       }
-
-      if (fetchId !== notificationFetchId) return;
-
-      // Preserve a real-time notification that arrived after the list query
-      // began but before it completed. Without this merge, a slow refresh can
-      // overwrite an otherwise successfully delivered socket notification.
-      const fetchedNotifications = data.notifications || [];
-      const fetchedIds = new Set(fetchedNotifications.map((notification) => notification.id));
-      const liveNotifications = get().notifications.filter(
-        (notification) =>
-          notification.user_id === activeNotificationUserId &&
-          !fetchedIds.has(notification.id),
-      );
-      const notifications = [...liveNotifications, ...fetchedNotifications];
-
-      set({
-        notifications,
-        total: Math.max(data.total || 0, notifications.length),
-        unreadCount: Math.max(
-          unread,
-          notifications.filter((notification) => !notification.is_read).length,
-        ),
-        isLoading: false,
-        initialized: true,
+      joinRooms = null;
+      set({ ...empty, userId: null });
+    },
+    fetchNotifications: async (params = {}) => {
+      if (!get().userId) return;
+      const category = params.category ?? get().category;
+      const append = Boolean(params.cursor);
+      if (get().isLoading && category === get().category) return;
+      const epoch = session;
+      const fetchId = ++request;
+      const startedAt = arrival;
+      set({ isLoading: true, error: null, category,
+        ...(!append && category !== get().category ? { notifications: [], nextCursor: null } : {}) });
+      try {
+        const [data, unread] = await Promise.all([
+          notificationsService.fetchMyNotifications({ ...params, category, limit: 30 }),
+          notificationsService.fetchUnreadCount(),
+        ]);
+        if (epoch !== session || fetchId !== request) return;
+        const fetched = data.notifications.filter((row) => row.user_id === get().userId && (removals.get(`${row.ref_module}:${row.ref_id}`) ?? 0) <= startedAt);
+        const fetchedIds = new Set(fetched.map((row) => row.id));
+        const live = get().notifications.filter((row) => (arrivals.get(row.id) ?? 0) > startedAt && !fetchedIds.has(row.id));
+        set({ notifications: unique(append ? [...get().notifications, ...fetched] : [...live, ...fetched]),
+          ...(category === "all" && !append ? { recentNotifications: unique([...live, ...fetched]).slice(0, 20) } : {}),
+          unreadCount: Math.max(unread, unique([...live, ...fetched]).filter((row) => !row.is_read).length), total: data.total, nextCursor: data.next_cursor ?? null,
+          isLoading: false, initialized: true });
+        for (const [id, sequence] of arrivals) if (sequence <= startedAt) arrivals.delete(id);
+        for (const [reference, sequence] of removals) if (sequence <= startedAt) removals.delete(reference);
+      } catch {
+        if (epoch !== session || fetchId !== request) return;
+        set({ isLoading: false, initialized: true, error: "Notifications could not be loaded. Please try again." });
+      }
+    },
+    loadMore: async () => {
+      const cursor = get().nextCursor;
+      if (cursor) await get().fetchNotifications({ cursor });
+    },
+    markAsRead: async (id) => {
+      await mutate(() => notificationsService.markNotificationAsRead(id), () => {
+        const unread = [...get().notifications, ...get().recentNotifications].some((row) => row.id === id && !row.is_read);
+        const wasLoading = get().isLoading;
+        ++request;
+        set((state) => ({ isLoading: false, notifications: state.notifications.map((row) => row.id === id ? { ...row, is_read: true } : row),
+          recentNotifications: state.recentNotifications.map((row) => row.id === id ? { ...row, is_read: true } : row),
+          unreadCount: Math.max(0, state.unreadCount - Number(unread)) }));
+        if (wasLoading) void get().fetchNotifications();
       });
-    } catch (err) {
-      if (fetchId !== notificationFetchId) return;
-      console.error("Failed to fetch notifications:", err);
-      set({ isLoading: false });
-    }
-  },
-
-  markAsRead: async (id: string) => {
-    // Optimistic UI update across all components immediately
-    const existing = get().notifications.find((n) => n.id === id);
-    const wasUnread = Boolean(existing && !existing.is_read);
-    const previousUnreadCount = get().unreadCount;
-
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, is_read: true } : n,
-      ),
-      unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
-    }));
-
-    try {
-      await notificationsService.markNotificationAsRead(id);
-    } catch (err) {
-      console.error("Failed to mark notification as read in API:", err);
-      set((state) => ({
-        notifications: state.notifications.map((n) =>
-          n.id === id && existing ? { ...n, is_read: existing.is_read } : n,
-        ),
-        unreadCount: previousUnreadCount,
-      }));
-      toast.error("Could not mark notification as read");
-    }
-  },
-
-  markAllAsRead: async () => {
-    // Optimistic UI update
-    const previousNotifications = get().notifications;
-    const previousUnreadCount = get().unreadCount;
-    set((state) => ({
-      notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
-      unreadCount: 0,
-    }));
-
-    try {
-      await notificationsService.markAllNotificationsAsRead();
-      toast.success("All notifications marked as read");
-    } catch (err) {
-      console.error("Failed to mark all as read in API:", err);
-      set({ notifications: previousNotifications, unreadCount: previousUnreadCount });
-      toast.error("Could not mark all notifications as read");
-    }
-  },
-
-  clearAll: async () => {
-    // Optimistic UI update
-    const previousNotifications = get().notifications;
-    const previousUnreadCount = get().unreadCount;
-    const previousTotal = get().total;
-    set({
-      notifications: [],
-      unreadCount: 0,
-      total: 0,
-    });
-
-    try {
-      await notificationsService.clearAllNotifications();
-      toast.success("Notification history cleared");
-    } catch (err) {
-      console.error("Failed to clear notifications in API:", err);
-      set({
-        notifications: previousNotifications,
-        unreadCount: previousUnreadCount,
-        total: previousTotal,
+    },
+    markAllAsRead: async () => {
+      await mutate(() => notificationsService.markAllNotificationsAsRead(), () => {
+        ++request; set((state) => ({ isLoading: false, unreadCount: 0, recentNotifications: state.recentNotifications.map((row) => ({ ...row, is_read: true })), notifications: state.notifications.map((row) => ({ ...row, is_read: true })) }));
+        toast.success("All notifications marked as read");
+        void get().fetchNotifications();
       });
-      toast.error("Could not clear notification history");
-    }
-  },
-
-  addNotification: (newNotif: NotificationRow) => {
-    set((state) => {
-      // Ignore a late event from an old socket session after another account
-      // has signed in on the same browser.
-      if (
-        activeNotificationUserId &&
-        newNotif.user_id !== activeNotificationUserId
-      ) {
-        return state;
-      }
-
-      // Deduplicate: if notification with same ID is already present, do not add duplicate
-      if (state.notifications.some((n) => n.id === newNotif.id)) {
-        return state;
-      }
-
-      return {
-        notifications: [newNotif, ...state.notifications],
-        unreadCount: state.unreadCount + 1,
-        total: state.total + 1,
+    },
+    clearAll: async () => {
+      await mutate(() => notificationsService.clearAllNotifications(), () => {
+        ++request; set({ isLoading: false });
+        toast.success("Notification history cleared");
+        set({ notifications: [], recentNotifications: [], unreadCount: 0, total: 0, nextCursor: null });
+        void get().fetchNotifications();
+      });
+    },
+    addNotification: (row) => {
+      if (row.user_id !== get().userId || [...get().notifications, ...get().recentNotifications].some((n) => n.id === row.id)) return;
+      arrivals.set(row.id, ++arrival);
+      const matches = get().category === "all" || getCollectorNotificationCategory(row) === get().category;
+      set((state) => ({ recentNotifications: unique([row, ...state.recentNotifications]).slice(0, 20), notifications: matches ? [row, ...state.notifications] : state.notifications,
+        unreadCount: state.unreadCount + Number(!row.is_read), total: state.total + Number(matches) }));
+    },
+    removeNotificationsByReference: ({ ref_module, ref_id }) => {
+      const matches = (row: NotificationRow) => row.ref_module === ref_module && row.ref_id === ref_id;
+      removals.set(`${ref_module}:${ref_id}`, ++arrival);
+      const removed = unique([...get().notifications, ...get().recentNotifications]).filter(matches);
+      set((state) => ({ notifications: state.notifications.filter((row) => !matches(row)),
+        recentNotifications: state.recentNotifications.filter((row) => !matches(row)),
+        unreadCount: Math.max(0, state.unreadCount - removed.filter((row) => !row.is_read).length),
+        total: Math.max(0, state.total - get().notifications.filter(matches).length) }));
+    },
+    updateNotificationsByReference: ({ ref_module, ref_id, changes }) => {
+      const update = (row: NotificationRow) => row.ref_module === ref_module && row.ref_id === ref_id
+        ? { ...row, title: changes.title ?? row.title, body: changes.body ?? row.body, metadata: changes.metadata ?? row.metadata } : row;
+      set((state) => ({ recentNotifications: state.recentNotifications.map(update), notifications: state.notifications.map(update) }));
+    },
+    initSocket: (user) => {
+      if (get().userId !== user.id) { get().resetSession(); set({ userId: user.id }); }
+      const socket = getSocket();
+      const token = localStorage.getItem("token");
+      const previousToken = (socket.auth as { token?: string }).token;
+      socket.auth = { token };
+      if (joinRooms) socket.off("connect", joinRooms);
+      joinRooms = () => {
+        socket.emit("notifications:join_user");
+        if (user.barangay_id) socket.emit("notifications:join_barangay", user.barangay_id);
+        if (user.role === "ADMIN") socket.emit("notifications:join_admins");
       };
-    });
-  },
-
-  removeNotificationsByReference: ({ ref_module, ref_id }) => {
-    set((state) => {
-      const removed = state.notifications.filter(
-        (notification) => notification.ref_module === ref_module && notification.ref_id === ref_id,
-      );
-      if (removed.length === 0) return state;
-      const unreadRemoved = removed.filter((notification) => !notification.is_read).length;
-      return {
-        notifications: state.notifications.filter(
-          (notification) => notification.ref_module !== ref_module || notification.ref_id !== ref_id,
-        ),
-        unreadCount: Math.max(0, state.unreadCount - unreadRemoved),
-        total: Math.max(0, state.total - removed.length),
-      };
-    });
-  },
-
-  initSocket: (user: UserInfo) => {
-    if (!user || !user.id) return () => {};
-
-    // This store is shared for the whole browser profile. Clear the previous
-    // account's in-memory notifications when a different user logs in.
-    if (activeNotificationUserId !== user.id) {
-      activeNotificationUserId = user.id;
-      set({
-        notifications: [],
-        unreadCount: 0,
-        total: 0,
-        initialized: false,
-      });
-    }
-
-    const socket = getSocket();
-    const token = localStorage.getItem("token");
-    const previousToken = (socket.auth as { token?: string } | undefined)?.token;
-
-    // A Socket.IO connection keeps its handshake token. Refresh it after a
-    // logout/login, then rejoin after every reconnect because socket rooms are
-    // cleared by the server whenever a connection drops.
-    socket.auth = { token };
-    const joinRooms = () => {
-      socket.emit("notifications:join_user");
-      if (user.barangay_id) {
-        socket.emit("notifications:join_barangay", user.barangay_id);
+      socket.on("connect", joinRooms);
+      if (!registered) {
+        registered = true;
+        socket.on("notification:new", (row: NotificationRow) => get().addNotification(row));
+        socket.on("notification:remove_ref", get().removeNotificationsByReference);
+        socket.on("notification:update_ref", get().updateNotificationsByReference);
       }
-      if (user.role === "ADMIN") {
-        socket.emit("notifications:join_admins");
-      }
-    };
-
-    if (joinNotificationRooms) {
-      socket.off("connect", joinNotificationRooms);
-    }
-    joinNotificationRooms = joinRooms;
-    socket.on("connect", joinRooms);
-
-    if (previousToken !== token) {
-      socket.disconnect();
-      socket.connect();
-    } else if (socket.connected) {
-      joinRooms();
-    } else {
-      socket.connect();
-    }
-
-    if (!socketListenerRegistered) {
-      socketListenerRegistered = true;
-
-      socket.on("notification:new", (newNotif: NotificationRow) => {
-        get().addNotification(newNotif);
-      });
-      socket.on("notification:remove_ref", (reference: { ref_module: string; ref_id: string }) => {
-        get().removeNotificationsByReference(reference);
-      });
-    }
-
-    return () => {};
-  },
-}));
-
+      if (previousToken !== token) { socket.disconnect(); socket.connect(); }
+      else if (socket.connected) joinRooms();
+      else socket.connect();
+      return () => {};
+    },
+  };
+});
+// Reset synchronously when auth changes, before the next screen can render.
+useAuthStore.subscribe((state, previous) => {
+  if (state.user?.id !== previous.user?.id || state.token !== previous.token) useNotificationsStore.getState().resetSession();
+});
 export default useNotificationsStore;

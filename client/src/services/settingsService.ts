@@ -3,7 +3,6 @@ import api from '@/lib/api';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ReminderTiming = '1h' | '3h' | '1d';
-export type Language = 'en' | 'fil';
 
 export interface UserSettings {
   id: string;
@@ -23,11 +22,6 @@ export interface UserSettings {
   reminder_on: boolean;
   reminder_timing: ReminderTiming;
 
-  // Privacy
-  profile_visible: boolean;
-
-  // Language
-  language: Language;
 }
 
 export type UpdateSettingsPayload = Partial<Omit<UserSettings, 'id' | 'user_id'>>;
@@ -41,5 +35,21 @@ export const fetchUserSettings = async (): Promise<UserSettings> => {
 
 export const updateUserSettings = async (payload: UpdateSettingsPayload): Promise<UserSettings> => {
   const { data } = await api.put<{ data: UserSettings }>('/users/settings', payload);
+  return data.data;
+};
+
+export interface AdminAlertSettings {
+  notif_admin_reports: boolean;
+  notif_admin_route_issues: boolean;
+  notif_admin_driver_messages: boolean;
+}
+
+export const fetchAdminAlertSettings = async (): Promise<AdminAlertSettings> => {
+  const { data } = await api.get<{ data: AdminAlertSettings }>('/users/admin-settings');
+  return data.data;
+};
+
+export const updateAdminAlertSettings = async (payload: AdminAlertSettings): Promise<AdminAlertSettings> => {
+  const { data } = await api.put<{ data: AdminAlertSettings }>('/users/admin-settings', payload);
   return data.data;
 };

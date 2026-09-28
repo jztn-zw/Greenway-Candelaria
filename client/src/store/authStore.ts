@@ -118,7 +118,10 @@ const useAuthStore = create<AuthState>()(
         return inFlightSessionCheck;
       },
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        localStorage.setItem("user", JSON.stringify(user));
+        set({ user });
+      },
 
       setHasHydrated: (value) => set({ hasHydrated: value }),
 

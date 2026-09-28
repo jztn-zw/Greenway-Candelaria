@@ -10,8 +10,8 @@ import {
   Sun,
   Moon,
   Headphones,
-  Building2,
   Phone,
+  Mail,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -31,18 +31,18 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
-import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import CollectorLogoutDialog from "@/features/collector/components/CollectorLogoutDialog";
+import { CollectorModalHeader } from "@/features/collector/components/CollectorModal";
+import { collectorModalStyles as modalStyles } from "@/features/collector/components/collectorModalStyles";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 
 const navGroups = [
   {
@@ -261,39 +261,34 @@ const CollectorSidebar = () => {
               </button>
             </div>
 
-            {/* Gear dropdown popup with options */}
+            {/* Gear dropdown popup */}
             {showGearMenu && !collapsed && (
               <div
-                className="absolute bottom-full right-0 mb-2 w-44 bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 divide-y divide-border/60"
+                className="absolute bottom-full right-0 mb-2 w-44 bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="py-0.5">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors rounded-lg mx-1"
-                    onClick={() => {
-                      setShowGearMenu(false);
-                      navigate("/collector/profile");
-                    }}
-                  >
-                    <UserCircle className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>Profile & Vehicle</span>
-                  </button>
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowGearMenu(false);
-                      setShowDispatchModal(true);
-                    }}
-                    className="flex items-center gap-2.5 w-[calc(100%-8px)] px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors rounded-lg mx-1 text-left cursor-pointer"
-                  >
-                    <Headphones className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>Contact Dispatch</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
+                  onClick={() => {
+                    setShowGearMenu(false);
+                    navigate("/collector/profile");
+                  }}
+                >
+                  <UserCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span>Profile & Vehicle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGearMenu(false);
+                    setShowDispatchModal(true);
+                  }}
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
+                >
+                  <Headphones className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span>Contact Dispatch</span>
+                </button>
               </div>
             )}
           </div>
@@ -316,7 +311,7 @@ const CollectorSidebar = () => {
           </button>
         </div>
 
-        <LogoutConfirmModal
+        <CollectorLogoutDialog
           open={showLogoutModal}
           onOpenChange={setShowLogoutModal}
           onConfirm={() => {
@@ -326,36 +321,37 @@ const CollectorSidebar = () => {
 
         {/* ── Contact Dispatch Modal ── */}
         <Dialog open={showDispatchModal} onOpenChange={setShowDispatchModal}>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 font-display">
-                <Headphones className="w-5 h-5 text-primary" /> Contact MENRO Dispatch
-              </DialogTitle>
-              <DialogDescription>
-                Municipal Environment and Natural Resources Office (MENRO) Candelaria
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className={modalStyles.content}>
+            <CollectorModalHeader title="Contact MENRO dispatch" description="Office and vehicle support" icon={<Headphones />} onClose={() => setShowDispatchModal(false)} closeLabel="Close contact dispatch" />
 
-            <div className="space-y-3 py-2 text-xs">
-              <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-1.5">
-                <p className="font-bold text-foreground flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-primary" /> Main Office
-                </p>
-                <p className="text-muted-foreground">Municipal Hall Compound, Candelaria, Quezon</p>
-                <p className="text-primary font-mono font-semibold pt-0.5">Hotline: (042) 585-4111</p>
-              </div>
+            <div className={modalStyles.body}>
+              <section className="rounded-md border border-border/70 bg-muted/20 p-4">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground">{MUNICIPAL_CONTACT.officeName}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{MUNICIPAL_CONTACT.address}</p>
+                </div>
+                <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
+                  <a href={MUNICIPAL_CONTACT.hotlineHref} className="flex items-center gap-2.5 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Phone className="size-4 shrink-0" /> Office hotline: {MUNICIPAL_CONTACT.hotline}
+                  </a>
+                  <a href={MUNICIPAL_CONTACT.emailHref} className="flex items-center gap-2.5 break-all text-sm font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Mail className="size-4 shrink-0 text-muted-foreground" /> {MUNICIPAL_CONTACT.email}
+                  </a>
+                </div>
+              </section>
 
-              <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-1.5">
-                <p className="font-bold text-foreground flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-amber-500" /> Emergency Breakdown & Towing
-                </p>
-                <p className="text-muted-foreground">24/7 Route Supervisor & Towing Assistance</p>
-                <p className="text-amber-500 font-mono font-semibold pt-0.5">Mobile: +63 917 123 4567</p>
-              </div>
+              <section className="rounded-md border border-border/70 p-4">
+                <div className="min-w-0 space-y-1">
+                  <h3 className="text-sm font-semibold text-foreground">Vehicle breakdown?</h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Use Report breakdown in Profile &amp; Vehicle to send the truck details and your location to admins.
+                  </p>
+                </div>
+              </section>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <Button variant="outline" onClick={() => setShowDispatchModal(false)} className="rounded-xl text-xs h-9 px-4">
+            <div className={modalStyles.footer}>
+              <Button type="button" variant="outline" onClick={() => setShowDispatchModal(false)} className={modalStyles.cancelButton}>
                 Close
               </Button>
             </div>

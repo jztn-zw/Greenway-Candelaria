@@ -15,10 +15,12 @@ const {
 const getMyRouteToday = async (req, res, next) => {
   try {
     const userId = req.user.id; // From auth middleware
-    const myRoute = await service.getMyRouteToday(userId);
+    const myRoute = await service.getMyRouteToday(userId, {
+      includeFinished: req.query.include_finished === "true",
+    });
 
     if (!myRoute) {
-      return res.status(404).json({ message: "No route assigned for today." });
+      return success(res, null, "No current route assigned for today.");
     }
 
     return success(res, myRoute, "Today's route fetched successfully");
@@ -29,7 +31,7 @@ const getMyRouteToday = async (req, res, next) => {
 
 const getAllRoutesToday = async (req, res, next) => {
   try {
-    const routes = await service.getAllRoutesToday();
+    const routes = await service.getAllRoutesToday(req.user);
     return success(res, routes, "Today's routes fetched successfully");
   } catch (err) {
     next(err);
@@ -49,7 +51,7 @@ const getMissedCollections = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
   try {
-    const routes = await service.getAll(req.query);
+    const routes = await service.getAll(req.query, req.user);
     return success(res, routes, "Routes fetched successfully");
   } catch (err) {
     next(err);
@@ -58,7 +60,7 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
-    const route = await service.getById(req.params.id);
+    const route = await service.getById(req.params.id, req.user);
     return success(res, route, "Route fetched successfully");
   } catch (err) {
     next(err);
@@ -68,7 +70,7 @@ const getById = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const data = createRouteSchema.parse(req.body);
-    const route = await service.create(data);
+    const route = await service.create(data, req.user.id);
     return success(res, route, "Route created successfully", 201);
   } catch (err) {
     next(err);
@@ -78,7 +80,7 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const data = updateRouteSchema.parse(req.body);
-    const route = await service.update(req.params.id, data);
+    const route = await service.update(req.params.id, data, req.user.id);
 
     const io = req.app.get("io");
     broadcastLiveUpdate(io);
@@ -102,6 +104,7 @@ const updateStopStatus = async (req, res, next) => {
       req.params.stopId,
       status,
       skipped_reason,
+      req.user,
     );
 
     const io = req.app.get("io");
@@ -120,7 +123,7 @@ const updateStopStatus = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
   try {
-    const result = await service.remove(req.params.id);
+    const result = await service.remove(req.params.id, req.user.id);
     return success(res, result, "Route deleted successfully");
   } catch (err) {
     next(err);
@@ -129,7 +132,7 @@ const remove = async (req, res, next) => {
 
 const endRoute = async (req, res, next) => {
   try {
-    const result = await service.endRoute(req.params.id);
+    const result = await service.endRoute(req.params.id, req.user);
 
     const io = req.app.get("io");
     broadcastLiveUpdate(io);
@@ -149,7 +152,7 @@ const setRoutePaused = async (req, res, next) => {
     const result = await service.setRoutePaused(
       req.params.id,
       req.user.id,
-      Boolean(req.body?.paused),
+      require("zod").z.boolean().parse(req.body?.paused),
     );
     const io = req.app.get("io");
     broadcastLiveUpdate(io);

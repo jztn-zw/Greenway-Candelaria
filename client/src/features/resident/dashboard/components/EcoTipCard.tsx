@@ -2,21 +2,38 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lightbulb } from "lucide-react";
 
-const tips = [
-  "Reduce food waste by meal planning and storing leftovers properly.",
-  "Composting kitchen scraps can reduce your household waste by up to 30%.",
-  "Rinse recyclable containers before placing them in non-biodegradable bins.",
-  "Avoid single-use plastics — bring your own eco-bags when visiting the market.",
-  "Used cooking oil can be safely collected for biodiesel and soap production.",
+const TIPS = [
+  {
+    title: "Sort waste at home",
+    message:
+      "Keep food scraps separate from plastic and other non-biodegradable waste to make proper disposal easier.",
+  },
+  {
+    title: "Prepare recyclables",
+    message:
+      "Empty and rinse bottles and cans before setting them aside for recycling. Clean materials are easier to handle.",
+  },
+  {
+    title: "Prevent litter",
+    message:
+      "Secure waste bags and keep them in a proper container until collection to help prevent spills and scattered trash.",
+  },
+  {
+    title: "Check collection updates",
+    message:
+      "Check your collection schedule and truck updates in GreenWay so you know when to prepare your waste.",
+  },
 ];
 
 const EcoTipCard = () => {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setIndex((prev) => (prev + 1) % tips.length), 6000);
+    const t = setInterval(() => setIndex((prev) => (prev + 1) % TIPS.length), 7000);
     return () => clearInterval(t);
   }, []);
+
+  const activeTip = TIPS[index];
 
   return (
     <Card className="h-full min-h-[210px] overflow-hidden border-0 bg-forest text-forest-foreground rounded-2xl">
@@ -27,16 +44,20 @@ const EcoTipCard = () => {
             Did You Know?
           </p>
         </div>
-        <p className="text-sm font-medium leading-relaxed opacity-95 line-clamp-3">
-          "{tips[index]}"
-        </p>
-        <div className="flex items-center gap-1.5">
-          {tips.map((_, i) => (
+        <div className="min-h-[4.5rem]">
+          <p className="mb-1 text-sm font-semibold leading-snug">{activeTip.title}</p>
+          <p className="text-sm leading-relaxed opacity-90 line-clamp-3">
+            {activeTip.message}
+          </p>
+        </div>
+        <div className="flex min-h-1.5 items-center gap-1.5">
+          {TIPS.map((tip, i) => (
             <button
-              key={i}
+              key={tip.title}
               type="button"
               onClick={() => setIndex(i)}
-              aria-label={`Tip ${i + 1}`}
+              aria-label={`Show tip: ${tip.title}`}
+              aria-current={i === index ? "true" : undefined}
               className={`h-1.5 rounded-full transition-all cursor-pointer ${
                 i === index
                   ? "bg-forest-foreground w-5"

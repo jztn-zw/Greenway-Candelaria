@@ -1,39 +1,38 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  Tag,
-  Eye,
-  Trash2,
-  ChevronLeft,
-  Calendar as CalendarIcon,
-  Clock,
-  Check,
-  Sparkles,
-  UploadCloud,
-  Send,
-  X,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/common";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+Popover,
+PopoverContent,
+PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import {
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
-import { Post, PostCategory, PostStatus } from "./types";
+import { useAdminMutation } from "@/lib/adminQuery";
 import postsService from "@/services/postsService";
+import {
+Calendar as CalendarIcon,
+Check,
+ChevronLeft,
+Clock,
+Eye,
+Send,
+Tag,
+Trash2,
+UploadCloud,
+X,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Post, PostCategory, PostStatus } from "./types";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -56,6 +55,8 @@ interface PostEditorProps {
   onPreview?: (form: EditorForm) => void;
   isSaving: boolean;
 }
+
+const MAX_POST_IMAGES = 5;
 
 // ─── Custom Dark/Light Mode Matched DateTime Picker ──────────
 
@@ -142,7 +143,7 @@ const CustomDateTimePicker = ({
     setSelectedHour(String(h12).padStart(2, "0"));
     setSelectedMinute(String(parsedDate.getMinutes()).padStart(2, "0"));
     setSelectedPeriod(h >= 12 ? "PM" : "AM");
-  }, [value]);
+  }, [parsedDate]);
 
   const handleHourInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, "");
@@ -402,7 +403,10 @@ const PostEditor = ({
   isSaving,
 }: PostEditorProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingUploadsRef = useRef<Set<string>>(new Set());
 
+  const mutateUploadImage = useAdminMutation(postsService.uploadImage, "posts");
+  const mutateDeleteUnusedImage = useAdminMutation(postsService.deleteUnusedImage, "posts");
   const [form, setForm] = useState<EditorForm>(() => ({
     title: editingPost?.title || "",
     body: editingPost?.body || "",
@@ -420,7 +424,7 @@ const PostEditor = ({
   );
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<
-    Partial<Record<"title" | "body" | "scheduledDate" | "form", string>>
+    Partial<Record<"title" | "body" | "source" | "scheduledDate" | "form", string>>
   >({});
 
   useEffect(() => {
@@ -441,16 +445,64 @@ const PostEditor = ({
     setErrors({});
   }, [editingPost]);
 
+  useEffect(() => () => {
+    const urls = [...pendingUploadsRef.current];
+    pendingUploadsRef.current.clear();
+    urls.forEach((url) => {
+      void mutateDeleteUnusedImage(url).catch(() => undefined);
+    });
+  }, [mutateDeleteUnusedImage]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
+    const availableSlots = Math.max(0, MAX_POST_IMAGES - uploadedImages.length);
+    if (availableSlots === 0) {
+      setErrors((current) => ({
+        ...current,
+        form: `A post can contain up to ${MAX_POST_IMAGES} images.`,
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    const validFiles = files.filter((file) =>
+      supportedTypes.has(file.type) && file.size <= 10 * 1024 * 1024,
+    );
+    const selectedFiles = validFiles.slice(0, availableSlots);
+    if (validFiles.length !== files.length) {
+      setErrors((current) => ({
+        ...current,
+        form: "Use JPG, PNG, or WebP images no larger than 10 MB.",
+      }));
+    }
+    if (files.length > availableSlots) {
+      setErrors((current) => ({
+        ...current,
+        form: `Only ${availableSlots} more image${availableSlots === 1 ? "" : "s"} can be added.`,
+      }));
+    }
+
     setIsUploading(true);
     try {
-      const urls = await Promise.all(files.map(postsService.uploadImage));
-      setUploadedImages((prev) => [...prev, ...urls]);
-    } catch {
-      // Handled by api interceptor
+      const results = await Promise.allSettled(
+        selectedFiles.map(mutateUploadImage),
+      );
+      const urls = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      urls.forEach((url) => pendingUploadsRef.current.add(url));
+      if (urls.length > 0) {
+        setUploadedImages((prev) => [...prev, ...urls]);
+      }
+      if (results.some((result) => result.status === "rejected")) {
+        setErrors((current) => ({
+          ...current,
+          form: "One or more images could not be uploaded. Please try again.",
+        }));
+      }
     } finally {
       setIsUploading(false);
       e.target.value = "";
@@ -458,7 +510,22 @@ const PostEditor = ({
   };
 
   const removeImage = (index: number) => {
+    const url = uploadedImages[index];
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+    if (url && pendingUploadsRef.current.delete(url)) {
+      void mutateDeleteUnusedImage(url).catch(() => {
+        setErrors((current) => ({
+          ...current,
+          form: "The image was removed from the post, but its temporary upload could not be cleaned up.",
+        }));
+      });
+    }
+  };
+
+  const cleanupPendingUploads = async () => {
+    const urls = [...pendingUploadsRef.current];
+    pendingUploadsRef.current.clear();
+    await Promise.allSettled(urls.map(mutateDeleteUnusedImage));
   };
 
   const getFormWithImages = (): EditorForm => ({
@@ -509,19 +576,32 @@ const PostEditor = ({
 
   const handleConfirmDiscard = () => {
     setShowDiscardConfirm(false);
-    onBack();
+    void cleanupPendingUploads().finally(onBack);
   };
 
   const validateForm = (candidate: EditorForm) => {
-    const nextErrors: Partial<Record<"title" | "body" | "scheduledDate", string>> = {};
+    const nextErrors: Partial<Record<"title" | "body" | "source" | "scheduledDate" | "form", string>> = {};
     if (!candidate.title.trim()) nextErrors.title = "Enter a post title.";
+    else if (candidate.title.trim().length > 255) nextErrors.title = "Keep the title to 255 characters or fewer.";
     if (!candidate.body.trim()) nextErrors.body = "Enter the post content.";
+    if (candidate.source.trim().length > 255) nextErrors.source = "Keep the attribution to 255 characters or fewer.";
     if (candidate.status === "Scheduled") {
       if (!candidate.scheduledDate) {
         nextErrors.scheduledDate = "Select a future publish date and time.";
       } else if (new Date(candidate.scheduledDate).getTime() <= Date.now()) {
         nextErrors.scheduledDate = "Scheduled publish time must be in the future.";
       }
+    }
+    const tags = candidate.tags
+      .split(",")
+      .map((tag) => tag.trim().replace(/^#/, ""))
+      .filter(Boolean);
+    if (tags.length > 10) {
+      nextErrors.form = "A post can contain up to 10 tags.";
+    } else if (tags.some((tag) => tag.length > 50)) {
+      nextErrors.form = "Each tag must be 50 characters or fewer.";
+    } else if (candidate.images.length > MAX_POST_IMAGES) {
+      nextErrors.form = `A post can contain up to ${MAX_POST_IMAGES} images.`;
     }
     return nextErrors;
   };
@@ -535,6 +615,8 @@ const PostEditor = ({
     try {
       setErrors({});
       await onSave(getFormWithImages());
+      pendingUploadsRef.current.clear();
+      onBack();
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : "Unable to save the post. Please try again." });
     }
@@ -552,24 +634,25 @@ const PostEditor = ({
       ...getFormWithImages(),
       status: "Draft" as PostStatus,
     };
-    void onSave(draftData).catch((err: unknown) => {
-      setErrors({ form: err instanceof Error ? err.message : "Unable to save the post. Please try again." });
-    });
+    void onSave(draftData)
+      .then(() => {
+        pendingUploadsRef.current.clear();
+        onBack();
+      })
+      .catch((err: unknown) => {
+        setErrors({ form: err instanceof Error ? err.message : "Unable to save the post. Please try again." });
+      });
   };
 
   const saveButtonLabel = useMemo(() => {
     if (editingPost) return "Save Changes";
     if (form.status === "Scheduled") return "Schedule Post";
+    if (form.status === "Draft") return "Save Draft";
     return "Publish Post";
   }, [editingPost, form.status]);
 
   return (
     <div className="w-full max-w-[1000px] mx-auto space-y-5 pb-20 animate-in fade-in duration-300">
-      {/* ── Top Bar: Back Pill ── */}
-      <div>
-        <BackButton label="Back to Posts" onClick={handleAttemptBack} />
-      </div>
-
       {/* ── Section 1: Post Content & Details ── */}
       <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
@@ -584,7 +667,7 @@ const PostEditor = ({
         <div className="space-y-3.5">
           {/* Post Title */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-bold ${errors.title ? "text-destructive" : "text-foreground"}`}>
+            <Label className="text-xs font-bold text-foreground">
               Post Title
             </Label>
             <Input
@@ -593,6 +676,7 @@ const PostEditor = ({
                 setForm((f) => ({ ...f, title: e.target.value }));
                 setErrors((current) => ({ ...current, title: undefined, form: undefined }));
               }}
+              maxLength={255}
               placeholder="e.g., Household Waste Segregation Guidelines for 2026"
               aria-invalid={Boolean(errors.title)}
               aria-describedby={errors.title ? "post-title-error" : undefined}
@@ -608,15 +692,22 @@ const PostEditor = ({
             </Label>
             <Input
               value={form.source}
-              onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, source: e.target.value }));
+                setErrors((current) => ({ ...current, source: undefined, form: undefined }));
+              }}
+              maxLength={255}
               placeholder="e.g., MENRO Candelaria · Office of the Municipal Environment"
-              className="h-10 rounded-xl bg-background border-border/80 text-sm focus-visible:border-primary shadow-2xs"
+              aria-invalid={Boolean(errors.source)}
+              aria-describedby={errors.source ? "post-source-error" : undefined}
+              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.source ? "border-destructive/70 text-destructive focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
+            {errors.source && <p id="post-source-error" className="text-[11px] font-medium text-destructive">{errors.source}</p>}
           </div>
 
           {/* Body Content */}
           <div className="space-y-1.5">
-            <Label className={`text-xs font-bold ${errors.body ? "text-destructive" : "text-foreground"}`}>
+            <Label className="text-xs font-bold text-foreground">
               Post Body
             </Label>
             <Textarea
@@ -643,7 +734,7 @@ const PostEditor = ({
             Media & Cover Photo
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Upload photos for this post. The first image will be used as the primary cover photo.
+            Upload up to {MAX_POST_IMAGES} photos. The first image will be used as the primary cover photo.
           </p>
         </div>
 
@@ -722,11 +813,15 @@ const PostEditor = ({
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isUploading || uploadedImages.length >= MAX_POST_IMAGES}
                 className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-2 cursor-pointer border-border/80 bg-background hover:bg-muted/50 transition-all shadow-2xs"
               >
                 <UploadCloud className="w-3.5 h-3.5 text-muted-foreground" />
-                {isUploading ? "Uploading..." : "Add More Photos"}
+                {isUploading
+                  ? "Uploading..."
+                  : uploadedImages.length >= MAX_POST_IMAGES
+                    ? "Photo Limit Reached"
+                    : "Add More Photos"}
               </Button>
             </div>
           </div>
@@ -768,7 +863,7 @@ const PostEditor = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
           multiple
           className="hidden"
           onChange={handleFileChange}
@@ -854,7 +949,7 @@ const PostEditor = ({
         {/* Scheduled Publishing Time (if Scheduled) */}
         {form.status === "Scheduled" && (
           <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
-            <Label className={`text-xs font-bold ${errors.scheduledDate ? "text-destructive" : "text-foreground"}`}>
+            <Label className="text-xs font-bold text-foreground">
               Scheduled Publish Time
             </Label>
             <CustomDateTimePicker
@@ -903,8 +998,7 @@ const PostEditor = ({
         {/* Featured Post Toggle */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-border/80 bg-muted/20 hover:bg-muted/30 transition-colors">
           <div className="space-y-0.5 pr-4">
-            <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <Label className="text-xs font-semibold text-foreground">
               Feature on Resident Carousel
             </Label>
             <p className="text-[11px] text-muted-foreground">

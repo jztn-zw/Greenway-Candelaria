@@ -53,6 +53,10 @@ const PostCard = ({
 
   const currentImage = validImages[imageIndex] || null;
 
+  useEffect(() => {
+    setImageFailed(false);
+  }, [currentImage]);
+
   return (
     <div
       className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:shadow-xl hover:border-primary/40 transition-all duration-300 cursor-pointer shadow-2xs"

@@ -7,6 +7,9 @@ export interface ApiRouteStop {
   id: string;
   barangay_id: string;
   barangay_name: string;
+  street_id?: string | null;
+  stop_name?: string | null;
+  coverage_path?: [number, number][] | string | null;
   zone: string;
   stop_order: number;
   status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
@@ -41,12 +44,39 @@ export interface CreateRoutePayload {
   status?: string;
   waste_type?: string;
   stops: {
-    barangay_id: string;
+    barangay_id?: string;
+    street_id?: string;
     stop_order: number;
   }[];
 }
 
 export type UpdateRoutePayload = Partial<CreateRoutePayload>;
+
+export interface RouteRunToday {
+  route_id: string;
+  template_route_id?: string | null;
+  route_status: "SCHEDULED" | "ACTIVE" | "PAUSED" | "COMPLETED" | "PARTIAL" | "CANCELLED";
+  truck_id: string;
+  truck_name: string;
+  driver_id?: string | null;
+  driver_name?: string | null;
+  route_name?: string | null;
+  waste_type?: string | null;
+  started_at?: string;
+  collection_started_at?: string | null;
+  ended_at?: string | null;
+  paused_at?: string | null;
+  total_paused_seconds?: number;
+  run_date?: string;
+  stops: Array<{
+    id: string;
+    barangay_id: string;
+    barangay_name: string;
+    stop_name?: string | null;
+    order_index: number;
+    status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
+  }>;
+}
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
@@ -80,11 +110,9 @@ export const deleteRoute = async (id: string): Promise<{ message: string }> => {
   return data;
 };
 
-export const fetchMyRouteToday = async (): Promise<any> => {
-  try {
-    const { data } = await api.get<{ data: any }>("/routes/today/mine");
-    return data.data;
-  } catch (error) {
-    return null;
-  }
+export const fetchMyRouteToday = async (includeFinished = false): Promise<RouteRunToday | null> => {
+  const { data } = await api.get<{ data: RouteRunToday | null }>("/routes/today/mine", {
+    params: includeFinished ? { include_finished: true } : undefined,
+  });
+  return data.data;
 };

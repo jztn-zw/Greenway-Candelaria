@@ -25,10 +25,25 @@ const assignTruckSchema = z.object({
   truck_id: z.string().nullable(),
 });
 
+const accountStatusSchema = z.object({ status: z.enum(["ACTIVE", "DEACTIVATED"]) }).strict();
+
+const resetDriverPasswordSchema = z.object({
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .refine((value) => value.trim().length > 0, "Password cannot contain only spaces")
+    .refine((value) => Buffer.byteLength(value, "utf8") <= 72, "Password must be at most 72 bytes"),
+}).strict();
+
 const driverStatusSchema = z.object({
   status_msg: z.string().max(255, "Status message too long"),
   route_id: z.string().min(1).optional(),
 });
+
+const breakdownReportSchema = z.object({
+  category: z.string().trim().min(1).max(60),
+  description: z.string().trim().min(1, "Describe the breakdown and location").max(140),
+  urgent: z.boolean().default(false),
+}).strict();
 
 const adminDriverMessageSchema = z.object({
   driver_user_id: z.string().min(1, "Driver user ID is required"),
@@ -40,6 +55,9 @@ module.exports = {
   createDriverSchema,
   updateDriverSchema,
   assignTruckSchema,
+  accountStatusSchema,
+  resetDriverPasswordSchema,
   driverStatusSchema,
+  breakdownReportSchema,
   adminDriverMessageSchema,
 };

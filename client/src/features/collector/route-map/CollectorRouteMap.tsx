@@ -10,8 +10,8 @@
  *
  */
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Clock,
   MapPin,
@@ -39,8 +39,9 @@ import RouteMapView from "./components/RouteMapView";
 import StopListItem from "./components/StopListItem";
 import SkipReasonModal from "./components/SkipReasonModal";
 import EndRouteModal from "./components/EndRouteModal";
-import { useRouteData } from "./hooks/useRouteData";
-import { useLiveTracking } from "./hooks/useLiveTracking";
+import { useCollectorTracking } from "./useCollectorTracking";
+import { useCollectorAction } from "@/lib/collectorQuery";
+import { distanceToStopKm } from "./routeMap.utils";
 import { useScheduledRouteOrder } from "./hooks/useAutoRoute";
 import {
   completeStop,
@@ -50,6 +51,7 @@ import {
   setMyRoutePaused,
 } from "@/services/trackingService";
 import type { SkipReason } from "./types";
+import { matchesCollectorRouteAlert } from "../notifications/notificationRouting";
 
 const getErrorMessage = (err: unknown) =>
   err instanceof Error ? err.message : "Please try again.";
@@ -187,10 +189,14 @@ const RouteMapError = ({
   message,
   onRetry,
   onBack,
+  title = "Could not load route",
+  backLabel = "Back to dashboard",
 }: {
   message: string;
   onRetry: () => void;
   onBack?: () => void;
+  title?: string;
+  backLabel?: string;
 }) => (
   <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
     <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-5">
@@ -202,9 +208,9 @@ const RouteMapError = ({
       {/* Copy */}
       <div className="space-y-1.5">
         <p className="text-base font-display font-bold text-foreground tracking-tight">
-          Could not load route
+          {title}
         </p>
-        <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">{message}</p>
+        <p role="alert" className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">{message}</p>
       </div>
 
       {/* Action */}
@@ -224,7 +230,7 @@ const RouteMapError = ({
             className="w-full sm:w-auto gap-2 rounded-xl h-10 px-5 text-xs font-semibold border-border cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to dashboard
+            {backLabel}
           </Button>
         )}
       </div>
@@ -236,11 +242,11 @@ const RouteMapError = ({
 
 const CollectorRouteMap = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
-  const [isRouteEnded, setIsRouteEnded] = useState(false);
-  const [isPauseUpdating, setIsPauseUpdating] = useState(false);
+    const [isPauseUpdating, setIsPauseUpdating] = useState(false);
   const [isStartingRoute, setIsStartingRoute] = useState(false);
   // Tracks which stop is being mutated to show per-button loading states
   const [mutating, setMutating] = useState<"done" | "skip" | "end" | null>(
@@ -248,19 +254,16 @@ const CollectorRouteMap = () => {
   );
 
   // ─── Data hooks ───────────────────────────────────────────────────────────
-  const { stops, routeInfo, isLoading, error, refresh, updateStopLocally } =
-    useRouteData();
+  const { stops, routeInfo, isLoading, error, refresh, truckCoords, isOffline, pendingSync, gpsError } = useCollectorTracking();
+  const runRouteAction = useCollectorAction("routes", "history", "profile");
+  const hasStartedRoute = Boolean(routeInfo?.collectionStartedAt);
   const isScheduledRoute = Boolean(
-    routeInfo?.startedAt && routeInfo.startedAt.getTime() > Date.now(),
+    !hasStartedRoute &&
+      routeInfo?.startedAt &&
+      routeInfo.startedAt.getTime() > Date.now(),
   );
   const isPaused = routeInfo?.routeStatus === "PAUSED";
-  const hasStartedRoute = Boolean(routeInfo?.collectionStartedAt);
 
-  const { truckCoords, isOffline, pendingSync } = useLiveTracking({
-    truckId: routeInfo?.truckId ?? null,
-    isRouteEnded,
-    isTrackingEnabled: !isScheduledRoute && hasStartedRoute && !isPaused,
-  });
 
   // ─── Auto-route: sort remaining stops by proximity ─────────────────────────
   // Keep the collector, resident, and admin views on the exact stop order
@@ -270,18 +273,14 @@ const CollectorRouteMap = () => {
 
   // ─── Elapsed timer with pause support ─────────────────────────────────────
   const [elapsed, setElapsed] = useState("0h 00m 00s");
-  const [routeStartMs, setRouteStartMs] = useState<number | null>(null);
-  const activeRouteIdRef = useRef<string | null>(null);
-  const pauseStartMsRef = useRef<number | null>(null);
-  const totalPausedMsRef = useRef<number>(0);
+  const routeStartMs = routeInfo?.collectionStartedAt?.getTime() ?? null;
 
   const handleTogglePause = useCallback(async () => {
     if (!routeInfo || isPauseUpdating) return;
     setIsPauseUpdating(true);
     try {
       const nextPaused = !isPaused;
-      await setMyRoutePaused(routeInfo.routeId, nextPaused);
-      refresh();
+      await runRouteAction(() => setMyRoutePaused(routeInfo.routeId, nextPaused));
       toast.success(nextPaused ? "Route paused" : "Route resumed", {
         description: nextPaused
           ? "GPS updates and collection actions are on hold."
@@ -292,60 +291,13 @@ const CollectorRouteMap = () => {
     } finally {
       setIsPauseUpdating(false);
     }
-  }, [isPaused, isPauseUpdating, refresh, routeInfo]);
-
-  useEffect(() => {
-    if (!routeInfo) {
-      activeRouteIdRef.current = null;
-      setRouteStartMs(null);
-      totalPausedMsRef.current = 0;
-      pauseStartMsRef.current = null;
-      return;
-    }
-
-    const candidate = routeInfo.collectionStartedAt?.getTime();
-    const safeStart = Number.isFinite(candidate) ? (candidate as number) : null;
-
-    if (
-      activeRouteIdRef.current !== routeInfo.routeId ||
-      (safeStart !== null && routeStartMs === null)
-    ) {
-      activeRouteIdRef.current = routeInfo.routeId;
-      setRouteStartMs(safeStart);
-      totalPausedMsRef.current = 0;
-      pauseStartMsRef.current = null;
-    }
-  }, [routeInfo, routeStartMs]);
-
-  // Freeze elapsed collection time while paused. This is intentionally kept
-  // separate from GPS status so a resumed route continues from the same active
-  // work duration instead of counting the break.
-  useEffect(() => {
-    if (!routeStartMs) return;
-
-    if (isPaused) {
-      if (pauseStartMsRef.current === null) pauseStartMsRef.current = Date.now();
-      return;
-    }
-
-    if (pauseStartMsRef.current !== null) {
-      totalPausedMsRef.current += Date.now() - pauseStartMsRef.current;
-      pauseStartMsRef.current = null;
-    }
-  }, [isPaused, routeStartMs]);
+  }, [isPaused, isPauseUpdating, runRouteAction, routeInfo]);
 
   const handleStartRoute = useCallback(async () => {
     if (!routeInfo || isStartingRoute) return;
     setIsStartingRoute(true);
     try {
-      await startMyRoute(routeInfo.routeId);
-      // Show a clean zero-based timer immediately. The next route refresh
-      // replaces this with the server's UTC start timestamp.
-      activeRouteIdRef.current = routeInfo.routeId;
-      setRouteStartMs(Date.now());
-      totalPausedMsRef.current = 0;
-      pauseStartMsRef.current = null;
-      refresh();
+      await runRouteAction(() => startMyRoute(routeInfo.routeId));
       toast.success("Route started", {
         description: "GPS tracking and route timing are now active.",
       });
@@ -354,7 +306,7 @@ const CollectorRouteMap = () => {
     } finally {
       setIsStartingRoute(false);
     }
-  }, [isStartingRoute, refresh, routeInfo]);
+  }, [isStartingRoute, runRouteAction, routeInfo]);
 
   useEffect(() => {
     if (!routeStartMs) {
@@ -363,11 +315,8 @@ const CollectorRouteMap = () => {
     }
 
     const tick = () => {
-      let pausedExtra = totalPausedMsRef.current;
-      if (pauseStartMsRef.current) {
-        pausedExtra += Date.now() - pauseStartMsRef.current;
-      }
-      const diff = Date.now() - routeStartMs - pausedExtra;
+      const now = isPaused && routeInfo?.pausedAt ? routeInfo.pausedAt.getTime() : Date.now();
+      const diff = now - routeStartMs - (routeInfo?.totalPausedSeconds ?? 0) * 1000;
       if (diff < 0) {
         setElapsed("0h 00m 00s");
         return;
@@ -384,7 +333,7 @@ const CollectorRouteMap = () => {
 
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [routeStartMs, isPaused]);
+  }, [routeStartMs, isPaused, routeInfo?.pausedAt, routeInfo?.totalPausedSeconds]);
 
   // ─── Derived state ──────────────────────────────────────────────────────────
   const completed = useMemo(
@@ -410,19 +359,14 @@ const CollectorRouteMap = () => {
     [autoRoutedStops],
   );
 
-  // Fall back to center of all stop coords if no live GPS yet
-  const resolvedTruckCoords = useMemo<[number, number]>(() => {
-    if (truckCoords) return truckCoords;
-    const active = autoRoutedStops.find((s) => s.status === "in-progress");
-    return active?.coords ?? [14.0388, 121.4285];
-  }, [truckCoords, autoRoutedStops]);
+  const resolvedTruckCoords = truckCoords;
 
   // Geofence detection (150 meters = 0.15 km)
   const GEOFENCE_RADIUS_KM = 0.15;
   const isWithinGeofence = useMemo(() => {
-    if (!activeStop || !truckCoords) return false;
-    const distKm = activeStop.distanceKm ?? 0;
-    return distKm > 0 && distKm <= GEOFENCE_RADIUS_KM;
+    if (!activeStop || activeStop.hasCoordinates === false || !truckCoords) return false;
+    const distKm = distanceToStopKm(truckCoords, activeStop);
+    return distKm >= 0 && distKm <= GEOFENCE_RADIUS_KM;
   }, [activeStop, truckCoords]);
 
   // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -438,24 +382,11 @@ const CollectorRouteMap = () => {
         stop.status === "skipped",
     );
 
-    // Optimistic update â€” UI feels instant
-    const now = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    updateStopLocally(activeStop.id, { status: "done", completedAt: now });
 
     try {
-      await completeStop(routeInfo.routeId, activeStop.id);
+      await runRouteAction(() => completeStop(routeInfo.routeId, activeStop.id));
 
-      // Explicitly close the route after its final stop. The server also
-      // performs this check, but this client-side confirmation makes the
-      // admin's one route-completion notification reliable if the backend
-      // receives stop updates before a live process reload. endRoute is
-      // idempotent, so a route already closed by the server is safe here.
       if (isFinalOutstandingStop) {
-        await endRoute(routeInfo.routeId);
-        setIsRouteEnded(true);
         toast.success("Collection route completed", {
           description: "The collection summary was sent to the admin.",
         });
@@ -466,18 +397,13 @@ const CollectorRouteMap = () => {
         });
       }
     } catch (err: unknown) {
-      // Revert optimistic update on failure
-      updateStopLocally(activeStop.id, {
-        status: "in-progress",
-        completedAt: undefined,
-      });
       toast.error("Failed to mark stop as done", {
         description: getErrorMessage(err),
       });
     } finally {
       setMutating(null);
     }
-  }, [activeStop, autoRoutedStops, navigate, routeInfo, updateStopLocally]);
+  }, [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction]);
 
   const handleSkipConfirm = useCallback(
     async (reason: SkipReason, notes?: string) => {
@@ -493,20 +419,13 @@ const CollectorRouteMap = () => {
 
       const fullReason = reason === "Other" ? (notes ?? reason) : reason;
 
-      // Optimistic update
-      updateStopLocally(activeStop.id, {
-        status: "skipped",
-        skippedReason: fullReason,
-      });
       setShowSkipModal(false);
 
       try {
-        await skipStop(routeInfo.routeId, activeStop.id, fullReason);
+        await runRouteAction(() => skipStop(routeInfo.routeId, activeStop.id, fullReason));
 
         if (isFinalOutstandingStop) {
-          await endRoute(routeInfo.routeId);
-          setIsRouteEnded(true);
-          toast.success("Collection route completed", {
+              toast.success("Collection route completed", {
             description: "The collection summary was sent to the admin.",
           });
           navigate("/collector");
@@ -516,20 +435,15 @@ const CollectorRouteMap = () => {
           });
         }
       } catch (err: unknown) {
-        // Revert
-        updateStopLocally(activeStop.id, {
-          status: "in-progress",
-          skippedReason: undefined,
-        });
         setShowSkipModal(true); // re-open modal so they can try again
         toast.error("Failed to skip stop", {
           description: getErrorMessage(err),
         });
       } finally {
-        setMutating(null);
+      setMutating(null);
       }
     },
-    [activeStop, autoRoutedStops, navigate, routeInfo, updateStopLocally],
+    [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction],
   );
 
   const handleEndRoute = useCallback(async () => {
@@ -538,8 +452,7 @@ const CollectorRouteMap = () => {
     setShowEndModal(false);
 
     try {
-      await endRoute(routeInfo.routeId);
-      setIsRouteEnded(true);
+      await runRouteAction(() => endRoute(routeInfo.routeId));
       toast.success("Route ended successfully.");
       navigate("/collector");
     } catch (err: unknown) {
@@ -549,42 +462,44 @@ const CollectorRouteMap = () => {
     } finally {
       setMutating(null);
     }
-  }, [routeInfo, navigate]);
+  }, [routeInfo, navigate, runRouteAction]);
 
   // ─── Render guards ──────────────────────────────────────────────────────────
   if (isLoading) return <RouteMapSkeleton />;
 
-  const isNoActiveRoute =
-    !routeInfo ||
-    error === "No active route assigned for today." ||
-    (typeof error === "string" && (
-      error.toLowerCase().includes("no active route") ||
-      error.toLowerCase().includes("no route assigned") ||
-      error.toLowerCase().includes("collection is scheduled on")
-    ));
+  if (error) return <RouteMapError message={error} onRetry={refresh} onBack={() => navigate("/collector")} />;
 
-  if (isNoActiveRoute) {
-    const customMessage =
-      typeof error === "string" && error.toLowerCase().includes("collection is scheduled on")
-        ? error
-        : "No route has been assigned to your truck for today. Check back later or review past route runs.";
-
-    return <NoScheduledRouteView message={customMessage} onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} onBackToDashboard={() => navigate("/collector")} />;
+  if (!matchesCollectorRouteAlert(searchParams, routeInfo)) {
+    return <RouteMapError title="Route alert unavailable" backLabel="Back to notifications" message="The route in this notification is no longer your current assignment. Return to notifications to review the alert." onRetry={refresh} onBack={() => navigate("/collector/notifications")} />;
   }
 
-  if (error) {
-    return (
-      <RouteMapError
-        message={error}
-        onRetry={refresh}
-        onBack={() => navigate("/collector")}
-      />
-    );
+  if (!routeInfo) {
+    return <NoScheduledRouteView onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} onBackToDashboard={() => navigate("/collector")} />;
   }
 
   // Active Stop Card render function (used both on mobile above the map and desktop in sidebar)
   const renderActiveStopCard = () => {
-    if (!hasStartedRoute && !isScheduledRoute) {
+    if (!hasStartedRoute && isScheduledRoute) {
+      return (
+        <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
+          <div className="w-10 h-10 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <Clock className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-display font-bold text-foreground">
+            Route is scheduled
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Start the route when you are ready to depart. Scheduled for{" "}
+            {routeInfo.startedAt.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            })}.
+          </p>
+        </div>
+      );
+    }
+
+    if (!hasStartedRoute) {
       return (
         <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 text-center space-y-3.5 shrink-0 shadow-xs">
           <div className="w-11 h-11 mx-auto rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs">
@@ -717,27 +632,6 @@ const CollectorRouteMap = () => {
       );
     }
 
-    if (isScheduledRoute) {
-      return (
-        <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
-          <div className="w-10 h-10 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
-            <Clock className="w-5 h-5" />
-          </div>
-          <p className="text-sm font-display font-bold text-foreground">
-            Route is scheduled
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Tracking starts at{" "}
-            {routeInfo.startedAt.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-            .
-          </p>
-        </div>
-      );
-    }
-
     return (
       <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
         <div className="w-10 h-10 mx-auto rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -801,7 +695,11 @@ const CollectorRouteMap = () => {
         </div>
       )}
 
-      {/* Offline sync indicator */}
+      {hasStartedRoute && !isPaused && (gpsError || !truckCoords) && (
+        <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          {gpsError || "Waiting for a fresh GPS location. Truck position is unavailable."}
+        </div>
+      )}
       {isOffline && (
         <div className="flex items-center gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-medium shadow-2xs">
           <WifiOff className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -814,19 +712,25 @@ const CollectorRouteMap = () => {
         </div>
       )}
 
-      {/* Mobile Active Stop Card — highlights current task right at top for instant one-tap actions (Req 10) */}
-      <div className="lg:hidden">
-        {renderActiveStopCard()}
-      </div>
+      {!hasStartedRoute ? (
+        <div className="mx-auto w-full max-w-xl py-4">
+          {renderActiveStopCard()}
+        </div>
+      ) : (
+        <>
+          {/* Mobile Active Stop Card — highlights current task right at top for instant one-tap actions (Req 10) */}
+          <div className="lg:hidden">
+            {renderActiveStopCard()}
+          </div>
 
-      {/* Main Layout — stacked on mobile, side-by-side on desktop */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5 items-start">
+          {/* Main Layout — stacked on mobile, side-by-side on desktop */}
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5 items-start">
         {/* Map Viewport — dynamically responsive height from mobile to ultra-wide */}
         <div className="lg:col-span-3 h-[320px] xs:h-[360px] sm:h-[420px] md:h-[480px] lg:h-[620px] xl:h-[680px] w-full">
           <RouteMapView
             stops={autoRoutedStops}
             truckCoords={resolvedTruckCoords}
-            activeStopCoords={activeStop?.coords ?? null}
+            activeStopCoords={activeStop?.hasCoordinates === false ? null : activeStop?.coords ?? null}
           />
         </div>
 
@@ -938,7 +842,9 @@ const CollectorRouteMap = () => {
             )}
           </div>
         </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Modals */}
       <SkipReasonModal

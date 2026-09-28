@@ -1,21 +1,24 @@
 import React from "react";
 import { Post } from "./types";
 import { cn } from "@/lib/utils";
+import type { AdminPostStats } from "@/services/postsService";
 
 interface PostStatsProps {
   posts: Post[];
+  stats?: AdminPostStats | null;
 }
 
-const PostStats: React.FC<PostStatsProps> = ({ posts }) => {
-  const published = posts.filter((p) => p.status === "Published").length;
-  const totalViews = posts.reduce((sum, p) => sum + (p.views || 0), 0);
-  const totalReacts = posts.reduce((sum, p) => sum + (p.likes || 0), 0);
-  const archived = posts.filter((p) => p.status === "Archived").length;
+const PostStats: React.FC<PostStatsProps> = ({ posts, stats: serverStats }) => {
+  const publishedPosts = posts.filter((p) => p.status === "Published");
+  const published = serverStats?.published ?? publishedPosts.length;
+  const totalViews = serverStats?.totalViews ?? publishedPosts.reduce((sum, p) => sum + (p.views || 0), 0);
+  const totalReacts = serverStats?.totalReacts ?? publishedPosts.reduce((sum, p) => sum + (p.likes || 0), 0);
+  const archived = serverStats?.archived ?? posts.filter((p) => p.status === "Archived").length;
 
   const stats = [
     {
       label: "Total Posts",
-      value: posts.length,
+      value: serverStats?.totalPosts ?? posts.length,
       trend: `${published} published to feed`,
       tag: "bg-muted/70 text-muted-foreground border-border/80",
     },

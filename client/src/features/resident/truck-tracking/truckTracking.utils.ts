@@ -1,28 +1,29 @@
+import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
+
 export const formatCollectionTime = (value?: string | null) => {
   if (!value) return "-";
 
   const timeMatch = String(value).match(/^(\d{2}):(\d{2})/);
   if (timeMatch) {
     const [, hours, minutes] = timeMatch;
-    const date = new Date();
-    date.setHours(Number(hours), Number(minutes), 0, 0);
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const hour = Number(hours);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return "-";
+    const suffix = hour >= 12 ? "PM" : "AM";
+    return `${hour % 12 || 12}:${minutes} ${suffix}`;
   }
 
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return "-";
-  return parsedDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return formatManilaDateTime(value, { hour: "numeric", minute: "2-digit" }, "-");
 };
 
 export const formatCollectionDate = (value?: string | null) => {
   if (!value) return "-";
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return "-";
-  return parsedDate.toLocaleDateString("en-US", {
+  const parsedDate = parseApiTimestamp(value);
+  if (!parsedDate) return "-";
+  return formatManilaDateTime(parsedDate, {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  }, "-");
 };
 
 export const calculateDistanceInKilometers = (

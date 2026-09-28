@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useResidentQuery } from "@/lib/residentQuery";
+import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { CalendarGrid } from "@/features/admin/schedule/CalendarGrid";
-import { CalendarEvent, fetchCalendarEvents } from "@/services/scheduleService";
+import { CalendarGrid } from "@/components/calendar/CalendarGrid";
+import { fetchCalendarEvents } from "@/services/scheduleService";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDateOnly, getManilaNow } from "@/utils/date";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -16,21 +18,19 @@ const eventColor = (id: string) => {
 
 const CollectionCalendar = () => {
   const navigate = useNavigate();
-  const today = new Date();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const today = getManilaNow();
+  const [currentDate, setCurrentDate] = useState(() => new Date(today.year, today.month - 1, 1));
   const [selectedDateStr, setSelectedDateStr] = useState(() =>
-    toDateString(today.getFullYear(), today.getMonth(), today.getDate()),
+    today.dateKey,
   );
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = today.dateKey;
 
-  useEffect(() => {
-    fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` })
-      .then(setEvents)
-      .catch((error) => console.error("Failed to load resident calendar events", error));
-  }, [year, month]);
+  const calendarQuery = useResidentQuery("schedule", ["calendar", year, month],
+    () => fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }));
+  const events = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
+  const calendarError = calendarQuery.isError;
 
   const scheduleColorById = useMemo(
     () => new Map(events.map((event) => [event.id, eventColor(event.id)])),
@@ -51,12 +51,17 @@ const CollectionCalendar = () => {
     setSelectedDateStr(toDateString(next.getFullYear(), next.getMonth(), 1));
   };
   const goToday = () => {
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCurrentDate(new Date(today.year, today.month - 1, 1));
     setSelectedDateStr(todayStr);
   };
 
   return (
     <section>
+      {calendarError && (
+        <p role="alert" className="mb-2 text-xs text-destructive">
+          Calendar announcements could not be loaded. Please try again later.
+        </p>
+      )}
       <CalendarGrid
         currentDate={currentDate}
         selectedDateStr={selectedDateStr}
@@ -66,7 +71,7 @@ const CollectionCalendar = () => {
         onPrevMonth={() => changeMonth(-1)}
         onNextMonth={() => changeMonth(1)}
         onGoToday={goToday}
-        headingLabel={new Date(`${selectedDateStr}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        headingLabel={formatDateOnly(selectedDateStr, { month: "long", day: "numeric", year: "numeric" })}
         showNavigation={false}
         hideTodayButtonWhenOtherDateSelected
         compactMobileCells
@@ -87,8 +92,8 @@ const CollectionCalendar = () => {
           ) : selectedDateEvents.map((event) => {
             const start = event.event_date.split("T")[0];
             const end = event.end_date?.split("T")[0] || start;
-            const dateLabel = new Date(`${start}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-            const endLabel = end === start ? null : new Date(`${end}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const dateLabel = formatDateOnly(start, { month: "short", day: "numeric" });
+            const endLabel = end === start ? null : formatDateOnly(end, { month: "short", day: "numeric" });
             const color = scheduleColorById.get(event.id) || "hsl(160 72% 52%)";
             return (
               <Tooltip key={event.id}>

@@ -1,28 +1,15 @@
-import api from "../lib/api";
+import api from "@/lib/api";
+import type { AnalyticsDashboardData, AnalyticsDateRange } from "@/features/admin/analytics/analytics.types";
 
-export interface AnalyticsOverview {
-  users: {
-    total: number;
-    residents: number;
-    drivers: number;
-    admins: number;
-  };
-  reports: {
-    total: number;
-    resolved: number;
-    pending: number;
-  };
-  trucks: {
-    total: number;
-    active: number;
-  };
-  posts: number;
-  announcements: number;
+export interface AnalyticsDashboardFilters extends AnalyticsDateRange {
+  barangayId?: string;
 }
 
 const analyticsService = {
-  getOverview: async (): Promise<AnalyticsOverview> => {
-    const { data } = await api.get("/analytics/overview");
+  getDashboard: async (filters: AnalyticsDashboardFilters): Promise<AnalyticsDashboardData> => {
+    const { data } = await api.get<{ data: AnalyticsDashboardData }>("/analytics/dashboard", {
+      params: filters,
+    });
     return data.data;
   },
 };

@@ -6,6 +6,7 @@ export interface BarangayStop {
   completedAt?: string; // time string e.g. "8:15 AM"
   skippedReason?: string;
   coords?: [number, number];
+  coveragePath?: [number, number][] | null;
 }
 
 export interface DriverMessage {
@@ -22,6 +23,7 @@ export interface AdminTruck {
   id: string;
   driverId: string | null;
   routeId: string | null;
+  routeChoices: Array<{ id: string; name: string; status: string }>;
   driverUserId: string | null;
   name: string;
   plateNumber: string;

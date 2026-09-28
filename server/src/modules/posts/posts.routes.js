@@ -15,6 +15,12 @@ router.post(
   upload.single("file"),
   controller.uploadImage,
 );
+router.delete(
+  "/upload-image",
+  authenticate,
+  authorize("ADMIN"),
+  controller.deleteUploadedImage,
+);
 
 // ─── Public ───────────────────────────────────────────────
 router.get("/", optionalAuth, controller.getAll);

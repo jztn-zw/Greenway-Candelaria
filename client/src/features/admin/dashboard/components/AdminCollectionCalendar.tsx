@@ -1,54 +1,37 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CalendarEvent, fetchCalendarEvents } from "@/services/scheduleService";
-import { DashboardRoute } from "./useAdminDashboard";
+import { useAdminQuery } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
+import { fetchCalendarEvents } from "@/services/scheduleService";
+import { ArrowRight } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface AdminCollectionCalendarProps {
   className?: string;
-  routes?: DashboardRoute[];
+  asOfDate?: string;
 }
 
-const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "" }) => {
+const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "", asOfDate }) => {
   const navigate = useNavigate();
-  const currentDate = new Date();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const currentDate = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  const { data: events = [], isError: error } = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const todayDayNumber = currentDate.getDate();
+  const year = currentDate.getUTCFullYear();
+  const month = currentDate.getUTCMonth();
+  const todayDayNumber = currentDate.getUTCDate();
 
   const todayStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(todayDayNumber).padStart(2, "0")}`;
   const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
 
-  // Fetch real schedule events from Schedule Manager
-  useEffect(() => {
-    let isMounted = true;
-    const loadEvents = async () => {
-      try {
-        const data = await fetchCalendarEvents();
-        if (isMounted) {
-          setEvents(data || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch calendar schedule events", err);
-      }
-    };
-    loadEvents();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useEffect(() => { setSelectedDateStr(todayStr); }, [todayStr]);
 
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = currentDate.toLocaleString("default", { month: "long" });
+  const monthName = currentDate.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
 
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month + 1, 0);
@@ -134,6 +117,8 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
       </div>
 
       {/* Calendar Grid Container */}
+      {error && <p role="alert" className="text-sm text-destructive">Schedule data could not be refreshed. Please open Schedule Manager to retry.</p>}
+      {!error &&
       <TooltipProvider delayDuration={100}>
         <div className="border border-border/80 rounded-xl p-3 sm:p-3.5 bg-background space-y-2">
         {/* Day headers */}
@@ -374,6 +359,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         )}
         </div>
       </TooltipProvider>
+      }
     </div>
   );
 };

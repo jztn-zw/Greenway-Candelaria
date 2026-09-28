@@ -16,8 +16,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Copy,
+  Pencil,
   MoreVertical,
+  Power,
   Route as RouteIcon,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WASTE_MAP, formatTime12h } from "../constants";
@@ -210,36 +214,41 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 rounded-xl border-border/80 p-1">
+                        <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/80 p-1">
                           <DropdownMenuItem
                             onClick={() => onEdit(route)}
-                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
-                            Edit Route
+                            <Pencil aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => onDuplicate(route)}
-                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
-                            Duplicate Route
+                            <Copy aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => onToggleActive(route)}
                             disabled={isToggling}
-                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
-                            {route.active ? "Pause Route" : "Enable Route"}
+                            <Power aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            {route.active ? "Disable schedule" : "Enable schedule"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
                             onClick={() => onDelete(route)}
                             disabled={route.active || isDeleting}
-                            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                            aria-label={route.active ? "Delete route (disable schedule first)" : "Delete route"}
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
-                            Delete Route
+                            <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span>Delete</span>
                             {route.active && (
-                              <span className="ml-auto text-[10px] text-muted-foreground font-normal">
-                                Pause first
+                              <span className="ml-auto whitespace-nowrap text-[10px] text-muted-foreground font-normal">
+                                Disable first
                               </span>
                             )}
                           </DropdownMenuItem>

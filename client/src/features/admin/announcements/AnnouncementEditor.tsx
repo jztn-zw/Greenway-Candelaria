@@ -60,7 +60,7 @@ interface Props {
   editingAnnouncement: Announcement | null;
   form: EditorForm;
   setForm: React.Dispatch<React.SetStateAction<EditorForm>>;
-  onSave: () => Promise<void>;
+  onSave: (form: EditorForm) => Promise<void>;
   isSaving: boolean;
   barangayOptions: { id: string; name: string }[];
 }
@@ -129,10 +129,7 @@ const AnnouncementEditor = ({
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
 
-  if (!form) return null;
-
   const isDirty = useMemo(() => {
-    if (!form) return false;
     if (editingAnnouncement) {
       return (
         form.title !== editingAnnouncement.title ||
@@ -168,26 +165,21 @@ const AnnouncementEditor = ({
 
   const handleSaveActionAndClose = () => {
     setShowDiscardConfirm(false);
-    if (!editingAnnouncement) {
-      setForm((prev) => ({ ...prev, status: "Draft" }));
-    }
-    setTimeout(() => {
-      void handleSave();
-    }, 50);
+    void handleSave({ ...form, status: "Draft" });
   };
 
-  const validateForm = () => {
+  const validateForm = (candidate: EditorForm = form) => {
     const nextErrors: typeof errors = {};
     const now = new Date();
 
-    if (!form.title.trim()) nextErrors.title = "Enter a notice title.";
-    if (!form.body.trim()) nextErrors.body = "Enter the announcement details.";
-    if (form.targetAudience === "Specific Barangays" && form.targetBarangays.length === 0) {
+    if (!candidate.title.trim()) nextErrors.title = "Enter a notice title.";
+    if (!candidate.body.trim()) nextErrors.body = "Enter the announcement details.";
+    if (candidate.targetAudience === "Specific Barangays" && candidate.targetBarangays.length === 0) {
       nextErrors.targetBarangays = "Select at least one barangay.";
     }
 
-    if (form.status === "Scheduled") {
-      const scheduledAt = form.scheduledDate ? new Date(form.scheduledDate) : null;
+    if (candidate.status === "Scheduled") {
+      const scheduledAt = candidate.scheduledDate ? new Date(candidate.scheduledDate) : null;
       if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
         nextErrors.scheduledDate = "Choose a broadcast date and time.";
       } else if (scheduledAt <= now) {
@@ -195,19 +187,19 @@ const AnnouncementEditor = ({
       }
     }
 
-    if (form.expiryDate) {
-      const expiryAt = new Date(form.expiryDate);
-      const scheduledAt = form.scheduledDate ? new Date(form.scheduledDate) : null;
+    if (candidate.expiryDate) {
+      const expiryAt = new Date(candidate.expiryDate);
+      const scheduledAt = candidate.scheduledDate ? new Date(candidate.scheduledDate) : null;
       if (Number.isNaN(expiryAt.getTime())) {
         nextErrors.expiryDate = "Expiry time is invalid.";
-      } else if (form.status !== "Draft" && expiryAt <= now) {
+      } else if (candidate.status !== "Draft" && expiryAt <= now) {
         nextErrors.expiryDate = "Expiry time must be in the future.";
       } else if (scheduledAt && !Number.isNaN(scheduledAt.getTime()) && expiryAt <= scheduledAt) {
         nextErrors.expiryDate = "Expiry must be after the broadcast time.";
       }
     }
 
-    if (form.showOnResidentCalendar && !form.calendarDate) {
+    if (candidate.showOnResidentCalendar && !candidate.calendarDate) {
       nextErrors.calendarDate = "Choose the resident calendar date.";
     }
 
@@ -215,11 +207,11 @@ const AnnouncementEditor = ({
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
+  const handleSave = async (candidate: EditorForm = form) => {
+    if (!validateForm(candidate)) return;
 
     try {
-      await onSave();
+      await onSave(candidate);
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : "Unable to save this announcement. Please try again." });
     }
@@ -343,7 +335,7 @@ const AnnouncementEditor = ({
           <div className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
             {/* Notice Title */}
             <div className="space-y-1.5">
-              <Label className={cn("text-xs font-semibold", errors.title ? "text-destructive" : "text-foreground")}>
+              <Label className="text-xs font-semibold text-foreground">
                 Notice Title
               </Label>
               <Input
@@ -429,7 +421,7 @@ const AnnouncementEditor = ({
 
             {/* Message Body with Character Counter */}
             <div className="space-y-1.5">
-              <Label className={cn("text-xs font-semibold", errors.body ? "text-destructive" : "text-foreground")}>
+              <Label className="text-xs font-semibold text-foreground">
                 Message Content
               </Label>
               <Textarea
@@ -620,7 +612,7 @@ const AnnouncementEditor = ({
               </label>
               {form.showOnResidentCalendar && (
                 <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <Label className={cn("text-xs font-semibold", errors.calendarDate ? "text-destructive" : "text-foreground/90")}>Event Date</Label>
+                  <Label className="text-xs font-semibold text-foreground/90">Event Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -694,7 +686,7 @@ const AnnouncementEditor = ({
             {form.status === "Scheduled" && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/40 border border-border/70">
                 <div className="space-y-1.5">
-                  <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.scheduledDate ? "text-destructive" : "text-foreground")}>
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                     Broadcast Date & Time
                   </Label>
@@ -753,7 +745,7 @@ const AnnouncementEditor = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.expiryDate ? "text-destructive" : "text-foreground")}>
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                     <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     Auto-Expiry (Optional)
                   </Label>
@@ -816,7 +808,7 @@ const AnnouncementEditor = ({
             {/* Optional Expiry for Draft and Active */}
             {form.status !== "Scheduled" && (
               <div className="space-y-1.5">
-                <Label className={cn("text-xs font-semibold flex items-center gap-1.5", errors.expiryDate ? "text-destructive" : "text-foreground")}>
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
                   <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                   Auto-Expiry Date (Optional)
                 </Label>

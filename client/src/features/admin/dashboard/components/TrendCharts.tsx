@@ -31,25 +31,26 @@ const pieConfig = {
 };
 
 // Generate continuous 6-month rolling window (e.g. Mar -> Aug)
-const getLast6Months = () => {
+const getLast6Months = (asOfDate?: string) => {
   const months: { key: string; label: string }[] = [];
-  const now = new Date();
+  const now = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleString("default", { month: "short" });
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
     months.push({ key, label });
   }
   return months;
 };
 
 interface TrendChartsProps {
+  asOfDate?: string;
   reportsAnalytics?: ReportsAnalytics | null;
   usersAnalytics?: UsersAnalytics | null;
 }
 
-const TrendCharts = ({ reportsAnalytics, usersAnalytics }: TrendChartsProps) => {
-  const last6 = getLast6Months();
+const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendChartsProps) => {
+  const last6 = getLast6Months(asOfDate);
 
   // 1. Continuous 6-month report volume data
   const reportTrendData = last6.map(({ key, label }) => {
@@ -181,7 +182,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics }: TrendChartsProps) => 
               </p>
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
-              Live Breakdown
+              Status Breakdown
             </span>
           </div>
 

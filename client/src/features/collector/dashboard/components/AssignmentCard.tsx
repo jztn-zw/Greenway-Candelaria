@@ -2,6 +2,7 @@ import { Truck, MapPin, Clock, Play, ArrowRight, Eye, CheckCircle2, Navigation, 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { AssignmentData } from "./types";
+import { getWasteBadgeClass, isFinishedRoute } from "../dashboard.utils";
 
 interface Props {
   data: AssignmentData;
@@ -11,15 +12,7 @@ interface Props {
 
 const getWasteBadge = (wasteType?: string | null) => {
   if (!wasteType) return null;
-  const lower = wasteType.toLowerCase();
-  let color = "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/30";
-  if (lower.includes("bio") || lower.includes("organic")) {
-    color = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
-  } else if (lower.includes("recycle") || lower.includes("plastic")) {
-    color = "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30";
-  } else if (lower.includes("hazardous") || lower.includes("special")) {
-    color = "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30";
-  }
+  const color = getWasteBadgeClass(wasteType);
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${color}`}>
       {wasteType}
@@ -36,16 +29,13 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
     skippedStops,
     estimatedStart,
     wasteType,
-    timeElapsedMinutes,
+    statusLabel,
+    completionPct: progress,
+    remainingStops,
     nextStopName,
-    nextStopZone,
     nextStopOrder,
   } = data;
 
-  const progress = totalStops > 0 ? (completedStops / totalStops) * 100 : 0;
-  const remainingStops = Math.max(0, totalStops - completedStops - skippedStops);
-  const hours = Math.floor(timeElapsedMinutes / 60);
-  const mins = timeElapsedMinutes % 60;
 
   if (routeState === "unassigned") {
     return (
@@ -173,7 +163,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                     Municipal fleet reserve
                   </p>
                   <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-snug break-words">
-                    Keep application open to receive real-time route dispatches from MENRO.
+                    Check notifications and open your route map for new dispatches from MENRO.
                   </p>
                 </div>
               </div>
@@ -246,13 +236,13 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
     );
   }
 
-  const isCompleted = routeState === "completed";
+  const isFinished = isFinishedRoute(routeState);
   const isInProgress = routeState === "in-progress";
 
   return (
     <div
       className={`rounded-2xl border overflow-hidden shadow-xs transition-all flex flex-col justify-between ${
-        isCompleted
+        routeState === "completed"
           ? "border-emerald-500/30 bg-card"
           : "border-border/80 bg-card"
       } ${className || ""}`}
@@ -260,7 +250,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
       {/* Header strip */}
       <div
         className={`px-4 sm:px-5 py-3 flex items-center justify-between border-b shrink-0 ${
-          isCompleted
+          routeState === "completed"
             ? "bg-emerald-500/10 border-emerald-500/20"
             : "bg-muted/30 border-border/60"
         }`}
@@ -272,13 +262,13 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           </span>
         </div>
 
-        {isInProgress ? (
+        {isInProgress || routeState === "paused" ? (
           <span className="text-xs font-mono font-medium text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full tabular-nums">
-            {hours > 0 ? `${hours}h ` : ""}{mins}m on route
+            {statusLabel}
           </span>
-        ) : isCompleted ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Route completed
+        ) : isFinished ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground bg-muted border border-border px-2.5 py-0.5 rounded-full">
+            <CheckCircle2 className="w-3.5 h-3.5" /> {statusLabel}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
@@ -308,7 +298,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           </div>
 
           {/* Primary Mission Focus: Next Checkpoint Spotlight */}
-          {!isCompleted && nextStopName && (
+          {!isFinished && nextStopName && (
             <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-2xs">
@@ -317,13 +307,10 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-primary">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                    <span>{isInProgress ? "Current target checkpoint" : "Initial route checkpoint"}</span>
+                    <span>{isInProgress || routeState === "paused" ? "Current target checkpoint" : "Initial route checkpoint"}</span>
                   </div>
                   <p className="text-sm sm:text-base md:text-lg font-bold font-display text-foreground tracking-tight truncate mt-0.5">
                     {nextStopName}
-                  </p>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-                    {nextStopZone ? `Zone ${nextStopZone}` : "Assigned municipal sector"}
                   </p>
                 </div>
               </div>
@@ -336,7 +323,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           )}
 
           {/* Upcoming Stops Sequence */}
-          {!isCompleted && data.upcomingStops && data.upcomingStops.length > 0 && (
+          {!isFinished && data.upcomingStops && data.upcomingStops.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                 <span>Upcoming checkpoint sequence</span>
@@ -369,9 +356,6 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                         <p className="text-xs font-semibold text-foreground truncate">
                           {st.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {st.zone ? `Zone ${st.zone}` : "Sector stop"}
-                        </p>
                       </div>
                     </div>
                   );
@@ -381,7 +365,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           )}
 
           {/* Pending route note when next stop is not specified */}
-          {!isCompleted && !isInProgress && !nextStopName && (
+          {!isFinished && !isInProgress && !nextStopName && (
             <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground flex items-center gap-2.5">
               <Clock className="w-4 h-4 text-primary shrink-0" />
               <span>Collection route is scheduled for today. Tap below to begin when ready.</span>
@@ -402,41 +386,12 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
             </div>
           )}
 
-          {/* Completion Status & Route Clearance (for completed runs) */}
-          {isCompleted && (
-            <div className="space-y-2.5">
-              <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/25">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      Shift collection concluded
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {completedStops} of {totalStops} stops completed {skippedStops > 0 ? `· ${skippedStops} missed` : ""}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-card border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 shrink-0 tabular-nums">
-                  {totalStops > 0 ? `${Math.round(progress)}% cleared` : "Finished"}
-                </span>
-              </div>
-
-              {totalStops > 0 && (
-                <div className="p-3 rounded-xl bg-muted/30 border border-border/60 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">
-                      Final route clearance
-                    </span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
-                      {Math.round(progress)}%
-                    </span>
-                  </div>
-                  <Progress value={progress} className="h-2 rounded-full [&>div]:bg-emerald-500" />
-                </div>
-              )}
+          {isFinished && (
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-sm font-semibold">{statusLabel}</p>
+              <p className="text-xs text-muted-foreground">
+                {completedStops} of {totalStops} stops completed · {skippedStops} missed
+              </p>
             </div>
           )}
         </div>
@@ -446,17 +401,17 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           <Button
             onClick={onAction}
             className={`w-full h-11 text-xs sm:text-sm font-semibold rounded-xl active:scale-[0.99] transition-all cursor-pointer shadow-xs ${
-              isCompleted
+              isFinished
                 ? "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
-            variant={isCompleted ? "outline" : "default"}
+            variant={isFinished ? "outline" : "default"}
           >
-            {isCompleted ? (
+            {isFinished ? (
               <>
-                <Eye className="w-4 h-4 mr-2" /> View route history and summary
+                <Eye className="w-4 h-4 mr-2" /> View route history
               </>
-            ) : isInProgress ? (
+            ) : isInProgress || routeState === "paused" ? (
               <>
                 <ArrowRight className="w-4 h-4 mr-2" /> Continue route navigation
               </>

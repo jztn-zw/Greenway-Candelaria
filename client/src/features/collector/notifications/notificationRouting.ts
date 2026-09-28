@@ -1,4 +1,5 @@
 import type { NotificationRow } from "@/services/notificationsService";
+import { getManilaNow } from "@/utils/date";
 import {
   Bell,
   CalendarClock,
@@ -9,35 +10,75 @@ import {
   Truck,
 } from "lucide-react";
 
-type CollectorNotificationDestination = "route-map" | "route-history" | "profile" | "messages";
+const referenceId = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
 
-const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
+export const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
   if (!notification.metadata) return {};
   if (typeof notification.metadata === "string") {
     try {
-      return JSON.parse(notification.metadata) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(notification.metadata);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
     } catch {
       return {};
     }
   }
-  return notification.metadata;
+  return typeof notification.metadata === "object" && !Array.isArray(notification.metadata) ? notification.metadata : {};
 };
 
 export const getCollectorNotificationDestination = (notification: NotificationRow): string | null => {
   const metadata = getMetadata(notification);
-  const destination = metadata.destination as CollectorNotificationDestination | undefined;
+  const destination = metadata.destination;
 
-  if (destination === "route-map") return "/collector/route-map";
-  if (destination === "route-history" && notification.ref_id) {
-    return `/collector/route-history?route=${encodeURIComponent(notification.ref_id)}`;
+  if (destination === "route-map") {
+    if (metadata.collection_date !== getManilaNow().dateKey) return null;
+    const templates = Array.isArray(metadata.route_ids)
+      ? metadata.route_ids.filter(referenceId)
+      : notification.ref_module === "routes" && referenceId(notification.ref_id) ? [notification.ref_id] : [];
+    const runId = referenceId(metadata.run_id) ? metadata.run_id : null;
+    if (!templates.length && !runId) return null;
+    const params = new URLSearchParams({ date: metadata.collection_date as string });
+    [...new Set(templates)].forEach(id => params.append("template", id));
+    if (runId) params.set("run", runId);
+    return `/collector/route-map?${params}`;
+  }
+  if (destination === "route-history" && referenceId(metadata.run_id)) {
+    return `/collector/route-history?route=${encodeURIComponent(metadata.run_id)}`;
   }
   if (destination === "profile") return "/collector/profile";
   if (destination === "messages") return null;
 
-  if (notification.ref_module === "routes") return "/collector/route-map";
+  if (notification.ref_module === "routes") return null;
   if (notification.ref_module === "drivers") return "/collector/profile";
   if (notification.ref_module === "driver-messages") return null;
   return null;
+};
+
+// The map displays the current assignment. Keep notification references in the URL
+// so a completed, cancelled, or reassigned route cannot silently show another run.
+export const matchesCollectorRouteAlert = (
+  params: URLSearchParams,
+  route: { routeId: string; templateRouteId?: string | null } | null,
+) => {
+  const date = params.get("date");
+  const templates = params.getAll("template");
+  const runId = params.get("run");
+  if (!date && !templates.length && !runId) return true;
+  return Boolean(
+    route && date === getManilaNow().dateKey && (templates.length || runId)
+    && (!templates.length || (route.templateRouteId && templates.includes(route.templateRouteId)))
+    && (!runId || runId === route.routeId),
+  );
+};
+
+export const openCollectorNotification = (notification: NotificationRow, navigate: (destination: string) => void) => {
+  if (notification.ref_module === "driver-messages") {
+    openCollectorMessage(notification);
+    return true;
+  }
+  const destination = getCollectorNotificationDestination(notification);
+  if (!destination) return false;
+  navigate(destination);
+  return true;
 };
 
 export const getCollectorNotificationCategory = (notification: NotificationRow) => {
@@ -47,26 +88,10 @@ export const getCollectorNotificationCategory = (notification: NotificationRow) 
 };
 
 export const getCollectorNotificationTitle = (notification: NotificationRow) => {
-  const title = (notification.title || "").replace(/[🚨⚠️]/g, "").trim();
-
-  if (notification.ref_module === "driver-messages") return "New message from MENRO Office";
-  if (notification.ref_module === "drivers") return "Truck assignment updated";
-  if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT") {
-    return "New community announcement";
-  }
-  if (notification.ref_module === "routes") {
-    if (/assigned/i.test(title)) return "New route assigned";
-    if (/cancelled/i.test(title)) return "Route cancelled";
-    if (/active|updated/i.test(title)) return "Route updated";
-  }
-
-  return title || "System update";
+  return (notification.title || "").replace(/(?:🚨|⚠️)/gu, "").trim() || "System update";
 };
 
 export const getCollectorNotificationVisual = (notification: NotificationRow) => {
-  if (notification.ref_module === "routes" || notification.ref_module === "tracking") {
-    return { Icon: Truck, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
-  }
   if (notification.type === "COLLECTION_REMINDER") {
     return { Icon: CalendarClock, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
   }
@@ -82,6 +107,9 @@ export const getCollectorNotificationVisual = (notification: NotificationRow) =>
   if (notification.type === "ANNOUNCEMENT") {
     return { Icon: Megaphone, style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
   }
+  if (notification.ref_module === "routes" || notification.ref_module === "tracking") {
+    return { Icon: Truck, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
+  }
   return { Icon: Bell, style: "bg-primary/10 text-primary border-primary/20" };
 };
 
@@ -91,4 +119,12 @@ export const getCollectorNotificationLabel = (notification: NotificationRow) => 
   if (notification.ref_module === "driver-messages") return "Dispatch";
   if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT") return "Announcement";
   return notification.type === "SYSTEM" ? "System" : "Alert";
+};
+
+export const openCollectorMessage = (notification: NotificationRow) => {
+  const metadata = getMetadata(notification);
+  window.dispatchEvent(new CustomEvent("collector:open-messages", { detail: {
+    messageId: typeof metadata.message_id === "string" ? metadata.message_id : undefined,
+    routeId: typeof metadata.route_id === "string" ? metadata.route_id : undefined,
+  } }));
 };

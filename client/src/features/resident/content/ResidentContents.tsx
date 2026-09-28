@@ -1,3 +1,5 @@
+import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
+import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -50,95 +52,54 @@ const ResidentContents = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const postIdParam = searchParams.get("post");
 
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [featuredPosts, setFeaturedPosts] = useState<PostItem[]>([]);
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isPageLoading, setIsPageLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [invalidPostLink, setInvalidPostLink] = useState(false);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<ResidentContentCategory>("All");
   const [sortBy, setSortBy] = useState<ResidentContentSort>("latest");
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [openPost, setOpenPost] = useState<PostItem | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const scrollPositionRef = useRef(0);
-  const feedRequestVersionRef = useRef(0);
-
-  const fetchPosts = useCallback(async () => {
-    const requestVersion = ++feedRequestVersionRef.current;
-
-    try {
-      setIsPageLoading(true);
-      setFetchError(null);
-      setInvalidPostLink(false);
-
-      const category = activeTab === "All"
-        ? undefined
-        : activeTab === "Waste Tips"
-          ? "WASTE_TIP"
-          : "EVENT";
-      const [pageData, featuredData] = await Promise.all([
-        postsService.getPage<PostItem>({
-          status: "PUBLISHED",
-          page: currentPage,
-          limit: CONTENT_PAGE_SIZE,
-          category,
-          search: search.trim() || undefined,
-          sort: sortBy,
-        }),
-        activeTab === "All" && !search.trim()
-          ? postsService.getAll({ status: "PUBLISHED", is_featured: true })
-          : Promise.resolve([]),
-      ]);
-
-      if (requestVersion !== feedRequestVersionRef.current) return;
-
-      setPosts(pageData.posts);
-      setTotalPosts(pageData.total);
-      setTotalPages(pageData.totalPages);
-      setFeaturedPosts(Array.isArray(featuredData) ? featuredData : []);
-
-      // A shared post link must request the single published post directly:
-      // it may not be present in the current page of the feed.
-      if (postIdParam) {
-        try {
-          const target = await postsService.getById(postIdParam);
-          if (requestVersion !== feedRequestVersionRef.current) return;
-          setOpenPost(target as PostItem);
-        } catch {
-          if (requestVersion !== feedRequestVersionRef.current) return;
-          setOpenPost(null);
-          setInvalidPostLink(true);
-        }
-      }
-    } catch (err: any) {
-      if (requestVersion !== feedRequestVersionRef.current) return;
-      setFetchError(err?.message || "Failed to load community updates. Please try again.");
-    } finally {
-      if (requestVersion === feedRequestVersionRef.current) {
-        setIsPageLoading(false);
-      }
+  const previousPostIdRef = useRef(postIdParam);
+  useEffect(() => {
+    const returningToFeed = Boolean(previousPostIdRef.current) && !postIdParam;
+    previousPostIdRef.current = postIdParam;
+    if (returningToFeed) {
+      const frame = requestAnimationFrame(() => window.scrollTo(0, scrollPositionRef.current));
+      return () => cancelAnimationFrame(frame);
     }
-  }, [activeTab, currentPage, postIdParam, search, sortBy]);
-
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  // Breadcrumb navigation removes ?post=… directly, so the local article state
-  // must follow the URL as well. Stale requests are ignored above.
-  useEffect(() => {
-    if (postIdParam) return;
-
-    setOpenPost(null);
-    setIsDetailLoading(false);
   }, [postIdParam]);
+  const category = activeTab === "All" ? undefined : activeTab === "Waste Tips" ? "WASTE_TIP" : "EVENT";
+  const feed = useResidentResource("posts", ["feed", currentPage, category, search.trim(), sortBy],
+    () => postsService.getPage<PostItem>({ status: "PUBLISHED", page: currentPage, limit: CONTENT_PAGE_SIZE,
+      category, search: search.trim() || undefined, sort: sortBy }),
+    { posts: [] as PostItem[], total: 0, totalPages: 1, page: 1, limit: CONTENT_PAGE_SIZE }, { keepPreviousData: true });
+  useEffect(() => {
+    if (feed.isSuccess && !feed.isPlaceholderData && feed.data.page !== currentPage) setCurrentPage(feed.data.page);
+  }, [feed.isSuccess, feed.isPlaceholderData, feed.data.page, currentPage]);
+  const posts = feed.data.posts;
+  const totalPosts = feed.data.total;
+  const totalPages = feed.data.totalPages;
+  const isPageLoading = feed.isLoading;
+  const fetchError = feed.error?.message ?? null;
+  const setPosts = (update: (previous: PostItem[]) => PostItem[]) => feed.setData((previous) => ({ ...previous, posts: update(previous.posts) }));
+  const featuredQuery = useResidentQuery<PostItem[]>("posts", ["featured"],
+    () => postsService.getAll({ status: "PUBLISHED", is_featured: true }), { enabled: activeTab === "All" && !search.trim() });
+  const featuredPosts = useMemo(() => activeTab === "All" && !search.trim() ? featuredQuery.data ?? [] : [], [activeTab, search, featuredQuery.data]);
+  const detail = useResidentResource<PostItem | null>("posts", ["detail", postIdParam],
+    () => postsService.getById(postIdParam!), null, { enabled: !!postIdParam });
+  const inaccessible = [403, 404].includes((detail.error as { response?: { status?: number } } | null)?.response?.status ?? 0);
+  const openPost = postIdParam && !inaccessible ? detail.data : null;
+  const setOpenPost = detail.setData;
+  const isDetailLoading = detail.isLoading;
+  const invalidPostLink = !!postIdParam && detail.isError;
+  const fetchPosts = () => feed.refetch();
+  const like = useResidentMutation(postsService.like, "posts");
+  const unlike = useResidentMutation(postsService.unlike, "posts");
+  const liking = useRef(new Set<string>());
 
   const handleToggleLike = async (targetPost: PostItem) => {
+    if (liking.current.has(targetPost.id)) return;
+    liking.current.add(targetPost.id);
     const prevLiked = Boolean(targetPost.is_liked);
     const prevCount = Number(targetPost.like_count || 0);
 
@@ -161,9 +122,9 @@ const ResidentContents = () => {
 
     try {
       if (nextLiked) {
-        await postsService.like(targetPost.id);
+        await like(targetPost.id);
       } else {
-        await postsService.unlike(targetPost.id);
+        await unlike(targetPost.id);
       }
     } catch {
       setPosts((prev) =>
@@ -178,7 +139,7 @@ const ResidentContents = () => {
           curr ? { ...curr, is_liked: prevLiked, like_count: prevCount } : null,
         );
       }
-    }
+    } finally { liking.current.delete(targetPost.id); }
   };
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -221,20 +182,9 @@ const ResidentContents = () => {
   };
 
   const handleOpenPost = (post: PostItem) => {
-    scrollPositionRef.current = window.scrollY;
-    setIsDetailLoading(true);
+    if (!postIdParam) scrollPositionRef.current = window.scrollY;
     setSearchParams({ post: post.id });
     window.scrollTo(0, 0);
-    setTimeout(() => {
-      setOpenPost(post);
-      setIsDetailLoading(false);
-    }, 200);
-  };
-
-  const handleBack = () => {
-    setOpenPost(null);
-    setSearchParams({});
-    requestAnimationFrame(() => window.scrollTo(0, scrollPositionRef.current));
   };
 
   const handlePostUpdated = (updated: PostItem) => {
@@ -326,7 +276,6 @@ const ResidentContents = () => {
     return (
       <PostDetail
         post={openPost}
-        onBack={handleBack}
         relatedPosts={related.length > 0 ? related : posts.filter((p) => p.id !== openPost.id).slice(0, 3)}
         onOpenPost={handleOpenPost}
         onPostUpdated={handlePostUpdated}
@@ -369,17 +318,6 @@ const ResidentContents = () => {
             <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>This community update is no longer available.</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setInvalidPostLink(false);
-              setSearchParams({});
-            }}
-            className="rounded-xl text-xs"
-          >
-            View all updates
-          </Button>
         </div>
       )}
 
@@ -428,14 +366,16 @@ const ResidentContents = () => {
                 <button
                   key={tab}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={(e) => handleTabClick(tab, e)}
-                  className={`h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border active:scale-95 shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border active:scale-95 shrink-0 cursor-pointer ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground font-semibold"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
                   }`}
                 >
                   {tab}
+                  {isActive && feed.isSuccess && !feed.isPlaceholderData && <FilterTabCount count={totalPosts} />}
                 </button>
               );
             })}

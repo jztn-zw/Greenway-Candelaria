@@ -26,6 +26,16 @@ export interface NotificationsResponse {
   total: number;
   limit: number;
   offset: number;
+  next_cursor?: string | null;
+}
+
+export interface NotificationFilters {
+  limit?: number;
+  offset?: number;
+  type?: string;
+  is_read?: string;
+  cursor?: string;
+  category?: "all" | "routes" | "dispatch" | "announcements";
 }
 
 export interface SendNotificationPayload {
@@ -39,7 +49,7 @@ export interface SendNotificationPayload {
 }
 
 export const fetchMyNotifications = async (
-  params: { limit?: number; offset?: number; type?: string; is_read?: string } = {},
+  params: NotificationFilters = {},
 ): Promise<NotificationsResponse> => {
   const res = await api.get<{ data: NotificationsResponse }>("/notifications", {
     params,

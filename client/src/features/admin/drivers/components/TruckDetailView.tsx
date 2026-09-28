@@ -1,7 +1,6 @@
 import {
   Truck as TruckIcon,
   User,
-  Recycle,
   CalendarDays,
   ShieldCheck,
   Hash,
@@ -11,13 +10,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BackButton } from "@/components/common";
 import { Truck, Driver, truckStatusStyles } from "../types";
 
 interface TruckDetailViewProps {
   truck: Truck;
   drivers: Driver[];
-  onBack: () => void;
   onEdit: (t: Truck) => void;
   onToggleStatus: (t: Truck) => void;
 }
@@ -25,7 +22,6 @@ interface TruckDetailViewProps {
 const TruckDetailView = ({
   truck,
   drivers,
-  onBack,
   onEdit,
   onToggleStatus,
 }: TruckDetailViewProps) => {
@@ -33,18 +29,13 @@ const TruckDetailView = ({
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
-      {/* ── Top Navigation & Page Header ── */}
-      <div className="space-y-3">
-        <BackButton label="Back to Trucks" onClick={onBack} />
-
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
-            Truck Details
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Vehicle specifications, operational availability, and assigned driver.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+          Truck Details
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Vehicle specifications, operational availability, and assigned driver.
+        </p>
       </div>
 
       {/* ── Truck Profile Overview Card ── */}
@@ -148,15 +139,6 @@ const TruckDetailView = ({
           </div>
 
           {/* Layer 2: Specifications & Operational Status */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Recycle className="w-3.5 h-3.5 text-muted-foreground/70" />
-              Waste Category
-            </span>
-            <p className="text-xs sm:text-sm font-medium text-foreground">
-              {truck.wasteType}
-            </p>
-          </div>
 
           <div className="space-y-1.5">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">

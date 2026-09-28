@@ -14,6 +14,7 @@ const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
   barangay_id: z.string().uuid("Invalid barangay"),
+  street_id: z.string().uuid("Invalid street").optional(),
 });
 
 const loginSchema = z.object({

@@ -1,31 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { RouteStop } from "@/features/collector/route-map/types";
+import { useAdminFetch } from "@/lib/adminQuery";
+import { cn } from "@/lib/utils";
+import {
+getRoadRoute,
+type RoadRouteResult,
+} from "@/services/roadRoutingService";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { AdminTruck } from "../types";
 import {
-  Truck as TruckIcon,
-  MapPin,
-  Clock,
-  Route as RouteIcon,
-  X,
-  Navigation,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Maximize2,
-  Plus,
-  Minus,
-  SignalHigh,
-  SignalMedium,
-  SignalLow,
-  SignalZero,
+CheckCircle2,
+ChevronDown,
+ChevronUp,
+Clock,
+MapPin,
+Maximize2,
+Minus,
+Plus,
+Route as RouteIcon,
+SignalHigh,
+SignalLow,
+SignalMedium,
+SignalZero,
+Truck as TruckIcon,
+X
 } from "lucide-react";
-import {
-  getRoadRoute,
-  type RoadRouteResult,
-} from "@/services/roadRoutingService";
-import { cn } from "@/lib/utils";
-import type { RouteStop } from "@/features/collector/route-map/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AdminTruck } from "../types";
+import type { ReplayTargetLocation } from "../utils/replayTrip";
+import { createReplayMapRenderer } from "../utils/replayMapRenderer";
 
 const parsePingTimestamp = (timestamp: string | null): Date | null => {
   const raw = String(timestamp || "").trim();
@@ -63,20 +65,6 @@ const getGpsSignal = (lastPingIso: string | null, status: AdminTruck["status"]) 
   return { Icon: SignalLow, className: "text-red-600 dark:text-red-400", label: "GPS needs attention", age };
 };
 
-export interface ReplayTargetStopInfo {
-  name: string;
-  coords: [number, number];
-  stopNumber: number;
-  totalStops: number;
-  isCompleted?: boolean;
-}
-
-export interface ReplayCompletedStopInfo {
-  name: string;
-  coords: [number, number];
-  stopNumber: number;
-}
-
 interface AdminTrackingMapProps {
   trucks: AdminTruck[];
   focusedTruckId: string | null;
@@ -89,14 +77,15 @@ interface AdminTrackingMapProps {
   onDeselectTruck?: () => void;
   replayPath?: [number, number][];
   replayIndex?: number;
-  replayTargetStop?: ReplayTargetStopInfo | null;
-  replayLegPath?: [number, number][];
-  replayCompletedStops?: ReplayCompletedStopInfo[];
+  replayTargetLocation?: ReplayTargetLocation | null;
+  replayCompletedTargets?: ReplayTargetLocation[];
+  replaySkippedTargets?: ReplayTargetLocation[];
   fleetControlCollapsed?: boolean;
   theme?: "light" | "dark";
 }
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const EMPTY_REPLAY_TARGETS: ReplayTargetLocation[] = [];
 const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 const BOUNDS: L.LatLngBoundsExpression = [
@@ -139,6 +128,30 @@ const statusLabel = (status: "done" | "in-progress" | "not-started" | "skipped")
     case "skipped": return "Skipped";
     default: return "Upcoming";
   }
+};
+
+const coverageColor = (status: "done" | "in-progress" | "not-started" | "skipped") => {
+  switch (status) {
+    case "in-progress": return "#16a34a";
+    case "done": return "#166534";
+    case "skipped": return "#f59e0b";
+    default: return "#94a3b8";
+  }
+};
+
+const createCoverageOrderIcon = (
+  stopNumber: number,
+  state: "done" | "in-progress" | "not-started" | "skipped",
+) => {
+  const active = state === "in-progress";
+  const size = active ? 30 : 26;
+  const color = coverageColor(state);
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #fff;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.32);${active ? "outline:3px solid rgba(34,197,94,.28);" : ""}">${stopNumber}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
 };
 
 // Teardrop Pin Marker for Route Stops matching Collector Route Map
@@ -240,63 +253,6 @@ const createAdminTruckPinIcon = (
   });
 };
 
-// Teardrop Pin Marker for Route Replay matching original collector and admin teardrop pins
-const createReplayStopTeardropIcon = (
-  stopNumber: number,
-  name: string,
-  state: "done" | "in-progress",
-) => {
-  const isDone = state === "done";
-  const isActive = state === "in-progress";
-  const color = isDone ? "hsl(145, 63%, 32%)" : "hsl(217, 91%, 60%)";
-  const width = isActive ? 38 : 34;
-  const height = isActive ? 50 : 46;
-  const label = escapeHtml(name);
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
-        <!-- Static Label Bubble -->
-        <div style="background:rgba(15,23,42,0.92);border:1.5px solid ${color};border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:#ffffff;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.35);margin-bottom:4px;display:flex;align-items:center;gap:5px;pointer-events:none;">
-          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${isDone ? "#22c55e" : "#38bdf8"};"></span>
-          <span>${isDone ? "Completed" : "Target"}: ${label}</span>
-        </div>
-
-        <!-- Teardrop Pin matching Collector & Admin Map -->
-        <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.32));">
-          <svg width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-            <path d="M 18 1 C 8.6 1 1 8.6 1 18 C 1 29.5 18 47 18 47 C 18 47 35 29.5 35 18 C 35 8.6 27.4 1 18 1 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-            <circle cx="18" cy="18" r="11" fill="#ffffff"/>
-            ${
-              isDone
-                ? `<path d="M 13 18 L 16 21.5 L 23 14" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`
-                : `<text x="18" y="18.5" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="800" fill="${color}" text-anchor="middle" dominant-baseline="central" alignment-baseline="central">${stopNumber}</text>`
-            }
-          </svg>
-
-          <!-- Top-Right Badge -->
-          ${
-            isActive
-              ? `<div style="position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#2563eb;border:2px solid #ffffff;"></div>`
-              : isDone
-              ? `<div style="position:absolute;top:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:#059669;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);">
-                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                     <polyline points="20 6 9 17 4 12"></polyline>
-                   </svg>
-                 </div>`
-              : ""
-          }
-        </div>
-      </div>
-    `,
-    iconSize: [Math.max(width, 120), height + 28],
-    iconAnchor: [Math.max(width, 120) / 2, height + 28],
-    popupAnchor: [0, -(height + 28)],
-  });
-};
-
-
 // Haversine distance in km between two [lat, lng] points
 const haversineKm = (
   [lat1, lng1]: [number, number],
@@ -325,11 +281,13 @@ const AdminTrackingMap = ({
   onDeselectTruck,
   replayPath,
   replayIndex,
-  replayTargetStop,
-  replayLegPath,
-  replayCompletedStops,
+  replayTargetLocation,
+  replayCompletedTargets = EMPTY_REPLAY_TARGETS,
+  replaySkippedTargets = EMPTY_REPLAY_TARGETS,
+  theme,
   fleetControlCollapsed = false,
 }: Omit<AdminTrackingMapProps, "theme"> & { theme?: string }) => {
+  const fetchAdmin = useAdminFetch();
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const trucksLayerRef = useRef<L.LayerGroup | null>(null);
@@ -339,8 +297,7 @@ const AdminTrackingMap = ({
   const lastViewModeRef = useRef<"bounds" | "focused" | null>(null);
   const lastFocusedTruckIdRef = useRef<string | null>(null);
   const lastTargetViewKeyRef = useRef<string | null>(null);
-  const lastReplayPathRef = useRef<[number, number][] | null>(null);
-  const lastTargetStopKeyRef = useRef<string | null>(null);
+  const replayRendererRef = useRef<ReturnType<typeof createReplayMapRenderer> | null>(null);
 
   const [isMapReady, setIsMapReady] = useState(false);
   const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);
@@ -411,6 +368,7 @@ const AdminTrackingMap = ({
         completedAt: s.completedAt,
         skippedReason: s.skippedReason,
         coords: s.coords!,
+        coveragePath: s.coveragePath ?? null,
         distanceKm: 0,
       }));
   }, [passedAutoRoutedStops, activeTruck?.id, activeTruck?.route]);
@@ -425,6 +383,9 @@ const AdminTrackingMap = ({
   const activeStopCoords = passedActiveStopCoords !== undefined
     ? passedActiveStopCoords
     : (activeStop?.coords ?? null);
+  // Only draw a live road corridor while the selected truck is actively
+  // reporting GPS. Scheduled/offline trucks may still show their stop pins.
+  const isLiveTruckOnline = activeTruck?.status === "on-the-way";
 
   // Initialize map
   useEffect(() => {
@@ -450,6 +411,7 @@ const AdminTrackingMap = ({
     routeLayerRef.current = L.layerGroup().addTo(map);
     stopsLayerRef.current = L.layerGroup().addTo(map);
     replayLayerRef.current = L.layerGroup().addTo(map);
+    replayRendererRef.current = createReplayMapRenderer(map, replayLayerRef.current, createAdminTruckPinIcon(false, "live"));
     trucksLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     setIsMapReady(true);
@@ -469,6 +431,8 @@ const AdminTrackingMap = ({
 
     return () => {
       resizeObserver.disconnect();
+      replayRendererRef.current?.clear();
+      replayRendererRef.current = null;
       setIsMapReady(false);
       trucksLayerRef.current = null;
       stopsLayerRef.current = null;
@@ -479,29 +443,33 @@ const AdminTrackingMap = ({
     };
   }, []);
 
-  const isReplayMode = Boolean(
-    replayTargetStop ||
-    (replayLegPath && replayLegPath.length > 0) ||
-    (replayPath && replayPath.length > 0)
-  );
+  const isReplayMode = Boolean(replayPath?.length);
   // Compute and render single-leg road route from truck to current active stop
   useEffect(() => {
     const routeLayer = routeLayerRef.current;
     if (!isMapReady || !routeLayer) return;
 
-    if (isReplayMode || isRoutePaused || !activeTruckCoords || !activeStopCoords) {
+    if (
+      isReplayMode ||
+      !isLiveTruckOnline ||
+      isRoutePaused ||
+      !activeTruckCoords ||
+      !activeStopCoords
+    ) {
       routeLayer.clearLayers();
       setRouteData(null);
+      setIsCalculatingRoute(false);
       return;
     }
 
+    let cancelled = false;
     const currentTruck = activeTruckCoords;
     const currentStop = activeStopCoords;
     setIsCalculatingRoute(true);
 
-    getRoadRoute(currentTruck, currentStop)
+    fetchAdmin("tracking", ["road-route", currentTruck, currentStop], () => getRoadRoute(currentTruck, currentStop))
       .then((result) => {
-        if (!routeLayerRef.current) return;
+        if (cancelled || !routeLayerRef.current) return;
         setRouteData(result);
 
         if (result.coordinates && result.coordinates.length > 1) {
@@ -527,23 +495,29 @@ const AdminTrackingMap = ({
         }
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("[AdminTrackingMap] Route fetch error:", err);
       })
       .finally(() => {
-        setIsCalculatingRoute(false);
+        if (!cancelled) setIsCalculatingRoute(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
+    fetchAdmin,
     isMapReady,
     activeTruck?.id,
-    activeTruckCoords?.[0],
-    activeTruckCoords?.[1],
-    activeStopCoords?.[0],
-    activeStopCoords?.[1],
+    isLiveTruckOnline,
+    activeTruckCoords,
+    activeStopCoords,
     isReplayMode,
     isRoutePaused,
   ]);
 
-  // Render teardrop stop pins onto dedicated stopsLayer
+  // Render saved stop pins for the selected route. Draw street coverage paths
+  // only for an online truck, so a scheduled/offline truck doesn't look live.
   useEffect(() => {
     const layer = stopsLayerRef.current;
     if (!layer) return;
@@ -554,6 +528,46 @@ const AdminTrackingMap = ({
     scheduledStops.forEach((stop) => {
       const isTarget = stop.status === "in-progress";
       const mappedState = stop.status === "not-yet" ? "not-started" : stop.status;
+
+      if (stop.coveragePath && stop.coveragePath.length >= 2) {
+        if (isLiveTruckOnline) {
+          L.polyline(stop.coveragePath, {
+            color: "#ffffff",
+            weight: isTarget ? 10 : 8,
+            opacity: 0.9,
+            lineCap: "round",
+            lineJoin: "round",
+            interactive: false,
+          }).addTo(layer);
+
+          const coverageLine = L.polyline(stop.coveragePath, {
+            color: coverageColor(mappedState),
+            weight: isTarget ? 7 : 5,
+            opacity: mappedState === "done" ? 0.68 : 0.95,
+            lineCap: "round",
+            lineJoin: "round",
+          }).addTo(layer);
+
+          const tooltip = document.createElement("div");
+          tooltip.className = "text-xs";
+          const title = document.createElement("strong");
+          title.textContent = `${stop.stopNumber}. ${stop.barangay}`;
+          const status = document.createElement("div");
+          status.textContent = statusLabel(mappedState);
+          status.style.color = coverageColor(mappedState);
+          status.style.fontSize = "11px";
+          tooltip.append(title, status);
+          coverageLine.bindTooltip(tooltip, { sticky: true, direction: "top" });
+        }
+
+        L.marker(stop.coveragePath[0], {
+          icon: createCoverageOrderIcon(stop.stopNumber, mappedState),
+          interactive: false,
+          zIndexOffset: isTarget ? 500 : 100,
+        }).addTo(layer);
+        return;
+      }
+
       const stopIcon = createAdminStopTeardropIcon(stop.stopNumber, mappedState);
       const marker = L.marker(stop.coords, {
         icon: stopIcon,
@@ -589,7 +603,7 @@ const AdminTrackingMap = ({
 
       marker.addTo(layer);
     });
-  }, [scheduledStops, isReplayMode]);
+  }, [scheduledStops, isReplayMode, isLiveTruckOnline]);
 
   // Update truck markers
   useEffect(() => {
@@ -706,13 +720,13 @@ const AdminTrackingMap = ({
       marker.on("click", () => onMarkerClick(truck.id));
       marker.addTo(layer);
     });
-  }, [visibleTrucks, focusedTruckId, onMarkerClick, replayPath]);
+  }, [visibleTrucks, focusedTruckId, activeTruck?.id, onMarkerClick, replayPath, isReplayMode]);
 
   // Focus and Route Corridor Auto-Fit
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (replayPath && replayPath.length > 0) return;
+    if (isReplayMode) return;
 
     // When focused truck or active target changes, frame the corridor comfortably
     if (focusedTruckId) {
@@ -723,7 +737,7 @@ const AdminTrackingMap = ({
           lastFocusedTruckIdRef.current = focusedTruckId;
           lastViewModeRef.current = "focused";
 
-          const stopCoords = scheduledStops.filter((s) => Boolean(s.coords)).map((s) => s.coords);
+          const stopCoords = scheduledStops.flatMap((stop) => stop.coveragePath ?? [stop.coords]);
           const isDoneOrOffline =
             truck.status === "offline" ||
             truck.status === "done" ||
@@ -769,159 +783,24 @@ const AdminTrackingMap = ({
       map.flyToBounds(BOUNDS, { padding: DEFAULT_PADDING, duration: 0.8 });
       lastViewModeRef.current = "bounds";
     }
-  }, [focusedTruckId, trucks, activeTruckCoords, activeStopCoords, scheduledStops, replayPath]);
+  }, [focusedTruckId, activeTruck?.id, trucks, activeTruckCoords, activeStopCoords, scheduledStops, isReplayMode]);
 
-  // Focused Route Replay Rendering
-  // The map ONLY displays:
-  // 1. The moving truck
-  // 2. The active target barangay
-  // 3. The corresponding route path
+
+  // Replay geometry changes only for a new trip or target outcome. Playback
+  // moves the existing truck and trail head without rebuilding the map layers.
   useEffect(() => {
-    const layer = replayLayerRef.current;
-    const map = mapRef.current;
-    if (!layer || !map) return;
-    layer.clearLayers();
+    if (!isMapReady) return;
+    replayRendererRef.current?.setTrip(replayPath, replayTargetLocation ?? null, replayCompletedTargets, replaySkippedTargets);
+  }, [replayPath, replayTargetLocation, replayCompletedTargets, replaySkippedTargets, isMapReady]);
 
-    if (!isReplayMode) {
-      lastReplayPathRef.current = null;
-      lastTargetStopKeyRef.current = null;
-      return;
-    }
+  useEffect(() => {
+    if (!isMapReady) return;
+    replayRendererRef.current?.setPosition(replayIndex);
+  }, [replayPath, replayIndex, isMapReady]);
 
-    const activePath = (replayLegPath && replayLegPath.length > 0) ? replayLegPath : replayPath;
-    const displayIndex = replayIndex ?? 0;
-    const currentPoint = activePath ? activePath[Math.min(displayIndex, activePath.length - 1)] : null;
-
-    // 1. Corresponding Route Path to active target barangay
-    if (activePath && activePath.length > 1) {
-      // Outer bright casing for the active leg
-      L.polyline(activePath, {
-        color: "#2563eb",
-        weight: 6,
-        opacity: 0.65,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(layer);
-
-      // Inner crisp road path
-      L.polyline(activePath, {
-        color: "#60a5fa",
-        weight: 3.5,
-        opacity: 0.95,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(layer);
-
-      // Traversed trail along the active leg up to truck position
-      const traversed = activePath.slice(0, displayIndex + 1);
-      if (traversed.length > 1) {
-        L.polyline(traversed, {
-          color: "hsl(145, 63%, 32%)",
-          weight: 7,
-          opacity: 0.45,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(layer);
-
-        L.polyline(traversed, {
-          color: "hsl(145, 65%, 45%)",
-          weight: 4,
-          opacity: 1,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(layer);
-      }
-    }
-
-    // 2. Completed Target Barangay Pins - THEY STAY ON THE MAP WITH CHECKMARKS
-    const completedSet = new Set<number>();
-    if (replayCompletedStops && replayCompletedStops.length > 0) {
-      replayCompletedStops.forEach((stop) => {
-        completedSet.add(stop.stopNumber);
-        const completedIcon = createReplayStopTeardropIcon(
-          stop.stopNumber,
-          stop.name,
-          "done",
-        );
-
-        L.marker(stop.coords, {
-          icon: completedIcon,
-          zIndexOffset: 1200,
-        })
-          .bindTooltip(`Completed: ${escapeHtml(stop.name)} (Stop ${stop.stopNumber})`, {
-            direction: "top",
-          })
-          .addTo(layer);
-      });
-    }
-
-    // 3. Active Target Barangay Pin - POPS UP WITH TARGET BANNER
-    if (replayTargetStop) {
-      const isTargetAlreadyCompleted = Boolean(replayTargetStop.isCompleted) || completedSet.has(replayTargetStop.stopNumber);
-
-      if (!isTargetAlreadyCompleted) {
-        const targetIcon = createReplayStopTeardropIcon(
-          replayTargetStop.stopNumber,
-          replayTargetStop.name,
-          "in-progress",
-        );
-
-        L.marker(replayTargetStop.coords, {
-          icon: targetIcon,
-          zIndexOffset: 1600,
-        })
-          .bindTooltip(`Target: ${escapeHtml(replayTargetStop.name)} (Stop ${replayTargetStop.stopNumber})`, {
-            direction: "top",
-          })
-          .addTo(layer);
-      } else if (!completedSet.has(replayTargetStop.stopNumber)) {
-        // Active target reached completion in this moment
-        const completedIcon = createReplayStopTeardropIcon(
-          replayTargetStop.stopNumber,
-          replayTargetStop.name,
-          "done",
-        );
-
-        L.marker(replayTargetStop.coords, {
-          icon: completedIcon,
-          zIndexOffset: 1200,
-        })
-          .bindTooltip(`Completed: ${escapeHtml(replayTargetStop.name)} (Stop ${replayTargetStop.stopNumber})`, {
-            direction: "top",
-          })
-          .addTo(layer);
-      }
-
-      // Smooth camera framing when active target changes
-      const targetKey = `${replayTargetStop.stopNumber}-${replayTargetStop.name}`;
-      if (lastTargetStopKeyRef.current !== targetKey) {
-        lastTargetStopKeyRef.current = targetKey;
-        if (activePath && activePath.length > 1) {
-          const bounds = L.latLngBounds(activePath);
-          if (bounds.isValid()) {
-            map.flyToBounds(bounds, { padding: [70, 70], maxZoom: 16, duration: 0.8 });
-          }
-        }
-      }
-    }
-
-    // 4. Moving Truck Marker - ORIGINAL FLEET TEARDROP PIN
-    if (currentPoint) {
-      const originalTruckIcon = createAdminTruckPinIcon(false, "live");
-
-      L.marker(currentPoint, {
-        icon: originalTruckIcon,
-        zIndexOffset: 2000,
-      }).addTo(layer);
-    }
-  }, [
-    isReplayMode,
-    replayTargetStop,
-    replayCompletedStops,
-    replayLegPath,
-    replayPath,
-    replayIndex,
-  ]);
+  useEffect(() => {
+    if (isMapReady) replayRendererRef.current?.refreshColors();
+  }, [theme, isMapReady]);
 
   const handleZoomIn = useCallback(() => {
     if (mapRef.current) {
@@ -946,8 +825,7 @@ const AdminTrackingMap = ({
     if (!map || !activeTruck) return;
 
     const stopCoords = (activeTruck.route || [])
-      .map((s) => s.coords)
-      .filter((c): c is [number, number] => Boolean(c));
+      .flatMap((stop) => stop.coveragePath ?? (stop.coords ? [stop.coords] : []));
 
     const allPoints = activeTruck.coords ? [...stopCoords, activeTruck.coords] : stopCoords;
     if (allPoints.length > 0) {
@@ -1241,11 +1119,22 @@ const AdminTrackingMap = ({
         </button>
       </div>
 
-      {/* Location Badge (Bottom-Left) */}
-      <div className="absolute bottom-3 left-3 z-[400] bg-card/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center">
-        <span className="text-[11px] font-display font-semibold text-foreground">
-          Candelaria, Quezon
-        </span>
+      <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/75 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-2xs backdrop-blur-md">
+        {isLiveTruckOnline && activeTruck && scheduledStops.some((stop) => (stop.coveragePath?.length ?? 0) >= 2) ? (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-600" /> Current
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-900" /> Done
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+            </span>
+          </>
+        ) : (
+          <span>Candelaria, Quezon</span>
+        )}
       </div>
     </div>
   );

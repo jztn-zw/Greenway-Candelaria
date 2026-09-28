@@ -1,4 +1,15 @@
-import { MoreHorizontal } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Copy,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  StarOff,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,50 +59,65 @@ const PostActionsDropdown = ({
       <DropdownMenuContent align="end" className="w-36 rounded-xl border-border/80 p-1 shadow-md">
         <DropdownMenuItem
           onClick={() => onView(post)}
-          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
+          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
           View
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => onEdit(post)}
-          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
+          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => onDuplicate(post)}
-          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
+          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
           Duplicate
         </DropdownMenuItem>
         {onToggleFeatured && !isArchived && (
           <DropdownMenuItem
             onClick={() => onToggleFeatured(post)}
-            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
           >
+            {post.featured ? (
+              <StarOff className="w-3.5 h-3.5 text-muted-foreground" />
+            ) : (
+              <Star className="w-3.5 h-3.5 text-muted-foreground" />
+            )}
             {post.featured ? "Unfeature" : "Feature Post"}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => onArchive(post)}
-          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
+          {isArchived ? (
+            <ArchiveRestore className="w-3.5 h-3.5 text-muted-foreground" />
+          ) : (
+            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+          )}
           {isArchived ? "Restore" : "Archive"}
         </DropdownMenuItem>
         {!isArchived && (
           <DropdownMenuItem
             onClick={() => onTogglePublish(post)}
-            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+            className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
           >
+            <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
             {isPublished ? "Unpublish" : "Publish"}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => onDelete(post)}
-          className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+          className="text-xs font-medium text-destructive focus:text-destructive cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
+          <Trash2 className="w-3.5 h-3.5" />
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

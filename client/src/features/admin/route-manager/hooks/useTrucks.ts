@@ -1,7 +1,8 @@
 // src/pages/admin/hooks/useTrucks.ts
-import { useState, useEffect } from "react";
-import { toast } from "@/lib/toast";
+import { useAdminQuery } from "@/lib/adminQuery";
 import api from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { useEffect } from "react";
 
 export interface Truck {
   id: string;
@@ -10,23 +11,10 @@ export interface Truck {
 }
 
 export const useTrucks = () => {
-  const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const { data } = await api.get<{ data: Truck[] }>("/trucks");
-        setTrucks(data.data);
-      } catch (err) {
-        toast.error("Failed to load trucks.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  return { trucks, isLoading };
+  const query = useAdminQuery("trucks", ["route-options"], async () => {
+    const { data } = await api.get<{ data: Truck[] }>("/trucks");
+    return data.data;
+  });
+  useEffect(() => { if (query.error) toast.error("Failed to load trucks."); }, [query.error]);
+  return { trucks: query.data ?? [], isLoading: query.isLoading };
 };

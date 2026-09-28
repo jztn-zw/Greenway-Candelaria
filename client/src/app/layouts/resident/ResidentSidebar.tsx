@@ -1,3 +1,4 @@
+import { useResidentQuery } from "@/lib/residentQuery";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -30,9 +31,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
-import useNotifications from "@/hooks/useNotifications";
+import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import postsService from "@/services/postsService";
 import { cn } from "@/lib/utils";
+import { parseApiTimestamp } from "@/utils/date";
 
 const ResidentSidebar = () => {
   const navigate = useNavigate();
@@ -57,6 +59,8 @@ const ResidentSidebar = () => {
 
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [hasNewPost, setHasNewPost] = useState(false);
+  const latestPosts = useResidentQuery("posts", ["latest-badge"],
+    () => postsService.getPage<{ id: string; created_at?: string }>({ status: "PUBLISHED", page: 1, limit: 1 }));
 
   const lastSeenKey = currentUser?.id
     ? `greenway_last_seen_post_${currentUser.id}`
@@ -83,8 +87,7 @@ const ResidentSidebar = () => {
         }
 
         try {
-          const list = await postsService.getAll({ status: "PUBLISHED" });
-          const posts = Array.isArray(list) ? list : list?.posts || [];
+          const posts = latestPosts.data?.posts ?? [];
           if (posts.length > 0) {
             const latest = posts[0];
             localStorage.setItem(lastSeenKey, String(latest.id));
@@ -107,8 +110,7 @@ const ResidentSidebar = () => {
 
       // 2. Fetch latest published post to check if there is a new post since last visit
       try {
-        const list = await postsService.getAll({ status: "PUBLISHED" });
-        const posts = Array.isArray(list) ? list : list?.posts || [];
+        const posts = latestPosts.data?.posts ?? [];
         if (!isMounted) return;
 
         if (posts.length === 0) {
@@ -130,9 +132,9 @@ const ResidentSidebar = () => {
 
         if (lastSeenId && String(latest.id) !== lastSeenId) {
           if (lastSeenTime && latest.created_at) {
-            const isNewer =
-              new Date(latest.created_at).getTime() >
-              new Date(lastSeenTime).getTime();
+            const latestTime = parseApiTimestamp(latest.created_at)?.getTime() ?? 0;
+            const seenTime = parseApiTimestamp(lastSeenTime)?.getTime() ?? 0;
+            const isNewer = latestTime > seenTime;
             setHasNewPost(isNewer);
           } else {
             setHasNewPost(true);
@@ -150,7 +152,15 @@ const ResidentSidebar = () => {
     return () => {
       isMounted = false;
     };
-  }, [location.pathname, notifications, currentUser?.id]);
+  }, [
+    location.pathname,
+    latestPosts.data,
+    notifications,
+    currentUser?.id,
+    lastSeenKey,
+    lastSeenTimeKey,
+    markAsRead,
+  ]);
 
   const hasUnreadNotifications = unreadCount > 0;
 

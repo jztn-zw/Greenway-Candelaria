@@ -1,25 +1,15 @@
 import { CheckCircle2, SkipForward, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AssignmentData } from "./types";
 
 interface Props {
-  completed: number;
-  total: number;
-  skipped: number;
-  timeElapsed: number; // minutes
-  active: boolean;
+  data: AssignmentData;
 }
 
-const TodayStatsCards = ({ completed, total, skipped, timeElapsed, active }: Props) => {
-  const hours = Math.floor(timeElapsed / 60);
-  const mins = timeElapsed % 60;
-  const remaining = Math.max(0, total - completed - skipped);
-  const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  const durationLabel = active
-    ? hours > 0
-      ? `${hours}h ${mins}m`
-      : `${mins}m`
-    : "Standby";
+const TodayStatsCards = ({ data }: Props) => {
+  const { completedStops: completed, totalStops: total, skippedStops: skipped,
+    remainingStops: remaining, completionPct, durationLabel, statusLabel } = data;
+  const active = data.routeState === "in-progress";
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card shadow-xs overflow-hidden">
@@ -153,7 +143,7 @@ const TodayStatsCards = ({ completed, total, skipped, timeElapsed, active }: Pro
                 <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse shrink-0" />
               )}
               <span className={cn(active ? "text-sky-600 dark:text-sky-400 font-medium" : "")}>
-                {active ? "Active route" : "Standby"}
+                {statusLabel}
               </span>
             </p>
           </div>

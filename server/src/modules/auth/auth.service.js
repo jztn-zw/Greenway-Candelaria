@@ -12,6 +12,7 @@ const register = async ({
   password,
   phone,
   barangay_id,
+  street_id,
 }) => {
   // Check if email already exists
   const [existingEmail] = await queryWithRetry(
@@ -44,11 +45,21 @@ const register = async ({
     throw { statusCode: 400, message: "Invalid barangay selected" };
   }
 
+  if (street_id) {
+    const [streetRows] = await queryWithRetry(
+      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ?",
+      [street_id, barangay_id],
+    );
+    if (streetRows.length === 0) {
+      throw { statusCode: 400, message: "Invalid street selected for this barangay" };
+    }
+  }
+
   // Insert user
   await queryWithRetry(
     `INSERT INTO users 
-     (id, full_name, username, email, password, phone, barangay_id, role)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'RESIDENT')`,
+     (id, full_name, username, email, password, phone, barangay_id, street_id, role)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'RESIDENT')`,
     [
       id,
       full_name,
@@ -57,6 +68,7 @@ const register = async ({
       hashedPassword,
       phone || null,
       barangay_id,
+      street_id || null,
     ],
   );
 
@@ -74,9 +86,10 @@ const login = async ({ identifier, password }, req) => {
 
   // Find user
   const [users] = await queryWithRetry(
-    `SELECT u.*, b.name AS barangay_name
+    `SELECT u.*, b.name AS barangay_name, bs.name AS street_name, bs.area AS street_area
      FROM users u
      LEFT JOIN barangays b ON b.id = u.barangay_id
+     LEFT JOIN barangay_streets bs ON bs.id = u.street_id
      WHERE (u.email = ? OR u.username = ?) AND u.deleted_at IS NULL`,
     [identifier, identifier],
   );
@@ -232,10 +245,11 @@ const changePassword = async (userId, { current_password, new_password }) => {
 const getMe = async (userId) => {
   const [rows] = await queryWithRetry(
     `SELECT u.id, u.full_name, u.username, u.email, u.role, u.status,
-            u.avatar_url, u.phone, u.barangay_id, u.last_login_at,
-            b.name AS barangay_name
+            u.avatar_url, u.phone, u.barangay_id, u.street_id, u.last_login_at,
+            b.name AS barangay_name, bs.name AS street_name, bs.area AS street_area
      FROM users u
      LEFT JOIN barangays b ON b.id = u.barangay_id
+     LEFT JOIN barangay_streets bs ON bs.id = u.street_id
      WHERE u.id = ? AND u.deleted_at IS NULL`,
     [userId],
   );

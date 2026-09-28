@@ -1,18 +1,21 @@
+import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail, Phone, Lock, User, Award, Calendar,
-  Heart, Trash2, ChevronRight, Check,
+  Heart, ChevronRight, Check,
   ClipboardList, Loader2, AlertCircle, Eye, EyeOff,
-  ShieldCheck, MapPin, Sparkles, AtSign, X, LogOut, Paintbrush,
+  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Paintbrush,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+import { FormDialog } from "@/components/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import useAuthStore from "@/store/authStore";
 import {
@@ -21,9 +24,13 @@ import {
   changePassword,
   fetchMyReportStats,
   UserProfile,
-  ReportStats,
 } from "@/services/profileService";
+import {
+  fetchBarangays,
+  fetchBarangayStreets,
+} from "@/services/barangaysService";
 import { toast } from "@/lib/toast";
+import { formatManilaDateTime } from "@/utils/date";
 
 // ─── Editable field row ───────────────────────────────────────────────────────
 const FieldRow = ({
@@ -60,8 +67,8 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-muted text-muted-foreground border border-border/70 shrink-0">
-        <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/70 bg-muted/70 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground">
+        <ShieldCheck className="size-3.5 text-primary" />
         Registered email
       </span>
     ) : (
@@ -70,7 +77,7 @@ const FieldRow = ({
         variant="outline"
         size="sm"
         onClick={onEdit}
-        className="h-8.5 px-3.5 rounded-xl text-xs font-semibold border-border/80 hover:border-primary/40 hover:bg-primary/5 hover:text-primary active:scale-95 transition-all shrink-0 cursor-pointer shadow-2xs"
+        className="h-8 shrink-0 cursor-pointer rounded-xl border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary shadow-none transition-all hover:border-primary/55 hover:bg-primary/15 hover:text-primary focus-visible:ring-primary/25 active:scale-95"
       >
         {masked ? "Change" : "Edit"}
       </Button>
@@ -95,17 +102,22 @@ const ResidentProfile = () => {
 
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<ReportStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const profileQuery = useResidentResource<UserProfile | null>("profile", ["me"], fetchProfile, null);
+  const profile = profileQuery.data;
+  const setProfile = profileQuery.setData;
+  const statsQuery = useResidentQuery("reports", ["profile-stats"], fetchMyReportStats);
+  const stats = statsQuery.data;
+  const isLoading = profileQuery.isLoading || statsQuery.isLoading;
+  const error = profileQuery.isError ? "Failed to load profile. Please try again." : null;
+  const saveProfile = useResidentMutation(updateProfile, "profile", "routes", "tracking", "schedule", "announcements");
+  const savePassword = useResidentMutation(changePassword);
   const [avatarStyle, setAvatarStyle] = useState<(typeof AVATAR_STYLES)[number]["id"]>("forest");
   const [avatarModal, setAvatarModal] = useState(false);
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
-    open: boolean; field: string; value: string; saving: boolean; error: string;
-  }>({ open: false, field: "", value: "", saving: false, error: "" });
+    open: boolean; field: string; value: string; initialValue: string; saving: boolean; error: string;
+  }>({ open: false, field: "", value: "", initialValue: "", saving: false, error: "" });
 
   // Password modal
   const [pwModal, setPwModal] = useState<{
@@ -113,28 +125,27 @@ const ResidentProfile = () => {
     showOld: boolean; showNew: boolean; saving: boolean; error: string;
   }>({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
 
-  const [deleteModal, setDeleteModal] = useState(false);
+  const [logoutModal, setLogoutModal] = useState(false);
+  const [discardTarget, setDiscardTarget] = useState<"profile" | "password" | "address" | null>(null);
+  const [addressModal, setAddressModal] = useState({
+    open: false,
+    barangayId: "",
+    streetId: "",
+    initialBarangayId: "",
+    initialStreetId: "",
+    saving: false,
+    error: "",
+  });
 
-  // ── Fetch on mount ────────────────────────────────────────────────────────
+  const barangaysQuery = useResidentQuery("barangays", ["locations"], fetchBarangays);
+  const barangays = barangaysQuery.data ?? [];
+  const streetsQuery = useResidentQuery("barangays", ["streets", addressModal.barangayId],
+    () => fetchBarangayStreets(addressModal.barangayId), { enabled: addressModal.open && !!addressModal.barangayId });
+  const streetOptions = streetsQuery.data?.streets ?? [];
+  const streetsLoading = streetsQuery.isLoading;
   useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const [prof, reportStats] = await Promise.all([
-          fetchProfile(),
-          fetchMyReportStats(),
-        ]);
-        setProfile(prof);
-        setStats(reportStats);
-      } catch {
-        setError("Failed to load profile. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void load();
-  }, []);
+    if (streetsQuery.isError) setAddressModal((state) => ({ ...state, error: "Could not load streets for this barangay." }));
+  }, [streetsQuery.isError]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -146,9 +157,56 @@ const ResidentProfile = () => {
 
   // ── Edit field save ───────────────────────────────────────────────────────
   const openEdit = (field: string, value: string) =>
-    setEditModal({ open: true, field, value, saving: false, error: "" });
+    setEditModal({ open: true, field, value, initialValue: value, saving: false, error: "" });
+
+  const openAddressEditor = async () => {
+    if (!profile) return;
+    const barangayId = profile.barangay_id ?? "";
+    setAddressModal({
+      open: true,
+      barangayId,
+      streetId: profile.street_id ?? "",
+      initialBarangayId: barangayId,
+      initialStreetId: profile.street_id ?? "",
+      saving: false,
+      error: "",
+    });
+  };
+
+  const changeAddressBarangay = (barangayId: string) => {
+    setAddressModal((state) => ({ ...state, barangayId, streetId: "", error: "" }));
+  };
+
+  const saveAddress = async () => {
+    if (addressModal.saving) return;
+    if (!addressModal.barangayId) {
+      setAddressModal((state) => ({ ...state, error: "Please select your barangay." }));
+      return;
+    }
+    if (!addressModal.streetId) {
+      setAddressModal((state) => ({ ...state, error: "Please select your street." }));
+      return;
+    }
+
+    setAddressModal((state) => ({ ...state, saving: true, error: "" }));
+    try {
+      const updated = await saveProfile({
+        barangay_id: addressModal.barangayId,
+        street_id: addressModal.streetId,
+      });
+      setProfile(updated);
+      if (authUser) setUser({ ...authUser, ...updated } as typeof authUser);
+      setDiscardTarget(null);
+      setAddressModal((state) => ({ ...state, open: false, saving: false }));
+      toast.success("Collection address updated successfully.");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Could not update your collection address.";
+      setAddressModal((state) => ({ ...state, saving: false, error: message }));
+    }
+  };
 
   const handleEditSave = async () => {
+    if (editModal.saving) return;
     if (!editModal.value.trim()) {
       setEditModal((p) => ({ ...p, error: "This field cannot be empty." }));
       return;
@@ -162,10 +220,11 @@ const ResidentProfile = () => {
       };
       const key = fieldMap[editModal.field];
       if (!key) return;
-      const updated = await updateProfile({ [key]: editModal.value.trim() });
+      const updated = await saveProfile({ [key]: editModal.value.trim() });
       setProfile(updated);
       if (authUser) setUser({ ...authUser, ...updated } as typeof authUser);
-      setEditModal((p) => ({ ...p, open: false }));
+      setDiscardTarget(null);
+      setEditModal((p) => ({ ...p, open: false, saving: false }));
       toast.success(`${editModal.field} updated successfully!`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -176,6 +235,7 @@ const ResidentProfile = () => {
 
   // ── Password change ───────────────────────────────────────────────────────
   const handlePasswordSave = async () => {
+    if (pwModal.saving) return;
     if (!pwModal.oldPw || !pwModal.newPw || !pwModal.confirmPw) {
       setPwModal((p) => ({ ...p, error: "All fields are required." }));
       return;
@@ -190,7 +250,8 @@ const ResidentProfile = () => {
     }
     setPwModal((p) => ({ ...p, saving: true, error: "" }));
     try {
-      await changePassword({ old_password: pwModal.oldPw, new_password: pwModal.newPw });
+      await savePassword({ old_password: pwModal.oldPw, new_password: pwModal.newPw });
+      setDiscardTarget(null);
       setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
       toast.success("Password changed. Please log in again.");
       await logout();
@@ -204,8 +265,32 @@ const ResidentProfile = () => {
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
+    setLogoutModal(false);
     await logout();
     navigate("/", { replace: true });
+  };
+
+  const closeEditor = (target: "profile" | "password" | "address") => {
+    if (target === "profile") {
+      if (editModal.saving) return;
+      setEditModal((p) => ({ ...p, open: false, value: "", error: "" }));
+    } else if (target === "password") {
+      if (pwModal.saving) return;
+      setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
+    } else {
+      if (addressModal.saving) return;
+      setAddressModal((p) => ({ ...p, open: false, error: "" }));
+    }
+    setDiscardTarget(null);
+  };
+  const requestCloseEditor = (target: "profile" | "password" | "address") => {
+    const pending = target === "profile" ? editModal.saving : target === "password" ? pwModal.saving : addressModal.saving;
+    if (pending) return;
+    const dirty = target === "profile" ? editModal.value !== editModal.initialValue
+      : target === "password" ? Boolean(pwModal.oldPw || pwModal.newPw || pwModal.confirmPw)
+      : addressModal.barangayId !== addressModal.initialBarangayId || addressModal.streetId !== addressModal.initialStreetId;
+    if (dirty) setDiscardTarget(target);
+    else closeEditor(target);
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -214,11 +299,11 @@ const ResidentProfile = () => {
     : "?";
 
   const joinDate = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-US", {
+    ? formatManilaDateTime(profile.created_at, {
         year: "numeric",
         month: "long",
         day: "numeric",
-      })
+      }, "—")
     : "—";
 
   const totalReports = stats?.total ?? 0;
@@ -292,14 +377,14 @@ const ResidentProfile = () => {
     );
   }
 
-  if (error || !profile) {
+  if (!profile) {
     return (
       <div className="max-w-3xl mx-auto flex flex-col items-center justify-center gap-4 py-16">
         <AlertCircle className="w-10 h-10 text-destructive" />
         <p className="text-sm text-muted-foreground">
           {error ?? "Profile unavailable."}
         </p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
+        <Button variant="outline" onClick={() => void profileQuery.refetch()}>
           Try Again
         </Button>
       </div>
@@ -437,6 +522,18 @@ const ResidentProfile = () => {
             icon={Phone}
             placeholder="No phone number added"
             onEdit={() => openEdit("Phone Number", profile.phone ?? "")}
+          />
+          <FieldRow
+            label="Barangay & Street"
+            value={[
+              profile.barangay_name ? `Brgy. ${profile.barangay_name}` : "",
+              profile.street_name
+                ? `${profile.street_name}${profile.street_area ? ` (${profile.street_area})` : ""}`
+                : "",
+            ].filter(Boolean).join(" · ")}
+            icon={MapPin}
+            placeholder="No collection address selected"
+            onEdit={() => { void openAddressEditor(); }}
           />
           <FieldRow
             label="Security Password"
@@ -608,12 +705,10 @@ const ResidentProfile = () => {
 
       {/* ── Actions ──────────────────────────────────────────────────────────── */}
       <div className="space-y-3 pb-8">
-        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs divide-y divide-border/60">
+        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
           <button
             type="button"
-            onClick={() => {
-              void handleLogout();
-            }}
+            onClick={() => setLogoutModal(true)}
             className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
           >
             <div className="flex items-center gap-3.5 min-w-0">
@@ -634,30 +729,6 @@ const ResidentProfile = () => {
               <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setDeleteModal(true)}
-            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-destructive/5 active:bg-destructive/10 transition-all duration-150 group cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive group-hover:bg-destructive/15 transition-colors flex items-center justify-center shrink-0 border border-destructive/20">
-                <Trash2 className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm group-hover:text-destructive transition-colors">
-                  Request Account Deletion
-                </p>
-                <p className="text-xs text-muted-foreground/80 font-normal mt-0.5">
-                  Permanently remove your account and personal data
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-destructive transition-colors ml-4">
-              <span className="hidden lg:inline text-xs font-medium">Delete</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </button>
         </div>
 
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70 pt-1">
@@ -666,362 +737,107 @@ const ResidentProfile = () => {
         </div>
       </div>
 
-      {/* ── Avatar Customization Modal ─────────────────────────────────────────── */}
-      <Dialog open={avatarModal} onOpenChange={setAvatarModal}>
-        <DialogContent className="w-[94vw] max-w-sm rounded-2xl border-border/80 bg-card p-5 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-lg font-bold">Customize avatar</DialogTitle>
-            <DialogDescription className="text-xs">
-              Choose a color style for the initials avatar shown in this web portal.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {AVATAR_STYLES.map((style) => {
-              const selected = style.id === avatarStyle;
-              return (
-                <button
-                  key={style.id}
-                  type="button"
-                  onClick={() => saveAvatarStyle(style.id)}
-                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
-                    selected ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"
-                  }`}
-                >
-                  <span className={`flex size-10 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>
-                    {initials}
-                  </span>
-                  <span className="text-xs font-semibold text-foreground">{style.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Edit Field Modal ──────────────────────────────────────────────────── */}
-      <Dialog
-        open={editModal.open}
-        onOpenChange={(open) => {
-          if (!editModal.saving) setEditModal((p) => ({ ...p, open, error: "" }));
-        }}
+      <FormDialog open={addressModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("address"); }}
+        title="Edit Collection Address" description="Choose your barangay and street." icon={<MapPin />} pending={addressModal.saving}
+        footer={<>
+          <Button type="button" variant="outline" onClick={() => requestCloseEditor("address")} disabled={addressModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
+          <Button type="button" onClick={() => void saveAddress()} className={modalStyles.primaryButton}
+            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0}>
+            {addressModal.saving && <Loader2 className="size-3.5 animate-spin" />}{addressModal.saving ? "Saving…" : "Save address"}
+          </Button>
+        </>}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                {editModal.field === "Phone Number" ? (
-                  <Phone className="w-5 h-5" />
-                ) : editModal.field === "Username" ? (
-                  <AtSign className="w-5 h-5" />
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
-                  Edit {editModal.field}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                  Update your {editModal.field.toLowerCase()} below.
-                </DialogDescription>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (!editModal.saving) setEditModal((p) => ({ ...p, open: false }));
-              }}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="resident-address-barangay" className={modalStyles.label}>Barangay</Label>
+          <SearchableSelect id="resident-address-barangay" value={addressModal.barangayId} onValueChange={changeAddressBarangay}
+            options={barangays.map((barangay) => ({ value: barangay.id, label: `Brgy. ${barangay.name}` }))}
+            placeholder="Select barangay" searchPlaceholder="Search barangays..." emptyMessage="No barangays available."
+            disabled={addressModal.saving} className={modalStyles.select} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="resident-address-street" className={modalStyles.label}>Street</Label>
+          <SearchableSelect id="resident-address-street" value={addressModal.streetId}
+            onValueChange={(streetId) => setAddressModal((p) => ({ ...p, streetId, error: "" }))}
+            options={streetOptions.map((street) => ({ value: street.id, label: `${street.name}${street.area ? ` (${street.area})` : ""}` }))}
+            placeholder={!addressModal.barangayId ? "Select a barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select street" : "No streets available yet"}
+            searchPlaceholder="Search streets..." emptyMessage="No streets found."
+            disabled={!addressModal.barangayId || streetsLoading || streetOptions.length === 0 || addressModal.saving} className={modalStyles.select} />
+        </div>
+        {addressModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{addressModal.error}</p>}
+      </FormDialog>
 
-          <div className="p-5 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground tracking-tight">
-                {editModal.field}
-              </Label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                  {editModal.field === "Phone Number" ? (
-                    <Phone className="w-4 h-4" />
-                  ) : editModal.field === "Username" ? (
-                    <AtSign className="w-4 h-4" />
-                  ) : (
-                    <User className="w-4 h-4" />
-                  )}
-                </div>
-                <Input
-                  value={editModal.value}
-                  onChange={(e) =>
-                    setEditModal((p) => ({ ...p, value: e.target.value, error: "" }))
-                  }
-                  placeholder={`Enter your ${editModal.field.toLowerCase()}`}
-                  disabled={editModal.saving}
-                  className="h-11 pl-10 rounded-xl border-border/80 text-xs lg:text-sm bg-background/50 focus:bg-background focus-visible:ring-primary/20 transition-colors"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleEditSave();
-                  }}
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-normal">
-                {editModal.field === "Username"
-                  ? "Your unique handle across GreenWay (letters, numbers, and underscores)."
-                  : editModal.field === "Phone Number"
-                  ? "Used for official collection updates and emergency dispatch SMS."
-                  : "Your official legal name as recognized in municipal records."}
-              </p>
-              {editModal.error && (
-                <p className="text-xs text-destructive flex items-center gap-1.5 font-medium animate-in fade-in duration-200">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {editModal.error}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2.5 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditModal((p) => ({ ...p, open: false }))}
-              disabled={editModal.saving}
-              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                void handleEditSave();
-              }}
-              disabled={editModal.saving}
-              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
-            >
-              {editModal.saving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Change Password Modal ─────────────────────────────────────────────── */}
-      <Dialog
-        open={pwModal.open}
-        onOpenChange={(open) => {
-          if (!pwModal.saving) setPwModal((p) => ({ ...p, open, error: "" }));
-        }}
+      <FormDialog open={avatarModal} onOpenChange={setAvatarModal} title="Customize Avatar" description="Choose a color for your initials." icon={<Paintbrush />}
+        footer={<Button type="button" variant="outline" onClick={() => setAvatarModal(false)} className={modalStyles.cancelButton}>Close</Button>}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
-                  Change Password
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                  For security, you will be signed out after updating.
-                </DialogDescription>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (!pwModal.saving) setPwModal((p) => ({ ...p, open: false }));
-              }}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
+        <div className="grid grid-cols-2 gap-3">
+          {AVATAR_STYLES.map((style) => (
+            <button key={style.id} type="button" onClick={() => saveAvatarStyle(style.id)} aria-label={style.label} aria-pressed={style.id === avatarStyle}
+              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style.id === avatarStyle ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"}`}>
+              <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
+              <span className="text-xs font-semibold text-foreground">{style.label}</span>
             </button>
-          </div>
+          ))}
+        </div>
+      </FormDialog>
 
-          <div className="p-5 space-y-3.5">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground tracking-tight">Current Password</Label>
-              <div className="relative">
-                <Input
-                  type={pwModal.showOld ? "text" : "password"}
-                  value={pwModal.oldPw}
-                  onChange={(e) =>
-                    setPwModal((p) => ({ ...p, oldPw: e.target.value, error: "" }))
-                  }
-                  placeholder="Enter current password"
-                  disabled={pwModal.saving}
-                  className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  onClick={() =>
-                    setPwModal((p) => ({ ...p, showOld: !p.showOld }))
-                  }
-                >
-                  {pwModal.showOld ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground tracking-tight">New Password</Label>
-              <div className="relative">
-                <Input
-                  type={pwModal.showNew ? "text" : "password"}
-                  value={pwModal.newPw}
-                  onChange={(e) =>
-                    setPwModal((p) => ({ ...p, newPw: e.target.value, error: "" }))
-                  }
-                  placeholder="At least 8 characters"
-                  disabled={pwModal.saving}
-                  className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  onClick={() =>
-                    setPwModal((p) => ({ ...p, showNew: !p.showNew }))
-                  }
-                >
-                  {pwModal.showNew ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground tracking-tight">Confirm New Password</Label>
-              <Input
-                type="password"
-                value={pwModal.confirmPw}
-                onChange={(e) =>
-                  setPwModal((p) => ({
-                    ...p,
-                    confirmPw: e.target.value,
-                    error: "",
-                  }))
-                }
-                placeholder="Repeat new password"
-                disabled={pwModal.saving}
-                className="h-10 lg:h-10.5 rounded-xl border-border/80 text-xs lg:text-sm"
-              />
-            </div>
-            {pwModal.error && (
-              <p className="text-xs text-destructive flex items-center gap-1.5 font-medium animate-in fade-in duration-200">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {pwModal.error}
-              </p>
-            )}
-          </div>
+      <FormDialog open={editModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("profile"); }}
+        title={`Edit ${editModal.field}`} description={`Update your ${editModal.field.toLowerCase()}.`} icon={<User />} pending={editModal.saving}
+        footer={<>
+          <Button type="button" variant="outline" onClick={() => requestCloseEditor("profile")} disabled={editModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
+          <Button type="button" onClick={() => void handleEditSave()} disabled={editModal.saving} className={modalStyles.primaryButton}>
+            {editModal.saving && <Loader2 className="size-3.5 animate-spin" />}{editModal.saving ? "Saving…" : "Save Changes"}
+          </Button>
+        </>}
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="resident-profile-field" className={modalStyles.label}>{editModal.field}</Label>
+          <Input id="resident-profile-field" value={editModal.value} disabled={editModal.saving} autoFocus aria-invalid={Boolean(editModal.error)}
+            onChange={(e) => setEditModal((p) => ({ ...p, value: e.target.value, error: "" }))}
+            placeholder={`Enter your ${editModal.field.toLowerCase()}`} className={modalStyles.input}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleEditSave(); } }} />
+          {editModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{editModal.error}</p>}
+        </div>
+      </FormDialog>
 
-          <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2.5 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPwModal((p) => ({ ...p, open: false }))}
-              disabled={pwModal.saving}
-              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                void handlePasswordSave();
-              }}
-              disabled={pwModal.saving}
-              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs active:scale-[0.98] cursor-pointer transition-all"
-            >
-              {pwModal.saving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…
-                </>
-              ) : (
-                "Change Password"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Delete Account Modal ──────────────────────────────────────────────── */}
-      <Dialog open={deleteModal} onOpenChange={setDeleteModal}>
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] lg:max-w-md flex flex-col p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0 shadow-2xs">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
-                  Request Account Deletion
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
-                  R.A. 10173 Data Privacy Act Compliance
-                </DialogDescription>
-              </div>
+      <FormDialog open={pwModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("password"); }}
+        title="Change Password" description="You will be signed out after updating." icon={<Lock />} pending={pwModal.saving}
+        footer={<>
+          <Button type="button" variant="outline" onClick={() => requestCloseEditor("password")} disabled={pwModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
+          <Button type="button" onClick={() => void handlePasswordSave()} disabled={pwModal.saving} className={modalStyles.primaryButton}>
+            {pwModal.saving && <Loader2 className="size-3.5 animate-spin" />}{pwModal.saving ? "Saving…" : "Change Password"}
+          </Button>
+        </>}
+      >
+        {([{ key: "oldPw", label: "Current password", autoComplete: "current-password", visible: pwModal.showOld },
+          { key: "newPw", label: "New password", autoComplete: "new-password", visible: pwModal.showNew },
+          { key: "confirmPw", label: "Confirm new password", autoComplete: "new-password", visible: false }] as const).map(({ key, label, autoComplete, visible }) => (
+          <div key={key} className="space-y-1.5">
+            <Label htmlFor={`resident-password-${key}`} className={modalStyles.label}>{label}</Label>
+            <div className="relative">
+              <Input id={`resident-password-${key}`} value={pwModal[key]} type={visible ? "text" : "password"} autoComplete={autoComplete} disabled={pwModal.saving}
+                onChange={(e) => setPwModal((p) => ({ ...p, [key]: e.target.value, error: "" }))}
+                className={`${modalStyles.input} ${key !== "confirmPw" ? "pr-10" : ""}`} />
+              {key !== "confirmPw" && <button type="button" disabled={pwModal.saving} aria-label={`${visible ? "Hide" : "Show"} ${label.toLowerCase()}`}
+                onClick={() => setPwModal((p) => key === "oldPw" ? ({ ...p, showOld: !p.showOld }) : ({ ...p, showNew: !p.showNew }))}
+                className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+                {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>}
             </div>
-            <button
-              type="button"
-              onClick={() => setDeleteModal(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {key === "newPw" && <p className="text-[11px] leading-relaxed text-muted-foreground">Use at least 8 characters.</p>}
           </div>
+        ))}
+        {pwModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{pwModal.error}</p>}
+      </FormDialog>
 
-          <div className="p-5 space-y-3 text-xs text-muted-foreground leading-relaxed">
-            <p className="text-foreground/90 font-medium">
-              This will submit an official request to permanently delete your GreenWay account and all associated personal records.
-            </p>
-            <div className="rounded-xl border border-border/80 bg-muted/20 p-3.5 space-y-1">
-              <p className="font-semibold text-foreground">Processing Timeline</p>
-              <p>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173), MENRO Candelaria will process and verify your request within 7 working days.</p>
-            </div>
-          </div>
-
-          <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2.5 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteModal(false)}
-              className="h-10 px-4 rounded-xl text-xs lg:text-sm font-semibold border-border/80 hover:bg-muted/80 cursor-pointer active:scale-[0.98] transition-all"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                setDeleteModal(false);
-                toast.info(
-                  "Account deletion request submitted. MENRO will process it within 7 working days."
-                );
-              }}
-              className="h-10 px-5 rounded-xl text-xs lg:text-sm font-bold shadow-xs active:scale-[0.98] cursor-pointer transition-all"
-            >
-              Submit Request
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <UnsavedChangesDialog isOpen={discardTarget !== null} onClose={() => setDiscardTarget(null)}
+        onDiscard={() => { if (discardTarget) closeEditor(discardTarget); }}
+        title={discardTarget === "password" ? "Discard Password Changes?" : discardTarget === "address" ? "Discard Address Changes?" : "Discard Profile Changes?"}
+        description={discardTarget === "password" ? "Your entered passwords will be cleared." : "Your unsaved changes will be lost."}
+        discardLabel="Discard Changes" isSaving={discardTarget === "password" ? pwModal.saving : discardTarget === "address" ? addressModal.saving : editModal.saving} />
+      <ConfirmationDialog kind="dialog" open={logoutModal} onOpenChange={setLogoutModal} title="Log Out of GreenWay?"
+        description="Sign out of your current resident session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={() => void handleLogout()} />
     </div>
   );
 };
 
 export default ResidentProfile;
-

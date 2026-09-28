@@ -9,30 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
-import { Eye, EyeOff, Mail, Phone, User, Lock, X, Leaf } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { fetchBarangays, fetchBarangayStreets, type BarangayLocationRow, type BarangayStreetRow } from "@/services/barangaysService";
+import { ArrowRight, Eye, EyeOff, Heart, Leaf, Lock, Mail, MapPin, User, Users, X } from "lucide-react";
 import { toast } from "@/lib/toast";
-
-const BARANGAYS = [
-  "Buenavista East", "Buenavista West", "Bukal Norte", "Bukal Sur",
-  "Kinatihan I", "Kinatihan II", "Malabanban Norte", "Malabanban Sur",
-  "Mangilag Norte", "Mangilag Sur", "Masalukot I", "Masalukot II",
-  "Masalukot III", "Masalukot IV", "Masalukot V", "Masin Norte",
-  "Masin Sur", "Mayabobo", "Pahinga Norte", "Pahinga Sur", "Paligawan",
-  "Panayonan", "Periña", "Poblacion", "Bukal I", "Bukal II",
-  "San Andres", "San Isidro", "Santa Catalina Norte", "Santa Catalina Sur",
-  "Suplang", "Taguan", "Tiaong", "Alitao", "Companero",
-  "Malabanban East", "Malabanban West", "Mangatas",
-];
 
 interface AuthModalProps {
   open: boolean;
@@ -109,6 +92,8 @@ const AuthModal = ({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [barangayOptions, setBarangayOptions] = useState<BarangayLocationRow[]>([]);
+  const [streetOptions, setStreetOptions] = useState<BarangayStreetRow[]>([]);
+  const [streetsLoading, setStreetsLoading] = useState(false);
 
   // Register fields
   const [fullName, setFullName] = useState("");
@@ -116,6 +101,8 @@ const AuthModal = ({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [barangay, setBarangay] = useState("");
+  const [street, setStreet] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [password, setPassword] = useState("");
 
   // Login fields
@@ -131,6 +118,8 @@ const AuthModal = ({
     setEmail("");
     setPhone("");
     setBarangay("");
+    setStreet("");
+    setTermsAccepted(false);
     setPassword("");
   };
 
@@ -154,6 +143,30 @@ const AuthModal = ({
       mounted = false;
     };
   }, [open]);
+
+  useEffect(() => {
+    let mounted = true;
+    setStreet("");
+
+    if (!barangay) {
+      setStreetOptions([]);
+      return () => { mounted = false; };
+    }
+
+    setStreetsLoading(true);
+    void fetchBarangayStreets(barangay)
+      .then((result) => {
+        if (mounted) setStreetOptions(result.streets);
+      })
+      .catch(() => {
+        if (mounted) setStreetOptions([]);
+      })
+      .finally(() => {
+        if (mounted) setStreetsLoading(false);
+      });
+
+    return () => { mounted = false; };
+  }, [barangay]);
 
   // Philippine phone validation: must start with 9, exactly 10 digits
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +195,8 @@ const AuthModal = ({
     else if (password.length < 8) errs.password = "Password must be at least 8 characters";
     if (phone && phone.length !== 10) errs.phone = "Enter a valid 10-digit PH number starting with 9";
     if (!barangay) errs.barangay = "Please select your barangay";
+    if (streetOptions.length > 0 && !street) errs.street = "Please select your street";
+    if (!termsAccepted) errs.terms = "Please accept the Terms and Privacy Policy";
     return errs;
   };
 
@@ -206,6 +221,7 @@ const AuthModal = ({
         password: password,
         phone: phone ? `+63${phone}` : undefined,
         barangay_id: barangay,
+        street_id: street || undefined,
       });
       toast.success("Account created successfully!", { description: "You can now log in to GreenWay." });
       resetRegisterForm();
@@ -246,109 +262,88 @@ const AuthModal = ({
     <button
       type="button"
       onClick={() => setShowPassword(!showPassword)}
-      className="text-muted-foreground hover:text-foreground transition-colors"
+      className="text-muted-foreground transition-colors hover:text-foreground"
       tabIndex={-1}
     >
       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
     </button>
   );
 
+  const fieldClass = "";
+  const fieldLabelClass = "text-xs font-semibold text-foreground";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] md:max-w-[900px] p-0 gap-0 overflow-hidden border-none shadow-2xl rounded-2xl max-h-[95vh] [&>button]:hidden">
-        <div className="flex flex-col md:flex-row min-h-0 max-h-[95vh]">
+      <DialogContent className="max-h-[94dvh] gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card p-0 shadow-2xl sm:max-w-[960px] md:max-w-[960px] [&>button]:hidden">
+        <div className="relative flex min-h-0 max-h-[94dvh] flex-col md:flex-row">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Close authentication dialog"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:bg-canopy/60 md:text-forest-foreground/80 md:hover:bg-canopy/80 md:hover:text-forest-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
           {/* Left side - Form */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card text-card-foreground">
             {/* Header - fixed */}
-            <div className="px-6 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-5 shrink-0 bg-gradient-to-br from-background via-background to-primary/5">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md shadow-primary/20">
-                    <img src="/greenway.svg" alt="GreenWay Logo" className="w-9 h-9" />
+            <div className="shrink-0 px-6 pb-2 pt-6 sm:px-8 sm:pb-3 sm:pt-7">
+              <div className="mb-4 flex items-center gap-2.5 sm:mb-5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
+                  <img src="/greenway.svg" alt="GreenWay Logo" className="h-8 w-8" />
                   </div>
-                  <span className="font-display text-lg font-bold text-foreground">GreenWay</span>
-                </div>
-                <button
-                  onClick={() => onOpenChange(false)}
-                  className="w-8 h-8 rounded-full bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <span className="font-display text-lg font-bold tracking-tight text-foreground">GreenWay</span>
               </div>
-              <DialogTitle className="font-display text-2xl sm:text-[1.7rem] font-bold text-foreground leading-tight">
+              <DialogTitle className="font-display text-[1.8rem] font-bold leading-[1.05] tracking-[-0.045em] text-foreground sm:text-[2rem]">
                 {tab === "login" ? "Welcome back" : "Create an account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-sm mt-1.5">
+              <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {tab === "login"
                   ? "Log in to access your Resident Portal"
                   : "Sign up and join the green movement in your community"}
               </DialogDescription>
-
-              {/* Tab switcher */}
-              <div className="flex mt-5 bg-muted/60 rounded-xl p-1 gap-1">
-                <button
-                  onClick={() => { setTab("login"); setErrors({}); }}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    tab === "login"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Log In
-                </button>
-                <button
-                  onClick={() => { setTab("register"); setErrors({}); }}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    tab === "register"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Sign Up
-                </button>
-              </div>
             </div>
 
             {/* Scrollable form area */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 sm:px-8 sm:py-5 min-h-0">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-3 sm:px-8 sm:pb-7 sm:pt-3">
               {tab === "login" ? (
-                <form onSubmit={handleLogin} noValidate className="space-y-4">
+                <form onSubmit={handleLogin} noValidate className="space-y-3.5">
                   {errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
                   )}
                   <div className="space-y-1.5">
-                    <Label htmlFor="identifier" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Label htmlFor="identifier" className={fieldLabelClass}>
                       Email, Phone, or Username
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <ClearableInput
                         id="identifier"
                         placeholder="Enter your email, phone, or username"
                         value={identifier}
                         onChange={(e) => { setIdentifier(e.target.value); setErrors((prev) => { const { identifier, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.identifier ? "border-destructive" : ""}`}
+                        className={`pl-10 ${fieldClass} ${errors.identifier ? "border-destructive" : ""}`}
                       />
                     </div>
                     {errors.identifier && <p className="text-xs text-destructive mt-0.5">{errors.identifier}</p>}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="login-password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Label htmlFor="login-password" className={fieldLabelClass}>
                       Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="login-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         value={loginPassword}
                         onChange={(e) => { setLoginPassword(e.target.value); setErrors((prev) => { const { loginPassword, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 pr-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.loginPassword ? "border-destructive" : ""}`}
+                        className={`pl-10 pr-10 ${fieldClass} ${errors.loginPassword ? "border-destructive" : ""}`}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         {PasswordToggle}
@@ -356,24 +351,25 @@ const AuthModal = ({
                     </div>
                     {errors.loginPassword && <p className="text-xs text-destructive mt-0.5">{errors.loginPassword}</p>}
                     <div className="text-right">
-                      <button type="button" className="text-xs text-primary hover:underline font-medium">
+                      <button type="button" className="text-xs font-medium text-primary transition-colors hover:text-primary/80 hover:underline">
                         Forgot password?
                       </button>
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-11 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all" disabled={loading}>
-                    {loading ? "Logging in…" : "Log In to GreenWay"}
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    <span>{loading ? "Logging in…" : "Log In to GreenWay"}</span>
+                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
 
-                  <div className="relative my-2">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
+                  <div className="relative my-1">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-3 text-muted-foreground">or continue with</span>
+                      <span className="bg-card px-3 text-[10px] tracking-wide text-muted-foreground">or continue with</span>
                     </div>
                   </div>
 
-                  <Button type="button" variant="outline" className="w-full h-11 rounded-xl border-border/80 hover:bg-muted/50" disabled>
+                  <Button type="button" variant="outline" className="w-full" disabled>
                     <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -383,45 +379,45 @@ const AuthModal = ({
                     Continue with Google
                   </Button>
 
-                  <p className="text-center text-sm text-muted-foreground pt-2">
+                  <p className="pt-1 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <button type="button" onClick={() => setTab("register")} className="text-primary font-semibold hover:underline">
+                    <button type="button" onClick={() => { setTab("register"); setErrors({}); }} className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline">
                       Sign Up
                     </button>
                   </p>
                 </form>
               ) : (
-                <form onSubmit={handleRegister} noValidate className="space-y-3.5">
+                <form onSubmit={handleRegister} noValidate className="space-y-3">
                   {errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="fullName" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Full Name</Label>
+                      <Label htmlFor="fullName" className={fieldLabelClass}>Full Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                        <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <ClearableInput
                           id="fullName"
                           placeholder="Juan Dela Cruz"
                           value={fullName}
                           onChange={(e) => { setFullName(e.target.value); setErrors((prev) => { const { fullName, ...rest } = prev; return rest; }); }}
-                          className={`pl-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.fullName ? "border-destructive" : ""}`}
+                          className={`pl-10 ${fieldClass} ${errors.fullName ? "border-destructive" : ""}`}
                         />
                       </div>
                       {errors.fullName && <p className="text-xs text-destructive mt-0.5">{errors.fullName}</p>}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Username</Label>
+                      <Label htmlFor="username" className={fieldLabelClass}>Username</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                        <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <ClearableInput
                           id="username"
                           placeholder="juandc"
                           value={username}
                           onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
-                          className={`pl-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.username ? "border-destructive" : ""}`}
+                          className={`pl-10 ${fieldClass} ${errors.username ? "border-destructive" : ""}`}
                         />
                       </div>
                       {errors.username && <p className="text-xs text-destructive mt-0.5">{errors.username}</p>}
@@ -429,29 +425,29 @@ const AuthModal = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</Label>
+                    <Label htmlFor="email" className={fieldLabelClass}>Email address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <ClearableInput
                         id="email"
                         type="email"
                         placeholder="juan@email.com"
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setErrors((prev) => { const { email, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.email ? "border-destructive" : ""}`}
+                        className={`pl-10 ${fieldClass} ${errors.email ? "border-destructive" : ""}`}
                       />
                     </div>
                     {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Phone <span className="normal-case tracking-normal font-normal text-muted-foreground/70">(optional)</span>
+                    <Label htmlFor="phone" className={fieldLabelClass}>
+                      Phone number <span className="font-normal text-muted-foreground">(optional)</span>
                     </Label>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none z-10">
-                        <span className="text-xs text-muted-foreground font-semibold">+63</span>
-                        <span className="text-border mx-0.5">|</span>
+                        <span className="text-xs font-semibold text-muted-foreground">+63</span>
+                        <span className="mx-0.5 text-border">|</span>
                       </div>
                       <ClearableInput
                         id="phone"
@@ -459,7 +455,7 @@ const AuthModal = ({
                         placeholder="9XX XXX XXXX"
                         value={formatPhone(phone)}
                         onChange={handlePhoneChange}
-                        className={`pl-[4rem] h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.phone ? "border-destructive" : ""}`}
+                        className={`pl-[4rem] ${fieldClass} ${errors.phone ? "border-destructive" : ""}`}
                         maxLength={14}
                       />
                     </div>
@@ -467,31 +463,45 @@ const AuthModal = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="barangay" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Barangay</Label>
-                    <Select value={barangay} onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}>
-                      <SelectTrigger className={`h-11 rounded-xl border-border/80 bg-muted/30 focus:bg-background transition-colors ${errors.barangay ? "border-destructive" : ""}`}>
-                        <SelectValue placeholder={barangayOptions.length ? "Select your barangay" : "Loading barangays..."} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60 rounded-xl">
-                        {barangayOptions.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="barangay" className={fieldLabelClass}>Barangay</Label>
+                    <SearchableSelect
+                      value={barangay}
+                      onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}
+                      options={barangayOptions.map((b) => ({ value: b.id, label: b.name }))}
+                      placeholder={barangayOptions.length ? "Select your barangay" : "Loading barangays..."}
+                      searchPlaceholder="Search barangays..."
+                      leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                      className={`h-10 rounded-xl ${errors.barangay ? "border-destructive" : ""}`}
+                    />
                     {errors.barangay && <p className="text-xs text-destructive mt-0.5">{errors.barangay}</p>}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="reg-password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</Label>
+                    <Label htmlFor="street" className={fieldLabelClass}>Select street</Label>
+                    <SearchableSelect
+                      value={street}
+                      onValueChange={(value) => { setStreet(value); setErrors((prev) => { const { street, ...rest } = prev; return rest; }); }}
+                      options={streetOptions.map((option) => ({ value: option.id, label: `${option.name}${option.area ? ` (${option.area})` : ""}` }))}
+                      placeholder={!barangay ? "Select your barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select your street" : "No streets available yet"}
+                      searchPlaceholder="Search streets..."
+                      disabled={!barangay || streetsLoading || streetOptions.length === 0}
+                      leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                      className={`h-10 rounded-xl ${errors.street ? "border-destructive" : ""}`}
+                    />
+                    {errors.street && <p className="text-xs text-destructive mt-0.5">{errors.street}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg-password" className={fieldLabelClass}>Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="reg-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Minimum 8 characters"
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); setErrors((prev) => { const { password, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 pr-10 h-11 rounded-xl border-border/80 bg-muted/30 focus-visible:bg-background transition-colors ${errors.password ? "border-destructive" : ""}`}
+                        className={`pl-10 pr-10 ${fieldClass} ${errors.password ? "border-destructive" : ""}`}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         {PasswordToggle}
@@ -500,13 +510,45 @@ const AuthModal = ({
                     {errors.password && <p className="text-xs text-destructive mt-0.5">{errors.password}</p>}
                   </div>
 
-                  <Button type="submit" className="w-full h-11 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all mt-1" disabled={loading}>
-                    {loading ? "Creating account…" : "Create My Account"}
+                  <div className="flex items-start gap-2.5">
+                    <Checkbox
+                      id="terms"
+                      checked={termsAccepted}
+                      onCheckedChange={(checked) => {
+                        setTermsAccepted(checked === true);
+                        setErrors((prev) => { const { terms, ...rest } = prev; return rest; });
+                      }}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="terms" className="cursor-pointer text-xs font-normal leading-5 text-muted-foreground">
+                      I agree to the <span className="font-semibold text-primary">Terms</span> and <span className="font-semibold text-primary">Privacy Policy</span>.
+                    </Label>
+                  </div>
+                  {errors.terms && <p className="-mt-2 text-xs text-destructive">{errors.terms}</p>}
+
+                  <Button type="submit" className="mt-0.5 w-full" disabled={loading}>
+                    <span>{loading ? "Creating account…" : "Create My Account"}</span>
+                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
 
-                  <p className="text-center text-sm text-muted-foreground pt-1">
+                  <div className="relative my-1">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-[10px] tracking-wide text-muted-foreground">or</span></div>
+                  </div>
+
+                  <Button type="button" variant="outline" className="w-full" disabled>
+                    <svg className="mr-2 w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                  </Button>
+
+                  <p className="text-center text-sm text-muted-foreground">
                     Already a member?{" "}
-                    <button type="button" onClick={() => setTab("login")} className="text-primary font-semibold hover:underline">
+                    <button type="button" onClick={() => { setTab("login"); setErrors({}); }} className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline">
                       Log In
                     </button>
                   </p>
@@ -516,57 +558,55 @@ const AuthModal = ({
           </div>
 
           {/* Right side - Visual panel (hidden on mobile) */}
-          <div className="hidden md:flex w-[380px] shrink-0 relative overflow-hidden bg-gradient-to-br from-primary/90 via-forest to-canopy rounded-r-2xl">
-            {/* Decorative elements */}
-            <div className="absolute inset-0">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-leaf/20 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/30 rounded-full translate-y-1/3 -translate-x-1/4 blur-3xl" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-leaf/10 rounded-full blur-xl" />
+          <aside className="relative hidden w-[360px] shrink-0 overflow-hidden bg-forest text-forest-foreground md:flex">
+            <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden="true">
+              <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-leaf/30 blur-3xl" />
+              <div className="absolute -bottom-32 -left-24 h-72 w-72 rounded-full bg-canopy/30 blur-3xl" />
             </div>
-
-            {/* Content */}
-            <div className="relative z-10 flex flex-col justify-between p-8 text-primary-foreground">
+            <div className="relative z-10 flex w-full flex-col justify-between p-8">
               <div>
-                <div className="w-12 h-12 rounded-2xl bg-primary-foreground/15 backdrop-blur-sm flex items-center justify-center mb-6">
-                  <Leaf className="w-6 h-6" />
+                <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-forest-foreground/15 ring-1 ring-forest-foreground/15">
+                  <Leaf className="h-5 w-5" />
                 </div>
-                <h3 className="font-display text-xl font-bold leading-snug mb-3">
-                  Join the green<br />movement today
+                <h3 className="font-display text-[1.55rem] font-bold leading-[1.08] tracking-[-0.035em]">
+                  Join the green<br />movement today.
                 </h3>
-                <p className="text-sm text-primary-foreground/70 leading-relaxed">
+                <p className="mt-3 max-w-[27ch] text-sm leading-relaxed text-forest-foreground/80">
                   Track waste collection, report issues, and help keep your community clean and green.
                 </p>
+
+                <ul className="mt-7 space-y-4" aria-label="GreenWay community benefits">
+                  <li className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Users className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-tight">Cleaner<br />communities</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Leaf className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-tight">A greener<br />tomorrow</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Heart className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-tight">Stronger<br />together</span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="space-y-4">
-                {/* Stats cards */}
-                <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-xl p-4 border border-primary-foreground/10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                      <img src="/greenway.svg" alt="GreenWay Logo" className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-primary-foreground/60 uppercase tracking-wider font-medium">Community Impact</p>
-                    </div>
+              <div>
+                <div className="flex items-end gap-5 border-t border-forest-foreground/20 pt-5">
+                  <div>
+                    <p className="font-display text-2xl font-bold tracking-[-0.04em]">12k+</p>
+                    <p className="text-[11px] text-forest-foreground/70">Active residents</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-2xl font-bold font-display">12k+</p>
-                      <p className="text-xs text-primary-foreground/60">Active residents</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold font-display">98%</p>
-                      <p className="text-xs text-primary-foreground/60">Collection rate</p>
-                    </div>
+                  <div className="h-8 w-px bg-forest-foreground/25" />
+                  <div>
+                    <p className="font-display text-2xl font-bold tracking-[-0.04em]">98%</p>
+                    <p className="text-[11px] text-forest-foreground/70">Collection rate</p>
                   </div>
                 </div>
-
-                <p className="text-xs text-primary-foreground/40 text-center">
-                  © {new Date().getFullYear()} GreenWay • Terms & Privacy
-                </p>
+                <p className="mt-6 text-center text-[11px] text-forest-foreground/55">© {new Date().getFullYear()} GreenWay</p>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </DialogContent>
     </Dialog>

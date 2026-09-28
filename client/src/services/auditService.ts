@@ -6,7 +6,10 @@ export interface AuditLogRow {
   action: string;
   module: string;
   record_id: string | null;
+  // Historical audit payloads contain heterogeneous JSON values.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   old_value: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new_value: any;
   ip_address: string | null;
   created_at: string;
@@ -21,6 +24,7 @@ export interface AuditLogKPIsData {
   deletions: number;
   criticalActions: number;
   failedLogins: number;
+  modifications: number;
 }
 
 export interface AuditLogsResponse {
@@ -66,14 +70,6 @@ export const auditService = {
     return res.data.data;
   },
 
-  async recordExport(filters: {
-    module?: string;
-    from?: string;
-    to?: string;
-    entry_count: number;
-  }): Promise<void> {
-    await api.post("/audit/export", filters);
-  },
 };
 
 export default auditService;

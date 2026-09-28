@@ -1,28 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
-import {
-  Search,
-  Plus,
-  LayoutGrid,
-  List,
-  Megaphone,
-  MoreHorizontal,
-  Edit2,
-  Trash2,
-  Copy,
-  Archive,
-  ArchiveRestore,
-  Filter,
-  ArrowUpDown,
-  Check,
-  Send,
-  Clock,
-  X,
-  SlidersHorizontal,
-  RotateCcw,
-} from "lucide-react";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { useState, useEffect } from "react";
+import { Search, Plus, LayoutGrid, List, Megaphone, Trash2, Archive, ArrowUpDown, Send, X, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -30,24 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
 import { toast } from "@/lib/toast";
 import { useAnnouncements } from "./hooks/useAnnouncements";
 import AnnouncementKPIs from "./AnnouncementKPIs";
@@ -83,7 +46,7 @@ const DEFAULT_FORM: EditorForm = {
   title: "",
   body: "",
   type: "General Notice",
-  status: "Draft",
+  status: "Active",
   targetAudience: "All Residents",
   targetBarangays: [],
   targetPreset: null,
@@ -94,6 +57,20 @@ const DEFAULT_FORM: EditorForm = {
 };
 
 const AdminAnnouncements = () => {
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const itemsPerPage = viewMode === "grid" ? ITEMS_PER_PAGE_GRID : ITEMS_PER_PAGE_TABLE;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const {
     announcements,
     barangayOptions,
@@ -109,14 +86,18 @@ const AdminAnnouncements = () => {
     sendNow,
     cancelSchedule,
     resendToUnread,
-  } = useAnnouncements();
-
-  const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+    totalItems,
+    totalPages,
+    statusCounts,
+    metrics,
+  } = useAnnouncements({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: debouncedSearch,
+    status: statusFilter,
+    type: typeFilter,
+    sort: sortBy,
+  });
 
   // Editor States
   const [editorOpen, setEditorOpen] = useState(false);
@@ -132,22 +113,6 @@ const AdminAnnouncements = () => {
   const [pendingSend, setPendingSend] = useState<Announcement | null>(null);
   const [resendTarget, setResendTarget] = useState<Announcement | null>(null);
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      all: announcements.filter((a) => a.status !== "Archived").length,
-      Active: 0,
-      Scheduled: 0,
-      Draft: 0,
-      Archived: 0,
-    };
-    announcements.forEach((a) => {
-      if (counts[a.status] !== undefined) {
-        counts[a.status]++;
-      }
-    });
-    return counts;
-  }, [announcements]);
-
   const STATUS_TABS: { key: string; label: string }[] = [
     { key: "all", label: "All Notices" },
     { key: "Active", label: "Active" },
@@ -156,56 +121,15 @@ const AdminAnnouncements = () => {
     { key: "Archived", label: "Archived" },
   ];
 
-  const filtered = useMemo(() => {
-    return announcements
-      .filter((a) => {
-        const matchesSearch =
-          search === "" ||
-          a.title.toLowerCase().includes(search.toLowerCase()) ||
-          a.body.toLowerCase().includes(search.toLowerCase());
-
-        const matchesType = typeFilter === "all" || a.type === typeFilter;
-        const matchesStatus =
-          statusFilter === "all"
-            ? a.status !== "Archived"
-            : a.status === statusFilter;
-
-        return matchesSearch && matchesType && matchesStatus;
-      })
-      .sort((a, b) => {
-        if (sortBy === "newest") {
-          return (
-            new Date(b.sentDate || b.scheduledDate || 0).getTime() -
-            new Date(a.sentDate || a.scheduledDate || 0).getTime()
-          );
-        }
-        if (sortBy === "oldest") {
-          return (
-            new Date(a.sentDate || a.scheduledDate || 0).getTime() -
-            new Date(b.sentDate || b.scheduledDate || 0).getTime()
-          );
-        }
-        if (sortBy === "most-read") {
-          return (b.readCount ?? 0) - (a.readCount ?? 0);
-        }
-        return 0;
-      });
-  }, [announcements, search, typeFilter, statusFilter, sortBy]);
-
-  const itemsPerPage =
-    viewMode === "grid" ? ITEMS_PER_PAGE_GRID : ITEMS_PER_PAGE_TABLE;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-
   useEffect(() => {
     setCurrentPage(1);
-  }, [viewMode, search, typeFilter, statusFilter]);
+  }, [viewMode, search, typeFilter, statusFilter, sortBy]);
 
-  const paginated = useMemo(() => {
-    return filtered.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage,
-    );
-  }, [filtered, currentPage, itemsPerPage]);
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginated = announcements;
 
   const openEditor = (ann?: Announcement) => {
     if (ann) {
@@ -231,11 +155,11 @@ const AdminAnnouncements = () => {
     setEditorOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (formToSave = editorForm) => {
     if (editingAnn) {
-      await updateExisting(editingAnn.id, editorForm);
+      await updateExisting(editingAnn.id, formToSave);
     } else {
-      await createNew(editorForm);
+      await createNew(formToSave);
     }
     setEditorOpen(false);
   };
@@ -295,7 +219,7 @@ const AdminAnnouncements = () => {
       </div>
 
       {/* ── KPIs Overview Cards ── */}
-      <AnnouncementKPIs announcements={announcements} />
+      <AnnouncementKPIs metrics={metrics} />
 
       {/* ── Filter Bar & Actions ── */}
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/70 shadow-xs backdrop-blur-md">
@@ -316,10 +240,11 @@ const AdminAnnouncements = () => {
                   className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <span>{tab.label}</span>
+                  {isActive && (
                   <span
                     className={`inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] transition-colors ${
                       count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
@@ -331,6 +256,7 @@ const AdminAnnouncements = () => {
                   >
                     {count}
                   </span>
+                  )}
                 </button>
               );
             })}
@@ -369,11 +295,6 @@ const AdminAnnouncements = () => {
           <div className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <Badge className="h-4 min-w-4 justify-center rounded-full border-0 bg-primary/15 px-1 text-[9px] text-primary hover:bg-primary/15">
-                {activeFilterCount}
-              </Badge>
-            )}
           </div>
 
           {/* Type Filter */}
@@ -463,7 +384,7 @@ const AdminAnnouncements = () => {
       </section>
 
       {/* ── Content View (Grid or Table) ── */}
-      {filtered.length === 0 ? (
+      {announcements.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-12 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground border border-border flex items-center justify-center mx-auto">
             <Megaphone className="w-7 h-7" />
@@ -524,7 +445,7 @@ const AdminAnnouncements = () => {
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={filtered.length}
+          totalItems={totalItems}
           pageSize={itemsPerPage}
           itemLabel="announcements"
           onPageChange={setCurrentPage}
@@ -600,176 +521,46 @@ const AdminAnnouncements = () => {
       )}
 
       {/* ── Confirm Send Now Modal ── */}
-      <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
-        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <Send className="w-4 h-4" />
-              </div>
-              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Confirm Immediate Broadcast
-              </AlertDialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setConfirmSend(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="px-4 sm:px-5 py-3.5">
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to broadcast{" "}
-              <strong className="text-foreground font-semibold">
-                &ldquo;{pendingSend?.title}&rdquo;
-              </strong>{" "}
-              to all targeted residents immediately? A real-time notification will be sent.
-            </AlertDialogDescription>
-          </div>
-
-          {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-background">
-            <AlertDialogCancel
-              onClick={() => setConfirmSend(false)}
-              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSendConfirm}
-              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Confirm & Send Now</span>
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog
+        open={confirmSend}
+        onOpenChange={setConfirmSend}
+        title="Confirm Immediate Broadcast"
+        icon={<Send />}
+        description={<>Are you sure you want to broadcast <strong className="font-semibold text-foreground">&ldquo;{pendingSend?.title}&rdquo;</strong> to all targeted residents immediately? A real-time notification will be sent.</>}
+        confirmLabel="Confirm & Send Now"
+        onConfirm={handleSendConfirm}
+        closeOnConfirm
+      />
 
       {/* ── Archive Confirmation Modal ── */}
-      <AlertDialog
+      <ConfirmationDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
-      >
-        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${deleteTarget?.status === "Archived" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/10 text-primary border-primary/20"}`}>
-                {deleteTarget?.status === "Archived" ? <Trash2 className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-              </div>
-              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                {deleteTarget?.status === "Archived" ? "Delete Permanently?" : "Archive Announcement?"}
-              </AlertDialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="px-4 sm:px-5 py-3.5">
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {deleteTarget?.status === "Archived" ? "Permanently delete" : "Archive"}{" "}
-              <strong className="text-foreground font-semibold">
-                &ldquo;{deleteTarget?.title}&rdquo;
-              </strong>
-              ? {deleteTarget?.status === "Archived"
-                ? "This cannot be undone. The announcement and its linked notifications will be removed now."
-                : "It will be hidden from resident feeds and notifications. You can restore it from Archive within 30 days."}
-            </AlertDialogDescription>
-          </div>
-
-          {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60">
-            <AlertDialogCancel
-              onClick={() => setDeleteTarget(null)}
-              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async () => {
-                const ok = deleteTarget!.status === "Archived"
-                  ? await permanentlyDelete(deleteTarget!.id)
-                  : await remove(deleteTarget!.id);
-                if (ok) setDeleteTarget(null);
-              }}
-               className={`h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all ${deleteTarget?.status === "Archived" ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
-            >
-              {deleteTarget?.status === "Archived" ? <Trash2 className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-              <span>{deleteTarget?.status === "Archived" ? "Delete Permanently" : "Archive Notice"}</span>
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={deleteTarget?.status === "Archived" ? "Delete Permanently?" : "Archive Announcement?"}
+        icon={deleteTarget?.status === "Archived" ? <Trash2 /> : <Archive />}
+        variant={deleteTarget?.status === "Archived" ? "destructive" : "default"}
+        description={<>{deleteTarget?.status === "Archived" ? "Permanently delete" : "Archive"} <strong className="font-semibold text-foreground">&ldquo;{deleteTarget?.title}&rdquo;</strong>? {deleteTarget?.status === "Archived" ? "This cannot be undone. The announcement and its linked notifications will be removed now." : "It will be hidden from resident feeds and notifications. You can restore it from Archive within 30 days."}</>}
+        confirmLabel={deleteTarget?.status === "Archived" ? "Delete Permanently" : "Archive Notice"}
+        closeOnConfirm
+        onConfirm={async () => {
+          const ok = deleteTarget!.status === "Archived"
+            ? await permanentlyDelete(deleteTarget!.id)
+            : await remove(deleteTarget!.id);
+          if (ok) setDeleteTarget(null);
+        }}
+      />
 
       {/* ── Resend Confirmation Modal ── */}
-      <AlertDialog
+      <ConfirmationDialog
         open={!!resendTarget}
         onOpenChange={() => setResendTarget(null)}
-      >
-        <AlertDialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 p-0 shadow-2xl overflow-hidden bg-background text-left [&>button:last-child]:hidden">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <RotateCcw className="w-4 h-4" />
-              </div>
-              <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Resend Announcement?
-              </AlertDialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setResendTarget(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="px-4 sm:px-5 py-3.5">
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              This will re-issue a real-time notification for{" "}
-              <strong className="text-foreground font-semibold">
-                &ldquo;{resendTarget?.title}&rdquo;
-              </strong>{" "}
-              only to residents who have not yet read or opened this notice.
-            </AlertDialogDescription>
-          </div>
-
-          {/* Footer Bar */}
-          <div className="flex items-center justify-end gap-2 px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/60 bg-muted/20">
-            <AlertDialogCancel
-              onClick={() => setResendTarget(null)}
-              className="h-9 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleResendConfirm}
-              className="h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Confirm & Resend</span>
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Resend Announcement?"
+        icon={<RotateCcw />}
+        description={<>This will re-issue a real-time notification for <strong className="font-semibold text-foreground">&ldquo;{resendTarget?.title}&rdquo;</strong> only to residents who have not yet read or opened this notice.</>}
+        confirmLabel="Confirm & Resend"
+        onConfirm={handleResendConfirm}
+        closeOnConfirm
+      />
     </div>
   );
 };

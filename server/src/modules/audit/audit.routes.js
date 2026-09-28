@@ -8,7 +8,6 @@ router.use(authenticate, authorize("ADMIN"));
 
 router.get("/", controller.getAll);
 router.get("/filters", controller.getFilterOptions);
-router.post("/export", controller.recordExport);
 router.get("/:id", controller.getById);
 
 module.exports = router;

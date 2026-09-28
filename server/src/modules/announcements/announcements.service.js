@@ -1,17 +1,24 @@
+const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const {
   notifyAllResidents,
   notifyBarangayResidents,
   sendToMany,
+  emitStoredNotifications,
+  filterNotificationEnabledUserIds,
 } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
-const { emitNotificationReferenceRemoved } = require("../../sockets/notifications.socket");
+const {
+  emitNotificationReferenceRemoved,
+  emitNotificationReferenceRemovedToUser,
+  emitNotificationReferenceUpdatedToUser,
+} = require("../../sockets/notifications.socket");
 
 // ─── Base fetch ────────────────────────────────────────────
 
-const getById = async (id, viewer = null) => {
-  const [rows] = await pool.query(
+const getById = async (id, viewer = null, db = pool) => {
+  const [rows] = await db.query(
     `SELECT
        a.*,
        u.full_name  AS created_by_name,
@@ -39,7 +46,7 @@ const getById = async (id, viewer = null) => {
   const announcement = rows[0];
 
   // Attach targeted barangays
-  const [barangays] = await pool.query(
+  const [barangays] = await db.query(
     `SELECT b.id, b.name, NULL AS zone
      FROM announcement_barangays ab
      JOIN barangays b ON b.id = ab.barangay_id
@@ -61,8 +68,8 @@ const getById = async (id, viewer = null) => {
   return announcement;
 };
 
-const getCalendarEntry = async (announcementId) => {
-  const [rows] = await pool.query(
+const getCalendarEntry = async (announcementId, db = pool) => {
+  const [rows] = await db.query(
     `SELECT id, event_date, start_time, end_time, location
      FROM schedules
      WHERE announcement_id = ? AND deleted_at IS NULL
@@ -78,8 +85,8 @@ const announcementCalendarDate = (announcement) => {
   return value.toISOString().slice(0, 10);
 };
 
-const syncResidentCalendarEntry = async (announcement, data) => {
-  const existingEntry = await getCalendarEntry(announcement.id);
+const syncResidentCalendarEntry = async (announcement, data, db = pool) => {
+  const existingEntry = await getCalendarEntry(announcement.id, db);
   const showOnCalendar = data.show_on_calendar === undefined
     ? Boolean(existingEntry)
     : data.show_on_calendar;
@@ -90,7 +97,7 @@ const syncResidentCalendarEntry = async (announcement, data) => {
 
   if (!showOnCalendar) {
     if (existingEntry) {
-      await pool.query("UPDATE schedules SET deleted_at = NOW() WHERE id = ?", [existingEntry.id]);
+      await db.query("UPDATE schedules SET deleted_at = NOW() WHERE id = ?", [existingEntry.id]);
     }
     return;
   }
@@ -100,7 +107,7 @@ const syncResidentCalendarEntry = async (announcement, data) => {
     throw { statusCode: 400, message: "Select the resident calendar date." };
   }
   if (existingEntry) {
-    await pool.query(
+    await db.query(
       `UPDATE schedules
        SET title = ?, description = ?, event_date = ?, start_time = NULL, end_time = NULL, location = NULL,
            event_type = 'COMMUNITY_EVENT', visibility = 'PUBLIC', status = 'UPCOMING'
@@ -110,7 +117,7 @@ const syncResidentCalendarEntry = async (announcement, data) => {
     return;
   }
 
-  await pool.query(
+  await db.query(
     `INSERT INTO schedules
        (id, title, description, event_date, start_time, end_time, event_type, visibility,
         location, status, created_by, announcement_id)
@@ -122,6 +129,7 @@ const syncResidentCalendarEntry = async (announcement, data) => {
 // ─── Get All ───────────────────────────────────────────────
 
 const getAll = async (filters = {}, viewer = null) => {
+  const isAdmin = viewer?.role === "ADMIN";
   let query = `
     SELECT
       a.*,
@@ -142,42 +150,124 @@ const getAll = async (filters = {}, viewer = null) => {
 
   const params = [];
 
-  if (filters.status) {
+  if (filters.status && filters.status !== "all") {
     query += " AND a.status = ?";
     params.push(filters.status);
+  } else if (isAdmin && (filters.page || filters.limit)) {
+    query += " AND a.status <> 'ARCHIVED'";
   }
 
-  if (filters.type) {
+  if (filters.type && filters.type !== "all") {
     query += " AND a.type = ?";
     params.push(filters.type);
   }
 
-  if (viewer?.role !== "ADMIN") {
+  if (!isAdmin) {
     query += " AND a.status = 'ACTIVE' AND (a.expires_at IS NULL OR a.expires_at > NOW())";
     query += " AND (a.target_all = TRUE OR EXISTS (SELECT 1 FROM announcement_barangays visible_ab WHERE visible_ab.announcement_id = a.id AND visible_ab.barangay_id = ?))";
     params.push(viewer?.barangay_id || "");
   }
 
-  query += " ORDER BY a.created_at DESC";
+  if (isAdmin && filters.search) {
+    query += " AND (a.title LIKE ? OR a.body LIKE ?)";
+    const search = `%${String(filters.search).trim()}%`;
+    params.push(search, search);
+  }
+
+  const sortClauses = {
+    newest: "COALESCE(a.sent_at, a.scheduled_at, a.created_at) DESC",
+    oldest: "COALESCE(a.sent_at, a.scheduled_at, a.created_at) ASC",
+    "most-read": "read_count DESC, a.created_at DESC",
+  };
+  query += ` ORDER BY ${isAdmin ? sortClauses[filters.sort] || sortClauses.newest : "a.created_at DESC"}`;
+
+  let page = 1;
+  let limit = null;
+  let total = null;
+  if (isAdmin && (filters.page || filters.limit)) {
+    page = Math.max(1, Number.parseInt(filters.page, 10) || 1);
+    limit = Math.min(100, Math.max(1, Number.parseInt(filters.limit, 10) || 10));
+    const countQuery = `SELECT COUNT(*) AS total FROM (${query.replace(/ORDER BY[\s\S]*$/, "")}) filtered_announcements`;
+    const [countRows] = await pool.query(countQuery, params);
+    total = Number(countRows[0]?.total ?? 0);
+    query += " LIMIT ? OFFSET ?";
+    params.push(limit, (page - 1) * limit);
+  }
 
   const [announcements] = await pool.query(query, params);
 
-  // Attach barangays to each
-  for (const a of announcements) {
+  // Attach all barangays in one query instead of issuing one query per row.
+  const announcementIds = announcements.map((announcement) => announcement.id);
+  const barangaysByAnnouncement = new Map();
+  if (announcementIds.length > 0) {
     const [barangays] = await pool.query(
-      `SELECT b.id, b.name, NULL AS zone
+      `SELECT ab.announcement_id, b.id, b.name, NULL AS zone
        FROM announcement_barangays ab
        JOIN barangays b ON b.id = ab.barangay_id
-       WHERE ab.announcement_id = ?`,
-      [a.id],
+       WHERE ab.announcement_id IN (?)
+       ORDER BY b.name ASC`,
+      [announcementIds],
     );
-    a.barangays = barangays;
+    barangays.forEach((barangay) => {
+      const list = barangaysByAnnouncement.get(barangay.announcement_id) || [];
+      list.push({ id: barangay.id, name: barangay.name, zone: barangay.zone });
+      barangaysByAnnouncement.set(barangay.announcement_id, list);
+    });
   }
+  announcements.forEach((announcement) => {
+    announcement.barangays = barangaysByAnnouncement.get(announcement.id) || [];
+  });
 
-  return announcements;
+  if (limit === null) return announcements;
+
+  const [summaryRows] = await pool.query(
+    `SELECT
+       SUM(a.status <> 'ARCHIVED') AS all_count,
+       SUM(a.status = 'ACTIVE') AS active_count,
+       SUM(a.status = 'SCHEDULED') AS scheduled_count,
+       SUM(a.status = 'DRAFT') AS draft_count,
+       SUM(a.status = 'ARCHIVED') AS archived_count,
+       (SELECT COUNT(DISTINCT CONCAT(n.ref_id, ':', n.user_id))
+        FROM notifications n
+        JOIN announcements active_a ON active_a.id = n.ref_id
+        WHERE n.ref_module = 'announcements' AND active_a.status = 'ACTIVE') AS total_recipients,
+       (SELECT COUNT(*)
+        FROM announcement_read_receipts r
+        JOIN announcements active_a ON active_a.id = r.announcement_id
+        WHERE active_a.status = 'ACTIVE') AS total_reads
+     FROM announcements a`,
+  );
+  const summary = summaryRows[0] || {};
+  return {
+    items: announcements,
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    statusCounts: {
+      all: Number(summary.all_count ?? 0),
+      Active: Number(summary.active_count ?? 0),
+      Scheduled: Number(summary.scheduled_count ?? 0),
+      Draft: Number(summary.draft_count ?? 0),
+      Archived: Number(summary.archived_count ?? 0),
+    },
+    metrics: {
+      active: Number(summary.active_count ?? 0),
+      scheduled: Number(summary.scheduled_count ?? 0),
+      drafts: Number(summary.draft_count ?? 0),
+      totalRecipients: Number(summary.total_recipients ?? 0),
+      totalReads: Number(summary.total_reads ?? 0),
+    },
+  };
 };
 
-const notifyRecipients = async (announcement) => {
+const mergeDeliveryResults = (results) => ({
+  sent: results.reduce((sum, result) => sum + result.sent, 0),
+  ids: results.flatMap((result) => result.ids),
+  notifications: results.flatMap((result) => result.notifications || []),
+});
+
+const notifyRecipients = async (announcement, { db = pool, emit = true } = {}) => {
   const payload = {
     type: "ANNOUNCEMENT",
     title: announcement.title,
@@ -186,10 +276,11 @@ const notifyRecipients = async (announcement) => {
     ref_module: "announcements",
     metadata: { category: announcement.type },
   };
-  if (announcement.target_all) return notifyAllResidents(payload);
-  return Promise.all(announcement.barangays.map((barangay) =>
-    notifyBarangayResidents({ ...payload, barangay_id: barangay.id }),
+  if (announcement.target_all) return notifyAllResidents({ ...payload, db, emit });
+  const results = await Promise.all(announcement.barangays.map((barangay) =>
+    notifyBarangayResidents({ ...payload, barangay_id: barangay.id, db, emit }),
   ));
+  return mergeDeliveryResults(results);
 };
 
 const activateDueAnnouncements = async () => {
@@ -199,6 +290,7 @@ const activateDueAnnouncements = async () => {
   await pool.query(
     "UPDATE announcements SET status = 'ARCHIVED', archived_at = COALESCE(archived_at, NOW()) WHERE status = 'ACTIVE' AND expires_at IS NOT NULL AND expires_at <= NOW()",
   );
+  if (expiring.length) emitAdminDataChanged(["announcements", "schedule", "dashboard", "analytics"]);
   expiring.forEach((announcement) =>
     emitNotificationReferenceRemoved("announcements", announcement.id),
   );
@@ -206,13 +298,34 @@ const activateDueAnnouncements = async () => {
     "SELECT id FROM announcements WHERE status = 'SCHEDULED' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()",
   );
   for (const row of due) {
-    const [result] = await pool.query(
-      "UPDATE announcements SET status = 'ACTIVE', sent_at = COALESCE(sent_at, scheduled_at, NOW()) WHERE id = ? AND status = 'SCHEDULED'",
-      [row.id],
-    );
-    if (result.affectedRows === 1) {
-      const announcement = await getById(row.id);
-      notifyRecipients(announcement).catch((err) => console.error("[Notify] ❌ Scheduled announcement failed:", err.message));
+    const connection = await pool.getConnection();
+    let delivery = { notifications: [] };
+    try {
+      await connection.beginTransaction();
+      const [locked] = await connection.query(
+        "SELECT id FROM announcements WHERE id = ? AND status = 'SCHEDULED' AND scheduled_at <= NOW() FOR UPDATE",
+        [row.id],
+      );
+      if (locked.length === 0) {
+        await connection.rollback();
+        continue;
+      }
+
+      const announcement = await getById(row.id, null, connection);
+      delivery = await notifyRecipients(announcement, { db: connection, emit: false });
+      await connection.query(
+        "UPDATE announcements SET status = 'ACTIVE', sent_at = COALESCE(sent_at, scheduled_at, NOW()) WHERE id = ?",
+        [row.id],
+      );
+      await connection.commit();
+      emitAdminDataChanged(["announcements", "schedule", "dashboard", "analytics"]);
+      emitStoredNotifications(delivery.notifications);
+    } catch (err) {
+      await connection.rollback();
+      // The row remains SCHEDULED, so the next scheduler pass retries delivery.
+      console.error("[Notify] ❌ Scheduled announcement failed and will retry:", err.message);
+    } finally {
+      connection.release();
     }
   }
 };
@@ -237,37 +350,41 @@ const create = async (adminId, data) => {
   // as a local wall-clock value into this UTC TIMESTAMP column.
   const sentAt = status === "ACTIVE" ? "NOW()" : "NULL";
 
-  await pool.query(
-    `INSERT INTO announcements
-       (id, title, body, type, status,
-        target_all, scheduled_at, expires_at, sent_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${sentAt}, ?)`,
-    [
-      id,
-      title,
-      body,
-      type,
-      status,
-      target_all,
-      scheduled_at || null,
-      expires_at || null,
-      adminId,
-    ],
-  );
+  const connection = await pool.getConnection();
+  let created;
+  let delivery = { notifications: [] };
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      `INSERT INTO announcements
+         (id, title, body, type, status,
+          target_all, scheduled_at, expires_at, sent_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${sentAt}, ?)`,
+      [id, title, body, type, status, target_all, scheduled_at || null, expires_at || null, adminId],
+    );
 
-  // Insert targeted barangays if target_all is false
-  if (!target_all && barangay_ids.length > 0) {
-    for (const barangayId of barangay_ids) {
-      await pool.query(
-        `INSERT INTO announcement_barangays (id, announcement_id, barangay_id)
-         VALUES (?, ?, ?)`,
-        [generateId(), id, barangayId],
+    if (!target_all && barangay_ids.length > 0) {
+      const rows = barangay_ids.map((barangayId) => [generateId(), id, barangayId]);
+      await connection.query(
+        "INSERT INTO announcement_barangays (id, announcement_id, barangay_id) VALUES ?",
+        [rows],
       );
     }
+
+    created = await getById(id, null, connection);
+    await syncResidentCalendarEntry(created, data, connection);
+    if (created.status === "ACTIVE") {
+      delivery = await notifyRecipients(created, { db: connection, emit: false });
+    }
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
   }
 
-  const created = await getById(id);
-  await syncResidentCalendarEntry(created, data);
+  emitStoredNotifications(delivery.notifications);
 
   await auditService.log({
     user_id: adminId,
@@ -277,52 +394,138 @@ const create = async (adminId, data) => {
     new_value: { title: created.title, type: created.type, status: created.status },
   }).catch(() => {});
 
-  // Finish persisting recipient notifications before returning success. Keeping this
-  // work in the background allowed a server restart/request teardown to leave a
-  // targeted announcement active without creating any recipient notifications.
-  if (created.status === "ACTIVE") {
-    try {
-      await notifyRecipients(created);
-    } catch (err) {
-      console.error("[Notify] ❌ Announcement broadcast failed:", err.message);
-    }
-  }
-
   return getById(created.id);
 };
 
 // ─── Update ────────────────────────────────────────────────
 
-const update = async (id, data) => {
-  const existing = await getById(id);
+const getTargetResidentIds = async (announcement, db = pool) => {
+  const params = [];
+  let targetFilter = "";
+  if (!announcement.target_all) {
+    const barangayIds = announcement.barangays.map((barangay) => barangay.id);
+    if (barangayIds.length === 0) return [];
+    targetFilter = " AND u.barangay_id IN (?)";
+    params.push(barangayIds);
+  }
+  const [rows] = await db.query(
+    `SELECT u.id
+     FROM users u
+     WHERE u.role = 'RESIDENT'
+       AND u.status = 'ACTIVE'
+       AND u.deleted_at IS NULL${targetFilter}`,
+    params,
+  );
+  return rows.map((row) => row.id);
+};
 
-  // Updates can turn a draft into a scheduled announcement, so enforce the
-  // same time rules here instead of relying only on the create validator.
-  if (data.status === "SCHEDULED") {
-    const scheduledAt = data.scheduled_at ?? existing.scheduled_at;
-    if (!scheduledAt || Number.isNaN(new Date(scheduledAt).getTime())) {
-      throw { statusCode: 400, message: "A valid broadcast time is required." };
-    }
-    if (new Date(scheduledAt) <= new Date()) {
-      throw { statusCode: 400, message: "Broadcast time must be in the future." };
-    }
+const reconcileActiveRecipients = async (existing, updated, db) => {
+  const [notificationRows] = await db.query(
+    "SELECT DISTINCT user_id FROM notifications WHERE ref_module = 'announcements' AND ref_id = ?",
+    [updated.id],
+  );
+  const existingRecipientIds = notificationRows.map((row) => row.user_id);
+  const oldTargetIds = new Set(await getTargetResidentIds(existing, db));
+  const newTargetIds = await getTargetResidentIds(updated, db);
+  const newTargetSet = new Set(newTargetIds);
+  const removedUserIds = existingRecipientIds.filter((userId) => !newTargetSet.has(userId));
+  const newlyTargetedIds = newTargetIds.filter((userId) => !oldTargetIds.has(userId));
+  const enabledNewUserIds = await filterNotificationEnabledUserIds(newlyTargetedIds, "ANNOUNCEMENT", db);
 
-    const expiresAt = data.expires_at ?? existing.expires_at;
-    if (expiresAt && new Date(expiresAt) <= new Date(scheduledAt)) {
-      throw { statusCode: 400, message: "Expiry must be after the broadcast time." };
-    }
+  if (removedUserIds.length > 0) {
+    await db.query(
+      "DELETE FROM notifications WHERE ref_module = 'announcements' AND ref_id = ? AND user_id IN (?)",
+      [updated.id, removedUserIds],
+    );
+    await db.query(
+      "DELETE FROM announcement_read_receipts WHERE announcement_id = ? AND user_id IN (?)",
+      [updated.id, removedUserIds],
+    );
   }
 
-  // Activating or restoring a notice must never retain a past expiry. When an
-  // expired archived notice is edited, use the new expiry supplied by the
-  // editor (or null when the admin removes the expiry), not its old value.
-  if (data.status === "ACTIVE") {
-    const effectiveExpiresAt =
-      data.expires_at !== undefined ? data.expires_at : existing.expires_at;
-    if (effectiveExpiresAt && new Date(effectiveExpiresAt) <= new Date()) {
-      throw { statusCode: 400, message: "Expiry time must be in the future." };
-    }
+  const retainedUserIds = existingRecipientIds.filter((userId) => newTargetSet.has(userId));
+  const metadata = { category: updated.type };
+  if (retainedUserIds.length > 0) {
+    await db.query(
+      `UPDATE notifications
+       SET title = ?, body = ?, metadata = ?
+       WHERE ref_module = 'announcements' AND ref_id = ? AND user_id IN (?)`,
+      [updated.title, updated.body, JSON.stringify(metadata), updated.id, retainedUserIds],
+    );
   }
+
+  const delivery = await sendToMany({
+    user_ids: enabledNewUserIds,
+    type: "ANNOUNCEMENT",
+    title: updated.title,
+    body: updated.body,
+    ref_id: updated.id,
+    ref_module: "announcements",
+    metadata,
+    db,
+    emit: false,
+  });
+
+  return { delivery, removedUserIds, retainedUserIds, metadata };
+};
+
+const update = async (id, data, actorId) => {
+  const connection = await pool.getConnection();
+  let existing;
+  let updated;
+  let delivery = { notifications: [] };
+  let audienceChanges = { removedUserIds: [], retainedUserIds: [], metadata: null };
+
+  try {
+    await connection.beginTransaction();
+    await connection.query("SELECT id FROM announcements WHERE id = ? FOR UPDATE", [id]);
+    existing = await getById(id, null, connection);
+
+    const effectiveStatus = data.status ?? existing.status;
+    const effectiveTargetAll = data.target_all ?? Boolean(existing.target_all);
+    const effectiveBarangayIds = data.barangay_ids ?? existing.barangays.map((barangay) => barangay.id);
+    const effectiveScheduledAt = data.scheduled_at !== undefined ? data.scheduled_at : existing.scheduled_at;
+    const effectiveExpiresAt = data.expires_at !== undefined ? data.expires_at : existing.expires_at;
+    const effectiveType = data.type ?? existing.type;
+    const existingCalendar = Boolean(existing.calendar_event_id);
+    const effectiveShowOnCalendar = data.show_on_calendar ?? existingCalendar;
+    const effectiveCalendarDate = data.calendar_date !== undefined
+      ? data.calendar_date
+      : existing.calendar_date;
+
+    if (!effectiveTargetAll && effectiveBarangayIds.length === 0) {
+      throw { statusCode: 400, message: "Select at least one barangay." };
+    }
+    if (effectiveStatus === "SCHEDULED") {
+      const scheduledDate = effectiveScheduledAt ? new Date(effectiveScheduledAt) : null;
+      if (!scheduledDate || Number.isNaN(scheduledDate.getTime())) {
+        throw { statusCode: 400, message: "A valid broadcast time is required." };
+      }
+      if (scheduledDate <= new Date()) {
+        throw { statusCode: 400, message: "Broadcast time must be in the future." };
+      }
+    }
+    if (effectiveExpiresAt) {
+      const expiryDate = new Date(effectiveExpiresAt);
+      if (Number.isNaN(expiryDate.getTime())) {
+        throw { statusCode: 400, message: "Expiry time is invalid." };
+      }
+      if (effectiveStatus !== "DRAFT" && expiryDate <= new Date()) {
+        throw { statusCode: 400, message: "Expiry time must be in the future." };
+      }
+      if (effectiveScheduledAt && expiryDate <= new Date(effectiveScheduledAt)) {
+        throw { statusCode: 400, message: "Expiry must be after the broadcast time." };
+      }
+    }
+    if (effectiveShowOnCalendar && !effectiveCalendarDate) {
+      throw { statusCode: 400, message: "Select the resident calendar date." };
+    }
+    if (
+      effectiveShowOnCalendar &&
+      !["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"].includes(effectiveType)
+    ) {
+      throw { statusCode: 400, message: "Only event and schedule-related announcements can appear on the resident calendar." };
+    }
 
   const fields = [];
   const params = [];
@@ -360,7 +563,7 @@ const update = async (id, data) => {
 
   if (fields.length > 0) {
     params.push(id);
-    await pool.query(
+    await connection.query(
       `UPDATE announcements SET ${fields.join(", ")} WHERE id = ?`,
       params,
     );
@@ -368,14 +571,14 @@ const update = async (id, data) => {
 
   // Replace barangays if provided
   if (data.barangay_ids !== undefined) {
-    await pool.query(
+    await connection.query(
       "DELETE FROM announcement_barangays WHERE announcement_id = ?",
       [id],
     );
 
     if (!data.target_all && data.barangay_ids.length > 0) {
       for (const barangayId of data.barangay_ids) {
-        await pool.query(
+        await connection.query(
           `INSERT INTO announcement_barangays (id, announcement_id, barangay_id)
            VALUES (?, ?, ?)`,
           [generateId(), id, barangayId],
@@ -384,11 +587,39 @@ const update = async (id, data) => {
     }
   }
 
-  const updated = await getById(id);
-  await syncResidentCalendarEntry(updated, data);
+    updated = await getById(id, null, connection);
+    await syncResidentCalendarEntry(updated, data, connection);
+
+    if (updated.status === "ACTIVE" && existing.status !== "ACTIVE" && existing.status !== "ARCHIVED") {
+      delivery = await notifyRecipients(updated, { db: connection, emit: false });
+    } else if (updated.status === "ACTIVE" && existing.status === "ACTIVE") {
+      const reconciled = await reconcileActiveRecipients(existing, updated, connection);
+      delivery = reconciled.delivery;
+      audienceChanges = reconciled;
+    }
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+
+  emitStoredNotifications(delivery.notifications);
+  audienceChanges.removedUserIds.forEach((userId) =>
+    emitNotificationReferenceRemovedToUser(userId, "announcements", updated.id),
+  );
+  audienceChanges.retainedUserIds.forEach((userId) =>
+    emitNotificationReferenceUpdatedToUser(userId, "announcements", updated.id, {
+      title: updated.title,
+      body: updated.body,
+      metadata: audienceChanges.metadata,
+    }),
+  );
 
   auditService.log({
-    user_id: updated.created_by,
+    user_id: actorId,
     action: existing.status === "ARCHIVED" && updated.status === "ACTIVE"
       ? "RESTORE_ANNOUNCEMENT"
       : "UPDATE_ANNOUNCEMENT",
@@ -398,15 +629,7 @@ const update = async (id, data) => {
     new_value: { title: updated.title, status: updated.status },
   }).catch(() => {});
 
-  if (data.status === "ACTIVE" && existing.status !== "ACTIVE" && existing.status !== "ARCHIVED") {
-    try {
-      await notifyRecipients(updated);
-    } catch (err) {
-      console.error("[Notify] ❌ Announcement broadcast failed:", err.message);
-    }
-  }
-
-  if (data.status === "ARCHIVED" && existing.status !== "ARCHIVED") {
+  if (updated.status !== "ACTIVE" && existing.status === "ACTIVE") {
     emitNotificationReferenceRemoved("announcements", updated.id);
   }
 
@@ -415,7 +638,7 @@ const update = async (id, data) => {
 
 // ─── Archive ───────────────────────────────────────────────
 
-const remove = async (id) => {
+const remove = async (id, actorId) => {
   const existing = await getById(id);
 
   if (existing.status !== "ARCHIVED") {
@@ -427,7 +650,7 @@ const remove = async (id) => {
   emitNotificationReferenceRemoved("announcements", id);
 
   auditService.log({
-    user_id: existing.created_by,
+    user_id: actorId,
     action: "ARCHIVE_ANNOUNCEMENT",
     module: "announcements",
     record_id: id,
@@ -439,21 +662,22 @@ const remove = async (id) => {
 
 // Permanent removal is deliberately restricted to announcements that are
 // already archived. Active resident content can only be archived first.
-const destroyArchived = async (id) => {
+const destroyArchived = async (id, actorId) => {
   const existing = await getById(id);
   if (existing.status !== "ARCHIVED") {
     throw { statusCode: 409, message: "Only archived announcements can be permanently deleted." };
   }
 
+  const [notificationRecipients] = await pool.query(
+    "SELECT DISTINCT user_id FROM notifications WHERE ref_module = 'announcements' AND ref_id = ?", [id]);
   await pool.query(
-    "DELETE FROM notifications WHERE ref_module = 'announcements' AND ref_id = ?",
-    [id],
-  );
+    "DELETE FROM notifications WHERE ref_module = 'announcements' AND ref_id = ?", [id]);
+  for (const { user_id } of notificationRecipients) emitNotificationReferenceRemovedToUser(user_id, "announcements", id);
   await pool.query("DELETE FROM announcements WHERE id = ?", [id]);
   emitNotificationReferenceRemoved("announcements", id);
 
   await auditService.log({
-    user_id: existing.created_by,
+    user_id: actorId,
     action: "DELETE_ARCHIVED_ANNOUNCEMENT",
     module: "announcements",
     record_id: id,
@@ -465,7 +689,7 @@ const destroyArchived = async (id) => {
 
 // Re-issue an announcement notification only to residents who originally
 // received it and still have no announcement read receipt.
-const resendToUnread = async (id) => {
+const resendToUnread = async (id, actorId) => {
   const announcement = await getById(id);
 
   if (announcement.status !== "ACTIVE") {
@@ -488,8 +712,12 @@ const resendToUnread = async (id) => {
     [id],
   );
 
+  const enabledUserIds = await filterNotificationEnabledUserIds(
+    recipients.map((recipient) => recipient.user_id),
+    "ANNOUNCEMENT",
+  );
   const result = await sendToMany({
-    user_ids: recipients.map((recipient) => recipient.user_id),
+    user_ids: enabledUserIds,
     type: "ANNOUNCEMENT",
     title: announcement.title,
     body: announcement.body,
@@ -499,7 +727,7 @@ const resendToUnread = async (id) => {
   });
 
   await auditService.log({
-    user_id: announcement.created_by,
+    user_id: actorId,
     action: "RESEND_ANNOUNCEMENT_TO_UNREAD",
     module: "announcements",
     record_id: id,
@@ -535,6 +763,7 @@ const purgeArchivedAnnouncements = async () => {
     }).catch(() => {});
   }
 
+  if (expired.length) emitAdminDataChanged(["announcements", "dashboard", "analytics"]);
   return expired.length;
 };
 
@@ -543,22 +772,13 @@ const purgeArchivedAnnouncements = async () => {
 const markAsRead = async (announcementId, user) => {
   await getById(announcementId, user);
 
-  const [existing] = await pool.query(
-    "SELECT id FROM announcement_read_receipts WHERE announcement_id = ? AND user_id = ?",
-    [announcementId, user.id],
-  );
-
-  if (existing.length > 0) {
-    return { already_read: true };
-  }
-
-  await pool.query(
-    `INSERT INTO announcement_read_receipts (id, announcement_id, user_id)
+  const [result] = await pool.query(
+    `INSERT IGNORE INTO announcement_read_receipts (id, announcement_id, user_id)
      VALUES (?, ?, ?)`,
     [generateId(), announcementId, user.id],
   );
 
-  return { read: true };
+  return result.affectedRows === 0 ? { already_read: true } : { read: true };
 };
 
 // ─── Get Read Analytics (admin) ────────────────────────────

@@ -3,13 +3,26 @@ const controller = require("./drivers.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 
+const rateLimit = require("express-rate-limit");
+const messageLimiter = rateLimit({
+  windowMs: 60_000, limit: 20, keyGenerator: (req) => req.user.id,
+  standardHeaders: "draft-7", legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ success: false, message: "Too many messages. Please wait a minute.", requestId: req.requestId }),
+});
+router.get("/me/messages/conversation", authenticate, authorize("DRIVER"), controller.getWebConversation);
+router.post("/me/messages/conversation", authenticate, authorize("DRIVER"), messageLimiter, controller.sendWebMessage);
+router.get("/:id/messages/conversation", authenticate, authorize("ADMIN"), controller.getWebConversation);
+router.post("/:id/messages/conversation", authenticate, authorize("ADMIN"), messageLimiter, controller.sendWebMessage);
+
 // Driver self-routes (must come before /:id)
 router.get("/me", authenticate, authorize("DRIVER"), controller.getMe);
+router.post("/me/breakdowns", authenticate, authorize("DRIVER"), messageLimiter, controller.reportBreakdown);
 
 router.put(
   "/me/status",
   authenticate,
   authorize("DRIVER"),
+  messageLimiter,
   controller.updateMyStatus,
 );
 
@@ -39,6 +52,7 @@ router.post(
   "/messages",
   authenticate,
   authorize("ADMIN"),
+  messageLimiter,
   controller.sendMessageToDriver,
 );
 
@@ -55,6 +69,13 @@ router.get(
   authenticate,
   authorize("ADMIN"),
   controller.getActivityLog,
+);
+
+router.post(
+  "/:id/reset-password",
+  authenticate,
+  authorize("ADMIN"),
+  controller.resetPassword,
 );
 
 router.get(
@@ -90,6 +111,13 @@ router.put(
   authenticate,
   authorize("ADMIN"),
   controller.assignTruck,
+);
+
+router.put(
+  "/:id/account-status",
+  authenticate,
+  authorize("ADMIN"),
+  controller.setAccountStatus,
 );
 
 router.delete(

@@ -1,7 +1,8 @@
 import React from "react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
-import { reportsPerWeek, reportStatusBreakdown, resolutionTimeMonthly, violationTypes, reportsByBarangay } from "./mockData";
+import { useAnalyticsData } from "./AnalyticsDataContext";
+import { reportStatusColors } from "./analytics.types";
 import { AlertTriangle, Clock, PieChart as PieIcon, TrendingUp, MapPin } from "lucide-react";
 
 const lineConfig = { reports: { label: "Reports", color: "hsl(210, 60%, 50%)" } };
@@ -15,7 +16,8 @@ const pieConfig = {
 };
 
 const SectionWasteReports: React.FC = () => {
-  const maxViolation = violationTypes[0].count;
+  const { reportsPerWeek, reportStatusBreakdown, resolutionTimeMonthly, violationTypes, reportsByBarangay } = useAnalyticsData();
+  const maxViolation = violationTypes[0]?.count || 1;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -36,7 +38,7 @@ const SectionWasteReports: React.FC = () => {
           <ChartContainer config={lineConfig} className="h-[220px] w-full aspect-auto">
             <LineChart data={reportsPerWeek}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="week" fontSize={10} tickLine={false} axisLine={false} />
+              <XAxis dataKey="period" fontSize={10} tickLine={false} axisLine={false} />
               <YAxis fontSize={10} tickLine={false} axisLine={false} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Line
@@ -79,7 +81,7 @@ const SectionWasteReports: React.FC = () => {
                 stroke="hsl(var(--card))"
               >
                 {reportStatusBreakdown.map((e) => (
-                  <Cell key={e.name} fill={e.fill} />
+                  <Cell key={e.name} fill={reportStatusColors[e.name]} />
                 ))}
               </Pie>
             </PieChart>
@@ -87,7 +89,7 @@ const SectionWasteReports: React.FC = () => {
           <div className="flex flex-wrap justify-center gap-3 pt-1 border-t border-border/60">
             {reportStatusBreakdown.map((d) => (
               <div key={d.name} className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: reportStatusColors[d.name] }} />
                 <span>{d.name}</span>
                 <span className="font-bold text-foreground">({d.value})</span>
               </div>
@@ -105,8 +107,8 @@ const SectionWasteReports: React.FC = () => {
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Avg Resolution Time (Days)</h3>
-              <p className="text-xs text-muted-foreground">Monthly speed of incident dispatch and cleanup</p>
+              <h3 className="text-sm font-bold text-foreground">Average resolution time</h3>
+              <p className="text-xs text-muted-foreground">Time from report submission to resolution</p>
             </div>
           </div>
 
@@ -128,8 +130,8 @@ const SectionWasteReports: React.FC = () => {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Most Common Violation Types</h3>
-              <p className="text-xs text-muted-foreground">Highest frequency citizen reported infractions</p>
+              <h3 className="text-sm font-bold text-foreground">Report categories</h3>
+              <p className="text-xs text-muted-foreground">Most common issues submitted by residents</p>
             </div>
           </div>
 
@@ -153,6 +155,7 @@ const SectionWasteReports: React.FC = () => {
                 </div>
               </div>
             ))}
+            {violationTypes.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No resident reports were submitted in this period.</p>}
           </div>
         </div>
       </div>
@@ -164,8 +167,8 @@ const SectionWasteReports: React.FC = () => {
             <MapPin className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">Reports by Barangay (Top Hotspots)</h3>
-            <p className="text-xs text-muted-foreground">Geographic distribution of waste reports across sectors</p>
+            <h3 className="text-sm font-bold text-foreground">Reports by barangay</h3>
+            <p className="text-xs text-muted-foreground">Barangays with the highest report volume in this period</p>
           </div>
         </div>
 

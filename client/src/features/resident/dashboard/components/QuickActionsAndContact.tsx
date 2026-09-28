@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, Mail, MapPin, Clock, ExternalLink, ClipboardList } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 
 const QuickActionsAndContact = () => {
   const navigate = useNavigate();
@@ -11,10 +12,10 @@ const QuickActionsAndContact = () => {
       <div>
         <CardHeader className="pb-2 px-4 lg:px-6">
           <CardTitle className="text-sm font-bold text-foreground font-display">
-            MENRO Candelaria Office
+            {MUNICIPAL_CONTACT.officeName}
           </CardTitle>
           <p className="text-[11px] text-muted-foreground">
-            Municipal Environment & Natural Resources
+            {MUNICIPAL_CONTACT.departmentName}
           </p>
         </CardHeader>
         <CardContent className="px-4 lg:px-6 pb-3 space-y-2.5">
@@ -23,8 +24,8 @@ const QuickActionsAndContact = () => {
               <Phone className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Hotline</p>
-                <a href="tel:0421234567" className="font-semibold text-foreground hover:text-primary transition-colors">
-                  (042) 123-4567
+                <a href={MUNICIPAL_CONTACT.hotlineHref} className="font-semibold text-foreground hover:text-primary transition-colors">
+                  {MUNICIPAL_CONTACT.hotline}
                 </a>
               </div>
             </div>
@@ -33,8 +34,8 @@ const QuickActionsAndContact = () => {
               <Mail className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Email Support</p>
-                <a href="mailto:menro@candelaria.gov.ph" className="font-semibold text-foreground hover:text-primary transition-colors">
-                  menro@candelaria.gov.ph
+                <a href={MUNICIPAL_CONTACT.emailHref} className="font-semibold text-foreground hover:text-primary transition-colors">
+                  {MUNICIPAL_CONTACT.email}
                 </a>
               </div>
             </div>
@@ -43,7 +44,7 @@ const QuickActionsAndContact = () => {
               <Clock className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Office Hours</p>
-                <p className="font-semibold text-foreground">Mon - Fri: 8:00 AM - 5:00 PM</p>
+                <p className="font-semibold text-foreground">{MUNICIPAL_CONTACT.hours}</p>
               </div>
             </div>
 
@@ -51,7 +52,7 @@ const QuickActionsAndContact = () => {
               <MapPin className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Location</p>
-                <p className="font-semibold text-foreground">Ground Floor, Candelaria Municipal Hall</p>
+                <p className="font-semibold text-foreground">{MUNICIPAL_CONTACT.address}</p>
               </div>
             </div>
           </div>

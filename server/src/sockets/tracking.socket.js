@@ -1,109 +1,73 @@
 const service = require("../modules/tracking/tracking.service");
 const { authenticateSocketUser } = require("./socketAuth");
-
+const { emitAdminDataChanged } = require("./adminChanges.socket");
 const TRACKING_ROOM = "tracking:live";
-const ALLOWED_TRACKING_ROLES = new Set(["ADMIN", "RESIDENT", "DRIVER"]);
-
-// Reasons that are normal browser/client behavior — no need to log
-const SILENT_DISCONNECT_REASONS = new Set([
-  "transport close",        // Browser closed the tab or reloaded
-  "client namespace disconnect", // Client called socket.disconnect()
-  "ping timeout",           // Temporary network drop, client will reconnect
-]);
-
+const ROLES = new Set(["ADMIN", "RESIDENT", "DRIVER"]);
+const pending = new WeakMap();
+const deliver = async (socket, event, snapshots) => {
+  const user = await authenticateSocketUser(socket, ROLES);
+  if (!user) {
+    await socket.leave(TRACKING_ROOM);
+    socket.emit("live:error", { code: "UNAUTHORIZED", message: "Please sign in again." });
+    return;
+  }
+  if (event === "routes:update") { socket.emit(event, {}); return; }
+  const key = user.role === "ADMIN" ? "ADMIN"
+    : user.role === "RESIDENT" ? ["RESIDENT", user.barangay_id, user.street_id].join(":")
+    : ["DRIVER", user.id, user.assigned_truck_id].join(":");
+  if (!snapshots.has(key)) snapshots.set(key, service.getLive(user));
+  const snapshot = await snapshots.get(key);
+  if (socket.rooms.has(TRACKING_ROOM)) socket.emit(event, snapshot);
+};
 const registerTrackingSocket = (io) => {
   io.on("connection", (socket) => {
-    // ── Join live tracking room ──────────────────────────────────────────────
+    let joining = false;
+    let lastJoin = 0;
     socket.on("tracking:join", async () => {
+      if (joining || Date.now() - lastJoin < 1000) return;
+      joining = true;
+      lastJoin = Date.now();
       try {
-        const user = await authenticateSocketUser(socket, ALLOWED_TRACKING_ROLES);
-        if (!user) {
-          socket.emit("live:error", {
-            code: "UNAUTHORIZED",
-            message: "Authentication is required for live tracking.",
-          });
-          return;
+        await socket.join(TRACKING_ROOM);
+        await deliver(socket, "live:snapshot", new Map());
+      } catch {
+        socket.emit("live:error", { message: "Tracking data is temporarily unavailable." });
+      } finally { joining = false; }
+    });
+    socket.on("tracking:leave", () => socket.leave(TRACKING_ROOM));
+  });
+};
+// Coalesce ping bursts and share snapshots only between equal authorization scopes.
+const schedule = (io, event) => {
+  if (!io) return;
+  let state = pending.get(io);
+  if (state) { state.events.add(event); return; }
+  state = { events: new Set([event]) };
+  pending.set(io, state);
+  const flush = async () => {
+    const events = [...state.events];
+    state.events.clear();
+    try {
+      const sockets = await io.in(TRACKING_ROOM).fetchSockets();
+      const snapshots = new Map();
+      for (const socket of sockets) {
+        for (const next of events) {
+          try { await deliver(socket, next, snapshots); }
+          catch { socket.emit("live:error", { message: "Tracking data is temporarily unavailable." }); }
         }
-
-        socket.join(TRACKING_ROOM);
-        const snapshot = await service.getLive();
-        socket.emit("live:snapshot", snapshot);
-      } catch (err) {
-        console.error(
-          `[Socket:Tracking] ❌ Failed to send snapshot to ${socket.id}:`,
-          err.message,
-        );
-        socket.emit("live:error", {
-          message: "Failed to load live tracking data. Please try again.",
-        });
       }
-    });
-
-    // ── Leave live tracking room ─────────────────────────────────────────────
-    socket.on("tracking:leave", () => {
-      try {
-        socket.leave(TRACKING_ROOM);
-      } catch (err) {
-        console.error(
-          `[Socket:Tracking] ❌ Failed to leave room for ${socket.id}:`,
-          err.message,
-        );
-      }
-    });
-
-    // ── Disconnect — only log unexpected reasons ─────────────────────────────
-    socket.on("disconnect", (reason) => {
-      if (!SILENT_DISCONNECT_REASONS.has(reason)) {
-        console.warn(
-          `[Socket:Tracking] ⚠️ Unexpected disconnect (${socket.id}): ${reason}`,
-        );
-      }
-    });
-
-    // ── Catch-all for uncaught socket errors ─────────────────────────────────
-    socket.on("error", (err) => {
-      console.error(
-        `[Socket:Tracking] ❌ Socket error on ${socket.id}:`,
-        err.message,
-      );
-    });
-  });
-
-  // ── Global IO error handler ──────────────────────────────────────────────
-  io.on("error", (err) => {
-    console.error("[Socket:Tracking] ❌ IO server error:", err.message);
-  });
+    } catch (error) {
+      console.error("[Tracking] Broadcast failed:", error.message);
+    } finally {
+      if (state.events.size) setTimeout(flush, 1000);
+      else pending.delete(io);
+    }
+  };
+  setTimeout(flush, 250);
 };
-
-// ── Broadcast live truck positions to all tracking room subscribers ──────────
-const broadcastLiveUpdate = async (io) => {
-  try {
-    if (!io) return;
-    const live = await service.getLive();
-    io.to(TRACKING_ROOM).emit("live:update", live);
-  } catch (err) {
-    console.error(
-      "[Socket:Tracking] ❌ Failed to broadcast live update:",
-      err.message,
-    );
-  }
+const broadcastLiveUpdate = (io) => schedule(io, "live:update");
+const broadcastRouteUpdate = (io) => {
+  schedule(io, "routes:update");
+  emitAdminDataChanged(["routes", "tracking", "drivers", "trucks", "schedule", "dashboard", "analytics"]);
 };
-
-// ── Broadcast a route change event (driver login/logout, route update) ───────
-const broadcastRouteUpdate = (io, payload = {}) => {
-  try {
-    if (!io) return;
-    io.to(TRACKING_ROOM).emit("routes:update", payload);
-  } catch (err) {
-    console.error(
-      "[Socket:Tracking] ❌ Failed to broadcast route update:",
-      err.message,
-    );
-  }
-};
-
-module.exports = {
-  registerTrackingSocket,
-  broadcastLiveUpdate,
-  broadcastRouteUpdate,
-};
+module.exports = { registerTrackingSocket, broadcastLiveUpdate, broadcastRouteUpdate };

@@ -68,25 +68,6 @@ export const isAnnouncementExpired = (expiryDate?: string | null): boolean => {
   return !Number.isNaN(expiryTime) && expiryTime <= Date.now();
 };
 
-export const BARANGAYS = [
-  "Bukal Norte", "Bukal Sur", "Kinatihan I", "Kinatihan II", "Malabanban Norte",
-  "Malabanban Sur", "Mangilag Norte", "Mangilag Sur", "Masalukot I", "Masalukot II",
-  "Masalukot III", "Masalukot IV", "Masalukot V", "Mayabobo", "Pahinga Norte",
-  "Pahinga Sur", "San Andres", "San Isidro", "Santa Catalina Norte", "Santa Catalina Sur",
-  "Sapa", "Taguan", "Poblacion", "Bucal", "Buenavista",
-  "Cigaras", "Ibabang Dupay", "Ilayang Dupay", "Isabang", "Masin",
-  "Mataas na Lupa", "Pansol", "Rizal", "San Miguel", "Santa Cruz",
-  "Santo Angel Central", "Santo Angel Norte", "Santo Angel Sur", "San Jose",
-  "San Juan", "San Pablo Norte", "San Pablo Sur", "San Roque",
-  "Bagong Silang", "Batis", "Camflora", "Candelaria", "Conception",
-  "Consolacion", "Del Remedio", "Langgam", "Liputan", "Mabini",
-  "Magsaysay", "Malabag", "Maligaya", "Manggahan", "Pag-asa",
-  "San Antonio", "San Bartolome", "San Carlos", "San Francisco",
-  "San Nicolas", "Santiago", "Villa Esperanza",
-];
-
-export const ITEMS_PER_PAGE = 6;
-
 export const announcementTypeStyles: Record<AnnouncementType, string> = {
   "Schedule Change":
     "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",

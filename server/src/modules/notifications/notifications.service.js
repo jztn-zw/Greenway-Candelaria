@@ -31,12 +31,15 @@ const getPreferenceColumn = (type) => {
   return preferenceColumns[type] || null;
 };
 
-const isNotificationEnabledForUser = async (userId, type) => {
+const isNotificationEnabledForUser = async (userId, type, db = pool) => {
   const preferenceColumn = getPreferenceColumn(type);
   if (!preferenceColumn) return true;
 
-  const [rows] = await pool.query(
-    `SELECT u.role, COALESCE(s.${preferenceColumn}, TRUE) AS enabled
+  const [rows] = await db.query(
+    `SELECT
+       u.role,
+       COALESCE(s.${preferenceColumn}, TRUE) AS enabled,
+       COALESCE(s.reminder_on, TRUE) AS reminder_on
        FROM users u
        LEFT JOIN user_settings s ON s.user_id = u.id
       WHERE u.id = ?`,
@@ -45,7 +48,10 @@ const isNotificationEnabledForUser = async (userId, type) => {
 
   // Notification preferences apply to the resident web portal only. Accounts
   // without a settings record preserve the existing default-enabled behavior.
-  return rows.length === 0 || rows[0].role !== "RESIDENT" || Boolean(rows[0].enabled);
+  return rows.length === 0 || rows[0].role !== "RESIDENT" || (
+    Boolean(rows[0].enabled) &&
+    (type !== "COLLECTION_REMINDER" || Boolean(rows[0].reminder_on))
+  );
 };
 
 // ─── Single User Notification ──────────────────────────────
@@ -98,12 +104,14 @@ const sendToMany = async ({
   ref_id = null,
   ref_module = null,
   metadata = null,
+  db = pool,
+  emit = true,
 }) => {
-  if (!user_ids || user_ids.length === 0) return { sent: 0, ids: [] };
+  if (!user_ids || user_ids.length === 0) return { sent: 0, ids: [], notifications: [] };
 
   // Filter unique valid user IDs
   const uniqueUserIds = [...new Set(user_ids.filter(Boolean))];
-  if (uniqueUserIds.length === 0) return { sent: 0, ids: [] };
+  if (uniqueUserIds.length === 0) return { sent: 0, ids: [], notifications: [] };
 
   const ids = [];
   const rows = [];
@@ -122,7 +130,7 @@ const sendToMany = async ({
   const CHUNK_SIZE = 500;
   for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
     const chunk = rows.slice(i, i + CHUNK_SIZE);
-    await pool.query(
+    await db.query(
       `INSERT INTO notifications
           (id, user_id, type, title, body, ref_id, ref_module, metadata, is_read, created_at)
        VALUES ?`,
@@ -130,12 +138,8 @@ const sendToMany = async ({
     );
   }
 
-  // Emit socket events to each user
-  for (let i = 0; i < uniqueUserIds.length; i++) {
-    const uid = uniqueUserIds[i];
-    const notifId = ids[i];
-    emitNotificationToUser(uid, {
-      id: notifId,
+  const notifications = uniqueUserIds.map((uid, index) => ({
+      id: ids[index],
       user_id: uid,
       type,
       title,
@@ -145,57 +149,109 @@ const sendToMany = async ({
       metadata,
       is_read: 0,
       created_at: now.toISOString(),
-    });
-  }
+  }));
 
-  return { sent: ids.length, ids };
+  if (emit) emitStoredNotifications(notifications);
+
+  return { sent: ids.length, ids, notifications };
+};
+
+const emitStoredNotifications = (notifications = []) => {
+  notifications.forEach((notification) => {
+    emitNotificationToUser(notification.user_id, notification);
+  });
 };
 
 // ─── Notify All Active Residents ───────────────────────────
 
-const notifyAllResidents = async ({ type, title, body, ref_id, ref_module, metadata = null }) => {
-  const preferenceColumn = getPreferenceColumn(type);
-  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
-  const [residents] = await pool.query(
-    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
-  );
-  const userIds = residents.map((r) => r.id);
-  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata });
-};
-
-// ─── Notify Barangay Residents ─────────────────────────────
-
-const notifyBarangayResidents = async ({
-  barangay_id,
+const notifyAllResidents = async ({
   type,
   title,
   body,
   ref_id,
   ref_module,
   metadata = null,
+  db = pool,
+  emit = true,
 }) => {
   const preferenceColumn = getPreferenceColumn(type);
-  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE` : "";
-  const [residents] = await pool.query(
-    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ? AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
-    [barangay_id],
+  const preferenceFilter = preferenceColumn
+    ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE${type === "COLLECTION_REMINDER" ? " AND COALESCE(s.reminder_on, TRUE) = TRUE" : ""}`
+    : "";
+  const [residents] = await db.query(
+    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
   );
   const userIds = residents.map((r) => r.id);
-  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata });
+  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata, db, emit });
+};
+
+// ─── Notify Barangay Residents ─────────────────────────────
+
+const notifyBarangayResidents = async ({
+  barangay_id,
+  street_id = null,
+  type,
+  title,
+  body,
+  ref_id,
+  ref_module,
+  metadata = null,
+  db = pool,
+  emit = true,
+}) => {
+  const preferenceColumn = getPreferenceColumn(type);
+  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE${type === "COLLECTION_REMINDER" ? " AND COALESCE(s.reminder_on, TRUE) = TRUE" : ""}` : "";
+  const streetFilter = street_id ? " AND u.street_id = ?" : "";
+  const params = street_id ? [barangay_id, street_id] : [barangay_id];
+  const [residents] = await db.query(
+    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ?${streetFilter} AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
+    params,
+  );
+  const userIds = residents.map((r) => r.id);
+  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata, db, emit });
+};
+
+const filterNotificationEnabledUserIds = async (userIds, type, db = pool) => {
+  const uniqueUserIds = [...new Set((userIds || []).filter(Boolean))];
+  if (uniqueUserIds.length === 0) return [];
+  const preferenceColumn = getPreferenceColumn(type);
+  if (!preferenceColumn) return uniqueUserIds;
+
+  const [rows] = await db.query(
+    `SELECT u.id
+     FROM users u
+     LEFT JOIN user_settings s ON s.user_id = u.id
+     WHERE u.id IN (?)
+       AND u.status = 'ACTIVE'
+       AND u.deleted_at IS NULL
+       AND (u.role <> 'RESIDENT' OR COALESCE(s.${preferenceColumn}, TRUE) = TRUE)`,
+    [uniqueUserIds],
+  );
+  return rows.map((row) => row.id);
 };
 
 // ─── Notify All Admins ─────────────────────────────────────
 
-const notifyAdmins = async ({ type, title, body, ref_id, ref_module }) => {
-  const [admins] = await pool.query(
-    "SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' AND deleted_at IS NULL",
-  );
-  const userIds = admins.map((a) => a.id);
-  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module });
+const adminPreferenceByCategory = {
+  reports: "notif_admin_reports",
+  route_issues: "notif_admin_route_issues",
+  driver_messages: "notif_admin_driver_messages",
 };
 
-// Keep notification history in the database, but do not show an announcement
-// notification after its linked announcement has expired or been archived.
+const notifyAdmins = async ({ type, title, body, ref_id, ref_module, category, metadata = null, db = pool, emit = true }) => {
+  const preferenceColumn = adminPreferenceByCategory[category];
+  const [admins] = await db.query(
+    `SELECT u.id FROM users u
+     LEFT JOIN user_settings s ON s.user_id = u.id
+     WHERE u.role = 'ADMIN' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
+       ${preferenceColumn ? `AND COALESCE(s.${preferenceColumn}, 1) = 1` : ""}`,
+  );
+  const userIds = admins.map((a) => a.id);
+  return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata, db, emit });
+};
+
+// Keep notification history in the database, but only expose it while its
+// linked announcement is currently available to the requesting resident.
 const excludeExpiredAnnouncementNotifications = `
   AND NOT (
     n.ref_module = 'announcements'
@@ -204,8 +260,18 @@ const excludeExpiredAnnouncementNotifications = `
       FROM announcements a
       WHERE a.id = n.ref_id
         AND (
-          a.status = 'ARCHIVED'
+          a.status <> 'ACTIVE'
           OR (a.expires_at IS NOT NULL AND a.expires_at <= NOW())
+          OR NOT (
+            a.target_all = TRUE
+            OR EXISTS (
+              SELECT 1
+              FROM announcement_barangays ab
+              JOIN users notification_user ON notification_user.id = n.user_id
+              WHERE ab.announcement_id = a.id
+                AND ab.barangay_id = notification_user.barangay_id
+            )
+          )
         )
     )
   )
@@ -240,8 +306,27 @@ const getMyNotifications = async (userId, filters = {}) => {
     countParams.push(isRead);
   }
 
+  if (filters.category && filters.category !== "all") {
+    const categories = {
+      routes: " AND n.ref_module IN ('routes', 'tracking')",
+      announcements: " AND (COALESCE(n.ref_module, '') NOT IN ('routes', 'tracking')) AND (n.ref_module = 'announcements' OR n.type = 'ANNOUNCEMENT')",
+      dispatch: " AND COALESCE(n.ref_module, '') NOT IN ('routes', 'tracking', 'announcements') AND n.type <> 'ANNOUNCEMENT'",
+    };
+    if (!categories[filters.category]) throw { statusCode: 400, message: "Invalid notification category" };
+    filterQuery += categories[filters.category];
+  }
   query += filterQuery;
-  query += " ORDER BY created_at DESC";
+  if (filters.cursor) {
+    let cursor;
+    try { cursor = JSON.parse(Buffer.from(String(filters.cursor), "base64url").toString()); } catch { /* validated below */ }
+    if (!cursor || typeof cursor.id !== "string" || !cursor.id || typeof cursor.date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/.test(cursor.date)) {
+      throw { statusCode: 400, message: "Invalid notification cursor" };
+    }
+    query += " AND (n.created_at < ? OR (n.created_at = ? AND n.id < ?))";
+    params.push(cursor.date, cursor.date, cursor.id);
+  }
+  query += " ORDER BY n.created_at DESC, n.id DESC";
 
   const requestedLimit = Number.parseInt(filters.limit, 10);
   const requestedOffset = Number.parseInt(filters.offset, 10);
@@ -252,7 +337,7 @@ const getMyNotifications = async (userId, filters = {}) => {
     ? Math.max(0, requestedOffset)
     : 0;
   query += " LIMIT ? OFFSET ?";
-  params.push(limit, offset);
+  params.push(filters.category !== undefined ? limit + 1 : limit, offset);
 
   const [rows] = await pool.query(query, params);
 
@@ -265,8 +350,15 @@ const getMyNotifications = async (userId, filters = {}) => {
     countParams,
   );
 
+  const paged = filters.category !== undefined;
+  const notifications = paged ? rows.slice(0, limit) : rows;
+  const last = notifications.at(-1);
+  const date = last?.created_at instanceof Date
+    ? last.created_at.toISOString().replace("T", " ").replace("Z", "") : String(last?.created_at ?? "");
   return {
-    notifications: rows,
+    notifications,
+    ...(paged ? { next_cursor: rows.length > limit && last
+      ? Buffer.from(JSON.stringify({ date, id: last.id })).toString("base64url") : null } : {}),
     total: countResult[0].total,
     limit,
     offset,
@@ -349,6 +441,8 @@ module.exports = {
   notifyAllResidents,
   notifyBarangayResidents,
   notifyAdmins,
+  emitStoredNotifications,
+  filterNotificationEnabledUserIds,
   getMyNotifications,
   getUnreadCount,
   markAsRead,

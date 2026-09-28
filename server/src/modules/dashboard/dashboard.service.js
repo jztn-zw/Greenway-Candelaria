@@ -4,52 +4,86 @@ const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
 
 const toNumber = (value) => Number(value || 0);
 
-const getToday = () =>
-  new Date()
-    .toLocaleDateString("en-US", {
-      weekday: "long",
-      timeZone: APP_TIME_ZONE,
-    })
-    .toUpperCase();
+const getTodayDate = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type) => parts.find((part) => part.type === type)?.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
 
-const groupRoutes = (rows) => {
-  const routes = new Map();
+const RUN_STATUS_PRIORITY = ["ACTIVE", "PAUSED", "SCHEDULED", "PARTIAL", "COMPLETED", "CANCELLED"];
 
-  for (const row of rows) {
-    if (!routes.has(row.id)) {
-      routes.set(row.id, {
-        id: row.id,
-        day_of_week: row.day_of_week,
-        truck_id: row.truck_id,
-        truck_name: row.truck_name,
-        truck_plate: row.truck_plate,
-        driver_name: row.driver_name ?? null,
-        start_time: row.start_time,
-        status: row.status,
-        name: row.name ?? null,
-        waste_type: row.waste_type ?? null,
-        stops: [],
-      });
+const summarizeTodayOperations = (truckRows, runStopRows) => {
+  const trucks = truckRows.map((truck) => ({
+    ...truck, current_route: null, run_status: null, completed_stops: 0, total_stops: 0,
+  }));
+  const trucksById = new Map(trucks.map((truck) => [truck.id, truck]));
+  const runsById = new Map();
+  const barangaysById = new Map();
+
+  for (const row of runStopRows) {
+    let run = runsById.get(row.run_id);
+    if (!run) {
+      run = { truck_id: row.truck_id, name: row.route_name,
+        status: row.run_status, driver_name: row.driver_name, total: 0, completed: 0 };
+      runsById.set(row.run_id, run);
     }
+    if (!row.stop_id || row.run_status === "CANCELLED") continue;
+    run.total += 1;
+    if (row.stop_status === "DONE") run.completed += 1;
 
-    if (row.stop_id) {
-      routes.get(row.id).stops.push({
-        id: row.stop_id,
-        barangay_id: row.barangay_id,
-        barangay_name: row.barangay_name,
-        stop_order: toNumber(row.stop_order),
-        status: row.stop_status || "NOT_STARTED",
-      });
+    let barangay = barangaysById.get(row.barangay_id);
+    if (!barangay) {
+      barangay = { id: row.barangay_id, name: row.barangay_name || "Barangay unavailable",
+        truckNames: new Set(), total: 0, done: 0, missed: 0, inProgress: 0 };
+      barangaysById.set(row.barangay_id, barangay);
     }
+    const truckName = trucksById.get(row.truck_id)?.name;
+    if (truckName) barangay.truckNames.add(truckName);
+    barangay.total += 1;
+    if (row.stop_status === "DONE") barangay.done += 1;
+    if (row.stop_status === "MISSED") barangay.missed += 1;
+    if (row.stop_status === "IN_PROGRESS") barangay.inProgress += 1;
   }
 
-  return Array.from(routes.values());
+  const runsByTruck = new Map();
+  for (const run of runsById.values()) {
+    const truck = trucksById.get(run.truck_id);
+    if (!truck) continue;
+    if (!runsByTruck.has(run.truck_id)) runsByTruck.set(run.truck_id, []);
+    runsByTruck.get(run.truck_id).push(run);
+    truck.total_stops += run.total;
+    truck.completed_stops += run.completed;
+  }
+  for (const truck of trucks) {
+    const runs = runsByTruck.get(truck.id) || [];
+    truck.run_status = RUN_STATUS_PRIORITY.find((status) => runs.some((run) => run.status === status)) || null;
+    truck.current_route = [...new Set(runs.filter((run) => run.status !== "CANCELLED")
+      .map((run) => run.name).filter(Boolean))].join(", ") || null;
+    truck.driver_name = [...new Set(runs.filter((run) => run.status !== "CANCELLED")
+      .map((run) => run.driver_name).filter(Boolean))].join(", ") || truck.driver_name;
+  }
+
+  const barangays = [...barangaysById.values()].map((barangay) => ({
+    id: barangay.id,
+    name: barangay.name,
+    truck_name: [...barangay.truckNames].sort().join(", "),
+    status: barangay.done === barangay.total ? "DONE"
+      : barangay.missed > 0 ? "MISSED"
+        : barangay.inProgress > 0 || barangay.done > 0 ? "IN_PROGRESS" : "NOT_STARTED",
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  return { trucks, barangays };
 };
 
 // This endpoint intentionally runs a small number of predictable queries in
 // sequence. It prevents one dashboard load from creating a burst of concurrent
 // work against a remote TiDB connection.
 const getAdminDashboard = async () => {
+  const todayDate = getTodayDate();
+  const [year, month] = todayDate.split("-").map(Number);
+  const firstMonth = new Date(Date.UTC(year, month - 6, 1)).toISOString().slice(0, 10);
   const [[overviewRow]] = await pool.query(`
     SELECT
       (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) AS users_total,
@@ -63,7 +97,7 @@ const getAdminDashboard = async () => {
           AND deleted_at IS NULL) AS reports_pending,
       (SELECT COUNT(*) FROM trucks) AS trucks_total,
       (SELECT COUNT(*) FROM trucks
-        WHERE status <> 'OFFLINE' AND availability_status = 'ACTIVE') AS trucks_active,
+        WHERE availability_status = 'ACTIVE') AS trucks_active,
       (SELECT COUNT(*) FROM posts
         WHERE deleted_at IS NULL AND status = 'PUBLISHED') AS posts_total,
       (SELECT COUNT(*) FROM announcements WHERE status = 'ACTIVE') AS announcements_total
@@ -89,29 +123,32 @@ const getAdminDashboard = async () => {
   `);
 
   const [reportTrendRows] = await pool.query(`
-    SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count
+    SELECT DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', ?), '%Y-%m') AS month, COUNT(*) AS count
     FROM reports
     WHERE deleted_at IS NULL
-      AND created_at >= DATE_FORMAT(
-        DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH),
-        '%Y-%m-01'
-      )
-    GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+      AND created_at >= CONVERT_TZ(?, ?, '+00:00')
+    GROUP BY month
     ORDER BY month ASC
+  `, [APP_TIME_ZONE, `${firstMonth} 00:00:00`, APP_TIME_ZONE]);
+
+  const [pendingReports] = await pool.query(`
+    SELECT r.id, r.reference_number, r.violation_type, r.created_at,
+      b.name AS barangay_name
+    FROM reports r LEFT JOIN barangays b ON b.id = r.barangay_id
+    WHERE r.deleted_at IS NULL AND r.status = 'SUBMITTED'
+    ORDER BY r.created_at ASC, r.id ASC
+    LIMIT 100
   `);
 
   const [residentTrendRows] = await pool.query(`
-    SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count
+    SELECT DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', ?), '%Y-%m') AS month, COUNT(*) AS count
     FROM users
     WHERE role = 'RESIDENT'
       AND deleted_at IS NULL
-      AND created_at >= DATE_FORMAT(
-        DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH),
-        '%Y-%m-01'
-      )
-    GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+      AND created_at >= CONVERT_TZ(?, ?, '+00:00')
+    GROUP BY month
     ORDER BY month ASC
-  `);
+  `, [APP_TIME_ZONE, `${firstMonth} 00:00:00`, APP_TIME_ZONE]);
 
   const [recentReports] = await pool.query(`
     SELECT
@@ -127,7 +164,7 @@ const getAdminDashboard = async () => {
     JOIN barangays b ON b.id = r.barangay_id
     LEFT JOIN users u ON u.id = r.user_id
     WHERE r.deleted_at IS NULL
-    ORDER BY r.created_at DESC
+    ORDER BY r.created_at DESC, r.id DESC
     LIMIT 5
   `);
 
@@ -143,90 +180,51 @@ const getAdminDashboard = async () => {
       al.ip_address
     FROM audit_logs al
     LEFT JOIN users u ON u.id = al.user_id
-    ORDER BY al.created_at DESC
+    ORDER BY al.created_at DESC, al.id DESC
     LIMIT 8
   `);
 
-  const [trucks] = await pool.query(
-    `SELECT
-       t.id,
-       t.name,
-       t.plate_number,
-       t.status,
-       t.availability_status,
-       u.full_name AS driver_name,
-       COALESCE(r.name, CONCAT('Route for ', r.day_of_week)) AS current_route,
-       COALESCE(SUM(CASE WHEN rs.status = 'DONE' THEN 1 ELSE 0 END), 0) AS completed_barangays,
-       COUNT(rs.id) AS total_barangays
-     FROM trucks t
-     LEFT JOIN drivers d ON d.truck_id = t.id
-     LEFT JOIN users u ON u.id = d.user_id
-     LEFT JOIN routes r
-       ON r.truck_id = t.id
-      AND UPPER(r.day_of_week) = ?
-      AND r.status = 'ACTIVE'
-     LEFT JOIN route_stops rs ON rs.route_id = r.id
-     GROUP BY
-       t.id, t.name, t.plate_number, t.status, t.availability_status,
-       u.full_name, r.id, r.name, r.day_of_week
-     ORDER BY t.created_at ASC`,
-    [getToday()],
-  );
-
-  // These are the sectors actually assigned to an active route today.  Do not
-  // return the municipality's full barangay list here: the operations card
-  // reports today's collection coverage, not general municipality coverage.
-  const [barangays] = await pool.query(
-    `SELECT
-       b.id,
-       b.name,
-       NULL AS zone,
-       t.name AS truck_name,
-       CASE
-         WHEN SUM(rs.status = 'DONE') > 0 THEN 'DONE'
-         WHEN SUM(rs.status = 'IN_PROGRESS') > 0 THEN 'IN_PROGRESS'
-         WHEN SUM(rs.status = 'MISSED') > 0 THEN 'MISSED'
-         ELSE 'NOT_STARTED'
-       END AS status
-     FROM routes r
-     JOIN route_stops rs ON rs.route_id = r.id
-     JOIN barangays b ON b.id = rs.barangay_id
-     JOIN trucks t ON t.id = r.truck_id
-     WHERE UPPER(r.day_of_week) = ?
-       AND r.status = 'ACTIVE'
-     GROUP BY b.id, b.name, t.name
-     ORDER BY b.name ASC`,
-    [getToday()],
-  );
-
-  const [routeRows] = await pool.query(`
-    SELECT
-      r.id,
-      r.day_of_week,
-      r.truck_id,
-      t.name AS truck_name,
-      t.plate_number AS truck_plate,
-      u.full_name AS driver_name,
-      r.start_time,
-      r.status,
-      r.name,
-      r.waste_type,
-      rs.id AS stop_id,
-      rs.barangay_id,
-      b.name AS barangay_name,
-      rs.stop_order,
-      rs.status AS stop_status
-    FROM routes r
-    JOIN trucks t ON t.id = r.truck_id
-    LEFT JOIN drivers d ON d.id = r.driver_id
-    LEFT JOIN users u ON u.id = d.user_id
-    LEFT JOIN route_stops rs ON rs.route_id = r.id
-    LEFT JOIN barangays b ON b.id = rs.barangay_id
-    ORDER BY
-      FIELD(r.day_of_week, 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'),
-      r.start_time ASC,
-      rs.stop_order ASC
+  const [truckRows] = await pool.query(`
+    SELECT t.id, t.name, t.plate_number, t.availability_status,
+      (SELECT MIN(u.full_name) FROM drivers d JOIN users u ON u.id = d.user_id
+       WHERE d.truck_id = t.id AND u.deleted_at IS NULL AND u.status = 'ACTIVE') AS driver_name
+    FROM trucks t ORDER BY t.created_at ASC, t.id ASC
   `);
+  const [runStopRows] = await pool.query(`
+    SELECT rr.id AS run_id, rr.truck_id, rr.route_name, rr.status AS run_status,
+      u.full_name AS driver_name, rrs.id AS stop_id, rrs.barangay_id,
+      b.name AS barangay_name, rrs.status AS stop_status,
+      rrs.stop_name, rrs.completed_at
+    FROM route_runs rr
+    LEFT JOIN drivers d ON d.id = rr.driver_id
+    LEFT JOIN users u ON u.id = d.user_id
+    LEFT JOIN route_run_stops rrs ON rrs.route_run_id = rr.id
+    LEFT JOIN barangays b ON b.id = rrs.barangay_id
+    WHERE rr.run_date = ?
+    ORDER BY rr.scheduled_start_time ASC, rr.id ASC, rrs.stop_order ASC
+  `, [todayDate]);
+  const { trucks, barangays } = summarizeTodayOperations(truckRows, runStopRows);
+  const truckNames = new Map(truckRows.map((truck) => [truck.id, truck.name]));
+  const missedStops = runStopRows.filter((row) => row.run_status !== "CANCELLED" && row.stop_status === "MISSED");
+  const attentionItems = [
+    ...missedStops.map((stop) => ({
+      id: `stop:${stop.stop_id}`, kind: "missed_stop", target_id: stop.truck_id,
+      title: `${truckNames.get(stop.truck_id) || "Truck"} · ${stop.route_name || "Collection route"}`,
+      description: `Missed stop: ${stop.stop_name || stop.barangay_name || "Location unavailable"}`,
+      occurred_at: stop.completed_at,
+    })),
+    ...pendingReports.map((report) => ({
+      id: `report:${report.id}`, kind: "report", target_id: report.id,
+      title: `${report.reference_number || "Waste report"} · ${report.barangay_name || "Location unavailable"}`,
+      description: `${report.violation_type.replaceAll("_", " ").toLowerCase()} · Awaiting review`,
+      occurred_at: report.created_at,
+    })),
+    ...truckRows.filter((truck) => truck.availability_status === "UNDER_MAINTENANCE").map((truck) => ({
+      id: `truck:${truck.id}`, kind: "maintenance", target_id: truck.id,
+      title: `${truck.name} · ${truck.plate_number}`,
+      description: "Under maintenance", occurred_at: null,
+    })),
+  ];
 
   const reportsTotal = toNumber(overviewRow.reports_total);
   const reportsResolved = toNumber(overviewRow.reports_resolved);
@@ -236,6 +234,7 @@ const getAdminDashboard = async () => {
 
   return {
     overview: {
+      as_of_date: todayDate,
       users: {
         total: toNumber(overviewRow.users_total),
         residents: toNumber(overviewRow.residents),
@@ -272,13 +271,14 @@ const getAdminDashboard = async () => {
     attention: {
       awaiting_triage: toNumber(attentionRow.awaiting_triage),
       maintenance_trucks: toNumber(attentionRow.maintenance_trucks),
+      missed_stops: missedStops.length,
+      items: attentionItems,
     },
     recentReports,
     activityLogs,
     trucks,
     barangays,
-    routes: groupRoutes(routeRows),
   };
 };
 
-module.exports = { getAdminDashboard };
+module.exports = { getAdminDashboard, summarizeTodayOperations };

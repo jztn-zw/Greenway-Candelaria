@@ -1,34 +1,23 @@
 import React from "react";
-import { AuditLogEntry } from "./types";
 import { AuditLogKPIsData } from "@/services/auditService";
 import { cn } from "@/lib/utils";
 
 interface AuditLogKPIsProps {
-  logs: AuditLogEntry[];
-  kpiData?: AuditLogKPIsData;
+  kpiData: AuditLogKPIsData;
 }
 
-const AuditLogKPIs: React.FC<AuditLogKPIsProps> = ({ logs, kpiData }) => {
-  const totalActions = kpiData?.totalActions ?? logs.length;
-  const deletions =
-    kpiData?.deletions ??
-    logs.filter((l) => l.actionType.includes("DELETE") || l.actionType.includes("DEACTIVATE")).length;
-  const failedLogins =
-    kpiData?.failedLogins ??
-    logs.filter((l) => l.actionType.includes("FAILED_LOGIN") || l.actionType.includes("Failed")).length;
-  const modifications = logs.filter(
-    (l) => l.severity === "change" || l.actionType.includes("UPDATE") || l.actionType.includes("ASSIGN"),
-  ).length;
+const AuditLogKPIs: React.FC<AuditLogKPIsProps> = ({ kpiData }) => {
+  const { totalActions, deletions, failedLogins, modifications } = kpiData;
 
   const kpis = [
     {
       label: "Total Audited Events",
       value: totalActions,
-      description: "Tamper-evident logs",
+      description: "Recorded audit events",
       tag: "bg-muted/70 text-muted-foreground border-border/80",
     },
     {
-      label: "Critical & Deletions",
+      label: "Destructive Actions",
       value: deletions,
       description: deletions > 0 ? `${deletions} destructive actions` : "Zero deletions",
       tag: "bg-destructive/10 text-destructive border-destructive/20",

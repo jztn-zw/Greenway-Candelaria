@@ -33,7 +33,6 @@ interface DriverEditorModalProps {
     username?: string;
     password?: string;
     contactNumber: string;
-    licenseNumber: string;
     truckId: string | null;
   }) =>
     | Promise<{ username?: string; password?: string } | void>;
@@ -151,7 +150,7 @@ const DriverEditorModal = ({
     try {
       await onSave({
         fullName: formName.trim(), email: formEmail.trim() || undefined, username: formUsername.trim() || undefined,
-        password: formPassword, contactNumber: formContact.trim(), licenseNumber: "", truckId: formTruckId === "none" ? null : formTruckId,
+        password: formPassword, contactNumber: formContact.trim(), truckId: formTruckId === "none" ? null : formTruckId,
       });
       handleOpenChange(false);
     } catch (error) {
@@ -276,7 +275,7 @@ const DriverEditorModal = ({
                 )}
               </div>
 
-              {/* Row 3: Username & Temporary Password (Create Mode only) */}
+              {/* Row 3: Username & Password (Create Mode only) */}
               {!isEditing && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -295,7 +294,7 @@ const DriverEditorModal = ({
 
                   <div className="space-y-1.5">
                     <Label htmlFor="driver-password" className={cn("text-xs font-semibold", errors.password ? "text-destructive" : "text-foreground")}>
-                      Temporary Password
+                      Initial Password
                     </Label>
                     <Input
                       id="driver-password"

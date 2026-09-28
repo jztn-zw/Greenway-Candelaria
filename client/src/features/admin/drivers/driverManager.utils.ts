@@ -58,16 +58,12 @@ export const toAvailabilityStatus = (
 ): "ACTIVE" | "UNDER_MAINTENANCE" =>
   status === "Active" ? "ACTIVE" : "UNDER_MAINTENANCE";
 
-export const createTemporaryDriverPassword = () =>
-  `GW-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
 export const mapTruckRow = (row: TruckApiRow): TruckType => ({
   id: row.id,
   name: row.name,
   model: row.truck_model ?? "Unknown Model",
   plateNumber: row.plate_number,
   assignedDriverId: row.driver_id ?? null,
-  wasteType: row.waste_type ?? "Not assigned",
   status: toTruckStatus(row.availability_status ?? "ACTIVE"),
   liveStatus: (row.status as TruckType["liveStatus"]) ?? "OFFLINE",
   dateAdded: formatDriverDate(row.created_at),
@@ -80,7 +76,6 @@ export const mapDriverRow = (row: DriverApiRow): Driver => ({
   username: row.username,
   email: row.email,
   contactNumber: row.phone ?? "-",
-  licenseNumber: "-",
   truckId: row.truck_id ?? null,
   status: toDriverStatus(row.account_status),
   lastLogin: formatDriverDateTime(row.last_login),
@@ -93,9 +88,9 @@ export const mapDriverActivityRow = (
 ): Driver["activityLog"][number] => ({
   date: row.date,
   route: row.route,
-  barangaysCompleted: row.barangays_completed,
-  barangaysTotal: row.barangays_total,
+  status: row.status === "COMPLETED" ? "Completed" : "Partial",
+  completedStops: row.completed_stops,
+  totalStops: row.total_stops,
   startTime: row.start_time,
   endTime: row.end_time,
-  statusMessages: row.status_messages ?? [],
 });

@@ -1,8 +1,8 @@
 const { z } = require("zod");
 
 const createAnnouncementSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  body: z.string().min(1, "Body is required"),
+  title: z.string().trim().min(1, "Title is required").max(255, "Title must be 255 characters or fewer"),
+  body: z.string().trim().min(1, "Body is required").max(65535, "Body is too long"),
   type: z.enum([
     "GENERAL_NOTICE",
     "SCHEDULE_CHANGE",
@@ -53,8 +53,8 @@ const createAnnouncementSchema = z.object({
 });
 
 const updateAnnouncementSchema = z.object({
-  title: z.string().min(1).optional(),
-  body: z.string().min(1).optional(),
+  title: z.string().trim().min(1, "Title is required").max(255, "Title must be 255 characters or fewer").optional(),
+  body: z.string().trim().min(1, "Body is required").max(65535, "Body is too long").optional(),
   type: z
     .enum([
       "GENERAL_NOTICE",
@@ -72,6 +72,32 @@ const updateAnnouncementSchema = z.object({
   barangay_ids: z.array(z.string()).optional(),
   show_on_calendar: z.boolean().optional(),
   calendar_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.target_all === false && (!data.barangay_ids || data.barangay_ids.length === 0)) {
+    ctx.addIssue({ code: "custom", path: ["barangay_ids"], message: "Select at least one barangay" });
+  }
+  if (data.scheduled_at) {
+    const scheduledAt = new Date(data.scheduled_at);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Broadcast time is invalid" });
+    }
+  }
+  if (data.expires_at) {
+    const expiresAt = new Date(data.expires_at);
+    if (Number.isNaN(expiresAt.getTime())) {
+      ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry time is invalid" });
+    }
+  }
+  if (data.show_on_calendar === true && !data.calendar_date) {
+    ctx.addIssue({ code: "custom", path: ["calendar_date"], message: "Select the resident calendar date" });
+  }
+  if (
+    data.show_on_calendar === true &&
+    data.type &&
+    !["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"].includes(data.type)
+  ) {
+    ctx.addIssue({ code: "custom", path: ["show_on_calendar"], message: "Only event and schedule-related announcements can appear on the resident calendar" });
+  }
 });
 
 module.exports = {

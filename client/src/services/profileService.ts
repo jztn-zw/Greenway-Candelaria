@@ -12,6 +12,9 @@ export interface UserProfile {
   two_factor: boolean;
   barangay_id: string | null;
   barangay_name: string | null;
+  street_id: string | null;
+  street_name: string | null;
+  street_area: string | null;
   created_at: string;
   last_login_at: string | null;
 }
@@ -21,6 +24,7 @@ export interface UpdateProfilePayload {
   username?: string;
   phone?: string;
   barangay_id?: string;
+  street_id?: string | null;
   two_factor?: boolean;
 }
 
@@ -29,13 +33,8 @@ export interface ChangePasswordPayload {
   new_password: string;
 }
 
-export interface ReportStats {
-  total: number;
-  resolved: number;
-  pending: number;
-  under_review: number;
-  in_progress: number;
-}
+export { fetchMyReportStats } from './reportsService';
+export type { ReportStats } from './reportsService';
 
 export const fetchProfile = async (): Promise<UserProfile> => {
   const { data } = await api.get<{ data: UserProfile }>('/users/profile');
@@ -60,9 +59,4 @@ export const uploadAvatar = async (file: File): Promise<{ avatar_url: string; us
 
 export const changePassword = async (payload: ChangePasswordPayload): Promise<void> => {
   await api.put('/users/change-password', payload);
-};
-
-export const fetchMyReportStats = async (): Promise<ReportStats> => {
-  const { data } = await api.get<{ data: ReportStats }>('/reports/my/stats');
-  return data.data;
 };

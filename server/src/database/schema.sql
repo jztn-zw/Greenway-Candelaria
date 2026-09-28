@@ -121,11 +121,31 @@ CREATE TABLE `barangays` (
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
   `notes` text DEFAULT NULL,
+  `collection_service_available` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   UNIQUE KEY `name` (`name`),
   KEY `idx_barangays_coords` (`latitude`,`longitude`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `barangay_streets`
+--
+
+CREATE TABLE `barangay_streets` (
+  `id` varchar(36) NOT NULL,
+  `barangay_id` varchar(36) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `area` varchar(100) DEFAULT NULL,
+  `name_key` varchar(150) GENERATED ALWAYS AS (LOWER(TRIM(`name`))) VIRTUAL,
+  `area_key` varchar(100) GENERATED ALWAYS AS (LOWER(COALESCE(TRIM(`area`), ''))) VIRTUAL,
+  `coverage_path` json DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
+  UNIQUE KEY `uq_barangay_street_identity` (`barangay_id`,`name_key`,`area_key`),
+  CONSTRAINT `fk_barangay_streets_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
 -- Table structure for table `collection_schedule`
@@ -178,11 +198,13 @@ CREATE TABLE `driver_messages` (
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   KEY `fk_1` (`driver_id`),
   KEY `fk_2` (`sent_by`),
+  KEY `idx_driver_messages_conversation` (`driver_id`,`created_at`,`id`),
+  KEY `idx_driver_messages_unread` (`driver_id`,`is_read`,`sent_by`),
   KEY `idx_driver_messages_driver_route_created` (`driver_id`,`route_id`,`created_at`),
   KEY `fk_driver_messages_route` (`route_id`),
   CONSTRAINT `fk_1` FOREIGN KEY (`driver_id`) REFERENCES `drivers` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_2` FOREIGN KEY (`sent_by`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_driver_messages_route` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_driver_messages_run` FOREIGN KEY (`route_id`) REFERENCES `route_runs` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -201,6 +223,7 @@ CREATE TABLE `drivers` (
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   UNIQUE KEY `user_id` (`user_id`),
+  UNIQUE KEY `uq_drivers_truck` (`truck_id`),
   KEY `fk_driver_truck` (`truck_id`),
   CONSTRAINT `fk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_driver_truck` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE SET NULL
@@ -466,6 +489,7 @@ CREATE TABLE `route_stops` (
   `id` varchar(36) NOT NULL,
   `route_id` varchar(36) NOT NULL,
   `barangay_id` varchar(36) NOT NULL,
+  `street_id` varchar(36) DEFAULT NULL,
   `stop_order` int NOT NULL,
   `status` enum('NOT_STARTED','IN_PROGRESS','DONE','MISSED') DEFAULT 'NOT_STARTED',
   `completed_at` timestamp NULL DEFAULT NULL,
@@ -478,8 +502,10 @@ CREATE TABLE `route_stops` (
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   KEY `fk_1` (`route_id`),
   KEY `fk_2` (`barangay_id`),
+  KEY `idx_route_stops_street` (`street_id`),
   CONSTRAINT `fk_1` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_2` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_2` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_route_stops_street` FOREIGN KEY (`street_id`) REFERENCES `barangay_streets` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -508,6 +534,17 @@ CREATE TABLE `routes` (
   CONSTRAINT `fk_1` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_2` FOREIGN KEY (`driver_id`) REFERENCES `drivers` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE `route_collection_reminder_log` (
+  `id` varchar(36) NOT NULL,
+  `route_id` varchar(36) NOT NULL,
+  `collection_date` date NOT NULL,
+  `reminder_timing` int NOT NULL,
+  `sent_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_route_collection_reminder` (`route_id`,`collection_date`,`reminder_timing`),
+  CONSTRAINT `fk_route_collection_reminder_route` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -515,22 +552,32 @@ CREATE TABLE `routes` (
 --
 CREATE TABLE `route_runs` (
   `id` varchar(36) NOT NULL,
-  `route_id` varchar(36) NOT NULL,
+  `route_id` varchar(36) DEFAULT NULL,
   `run_date` date NOT NULL,
   `truck_id` varchar(36) NOT NULL,
   `driver_id` varchar(36) DEFAULT NULL,
   `route_name` varchar(100) DEFAULT NULL,
+  `truck_name_snapshot` varchar(255) DEFAULT NULL,
+  `truck_plate_snapshot` varchar(255) DEFAULT NULL,
   `waste_type` enum('Biodegradable','Non-Biodegradable') DEFAULT NULL,
   `scheduled_start_time` varchar(10) NOT NULL,
   `status` enum('SCHEDULED','ACTIVE','PAUSED','COMPLETED','PARTIAL','CANCELLED') NOT NULL DEFAULT 'SCHEDULED',
   `collection_started_at` datetime DEFAULT NULL,
   `ended_at` datetime DEFAULT NULL,
+  `paused_at` datetime(3) DEFAULT NULL,
+  `total_paused_seconds` int NOT NULL DEFAULT 0,
+  `gps_expected_since` datetime(3) DEFAULT NULL,
+  `gps_alert_at` datetime(3) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_route_runs_template_date` (`route_id`,`run_date`),
   KEY `idx_route_runs_date_status` (`run_date`,`status`),
-  CONSTRAINT `fk_route_runs_template` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE CASCADE
+  KEY `idx_route_runs_driver_date` (`driver_id`,`run_date`),
+  KEY `idx_route_runs_truck_date` (`truck_id`,`run_date`),
+  CONSTRAINT `fk_route_runs_template` FOREIGN KEY (`route_id`) REFERENCES `routes` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_route_runs_truck_restrict` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_route_runs_driver` FOREIGN KEY (`driver_id`) REFERENCES `drivers` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE `route_run_stops` (
@@ -538,10 +585,14 @@ CREATE TABLE `route_run_stops` (
   `route_run_id` varchar(36) NOT NULL,
   `template_stop_id` varchar(36) DEFAULT NULL,
   `barangay_id` varchar(36) NOT NULL,
+  `street_id` varchar(36) DEFAULT NULL,
+  `stop_name` varchar(180) DEFAULT NULL,
+  `coverage_path` json DEFAULT NULL,
   `stop_order` int NOT NULL,
   `status` enum('NOT_STARTED','IN_PROGRESS','DONE','MISSED') NOT NULL DEFAULT 'NOT_STARTED',
   `completed_at` datetime DEFAULT NULL,
   `notified_at` datetime DEFAULT NULL,
+  `target_notified_at` datetime DEFAULT NULL,
   `collection_done_notified_at` datetime DEFAULT NULL,
   `collection_skipped_notified_at` datetime DEFAULT NULL,
   `skipped_reason` varchar(255) DEFAULT NULL,
@@ -549,7 +600,9 @@ CREATE TABLE `route_run_stops` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_route_run_stops_run_order` (`route_run_id`,`stop_order`),
-  CONSTRAINT `fk_route_run_stops_run` FOREIGN KEY (`route_run_id`) REFERENCES `route_runs` (`id`) ON DELETE CASCADE
+  KEY `idx_route_run_stops_street` (`street_id`),
+  CONSTRAINT `fk_route_run_stops_run` FOREIGN KEY (`route_run_id`) REFERENCES `route_runs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_route_run_stops_street` FOREIGN KEY (`street_id`) REFERENCES `barangay_streets` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -624,10 +677,16 @@ CREATE TABLE `tracking_logs` (
   `latitude` decimal(10,8) NOT NULL,
   `longitude` decimal(11,8) NOT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `route_run_id` varchar(36) DEFAULT NULL,
+  `sample_id` varchar(36) DEFAULT NULL,
+  `captured_at` datetime(3) DEFAULT NULL,
+  UNIQUE KEY `uq_tracking_sample` (`sample_id`),
+  KEY `idx_tracking_capture` (`truck_id`,`captured_at`,`id`),
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   KEY `fk_1` (`truck_id`),
+  KEY `idx_tracking_logs_truck_latest` (`truck_id`,`created_at`,`id`),
   KEY `fk_2` (`driver_id`),
-  CONSTRAINT `fk_1` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_tracking_logs_truck_restrict` FOREIGN KEY (`truck_id`) REFERENCES `trucks` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_2` FOREIGN KEY (`driver_id`) REFERENCES `drivers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -654,6 +713,20 @@ CREATE TABLE `trucks` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+CREATE TABLE tracking_latest (
+  truck_id VARCHAR(36) NOT NULL PRIMARY KEY,
+  route_run_id VARCHAR(36) NOT NULL,
+  driver_id VARCHAR(36) NOT NULL,
+  sample_id VARCHAR(36) NOT NULL,
+  latitude DECIMAL(10,8) NOT NULL,
+  longitude DECIMAL(11,8) NOT NULL,
+  captured_at DATETIME(3) NOT NULL,
+  received_at DATETIME(3) NOT NULL,
+  KEY idx_tracking_latest_run (route_run_id),
+  CONSTRAINT fk_tracking_latest_truck FOREIGN KEY (truck_id) REFERENCES trucks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
 -- Table structure for table `user_settings`
 --
 
@@ -669,6 +742,9 @@ CREATE TABLE `user_settings` (
   `notif_report_updates` tinyint(1) DEFAULT '1',
   `notif_new_content` tinyint(1) DEFAULT '1',
   `notif_announcements` tinyint(1) DEFAULT '1',
+  `notif_admin_reports` tinyint(1) NOT NULL DEFAULT '1',
+  `notif_admin_route_issues` tinyint(1) NOT NULL DEFAULT '1',
+  `notif_admin_driver_messages` tinyint(1) NOT NULL DEFAULT '1',
   `primary_barangay_id` varchar(36) DEFAULT NULL,
   `reminder_on` tinyint(1) DEFAULT '1',
   `reminder_timing` enum('1h','3h','1d') DEFAULT '3h',
@@ -701,6 +777,7 @@ CREATE TABLE `users` (
   `status` enum('ACTIVE','DEACTIVATED','BANNED') DEFAULT 'ACTIVE',
   `avatar_url` varchar(500) DEFAULT NULL,
   `barangay_id` varchar(36) DEFAULT NULL,
+  `street_id` varchar(36) DEFAULT NULL,
   `two_factor` tinyint(1) DEFAULT '0',
   `ban_reason` varchar(255) DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
@@ -713,9 +790,27 @@ CREATE TABLE `users` (
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `uq_users_single_active_admin` (`single_active_admin`),
   KEY `fk_user_barangay` (`barangay_id`),
+  KEY `fk_user_street` (`street_id`),
+  CONSTRAINT `fk_user_street` FOREIGN KEY (`street_id`) REFERENCES `barangay_streets` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_user_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for driver route notification delivery
+--
+CREATE TABLE `driver_route_notification_log` (
+  `id` varchar(36) NOT NULL,
+  `driver_user_id` varchar(36) NOT NULL,
+  `collection_date` date NOT NULL,
+  `notification_kind` enum('DAILY_DIGEST','START_TIME') NOT NULL,
+  `scheduled_start_time` varchar(10) NOT NULL DEFAULT '',
+  `sent_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_driver_route_notification` (`driver_user_id`,`collection_date`,`notification_kind`,`scheduled_start_time`),
+  KEY `idx_driver_route_notification_date` (`collection_date`),
+  CONSTRAINT `fk_driver_route_notification_user` FOREIGN KEY (`driver_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
 -- Dumping routines for database 'greenway_db'

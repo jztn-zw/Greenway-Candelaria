@@ -1,11 +1,3 @@
-import { useState, useEffect } from "react";
-import {
-  DashboardGreetingSkeleton,
-  HeroCardsSkeleton,
-  AnnouncementSkeleton,
-  CalendarSkeleton,
-  QuickActionsAndContactSkeleton,
-} from "@/components/PageLoadingSkeletons";
 import DashboardGreeting from "./components/DashboardGreeting";
 import HeroCards from "./components/HeroCards";
 import AnnouncementAndTip from "./components/AnnouncementAndTip";
@@ -15,27 +7,6 @@ import DashboardPostCarousel from "./components/DashboardPostCarousel";
 import EcoTipCard from "./components/EcoTipCard";
 
 const ResidentDashboard = () => {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
-        <DashboardGreetingSkeleton />
-        <HeroCardsSkeleton />
-        <AnnouncementSkeleton />
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
-          <div className="lg:col-span-2"><CalendarSkeleton /></div>
-          <div><QuickActionsAndContactSkeleton /></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
       {/* 1. Header */}

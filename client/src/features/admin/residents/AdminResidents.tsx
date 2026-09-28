@@ -1,76 +1,67 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  Search,
-  Download,
-  Eye,
-  Trash2,
-  UserX,
-  UserCheck,
-  Filter,
-  Users,
-  UserPlus,
-  UserMinus,
-  MoreHorizontal,
-  X,
-  MapPin,
-  Mail,
-  Phone,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "@/lib/toast";
-import { cn } from "@/lib/utils";
-import type { Resident, ResidentReport } from "./types";
-import ResidentProfileView from "./ResidentProfile";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
 import {
-  PageHeaderSkeleton,
-  KPIRowSkeleton,
-  ToolbarSkeleton,
-  TableSkeleton,
+KPIRowSkeleton,
+PageHeaderSkeleton,
+TableSkeleton,
+ToolbarSkeleton,
 } from "@/components/PageLoadingSkeletons";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+import {
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuSeparator,
+DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import {
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
+} from "@/components/ui/table";
+import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
 import {
-  deleteResident as deleteResidentAccount,
-  fetchResidentById,
-  fetchResidentReports,
-  fetchResidents,
-  updateResidentStatus,
-  type ResidentAccountStatus,
+deleteResident as apideleteResidentAccount,
+updateResidentStatus as apiupdateResidentStatus,
+fetchResidentById,
+fetchResidentReports,
+fetchResidents,
+type ResidentAccountStatus,
 } from "@/services/residentManagerService";
+import {
+Filter,
+Mail,
+MapPin,
+MoreHorizontal,
+Phone,
+Search,
+Trash2,
+Users,
+X
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { mapResidentDetails, mapResidentListRow } from "./residentManager.utils";
+import ResidentProfileView from "./ResidentProfile";
+import type { Resident } from "./types";
 
 const ITEMS_PER_PAGE = 10;
-
 const residentStatusStyles: Record<string, string> = {
   Active:
     "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
@@ -81,7 +72,8 @@ const residentStatusStyles: Record<string, string> = {
 };
 
 const AdminResidents = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const deleteResidentAccount = useAdminMutation(apideleteResidentAccount, "residents", "reports");
+  const updateResidentStatus = useAdminMutation(apiupdateResidentStatus, "residents", "reports");
   const [residents, setResidents] = useState<Resident[]>([]);
   const [search, setSearch] = useState("");
   const [barangayFilter, setBarangayFilter] = useState("all");
@@ -92,79 +84,72 @@ const AdminResidents = () => {
   const [filteredResidentsCount, setFilteredResidentsCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [deactivatedCount, setDeactivatedCount] = useState(0);
+  const [bannedCount, setBannedCount] = useState(0);
+  const [listError, setListError] = useState("");
+  const [kpiError, setKpiError] = useState(false);
+  const [kpiLoading, setKpiLoading] = useState(true);
   const [barangayOptions, setBarangayOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
   const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
   const [viewingResident, setViewingResident] = useState<Resident | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const residentProfileId = searchParams.get("residentId");
 
-  const requestSeq = useRef(0);
-
-  const loadResidents = async () => {
-    const seq = ++requestSeq.current;
-    const normalizedSearch = search.trim();
-
-    try {
-      const result = await fetchResidents({
-        search: normalizedSearch || undefined,
-        barangay_id: barangayFilter === "all" ? undefined : barangayFilter,
-        status:
-          statusFilter === "all"
-            ? undefined
-            : (statusFilter as ResidentAccountStatus),
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-      });
-      if (seq !== requestSeq.current) return;
-
-      setResidents((result.data || []).map(mapResidentListRow));
-      setTotalPages(Math.max(1, Number(result.pagination?.total_pages || 1)));
-      setFilteredResidentsCount(Number(result.pagination?.total || 0));
-    } catch (err) {
-      if (seq !== requestSeq.current) return;
-      toast.error(
-        err instanceof Error ? err.message : "Failed to load residents.",
-      );
-      setResidents([]);
-      setTotalPages(1);
-      setFilteredResidentsCount(0);
-    }
-  };
-
-  const loadKpiCounts = async () => {
-    try {
-      const [allRes, activeRes, deactivatedRes, bannedRes] = await Promise.all([
-        fetchResidents({ page: 1, limit: 1 }),
-        fetchResidents({ page: 1, limit: 1, status: "ACTIVE" }),
-        fetchResidents({ page: 1, limit: 1, status: "DEACTIVATED" }),
-        fetchResidents({ page: 1, limit: 1, status: "BANNED" }),
-      ]);
-
-      setTotalResidentsCount(Number(allRes.pagination?.total || 0));
-      setActiveCount(Number(activeRes.pagination?.total || 0));
-      setDeactivatedCount(
-        Number(deactivatedRes.pagination?.total || 0) +
-          Number(bannedRes.pagination?.total || 0),
-      );
-    } catch {
-      // Keep UI running even if KPI fetch fails.
-    }
-  };
+  const listQuery = useAdminQuery("residents", ["list", search.trim(), barangayFilter, statusFilter, currentPage], () => fetchResidents({
+    search: search.trim() || undefined, barangay_id: barangayFilter === "all" ? undefined : barangayFilter,
+    status: statusFilter === "all" ? undefined : statusFilter as ResidentAccountStatus,
+    page: currentPage, limit: ITEMS_PER_PAGE,
+  }));
+  const countQuery = useAdminQuery("residents", ["counts"], () => Promise.all([
+    fetchResidents({ page: 1, limit: 1 }), fetchResidents({ page: 1, limit: 1, status: "ACTIVE" }),
+    fetchResidents({ page: 1, limit: 1, status: "DEACTIVATED" }), fetchResidents({ page: 1, limit: 1, status: "BANNED" }),
+  ]));
+  const barangaysQuery = useAdminQuery("barangays", ["admin-options"], fetchBarangaysAdmin);
+  const detailQuery = useAdminQuery("residents", ["detail", residentProfileId], async () => {
+    const [details, reports] = await Promise.all([fetchResidentById(residentProfileId!), fetchResidentReports(residentProfileId!)]);
+    return mapResidentDetails(details, reports);
+  }, { enabled: !!residentProfileId });
+  const isLoading = listQuery.isLoading;
+  const loadResidents = listQuery.refetch;
+  const loadKpiCounts = countQuery.refetch;
+  useEffect(() => {
+    const result = listQuery.data;
+    setListError(listQuery.error?.message ?? "");
+    setResidents((result?.data ?? []).map(mapResidentListRow));
+    setTotalPages(Math.max(1, Number(result?.pagination?.total_pages || 1)));
+    setFilteredResidentsCount(Number(result?.pagination?.total || 0));
+  }, [listQuery.data, listQuery.error]);
+  useEffect(() => {
+    setKpiLoading(countQuery.isLoading); setKpiError(countQuery.isError);
+    if (!countQuery.data) return;
+    const [all, active, deactivated, banned] = countQuery.data;
+    setTotalResidentsCount(Number(all.pagination?.total || 0)); setActiveCount(Number(active.pagination?.total || 0));
+    setDeactivatedCount(Number(deactivated.pagination?.total || 0)); setBannedCount(Number(banned.pagination?.total || 0));
+  }, [countQuery.data, countQuery.isLoading, countQuery.isError]);
+  useEffect(() => { setBarangayOptions((barangaysQuery.data ?? []).map(({ id, name }) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))); }, [barangaysQuery.data]);
+  useEffect(() => { setViewingResident(residentProfileId ? detailQuery.data ?? null : null); }, [residentProfileId, detailQuery.data]);
+  useEffect(() => {
+    if (!detailQuery.error) return;
+    toast.error(detailQuery.error.message);
+    setSearchParams((current) => { const next = new URLSearchParams(current); next.delete("residentId"); next.delete("residentName"); return next; });
+  }, [detailQuery.error, setSearchParams]);
 
   const toggleStatus = async (resident: Resident) => {
     try {
       const newStatus = resident.status === "Active" ? "DEACTIVATED" : "ACTIVE";
       await updateResidentStatus(resident.id, newStatus);
-      toast.success(
-        `${resident.fullName} ${newStatus === "ACTIVE" ? "reactivated" : "deactivated"}`,
-      );
+      const action = newStatus === "DEACTIVATED"
+        ? "deactivated"
+        : resident.status === "Banned" ? "unbanned" : "reactivated";
+      toast.success(`${resident.fullName} ${action}`);
       if (viewingResident && viewingResident.id === resident.id) {
         setViewingResident({
           ...viewingResident,
           status: newStatus === "ACTIVE" ? "Active" : "Deactivated",
+          banReason: newStatus === "ACTIVE" ? null : viewingResident.banReason,
         });
       }
-      await Promise.all([loadResidents(), loadKpiCounts()]);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to update resident status.",
@@ -176,14 +161,11 @@ const AdminResidents = () => {
     if (!deleteTarget) return;
     try {
       await deleteResidentAccount(deleteTarget.id);
-      toast.success(`${deleteTarget.fullName} deleted successfully`);
+      toast.success(`${deleteTarget.fullName} removed from the manager`);
       setDeleteTarget(null);
       if (residents.length === 1 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1);
-      } else {
-        await loadResidents();
       }
-      await loadKpiCounts();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete resident.",
@@ -191,68 +173,13 @@ const AdminResidents = () => {
     }
   };
 
-  const openResidentProfile = async (residentId: string) => {
-    try {
-      const [residentDetails, residentReports] = await Promise.all([
-        fetchResidentById(residentId),
-        fetchResidentReports(residentId),
-      ]);
-      setViewingResident(mapResidentDetails(residentDetails, residentReports));
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to load resident profile.",
-      );
-    }
-  };
-
-  const exportCSV = async () => {
-    try {
-      const result = await fetchResidents({
-        search: search || undefined,
-        barangay_id: barangayFilter === "all" ? undefined : barangayFilter,
-        status:
-          statusFilter === "all"
-            ? undefined
-            : (statusFilter as ResidentAccountStatus),
-        page: 1,
-        limit: 10000,
-      });
-      const exportRows = (result.data || []).map(mapResidentListRow);
-
-      const headers = [
-        "Full Name",
-        "Username",
-        "Email",
-        "Barangay",
-        "Date Registered",
-        "Last Login",
-        "Status",
-      ];
-      const rows = exportRows.map((r) => [
-        r.fullName,
-        r.username,
-        r.email,
-        r.barangay,
-        r.dateRegistered,
-        r.lastLogin,
-        r.status,
-      ]);
-      const csv = [headers, ...rows]
-        .map((row) => row.map((c) => `"${c}"`).join(","))
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "residents.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("CSV exported successfully");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to export CSV.",
-      );
-    }
+  const openResidentProfile = (resident: Resident) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("residentId", resident.id);
+      next.set("residentName", resident.fullName);
+      return next;
+    });
   };
 
   const resetFilters = () => {
@@ -267,51 +194,22 @@ const AdminResidents = () => {
     barangayFilter !== "all" ||
     statusFilter !== "all";
 
-  useEffect(() => {
-    let mounted = true;
-    const loadFilters = async () => {
-      try {
-        const rows = await fetchBarangaysAdmin();
-        if (!mounted) return;
-        const options = rows
-          .map((row) => ({ id: row.id, name: row.name }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        setBarangayOptions(options);
-      } catch {
-        if (mounted) setBarangayOptions([]);
-      }
-    };
-    void loadFilters();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      await loadResidents();
-      if (mounted && isLoading) {
-        setIsLoading(false);
-      }
-    };
-    void run();
-    return () => {
-      mounted = false;
-    };
-  }, [search, barangayFilter, statusFilter, currentPage, isLoading]);
-
-  useEffect(() => {
-    void loadKpiCounts();
-  }, []);
-
-  if (viewingResident) {
+  if (residentProfileId && viewingResident?.id === residentProfileId) {
     return (
       <ResidentProfileView
         resident={viewingResident}
-        onBack={() => setViewingResident(null)}
         onToggleStatus={toggleStatus}
       />
+    );
+  }
+
+  if (residentProfileId) {
+    return (
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
+        <PageHeaderSkeleton />
+        <div className="h-64 rounded-2xl border border-border/80 bg-card animate-pulse" />
+        <TableSkeleton cols={4} rows={4} />
+      </div>
     );
   }
 
@@ -319,7 +217,7 @@ const AdminResidents = () => {
     return (
       <div className="w-full max-w-[1600px] mx-auto space-y-6">
         <PageHeaderSkeleton />
-        <KPIRowSkeleton count={3} />
+        <KPIRowSkeleton count={4} />
         <ToolbarSkeleton />
         <TableSkeleton cols={7} rows={10} />
       </div>
@@ -327,9 +225,10 @@ const AdminResidents = () => {
   }
 
   const STATUS_TABS = [
-    { id: "all", label: "All Residents", count: totalResidentsCount },
-    { id: "ACTIVE", label: "Active", count: activeCount },
-    { id: "DEACTIVATED", label: "Deactivated", count: deactivatedCount },
+    { id: "all", label: "All Residents", count: kpiError || kpiLoading ? null : totalResidentsCount },
+    { id: "ACTIVE", label: "Active", count: kpiError || kpiLoading ? null : activeCount },
+    { id: "DEACTIVATED", label: "Deactivated", count: kpiError || kpiLoading ? null : deactivatedCount },
+    { id: "BANNED", label: "Banned", count: kpiError || kpiLoading ? null : bannedCount },
   ];
 
   return (
@@ -345,43 +244,43 @@ const AdminResidents = () => {
           </p>
         </div>
 
-        <Button
-          onClick={exportCSV}
-          variant="outline"
-          className="h-10 px-4 rounded-xl border border-border/80 bg-card hover:bg-muted font-semibold text-xs shadow-2xs flex items-center gap-2 cursor-pointer active:scale-95 shrink-0 self-start sm:self-auto"
-        >
-          <Download className="w-4 h-4 text-primary" /> Export CSV
-        </Button>
       </div>
 
       {/* ── Executive Metric KPI Strip ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
         {[
           {
             label: "Total Residents",
-            value: totalResidentsCount,
+            value: kpiError || kpiLoading ? "—" : totalResidentsCount,
             tag: "bg-muted/70 text-muted-foreground border-border/80",
             subtitle: "Registered municipal users",
           },
           {
             label: "Active Accounts",
-            value: activeCount,
+            value: kpiError || kpiLoading ? "—" : activeCount,
             tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-            subtitle: "Verified & active",
+            subtitle: "Accounts marked active",
           },
           {
             label: "Deactivated Accounts",
-            value: deactivatedCount,
+            value: kpiError || kpiLoading ? "—" : deactivatedCount,
             tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-            subtitle: "Suspended or deactivated",
+            subtitle: "Accounts marked deactivated",
+          },
+          {
+            label: "Banned Accounts",
+            value: kpiError || kpiLoading ? "—" : bannedCount,
+            tag: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+            subtitle: "Accounts marked banned",
           },
         ].map((kpi, idx) => (
           <div
             key={kpi.label}
             className={cn(
               "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-              idx < 2 ? "sm:border-r border-border/70" : "",
-              idx < 2 ? "border-b sm:border-b-0 border-border/70" : ""
+              idx % 2 === 0 ? "sm:border-r border-border/70 xl:border-r-0" : "",
+              idx < 3 ? "xl:border-r xl:border-border/70" : "xl:border-r-0",
+              idx < 2 ? "border-b xl:border-b-0 border-border/70" : ""
             )}
           >
             <div className="flex items-center min-h-[22px]">
@@ -428,6 +327,7 @@ const AdminResidents = () => {
                   }`}
                 >
                   <span>{tab.label}</span>
+                  {isActive && (
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${
                       isActive
@@ -435,8 +335,9 @@ const AdminResidents = () => {
                         : "bg-background text-muted-foreground border border-border/60"
                     }`}
                   >
-                    {tab.count.toLocaleString()}
+                    {tab.count === null ? "—" : tab.count.toLocaleString()}
                   </span>
+                  )}
                 </button>
               );
             })}
@@ -525,7 +426,14 @@ const AdminResidents = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {residents.length === 0 ? (
+              {listError ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-12 text-center text-sm text-destructive">
+                    <p role="alert">Could not load residents. {listError}</p>
+                    <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadResidents()}>Retry</Button>
+                  </TableCell>
+                </TableRow>
+              ) : residents.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={8}
@@ -558,7 +466,7 @@ const AdminResidents = () => {
                   return (
                     <TableRow
                       key={r.id}
-                      onClick={() => void openResidentProfile(r.id)}
+                      onClick={() => openResidentProfile(r)}
                       className="group hover:bg-muted/40 transition-colors cursor-pointer"
                     >
                       {/* Resident Name & Initials */}
@@ -652,7 +560,7 @@ const AdminResidents = () => {
                             className="rounded-xl shadow-lg border border-border/80 w-40 p-1"
                           >
                             <DropdownMenuItem
-                              onClick={() => void openResidentProfile(r.id)}
+                              onClick={() => openResidentProfile(r)}
                               className="text-xs cursor-pointer"
                             >
                               View Profile
@@ -661,7 +569,7 @@ const AdminResidents = () => {
                               onClick={() => void toggleStatus(r)}
                               className="text-xs cursor-pointer"
                             >
-                              {r.status === "Active" ? "Deactivate" : "Reactivate"}
+                              {r.status === "Active" ? "Deactivate" : r.status === "Banned" ? "Unban" : "Reactivate"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -696,56 +604,17 @@ const AdminResidents = () => {
       </div>
 
       {/* ── Delete Resident Confirmation Modal ── */}
-      <Dialog
+      <ConfirmationDialog
+        kind="dialog"
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-[92vw] sm:max-w-md p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                Delete Resident Account?
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Description */}
-          <div className="py-2.5">
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Are you sure you want to permanently delete{" "}
-              <strong className="text-foreground font-semibold">
-                {deleteTarget?.fullName}
-              </strong>
-              &apos;s account (@{deleteTarget?.username})? All associated records and
-              reports will be permanently removed. This action cannot be undone.
-            </DialogDescription>
-          </div>
-
-          {/* Footer (Delete button only) */}
-          <div className="flex items-center justify-end pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => void deleteResident()}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs"
-            >
-              Delete Permanently
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        title="Remove Resident Account?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>Remove <strong className="font-semibold text-foreground">{deleteTarget?.fullName}</strong>&apos;s account (@{deleteTarget?.username}) from the manager? The account will be disabled and hidden; existing reports remain on record.</>}
+        confirmLabel="Remove Account"
+        onConfirm={() => void deleteResident()}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { AlertTriangle, RefreshCw, Truck as TruckIcon } from "lucide-react";
@@ -6,10 +7,10 @@ import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
 import type { Truck, CollectionDayStatus, CollectionSchedule } from "./types";
 import { PageHeaderSkeleton, MapPanelSkeleton } from "@/components/PageLoadingSkeletons";
-import authService from "@/services/authService";
 import { fetchBarangays } from "@/services/barangaysService";
 import { fetchRoutes, type ApiRoute } from "@/services/routesService";
-import api from "@/lib/api";
+import useAuthStore from "@/store/authStore";
+import { residentKey, useResidentQuery, useResidentResource } from "@/lib/residentQuery";
 import {
   fetchAllTrucks,
   fetchLiveTrucks,
@@ -25,8 +26,9 @@ import {
   parseCoordinate,
 } from "./truckTracking.utils";
 import type { RoadRouteResult } from "@/services/roadRoutingService";
+import { getManilaNow, parseApiTimestamp } from "@/utils/date";
 
-const REFRESH_MS = 4_000;
+const REFRESH_MS = 30_000;
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   String(import.meta.env.VITE_API_URL || "").replace(/\/api\/?$/, "") ||
@@ -56,36 +58,7 @@ const normaliseTruckStatus = (raw?: string): Truck["status"] =>
 const STALE_PING_MS = 120_000;
 
 const parseBackendDate = (value?: string | null): number | null => {
-  if (!value) return null;
-
-  const match = String(value).match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/,
-  );
-
-  if (match) {
-    const [, year, month, day, hour, minute, second] = match;
-    const localMs = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    ).getTime();
-    const utcMs = Date.UTC(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    );
-    const now = Date.now();
-    return Math.abs(now - localMs) <= Math.abs(now - utcMs) ? localMs : utcMs;
-  }
-
-  const parsed = Date.parse(String(value));
-  return Number.isNaN(parsed) ? null : parsed;
+  return parseApiTimestamp(value)?.getTime() ?? null;
 };
 
 const isPingFresh = (value?: string | null, now = Date.now()) => {
@@ -103,6 +76,34 @@ const normaliseStopStatus = (
   return "not-started";
 };
 
+const normalizeCoveragePath = (
+  value: TruckRouteRow["stops"][number]["coverage_path"],
+): [number, number][] | null => {
+  if (!value) return null;
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return null;
+    const points = parsed.flatMap((point): [number, number][] => {
+      if (!Array.isArray(point) || point.length < 2) return [];
+      const latitude = Number(point[0]);
+      const longitude = Number(point[1]);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? [[latitude, longitude]]
+        : [];
+    });
+    return points.length >= 2 ? points : null;
+  } catch {
+    return null;
+  }
+};
+
+const matchesResidentStop = (
+  stop: TruckRouteRow["stops"][number],
+  residentStreetId: string | null,
+  residentBarangayId: string | null,
+) => normaliseId(stop.barangay_id) === residentBarangayId &&
+  (!stop.street_id || normaliseId(stop.street_id) === residentStreetId);
+
 const isTerminalStopStatus = (raw?: string) => {
   const key = String(raw || "").toUpperCase();
   return key === "DONE" || key === "MISSED" || key === "SKIPPED";
@@ -117,7 +118,7 @@ const isRouteFinished = (route?: TruckRouteRow) => {
 };
 
 const isRouteClosedForTheDay = (route?: TruckRouteRow) => {
-  if (!route || String(route.route_status || "").toUpperCase() !== "INACTIVE") {
+  if (!route || !["INACTIVE", "COMPLETED", "PARTIAL", "CANCELLED"].includes(String(route.route_status || "").toUpperCase())) {
     return false;
   }
 
@@ -144,7 +145,7 @@ const resolveResidentTruckStatus = (
   }
 
   if (route) {
-    return liveStatus === "on-the-way" && hasFreshPing ? "on-the-way" : "scheduled";
+    return liveStatus === "on-the-way" && hasFreshPing ? "on-the-way" : route.collection_started_at ? "offline" : "scheduled";
   }
 
   if (liveStatus === "on-the-way" && !hasFreshPing) {
@@ -186,15 +187,16 @@ const pickBestTodayRoute = (
   return candidate;
 };
 
-const computeBarangaysAway = (
+const computeStopsAway = (
   route: TruckRouteRow | undefined,
+  residentStreetId: string | null,
   residentBarangayId: string | null,
 ) => {
-  if (!route || !residentBarangayId || route.stops.length === 0) return null;
+  if (!route || (!residentStreetId && !residentBarangayId) || route.stops.length === 0) return null;
 
   const sortedStops = [...route.stops].sort((a, b) => a.order_index - b.order_index);
   const residentIdx = sortedStops.findIndex(
-    (s) => normaliseId(s.barangay_id) === normaliseId(residentBarangayId),
+    (stop) => matchesResidentStop(stop, residentStreetId, residentBarangayId),
   );
   if (residentIdx === -1) return null;
 
@@ -203,11 +205,12 @@ const computeBarangaysAway = (
     return key !== "DONE" && key !== "MISSED" && key !== "SKIPPED";
   });
 
+  if (sortedStops[residentIdx].stops_before !== undefined) return sortedStops[residentIdx].stops_before!;
   if (nextIdx === -1) return 0;
   return Math.max(0, residentIdx - nextIdx);
 };
 
-const getCurrentDayIndex = () => new Date().getDay();
+const getCurrentDayIndex = () => getManilaNow().weekdayIndex;
 const toRelativeDayLabel = (offset: number) => {
   if (offset === 0) return "today";
   if (offset === 1) return "tomorrow";
@@ -216,13 +219,14 @@ const toRelativeDayLabel = (offset: number) => {
 
 const buildSchedule = (
   routes: ApiRoute[],
+  residentStreetId: string | null,
   residentBarangayId: string | null,
   residentCollectionFinishedToday = false,
 ): CollectionSchedule => {
   const residentRoutes = routes.filter((route) =>
     String(route.status || "").toUpperCase() !== "INACTIVE" &&
     route.stops.some(
-      (stop) => normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
+      (stop) => normaliseId(stop.barangay_id) === residentBarangayId && (!stop.street_id || normaliseId(stop.street_id) === residentStreetId),
     ),
   );
 
@@ -242,16 +246,23 @@ const buildSchedule = (
   }
 
   const todayIndex = getCurrentDayIndex();
-  // Once the collector has closed the resident's route, the schedule card
-  // should point to the next collection instead of a collection that is over.
-  const firstOffset = residentCollectionFinishedToday ? 1 : 0;
-  for (let offset = firstOffset; offset <= 7; offset += 1) {
+  // After today's street collection ends, this card answers one question only:
+  // is the same resident street scheduled again tomorrow?
+  const offsetsToCheck = residentCollectionFinishedToday
+    ? [1]
+    : Array.from({ length: 8 }, (_, offset) => offset);
+
+  for (const offset of offsetsToCheck) {
     const day = DAY_ORDER[(todayIndex + offset) % 7];
     const route = routeByDay.get(day);
     if (!route) continue;
 
-    const date = new Date();
-    date.setDate(date.getDate() + offset);
+    const manilaToday = getManilaNow();
+    const date = new Date(Date.UTC(
+      manilaToday.year,
+      manilaToday.month - 1,
+      manilaToday.day + offset,
+    ));
 
     return {
       nextCollectionDay: toRelativeDayLabel(offset),
@@ -269,57 +280,59 @@ const buildSchedule = (
 };
 
 const ResidentTruckTracking = () => {
-  const currentUser = authService.getCurrentUser();
-  const [isLoading, setIsLoading] = useState(true);
+  const client = useQueryClient();
+  const currentUser = useAuthStore((state) => state.user);
+  const residentStreetLabel = currentUser?.street_name
+    ? `${currentUser.street_name}${currentUser.street_area ? ` (${currentUser.street_area})` : ""}`
+    : null;
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [schedule, setSchedule] = useState<CollectionSchedule>({
-    nextCollectionDay: "soon",
-    nextCollectionTime: "TBD",
-    nextCollectionDate: new Date(),
-  });
+  const [routeTemplates, setRouteTemplates] = useState<ApiRoute[]>([]);
   const [residentArea, setResidentArea] = useState(
-    String((currentUser as { barangay_name?: string | null } | null)?.barangay_name || "My Barangay"),
+    residentStreetLabel || String(currentUser?.barangay_name || "My Barangay"),
+  );
+  const [residentBarangayName, setResidentBarangayName] = useState(
+    String(currentUser?.barangay_name || ""),
   );
   const [residentCoords, setResidentCoords] = useState<[number, number] | null>(null);
-  const [residentBarangayId, setResidentBarangayId] = useState<string | null>(
-    normaliseId(currentUser?.barangay_id),
-  );
+  const residentBarangayId = normaliseId(currentUser?.barangay_id);
+  const residentStreetId = normaliseId(currentUser?.street_id);
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
 
-  const loadDynamicData = useCallback(async () => {
-    const [barangaysResult, allTrucksResult, liveResult, todayRoutesResult, routesResult] =
-      await Promise.allSettled([
-        fetchBarangays(),
-        fetchAllTrucks(),
-        fetchLiveTrucks(),
-        fetchTodayRoutes(),
-        fetchRoutes(),
-      ]);
-
-    if (
-      barangaysResult.status !== "fulfilled" ||
-      allTrucksResult.status !== "fulfilled" ||
-      liveResult.status !== "fulfilled" ||
-      todayRoutesResult.status !== "fulfilled" ||
-      routesResult.status !== "fulfilled"
-    ) {
-      setTrackingError("Live tracking data could not be refreshed. Showing the last available information.");
-      return;
-    }
-
-    const barangays = barangaysResult.value;
-    const allTrucks = allTrucksResult.value;
-    const liveRows = liveResult.value;
-    const todayRoutes = todayRoutesResult.value;
-    const allRoutes = routesResult.value;
-    setTrackingError(null);
+  const lastLive = useRef<LiveRow[] | null>(null);
+  const liveVersion = useRef(0);
+  const planQuery = useResidentQuery("tracking", ["plan"],
+    () => Promise.all([fetchBarangays(), fetchAllTrucks(), fetchTodayRoutes(), fetchRoutes()]), { refetchInterval: REFRESH_MS });
+  const liveQuery = useResidentResource<LiveRow[]>("tracking", ["live"], async () => {
+    const version = liveVersion.current;
+    const rows = await fetchLiveTrucks();
+    return version === liveVersion.current ? rows : lastLive.current ?? rows;
+  }, [], { refetchInterval: REFRESH_MS });
+  const setLive = liveQuery.setData;
+  const refetchPlan = planQuery.refetch;
+  const refetchLive = liveQuery.refetch;
+  const isLoading = planQuery.isLoading || liveQuery.isLoading;
+  const queryError = planQuery.isError || liveQuery.isError;
+  useEffect(() => {
+    if (queryError) setTrackingError("Tracking could not be refreshed. Last known information may be outdated.");
+  }, [queryError]);
+  const loadDynamicData = useCallback(async (incoming?: LiveRow[]) => {
+    if (!planQuery.data) return;
+    const [barangays, allTrucks, todayRoutes, allRoutes] = planQuery.data;
+    const liveRows = incoming ?? liveQuery.data;
+    lastLive.current = liveRows;
+    if (!queryError) setTrackingError(null);
 
     const residentBarangay = barangays.find(
       (b) => normaliseId(b.id) === normaliseId(residentBarangayId),
     );
-    if (residentBarangay?.name) {
+    if (residentStreetLabel) {
+      setResidentArea(residentStreetLabel);
+    } else if (residentBarangay?.name) {
       setResidentArea(residentBarangay.name);
+    }
+    if (residentBarangay?.name) {
+      setResidentBarangayName(residentBarangay.name);
     }
 
     const residentLat = parseCoordinate(residentBarangay?.latitude);
@@ -360,7 +373,7 @@ const ResidentTruckTracking = () => {
       const liveLatitude = parseCoordinate(live?.latitude);
       const liveLongitude = parseCoordinate(live?.longitude);
       const coords =
-        liveLatitude !== null && liveLongitude !== null
+        liveLatitude !== null && liveLongitude !== null && (isPingFresh(live?.last_ping) || route?.route_status === "PAUSED")
           ? ([liveLatitude, liveLongitude] as [number, number])
           : null;
       const distanceKm = coords && effectiveResidentCoords
@@ -368,31 +381,35 @@ const ResidentTruckTracking = () => {
         : null;
       const eta = distanceKm !== null ? Math.max(1, Math.round((distanceKm / 20) * 60)) : null;
 
-      const barangaysAway = computeBarangaysAway(route, residentBarangayId);
+      const barangaysAway = computeStopsAway(route, residentStreetId, residentBarangayId);
       const isResidentTruck = Boolean(
         route?.stops.some(
-          (stop) => normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
+          (stop) => matchesResidentStop(stop, residentStreetId, residentBarangayId),
         ),
       );
 
       const routeStops = (route?.stops ?? [])
         .slice()
         .sort((a, b) => a.order_index - b.order_index)
-        .map((stop: TruckRouteRow["stops"][number]) => ({
-          barangay: stop.barangay_name,
-          status: normaliseStopStatus(stop.status),
-          coords:
-            (() => {
+        .map((stop: TruckRouteRow["stops"][number]) => {
+          const coveragePath = normalizeCoveragePath(stop.coverage_path);
+          return {
+            barangay: stop.stop_name ?? stop.barangay_name,
+            status: normaliseStopStatus(stop.status),
+            coords:
+              coveragePath?.[0] ?? (() => {
               const latitude = parseCoordinate(stop.latitude);
               const longitude = parseCoordinate(stop.longitude);
               return latitude !== null && longitude !== null
                 ? [latitude, longitude] as [number, number]
                 : barangayCoordsById.get(normaliseId(stop.barangay_id) ?? "") ?? null;
-            })(),
-          completedAt: stop.completed_at ? formatCollectionTime(stop.completed_at) : undefined,
-          skippedReason: stop.skipped_reason ?? undefined,
-          isResidentBarangay: normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
-        }));
+              })(),
+            coveragePath,
+            completedAt: stop.completed_at ? formatCollectionTime(stop.completed_at) : undefined,
+            skippedReason: stop.skipped_reason ?? undefined,
+            isResidentBarangay: matchesResidentStop(stop, residentStreetId, residentBarangayId),
+          };
+        });
 
       const residentStop = routeStops.find((s) => s.isResidentBarangay);
 
@@ -424,16 +441,9 @@ const ResidentTruckTracking = () => {
       };
     });
 
-    const residentCollectionFinished = todayRoutes.some(
-      (route) =>
-        route.stops.some(
-          (stop) => normaliseId(stop.barangay_id) === normaliseId(residentBarangayId),
-        ) && isRouteClosedForTheDay(route),
-    );
-
     setTrucks(mappedTrucks);
-    setSchedule(buildSchedule(allRoutes, residentBarangayId, residentCollectionFinished));
-  }, [residentBarangayId, residentCoords]);
+    setRouteTemplates(allRoutes);
+  }, [residentBarangayId, residentStreetId, residentStreetLabel, residentCoords, planQuery.data, liveQuery.data, queryError]);
 
   // Keep socket event handlers current without recreating a connection when
   // location/profile data changes during the page's initial load.
@@ -442,11 +452,13 @@ const ResidentTruckTracking = () => {
     loadDynamicDataRef.current = loadDynamicData;
   }, [loadDynamicData]);
 
+  const userId = currentUser?.id;
+  const token = useAuthStore((state) => state.token);
   useEffect(() => {
     const socket: Socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
       withCredentials: true,
-      auth: { token: authService.getToken() },
+      auth: { token },
       // React development Strict Mode immediately cleans up the first effect.
       // Delay the handshake so that cleanup can cancel it instead of closing an
       // in-progress WebSocket connection.
@@ -456,8 +468,16 @@ const ResidentTruckTracking = () => {
       reconnectionDelay: 2000,
     });
 
-    const syncResidentTracking = () => {
-      void loadDynamicDataRef.current();
+    let disposed = false;
+    const syncResidentTracking = (rows?: LiveRow[]) => {
+      if (Array.isArray(rows)) {
+        const version = ++liveVersion.current;
+        lastLive.current = rows;
+        // A request started on the dashboard may still be using its query function.
+        // Cancel it before storing a newer socket sample, so it cannot move GPS back.
+        void client.cancelQueries({ queryKey: residentKey(userId, "tracking", `${residentBarangayId ?? ""}:${residentStreetId ?? ""}`, "live"), exact: true }, { revert: false })
+          .then(() => { if (!disposed && version === liveVersion.current) setLive(rows); });
+      } else { void refetchPlan(); void refetchLive(); }
     };
 
     socket.on("connect", () => {
@@ -467,94 +487,60 @@ const ResidentTruckTracking = () => {
 
     socket.on("live:snapshot", syncResidentTracking);
     socket.on("live:update", syncResidentTracking);
-    socket.on("routes:update", syncResidentTracking);
+    socket.on("live:error", () => setTrackingError("Live connection unavailable. Reconnecting or polling for updates."));
 
     const connectTimer = window.setTimeout(() => socket.connect(), 0);
 
     return () => {
+      disposed = true;
       window.clearTimeout(connectTimer);
       socket.emit("tracking:leave");
       socket.disconnect();
     };
-  }, []);
+  }, [client, userId, residentBarangayId, residentStreetId, token, setLive, refetchPlan, refetchLive]);
+
+  useEffect(() => { void loadDynamicData(); }, [loadDynamicData]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadProfileBarangay = async () => {
-      try {
-        const [me, profileRes] = await Promise.all([
-          authService.getMe(),
-          api.get("/users/profile").catch(() => null),
-        ]);
-        if (cancelled) return;
-
-        const profile = profileRes?.data?.data as
-          | { barangay_id?: string | number | null; barangay_name?: string | null }
-          | undefined;
-
-        const latestBarangayId = normaliseId(profile?.barangay_id ?? me.barangay_id);
-        const latestBarangayName = String(
-          profile?.barangay_name ??
-            (me as { barangay_name?: string | null }).barangay_name ??
-            "",
-        ).trim();
-
-        setResidentBarangayId(latestBarangayId);
-        if (latestBarangayName) {
-          setResidentArea(latestBarangayName);
-        }
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...currentUser,
-            ...me,
-            barangay_id: latestBarangayId,
-            barangay_name: latestBarangayName || (currentUser as { barangay_name?: string | null } | null)?.barangay_name || null,
-          }),
-        );
-      } catch {
-        // Fallback to existing local session data.
-      }
-    };
-
-    void loadProfileBarangay();
-
-    return () => {
-      cancelled = true;
-    };
+    const timer = setInterval(() => {
+      if (lastLive.current) void loadDynamicDataRef.current(lastLive.current);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const load = async () => {
-      try {
-        await loadDynamicData();
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    void load();
-    const interval = setInterval(() => {
-      void loadDynamicData();
-    }, REFRESH_MS);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [loadDynamicData]);
 
   const residentTrucks = useMemo(
     () => trucks.filter((truck) => truck.isResidentTruck),
     [trucks],
   );
+  const residentTrackingCoords = useMemo<[number, number] | null>(() => {
+    const residentCoverage = residentTrucks
+      .flatMap((truck) => truck.routeStops)
+      .find((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2)
+      ?.coveragePath;
+    if (residentCoverage && residentCoverage.length > 0) {
+      return residentCoverage[Math.floor(residentCoverage.length / 2)] ?? residentCoords;
+    }
+    return residentCoords;
+  }, [residentCoords, residentTrucks]);
 
   const hasActiveTrucks = residentTrucks.some((t) => t.status === "on-the-way");
-  const residentCollectionFinalized = residentTrucks.some((truck) => truck.routeClosedForTheDay);
+  const residentCollectionFinalized = residentTrucks.some(
+    (truck) =>
+      truck.routeClosedForTheDay ||
+      truck.routeStops.some(
+        (stop) => stop.isResidentBarangay && (stop.status === "done" || stop.status === "skipped"),
+      ),
+  );
+  const schedule = useMemo(
+    () =>
+      buildSchedule(
+        routeTemplates,
+        residentStreetId,
+        residentBarangayId,
+        residentCollectionFinalized,
+      ),
+    [routeTemplates, residentStreetId, residentBarangayId, residentCollectionFinalized],
+  );
   const hasLiveTrackingForResident =
     hasActiveTrucks && !residentCollectionFinalized;
 
@@ -635,7 +621,7 @@ const ResidentTruckTracking = () => {
           </div>
           <button
             type="button"
-            onClick={() => void loadDynamicData()}
+            onClick={() => { void refetchPlan(); void refetchLive(); }}
             className="inline-flex items-center gap-1.5 self-start rounded-xl border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-amber-500/10 md:self-auto"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry
@@ -653,14 +639,19 @@ const ResidentTruckTracking = () => {
       {hasLiveTrackingForResident && proximityTruck && (
         <ProximityAlert truck={proximityTruck} />
       )}
-      <CountdownBanner schedule={schedule} residentArea={residentArea} />
+      <CountdownBanner
+        schedule={schedule}
+        residentArea={residentArea}
+        collectionFinishedToday={residentCollectionFinalized}
+      />
 
        <div className="h-[clamp(360px,calc(100dvh-12rem),520px)] md:h-[500px] lg:h-[580px]">
         <TrackingMap
           trucks={residentTrucks}
           focusedTruckId={focusedTruckId}
-          residentBarangayCoords={residentCoords}
+          residentBarangayCoords={residentTrackingCoords}
           residentAreaName={residentArea}
+          residentBarangayName={residentBarangayName}
           lockedToBarangay={false}
           collectionDayStatus={collectionDayStatus}
           nextCollectionInfo={nextCollectionInfo}

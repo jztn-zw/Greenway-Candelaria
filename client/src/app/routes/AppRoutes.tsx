@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import AdminLayout from "@/app/layouts/admin/AdminLayout";
 import CollectorLayout from "@/app/layouts/collector/CollectorLayout";
 import ResidentLayout from "@/app/layouts/resident/ResidentLayout";
@@ -6,6 +6,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminAnalyticsDashboard from "@/features/admin/analytics/AdminAnalyticsDashboard";
 import AdminAnnouncements from "@/features/admin/announcements/AdminAnnouncements";
 import AdminAuditLogs from "@/features/admin/audit-logs/AdminAuditLogs";
+import AdminBarangays from "@/features/admin/barangays/AdminBarangays";
+import AdminBugReports from "@/features/admin/bug-reports/AdminBugReports";
 import AdminDashboard from "@/features/admin/dashboard/AdminDashboard";
 import AdminDrivers from "@/features/admin/drivers/AdminDrivers";
 import AdminNotifications from "@/features/admin/notifications/AdminNotifications";
@@ -36,12 +38,6 @@ import ResidentSubmitReport from "@/features/resident/waste-reporting/ResidentSu
 import NotFound from "./NotFound";
 
 const AppRoutes = () => (
-  <BrowserRouter
-    future={{
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-    }}
-  >
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage />} />
@@ -59,10 +55,12 @@ const AppRoutes = () => (
       <Route path="/admin" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="reports" element={<AdminWasteReports />} />
+        <Route path="bug-reports" element={<AdminBugReports />} />
         <Route path="posts" element={<AdminPosts />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="schedule" element={<AdminCollectionSchedule />} />
         <Route path="routes" element={<AdminRouteManager />} />
+        <Route path="barangays" element={<AdminBarangays />} />
         <Route path="residents" element={<AdminResidents />} />
         <Route path="drivers" element={<AdminDrivers />} />
         <Route path="tracking" element={<AdminTruckTracking />} />
@@ -82,7 +80,6 @@ const AppRoutes = () => (
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
-  </BrowserRouter>
 );
 
 export default AppRoutes;

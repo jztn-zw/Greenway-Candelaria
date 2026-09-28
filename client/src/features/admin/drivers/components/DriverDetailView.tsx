@@ -14,14 +14,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BackButton } from "@/components/common";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
 
 interface DriverDetailViewProps {
   driver: Driver;
   trucks: TruckType[];
   isActivityLoading?: boolean;
-  onBack: () => void;
+  activityError?: string;
+  onRetryActivity?: () => void;
   onEdit: (d: Driver) => void;
   onResetPassword: (d: Driver) => void;
   onToggleStatus: (d: Driver) => void;
@@ -38,7 +38,8 @@ const DriverDetailView = ({
   driver,
   trucks,
   isActivityLoading = false,
-  onBack,
+  activityError = "",
+  onRetryActivity,
   onEdit,
   onResetPassword,
   onToggleStatus,
@@ -47,18 +48,13 @@ const DriverDetailView = ({
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
-      {/* ── Top Navigation & Page Header ── */}
-      <div className="space-y-3">
-        <BackButton label="Back to Collectors" onClick={onBack} />
-
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
-            Collector Profile
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Personnel credentials, truck assignment, and route collection history.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+          Collector Profile
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Detailed collector account information, truck assignment, and collection history.
+        </p>
       </div>
 
       {/* ── Collector Profile Overview Card ── */}
@@ -194,7 +190,7 @@ const DriverDetailView = ({
               Account Status
             </span>
             <p className="text-xs sm:text-sm font-medium text-foreground">
-              {driver.status === "Active" ? "Operational & Ready" : "Account Suspended"}
+              {driver.status === "Active" ? "Account Active" : "Account Deactivated"}
             </p>
           </div>
         </div>
@@ -207,13 +203,18 @@ const DriverDetailView = ({
             Collection Activity Log
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Historical collection routes completed by this collector.
+            Historical collection runs assigned to this collector.
           </p>
         </div>
 
         {isActivityLoading ? (
           <div className="bg-card border border-border/80 rounded-2xl p-12 text-center shadow-2xs">
             <p className="text-sm text-muted-foreground">Loading activity...</p>
+          </div>
+        ) : activityError ? (
+          <div className="bg-card border border-border/80 rounded-2xl p-8 text-center shadow-2xs">
+            <p role="alert" className="text-sm text-destructive">Could not load collection activity. {activityError}</p>
+            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onRetryActivity}>Retry</Button>
           </div>
         ) : driver.activityLog.length === 0 ? (
           <div className="bg-card border border-border/80 rounded-2xl p-12 text-center shadow-2xs">
@@ -239,6 +240,9 @@ const DriverDetailView = ({
                     >
                       {a.route}
                     </Badge>
+                    <Badge variant="outline" className="text-xs font-semibold rounded-full">
+                      {a.status}
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -251,11 +255,11 @@ const DriverDetailView = ({
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                     <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>
-                      {a.barangaysCompleted}/{a.barangaysTotal} barangays
+                      {a.completedStops}/{a.totalStops} stops
                     </span>
                   </div>
                   <Progress
-                    value={(a.barangaysCompleted / a.barangaysTotal) * 100}
+                    value={a.totalStops ? (a.completedStops / a.totalStops) * 100 : 0}
                     className="flex-1 h-2 rounded-full"
                   />
                 </div>

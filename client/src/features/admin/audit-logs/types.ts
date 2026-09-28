@@ -6,6 +6,7 @@ export type AuditModule =
   | "Announcements"
   | "Waste Reports"
   | "Route Manager"
+  | "Truck Manager"
   | "Resident Manager"
   | "Driver Manager"
   | "Landing Page"
@@ -100,6 +101,7 @@ export const moduleBadgeStyles: Record<string, string> = {
   Announcements: neutralModuleBadge,
   "Waste Reports": neutralModuleBadge,
   "Route Manager": neutralModuleBadge,
+  "Truck Manager": neutralModuleBadge,
   "Resident Manager": neutralModuleBadge,
   "Driver Manager": neutralModuleBadge,
   "Collection Schedule": neutralModuleBadge,

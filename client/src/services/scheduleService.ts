@@ -41,19 +41,16 @@ export interface CreateEventPayload {
 export interface CollectionScheduleDay {
   id: string;
   day_of_week: string;
-  waste_type: "BIODEGRADABLE" | "NON_BIODEGRADABLE";
+  waste_type: "BIODEGRADABLE" | "NON_BIODEGRADABLE" | null;
   start_time: string;
   end_time?: string | null;
+  route_name?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface ReminderSetting {
-  id: string;
-  timing: number;
-}
-
 export const fetchCalendarEvents = async (params?: {
+  view?: "collector";
   month?: string;
   year?: string | number;
   event_type?: EventType;
@@ -96,34 +93,3 @@ export const fetchCollectionSchedule = async (): Promise<CollectionScheduleDay[]
   return data.data ?? [];
 };
 
-export const updateCollectionSchedule = async (
-  id: string,
-  payload: Pick<CollectionScheduleDay, "waste_type"> & {
-    start_time?: string;
-    end_time?: string | null;
-  },
-): Promise<CollectionScheduleDay> => {
-  const { data } = await api.put<{ data: CollectionScheduleDay }>(`/schedule/${id}`, {
-    ...payload,
-  });
-  return data.data;
-};
-
-export const createCollectionSchedule = async (
-  payload: Omit<CollectionScheduleDay, "id" | "created_at" | "updated_at">,
-): Promise<CollectionScheduleDay> => {
-  const { data } = await api.post<{ data: CollectionScheduleDay }>("/schedule", payload);
-  return data.data;
-};
-
-export const fetchReminderSettings = async (): Promise<ReminderSetting> => {
-  const { data } = await api.get<{ data: ReminderSetting }>("/schedule/reminders");
-  return data.data;
-};
-
-export const updateReminderSettings = async (timing: number): Promise<ReminderSetting> => {
-  const { data } = await api.put<{ data: ReminderSetting }>("/schedule/reminders", {
-    timing,
-  });
-  return data.data;
-};

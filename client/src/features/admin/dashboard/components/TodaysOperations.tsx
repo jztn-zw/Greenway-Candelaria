@@ -12,14 +12,14 @@ import { useNavigate } from "react-router-dom";
 import { DashboardTruck, DashboardBarangay } from "./useAdminDashboard";
 
 interface TruckRow {
+  id: string;
   name: string;
   plate: string;
   driver: string;
-  currentBarangay: string;
+  currentRoute: string;
   completed: number;
   total: number;
-  status: "Scheduled" | "On route" | "Completed" | "Offline" | "No route today" | "Under maintenance";
-  driverMessage: string;
+  status: "Scheduled" | "On route" | "Paused" | "Completed" | "Partial" | "Cancelled" | "No route today" | "Under maintenance";
 }
 
 const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
@@ -38,6 +38,9 @@ const statusStyles: Record<string, { bg: string; text: string; border: string }>
     text: "text-sky-600 dark:text-sky-400",
     border: "border-sky-500/20",
   },
+  Paused: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
+  Partial: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
+  Cancelled: { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20" },
   "No route today": {
     bg: "bg-muted",
     text: "text-muted-foreground",
@@ -47,11 +50,6 @@ const statusStyles: Record<string, { bg: string; text: string; border: string }>
     bg: "bg-amber-500/10",
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-500/25",
-  },
-  Offline: {
-    bg: "bg-destructive/10",
-    text: "text-destructive",
-    border: "border-destructive/20",
   },
 };
 
@@ -65,32 +63,35 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
   const navigate = useNavigate();
 
   const displayTrucks: TruckRow[] = (liveTrucks ?? []).map((t) => {
-    const hasRoute = Number(t.total_barangays ?? 0) > 0;
+    const hasRoute = Boolean(t.run_status && t.run_status !== "CANCELLED");
     const status = t.availability_status === "UNDER_MAINTENANCE"
       ? "Under maintenance"
       : !hasRoute
-        ? "No route today"
-        : t.status === "ON_THE_WAY"
+        ? t.run_status === "CANCELLED" ? "Cancelled" : "No route today"
+        : t.run_status === "ACTIVE"
           ? "On route"
-          : t.status === "SCHEDULED"
+          : t.run_status === "PAUSED"
+            ? "Paused"
+          : t.run_status === "SCHEDULED"
             ? "Scheduled"
-            : t.status === "DONE"
+            : t.run_status === "COMPLETED"
               ? "Completed"
-              : "Offline";
+              : "Partial";
 
     return {
+      id: t.id,
       name: t.name,
       plate: t.plate_number,
       driver: t.driver_name || "No driver assigned",
-      currentBarangay: t.current_route || "No active route today",
-      completed: Number(t.completed_barangays ?? 0),
-      total: Number(t.total_barangays ?? 0),
+      currentRoute: t.current_route || "No route assigned today",
+      completed: Number(t.completed_stops ?? 0),
+      total: Number(t.total_stops ?? 0),
       status,
-      driverMessage: hasRoute ? "Today's assigned route" : "No route assigned today",
     };
   });
 
   const displayBarangays = (liveBarangays ?? []).map((b) => ({
+    id: b.id,
     name: b.name.startsWith("Brgy") ? b.name : `Brgy. ${b.name}`,
     status: b.status === "DONE" ? "Done" : b.status === "IN_PROGRESS" ? "In Progress" : b.status === "MISSED" ? "Missed" : "Not Started",
     truck: b.truck_name || "Unassigned",
@@ -99,10 +100,9 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
   const doneCount = displayBarangays.filter((b) => b.status === "Done").length;
   const inProgressCount = displayBarangays.filter((b) => b.status === "In Progress").length;
 
-  const totalCompletedSectors = displayBarangays.filter((b) => b.status === "Done").length;
-  const totalTargetSectors = displayBarangays.length;
-  const overallFleetProgress = totalTargetSectors > 0
-    ? Math.round((totalCompletedSectors / totalTargetSectors) * 100)
+  const totalTargetBarangays = displayBarangays.length;
+  const overallFleetProgress = totalTargetBarangays > 0
+    ? Math.round((doneCount / totalTargetBarangays) * 100)
     : 0;
 
   return (
@@ -129,15 +129,15 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-foreground">
-              Municipal Sector Coverage
+              Today's Barangay Coverage
             </span>
             <span className="font-bold text-primary tabular-nums">
-              {totalTargetSectors > 0
-                ? `${totalCompletedSectors} of ${totalTargetSectors} sectors (${overallFleetProgress}%)`
-                : "No sectors scheduled today"}
+              {totalTargetBarangays > 0
+                ? `${doneCount} of ${totalTargetBarangays} barangays (${overallFleetProgress}%)`
+                : "No barangays scheduled today"}
             </span>
           </div>
-          {totalTargetSectors > 0 && <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+          {totalTargetBarangays > 0 && <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{ width: `${overallFleetProgress}%` }}
@@ -151,14 +151,14 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
             <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
               No trucks are registered yet.
             </div>
-          ) : totalTargetSectors === 0 ? (
+          ) : totalTargetBarangays === 0 ? (
             <div className="grid grid-cols-1 gap-2">
               {displayTrucks.map((t) => {
-                const style = statusStyles[t.status] || statusStyles.Offline;
+                const style = statusStyles[t.status];
 
                 return (
                   <div
-                    key={t.name}
+                    key={t.id}
                     className="flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-background px-3 py-3 shadow-2xs"
                   >
                     <div className="min-w-0">
@@ -177,11 +177,11 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
             </div>
           ) : displayTrucks.map((t) => {
             const pct = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
-            const style = statusStyles[t.status] || statusStyles.Offline;
+            const style = statusStyles[t.status];
 
             return (
               <div
-                key={t.name}
+                key={t.id}
                 className="bg-background border border-border/80 rounded-xl p-3.5 shadow-2xs space-y-2.5 hover:border-primary/30 transition-all"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -211,10 +211,10 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="flex items-center gap-1 text-muted-foreground truncate">
                       <MapPin className="w-3 h-3 text-primary shrink-0" />
-                      {t.currentBarangay}
+                      {t.currentRoute}
                     </span>
                     <span className="font-bold text-foreground tabular-nums">
-                      {t.completed}/{t.total} ({pct}%)
+                      {t.completed}/{t.total} stops ({pct}%)
                     </span>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -225,9 +225,6 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                   </div>
                 </div>
 
-                <div className="text-[10px] text-muted-foreground pt-0.5">
-                  <span className="truncate italic">"{t.driverMessage}"</span>
-                </div>
               </div>
             );
           })}
@@ -241,7 +238,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
             className="w-full flex items-center justify-between p-3 text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <span>Today's Route Coverage ({displayBarangays.length})</span>
+                  <span>Today's Barangays ({displayBarangays.length})</span>
               <span className="text-[10px] font-normal text-muted-foreground hidden sm:inline">
                 · {doneCount} Done, {inProgressCount} Active
               </span>
@@ -267,7 +264,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {displayBarangays.map((b) => (
                     <div
-                      key={b.name}
+                      key={b.id}
                       className="flex items-center justify-between p-2 px-2.5 rounded-lg bg-card border border-border/60 text-xs shadow-2xs"
                     >
                       <div className="min-w-0 flex-1 pr-2">
@@ -295,7 +292,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
           )}
         </div>}
       </div>
-      {totalTargetSectors === 0 && displayTrucks.length > 0 && (
+      {totalTargetBarangays === 0 && displayTrucks.length > 0 && (
         <p className="mt-auto border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
           No collection activity is scheduled for today.
         </p>

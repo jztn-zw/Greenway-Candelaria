@@ -1,24 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Clock,
-  FileText,
-  Truck,
-  CheckCircle2,
-  ArrowRight,
-} from "lucide-react";
+import { Clock, FileText, Truck, CheckCircle2, ArrowRight, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardAttention } from "./useAdminDashboard";
-
-interface AttentionItem {
-  id: string;
-  count: number;
-  description: string;
-  timeAgo: string;
-  action: string;
-  route: string;
-  icon: React.ElementType;
-}
+import { formatRelativeTime } from "@/utils/date";
 
 interface NeedsAttentionProps {
   attention?: DashboardAttention | null;
@@ -26,121 +11,70 @@ interface NeedsAttentionProps {
 
 const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
   const navigate = useNavigate();
-  const awaitingTriageCount = attention?.awaiting_triage ?? 0;
-  const maintenanceTruckCount = attention?.maintenance_trucks ?? 0;
-
-  const items: AttentionItem[] = [];
-
-  if (awaitingTriageCount > 0) {
-    items.push({
-      id: "pending-queue",
-      count: awaitingTriageCount,
-      description: `${awaitingTriageCount} incident report${awaitingTriageCount > 1 ? "s" : ""} awaiting review`,
-      timeAgo: "Queue active",
-      action: "Review",
-      route: "/admin/reports",
-      icon: FileText,
-    });
-  }
-
-  if (maintenanceTruckCount > 0) {
-    items.push({
-      id: "fleet-idle",
-      count: maintenanceTruckCount,
-      description: `${maintenanceTruckCount} collection vehicle${maintenanceTruckCount > 1 ? "s" : ""} under maintenance`,
-      timeAgo: "Maintenance required",
-      action: "Fleet",
-      route: "/admin/truck-tracking",
-      icon: Truck,
-    });
-  }
-
-  const noIssues = items.length === 0;
-  const attentionCount = items.reduce((total, item) => total + item.count, 0);
+  const items = attention?.items ?? [];
+  const attentionCount = (attention?.awaiting_triage ?? 0)
+    + (attention?.maintenance_trucks ?? 0) + (attention?.missed_stops ?? 0);
+  const remainingReports = Math.max(0, (attention?.awaiting_triage ?? 0)
+    - items.filter((item) => item.kind === "report").length);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex h-full flex-col">
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground font-display">
-            Needs Attention
-          </h3>
-
-          <Badge
-            variant="outline"
-            className={
-              items.length > 0
-                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25 text-xs font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
-                : "bg-muted text-muted-foreground border-border/70 text-xs font-medium px-2.5 py-0.5 rounded-full"
-            }
-          >
+    <section aria-labelledby="needs-attention-heading" className="relative min-h-[380px] rounded-2xl border border-border/80 bg-card shadow-2xs transition-shadow hover:shadow-md">
+      {/* Keep list contents from expanding the dashboard grid row. */}
+      <div className="absolute inset-5 sm:inset-6 flex min-h-0 flex-col gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-3">
+          <h3 id="needs-attention-heading" className="text-base font-bold text-foreground font-display">Needs Attention</h3>
+          <Badge variant="outline" className={attentionCount > 0
+            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25 text-xs font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
+            : "bg-muted text-muted-foreground border-border/70 text-xs font-medium px-2.5 py-0.5 rounded-full"}>
             {attentionCount} {attentionCount === 1 ? "item" : "items"}
           </Badge>
         </div>
-
-        {/* List */}
-        {noIssues ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center bg-background rounded-xl border border-border/80">
-            <CheckCircle2 className="w-9 h-9 text-emerald-500 mb-2" />
-            <p className="text-sm font-semibold text-foreground">
-              All systems normal
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              No urgent alerts requiring administrative intervention
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {items.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <div
-                  key={item.id}
-                  className="bg-background border border-border/80 rounded-xl p-3.5 shadow-2xs flex items-center justify-between gap-3 hover:border-primary/30 transition-all group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-muted text-muted-foreground border-border/60"
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-foreground leading-snug truncate">
-                        {item.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {item.timeAgo}
-                        </span>
-                      </div>
-                    </div>
+        <div role="region" aria-label="Items needing attention" tabIndex={0}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 space-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl [scrollbar-gutter:stable]">
+          {items.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-border/80 bg-background p-5 text-center">
+              <CheckCircle2 className="w-9 h-9 text-emerald-500 mb-2" />
+              <p className="text-sm font-semibold text-foreground">No items in these queues</p>
+              <p className="text-xs text-muted-foreground mt-1">No submitted reports, missed stops today, or trucks under maintenance.</p>
+            </div>
+          ) : items.map((item) => {
+            const Icon = item.kind === "report" ? FileText : item.kind === "maintenance" ? Wrench : Truck;
+            const action = item.kind === "report" ? "Review" : "View truck";
+            const destination = item.kind === "report"
+              ? `/admin/reports?report=${encodeURIComponent(item.target_id)}`
+              : `/admin/drivers?truckId=${encodeURIComponent(item.target_id)}`;
+            return (
+              <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-background p-3.5 shadow-2xs transition-colors hover:border-primary/30">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-muted text-muted-foreground">
+                    <Icon className="h-4 w-4" />
                   </div>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-7 px-2.5 shrink-0 rounded-lg hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all cursor-pointer font-semibold group/btn active:scale-95"
-                    onClick={() => navigate(item.route)}
-                  >
-                    <span>{item.action}</span>
-                    <ArrowRight className="w-3 h-3 ml-1 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
-                  </Button>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground break-words">{item.title}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground break-words first-letter:uppercase">{item.description}</p>
+                    {item.occurred_at && <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {formatRelativeTime(item.occurred_at, { emptyLabel: "Time unavailable" })}
+                    </p>}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      {!noIssues && (
-        <p className="mt-auto border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
-          No additional operational alerts right now.
+                <Button size="sm" variant="outline" aria-label={`${action}: ${item.title}`}
+                  className="h-7 shrink-0 rounded-lg px-2.5 text-xs font-semibold"
+                  onClick={() => navigate(destination)}>
+                  {action}<ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+              </div>
+            );
+          })}
+          {remainingReports > 0 && <Button variant="ghost" className="w-full text-xs" onClick={() => navigate("/admin/reports")}>
+            View {remainingReports} more reports<ArrowRight className="ml-1 h-3 w-3" />
+          </Button>}
+        </div>
+        <p className="shrink-0 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+          Missed stops first, then oldest reports and fleet maintenance.
         </p>
-      )}
-    </div>
+      </div>
+    </section>
   );
 };
 

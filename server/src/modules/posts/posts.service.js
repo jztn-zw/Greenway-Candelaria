@@ -1,7 +1,23 @@
+const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const { notifyAllResidents } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
+const { deleteCloudinaryImage } = require("../../config/cloudinary");
+
+const MAX_POST_IMAGES = 5;
+
+const normalizeTags = (tags = []) =>
+  [...new Set(tags.map((tag) => tag.trim().toLowerCase()))];
+
+const buildPostNotification = (post) => ({
+  type: "NEW_POST",
+  title: "New Community Post",
+  body: `"${post.title}" is now available in Community Posts.`,
+  ref_id: post.id,
+  ref_module: "posts",
+  metadata: { category: post.category },
+});
 
 // Scheduled times arrive as ISO 8601 instants (for example,
 // 2026-09-05T05:30:00.000Z). Store their UTC value in TiDB's timezone-less
@@ -88,27 +104,23 @@ const publishDueScheduledPosts = async () => {
     // only the request that actually publishes the post sends the notification.
     const [result] = await pool.query(
       `UPDATE posts
-       SET status = 'PUBLISHED', published_at = COALESCE(scheduled_at, NOW())
+       SET published_at = COALESCE(scheduled_at, NOW()),
+           scheduled_at = NULL,
+           status = 'PUBLISHED'
        WHERE id = ? AND status = 'SCHEDULED'`,
       [post.id],
     );
 
     if (result.affectedRows === 1) {
-      notifyAllResidents({
-        type: "NEW_POST",
-        title: `New Content: ${post.title}`,
-        body: "A new item is available in Contents.",
-        ref_id: post.id,
-        ref_module: "posts",
-        metadata: { category: post.category },
-      }).catch((err) =>
+      emitAdminDataChanged(["posts", "dashboard", "analytics"]);
+      notifyAllResidents(buildPostNotification(post)).catch((err) =>
         console.error("[Notify] ❌ Scheduled post notification failed:", err.message),
       );
     }
   }
 };
 
-const getAll = async (filters = {}, userId = null) => {
+const getAll = async (filters = {}, userId = null, userRole = null) => {
   // Auto-activate due posts and notify residents exactly once per post.
   await publishDueScheduledPosts().catch((err) =>
     console.error("[Posts] ❌ Failed to publish due scheduled posts:", err.message),
@@ -139,10 +151,8 @@ const getAll = async (filters = {}, userId = null) => {
       p.updated_at,
       u.full_name  AS author_name,
       u.avatar_url AS author_avatar,
-      (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
-      ${isLikedField},
-      (SELECT GROUP_CONCAT(url ORDER BY stop_order ASC) FROM post_images WHERE post_id = p.id) AS image_list,
-      (SELECT GROUP_CONCAT(tag) FROM post_tags WHERE post_id = p.id) AS tag_list
+       (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
+       ${isLikedField}
     FROM posts p
     LEFT JOIN users u ON u.id = p.created_by
   `;
@@ -152,7 +162,13 @@ const getAll = async (filters = {}, userId = null) => {
     whereParams.push(filters.category);
   }
 
-  if (filters.status) {
+  const isAdmin = userRole === "ADMIN";
+
+  if (!isAdmin) {
+    // Never trust public query parameters to decide visibility. Draft,
+    // scheduled, and archived content is visible only to an administrator.
+    conditions.push("p.status = 'PUBLISHED'");
+  } else if (filters.status) {
     conditions.push("p.status = ?");
     whereParams.push(filters.status);
   } else if (!filters.all) {
@@ -177,9 +193,12 @@ const getAll = async (filters = {}, userId = null) => {
   }
 
   if (filters.search) {
-    conditions.push("(p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ?)");
+    conditions.push(`(
+      p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ? OR u.full_name LIKE ? OR
+      EXISTS (SELECT 1 FROM post_tags search_tags WHERE search_tags.post_id = p.id AND search_tags.tag LIKE ?)
+    )`);
     const s = `%${filters.search}%`;
-    whereParams.push(s, s, s);
+    whereParams.push(s, s, s, s, s);
   }
 
   const usePagination = filters.page !== undefined || filters.limit !== undefined;
@@ -193,7 +212,9 @@ const getAll = async (filters = {}, userId = null) => {
     ? "COALESCE(p.published_at, p.created_at) ASC"
     : filters.sort === "most-reacted"
       ? "like_count DESC, COALESCE(p.published_at, p.created_at) DESC"
-      : "p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
+      : filters.sort === "views"
+        ? "p.view_count DESC, COALESCE(p.published_at, p.created_at) DESC"
+        : "p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
 
   query += ` WHERE ${conditions.join(" AND ")} ORDER BY ${sortOrder}`;
   params.push(...whereParams);
@@ -205,20 +226,74 @@ const getAll = async (filters = {}, userId = null) => {
 
   const [rows] = await pool.query(query, params);
 
+  const postIds = rows.map((post) => post.id);
+  const imagesByPost = new Map();
+  const tagsByPost = new Map();
+
+  if (postIds.length > 0) {
+    const placeholders = postIds.map(() => "?").join(",");
+    const [imageRows] = await pool.query(
+      `SELECT post_id, url FROM post_images WHERE post_id IN (${placeholders}) ORDER BY post_id, stop_order ASC`,
+      postIds,
+    );
+    const [tagRows] = await pool.query(
+      `SELECT post_id, tag FROM post_tags WHERE post_id IN (${placeholders}) ORDER BY post_id, created_at ASC`,
+      postIds,
+    );
+    for (const image of imageRows) {
+      imagesByPost.set(image.post_id, [...(imagesByPost.get(image.post_id) || []), image.url]);
+    }
+    for (const tag of tagRows) {
+      tagsByPost.set(tag.post_id, [...(tagsByPost.get(tag.post_id) || []), tag.tag]);
+    }
+  }
+
   const posts = rows.map((post) => ({
     ...post,
     is_liked: Boolean(post.is_liked),
-    images: post.image_list ? post.image_list.split(",") : [],
-    tags: post.tag_list ? post.tag_list.split(",") : [],
+    images: imagesByPost.get(post.id) || [],
+    tags: tagsByPost.get(post.id) || [],
   }));
 
   if (!usePagination) return posts;
 
   const [[countRow]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM posts p WHERE ${conditions.join(" AND ")}`,
+    `SELECT COUNT(*) AS total
+       FROM posts p
+       LEFT JOIN users u ON u.id = p.created_by
+      WHERE ${conditions.join(" AND ")}`,
     whereParams,
   );
   const total = Number(countRow.total || 0);
+
+  let stats;
+  if (isAdmin) {
+    const [[statsRow]] = await pool.query(
+      `SELECT
+         COUNT(*) AS total_posts,
+         SUM(status = 'PUBLISHED') AS published,
+         SUM(status = 'DRAFT') AS drafts,
+         SUM(status = 'SCHEDULED') AS scheduled,
+         SUM(status = 'ARCHIVED') AS archived,
+         COALESCE(SUM(CASE WHEN status = 'PUBLISHED' THEN view_count ELSE 0 END), 0) AS total_views,
+         (SELECT COUNT(*)
+            FROM post_likes pl
+            JOIN posts liked_post ON liked_post.id = pl.post_id
+           WHERE liked_post.deleted_at IS NULL
+             AND liked_post.status = 'PUBLISHED') AS total_reacts
+       FROM posts
+       WHERE deleted_at IS NULL`,
+    );
+    stats = {
+      totalPosts: Number(statsRow.total_posts || 0),
+      published: Number(statsRow.published || 0),
+      drafts: Number(statsRow.drafts || 0),
+      scheduled: Number(statsRow.scheduled || 0),
+      archived: Number(statsRow.archived || 0),
+      totalViews: Number(statsRow.total_views || 0),
+      totalReacts: Number(statsRow.total_reacts || 0),
+    };
+  }
 
   return {
     posts,
@@ -226,6 +301,7 @@ const getAll = async (filters = {}, userId = null) => {
     page,
     limit,
     totalPages: Math.max(1, Math.ceil(total / limit)),
+    ...(stats ? { stats } : {}),
   };
 };
 
@@ -244,8 +320,13 @@ const create = async (adminId, data) => {
     tags = [],
   } = data;
 
+  if (images.length > MAX_POST_IMAGES) {
+    throw { statusCode: 400, message: `A post can contain up to ${MAX_POST_IMAGES} images` };
+  }
+
   const postId = generateId();
   const publishedAt = status === "PUBLISHED" ? new Date() : null;
+  const normalizedTags = normalizeTags(tags);
 
   const connection = await pool.getConnection();
   try {
@@ -264,7 +345,7 @@ const create = async (adminId, data) => {
         category,
         status,
         is_featured,
-        toUtcDatabaseDateTime(scheduled_at),
+        toUtcDatabaseDateTime(status === "SCHEDULED" ? scheduled_at : null),
         publishedAt,
         adminId,
       ],
@@ -278,11 +359,11 @@ const create = async (adminId, data) => {
       );
     }
 
-    if (tags.length > 0) {
-      const tagRows = tags.map((tag) => [
+    if (normalizedTags.length > 0) {
+      const tagRows = normalizedTags.map((tag) => [
         generateId(),
         postId,
-        tag.toLowerCase(),
+        tag,
       ]);
       await connection.query(
         "INSERT INTO post_tags (id, post_id, tag) VALUES ?",
@@ -302,14 +383,7 @@ const create = async (adminId, data) => {
     }).catch(() => {});
 
     if (createdPost.status === "PUBLISHED") {
-      notifyAllResidents({
-        type: "NEW_POST",
-        title: `New Content: ${createdPost.title}`,
-        body: "A new item is available in Contents.",
-        ref_id: createdPost.id,
-        ref_module: "posts",
-        metadata: { category: createdPost.category },
-      }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
+      notifyAllResidents(buildPostNotification(createdPost)).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
     }
 
     return createdPost;
@@ -346,8 +420,23 @@ const duplicate = async (postId, adminId) => {
 
 // ─── Update ────────────────────────────────────────────────
 
-const update = async (id, data) => {
+const update = async (id, data, adminId) => {
   const existing = await getById(id, null, null, true);
+
+  if (data.images && data.images.length > MAX_POST_IMAGES) {
+    throw { statusCode: 400, message: `A post can contain up to ${MAX_POST_IMAGES} images` };
+  }
+
+  const normalizedData = { ...data };
+  if (normalizedData.tags) {
+    normalizedData.tags = normalizeTags(normalizedData.tags);
+  }
+  const removedImageUrls = normalizedData.images
+    ? existing.images.filter((url) => !normalizedData.images.includes(url))
+    : [];
+  if (normalizedData.status && normalizedData.status !== "SCHEDULED") {
+    normalizedData.scheduled_at = null;
+  }
 
   const fields = [];
   const params = [];
@@ -362,19 +451,26 @@ const update = async (id, data) => {
   };
 
   for (const [key, col] of Object.entries(map)) {
-    if (data[key] !== undefined) {
+    if (normalizedData[key] !== undefined) {
       fields.push(`${col} = ?`);
       params.push(
         key === "scheduled_at"
-          ? toUtcDatabaseDateTime(data[key])
-          : data[key],
+          ? toUtcDatabaseDateTime(normalizedData[key])
+          : normalizedData[key],
       );
     }
   }
 
-  if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+  if (normalizedData.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
     fields.push("published_at = ?");
     params.push(new Date());
+  } else if (
+    normalizedData.status &&
+    normalizedData.status !== "PUBLISHED" &&
+    existing.status === "PUBLISHED"
+  ) {
+    fields.push("published_at = ?");
+    params.push(null);
   }
 
   const connection = await pool.getConnection();
@@ -389,10 +485,10 @@ const update = async (id, data) => {
       );
     }
 
-    if (data.images !== undefined) {
+    if (normalizedData.images !== undefined) {
       await connection.query("DELETE FROM post_images WHERE post_id = ?", [id]);
-      if (data.images.length > 0) {
-        const imageRows = data.images.map((url, i) => [
+      if (normalizedData.images.length > 0) {
+        const imageRows = normalizedData.images.map((url, i) => [
           generateId(),
           id,
           url,
@@ -405,13 +501,13 @@ const update = async (id, data) => {
       }
     }
 
-    if (data.tags !== undefined) {
+    if (normalizedData.tags !== undefined) {
       await connection.query("DELETE FROM post_tags WHERE post_id = ?", [id]);
-      if (data.tags.length > 0) {
-        const tagRows = data.tags.map((tag) => [
+      if (normalizedData.tags.length > 0) {
+        const tagRows = normalizedData.tags.map((tag) => [
           generateId(),
           id,
-          tag.toLowerCase(),
+          tag,
         ]);
         await connection.query(
           "INSERT INTO post_tags (id, post_id, tag) VALUES ?",
@@ -423,9 +519,19 @@ const update = async (id, data) => {
     await connection.commit();
     const updatedPost = await getById(id, null, null, true);
 
+    // Duplicated posts may share an image URL. Delete the remote asset only
+    // after the transaction commits and no post references it anymore.
+    await Promise.allSettled(
+      removedImageUrls.map(async (url) => {
+        if (!(await isImageReferenced(url))) {
+          await deleteCloudinaryImage(url);
+        }
+      }),
+    );
+
     await auditService.log({
-      user_id: updatedPost.created_by,
-      action: data.status === "PUBLISHED" && existing.status !== "PUBLISHED" ? "PUBLISH_POST" : "UPDATE_POST",
+      user_id: adminId,
+      action: normalizedData.status === "PUBLISHED" && existing.status !== "PUBLISHED" ? "PUBLISH_POST" : "UPDATE_POST",
       module: "posts",
       record_id: updatedPost.id,
       old_value: { title: existing.title, category: existing.category, status: existing.status },
@@ -433,15 +539,8 @@ const update = async (id, data) => {
     }).catch(() => {});
 
     // Trigger notification if newly published
-    if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
-      notifyAllResidents({
-        type: "NEW_POST",
-        title: `New Content: ${updatedPost.title}`,
-        body: "A new item is available in Contents.",
-        ref_id: updatedPost.id,
-        ref_module: "posts",
-        metadata: { category: updatedPost.category },
-      }).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
+    if (normalizedData.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+      notifyAllResidents(buildPostNotification(updatedPost)).catch((err) => console.error("[Notify] ❌ Post publish notification failed:", err.message));
     }
 
     return updatedPost;
@@ -455,7 +554,7 @@ const update = async (id, data) => {
 
 // ─── Soft delete ───────────────────────────────────────────
 
-const remove = async (id) => {
+const remove = async (id, adminId) => {
   const existing = await getById(id, null, null, true).catch(() => null);
   const [result] = await pool.query(
     "UPDATE posts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL",
@@ -467,7 +566,7 @@ const remove = async (id) => {
 
   if (existing) {
     await auditService.log({
-      user_id: existing.created_by,
+      user_id: adminId,
       action: "DELETE_POST",
       module: "posts",
       record_id: id,
@@ -481,10 +580,15 @@ const remove = async (id) => {
 // ─── Increment view count ──────────────────────────────────
 
 const incrementView = async (postId, userId = null, ipAddress = "0.0.0.0") => {
-  const [existing] = await pool.query(
-    "SELECT id FROM post_view_logs WHERE post_id = ? AND (user_id = ? OR ip_address = ?)",
-    [postId, userId, ipAddress],
-  );
+  const [existing] = userId
+    ? await pool.query(
+        "SELECT id FROM post_view_logs WHERE post_id = ? AND user_id = ? LIMIT 1",
+        [postId, userId],
+      )
+    : await pool.query(
+        "SELECT id FROM post_view_logs WHERE post_id = ? AND user_id IS NULL AND ip_address = ? LIMIT 1",
+        [postId, ipAddress],
+      );
 
   if (existing.length === 0) {
     await pool.query(
@@ -496,6 +600,14 @@ const incrementView = async (postId, userId = null, ipAddress = "0.0.0.0") => {
       [postId],
     );
   }
+};
+
+const isImageReferenced = async (url) => {
+  const [[row]] = await pool.query(
+    "SELECT EXISTS(SELECT 1 FROM post_images WHERE url = ?) AS referenced",
+    [url],
+  );
+  return Boolean(row.referenced);
 };
 
 // ─── Like / Unlike ─────────────────────────────────────────
@@ -539,4 +651,5 @@ module.exports = {
   incrementView,
   likePost,
   unlikePost,
+  isImageReferenced,
 };

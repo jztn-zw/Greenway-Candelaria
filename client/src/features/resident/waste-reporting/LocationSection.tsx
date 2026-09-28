@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useResidentQuery } from "@/lib/residentQuery";
+import React from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2 } from "lucide-react";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
+import { fetchBarangays } from "@/services/barangaysService";
 
 interface LocationSectionProps {
   barangayId: string;
@@ -26,15 +21,9 @@ const LocationSection: React.FC<LocationSectionProps> = ({
   onStreetChange,
   showError = false,
 }) => {
-  const [barangays, setBarangays] = useState<BarangayLocationRow[]>([]);
-  const [loadingBarangays, setLoadingBarangays] = useState(true);
-
-  useEffect(() => {
-    fetchBarangays()
-      .then((data) => setBarangays(data))
-      .catch(() => setBarangays([]))
-      .finally(() => setLoadingBarangays(false));
-  }, []);
+  const query = useResidentQuery("barangays", ["locations"], fetchBarangays);
+  const barangays = query.data ?? [];
+  const loadingBarangays = query.isLoading;
 
   const handleSelect = (selectedId: string) => {
     const found = barangays.find((b) => b.id === selectedId);
@@ -52,6 +41,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
         </p>
       </div>
 
+      {query.isError && <p role="alert" className="text-xs text-destructive">Could not refresh barangays. Please try again.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3.5">
         <div>
           <label className="text-xs font-semibold text-foreground mb-1.5 block">Barangay</label>
@@ -61,24 +51,19 @@ const LocationSection: React.FC<LocationSectionProps> = ({
               Loading barangays…
             </div>
           ) : (
-            <Select value={barangayId} onValueChange={handleSelect}>
-              <SelectTrigger
-                className={`w-full h-10 rounded-xl text-xs lg:text-sm font-medium transition-all ${
+            <SearchableSelect
+              value={barangayId}
+              onValueChange={handleSelect}
+              options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
+              placeholder="Select barangay"
+              searchPlaceholder="Search barangays..."
+              className={`w-full h-10 rounded-xl text-xs lg:text-sm font-medium transition-all ${
                   showError
                     ? "border-destructive/80 focus:ring-destructive/25"
                     : "border-border/80 hover:border-border focus:ring-primary/20 focus:border-primary"
-                }`}
-              >
-                <SelectValue placeholder="Select barangay" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60 rounded-xl">
-                {barangays.map((b) => (
-                  <SelectItem key={b.id} value={b.id} className="text-xs lg:text-sm rounded-lg py-2 cursor-pointer">
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              }`}
+              contentClassName="rounded-xl"
+            />
           )}
           {showError && !loadingBarangays && (
             <p className="mt-1.5 text-[11px] font-medium text-destructive">Please select a barangay.</p>

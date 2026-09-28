@@ -2,6 +2,8 @@ const service = require("./users.service");
 const {
   updateProfileSchema,
   changePasswordSchema,
+  updateSettingsSchema,
+  updateAdminSettingsSchema,
   updateStatusSchema,
 } = require("./users.schema");
 const { success } = require("../../utils/apiResponse");
@@ -133,8 +135,28 @@ const getSettings = async (req, res, next) => {
 
 const updateSettings = async (req, res, next) => {
   try {
-    const settings = await service.updateUserSettings(req.user.id, req.body);
+    const data = updateSettingsSchema.parse(req.body);
+    const settings = await service.updateUserSettings(req.user.id, data);
     return success(res, settings, "Settings updated successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getAdminSettings = async (req, res, next) => {
+  try {
+    const settings = await service.getAdminSettings(req.user.id);
+    return success(res, settings, "Admin settings fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateAdminSettings = async (req, res, next) => {
+  try {
+    const data = updateAdminSettingsSchema.parse(req.body);
+    const settings = await service.updateAdminSettings(req.user.id, data);
+    return success(res, settings, "Admin settings updated successfully");
   } catch (err) {
     next(err);
   }
@@ -152,5 +174,7 @@ module.exports = {
   getReportHistory,
   getSettings,
   updateSettings,
+  getAdminSettings,
+  updateAdminSettings,
 };
 

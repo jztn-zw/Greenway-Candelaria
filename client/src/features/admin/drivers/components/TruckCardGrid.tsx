@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Truck as TruckIcon,
   MoreHorizontal,
   User,
-  Recycle,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
 import { Button } from "@/components/ui/button";
@@ -52,8 +51,7 @@ const TruckCardGrid = ({
       const matchesSearch =
         t.name.toLowerCase().includes(search.toLowerCase()) ||
         t.plateNumber.toLowerCase().includes(search.toLowerCase()) ||
-        t.model.toLowerCase().includes(search.toLowerCase()) ||
-        t.wasteType.toLowerCase().includes(search.toLowerCase());
+        t.model.toLowerCase().includes(search.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || t.status === statusFilter;
       const matchesDriver =
@@ -63,12 +61,16 @@ const TruckCardGrid = ({
     });
   }, [trucks, search, statusFilter, driverFilter]);
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, driverFilter]);
+  useEffect(() => { setCurrentPage((page) => Math.min(page, totalPages)); }, [totalPages]);
 
   const paginated = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const start = (visiblePage - 1) * ITEMS_PER_PAGE;
     return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
+  }, [filtered, visiblePage]);
 
   return (
     <div className="space-y-5">
@@ -179,10 +181,6 @@ const TruckCardGrid = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Recycle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span>{t.wasteType}</span>
-                  </div>
                 </div>
               </div>
             );
@@ -193,7 +191,7 @@ const TruckCardGrid = ({
       {/* ── Pagination ── */}
       {totalPages > 1 && (
         <PaginationControls
-          currentPage={currentPage}
+          currentPage={visiblePage}
           totalPages={totalPages}
           totalItems={filtered.length}
           pageSize={ITEMS_PER_PAGE}

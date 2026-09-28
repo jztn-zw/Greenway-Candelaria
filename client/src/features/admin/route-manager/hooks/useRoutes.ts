@@ -1,13 +1,14 @@
+import { useAdminMutation, useAdminResource } from "@/lib/adminQuery";
 // src/pages/admin/hooks/useRoutes.ts
-import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "@/lib/toast";
 import {
-  fetchRoutes,
-  createRoute,
-  updateRoute,
-  deleteRoute,
-  ApiRoute,
+createRoute as apicreateRoute,
+deleteRoute as apideleteRoute,
+ApiRoute,
+updateRoute as apiupdateRoute,
+fetchRoutes,
 } from "@/services/routesService";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { WASTE_MAP } from "../constants";
 
 // ─── Frontend shape (what the component works with) ───────────────────────────
@@ -25,6 +26,9 @@ export interface RouteStop {
   id: string;
   barangayId: string;
   barangayName: string;
+  streetId: string | null;
+  stopName: string;
+  coveragePath: [number, number][] | null;
   zone: string;
   stopOrder: number;
   status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
@@ -52,7 +56,15 @@ export interface RouteForm {
   truckId: string;
   driverId: string;
   startTime: string;
-  barangays: { id: string; name: string }[];
+  selectedBarangayId: string;
+  barangays: {
+    id: string;
+    name: string;
+    barangayId: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    coveragePath?: [number, number][] | null;
+  }[];
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
@@ -77,6 +89,30 @@ const DAY_REVERSE: Record<Day, string> = {
   Sunday: "SUNDAY",
 };
 
+const normalizeCoveragePath = (
+  value: [number, number][] | string | null | undefined,
+): [number, number][] | null => {
+  if (!value) return null;
+
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return null;
+
+    const points = parsed.flatMap((point): [number, number][] => {
+      if (!Array.isArray(point) || point.length < 2) return [];
+      const latitude = Number(point[0]);
+      const longitude = Number(point[1]);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? [[latitude, longitude]]
+        : [];
+    });
+
+    return points.length >= 2 ? points : null;
+  } catch {
+    return null;
+  }
+};
+
 const mapRoute = (raw: ApiRoute): RouteData => {
   const sortedStops = [...raw.stops].sort(
     (a, b) => a.stop_order - b.stop_order,
@@ -94,11 +130,14 @@ const mapRoute = (raw: ApiRoute): RouteData => {
       id: s.id,
       barangayId: s.barangay_id,
       barangayName: s.barangay_name,
+      streetId: s.street_id ?? null,
+      stopName: s.stop_name ?? s.barangay_name,
+      coveragePath: normalizeCoveragePath(s.coverage_path),
       zone: s.zone,
       stopOrder: s.stop_order,
       status: s.status,
     })),
-    barangays: sortedStops.map((s) => s.barangay_name),
+    barangays: sortedStops.map((s) => s.stop_name ?? s.barangay_name),
     active: raw.status === "ACTIVE",
     status: raw.status,
   };
@@ -107,10 +146,13 @@ const mapRoute = (raw: ApiRoute): RouteData => {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export const useRoutes = () => {
-  const [routes, setRoutes] = useState<RouteData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const createRoute = useAdminMutation(apicreateRoute, "routes", "tracking", "drivers", "trucks", "schedule");
+  const updateRoute = useAdminMutation(apiupdateRoute, "routes", "tracking", "drivers", "trucks", "schedule");
+  const deleteRoute = useAdminMutation(apideleteRoute, "routes", "tracking", "drivers", "trucks", "schedule");
+  const { data: routes, setData: setRoutes, isLoading, error: queryError, refetch: loadRoutes } =
+    useAdminResource<RouteData[]>("routes", ["list"], async () => (await fetchRoutes()).map(mapRoute), []);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const error = queryError?.message ?? null;
 
   // useRef snapshot for optimistic rollback — avoids stale closure in remove()
   const routesRef = useRef<RouteData[]>([]);
@@ -118,24 +160,7 @@ export const useRoutes = () => {
 
   // ── Fetch ─────────────────────────────────────────────────────────────────────
 
-  const loadRoutes = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const raw = await fetchRoutes();
-      setRoutes(raw.map(mapRoute));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load routes.";
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRoutes();
-  }, [loadRoutes]);
+  useEffect(() => { if (queryError) toast.error(queryError.message); }, [queryError]);
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
@@ -150,12 +175,13 @@ export const useRoutes = () => {
           start_time: form.startTime,
           waste_type: WASTE_MAP[form.day].label,
           stops: form.barangays.map((b, i) => ({
-            barangay_id: b.id,
+            barangay_id: b.barangayId,
+            street_id: b.id,
             stop_order: i + 1,
           })),
         });
         const mapped = mapRoute(raw);
-        setRoutes((prev) => [mapped, ...prev]);
+        setRoutes((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
         toast.success("Route created successfully");
         return mapped;
       } catch (err) {
@@ -165,7 +191,7 @@ export const useRoutes = () => {
         setIsSaving(false);
       }
     },
-    [],
+    [createRoute, setRoutes],
   );
 
   // ── Update ────────────────────────────────────────────────────────────────────
@@ -181,7 +207,8 @@ export const useRoutes = () => {
           start_time: form.startTime,
           waste_type: WASTE_MAP[form.day].label,
           stops: form.barangays.map((b, i) => ({
-            barangay_id: b.id,
+            barangay_id: b.barangayId,
+            street_id: b.id,
             stop_order: i + 1,
           })),
         });
@@ -196,7 +223,7 @@ export const useRoutes = () => {
         setIsSaving(false);
       }
     },
-    [],
+    [setRoutes, updateRoute],
   );
 
   // ── Toggle Active (ACTIVE ↔ INACTIVE) ─────────────────────────────────────────
@@ -219,7 +246,7 @@ export const useRoutes = () => {
         err instanceof Error ? err.message : "Failed to update route status.",
       );
     }
-  }, []);
+  }, [setRoutes, updateRoute]);
 
   // ── Duplicate ─────────────────────────────────────────────────────────────────
 
@@ -235,11 +262,12 @@ export const useRoutes = () => {
           waste_type: WASTE_MAP[targetDay].label,
           stops: route.stops.map((s) => ({
             barangay_id: s.barangayId,
+            street_id: s.streetId ?? undefined,
             stop_order: s.stopOrder,
           })),
         });
         const mapped = mapRoute(raw);
-        setRoutes((prev) => [mapped, ...prev]);
+        setRoutes((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
         toast.success(`Route duplicated to ${targetDay}`);
         return mapped;
       } catch (err) {
@@ -251,7 +279,7 @@ export const useRoutes = () => {
         setIsSaving(false);
       }
     },
-    [],
+    [createRoute, setRoutes],
   );
 
   // ── Delete ────────────────────────────────────────────────────────────────────
@@ -272,7 +300,7 @@ export const useRoutes = () => {
       );
       return false;
     }
-  }, []); // ← no [routes] dependency needed anymore
+  }, [deleteRoute, setRoutes]); // ← no [routes] dependency needed anymore
 
   return {
     routes,

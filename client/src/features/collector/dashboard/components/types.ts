@@ -1,26 +1,23 @@
-export type ShiftStatus = "off-duty" | "on-route" | "completed";
-export type RouteState = "unassigned" | "assigned" | "in-progress" | "not-started" | "completed" | "no-schedule";
+export type RouteState = "unassigned" | "in-progress" | "paused" | "not-started" | "completed" | "partial" | "no-collection" | "cancelled" | "no-schedule";
 
 export interface AssignmentData {
   routeName: string;
-  truckName: string;
-  plateNumber: string;
+  plateNumber?: string | null;
   totalStops: number;
   completedStops: number;
   skippedStops: number;
+  remainingStops: number;
+  completionPct: number;
   estimatedStart: string;
   wasteType: string;
-  wasteColor?: string;
   routeState: RouteState;
-  timeElapsedMinutes: number;
+  statusLabel: string;
+  durationLabel: string;
   nextStopName?: string;
-  nextStopZone?: string;
   nextStopOrder?: number;
-  upcomingStops?: {
+  upcomingStops: {
     id: string;
     name: string;
-    zone?: string;
     order: number;
-    status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "MISSED";
   }[];
 }

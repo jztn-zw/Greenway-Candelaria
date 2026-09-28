@@ -1,68 +1,38 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
-import { toast } from "@/lib/toast";
-import {
-  Search,
-  Plus,
-  LayoutGrid,
-  List,
-  Filter,
-  FileText,
-  User,
-  Calendar,
-  Eye,
-  Heart,
-  X,
-  ArrowLeft,
-  SlidersHorizontal,
-  RotateCcw,
-  ArrowUpDown,
-  Trash2,
-  Loader2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Post,
-  PostStatus,
-  statusStyles,
-  categoryStyles,
-} from "./types";
-import PostStats from "./PostStats";
-import PostCard from "./PostCard";
-import PostListView from "./PostListView";
-import PostEditor, { EditorForm } from "./PostEditor";
-import AdminPostDetail from "./AdminPostDetail";
-import { BackButton } from "@/components/common";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
 import {
-  PageHeaderSkeleton,
-  KPIRowSkeleton,
-  ToolbarSkeleton,
-  CardGridSkeleton,
-  AdminPostDetailSkeleton,
+AdminPostDetailSkeleton,
+CardGridSkeleton,
+KPIRowSkeleton,
+PageHeaderSkeleton,
+ToolbarSkeleton,
 } from "@/components/PageLoadingSkeletons";
-import postsService from "@/services/postsService";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
+} from "@/components/ui/select";
+import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
+import { toast } from "@/lib/toast";
+import postsService, { type AdminPostStats } from "@/services/postsService";
 import useAuthStore from "@/store/authStore";
+import { ArrowUpDown, LayoutGrid, List, Plus, RotateCcw, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import AdminPostDetail from "./AdminPostDetail";
+import PostCard from "./PostCard";
+import PostEditor, { EditorForm } from "./PostEditor";
+import PostListView from "./PostListView";
+import PostStats from "./PostStats";
+import {
+Post,
+PostStatus
+} from "./types";
 
 const POSTS_PER_PAGE_GRID = 6;
 const POSTS_PER_PAGE_TABLE = 10;
@@ -101,7 +71,25 @@ const toUtcIsoString = (value: string | null | undefined): string | null => {
     : `${normalized}Z`;
 };
 
-const mapApiPost = (p: any): Post => ({
+interface ApiPost {
+  id: string;
+  title: string;
+  body: string;
+  source?: string | null;
+  category: "WASTE_TIP" | "EVENT";
+  status: string;
+  is_featured?: boolean | number;
+  author_name?: string | null;
+  published_at?: string | null;
+  updated_at?: string | null;
+  view_count?: number;
+  like_count?: number;
+  tags?: string[];
+  images?: Array<string | { url: string }>;
+  scheduled_at?: string | null;
+}
+
+const mapApiPost = (p: ApiPost): Post => ({
   id: p.id,
   title: p.title,
   body: p.body,
@@ -128,26 +116,33 @@ const mapApiPost = (p: any): Post => ({
   likes: p.like_count || 0,
   tags: p.tags || [],
   images:
-    p.images?.map((img: any) => (typeof img === "string" ? img : img.url)) ||
+    p.images?.map((img) => (typeof img === "string" ? img : img.url)) ||
     [],
   scheduledDate: toUtcIsoString(p.scheduled_at),
 });
 
-const mapApiPosts = (data: any[]): Post[] => data.map(mapApiPost);
+const mapApiPosts = (data: ApiPost[]): Post[] => data.map(mapApiPost);
 
 // ─── Component ─────────────────────────────────────────────
 
 const AdminPosts = () => {
+  const mutateCreate = useAdminMutation(postsService.create, "posts");
+  const mutateUpdate = useAdminMutation(postsService.update, "posts");
+  const mutateDelete = useAdminMutation(postsService.delete, "posts");
+  const mutateDuplicate = useAdminMutation(postsService.duplicate, "posts");
   const [searchParams, setSearchParams] = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
-  const [isInitialSync, setIsInitialSync] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [postStats, setPostStats] = useState<AdminPostStats | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
@@ -164,6 +159,8 @@ const AdminPosts = () => {
   });
   const [previewActiveImageIndex, setPreviewActiveImageIndex] = useState(0);
   const wasPreviewRef = useRef(false);
+  const postsPerPage =
+    viewMode === "grid" ? POSTS_PER_PAGE_GRID : POSTS_PER_PAGE_TABLE;
 
   // Listen for user returning from preview via topbar breadcrumb (or browser back)
   useEffect(() => {
@@ -176,39 +173,67 @@ const AdminPosts = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    const initializeData = async () => {
-      const urlPostId = searchParams.get("post");
-      const savedPostId = urlPostId || sessionStorage.getItem("viewingPostId");
-      try {
-        const listPromise = postsService.getAll({ all: true });
-        const detailPromise = savedPostId
-          ? postsService.getById(savedPostId)
-          : null;
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-        const [listData, postData] = await Promise.all([
-          listPromise,
-          detailPromise,
-        ]);
-
-        setPosts(mapApiPosts(listData));
-
-        if (postData) {
-          setViewingPost(mapApiPost(postData));
-        }
-      } catch (err) {
-        console.error("Initialization failed:", err);
-        sessionStorage.removeItem("viewingPostId");
-      } finally {
-        setIsInitialSync(false);
-      }
-    };
-    initializeData();
-  }, []);
-
-  // Synchronize URL parameters if post query, edit, or create action changes externally or via back/forward
+  const fetchAdmin = useAdminFetch();
+  const listQuery = useAdminQuery("posts", ["list", currentPage, postsPerPage, debouncedSearch, categoryFilter, statusFilter, sortBy], () => postsService.getPage<ApiPost>({
+        page: currentPage,
+        limit: postsPerPage,
+        all: true,
+        search: debouncedSearch || undefined,
+        category: categoryFilter === "all"
+          ? undefined
+          : categoryFilter === "Waste Tip" ? "WASTE_TIP" : "EVENT",
+        status: statusFilter === "all"
+          ? undefined
+          : statusFilter.toUpperCase() as "PUBLISHED" | "DRAFT" | "SCHEDULED" | "ARCHIVED",
+        sort: sortBy === "newest" ? "latest" : sortBy as "oldest" | "views",
+      }));
+  const isInitialSync = listQuery.isLoading;
+  const isListLoading = listQuery.isFetching;
+  const loadError = listQuery.error ? "Posts could not be loaded. Please try again." : null;
+  const loadPosts = () => listQuery.refetch();
   useEffect(() => {
-    const editId = searchParams.get("edit");
-    const isCreateAction = searchParams.get("action") === "create";
+    const result = listQuery.data;
+    if (!result) return;
+    setPosts(mapApiPosts(result.posts)); setTotalItems(result.total);
+    setTotalPages(Math.max(1, result.totalPages)); setPostStats(result.stats || null);
+    if (currentPage > Math.max(1, result.totalPages)) setCurrentPage(Math.max(1, result.totalPages));
+  }, [listQuery.data, currentPage]);
+
+  const requestedPostId = searchParams.get("post");
+  const detailQuery = useAdminQuery("posts", ["detail", requestedPostId],
+    () => postsService.getById(requestedPostId!), { enabled: !!requestedPostId });
+  useEffect(() => {
+    setIsDetailLoading(detailQuery.isLoading);
+    if (!requestedPostId) {
+      setViewingPost(null);
+      sessionStorage.removeItem("viewingPostId");
+    } else if (detailQuery.data) {
+      setViewingPost(mapApiPost(detailQuery.data));
+      sessionStorage.setItem("viewingPostId", requestedPostId);
+    }
+  }, [requestedPostId, detailQuery.data, detailQuery.isLoading]);
+  useEffect(() => {
+    if (!detailQuery.error) return;
+    const status = (detailQuery.error as { response?: { status?: number } }).response?.status;
+    if (status === 404) {
+      setViewingPost(null);
+      sessionStorage.removeItem("viewingPostId");
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("post"); next.delete("title"); return next;
+      }, { replace: true });
+      toast.error("That post is no longer available");
+    } else toast.error("The post could not be refreshed. Please try again.");
+  }, [detailQuery.error, setSearchParams]);
+
+  const editId = searchParams.get("edit");
+  const isCreateAction = searchParams.get("action") === "create";
+  useEffect(() => {
+    if (isInitialSync) return;
 
     if (isCreateAction) {
       setEditorOpen(true);
@@ -217,40 +242,52 @@ const AdminPosts = () => {
       return;
     }
 
-    if (editId && posts.length > 0) {
-      const found = posts.find((p) => p.id === editId);
-      if (found) {
-        setEditingPost(found);
+    if (editId) {
+      // Keep the editor snapshot while the list refreshes in the background.
+      if (editorOpen && editingPost?.id === editId) return;
+      const localPost = posts.find((post) => post.id === editId);
+      if (localPost) {
+        setEditingPost(localPost);
         setEditorOpen(true);
         setViewingPost(null);
         return;
       }
+
+      let cancelled = false;
+      fetchAdmin("posts", ["detail", editId], () => postsService.getById(editId))
+        .then((post) => {
+          if (cancelled) return;
+          setEditingPost(mapApiPost(post));
+          setEditorOpen(true);
+          setViewingPost(null);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setSearchParams((previous) => {
+            const next = new URLSearchParams(previous);
+            next.delete("edit");
+            return next;
+          }, { replace: true });
+          toast.error("That post is no longer available");
+        });
+      return () => { cancelled = true; };
     }
 
-    if (!editId && !isCreateAction && editorOpen) {
-      setEditorOpen(false);
-      setEditingPost(null);
-    }
-
-    const postIdFromUrl = searchParams.get("post");
-    if (postIdFromUrl && posts.length > 0) {
-      if (!viewingPost || viewingPost.id !== postIdFromUrl) {
-        const found = posts.find((p) => p.id === postIdFromUrl);
-        if (found) {
-          setViewingPost(found);
-        } else {
-          postsService
-            .getById(postIdFromUrl)
-            .then((p) => setViewingPost(mapApiPost(p)))
-            .catch(() => {});
-        }
-      }
-    } else if (!postIdFromUrl && viewingPost) {
-      setViewingPost(null);
-    }
-  }, [searchParams, posts]);
+    setEditorOpen(false);
+    setEditingPost(null);
+  }, [editId, isCreateAction, isInitialSync, posts, setSearchParams, fetchAdmin, editorOpen, editingPost?.id]);
 
   const statusCounts = useMemo(() => {
+    if (postStats) {
+      return {
+        all: postStats.totalPosts,
+        Published: postStats.published,
+        Draft: postStats.drafts,
+        Scheduled: postStats.scheduled,
+        Archived: postStats.archived,
+      };
+    }
+
     const counts: Record<string, number> = {
       all: posts.length,
       Published: 0,
@@ -264,7 +301,7 @@ const AdminPosts = () => {
       }
     });
     return counts;
-  }, [posts]);
+  }, [posts, postStats]);
 
   const STATUS_TABS: { key: string; label: string }[] = [
     { key: "all", label: "All Posts" },
@@ -279,7 +316,7 @@ const AdminPosts = () => {
   const togglePublish = async (post: Post) => {
     try {
       const newStatus = post.status === "Published" ? "DRAFT" : "PUBLISHED";
-      const updated = await postsService.update(post.id, { status: newStatus });
+      const updated = await mutateUpdate(post.id, { status: newStatus });
       const mapped = mapApiPost(updated);
       setPosts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
       if (viewingPost?.id === mapped.id) {
@@ -298,7 +335,7 @@ const AdminPosts = () => {
   const toggleFeatured = async (post: Post) => {
     try {
       const nextFeatured = !post.featured;
-      const updated = await postsService.update(post.id, {
+      const updated = await mutateUpdate(post.id, {
         is_featured: nextFeatured,
       });
       const mapped = mapApiPost(updated);
@@ -320,7 +357,7 @@ const AdminPosts = () => {
     try {
       const isArchived = post.status === "Archived";
       const nextStatus = isArchived ? "DRAFT" : "ARCHIVED";
-      const updated = await postsService.update(post.id, { status: nextStatus });
+      const updated = await mutateUpdate(post.id, { status: nextStatus });
       const mapped = mapApiPost(updated);
       setPosts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
       if (viewingPost?.id === mapped.id) {
@@ -334,9 +371,9 @@ const AdminPosts = () => {
 
   const duplicatePost = async (post: Post) => {
     try {
-      const created = await postsService.duplicate(post.id);
+      const created = await mutateDuplicate(post.id);
       const mapped = mapApiPost(created);
-      setPosts((prev) => [mapped, ...prev]);
+      setPosts((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
       toast.success("Post duplicated as draft");
     } catch (error) {
       toast.error(
@@ -349,7 +386,7 @@ const AdminPosts = () => {
     if (!deleteTarget || isDeleting) return;
     try {
       setIsDeleting(true);
-      await postsService.delete(deleteTarget.id);
+      await mutateDelete(deleteTarget.id);
       setPosts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       if (viewingPost?.id === deleteTarget.id) {
         handleBackFromDetail();
@@ -365,26 +402,6 @@ const AdminPosts = () => {
 
   // ─── Filter & Sort ─────────────────────────────────────
 
-  const filtered = useMemo(() => {
-    return posts.filter((post) => {
-      const matchSearch =
-        search === "" ||
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.body.toLowerCase().includes(search.toLowerCase()) ||
-        post.tags.some((tag) =>
-          tag.toLowerCase().includes(search.toLowerCase()),
-        );
-
-      const matchCategory =
-        categoryFilter === "all" || post.category === categoryFilter;
-
-      const matchStatus =
-        statusFilter === "all" || post.status === statusFilter;
-
-      return matchSearch && matchCategory && matchStatus;
-    });
-  }, [posts, search, categoryFilter, statusFilter]);
-
   const activeFilterCount =
     (search.trim() ? 1 : 0) +
     (categoryFilter !== "all" ? 1 : 0) +
@@ -398,54 +415,15 @@ const AdminPosts = () => {
     setCurrentPage(1);
   };
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      if (sortBy === "newest") {
-        return (
-          new Date(b.lastEdited || 0).getTime() -
-          new Date(a.lastEdited || 0).getTime()
-        );
-      }
-      if (sortBy === "oldest") {
-        return (
-          new Date(a.lastEdited || 0).getTime() -
-          new Date(b.lastEdited || 0).getTime()
-        );
-      }
-      if (sortBy === "views") {
-        return b.views - a.views;
-      }
-      return 0;
-    });
-  }, [filtered, sortBy]);
-
-  const postsPerPage =
-    viewMode === "grid" ? POSTS_PER_PAGE_GRID : POSTS_PER_PAGE_TABLE;
-  const totalPages = Math.max(1, Math.ceil(sorted.length / postsPerPage));
-
   useEffect(() => {
     setCurrentPage(1);
   }, [viewMode]);
 
-  const paginated = useMemo(() => {
-    return sorted.slice(
-      (currentPage - 1) * postsPerPage,
-      currentPage * postsPerPage,
-    );
-  }, [sorted, currentPage, postsPerPage]);
-
-  const handleViewPost = async (post: Post) => {
+  const handleViewPost = (post: Post) => {
     setIsDetailLoading(true);
+    setViewingPost(post);
     sessionStorage.setItem("viewingPostId", post.id);
     setSearchParams({ post: post.id, title: post.title });
-    try {
-      const freshPost = await postsService.getById(post.id);
-      setViewingPost(mapApiPost(freshPost));
-    } catch {
-      setViewingPost(post);
-    } finally {
-      setIsDetailLoading(false);
-    }
   };
 
   const handleBackFromDetail = () => {
@@ -531,7 +509,7 @@ const AdminPosts = () => {
       };
 
       if (editingPost) {
-        const updated = await postsService.update(editingPost.id, payload);
+        const updated = await mutateUpdate(editingPost.id, payload);
         const mapped = mapApiPost(updated);
         setPosts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
         if (viewingPost?.id === mapped.id) {
@@ -539,12 +517,11 @@ const AdminPosts = () => {
         }
         toast.success("Post updated successfully!");
       } else {
-        const created = await postsService.create(payload);
+        const created = await mutateCreate(payload);
         const mapped = mapApiPost(created);
-        setPosts((prev) => [mapped, ...prev]);
+        setPosts((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
         toast.success("Post created successfully!");
       }
-      closeEditor();
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : "Failed to save post");
     } finally {
@@ -599,7 +576,7 @@ const AdminPosts = () => {
   if (isInitialSync) {
     return (
       <div className="w-full max-w-[1600px] mx-auto">
-        {!!sessionStorage.getItem("viewingPostId") ? (
+        {sessionStorage.getItem("viewingPostId") ? (
           <AdminPostDetailSkeleton />
         ) : (
           <div className="space-y-6">
@@ -662,14 +639,6 @@ const AdminPosts = () => {
 
         {previewPost && (
           <div className="w-full max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
-            {/* Top Navigation: Just Back Button */}
-            <div>
-              <BackButton
-                label="Back to Editor"
-                onClick={handleReturnFromPreview}
-              />
-            </div>
-
             <AdminPostDetail
               post={previewPost}
               onBack={handleReturnFromPreview}
@@ -690,9 +659,6 @@ const AdminPosts = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
               News & Articles
             </h1>
-            <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-              {posts.length} total
-            </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Publish and manage municipal waste guidelines, eco tips, and event updates.
@@ -703,7 +669,22 @@ const AdminPosts = () => {
         </Button>
       </div>
 
-      <PostStats posts={posts} />
+      <PostStats posts={posts} stats={postStats || undefined} />
+
+      {loadError && (
+        <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-destructive">{loadError}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void loadPosts()}
+            className="rounded-lg"
+          >
+            Try again
+          </Button>
+        </div>
+      )}
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
       <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
@@ -725,10 +706,11 @@ const AdminPosts = () => {
                   className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <span>{tab.label}</span>
+                  {isActive && (
                   <span
                     className={`inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] transition-colors ${
                       count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
@@ -740,6 +722,7 @@ const AdminPosts = () => {
                   >
                     {count}
                   </span>
+                  )}
                 </button>
               );
             })}
@@ -778,11 +761,6 @@ const AdminPosts = () => {
           <div className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <Badge className="h-4 min-w-4 justify-center rounded-full border-0 bg-primary/15 px-1 text-[9px] text-primary hover:bg-primary/15">
-                {activeFilterCount}
-              </Badge>
-            )}
           </div>
 
           {/* Category Filter */}
@@ -867,10 +845,19 @@ const AdminPosts = () => {
         </div>
       </section>
 
-
-      {viewMode === "grid" ? (
+      <div className={isListLoading ? "opacity-60 pointer-events-none" : ""} aria-busy={isListLoading}>
+      {!isListLoading && !loadError && posts.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
+          <p className="text-sm font-semibold text-foreground">No posts found</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {activeFilterCount > 0
+              ? "Try clearing or changing the current filters."
+              : "Create the first community article to get started."}
+          </p>
+        </div>
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {paginated.map((post) => (
+          {posts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -886,7 +873,7 @@ const AdminPosts = () => {
         </div>
       ) : (
         <PostListView
-          posts={paginated}
+          posts={posts}
           onView={handleViewPost}
           onEdit={openEditor}
           onDuplicate={duplicatePost}
@@ -896,13 +883,14 @@ const AdminPosts = () => {
           onDelete={setDeleteTarget}
         />
       )}
+      </div>
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={sorted.length}
+          totalItems={totalItems}
           pageSize={postsPerPage}
           itemLabel="posts"
           onPageChange={setCurrentPage}
@@ -911,68 +899,18 @@ const AdminPosts = () => {
       )}
 
       {/* ── Delete Confirmation Modal ── */}
-      <AlertDialog
+      <ConfirmationDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}
-      >
-        <AlertDialogContent className="rounded-2xl border border-border/80 p-5 sm:p-6 shadow-2xl sm:max-w-md [&>button:last-child]:hidden">
-          <AlertDialogHeader>
-            <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-4 h-4" />
-                </div>
-                <AlertDialogTitle className="text-base font-bold font-display text-foreground tracking-tight truncate">
-                  Delete Post?
-                </AlertDialogTitle>
-              </div>
-              <button
-                type="button"
-                onClick={() => !isDeleting && setDeleteTarget(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-2.5">
-              Permanently delete{" "}
-              <strong className="text-foreground font-semibold">
-                &ldquo;{deleteTarget?.title}&rdquo;
-              </strong>
-              ? This action cannot be undone and will remove it from all resident feeds.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2.5 pt-3.5 border-t border-border/60 mt-1">
-            <AlertDialogCancel
-              disabled={isDeleting}
-              className="h-10 px-4 rounded-xl border-border text-xs font-semibold cursor-pointer hover:bg-muted/60 active:scale-95 transition-all focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                void deletePost();
-              }}
-              disabled={isDeleting}
-              className="h-10 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-xs gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-all"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Deleting...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Post</span>
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Remove Post?"
+        icon={<Trash2 />}
+        variant="destructive"
+        description={<>Remove <strong className="font-semibold text-foreground">&ldquo;{deleteTarget?.title}&rdquo;</strong>? It will disappear from all resident feeds and remain recoverable in the database.</>}
+        confirmLabel="Remove Post"
+        isPending={isDeleting}
+        pendingLabel="Deleting..."
+        onConfirm={() => void deletePost()}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { pool } = require("../../config/db");
 const auditService = require("../audit/audit.service");
-const { notifyAllResidents } = require("../notifications/notifications.service");
+const { notifyAllResidents, sendToMany, emitStoredNotifications } = require("../notifications/notifications.service");
 
 // ─── Centralized Calendar Events ───────────────────────────
 
@@ -23,8 +23,8 @@ const getCurrentAppDate = () => {
   return `${values.year}-${values.month}-${values.day}`;
 };
 
-const validateEventDetails = async (event) => {
-  if (event.event_date && event.event_date < getCurrentAppDate()) {
+const validateEventDetails = async (event, originalStartDate = null) => {
+  if (event.event_date && event.event_date < getCurrentAppDate() && event.event_date !== originalStartDate) {
     throw { statusCode: 400, message: "Scheduled date cannot be in the past" };
   }
 
@@ -50,6 +50,17 @@ const validateEventDetails = async (event) => {
   }
 };
 
+// Use the app's date for both status labels and status filters, regardless of DB timezone.
+const eventStatusSql = "CASE WHEN s.event_date > ? THEN 'UPCOMING' WHEN COALESCE(s.end_date, s.event_date) < ? THEN 'COMPLETED' ELSE 'ONGOING' END";
+
+const projectCalendarEvent = (event, user, view) => {
+  if (user?.role !== "DRIVER" || view !== "collector") return event;
+  const { id, title, description, event_date, end_date, start_time, end_time,
+    event_type, visibility, location, barangay_id, barangay_name, status } = event;
+  return { id, title, description, event_date, end_date, start_time, end_time,
+    event_type, visibility, location, barangay_id, barangay_name, status };
+};
+
 /**
  * Get all calendar events with strict role-based visibility:
  * - ADMIN: Can view all (PRIVATE_EVENT, COMMUNITY_EVENT, COLLECTION_SCHEDULE)
@@ -57,6 +68,7 @@ const validateEventDetails = async (event) => {
  * - RESIDENT / GUEST: Can ONLY view published public announcement events
  */
 const getEvents = async (filters = {}, user = null) => {
+  const today = getCurrentAppDate();
   const isAdmin = user && user.role === "ADMIN";
   const isCollector = user && user.role === "DRIVER";
   const conditions = ["s.deleted_at IS NULL"];
@@ -103,8 +115,8 @@ const getEvents = async (filters = {}, user = null) => {
   }
 
   if (filters.status) {
-    conditions.push("CASE WHEN s.event_date > CURDATE() THEN 'UPCOMING' WHEN COALESCE(s.end_date, s.event_date) < CURDATE() THEN 'COMPLETED' ELSE 'ONGOING' END = ?");
-    params.push(filters.status);
+    conditions.push(`${eventStatusSql} = ?`);
+    params.push(today, today, filters.status);
   }
 
   if (filters.barangay_id) {
@@ -125,7 +137,7 @@ const getEvents = async (filters = {}, user = null) => {
       s.visibility,
       s.location,
       s.barangay_id,
-      CASE WHEN s.event_date > CURDATE() THEN 'UPCOMING' WHEN COALESCE(s.end_date, s.event_date) < CURDATE() THEN 'COMPLETED' ELSE 'ONGOING' END AS status,
+      ${eventStatusSql} AS status,
       s.created_by,
       s.announcement_id,
       s.created_at,
@@ -139,11 +151,12 @@ const getEvents = async (filters = {}, user = null) => {
     ORDER BY s.event_date ASC, s.start_time ASC
   `;
 
-  const [rows] = await pool.query(query, params);
-  return rows;
+  const [rows] = await pool.query(query, [today, today, ...params]);
+  return rows.map((event) => projectCalendarEvent(event, user, filters.view));
 };
 
 const getEventById = async (id, user = null) => {
+  const today = getCurrentAppDate();
   const isAdmin = user && user.role === "ADMIN";
   const isCollector = user && user.role === "DRIVER";
   const conditions = ["s.id = ?", "s.deleted_at IS NULL"];
@@ -179,7 +192,7 @@ const getEventById = async (id, user = null) => {
       s.visibility,
       s.location,
       s.barangay_id,
-      CASE WHEN s.event_date > CURDATE() THEN 'UPCOMING' WHEN COALESCE(s.end_date, s.event_date) < CURDATE() THEN 'COMPLETED' ELSE 'ONGOING' END AS status,
+      ${eventStatusSql} AS status,
       s.created_by,
       s.announcement_id,
       s.created_at,
@@ -193,11 +206,11 @@ const getEventById = async (id, user = null) => {
     LIMIT 1
   `;
 
-  const [rows] = await pool.query(query, params);
+  const [rows] = await pool.query(query, [today, today, ...params]);
   if (rows.length === 0) {
     throw { statusCode: 404, message: "Calendar event not found" };
   }
-  return rows[0];
+  return projectCalendarEvent(rows[0], user);
 };
 
 const createEvent = async (data, user) => {
@@ -262,7 +275,7 @@ const updateEvent = async (id, data, user) => {
     event_type: "PRIVATE_EVENT",
     visibility: "PRIVATE",
     barangay_id: null,
-  });
+  }, existing.event_date);
 
   const allowedFields = [
     "title",
@@ -323,129 +336,41 @@ const deleteEvent = async (id, user) => {
   return { success: true, message: "Calendar event deleted successfully" };
 };
 
-// ─── Legacy 7-Day Collection Schedule ─────────────────────
-
-const getAll = async () => {
+// Collection days are derived from active routes that actually cover this resident.
+const getAll = async (residentId) => {
   const [rows] = await pool.query(
-    `SELECT * FROM collection_schedule
-     ORDER BY FIELD(day_of_week,
-       'MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'
-     )`,
+    `SELECT r.id, r.day_of_week, r.start_time, r.name AS route_name,
+            CASE r.waste_type
+              WHEN 'Biodegradable' THEN 'BIODEGRADABLE'
+              WHEN 'Non-Biodegradable' THEN 'NON_BIODEGRADABLE'
+              ELSE NULL
+            END AS waste_type,
+            NULL AS end_time
+     FROM routes r
+     WHERE r.status = 'ACTIVE' AND r.driver_id IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM users u
+         JOIN route_stops rs ON rs.route_id = r.id
+         WHERE u.id = ? AND u.role = 'RESIDENT' AND u.status = 'ACTIVE'
+           AND u.deleted_at IS NULL AND rs.barangay_id = u.barangay_id
+           AND (rs.street_id IS NULL OR rs.street_id = u.street_id)
+       )
+     ORDER BY FIELD(r.day_of_week,
+       'MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'),
+       r.start_time, r.id`,
+    [residentId],
   );
   return rows;
 };
 
-const getById = async (id) => {
-  const [rows] = await pool.query(
-    "SELECT * FROM collection_schedule WHERE id = ?",
-    [id],
-  );
-
-  if (rows.length === 0) {
-    throw { statusCode: 404, message: "Schedule entry not found" };
-  }
-
-  return rows[0];
-};
-
-const createRule = async ({ day_of_week, waste_type, start_time, end_time = null }, adminId) => {
-  if (end_time && start_time >= end_time) {
-    throw { statusCode: 400, message: "End time must be later than start time" };
-  }
-  const [existing] = await pool.query(
-    "SELECT id FROM collection_schedule WHERE day_of_week = ?",
-    [day_of_week],
-  );
-  if (existing.length > 0) {
-    throw { statusCode: 409, message: "A collection rule already exists for this day" };
-  }
-
-  const id = crypto.randomUUID();
-  await pool.query(
-    "INSERT INTO collection_schedule (id, day_of_week, waste_type, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
-    [id, day_of_week, waste_type, start_time, end_time],
-  );
-  const created = await getById(id);
-  auditService.log({
-    user_id: adminId,
-    action: "CREATE_COLLECTION_SCHEDULE",
-    module: "schedule",
-    record_id: id,
-    new_value: { day: day_of_week, waste_type, start_time, end_time },
-  }).catch(() => {});
-  return created;
-};
-
-const update = async (id, { waste_type, start_time, end_time }, adminId) => {
-  const existing = await getById(id);
-
-  if (start_time && end_time && start_time >= end_time) {
-    throw { statusCode: 400, message: "End time must be later than start time" };
-  }
-
-  await pool.query(
-    "UPDATE collection_schedule SET waste_type = ?, start_time = COALESCE(?, start_time), end_time = ? WHERE id = ?",
-    [waste_type, start_time || null, end_time === undefined ? existing.end_time : end_time, id],
-  );
-
-  const updated = await getById(id);
-
-  auditService.log({
-    user_id: adminId,
-    action: "UPDATE_COLLECTION_SCHEDULE",
-    module: "schedule",
-    record_id: id,
-    old_value: { day: existing.day_of_week, waste_type: existing.waste_type, start_time: existing.start_time, end_time: existing.end_time },
-    new_value: { day: updated.day_of_week, waste_type: updated.waste_type, start_time: updated.start_time, end_time: updated.end_time },
-  }).catch(() => {});
-
-  return updated;
-};
-
 // ─── Reminder Settings ─────────────────────────────────────
 
-const getReminder = async () => {
-  const [rows] = await pool.query("SELECT * FROM reminder_settings LIMIT 1");
-
-  if (rows.length > 0) {
-    return rows[0];
-  }
-
-  // Older databases may have the table but no singleton configuration row.
-  // Create it lazily so the reminder feature becomes usable without seeds.
-  const id = "system-reminder-settings";
-  try {
-    await pool.query(
-      "INSERT INTO reminder_settings (id, timing) VALUES (?, ?)",
-      [id, 3],
-    );
-  } catch (error) {
-    if (error.code !== "ER_DUP_ENTRY") throw error;
-  }
-  const [created] = await pool.query("SELECT * FROM reminder_settings WHERE id = ?", [id]);
-  return created[0];
-};
-
+// Keep the read contract for existing clients; stored timing is no longer used.
+const getReminder = async () => ({ id: "system-reminder-settings", timing: 3 });
 const updateReminder = async ({ timing }) => {
-  const reminder = await getReminder();
-
-  await pool.query("UPDATE reminder_settings SET timing = ? WHERE id = ?", [
-    timing,
-    reminder.id,
-  ]);
-
-  auditService.log({
-    user_id: "admin",
-    action: "UPDATE_REMINDER_SETTINGS",
-    module: "schedule",
-    record_id: reminder.id,
-    old_value: { timing: reminder.timing },
-    new_value: { timing },
-  }).catch(() => {});
-
+  if (timing !== 3) throw { statusCode: 400, message: "Collection reminders are fixed at 3 hours before collection." };
   return getReminder();
 };
-
 // ─── Collection Reminder Delivery ──────────────────────────
 
 const MANILA_TIME_ZONE = "Asia/Manila";
@@ -475,64 +400,72 @@ const getScheduleStart = (dateString, startTime) => {
   return new Date(`${dateString}T${time}+08:00`);
 };
 
-const claimReminderDelivery = async (scheduleId, collectionDate, timing) => {
-  try {
-    await pool.query(
-      `INSERT INTO collection_schedule_reminder_log
-       (id, schedule_id, collection_date, reminder_timing)
-       VALUES (?, ?, ?, ?)`,
-      [crypto.randomUUID(), scheduleId, collectionDate, timing],
-    );
-    return true;
-  } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") return false;
-    throw error;
-  }
-};
-
 const dispatchDueCollectionReminders = async (now = new Date()) => {
-  const reminder = await getReminder();
-  const timing = Number(reminder.timing);
-  const [rules] = await pool.query(
-    "SELECT id, day_of_week, waste_type, start_time FROM collection_schedule",
+  const [routes] = await pool.query(
+    "SELECT id, name, day_of_week, waste_type, start_time FROM routes WHERE status = 'ACTIVE' AND driver_id IS NOT NULL",
   );
   const today = getManilaDate(now);
   let delivered = 0;
 
-  // A maximum setting of 72 hours means a reminder can be due for a rule up
-  // to three days away. The delivery log makes this safe across restarts.
-  for (let offset = 0; offset <= Math.ceil(timing / 24); offset += 1) {
+  const timings = [{ label: "3h", hours: 3 }];
+
+  for (let offset = 0; offset <= 1; offset += 1) {
     const collectionDate = addManilaDays(today, offset);
     const dayOfWeek = getManilaDayOfWeek(collectionDate);
-    const matchingRules = rules.filter((rule) => rule.day_of_week === dayOfWeek);
+    const matchingRoutes = routes.filter((route) => route.day_of_week === dayOfWeek);
 
-    for (const rule of matchingRules) {
-      const collectionStart = getScheduleStart(collectionDate, rule.start_time);
-      const reminderAt = new Date(collectionStart.getTime() - timing * 60 * 60 * 1000);
-      if (now < reminderAt || now >= collectionStart) continue;
-
-      const claimed = await claimReminderDelivery(rule.id, collectionDate, timing);
-      if (!claimed) continue;
-
-      try {
-        const wasteLabel = rule.waste_type === "BIODEGRADABLE" ? "biodegradable" : "non-biodegradable";
-        await notifyAllResidents({
-          type: "COLLECTION_REMINDER",
-          title: "Collection reminder",
-          body: `Please prepare your ${wasteLabel} waste for collection on ${collectionDate} at ${String(rule.start_time).slice(0, 5)}.`,
-          ref_id: rule.id,
-          ref_module: "collection_schedule",
-          metadata: { collection_date: collectionDate, waste_type: rule.waste_type },
-        });
-        delivered += 1;
-      } catch (error) {
-        // Do not permanently suppress a reminder if notification persistence
-        // fails. A later scheduler run can safely retry it.
-        await pool.query(
-          "DELETE FROM collection_schedule_reminder_log WHERE schedule_id = ? AND collection_date = ? AND reminder_timing = ?",
-          [rule.id, collectionDate, timing],
-        );
-        throw error;
+    for (const route of matchingRoutes) {
+      const collectionStart = getScheduleStart(collectionDate, route.start_time);
+      for (const timing of timings) {
+        const reminderAt = new Date(collectionStart.getTime() - timing.hours * 60 * 60 * 1000);
+        if (now < reminderAt || now >= collectionStart) continue;
+        const connection = await pool.getConnection();
+        try {
+          await connection.beginTransaction();
+          const [recipients] = await connection.query(
+            `SELECT u.id FROM users u
+             LEFT JOIN user_settings s ON s.user_id = u.id
+             WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
+               AND COALESCE(s.reminder_on, TRUE) = TRUE
+               AND COALESCE(s.notif_collection_reminders, TRUE) = TRUE
+               AND EXISTS (
+                 SELECT 1 FROM route_stops rs
+                 WHERE rs.route_id = ? AND rs.barangay_id = u.barangay_id
+                   AND (rs.street_id IS NULL OR rs.street_id = u.street_id)
+               )`,
+            [route.id],
+          );
+          if (recipients.length === 0) {
+            await connection.rollback();
+            continue;
+          }
+          await connection.query(
+            `INSERT INTO route_collection_reminder_log
+             (id, route_id, collection_date, reminder_timing) VALUES (?, ?, ?, ?)`,
+            [crypto.randomUUID(), route.id, collectionDate, timing.hours],
+          );
+          const wasteLabel = route.waste_type ? `${route.waste_type.toLowerCase()} waste` : "segregated waste";
+          const delivery = await sendToMany({
+            user_ids: recipients.map((resident) => resident.id),
+            type: "COLLECTION_REMINDER",
+            title: "Collection reminder",
+            body: `Please prepare your ${wasteLabel} for collection on ${collectionDate} at ${String(route.start_time).slice(0, 5)}.`,
+            ref_id: route.id,
+            ref_module: "routes",
+            metadata: { collection_date: collectionDate, waste_type: route.waste_type, reminder_timing: timing.label },
+            db: connection,
+            emit: false,
+          });
+          await connection.commit();
+          emitStoredNotifications(delivery.notifications);
+          delivered += delivery.sent;
+        } catch (error) {
+          await connection.rollback();
+          if (error.code === "ER_DUP_ENTRY") continue;
+          throw error;
+        } finally {
+          connection.release();
+        }
       }
     }
   }
@@ -547,9 +480,6 @@ module.exports = {
   updateEvent,
   deleteEvent,
   getAll,
-  getById,
-  createRule,
-  update,
   getReminder,
   updateReminder,
   dispatchDueCollectionReminders,

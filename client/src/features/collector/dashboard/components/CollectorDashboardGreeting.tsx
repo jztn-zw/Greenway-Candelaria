@@ -1,8 +1,7 @@
-import { format } from "date-fns";
-import type { ShiftStatus } from "./types";
+import { formatManilaDateTime, getManilaNow } from "@/utils/date";
 
 const getGreeting = () => {
-  const hour = new Date().getHours();
+  const hour = getManilaNow().hour;
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -10,17 +9,16 @@ const getGreeting = () => {
 
 interface Props {
   driverName: string;
-  truckName?: string | null;
   truckPlate?: string | null;
-  routeName?: string | null;
-  wasteType?: string | null;
-  shiftStatus?: ShiftStatus;
+  statusLabel: string;
+  active: boolean;
 }
 
 const CollectorDashboardGreeting = ({
   driverName,
   truckPlate,
-  shiftStatus = "off-duty",
+  statusLabel,
+  active,
 }: Props) => {
   const today = new Date();
   const text = getGreeting();
@@ -49,33 +47,25 @@ const CollectorDashboardGreeting = ({
         {/* Right: Date and Shift Status Indicator */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60 shrink-0">
           <span className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold text-muted-foreground bg-muted/40 border border-border/70 flex items-center tabular-nums">
-            {format(today, "EEE, MMM d, yyyy")}
+            {formatManilaDateTime(today, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
           </span>
 
           <span
             className={`inline-flex items-center gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold border ${
-              shiftStatus === "on-route"
+              active
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                : shiftStatus === "completed"
-                ? "bg-primary/10 text-primary border-primary/30"
                 : "bg-muted text-muted-foreground border-border"
             }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                shiftStatus === "on-route"
+                active
                   ? "bg-emerald-500 animate-pulse"
-                  : shiftStatus === "completed"
-                  ? "bg-primary"
                   : "bg-muted-foreground"
               }`}
             />
             <span>
-              {shiftStatus === "on-route"
-                ? "On route"
-                : shiftStatus === "completed"
-                ? "Shift completed"
-                : "Standby"}
+              {statusLabel}
             </span>
           </span>
         </div>

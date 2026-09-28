@@ -1,11 +1,11 @@
-import { format } from "date-fns";
 import { MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
+import { formatManilaDateTime, getManilaNow } from "@/utils/date";
 
 const getGreeting = () => {
-  const hour = new Date().getHours();
+  const hour = getManilaNow().hour;
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -14,7 +14,6 @@ const getGreeting = () => {
 const DashboardGreeting = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const today = new Date();
   const greeting = getGreeting();
 
   const firstName = user?.full_name ? user.full_name.split(" ")[0] : "Resident";
@@ -42,7 +41,12 @@ const DashboardGreeting = () => {
 
         <div className="flex w-full shrink-0 items-center justify-between gap-2.5 md:w-auto md:justify-end">
           <span className="h-9 px-3.5 rounded-xl text-xs font-semibold text-muted-foreground bg-card border border-border/80 flex items-center shadow-2xs tabular-nums">
-            {format(today, "EEE, MMM d, yyyy")}
+            {formatManilaDateTime(new Date(), {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </span>
           <Button
             size="sm"

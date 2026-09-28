@@ -9,12 +9,17 @@ export interface RouteStop {
   completedAt?: string;
   skippedReason?: string;
   coords: [number, number];
+  hasCoordinates?: boolean;
+  coveragePath: [number, number][] | null;
   distanceKm: number;
 }
 
 export interface RouteInfo {
+  pausedAt: Date | null;
+  totalPausedSeconds: number;
   /** Backend route ID — used for all route mutations */
   routeId: string;
+  templateRouteId?: string | null;
   /** Truck ID — used for GPS pinging */
   truckId: string;
   routeName: string;

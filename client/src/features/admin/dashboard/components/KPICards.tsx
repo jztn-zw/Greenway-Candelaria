@@ -87,7 +87,7 @@ const KPICards = ({ overview, reportsAnalytics }: KPICardsProps) => {
   const resolvedReports = overview?.reports?.resolved ?? reportsAnalytics?.resolved ?? 0;
   const rawResolutionRate = reportsAnalytics?.resolution_rate
     ? parseFloat(reportsAnalytics.resolution_rate.replace("%", ""))
-    : (totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 100);
+    : (totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0);
   const activeTrucks = overview?.trucks?.active ?? 0;
   const totalTrucks = overview?.trucks?.total ?? 0;
   const totalResidents = overview?.users?.residents ?? 0;
@@ -107,15 +107,15 @@ const KPICards = ({ overview, reportsAnalytics }: KPICardsProps) => {
       tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
     {
-      label: "Active Fleet",
+      label: "Available Fleet",
       value: activeTrucks,
-      subtitle: `${totalTrucks} registered trucks`,
+      subtitle: `${totalTrucks} registered trucks · not under maintenance`,
       tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
     {
       label: "Registered Residents",
       value: totalResidents,
-      subtitle: "Verified community accounts",
+      subtitle: "Resident accounts, including inactive",
       tag: "bg-muted/70 text-muted-foreground border-border/80",
     },
   ];

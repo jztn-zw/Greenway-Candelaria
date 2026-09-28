@@ -2,7 +2,7 @@ export interface ResidentReport {
   referenceNumber: string;
   violationType: string;
   dateSubmitted: string;
-  status: "Pending" | "Under Review" | "Resolved" | "Dismissed";
+  status: "Submitted" | "Under Review" | "Dispatched" | "Resolved";
 }
 
 export interface Resident {
@@ -14,6 +14,7 @@ export interface Resident {
   barangay: string;
   dateRegistered: string;
   lastLogin: string;
-  status: "Active" | "Deactivated";
+  status: "Active" | "Deactivated" | "Banned";
+  banReason?: string | null;
   reports: ResidentReport[];
 }

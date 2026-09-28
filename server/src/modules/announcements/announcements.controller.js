@@ -37,7 +37,7 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const data = updateAnnouncementSchema.parse(req.body);
-    const announcement = await service.update(req.params.id, data);
+    const announcement = await service.update(req.params.id, data, req.user.id);
     return success(res, announcement, "Announcement updated successfully");
   } catch (err) {
     next(err);
@@ -46,7 +46,7 @@ const update = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
   try {
-    const result = await service.remove(req.params.id);
+    const result = await service.remove(req.params.id, req.user.id);
     return success(res, result, "Announcement archived successfully");
   } catch (err) {
     next(err);
@@ -55,7 +55,7 @@ const remove = async (req, res, next) => {
 
 const destroyArchived = async (req, res, next) => {
   try {
-    const result = await service.destroyArchived(req.params.id);
+    const result = await service.destroyArchived(req.params.id, req.user.id);
     return success(res, result, "Archived announcement permanently deleted");
   } catch (err) {
     next(err);
@@ -64,7 +64,7 @@ const destroyArchived = async (req, res, next) => {
 
 const resendToUnread = async (req, res, next) => {
   try {
-    const result = await service.resendToUnread(req.params.id);
+    const result = await service.resendToUnread(req.params.id, req.user.id);
     return success(res, result, "Announcement resent to unread residents");
   } catch (err) {
     next(err);

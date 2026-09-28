@@ -10,6 +10,15 @@ const getOverview = async (req, res, next) => {
   }
 };
 
+const getAnalyticsDashboard = async (req, res, next) => {
+  try {
+    const data = await service.getAnalyticsDashboard(req.query);
+    return success(res, data, "Analytics dashboard fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getReportsAnalytics = async (req, res, next) => {
   try {
     const data = await service.getReportsAnalytics(req.query);
@@ -56,6 +65,7 @@ const getBarangaysAnalytics = async (req, res, next) => {
 };
 
 module.exports = {
+  getAnalyticsDashboard,
   getOverview,
   getReportsAnalytics,
   getTrucksAnalytics,

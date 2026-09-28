@@ -25,15 +25,14 @@ const toTitleCase = (value: string): string =>
     .join(" ");
 
 const mapResidentStatus = (status: ResidentAccountStatus): Resident["status"] =>
-  status === "ACTIVE" ? "Active" : "Deactivated";
+  status === "ACTIVE" ? "Active" : status === "BANNED" ? "Banned" : "Deactivated";
 
 const mapResidentReportStatus = (status: string): ResidentReport["status"] => {
   const normalizedStatus = String(status || "").toUpperCase();
   if (normalizedStatus === "RESOLVED") return "Resolved";
-  if (normalizedStatus === "UNDER_REVIEW" || normalizedStatus === "DISPATCHED") {
-    return "Under Review";
-  }
-  return "Pending";
+  if (normalizedStatus === "DISPATCHED") return "Dispatched";
+  if (normalizedStatus === "UNDER_REVIEW") return "Under Review";
+  return "Submitted";
 };
 
 const mapResidentReportRow = (row: ResidentReportRow): ResidentReport => ({
@@ -69,5 +68,6 @@ export const mapResidentDetails = (
   dateRegistered: formatResidentDate(details.created_at),
   lastLogin: formatResidentDate(details.last_login_at),
   status: mapResidentStatus(details.status),
+  banReason: details.ban_reason,
   reports: reports.map(mapResidentReportRow),
 });

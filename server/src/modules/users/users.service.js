@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
+const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../config/db");
-const { log } = require("../audit/audit.service");
+const auditService = require("../audit/audit.service");
 
 const getProfile = async (userId) => {
   const [users] = await pool.query(
@@ -9,9 +10,13 @@ const getProfile = async (userId) => {
        u.role, u.status, u.avatar_url, u.two_factor,
        u.created_at, u.last_login_at,
        b.name AS barangay_name,
-       b.id   AS barangay_id
+       b.id   AS barangay_id,
+       bs.id  AS street_id,
+       bs.name AS street_name,
+       bs.area AS street_area
      FROM users u
      LEFT JOIN barangays b ON u.barangay_id = b.id
+     LEFT JOIN barangay_streets bs ON u.street_id = bs.id
      WHERE u.id = ? AND u.deleted_at IS NULL`,
     [userId],
   );
@@ -35,7 +40,7 @@ const updateProfile = async (userId, data) => {
     const [existingUsers] = await pool.query(
       `SELECT id
        FROM users
-       WHERE username = ? AND id <> ? AND deleted_at IS NULL
+       WHERE username = ? AND id <> ?
        LIMIT 1`,
       [data.username, userId]
     );
@@ -47,13 +52,43 @@ const updateProfile = async (userId, data) => {
     fields.push("username = ?");
     params.push(data.username);
   }
-  if (data.phone) {
+  if (data.phone !== undefined) {
     fields.push("phone = ?");
-    params.push(data.phone);
+    params.push(data.phone || null);
   }
   if (data.barangay_id) {
+    const [barangays] = await pool.query("SELECT id FROM barangays WHERE id = ?", [
+      data.barangay_id,
+    ]);
+    if (barangays.length === 0) {
+      throw { statusCode: 400, message: "Invalid barangay selected" };
+    }
     fields.push("barangay_id = ?");
     params.push(data.barangay_id);
+    if (data.street_id === undefined) {
+      fields.push("street_id = NULL");
+    }
+  }
+  if (data.street_id !== undefined) {
+    if (data.street_id) {
+      const [streets] = data.barangay_id
+        ? await pool.query(
+            `SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ?`,
+            [data.street_id, data.barangay_id],
+          )
+        : await pool.query(
+            `SELECT bs.id
+             FROM barangay_streets bs
+             JOIN users u ON u.id = ?
+             WHERE bs.id = ? AND bs.barangay_id = u.barangay_id`,
+            [userId, data.street_id],
+          );
+      if (streets.length === 0) {
+        throw { statusCode: 400, message: "Select a street from your barangay" };
+      }
+    }
+    fields.push("street_id = ?");
+    params.push(data.street_id || null);
   }
   if (data.avatar_url !== undefined) {
     fields.push("avatar_url = ?");
@@ -70,37 +105,56 @@ const updateProfile = async (userId, data) => {
 
   params.push(userId);
 
-  await pool.query(
-    `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
-    params,
-  );
+  try {
+    await pool.query(
+      `UPDATE users SET ${fields.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+      params,
+    );
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY" && data.username) {
+      throw { statusCode: 409, message: "Username is already in use" };
+    }
+    throw error;
+  }
+
+  if (data.barangay_id) {
+    await pool.query(
+      `INSERT INTO user_settings (id, user_id, primary_barangay_id)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE primary_barangay_id = VALUES(primary_barangay_id)`,
+      [uuidv4(), userId, data.barangay_id],
+    );
+  }
 
   return getProfile(userId);
 };
 
-const changePassword = async (userId, { current_password, new_password }) => {
-  const [users] = await pool.query(
-    "SELECT password FROM users WHERE id = ? AND deleted_at IS NULL",
-    [userId],
-  );
+const changePassword = async (userId, { old_password, new_password }) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [users] = await connection.query(
+      "SELECT password FROM users WHERE id = ? AND deleted_at IS NULL FOR UPDATE",
+      [userId],
+    );
+    if (users.length === 0) throw { statusCode: 404, message: "User not found" };
+    if (!(await bcrypt.compare(old_password, users[0].password))) {
+      throw { statusCode: 400, message: "Current password is incorrect" };
+    }
 
-  if (users.length === 0) {
-    throw { statusCode: 404, message: "User not found" };
+    const hashedPassword = await bcrypt.hash(new_password, 12);
+    await connection.query("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, userId]);
+    // A password change invalidates every existing token, including other devices.
+    await connection.query("DELETE FROM sessions WHERE user_id = ?", [userId]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 
-  const isMatch = await bcrypt.compare(current_password, users[0].password);
-  if (!isMatch) {
-    throw { statusCode: 400, message: "Current password is incorrect" };
-  }
-
-  const hashedPassword = await bcrypt.hash(new_password, 12);
-
-  await pool.query("UPDATE users SET password = ? WHERE id = ?", [
-    hashedPassword,
-    userId,
-  ]);
-
-  log({
+  auditService.log({
     user_id: userId,
     action: "CHANGE_PASSWORD",
     module: "auth",
@@ -229,7 +283,7 @@ const updateStatus = async (id, { status, ban_reason }, adminId, ip) => {
     status === "ACTIVE"      ? "UNBAN_USER"      : "UPDATE_USER_STATUS";
 
   // 5. Write the audit log with rich target details
-  await log({
+  await auditService.log({
     user_id:    adminId,
     action,
     module:     "users",
@@ -257,7 +311,7 @@ const softDelete = async (id, adminId, ip) => {
   await pool.query("DELETE FROM sessions WHERE user_id = ?", [id]);
 
   // 4. Write the audit log with rich target details
-  await log({
+  await auditService.log({
     user_id:    adminId,
     action:     "DELETE_USER",
     module:     "users",
@@ -288,8 +342,6 @@ const getReportHistory = async (userId) => {
 };
 
 // ─── User Settings ────────────────────────────────────────────────────────────
-const { v4: uuidv4 } = require("uuid");
-
 const getUserSettings = async (userId) => {
   // Try to fetch existing settings
   const [rows] = await pool.query(
@@ -297,7 +349,7 @@ const getUserSettings = async (userId) => {
     [userId],
   );
 
-  if (rows.length > 0) return rows[0];
+  if (rows.length > 0) return { ...rows[0], reminder_timing: "3h" };
 
   // Auto-create default settings row for new users
   const id = uuidv4();
@@ -310,7 +362,7 @@ const getUserSettings = async (userId) => {
     "SELECT * FROM user_settings WHERE user_id = ?",
     [userId],
   );
-  return newRows[0];
+  return { ...newRows[0], reminder_timing: "3h" };
 };
 
 const updateUserSettings = async (userId, data) => {
@@ -325,8 +377,6 @@ const updateUserSettings = async (userId, data) => {
     "primary_barangay_id",
     "reminder_on",
     "reminder_timing",
-    "profile_visible",
-    "language",
   ];
 
   const fields = [];
@@ -341,6 +391,14 @@ const updateUserSettings = async (userId, data) => {
 
   // Sync primary_barangay_id → users.barangay_id
   if (data.primary_barangay_id !== undefined) {
+    if (data.primary_barangay_id) {
+      const [barangays] = await pool.query("SELECT id FROM barangays WHERE id = ?", [
+        data.primary_barangay_id,
+      ]);
+      if (barangays.length === 0) {
+        throw { statusCode: 400, message: "Invalid barangay selected" };
+      }
+    }
     await pool.query("UPDATE users SET barangay_id = ? WHERE id = ?", [
       data.primary_barangay_id || null,
       userId,
@@ -358,6 +416,33 @@ const updateUserSettings = async (userId, data) => {
   return getUserSettings(userId);
 };
 
+const adminPreferenceColumns = [
+  "notif_admin_reports",
+  "notif_admin_route_issues",
+  "notif_admin_driver_messages",
+];
+
+const getAdminSettings = async (userId) => {
+  const [rows] = await pool.query(
+    `SELECT ${adminPreferenceColumns.map((column) => `COALESCE(${column}, 1) AS ${column}`).join(", ")}
+     FROM user_settings WHERE user_id = ?`,
+    [userId],
+  );
+  return Object.fromEntries(adminPreferenceColumns.map((column) => [column, rows.length ? Boolean(rows[0][column]) : true]));
+};
+
+const updateAdminSettings = async (userId, data) => {
+  const columns = adminPreferenceColumns.filter((column) => data[column] !== undefined);
+  if (columns.length === 0) throw { statusCode: 400, message: "At least one alert preference is required" };
+  await pool.query(
+    `INSERT INTO user_settings (id, user_id, ${columns.join(", ")})
+     VALUES (?, ?, ${columns.map(() => "?").join(", ")})
+     ON DUPLICATE KEY UPDATE ${columns.map((column) => `${column} = VALUES(${column})`).join(", ")}`,
+    [uuidv4(), userId, ...columns.map((column) => data[column])],
+  );
+  return getAdminSettings(userId);
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -369,4 +454,6 @@ module.exports = {
   getReportHistory,
   getUserSettings,
   updateUserSettings,
+  getAdminSettings,
+  updateAdminSettings,
 };

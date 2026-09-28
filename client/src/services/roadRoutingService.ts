@@ -23,7 +23,6 @@ interface CacheEntry {
 
 const ROUTE_CACHE = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60_000; // 60 seconds TTL for fast cache hits
-const OSRM_BASE_URL = 'https://router.project-osrm.org/route/v1/driving';
 const DEFAULT_SPEED_KMH = 22; // Typical collection vehicle speed in urban/barangay roads
 
 /**
@@ -72,221 +71,56 @@ const buildFallbackRoute = (
   };
 };
 
-/**
- * Generates a stable cache key rounded to 4 decimal places (~11 meters).
- */
-const normalizePoint = (pt: any): [number, number] => {
-  if (!pt) return [0, 0];
-  let lat = NaN;
-  let lng = NaN;
-  if (Array.isArray(pt)) {
-    lat = Number(pt[0]);
-    lng = Number(pt[1]);
-  } else if (typeof pt === 'object' && pt !== null) {
-    lat = Number(pt.lat ?? pt.latitude);
-    lng = Number(pt.lng ?? pt.longitude);
+
+const IN_FLIGHT = new Map<string, Promise<RoadRouteResult>>();
+const validPoint = (p: [number, number]) =>
+  p.every(Number.isFinite) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
+const remember = (key: string, result: RoadRouteResult) => {
+  for (const [oldKey, entry] of ROUTE_CACHE) {
+    if (Date.now() - entry.timestamp >= CACHE_TTL_MS) ROUTE_CACHE.delete(oldKey);
   }
-  const safeLat = Number.isFinite(lat) ? lat : 0;
-  const safeLng = Number.isFinite(lng) ? lng : 0;
-  return [safeLat, safeLng];
+  if (ROUTE_CACHE.size >= 128) ROUTE_CACHE.delete(ROUTE_CACHE.keys().next().value!);
+  ROUTE_CACHE.set(key, { result, timestamp: Date.now() });
+  return result;
 };
-
-const makeCacheKey = (points: [number, number][]): string => {
-  return points
-    .map((pt) => {
-      const [lat, lng] = normalizePoint(pt);
-      return `${lat.toFixed(4)},${lng.toFixed(4)}`;
-    })
-    .join('->');
-};
-
-/**
- * Fetches a road-snapped driving route between two points.
- * Returns an exact street polyline, road distance in km, and duration in minutes.
- */
-const ROUTING_PROVIDERS = [
-  'https://routing.openstreetmap.de/routed-car/route/v1/driving',
-  'https://router.project-osrm.org/route/v1/driving',
-];
-
 export const getRoadRoute = async (
-  rawFromCoords: [number, number],
-  rawToCoords: [number, number]
+  from: [number, number], to: [number, number],
 ): Promise<RoadRouteResult> => {
-  const fromCoords = normalizePoint(rawFromCoords);
-  const toCoords = normalizePoint(rawToCoords);
-
-  if (!rawFromCoords || !rawToCoords || (fromCoords[0] === 0 && fromCoords[1] === 0 && toCoords[0] === 0 && toCoords[1] === 0)) {
-    return buildFallbackRoute(fromCoords, toCoords);
-  }
-
-  const cacheKey = makeCacheKey([fromCoords, toCoords]);
-  const cached = ROUTE_CACHE.get(cacheKey);
-  const now = Date.now();
-
-  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-    return cached.result;
-  }
-
-  // Tier 1: Try first-party backend proxy
-  try {
-    const res = await api.get<{ data: RoadRouteResult }>('/tracking/road-route', {
-      params: {
-        fromLng: fromCoords[1],
-        fromLat: fromCoords[0],
-        toLng: toCoords[1],
-        toLat: toCoords[0],
-      },
-      timeout: 5000,
-    });
-    const payload = res.data?.data || (res.data as unknown as RoadRouteResult);
-    if (payload?.coordinates && payload.coordinates.length > 2) {
-      ROUTE_CACHE.set(cacheKey, { result: payload, timestamp: now });
-      return payload;
-    }
-  } catch {
-    // Proceed to direct browser fetch against OSM routing mirrors
-  }
-
-  // Tier 2: Try direct routing provider endpoints
-  for (const baseUrl of ROUTING_PROVIDERS) {
-    const coordinatesParam = `${fromCoords[1]},${fromCoords[0]};${toCoords[1]},${toCoords[0]}`;
-    const url = `${baseUrl}/${coordinatesParam}?overview=full&geometries=geojson`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-
+  if (!validPoint(from) || !validPoint(to)) throw new Error("Invalid route coordinates");
+  const key = [from, to].map((point) => point.map((v) => v.toFixed(4)).join(",")).join(">");
+  const cached = ROUTE_CACHE.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.result;
+  const pending = IN_FLIGHT.get(key);
+  if (pending) return pending;
+  if (IN_FLIGHT.size >= 12) return buildFallbackRoute(from, to);
+  const request = (async () => {
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
+      const res = await api.get<{ data: RoadRouteResult }>("/tracking/road-route", {
+        params: { fromLng: from[1], fromLat: from[0], toLng: to[1], toLat: to[0] },
+        timeout: 8000,
       });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-      if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) continue;
-
-      const primaryRoute = data.routes[0];
-      const geoJsonCoords: [number, number][] = primaryRoute.geometry.coordinates;
-      const leafletCoords: [number, number][] = geoJsonCoords.map(([lng, lat]) => [lat, lng]);
-
-      const distanceMeters = Number(primaryRoute.distance) || 0;
-      const distanceKm = Number((distanceMeters / 1000).toFixed(2));
-      const durationSeconds = Number(primaryRoute.duration) || 0;
-      const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
-
-      const result: RoadRouteResult = {
-        coordinates: leafletCoords,
-        distanceMeters,
-        distanceKm,
-        durationSeconds,
-        durationMinutes,
-        source: 'osrm',
-      };
-
-      ROUTE_CACHE.set(cacheKey, { result, timestamp: now });
-      return result;
+      const result = res.data.data;
+      if (result?.coordinates?.length >= 2) return remember(key, result);
     } catch {
-      clearTimeout(timeoutId);
+      // Keep a local estimate if the backend's configured provider is unavailable.
     }
-  }
-
-  return buildFallbackRoute(fromCoords, toCoords);
+    return remember(key, buildFallbackRoute(from, to));
+  })();
+  IN_FLIGHT.set(key, request);
+  try { return await request; } finally { IN_FLIGHT.delete(key); }
 };
-
-/**
- * Fetches a multi-stop road-snapped route connecting multiple consecutive waypoints.
- */
-export const getMultiStopRoadRoute = async (
-  waypoints: [number, number][]
-): Promise<RoadRouteResult> => {
-  const validWaypoints = waypoints.filter(
-    (pt) => pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1])
-  );
-
-  if (validWaypoints.length < 2) {
-    return {
-      coordinates: validWaypoints,
-      distanceMeters: 0,
-      distanceKm: 0,
-      durationSeconds: 0,
-      durationMinutes: 0,
-      source: 'haversine',
-    };
+export const getMultiStopRoadRoute = async (points: [number, number][]): Promise<RoadRouteResult> => {
+  const waypoints = points.filter(validPoint);
+  const legs: RoadRouteResult[] = [];
+  for (let index = 1; index < waypoints.length; index++) {
+    legs.push(await getRoadRoute(waypoints[index - 1], waypoints[index]));
   }
-
-  const cacheKey = makeCacheKey(validWaypoints);
-  const cached = ROUTE_CACHE.get(cacheKey);
-  const now = Date.now();
-
-  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-    return cached.result;
-  }
-
-  // OSRM coordinates: lon,lat;lon,lat;...
-  const coordinatesParam = validWaypoints
-    .map(([lat, lng]) => `${lng},${lat}`)
-    .join(';');
-
-  const url = `${OSRM_BASE_URL}/${coordinatesParam}?overview=full&geometries=geojson`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`OSRM HTTP error ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-      throw new Error('OSRM route not found');
-    }
-
-    const primaryRoute = data.routes[0];
-    const geoJsonCoords: [number, number][] = primaryRoute.geometry.coordinates;
-    const leafletCoords: [number, number][] = geoJsonCoords.map(([lng, lat]) => [lat, lng]);
-
-    const distanceMeters = Number(primaryRoute.distance) || 0;
-    const distanceKm = Number((distanceMeters / 1000).toFixed(2));
-    const durationSeconds = Number(primaryRoute.duration) || 0;
-    const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
-
-    const result: RoadRouteResult = {
-      coordinates: leafletCoords,
-      distanceMeters,
-      distanceKm,
-      durationSeconds,
-      durationMinutes,
-      source: 'osrm',
-    };
-
-    ROUTE_CACHE.set(cacheKey, { result, timestamp: now });
-    return result;
-  } catch (error) {
-    clearTimeout(timeoutId);
-
-    // Build straight segments fallback
-    let totalDistKm = 0;
-    for (let i = 0; i < validWaypoints.length - 1; i++) {
-      totalDistKm += calculateHaversineDistanceKm(validWaypoints[i], validWaypoints[i + 1]);
-    }
-    const distanceMeters = Math.round(totalDistKm * 1000);
-    const durationMinutes = Math.max(1, Math.round((totalDistKm / DEFAULT_SPEED_KMH) * 60));
-
-    return {
-      coordinates: validWaypoints,
-      distanceMeters,
-      distanceKm: Number(totalDistKm.toFixed(2)),
-      durationSeconds: durationMinutes * 60,
-      durationMinutes,
-      source: 'haversine',
-    };
-  }
+  const distanceMeters = legs.reduce((sum, leg) => sum + leg.distanceMeters, 0);
+  const durationSeconds = legs.reduce((sum, leg) => sum + leg.durationSeconds, 0);
+  return {
+    coordinates: legs.length ? legs.flatMap((leg, index) => index ? leg.coordinates.slice(1) : leg.coordinates) : waypoints,
+    distanceMeters, distanceKm: distanceMeters / 1000, durationSeconds,
+    durationMinutes: Math.ceil(durationSeconds / 60),
+    source: legs.length && legs.every((leg) => leg.source === "osrm") ? "osrm" : "haversine",
+  };
 };
