@@ -1,4 +1,4 @@
-import { act, type ReactNode, type ReactElement } from "react";
+import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fetchTruckHistory, type HistoryRow, type RouteStopHistoryItem } from "@/services/trackingService";
@@ -10,12 +10,8 @@ vi.mock("@/lib/adminQuery", () => ({ useAdminFetch: () => (_domain: string, _key
 vi.mock("@/services/trackingService", () => ({ fetchTruckHistory: vi.fn() }));
 vi.mock("../utils/replayVideoExporter", () => ({ exportReplayVideo: vi.fn(async () => {}), REPLAY_VIDEO_SPEEDS: [1, 2, 5, 10, 30, 60] }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@/components/ui/select", () => ({
-  Select: ({ value, onValueChange, disabled, children }: { value: string; onValueChange: (value: string) => void; disabled: boolean; children: ReactNode }) => <select aria-label="Truck" value={value} disabled={disabled} onChange={(event) => onValueChange(event.target.value)}><option value="">Select a truck</option>{children}</select>,
-  SelectTrigger: () => null,
-  SelectValue: () => null,
-  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-  SelectItem: ({ value, children }: { value: string; children: ReactElement[] }) => <option value={value}>{children.map((child) => child.props.children).join(" ")}</option>,
+vi.mock("@/components/ui/searchable-select", () => ({
+  SearchableSelect: ({ value, onValueChange, disabled, options }: { value: string; onValueChange: (value: string) => void; disabled: boolean; options: { value: string; label: string }[] }) => <select aria-label="Truck" value={value} disabled={disabled} onChange={(event) => onValueChange(event.target.value)}><option value="">Select a truck</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>,
 }));
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ value, max, onValueChange }: { value: number[]; max: number; onValueChange: (value: number[]) => void }) => <input aria-label="Trip replay progress" type="range" min={0} max={max} value={value[0]} onChange={(event) => onValueChange([Number(event.target.value)])} />,

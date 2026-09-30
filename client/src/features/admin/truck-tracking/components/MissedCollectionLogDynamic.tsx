@@ -1,12 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAdminQuery } from "@/lib/adminQuery";
 import {
 fetchMissedCollections
@@ -62,33 +56,15 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
     <div className="space-y-3">
       {/* Filter Row */}
       <div className="flex gap-1.5 items-center">
-        <Select value={truckFilter} onValueChange={setTruckFilter}>
-          <SelectTrigger className="h-8.5 text-xs flex-1 rounded-xl">
-            <SelectValue placeholder="All trucks" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="all">All Trucks</SelectItem>
-            {trucks.map((truck) => (
-              <SelectItem key={truck.id} value={truck.name}>
-                {truck.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect value={truckFilter} onValueChange={setTruckFilter}
+          options={[{ value: "all", label: "All Trucks" }, ...trucks.map((truck) => ({ value: truck.name, label: truck.name }))]}
+          placeholder="All trucks" aria-label="Truck" searchPlaceholder="Search trucks..." fieldSize="compact"
+          className="h-8.5 min-w-0 text-xs flex-1 rounded-xl" />
 
-        <Select value={barangayFilter} onValueChange={setBarangayFilter}>
-          <SelectTrigger className="h-8.5 text-xs flex-1 rounded-xl">
-            <SelectValue placeholder="All barangays" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="all">All Barangays</SelectItem>
-            {barangays.map((barangay) => (
-              <SelectItem key={barangay} value={barangay}>
-                {barangay}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect value={barangayFilter} onValueChange={setBarangayFilter}
+          options={[{ value: "all", label: "All Barangays" }, ...barangays.map((barangay) => ({ value: barangay, label: barangay }))]}
+          placeholder="All barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+          className="h-8.5 min-w-0 text-xs flex-1 rounded-xl" />
 
         <Button
           type="button"

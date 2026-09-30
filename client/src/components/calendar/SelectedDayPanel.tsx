@@ -12,6 +12,7 @@ import {
 import { CalendarEvent } from "@/services/scheduleService";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
+import { SelectedDayEventsSkeleton } from "@/components/PageLoadingSkeletons";
 
 interface SelectedDayPanelProps {
   selectedDateStr: string;
@@ -65,7 +66,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
 
       {/* List of Events */}
       <div className="space-y-3 flex-1 overflow-y-auto pr-1 overscroll-contain">
-        {isLoading ? <p role="status" className="py-8 text-sm text-muted-foreground">Loading schedule…</p>
+        {isLoading ? <SelectedDayEventsSkeleton />
           : error ? <p role="alert" className="py-8 text-sm text-destructive">{error}</p>
           : events.length === 0 ? (
           <div className="py-16 text-center space-y-2">

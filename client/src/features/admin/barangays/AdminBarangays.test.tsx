@@ -1,7 +1,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminBarangays from "./AdminBarangays";
 
 const mocks = vi.hoisted(() => ({
@@ -55,6 +55,31 @@ async function openCreate() {
 const submit = async (editor: Element) => { await act(async () => Simulate.submit(editor.querySelector("form")!)); };
 
 describe("street editor unsaved changes", () => {
+  it("shows required-field validation inline without opening another dialog", async () => {
+    const editor = await openCreate(); await submit(editor);
+    expect(document.getElementById("barangay-street-name")).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById("barangay-street-name-error")).toHaveTextContent("Street name is required.");
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(mocks.create).not.toHaveBeenCalled();
+    change("barangay-street-name", "New street");
+    expect(document.getElementById("barangay-street-name-error")).toBeNull();
+    await submit(editor);
+    expect(mocks.create).toHaveBeenCalledWith("poblacion", { name: "New street", area: null });
+  });
+  it("blocks duplicate street and area combinations before saving", async () => {
+    const editor = await openCreate(); change("barangay-street-name", "  gonzales st  "); await submit(editor);
+    expect(document.getElementById("barangay-street-name-error")).toHaveTextContent("already exist");
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it("shows a server duplicate as a validation error and keeps the draft", async () => {
+    const editor = await openCreate(); change("barangay-street-name", "New street");
+    mocks.create.mockRejectedValueOnce(Object.assign(new Error("This street and area already exist in the barangay"), { response: { status: 409 } }));
+    await submit(editor);
+    expect(document.getElementById("barangay-street-name-error")).toHaveTextContent("already exist");
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.getElementById("barangay-street-name")).toHaveValue("New street");
+  });
   it("keeps a draft and clears it only after discard", async () => {
     const editor = await openCreate(); change("barangay-street-name", "New street"); await click("Close", editor);
     expect(document.body.textContent).toContain("Discard New Street?"); await click("Keep Editing");
@@ -80,9 +105,14 @@ describe("street editor unsaved changes", () => {
 describe("street coverage road matching", () => {
   const points: [number, number][] = [[13.931, 121.424], [13.933, 121.426]];
   const road: [number, number][] = [points[0], [13.9315, 121.424], [13.9315, 121.426], points[1]];
+  let Editor: typeof import("./StreetCoverageEditor").default;
+  beforeAll(async () => {
+    // Load the real editor before faking timers; its first module import is
+    // asynchronous and should not consume a matching test's deadline.
+    ({ default: Editor } = await vi.importActual<typeof import("./StreetCoverageEditor")>("./StreetCoverageEditor"));
+  });
   const openCoverage = async (save = vi.fn(), initialPath: [number, number][] | null = null) => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const { default: Editor } = await vi.importActual<typeof import("./StreetCoverageEditor")>("./StreetCoverageEditor");
     await act(async () => root.render(<Editor open streetName="Test street" barangayName="Poblacion" initialPath={initialPath} center={points[0]} onOpenChange={vi.fn()} onSave={save} />));
     return save;
   };
@@ -114,14 +144,51 @@ describe("street coverage road matching", () => {
     await click("Save path"); expect(save).toHaveBeenCalledWith(null);
   });
 
-  it("blocks saving failed road matching and allows retry", async () => {
-    mocks.road.mockRejectedValueOnce(new Error("Road matching unavailable"));
+  it("keeps marked points through a 503 and retries without saving an unmatched path", async () => {
+    mocks.road.mockRejectedValueOnce(Object.assign(new Error("Something went wrong. Please try again."), { isAxiosError: true, response: { status: 503 } }));
     const save = await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Road matching is temporarily unavailable");
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Your marked points are kept while this window stays open.");
+    expect(document.querySelector('[role="alert"]')).not.toHaveTextContent("Something went wrong");
+    expect(mocks.markers.map(marker => marker.coordinate)).toEqual(points);
+    expect(mocks.lines).toHaveLength(0);
     expect(button("Save path")).toBeDisabled();
     expect(save).not.toHaveBeenCalled();
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
-    await click("Retry"); await finishMatching(); await click("Save path");
+    await click("Retry");
+    expect(button("Matching roads…")).toBeDisabled();
+    await finishMatching();
+    expect(mocks.road.mock.calls[1][0]).toEqual(points);
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    await click("Save path");
     expect(save).toHaveBeenCalledWith(road);
+  });
+
+  it.each([
+    [Object.assign(new Error("timeout of 8000ms exceeded"), { isAxiosError: true, code: "ECONNABORTED" }), "Road matching took too long", "Check your connection"],
+    [Object.assign(new Error("Too many requests"), { isAxiosError: true, response: { status: 429 } }), "Road matching is busy", "Wait a moment"],
+    [Object.assign(new Error("Move the numbered points closer to the street and try again."), { isAxiosError: true, response: { status: 422 } }), "Adjust the marked points", "Move the numbered points closer to the street"],
+  ])("shows actionable guidance for a matching failure: %s", async (failure, title, description) => {
+    mocks.road.mockRejectedValueOnce(failure);
+    await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent(title);
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent(description);
+    expect(mocks.markers.map(marker => marker.coordinate)).toEqual(points);
+    expect(button("Save path")).toBeDisabled();
+  });
+
+  it("keeps the matched path after a failed save and lets the user save again", async () => {
+    const save = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Something went wrong"), { isAxiosError: true, response: { status: 503 } })).mockResolvedValueOnce(undefined);
+    await openCoverage(save, road);
+    await click("Save path");
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Path wasn't saved");
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Your changes are kept in this window");
+    expect(mocks.lines).toContainEqual(road);
+    expect(button("Save path")).not.toBeDisabled();
+    await click("Save path");
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenLastCalledWith(road);
+    expect(document.querySelector('[role="alert"]')).toBeNull();
   });
 
   it("recalculates dragged points and keeps the original saved shape unchanged on opening", async () => {

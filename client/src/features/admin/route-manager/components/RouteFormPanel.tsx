@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { fieldStyles } from "@/components/ui/fieldStyles";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -98,7 +100,7 @@ const RouteFormPanel = ({
     ? drivers.find((d) => d.truck_id === form.truckId) ?? null
     : null;
   const selectedTruck = trucks.find((truck) => truck.id === form.truckId) ?? null;
-  const fieldClass = "h-9 border-border/80 bg-background/55 shadow-inner shadow-black/5 transition-colors";
+  const fieldClass = fieldStyles.compact;
 
   if (!isCreating && selectedRoute && !isRouteFormEditing) {
     const routeTruck = trucks.find((truck) => truck.id === selectedRoute.truckId);
@@ -301,7 +303,7 @@ const RouteFormPanel = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Truck</Label>
-            <Select
+            <SearchableSelect
               value={form.truckId}
               onValueChange={(v) => {
                 const driver = drivers.find((d) => d.truck_id === v);
@@ -312,22 +314,11 @@ const RouteFormPanel = ({
                 }));
               }}
               disabled={isLoadingTrucks}
-            >
-              <SelectTrigger className={fieldClass}>
-                {isLoadingTrucks ? (
-                  <span className="flex items-center gap-2 text-muted-foreground text-xs">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Loading...
-                  </span>
-                ) : (
-                  <SelectValue placeholder="Select truck" />
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                {trucks.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} · {t.plate_number}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={trucks.map((t) => ({ value: t.id, label: `${t.name} · ${t.plate_number}` }))}
+              placeholder={isLoadingTrucks ? "Loading..." : "Select truck"}
+              leadingIcon={isLoadingTrucks ? <Loader2 className="w-3 h-3 animate-spin" /> : undefined}
+              aria-label="Truck" searchPlaceholder="Search trucks..." className={fieldClass}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Driver (auto)</Label>

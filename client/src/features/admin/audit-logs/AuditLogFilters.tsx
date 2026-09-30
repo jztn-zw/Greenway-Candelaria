@@ -6,13 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfToday, subDays } from "date-fns";
 import { useState } from "react";
@@ -122,18 +116,9 @@ const AuditLogFilters = ({
           </div>
 
           {/* All Modules Dropdown */}
-          <Select value={moduleFilter} onValueChange={onModuleFilterChange}>
-            <SelectTrigger className="h-10 min-w-[160px] w-auto rounded-xl border-border/80 bg-background text-xs shadow-2xs font-medium shrink-0 hover:border-border transition-colors">
-              <SelectValue placeholder="All Modules" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl max-h-[320px] shadow-lg border-border/80">
-              {MODULE_OPTIONS.map((m) => (
-                <SelectItem key={m.value} value={m.value} className="text-xs">
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect value={moduleFilter} onValueChange={onModuleFilterChange}
+            options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
+            className="h-10 min-w-[160px] w-auto rounded-xl border-border/80 bg-background text-xs shadow-2xs font-medium shrink-0 hover:border-border transition-colors" />
         </div>
 
         {/* ── Right Controls: Quick Date Pill + Custom Calendar + Reset ── */}

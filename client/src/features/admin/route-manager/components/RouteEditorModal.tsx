@@ -258,7 +258,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
         >
           <form noValidate onSubmit={handleSubmit} className="flex flex-col h-full max-h-[92vh] overflow-hidden">
             {/* ── Modal Header (Pinned) ── */}
-            <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between bg-muted/10">
+            <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between bg-card">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                   {isCreating ? (
@@ -373,7 +373,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                             setForm((prev) => ({ ...prev, startTime: value }))
                           }
                           containerClassName="max-w-none"
-                          className="h-9 w-full rounded-xl border-border/80 bg-background px-3 shadow-2xs focus-within:ring-2 focus-within:ring-primary/20"
+                          className="w-full"
                           dropdownSide="bottom"
                           dropdownAlign="right"
                         />
@@ -384,12 +384,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <Label
-                            className={cn(
-                              "text-xs font-semibold",
-                              errors.truck ? "text-destructive" : "text-foreground"
-                            )}
-                          >
+                          <Label className="text-xs font-semibold text-foreground">
                             Assigned Collection Truck
                           </Label>
                           {trucks.length > 0 && (
@@ -400,6 +395,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                         </div>
 
                         <SearchableSelect
+                          aria-invalid={Boolean(errors.truck)}
+                          aria-describedby={errors.truck ? "route-truck-error" : undefined}
                           value={form.truckId}
                           onValueChange={(val) => {
                             const driver = drivers.find((d) => d.truck_id === val);
@@ -425,7 +422,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                           leadingIcon={<TruckIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
                           className={cn(
                             "h-9 rounded-xl text-xs",
-                            errors.truck && "border-destructive/70 text-destructive",
+                            errors.truck && "border-destructive/70",
                           )}
                         />
                         {errors.truck && (
@@ -670,7 +667,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             </div>
 
             {/* ── Modal Footer (Pinned / Sticky) ── */}
-            <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-between gap-3">
+            <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
               {/* Readiness status */}
               <div className="min-w-0 hidden sm:flex items-center gap-2 text-xs">
                 {!form.truckId ? (

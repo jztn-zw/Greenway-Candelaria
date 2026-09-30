@@ -59,7 +59,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden gap-0">
           {/* Modal Header (Pinned / Non-scrollable) */}
-          <div className="px-5 py-3.5 border-b border-border/60 bg-muted/15 shrink-0 flex items-center justify-between">
+          <div className="gw-modal-header px-5 py-3.5 border-b border-border/60 shrink-0 flex items-center justify-between bg-card">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
@@ -211,7 +211,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Modal Footer Controls (Pinned / Sticky) */}
-          <div className="px-5 py-3 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-between gap-2">
+          <div className="gw-modal-footer px-5 py-3 border-t border-border/60 shrink-0 flex items-center justify-between gap-2 bg-card">
             {/* Destructive Delete Button */}
             <Button
               variant="ghost"

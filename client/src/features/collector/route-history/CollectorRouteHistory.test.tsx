@@ -24,6 +24,57 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); client.clear(); notifyManager.setScheduler((callback) => setTimeout(callback, 0)); host.remove(); });
 const Navigation = () => { const navigate = useNavigate(); return <button onClick={() => navigate("?route=missing")}>Unknown link</button>; };
 const render = async (url = "/collector/route-history") => { await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[url]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Navigation /><CollectorRouteHistory /></MemoryRouter></QueryClientProvider>)); };
+it("shows the initial skeleton until the history request finishes without a false empty state", async () => {
+  let resolve!: (page: Awaited<ReturnType<typeof fetchCollectorHistoryPage>>) => void;
+  vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  await render();
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route history");
+  expect(host.textContent).not.toContain("No route logs found");
+  expect(host.querySelector("h1")).toBeNull();
+  await act(async () => resolve({ items: [], total: 0, nextCursor: null }));
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.textContent).toContain("No route logs found");
+});
+it("keeps filters available while a new status loads and restores cached results immediately", async () => {
+  await render();
+  let resolve!: (page: Awaited<ReturnType<typeof fetchCollectorHistoryPage>>) => void;
+  vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Completed")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route history");
+  expect(host.textContent).not.toContain("Route run-A");
+  expect(host.textContent).not.toContain("No route logs found");
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.querySelector("span")?.textContent === "All routes")!.click());
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.textContent).toContain("Route run-A");
+  await act(async () => resolve({ items: [{ ...run("completed"), status: "completed" }], total: 1, nextCursor: null }));
+  expect(host.textContent).not.toContain("Route completed");
+  expect(fetchCollectorHistoryPage).toHaveBeenCalledTimes(2);
+});
+it("uses the detail skeleton until the exact route finishes loading", async () => {
+  let resolve!: (route: RouteHistoryItem) => void;
+  vi.mocked(fetchCollectorHistoryRun).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  await render("/collector/route-history?route=run-A");
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route details");
+  expect(host.textContent).not.toContain("Loading route history");
+  expect(host.textContent).not.toContain("No route logs found");
+  await act(async () => resolve(run()));
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.textContent).toContain("Checkpoint breakdown");
+  expect(fetchCollectorHistoryPage).not.toHaveBeenCalled();
+});
+it("keeps loaded routes visible during a background refresh", async () => {
+  await render();
+  let resolve!: (page: Awaited<ReturnType<typeof fetchCollectorHistoryPage>>) => void;
+  vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  let refreshing!: Promise<void>;
+  await act(async () => { refreshing = client.invalidateQueries({ queryKey: ["collector", "collector", "history", "list"] }); });
+  expect(host.textContent).toContain("Route run-A");
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  await act(async () => { resolve({ items: [run("updated")], total: 1, nextCursor: null }); await refreshing; });
+  expect(host.textContent).toContain("Route updated");
+  expect(host.textContent).not.toContain("Route run-A");
+});
 it("shows load failure and retry instead of false empty history", async () => {
   vi.mocked(fetchCollectorHistoryPage).mockRejectedValueOnce(new Error("offline")); await render();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("could not be loaded"); expect(host.textContent).not.toContain("No route logs found");
@@ -43,9 +94,15 @@ it("never leaves a previous route's details on an invalid URL", async () => {
 });
 it("loads older pages on demand and filters across the full backend history", async () => {
   vi.mocked(fetchCollectorHistoryPage).mockResolvedValueOnce({ items: [run()], total: 80, nextCursor: "next" }); await render();
-  vi.mocked(fetchCollectorHistoryPage).mockResolvedValueOnce({ items: [run("older")], total: 80, nextCursor: null });
+  let resolve!: (page: Awaited<ReturnType<typeof fetchCollectorHistoryPage>>) => void;
+  vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
   await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Load older routes"))!.click());
+  expect(host.textContent).toContain("Route run-A");
+  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route history");
   expect(fetchCollectorHistoryPage).toHaveBeenLastCalledWith({ status: "all", waste_type: "all", cursor: "next" });
+  await act(async () => resolve({ items: [run("older")], total: 80, nextCursor: null }));
+  expect(host.querySelector('[role="status"]')).toBeNull();
   expect(host.textContent).toContain("Route older");
   await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "No collection")!.click());
   expect(fetchCollectorHistoryPage).toHaveBeenLastCalledWith({ status: "no-collection", waste_type: "all", cursor: undefined });

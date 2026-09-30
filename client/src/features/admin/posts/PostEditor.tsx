@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { FieldButton } from "@/components/ui/field-button";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -270,10 +271,8 @@ const CustomDateTimePicker = ({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <FieldButton
           aria-invalid={error}
-          className={`w-full h-10 flex items-center justify-between px-3.5 rounded-xl border bg-background text-sm shadow-2xs transition-colors cursor-pointer text-left focus:outline-none ${error ? "border-destructive/70 text-destructive focus:border-destructive" : "border-input/80 hover:border-primary/50 focus:border-primary"}`}
         >
           <span className="flex items-center gap-2.5 truncate">
             <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -286,7 +285,7 @@ const CustomDateTimePicker = ({
             </span>
           </span>
           <span className="text-xs text-primary font-semibold shrink-0">Set</span>
-        </button>
+        </FieldButton>
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -680,7 +679,7 @@ const PostEditor = ({
               placeholder="e.g., Household Waste Segregation Guidelines for 2026"
               aria-invalid={Boolean(errors.title)}
               aria-describedby={errors.title ? "post-title-error" : undefined}
-              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.title ? "border-destructive/70 text-destructive focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
+              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.title ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
             {errors.title && <p id="post-title-error" className="text-[11px] font-medium text-destructive">{errors.title}</p>}
           </div>
@@ -700,7 +699,7 @@ const PostEditor = ({
               placeholder="e.g., MENRO Candelaria · Office of the Municipal Environment"
               aria-invalid={Boolean(errors.source)}
               aria-describedby={errors.source ? "post-source-error" : undefined}
-              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.source ? "border-destructive/70 text-destructive focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
+              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.source ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
             {errors.source && <p id="post-source-error" className="text-[11px] font-medium text-destructive">{errors.source}</p>}
           </div>
@@ -720,7 +719,7 @@ const PostEditor = ({
               rows={10}
               aria-invalid={Boolean(errors.body)}
               aria-describedby={errors.body ? "post-body-error" : undefined}
-              className={`resize-none overflow-y-auto rounded-xl bg-background text-sm leading-relaxed shadow-2xs p-3.5 ${errors.body ? "border-destructive/70 text-destructive focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
+              className={`resize-none overflow-y-auto rounded-xl bg-background text-sm leading-relaxed shadow-2xs p-3.5 ${errors.body ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
             {errors.body && <p id="post-body-error" className="text-[11px] font-medium text-destructive">{errors.body}</p>}
           </div>

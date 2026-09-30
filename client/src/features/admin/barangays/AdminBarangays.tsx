@@ -1,15 +1,10 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { FormDialog } from "@/components/FormDialog";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
-import {
-Dialog,
-DialogContent,
-DialogDescription,
-DialogHeader,
-DialogTitle,
-} from "@/components/ui/dialog";
+import { formDialogStyles } from "@/components/formDialogStyles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -51,6 +46,8 @@ const AdminBarangays = () => {
   const [streetName, setStreetName] = useState("");
   const [streetArea, setStreetArea] = useState("");
   const [formError, setFormError] = useState("");
+  const [streetNameError, setStreetNameError] = useState("");
+  const [streetAreaError, setStreetAreaError] = useState("");
   const [isSavingStreet, setIsSavingStreet] = useState(false);
   const [deletingStreet, setDeletingStreet] = useState<ManagedStreet | null>(null);
   const [isDeletingStreet, setIsDeletingStreet] = useState(false);
@@ -147,6 +144,8 @@ const AdminBarangays = () => {
     setStreetName("");
     setStreetArea("");
     setFormError("");
+    setStreetNameError("");
+    setStreetAreaError("");
     setEditorOpen(true);
   };
 
@@ -156,6 +155,8 @@ const AdminBarangays = () => {
     setStreetName(street.name);
     setStreetArea(street.area ?? "");
     setFormError("");
+    setStreetNameError("");
+    setStreetAreaError("");
     setEditorOpen(true);
   };
 
@@ -165,6 +166,8 @@ const AdminBarangays = () => {
     setStreetName("");
     setStreetArea("");
     setFormError("");
+    setStreetNameError("");
+    setStreetAreaError("");
   };
 
   const isStreetDirty = streetName !== (editingStreet?.name ?? "")
@@ -181,14 +184,16 @@ const AdminBarangays = () => {
     if (!selectedId || isSavingStreet) return;
     const name = streetName.trim();
     const area = streetArea.trim();
-    if (!name || name.length > 150) {
-      setFormError("Enter a street name of up to 150 characters.");
-      return;
-    }
-    if (area.length > 100) {
-      setFormError("Area must be 100 characters or fewer.");
-      return;
-    }
+    const duplicate = streets.some((street) => street.id !== editingStreet?.id
+      && street.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase()
+      && (street.area ?? "").trim().toLocaleLowerCase() === area.toLocaleLowerCase());
+    const nameError = !name ? "Street name is required."
+      : name.length > 150 ? "Street name must be 150 characters or fewer."
+      : duplicate ? "This street and area already exist in the barangay." : "";
+    const areaError = area.length > 100 ? "Area must be 100 characters or fewer." : "";
+    setStreetNameError(nameError);
+    setStreetAreaError(areaError);
+    if (nameError || areaError) return;
     setFormError("");
     setIsSavingStreet(true);
     try {
@@ -199,7 +204,12 @@ const AdminBarangays = () => {
       toast.success(editingStreet ? "Street updated." : "Street added.");
 
     } catch (error) {
-      setFormError(errorMessage(error));
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      const message = errorMessage(error);
+      if (status === 400 || status === 409 || /street and area already exist/i.test(message)) {
+        if (status === 400 && /^area\b/i.test(message)) setStreetAreaError(message);
+        else setStreetNameError(message);
+      } else setFormError(message);
     } finally {
       setIsSavingStreet(false);
     }
@@ -619,33 +629,35 @@ const AdminBarangays = () => {
         </section>
       </div>
 
-      <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) requestCloseStreetEditor(); }}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display font-bold text-lg">
-              {editingStreet ? "Edit street" : "Add street"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedBarangay ? `Street details for Barangay ${selectedBarangay.name}.` : "Enter street details."}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(event) => void saveStreet(event)} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label htmlFor="barangay-street-name">Street name</Label>
-              <Input id="barangay-street-name" value={streetName} onChange={(event) => { setStreetName(event.target.value); setFormError(""); }} maxLength={150} placeholder="e.g. Gonzales St" className="h-10 rounded-xl" required autoFocus />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="barangay-street-area">Area <span className="font-normal text-muted-foreground">(optional)</span></Label>
-              <Input id="barangay-street-area" value={streetArea} onChange={(event) => { setStreetArea(event.target.value); setFormError(""); }} maxLength={100} placeholder="e.g. Ilaya, Purok 1, Zone A" className="h-10 rounded-xl" />
-              <p className="text-xs text-muted-foreground">Leave blank if the area has not been specified.</p>
-            </div>
-            {formError && <p role="alert" className="text-sm text-destructive">{formError}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={requestCloseStreetEditor} disabled={isSavingStreet} className="h-10 rounded-xl cursor-pointer">Cancel</Button>
-              <Button type="submit" disabled={isSavingStreet} className="h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium cursor-pointer">{isSavingStreet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingStreet ? "Save changes" : "Add street"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FormDialog
+        open={editorOpen}
+        onOpenChange={(open) => { if (!open) requestCloseStreetEditor(); }}
+        pending={isSavingStreet}
+        icon={<MapPin />}
+        title={editingStreet ? "Edit street" : "Add street"}
+        description={selectedBarangay ? `Street details for Barangay ${selectedBarangay.name}.` : "Enter street details."}
+        footer={<>
+          <Button type="button" variant="outline" onClick={requestCloseStreetEditor} disabled={isSavingStreet} className={formDialogStyles.cancelButton}>Cancel</Button>
+          <Button type="submit" form="barangay-street-form" disabled={isSavingStreet} className={formDialogStyles.primaryButton}>
+            {isSavingStreet && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+            {editingStreet ? "Save changes" : "Add street"}
+          </Button>
+        </>}
+      >
+        <form id="barangay-street-form" onSubmit={(event) => void saveStreet(event)} noValidate className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="barangay-street-name" className={formDialogStyles.label}>Street name</Label>
+            <Input id="barangay-street-name" fieldSize="compact" value={streetName} onChange={(event) => { setStreetName(event.target.value); setStreetNameError(""); setFormError(""); }} maxLength={150} placeholder="e.g. Gonzales St" required autoFocus aria-invalid={Boolean(streetNameError)} aria-describedby={streetNameError ? "barangay-street-name-error" : undefined} />
+            {streetNameError && <p id="barangay-street-name-error" className="text-xs text-destructive">{streetNameError}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="barangay-street-area" className={formDialogStyles.label}>Area <span className="font-normal text-muted-foreground">(optional)</span></Label>
+            <Input id="barangay-street-area" fieldSize="compact" value={streetArea} onChange={(event) => { setStreetArea(event.target.value); setStreetAreaError(""); setStreetNameError(""); setFormError(""); }} maxLength={100} placeholder="e.g. Ilaya, Purok 1, Zone A" aria-invalid={Boolean(streetAreaError)} aria-describedby={streetAreaError ? "barangay-street-area-error" : "barangay-street-area-hint"} />
+            {streetAreaError ? <p id="barangay-street-area-error" className="text-xs text-destructive">{streetAreaError}</p> : <p id="barangay-street-area-hint" className="text-xs text-muted-foreground">Leave blank if the area has not been specified.</p>}
+          </div>
+          {formError && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{formError}</p>}
+        </form>
+      </FormDialog>
 
       <UnsavedChangesDialog
         isOpen={editorOpen && showDiscardStreetConfirm}

@@ -58,7 +58,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background flex flex-col max-h-[85vh] [&>button:last-child]:hidden">
         {/* ── Fixed Pinned Header (Non-Scrollable) ── */}
-        <div className="p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0 bg-background z-10">
+        <div className="gw-modal-header p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0 bg-background z-10 bg-card">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
               <BarChart3 className="w-5 h-5" />

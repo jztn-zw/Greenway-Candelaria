@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
 import { indexMonthEvents } from "./calendar.utils";
+import { CalendarMonthGridSkeleton } from "@/components/PageLoadingSkeletons";
 
 interface CalendarGridProps {
   currentDate: Date;
@@ -28,6 +29,7 @@ interface CalendarGridProps {
   fillHeight?: boolean;
   twoLayerDots?: boolean;
   className?: string;
+  isLoading?: boolean;
 }
 
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
@@ -51,6 +53,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   fillHeight = false,
   twoLayerDots = false,
   className,
+  isLoading = false,
 }) => {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -294,7 +297,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         </div>
 
         {/* 7-Column Month Grid */}
-        <div
+        {isLoading ? <CalendarMonthGridSkeleton currentDate={currentDate} /> : <div
           className={cn(
             "grid grid-cols-7",
             compact ? "gap-1" : "gap-1 sm:gap-1.5",
@@ -414,7 +417,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               </button>
             );
           })}
-        </div>
+        </div>}
         {footer && <div className="shrink-0">{footer}</div>}
       </div>
     </TooltipProvider>

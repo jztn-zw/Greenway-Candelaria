@@ -7,11 +7,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CollectorDashboard from "./CollectorDashboard";
 import { fetchCollectorDashboardProfile, fetchDriverMyHistory } from "@/services/driverManagerService";
 import { fetchMyRouteToday } from "@/services/routesService";
+import { fetchCalendarEvents } from "@/services/scheduleService";
 
 vi.mock("@/services/driverManagerService", () => ({
   fetchCollectorDashboardProfile: vi.fn(), fetchDriverMyHistory: vi.fn(), reportTruckBreakdown: vi.fn(),
 }));
 vi.mock("@/services/routesService", () => ({ fetchMyRouteToday: vi.fn() }));
+vi.mock("@/services/scheduleService", () => ({ fetchCalendarEvents: vi.fn() }));
 vi.mock("@/lib/toast", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("./components/RouteCalendarCard", () => ({ default: () => <div>Schedule</div> }));
 
@@ -30,6 +32,7 @@ beforeEach(() => {
     truck_availability: "ACTIVE", truck_model: "Model A",
   });
   vi.mocked(fetchDriverMyHistory).mockResolvedValue([]);
+  vi.mocked(fetchCalendarEvents).mockResolvedValue([]);
   vi.mocked(fetchMyRouteToday).mockResolvedValue({
     route_id: "r1", truck_id: "t1", truck_name: "Truck 1", route_name: "Morning collection",
     route_status: "ACTIVE", started_at: "09:00:00", collection_started_at: "2026-09-27 01:00:00",
@@ -42,6 +45,24 @@ afterEach(() => { act(() => root.unmount()); client.clear(); notifyManager.setSc
 const render = async () => {
   await act(async () => { root.render(<QueryClientProvider client={client}><MemoryRouter><CollectorDashboard /></MemoryRouter></QueryClientProvider>); });
 };
+
+it("keeps the full dashboard skeleton until calendar data is ready", async () => {
+  let finishCalendar!: (events: []) => void;
+  vi.mocked(fetchCalendarEvents).mockImplementationOnce(() => new Promise((resolve) => { finishCalendar = resolve; }));
+  await render();
+  expect(host.querySelector('[role="status"]')).toHaveTextContent("Loading collector dashboard");
+  expect(host.textContent).not.toContain("Morning collection");
+  await act(async () => finishCalendar([]));
+  expect(host.textContent).toContain("Morning collection");
+  expect(fetchCalendarEvents).toHaveBeenCalledTimes(1);
+});
+
+it("does not keep the dashboard skeleton after a calendar request fails", async () => {
+  vi.mocked(fetchCalendarEvents).mockRejectedValueOnce(new Error("Schedule unavailable"));
+  await render();
+  expect(host.textContent).toContain("Morning collection");
+  expect(host.textContent).not.toContain("Loading collector dashboard");
+});
 
 it("keeps the assignment available if history fails, without presenting false empty history", async () => {
   vi.mocked(fetchDriverMyHistory).mockRejectedValue(new Error("Temporary failure"));

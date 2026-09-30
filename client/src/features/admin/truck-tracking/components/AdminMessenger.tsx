@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MessagesSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ConversationPanel } from "@/components/messenger/ConversationPanel";
 import { useConversation } from "@/components/messenger/useConversation";
 import type { DriverRow } from "@/services/trackingService";
@@ -59,7 +59,7 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
       if (!value && linkedDriver) { const next = new URLSearchParams(params); next.delete("messageDriver"); next.delete("message"); setParams(next, { replace: true }); }
     }}>
       <DialogContent className="flex w-[calc(100%-2rem)] max-w-xl max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-2xl border-border/80 bg-card p-0 shadow-2xl">
-        <DialogHeader className="shrink-0 border-b border-border/70 bg-muted/15 px-5 py-4 pr-12 text-left">
+        <DialogHeader className="gw-modal-header shrink-0 border-b border-border/70 px-5 py-4 pr-12 text-left bg-card">
           <div className="flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-2xs">
               <MessagesSquare className="size-5" />
@@ -73,16 +73,15 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
 
         <div className="space-y-1.5 px-5 py-4">
           <label className="text-xs font-semibold text-foreground" htmlFor="messenger-collector">Collector</label>
-          <Select value={driverId || "none"} onValueChange={(value) => { setDriverId(value === "none" ? "" : value); setTargetId(undefined); }}>
-            <SelectTrigger id="messenger-collector" aria-label="Collector" className="h-10 w-full rounded-xl border-border/80 bg-background px-3 text-xs font-semibold shadow-2xs">
-              <SelectValue placeholder="Choose a collector" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/80 shadow-lg">
-              <SelectItem value="none">Choose a collector</SelectItem>
-              {driverId && !drivers.some((driver) => driver.id === driverId) && <SelectItem value={driverId}>Selected collector</SelectItem>}
-              {drivers.filter((driver) => driver.account_status === "ACTIVE").map((driver) => <SelectItem key={driver.id} value={driver.id}>{driver.full_name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect id="messenger-collector" aria-label="Collector" value={driverId || "none"}
+            onValueChange={(value) => { setDriverId(value === "none" ? "" : value); setTargetId(undefined); }}
+            options={[
+              { value: "none", label: "Choose a collector" },
+              ...(driverId && !drivers.some((driver) => driver.id === driverId) ? [{ value: driverId, label: "Selected collector" }] : []),
+              ...drivers.filter((driver) => driver.account_status === "ACTIVE").map((driver) => ({ value: driver.id, label: driver.full_name })),
+            ]}
+            placeholder="Choose a collector" searchPlaceholder="Search collectors..."
+            className="h-10 w-full rounded-xl border-border/80 bg-background px-3 text-xs font-semibold shadow-2xs" />
         </div>
 
         <section aria-label="Collector conversation" className="mx-5 mb-5 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-muted/15">

@@ -1,5 +1,6 @@
 import { useCollectorQuery } from "@/lib/collectorQuery";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CollectorScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { SelectedDayPanel } from "@/components/calendar/SelectedDayPanel";
 import { calendarDateKey, eventOccursOnDate, getEventColors, getManilaCalendarDate } from "@/components/calendar/calendar.utils";
@@ -13,6 +14,10 @@ const CollectorSchedule = () => {
   const monthKey = calendarDateKey(currentDate).slice(0, 7);
   const schedule = useCollectorQuery("schedule", [monthKey], () => fetchCalendarEvents({ view: "collector", month: monthKey, event_type: "PRIVATE_EVENT", visibility: "PRIVATE" }));
   const isLoading = schedule.isLoading;
+  const [hasSettledInitialLoad, setHasSettledInitialLoad] = useState(false);
+  useEffect(() => {
+    if (schedule.isFetched) setHasSettledInitialLoad(true);
+  }, [schedule.isFetched]);
   const error = schedule.error && !schedule.data ? "Schedule unavailable. Please try opening this page again later." : null;
   const events = schedule.data ?? EMPTY_EVENTS;
 
@@ -29,6 +34,8 @@ const CollectorSchedule = () => {
     setSelectedDateStr(calendarDateKey(today));
   };
 
+  if (isLoading && !hasSettledInitialLoad) return <CollectorScheduleSkeleton currentDate={currentDate} />;
+
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5 pb-8">
       <div>
@@ -42,6 +49,7 @@ const CollectorSchedule = () => {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
         <div className="lg:col-span-2">
           <CalendarGrid
+            isLoading={isLoading}
             className="lg:h-[620px]"
             fillHeight
             compactMobileCells

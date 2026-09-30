@@ -70,6 +70,7 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
 
       <div className="space-y-1.5">
         <Textarea
+          aria-invalid={showError}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={

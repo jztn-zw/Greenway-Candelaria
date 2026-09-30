@@ -52,6 +52,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
             </div>
           ) : (
             <SearchableSelect
+              aria-invalid={showError}
               value={barangayId}
               onValueChange={handleSelect}
               options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}

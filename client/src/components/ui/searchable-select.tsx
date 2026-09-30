@@ -4,6 +4,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { fieldStyles, type FieldSize } from "./fieldStyles";
+import "./select-motion.css";
 
 export interface SearchableSelectOption {
   value: string;
@@ -13,6 +15,11 @@ export interface SearchableSelectOption {
 
 interface SearchableSelectProps {
   id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  fieldSize?: FieldSize;
   value: string;
   onValueChange: (value: string) => void;
   options: SearchableSelectOption[];
@@ -28,6 +35,11 @@ interface SearchableSelectProps {
 /** A consistent select that adds filtering automatically for long option lists. */
 export function SearchableSelect({
   id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  fieldSize = "standard",
   value,
   onValueChange,
   options,
@@ -40,6 +52,8 @@ export function SearchableSelect({
   leadingIcon,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const commandRef = React.useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value);
   const searchable = options.length >= 10;
 
@@ -48,13 +62,25 @@ export function SearchableSelect({
       <PopoverTrigger asChild>
         <Button
           id={id}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              setOpen(true);
+            }
+          }}
           className={cn(
-            "h-10 w-full justify-between gap-2 rounded-xl border-input/80 bg-background px-3.5 py-2 text-xs font-normal text-foreground shadow-2xs transition-colors duration-150 hover:border-primary/50 hover:bg-background hover:text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 sm:text-sm data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/15",
+            "gw-select-trigger w-full justify-between gap-2 font-normal hover:bg-background hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:ring-0",
+            fieldStyles.surface,
+            fieldStyles[fieldSize],
             className,
           )}
         >
@@ -66,23 +92,23 @@ export function SearchableSelect({
           </span>
           <ChevronDown
             aria-hidden="true"
-            className={cn(
-              "h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform duration-200",
-              open && "rotate-180 text-primary",
-            )}
+            className="gw-select-chevron h-4 w-4 shrink-0 text-muted-foreground/70"
           />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={6}
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (searchRef.current ?? commandRef.current)?.focus();
+        }}
         className={cn(
-          "w-[var(--radix-popover-trigger-width)] min-w-[14rem] overflow-hidden rounded-xl border border-border/80 bg-popover p-0 text-popover-foreground shadow-lg",
+          "gw-select-menu w-[var(--radix-popover-trigger-width)] min-w-[14rem] overflow-hidden rounded-xl border border-border/80 bg-popover p-0 text-popover-foreground shadow-lg",
           contentClassName,
         )}
       >
-        <Command className="flex max-h-[19rem] w-full flex-col bg-transparent">
+        <Command ref={commandRef} tabIndex={-1} defaultValue={value} label={ariaLabel ?? placeholder} className="flex max-h-[19rem] w-full flex-col bg-transparent">
           {searchable && (
             <div className="relative shrink-0 border-b border-border/70 bg-muted/20 px-2.5 py-2">
               <Search
@@ -90,9 +116,10 @@ export function SearchableSelect({
                 className="pointer-events-none absolute left-5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
               />
               <CommandInput
+                ref={searchRef}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="h-9 w-full rounded-lg border border-border/70 bg-background py-2 pl-9 pr-3 text-xs text-foreground shadow-2xs outline-none placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15 sm:text-sm"
+                className={cn(fieldStyles.surface, fieldStyles.compact, fieldStyles.placeholder, "w-full pl-9 pr-3")}
               />
             </div>
           )}
@@ -105,7 +132,8 @@ export function SearchableSelect({
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={`${option.label} ${option.keywords ?? ""}`}
+                  value={option.value}
+                  keywords={[option.label, option.keywords ?? ""]}
                   onSelect={() => {
                     onValueChange(option.value);
                     setOpen(false);

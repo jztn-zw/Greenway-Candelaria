@@ -60,6 +60,46 @@ const renderProfile = async () => {
   });
 };
 
+it.each(["account", "vehicle"] as const)("keeps the full skeleton until the slower %s request settles", async (slower) => {
+  let resolveProfile!: (value: Awaited<ReturnType<typeof fetchProfile>>) => void;
+  let resolveDriver!: (value: Awaited<ReturnType<typeof fetchDriverMe>>) => void;
+  vi.mocked(fetchProfile).mockReturnValueOnce(new Promise((done) => { resolveProfile = done; }));
+  vi.mocked(fetchDriverMe).mockReturnValueOnce(new Promise((done) => { resolveDriver = done; }));
+  await renderProfile();
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading collector profile");
+  expect(host.textContent).not.toContain("No vehicle currently assigned");
+  await act(async () => {
+    if (slower === "account") resolveDriver(driver as never);
+    else resolveProfile(profile as never);
+  });
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading collector profile");
+  expect(host.textContent).not.toContain("Test Collector");
+  expect(host.textContent).not.toContain("ABC-123");
+  await act(async () => {
+    if (slower === "account") resolveProfile(profile as never);
+    else resolveDriver(driver as never);
+  });
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.textContent).toContain("Test Collector");
+  expect(host.textContent).toContain("ABC-123");
+});
+
+it("keeps the profile and open edit dialog visible while both requests refresh", async () => {
+  await renderProfile();
+  await click("Edit"); change("collector-profile-field", "Unsaved name");
+  let resolveProfile!: (value: Awaited<ReturnType<typeof fetchProfile>>) => void;
+  let resolveDriver!: (value: Awaited<ReturnType<typeof fetchDriverMe>>) => void;
+  vi.mocked(fetchProfile).mockReturnValueOnce(new Promise((done) => { resolveProfile = done; }));
+  vi.mocked(fetchDriverMe).mockReturnValueOnce(new Promise((done) => { resolveDriver = done; }));
+  let refreshing!: Promise<void>;
+  await act(async () => { refreshing = client.invalidateQueries({ queryKey: collectorKey("collector", "profile") }); });
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.textContent).toContain("ABC-123");
+  expect(document.getElementById("collector-profile-field")).toHaveValue("Unsaved name");
+  await act(async () => { resolveProfile(profile as never); resolveDriver(driver as never); await refreshing; });
+  expect(document.getElementById("collector-profile-field")).toHaveValue("Unsaved name");
+});
+
 it("shows an API failure instead of inventing an unassigned vehicle, then retries", async () => {
   vi.mocked(fetchDriverMe).mockRejectedValueOnce(new Error("Network unavailable"));
   await renderProfile();
@@ -85,13 +125,17 @@ it("shows stored account and vehicle status without a duplicate dispatch card", 
 });
 
 it("shows a retry state when both profile requests fail", async () => {
-  vi.mocked(fetchProfile).mockRejectedValue(new Error("Network unavailable"));
-  vi.mocked(fetchDriverMe).mockRejectedValue(new Error("Network unavailable"));
+  vi.mocked(fetchProfile).mockRejectedValueOnce(new Error("Network unavailable"));
+  vi.mocked(fetchDriverMe).mockRejectedValueOnce(new Error("Network unavailable"));
   await renderProfile();
-  expect(document.body.textContent).toContain("Profile unavailable");
+  expect(document.body.textContent).toContain("Profile couldn't load");
   expect(document.body.textContent).not.toContain("Active collector");
   expect(document.body.textContent).not.toContain("No vehicle currently assigned");
-  expect([...document.querySelectorAll("button")].some((button) => button.textContent === "Retry loading profile")).toBe(true);
+  await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Try again")!.click());
+  expect(document.body.textContent).toContain("Test Collector");
+  expect(document.body.textContent).toContain("ABC-123");
+  expect(fetchProfile).toHaveBeenCalledTimes(2);
+  expect(fetchDriverMe).toHaveBeenCalledTimes(2);
 });
 
 it("uses the same customizable initials header pattern as the other profiles", async () => {

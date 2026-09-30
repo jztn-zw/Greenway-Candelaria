@@ -16,7 +16,7 @@ import {
   Route as RouteIcon,
 } from "lucide-react";
 import AnimatedList from "@/components/AnimatedList";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { AdminTruck, TruckStatus } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -154,18 +154,10 @@ const AdminTruckCard = ({
               <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Showing route
               </span>
-              <Select value={truck.routeId} onValueChange={onRouteChange}>
-                <SelectTrigger className="h-8 w-full rounded-lg text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {truck.routeChoices.map((route) => (
-                    <SelectItem key={route.id} value={route.id}>
-                      {route.name} · {route.status.toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect value={truck.routeId} onValueChange={onRouteChange ?? (() => {})}
+                options={truck.routeChoices.map((route) => ({ value: route.id, label: `${route.name} · ${route.status.toLowerCase()}` }))}
+                aria-label="Showing route" searchPlaceholder="Search routes..." fieldSize="compact"
+                className="h-8 w-full rounded-lg text-xs" />
             </div>
           )}
 

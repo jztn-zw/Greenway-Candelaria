@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android Gradle cache and build output
+/android/build/
+/android/.gradle/

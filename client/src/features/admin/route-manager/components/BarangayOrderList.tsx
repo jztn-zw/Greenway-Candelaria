@@ -232,12 +232,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2">
-            <Label
-              className={cn(
-                "text-xs font-bold flex items-center gap-1.5",
-                error ? "text-destructive" : "text-foreground"
-              )}
-            >
+            <Label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Layers className="w-3.5 h-3.5 text-primary" />
               Route Stop Sequence
             </Label>

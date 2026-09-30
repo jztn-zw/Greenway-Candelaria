@@ -461,9 +461,6 @@ const AdminRouteManager: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-              Showing <span className="font-bold text-foreground">{filteredRoutes.length}</span> of {routes.length} routes
-            </span>
             {hasActiveFilters && (
               <Button
                 variant="ghost"

@@ -25,6 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   useAuthStore.setState({ user: { id: "collector", role: "DRIVER" } as never, token: "session" });
   state.stops = [];
+  state.isLoading = false;
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   state.routeInfo = { routeId: "current-run", templateRouteId: "current-template", truckId: "truck", routeName: "Current assignment", wasteType: "Biodegradable", totalStops: 0, startedAt: new Date(), collectionStartedAt: null, routeStatus: "SCHEDULED", pausedAt: null, totalPausedSeconds: 0 };
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
@@ -33,6 +34,19 @@ afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
 const mount = async (search: string) => {
   await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter key={search} initialEntries={[`/collector/route-map${search}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Location /><CollectorTopBar /><CollectorRouteMap /></MemoryRouter></QueryClientProvider>));
 };
+
+it("uses the shared route page skeleton while the assignment loads", async () => {
+  state.isLoading = true;
+  await mount("");
+  expect(host.querySelector('[role="status"][aria-busy="true"]')).toHaveTextContent("Loading collection route");
+  expect(host.querySelector('[aria-label="Loading planned route map"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Loading assigned stop order"]')).not.toBeNull();
+  expect(host.textContent).not.toContain("Start collection route");
+  state.isLoading = false;
+  await mount("");
+  expect(host.querySelector('[role="status"][aria-busy="true"]')).toBeNull();
+  expect(host.textContent).toContain("Current assignment");
+});
 
 it("renders the matching assignment from a notification and keeps ordinary map access working", async () => {
   await mount(`?date=${getManilaNow().dateKey}&template=current-template`);

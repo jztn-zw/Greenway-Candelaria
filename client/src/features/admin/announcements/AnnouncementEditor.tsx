@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { FieldButton } from "@/components/ui/field-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -304,7 +305,7 @@ const AnnouncementEditor = ({
           }}
         >
           {/* ── Fixed Pinned Header (Non-Scrollable) with Top-Right X ── */}
-          <div className="px-5 py-4 border-b border-border/60 shrink-0 bg-background z-20 flex items-center justify-between gap-3 text-left">
+          <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 bg-background z-20 flex items-center justify-between gap-3 text-left bg-card">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                 <Megaphone className="w-5 h-5" />
@@ -474,10 +475,9 @@ const AnnouncementEditor = ({
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
+                    <FieldButton
                       aria-invalid={Boolean(errors.targetBarangays)}
-                      className={cn("w-full h-10 justify-between font-normal rounded-xl bg-background border text-xs px-3", errors.targetBarangays ? "border-destructive" : "border-border")}
+                      className="font-normal"
                     >
                       <span className="truncate">
                         {form.targetBarangays.length > 0
@@ -487,7 +487,7 @@ const AnnouncementEditor = ({
                           : "Click to select target barangays..."}
                       </span>
                       <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
+                    </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
                     className="w-[320px] p-0 rounded-xl border border-border shadow-xl z-[70]"
@@ -615,13 +615,11 @@ const AnnouncementEditor = ({
                   <Label className="text-xs font-semibold text-foreground/90">Event Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
+                      <FieldButton
+                        aria-invalid={Boolean(errors.calendarDate)}
                         className={cn(
-                          "h-10 w-full justify-between rounded-xl bg-background border px-3 text-xs font-medium hover:bg-muted/50",
+                          "font-medium",
                           !form.calendarDate && "text-muted-foreground",
-                          errors.calendarDate ? "border-destructive" : "border-border",
                         )}
                       >
                         <span className="flex items-center gap-2">
@@ -631,7 +629,7 @@ const AnnouncementEditor = ({
                             : "Choose event date"}
                         </span>
                         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
+                      </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto rounded-xl border border-border p-0 shadow-xl" align="start">
                       <Calendar
@@ -692,19 +690,19 @@ const AnnouncementEditor = ({
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
+                      <FieldButton
+                        fieldSize="compact"
+                        aria-invalid={Boolean(errors.scheduledDate)}
                         className={cn(
-                           "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                           "justify-start font-normal",
                            !form.scheduledDate && "text-muted-foreground",
-                           errors.scheduledDate ? "border-destructive" : "border-border/80",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         {form.scheduledDate
                           ? format(parseStoredDate(form.scheduledDate), "PPP p")
                           : "Pick broadcast date..."}
-                      </Button>
+                      </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
@@ -751,19 +749,19 @@ const AnnouncementEditor = ({
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
+                      <FieldButton
+                        fieldSize="compact"
+                        aria-invalid={Boolean(errors.expiryDate)}
                         className={cn(
-                           "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                           "justify-start font-normal",
                            !form.expiryDate && "text-muted-foreground",
-                           errors.expiryDate ? "border-destructive" : "border-border/80",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         {form.expiryDate
                           ? format(parseStoredDate(form.expiryDate), "PPP p")
                           : "Never expires"}
-                      </Button>
+                      </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
@@ -814,19 +812,19 @@ const AnnouncementEditor = ({
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
+                    <FieldButton
+                      fieldSize="compact"
+                      aria-invalid={Boolean(errors.expiryDate)}
                       className={cn(
-                         "w-full h-9 justify-start text-left font-normal rounded-xl bg-background border text-xs px-3 shadow-2xs",
+                         "justify-start font-normal",
                          !form.expiryDate && "text-muted-foreground",
-                         errors.expiryDate ? "border-destructive" : "border-border/80",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {form.expiryDate
                         ? format(parseStoredDate(form.expiryDate), "PPP p")
                         : "Never expires (stays visible until manually archived)"}
-                    </Button>
+                    </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
                     className="w-auto p-0 rounded-xl border border-border shadow-xl"
@@ -869,7 +867,7 @@ const AnnouncementEditor = ({
           </div>
 
           {/* ── Fixed Pinned Footer (Non-Scrollable) ── */}
-          <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 z-10 flex items-center justify-end gap-2.5">
+          <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 z-10 flex items-center justify-end gap-2.5 bg-card">
             {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
             <Button
               type="button"

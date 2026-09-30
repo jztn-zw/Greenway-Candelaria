@@ -23,7 +23,7 @@ export const FormDialogHeader = ({ title, description, icon, onClose, closeLabel
         <DialogDescription className={formDialogStyles.description}>{description}</DialogDescription>
       </div>
     </div>
-    <button type="button" onClick={onClose} disabled={disabled} aria-label={closeLabel} className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"><X className="size-4" /></button>
+    <button type="button" onClick={onClose} disabled={disabled} aria-label={closeLabel} className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"><X className="size-4" /></button>
   </div>
 );
 

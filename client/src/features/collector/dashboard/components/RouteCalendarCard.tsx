@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
+import { CollectorCalendarCardSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { getManilaNow } from "@/utils/date";
 
@@ -40,10 +41,11 @@ const RouteCalendarCard = () => {
     setSelectedDateStr(todayStr);
   };
 
+  if (calendarLoading) return <CollectorCalendarCardSkeleton year={year} month={month} />;
+
   return (
     <section className="flex h-full min-h-0 sm:min-h-[380px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-3 shadow-xs sm:p-4 lg:min-h-0">
-      {calendarLoading ? <p role="status" className="text-sm text-muted-foreground">Loading schedule…</p>
-        : calendarError ? <p role="alert" className="text-sm text-destructive">Schedule unavailable. Open the schedule page to check again later.</p> : null}
+      {calendarError ? <p role="alert" className="text-sm text-destructive">Schedule unavailable. Open the schedule page to check again later.</p> : null}
       <div className="min-h-0 flex-1">
         <CalendarGrid
           embedded

@@ -107,7 +107,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-md max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-card [&>button:last-child]:hidden animate-in fade-in-0 zoom-in-95 duration-200">
-        <DialogHeader className="px-5 py-4 border-b border-border/60 flex flex-row items-center justify-between gap-3 text-left shrink-0 space-y-0">
+        <DialogHeader className="gw-modal-header px-5 py-4 border-b border-border/60 flex flex-row items-center justify-between gap-3 text-left shrink-0 space-y-0 bg-card">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl bg-muted/60 border border-border/70 flex items-center justify-center ${config.accent} shrink-0 shadow-2xs`}>
               <Icon className="w-5 h-5" />
@@ -124,7 +124,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
 
         <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
           <div className="space-y-1">
-            <h3 className="text-base font-bold font-display text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
+            <h3 className="text-sm font-semibold font-display text-foreground leading-relaxed tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
             {notification.time && (
               <p className="text-xs text-muted-foreground font-normal">
                 <span>{notification.time}</span>
@@ -141,12 +141,12 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
               <p className="whitespace-pre-wrap break-words">{reportText("description") || notification.message}</p>
             </div>
           )}
-          {notification.ref_module !== "truck-breakdowns" && <div className="text-xs lg:text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+          {notification.ref_module !== "truck-breakdowns" && <div className="text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/10 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
             {notification.details || notification.message}
           </div>}
         </div>
-        <div className="px-5 py-3.5 border-t border-border/60 bg-muted/20 flex items-center justify-end shrink-0">
-          <Button type="button" onClick={() => onOpenChange(false)} className="w-full lg:w-auto h-9 px-6 rounded-xl text-xs lg:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all shadow-xs cursor-pointer">
+        <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 flex items-center justify-end shrink-0 bg-card">
+          <Button type="button" onClick={() => onOpenChange(false)} className="h-9 rounded-lg px-5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer">
             Close
           </Button>
         </div>

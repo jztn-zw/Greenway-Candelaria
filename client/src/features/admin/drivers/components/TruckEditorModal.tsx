@@ -125,7 +125,7 @@ const TruckEditorModal = ({
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleRequestClose(); }}>
       <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
+        <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
               <TruckIcon className="w-5 h-5" />
@@ -158,7 +158,7 @@ const TruckEditorModal = ({
           {/* Row 1: Name & Model */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-               <Label htmlFor="truck-name" className={cn("text-xs font-semibold", errors.name ? "text-destructive" : "text-foreground")}>
+               <Label htmlFor="truck-name" className="text-xs font-semibold text-foreground">
                 Truck Identifier
               </Label>
               <Input
@@ -172,7 +172,7 @@ const TruckEditorModal = ({
             </div>
 
             <div className="space-y-1.5">
-               <Label htmlFor="truck-model" className={cn("text-xs font-semibold", errors.model ? "text-destructive" : "text-foreground")}>
+               <Label htmlFor="truck-model" className="text-xs font-semibold text-foreground">
                 Vehicle Model
               </Label>
               <Input
@@ -189,7 +189,7 @@ const TruckEditorModal = ({
           {/* Row 2: Plate Number & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-               <Label htmlFor="truck-plate" className={cn("text-xs font-semibold", errors.plate ? "text-destructive" : "text-foreground")}>
+               <Label htmlFor="truck-plate" className="text-xs font-semibold text-foreground">
                 Plate Number
               </Label>
               <Input
@@ -223,7 +223,7 @@ const TruckEditorModal = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-end gap-2.5">
+        <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
           {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
           <Button
             type="button"

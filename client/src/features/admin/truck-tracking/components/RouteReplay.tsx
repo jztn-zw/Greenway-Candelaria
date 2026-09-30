@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/FormDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
 import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
@@ -232,19 +232,10 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
       <div className="space-y-3">
         <div className="space-y-1.5">
           <label id="replay-truck-label" className="block text-xs font-semibold text-foreground">Truck</label>
-          <Select value={selectedTruck} onValueChange={setSelectedTruck} disabled={exporting}>
-            <SelectTrigger aria-labelledby="replay-truck-label" className="h-9 rounded-md border-border/80 text-xs">
-              <SelectValue placeholder="Select a truck" />
-            </SelectTrigger>
-            <SelectContent>
-              {trucks.map((truck) => (
-                <SelectItem key={truck.id} value={truck.id} className="text-xs">
-                  <span className="font-medium">{truck.name}</span>
-                  <span className="ml-2 text-[10px] text-muted-foreground">{truck.plateNumber}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect value={selectedTruck} onValueChange={setSelectedTruck} disabled={exporting}
+            aria-labelledby="replay-truck-label" fieldSize="compact" placeholder="Select a truck" searchPlaceholder="Search trucks..."
+            options={trucks.map((truck) => ({ value: truck.id, label: `${truck.name} ${truck.plateNumber}` }))}
+            className="h-9 rounded-md border-border/80 text-xs" />
         </div>
         <div className="space-y-1.5">
           <label id="replay-date-label" className="block text-xs font-semibold text-foreground">Date</label>

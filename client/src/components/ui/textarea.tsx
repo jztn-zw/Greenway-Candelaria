@@ -1,14 +1,21 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { fieldStyles, type FieldSize } from "./fieldStyles";
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  fieldSize?: FieldSize;
+}
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, fieldSize = "standard", ...props }, ref) => {
   return (
     <textarea
       className={cn(
-        "flex min-h-[80px] w-full rounded-xl border border-input/80 bg-background px-3.5 py-2.5 text-sm shadow-2xs transition-colors duration-150 placeholder:text-muted-foreground/70 hover:border-primary/50 focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/30 disabled:border-border/50 disabled:shadow-none",
+        "flex min-h-[80px] w-full disabled:opacity-50",
+        fieldStyles.surface,
+        fieldStyles[fieldSize],
+        fieldStyles.placeholder,
+        "h-auto py-2.5",
         className,
       )}
       ref={ref}

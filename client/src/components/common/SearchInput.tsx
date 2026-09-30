@@ -30,12 +30,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     <div className={cn("relative w-full", containerClassName)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
       <Input
+        fieldSize="compact"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
         className={cn(
-          "h-9 pl-9 pr-8 bg-background border border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary transition-colors duration-150",
+          "pl-9 pr-8",
           className
         )}
         {...props}

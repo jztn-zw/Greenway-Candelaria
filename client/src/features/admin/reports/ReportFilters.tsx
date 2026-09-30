@@ -8,6 +8,7 @@ DialogTitle,
 DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
 Select,
@@ -185,8 +186,8 @@ const ReportFilters = ({
                   <span>Filters</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-2xl border border-border/80 p-5 bg-card/95 backdrop-blur-md shadow-2xl gap-0">
-                <DialogHeader className="text-left pb-3 border-b border-border/60">
+              <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-2xl border border-border/80 p-5 bg-card shadow-2xl gap-0">
+                <DialogHeader className="gw-modal-header text-left pb-3 border-b border-border/60 bg-card">
                   <div className="flex items-center justify-between pr-6">
                     <div>
                       <DialogTitle className="text-sm font-bold text-foreground font-display flex items-center gap-2">
@@ -231,17 +232,10 @@ const ReportFilters = ({
                     {/* Barangay */}
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Barangay</label>
-                      <Select value={barangayFilter} onValueChange={onBarangayFilterChange}>
-                        <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
-                          <SelectValue placeholder="All Barangays" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl max-h-56">
-                          <SelectItem value="all">All Barangays</SelectItem>
-                          {barangays.map((b) => (
-                            <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
+                        options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
+                        placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+                        className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs" />
                     </div>
                   </div>
 
@@ -336,19 +330,10 @@ const ReportFilters = ({
         </Select>
 
           {/* Barangay */}
-          <Select value={barangayFilter} onValueChange={onBarangayFilterChange}>
-            <SelectTrigger className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl">
-              <SelectValue placeholder="Barangay" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Barangays</SelectItem>
-              {barangays.map((b) => (
-                <SelectItem key={b.id} value={b.name}>
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
+            options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
+            placeholder="Barangay" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+            className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl" />
 
           {/* Date Range Popover */}
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>

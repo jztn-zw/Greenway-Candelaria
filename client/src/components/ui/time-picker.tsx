@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Clock } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { fieldStyles } from "./fieldStyles";
 
 export interface TimePickerProps {
   value: string; // "HH:mm" in 24-hour format
@@ -165,8 +166,12 @@ export function TimePicker({
     >
       {/* Time Input Trigger */}
       <div
+        data-field-container
+        aria-disabled={disabled}
         className={cn(
-          "h-9 px-2.5 text-xs rounded-xl border border-border bg-background flex items-center justify-between gap-1.5 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all",
+          "flex items-center justify-between gap-1.5",
+          fieldStyles.surface,
+          fieldStyles.compact,
           disabled && "opacity-50 pointer-events-none",
           className,
         )}

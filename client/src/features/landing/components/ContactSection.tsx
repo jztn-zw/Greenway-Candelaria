@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { ContactContent, CONTENT } from "../landingContent";
@@ -49,21 +51,21 @@ const ContactSection = ({ content = CONTENT.contact }: ContactSectionProps) => {
           <form ref={rightRef} className="bg-card border border-border/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 space-y-4 sm:space-y-5 shadow-lg shadow-primary/3" onSubmit={(event) => event.preventDefault()}>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium">Full Name</label>
-                <input className="w-full h-10 rounded-xl border border-border/60 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all duration-200" placeholder="Juan Dela Cruz" />
+                <label htmlFor="contact-name" className="text-xs font-medium">Full Name</label>
+                <Input id="contact-name" placeholder="Juan Dela Cruz" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium">Barangay</label>
-                <input className="w-full h-10 rounded-xl border border-border/60 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all duration-200" placeholder="Brgy. Poblacion" />
+                <label htmlFor="contact-barangay" className="text-xs font-medium">Barangay</label>
+                <Input id="contact-barangay" placeholder="Brgy. Poblacion" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Email</label>
-              <input type="email" className="w-full h-10 rounded-xl border border-border/60 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all duration-200" placeholder="you@email.com" />
+              <label htmlFor="contact-email" className="text-xs font-medium">Email</label>
+              <Input id="contact-email" type="email" placeholder="you@email.com" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium">Message</label>
-              <textarea className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 min-h-[100px] resize-none transition-all duration-200" placeholder="How can we help?" />
+              <label htmlFor="contact-message" className="text-xs font-medium">Message</label>
+              <Textarea id="contact-message" className="min-h-[100px] resize-none" placeholder="How can we help?" />
             </div>
             <Button className="w-full gap-2" size="lg">
               <Send className="w-4 h-4" /> Send Message

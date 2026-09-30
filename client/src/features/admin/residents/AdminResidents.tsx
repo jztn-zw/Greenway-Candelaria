@@ -1,5 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,7 @@ DropdownMenuSeparator,
 DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
 Table,
 TableBody,
@@ -210,11 +205,11 @@ const AdminResidents = () => {
     return <ResidentManagerPageSkeleton />;
   }
 
-  const STATUS_TABS = [
-    { id: "all", label: "All Residents", count: kpiError || kpiLoading ? null : totalResidentsCount },
-    { id: "ACTIVE", label: "Active", count: kpiError || kpiLoading ? null : activeCount },
-    { id: "DEACTIVATED", label: "Deactivated", count: kpiError || kpiLoading ? null : deactivatedCount },
-    { id: "BANNED", label: "Banned", count: kpiError || kpiLoading ? null : bannedCount },
+  const STATUS_TABS: FilterPillItem[] = [
+    { id: "all", label: "All Residents", count: kpiError || kpiLoading ? undefined : totalResidentsCount },
+    { id: "ACTIVE", label: "Active", count: kpiError || kpiLoading ? undefined : activeCount },
+    { id: "DEACTIVATED", label: "Deactivated", count: kpiError || kpiLoading ? undefined : deactivatedCount },
+    { id: "BANNED", label: "Banned", count: kpiError || kpiLoading ? undefined : bannedCount },
   ];
 
   return (
@@ -296,38 +291,12 @@ const AdminResidents = () => {
         {/* ── Integrated Single-Row Toolbar ── */}
         <div className="p-4 sm:p-5 border-b border-border/80 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3.5 bg-card">
           {/* Left: Status Pill Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0 scrollbar-none shrink-0">
-            {STATUS_TABS.map((tab) => {
-              const isActive = statusFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setStatusFilter(tab.id);
-                    setCurrentPage(1);
-                  }}
-                  className={`h-9 px-3.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60"
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  {isActive && (
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-background text-muted-foreground border border-border/60"
-                    }`}
-                  >
-                    {tab.count === null ? "—" : tab.count.toLocaleString()}
-                  </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <FilterPillTabs
+            items={STATUS_TABS}
+            activeId={statusFilter}
+            onChange={(id) => { setStatusFilter(id); setCurrentPage(1); }}
+            className="shrink-0 xl:pb-0"
+          />
 
           {/* Right: Search + Barangay Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 xl:justify-end min-w-0">
@@ -359,28 +328,20 @@ const AdminResidents = () => {
             </div>
 
             {/* Barangay Select */}
-            <Select
+            <SearchableSelect
               value={barangayFilter}
               onValueChange={(v) => {
                 setBarangayFilter(v);
                 setCurrentPage(1);
               }}
-            >
-              <SelectTrigger className="h-9 w-full sm:w-[170px] bg-background border-border/80 rounded-xl text-xs font-semibold">
-                <div className="flex items-center gap-1.5 truncate">
-                  <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="Barangay" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="rounded-xl max-h-64">
-                <SelectItem value="all">All Barangays</SelectItem>
-                {barangayOptions.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
+              placeholder="Barangay"
+              searchPlaceholder="Search barangays..."
+              aria-label="Barangay"
+              leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+              fieldSize="compact"
+              className="h-9 w-full sm:w-[170px] bg-background border-border/80 rounded-xl text-xs font-semibold"
+            />
           </div>
         </div>
         <div className="overflow-x-auto">

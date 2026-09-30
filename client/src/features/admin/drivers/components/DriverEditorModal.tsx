@@ -8,13 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2, X, UserPlus, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
@@ -184,7 +178,7 @@ const DriverEditorModal = ({
             className="flex flex-col h-full max-h-[90vh] overflow-hidden"
           >
             {/* Modal Header (Pinned / Non-scrollable) */}
-            <div className="px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
+            <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
                   {isEditing ? (
@@ -219,7 +213,7 @@ const DriverEditorModal = ({
               {/* Row 1: Full Name & Contact */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                   <Label htmlFor="driver-name" className={cn("text-xs font-semibold", errors.name ? "text-destructive" : "text-foreground")}>
+                   <Label htmlFor="driver-name" className="text-xs font-semibold text-foreground">
                     Full Name
                   </Label>
                   <Input
@@ -233,7 +227,7 @@ const DriverEditorModal = ({
                 </div>
 
                 <div className="space-y-1.5">
-                   <Label htmlFor="driver-contact" className={cn("text-xs font-semibold", errors.contact ? "text-destructive" : "text-foreground")}>
+                   <Label htmlFor="driver-contact" className="text-xs font-semibold text-foreground">
                     Contact Number
                   </Label>
                   <Input
@@ -255,7 +249,7 @@ const DriverEditorModal = ({
 
               {/* Row 2: Email Address */}
               <div className="space-y-1.5">
-                <Label htmlFor="driver-email" className={cn("text-xs font-semibold", errors.email ? "text-destructive" : "text-foreground")}>
+                <Label htmlFor="driver-email" className="text-xs font-semibold text-foreground">
                   Email Address
                 </Label>
                 <Input
@@ -279,7 +273,7 @@ const DriverEditorModal = ({
               {!isEditing && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="driver-username" className={cn("text-xs font-semibold", errors.username ? "text-destructive" : "text-foreground")}>
+                    <Label htmlFor="driver-username" className="text-xs font-semibold text-foreground">
                       Username
                     </Label>
                     <Input
@@ -293,7 +287,7 @@ const DriverEditorModal = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="driver-password" className={cn("text-xs font-semibold", errors.password ? "text-destructive" : "text-foreground")}>
+                    <Label htmlFor="driver-password" className="text-xs font-semibold text-foreground">
                       Initial Password
                     </Label>
                     <Input
@@ -317,25 +311,16 @@ const DriverEditorModal = ({
                     All operational trucks are currently assigned.
                   </p>
                 ) : (
-                  <Select value={formTruckId} onValueChange={setFormTruckId}>
-                    <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs px-3">
-                      <SelectValue placeholder="Select a truck" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/80 shadow-md">
-                      <SelectItem value="none">No truck assigned</SelectItem>
-                      {availableTrucks.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name} — {t.model} ({t.plateNumber})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect value={formTruckId} onValueChange={setFormTruckId}
+                    options={[{ value: "none", label: "No truck assigned" }, ...availableTrucks.map((t) => ({ value: t.id, label: `${t.name} — ${t.model} (${t.plateNumber})` }))]}
+                    placeholder="Select a truck" aria-label="Assigned Truck" searchPlaceholder="Search trucks..." fieldSize="compact"
+                    className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs px-3" />
                 )}
               </div>
             </div>
 
             {/* Modal Footer (Pinned / Sticky) */}
-            <div className="px-5 py-3.5 border-t border-border/60 shrink-0 bg-muted/20 flex items-center justify-end gap-2.5">
+            <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
               {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
               <Button
                 type="button"

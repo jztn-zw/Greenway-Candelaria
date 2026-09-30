@@ -1,0 +1,52 @@
+/* One interaction language for form fields across the web app. */
+.gw-field {
+  border-radius: 0.625rem;
+  border-color: hsl(var(--input) / 0.8);
+  background-color: hsl(var(--background));
+  font-size: 0.875rem;
+}
+
+.gw-field:is(.h-9, .h-8, .h-8\.5) {
+  font-size: 0.8125rem;
+}
+
+.gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):hover {
+  border-color: hsl(var(--primary) / 0.55);
+}
+
+.gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):is(:focus-visible, [data-state="open"]),
+.gw-field[data-field-container]:not([aria-disabled="true"]):not([aria-invalid="true"]):focus-within {
+  border-color: hsl(var(--primary));
+  outline: 2px solid hsl(var(--primary) / 0.55);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.gw-field[aria-invalid="true"],
+.gw-field[aria-invalid="true"]:hover {
+  border-color: hsl(var(--destructive));
+}
+
+.gw-field[aria-invalid="true"]:is(:focus-visible, [data-state="open"]),
+.gw-field[data-field-container][aria-invalid="true"]:focus-within {
+  border-color: hsl(var(--destructive));
+  outline: 2px solid hsl(var(--destructive) / 0.65);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.gw-field:is(:disabled, [aria-disabled="true"]) {
+  border-color: hsl(var(--border) / 0.5);
+  background-color: hsl(var(--muted) / 0.3);
+  outline: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.gw-field[data-field-container] input:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-field { transition: none; }
+}

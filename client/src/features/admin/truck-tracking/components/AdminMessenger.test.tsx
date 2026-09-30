@@ -9,6 +9,7 @@ vi.mock("@/services/messengerService", () => ({ fetchConversation: vi.fn(), send
 beforeEach(() => {
   useAuthStore.setState({ user: { id: "test-user", role: "ADMIN" } as never, token: "test-session" });
   vi.clearAllMocks(); Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.mocked(fetchConversation).mockResolvedValue({ items: [{ id: "message", sender_role: "DRIVER", sender_name: "Collector Ana", message: "Truck needs assistance", is_read: false, created_at: "2026-09-28 01:00:00" }], target: null, unreadCount: 0, nextCursor: null });
   vi.stubGlobal("crypto", { randomUUID: () => "11111111-1111-4111-8111-111111111111" });
 });

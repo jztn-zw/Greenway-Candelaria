@@ -1,0 +1,102 @@
+/* Shared presentation for web dialogs; dimensions remain with each modal. */
+.gw-modal[data-state] {
+  --muted-foreground: 160 6% 40%;
+  --gw-modal-shadow: 0 24px 64px -20px hsl(160 30% 8% / 0.3), 0 4px 16px -8px hsl(160 30% 8% / 0.16);
+  border-color: hsl(var(--border) / 0.8);
+  border-radius: 1rem;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  box-shadow: var(--gw-modal-shadow);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  backdrop-filter: none;
+}
+
+.dark .gw-modal {
+  --muted-foreground: 40 8% 68%;
+  --gw-modal-shadow: 0 24px 64px -20px hsl(160 30% 3% / 0.65), 0 4px 16px -8px hsl(160 30% 3% / 0.4);
+  border-color: hsl(150 8% 28% / 0.8);
+}
+
+.gw-modal-overlay {
+  background: hsl(160 30% 3% / 0.6);
+  backdrop-filter: none;
+}
+
+.dark .gw-modal-overlay {
+  background: hsl(160 30% 3% / 0.7);
+}
+
+.gw-modal .gw-modal-title {
+  font-family: Poppins, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground));
+}
+
+.gw-modal .gw-modal-description {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.gw-modal .gw-modal-header,
+.gw-modal .gw-modal-footer {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.6);
+}
+
+.gw-modal :is(button, a).inline-flex.border.bg-card {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border) / 0.8);
+}
+
+.gw-modal :is(button, a).inline-flex.border.bg-card:hover {
+  background: hsl(var(--muted) / 0.6);
+}
+
+/* Button dimensions and semantic colors stay specific to their purpose. */
+.gw-modal :is(button, a).inline-flex.items-center.justify-center {
+  border-radius: 0.625rem;
+  font-weight: 600;
+}
+
+.gw-modal :is(button, a):not(.gw-field):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.gw-modal .gw-field[data-field-container] input:focus-visible {
+  outline: none;
+}
+
+.gw-modal .gw-modal-close {
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  opacity: 1;
+}
+
+.gw-modal .gw-modal-close:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-modal,
+  .gw-modal-overlay {
+    animation: none !important;
+    transition: none !important;
+  }
+}

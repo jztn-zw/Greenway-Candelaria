@@ -26,7 +26,7 @@ import PageErrorState from "@/components/PageErrorState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CollectorProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
@@ -46,93 +46,6 @@ import { CollectorModalHeader } from "../components/CollectorModal";
 import { collectorModalStyles as modalStyles } from "../components/collectorModalStyles";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import CollectorLogoutDialog from "../components/CollectorLogoutDialog";
-
-/* ─── Skeleton Loader ─── */
-const ProfileSkeleton = () => (
-  <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5 pb-8 animate-in fade-in duration-300">
-    {/* Identity Hero Banner Skeleton */}
-    <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
-      <div className="h-28 lg:h-36 bg-muted/40 border-b border-border/50" />
-      <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
-        <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-          <Skeleton className="size-20 lg:size-28 rounded-full ring-4 ring-background shrink-0" />
-          <div className="flex-1 space-y-2 text-center md:text-left min-w-0">
-            <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-              <Skeleton className="h-7 w-48" />
-              <Skeleton className="h-6 w-28 rounded-full" />
-            </div>
-            <Skeleton className="h-4 w-60 max-w-full" />
-            <div className="flex items-center justify-center md:justify-start gap-3 pt-1 flex-wrap">
-              <Skeleton className="h-3.5 w-36" />
-              <Skeleton className="h-3.5 w-40" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Assigned Truck Skeleton */}
-    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
-      <div className="flex items-center justify-between pb-3 border-b border-border/60">
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="w-8 h-8 rounded-lg" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-44" />
-            <Skeleton className="h-3 w-56" />
-          </div>
-        </div>
-        <Skeleton className="h-6 w-24 rounded-lg" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Skeleton className="h-20 w-full rounded-xl" />
-        <Skeleton className="h-20 w-full rounded-xl" />
-      </div>
-    </div>
-
-    {/* Personal Information Skeleton */}
-    <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
-      <div className="flex items-center gap-2.5 pb-2 border-b border-border/50">
-        <Skeleton className="w-8 h-8 rounded-lg" />
-        <div className="space-y-1">
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-3 w-52" />
-        </div>
-      </div>
-      <div className="divide-y divide-border/50">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="-mx-2 flex items-center justify-between gap-3 px-2 py-2.5 md:-mx-4 md:px-4 md:py-3"
-          >
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-9 lg:size-10 rounded-xl shrink-0" />
-              <div className="space-y-1">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-36" />
-              </div>
-            </div>
-            <Skeleton className="h-8.5 w-14 rounded-xl" />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* Dispatch Support Skeleton */}
-    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
-      <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-        <Skeleton className="w-8 h-8 rounded-lg" />
-        <div className="space-y-1">
-          <Skeleton className="h-4 w-44" />
-          <Skeleton className="h-3 w-56" />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Skeleton className="h-16 w-full rounded-xl" />
-        <Skeleton className="h-16 w-full rounded-xl" />
-      </div>
-    </div>
-  </div>
-);
 
 /* ─── Field Row Component (Improved Action Buttons & High Contrast) ─── */
 const FieldRow = ({
@@ -408,7 +321,7 @@ const CollectorProfile = () => {
     else closePassword();
   };
 
-  if (isLoading) return <ProfileSkeleton />;
+  if (isLoading) return <CollectorProfileSkeleton />;
 
   if (!profile && !driverData) {
     return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your collector information. Please try again." onRetry={retry} homeHref="/collector" />;

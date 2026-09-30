@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import { CollectorRouteMapSkeleton } from "@/components/PageLoadingSkeletons";
 import { toast } from "@/lib/toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import RouteProgressBar from "./components/RouteProgressBar";
 import RouteMapView from "./components/RouteMapView";
@@ -55,35 +55,6 @@ import { matchesCollectorRouteAlert } from "../notifications/notificationRouting
 
 const getErrorMessage = (err: unknown) =>
   err instanceof Error ? err.message : "Please try again.";
-
-// ─── Skeleton ─────────────────────────────────────────────────────────
-
-const RouteMapSkeleton = () => (
-  <div className="w-full max-w-[1600px] mx-auto space-y-3 sm:space-y-4 pb-4 px-1 sm:px-0">
-    {/* Page Header Skeleton */}
-    <div className="flex items-center gap-3 pb-1">
-      <Skeleton className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shrink-0" />
-      <div className="space-y-1.5 min-w-0 flex-1">
-        <Skeleton className="h-6 w-44" />
-        <Skeleton className="h-4 w-72 max-w-full" />
-      </div>
-    </div>
-    <Skeleton className="h-20 w-full rounded-2xl" />
-    <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5">
-      <div className="lg:col-span-3">
-        <Skeleton className="h-[340px] sm:h-[420px] lg:h-[620px] w-full rounded-2xl" />
-      </div>
-      <div className="lg:col-span-2 space-y-3">
-        <Skeleton className="h-36 rounded-2xl" />
-        <Skeleton className="h-10 rounded-xl" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 rounded-xl" />
-        ))}
-        <Skeleton className="h-12 w-full rounded-xl" />
-      </div>
-    </div>
-  </div>
-);
 
 // ─── Standby / No Route State ──────────────────────────────────────────
 
@@ -416,7 +387,7 @@ const CollectorRouteMap = () => {
   }, [routeInfo, navigate, runRouteAction]);
 
   // ─── Render guards ──────────────────────────────────────────────────────────
-  if (isLoading) return <RouteMapSkeleton />;
+  if (isLoading) return <CollectorRouteMapSkeleton />;
 
   if (error) return <RouteMapError message={error} onRetry={refresh} />;
 

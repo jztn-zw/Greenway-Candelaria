@@ -23,6 +23,16 @@ async function setup(editingTruck: Truck | null = null, isSaving = false) {
 }
 
 describe("truck editor unsaved changes", () => {
+  it("keeps field labels neutral when validation highlights inputs", async () => {
+    const { onSave } = await setup();
+    await click("Register Truck");
+    const nameLabel = document.querySelector('label[for="truck-name"]');
+    expect(nameLabel).toHaveClass("text-foreground");
+    expect(nameLabel).not.toHaveClass("text-destructive");
+    expect(document.getElementById("truck-name")).toHaveAttribute("aria-invalid", "true");
+    expect(document.body.textContent).toContain("Enter a truck identifier.");
+    expect(onSave).not.toHaveBeenCalled();
+  });
   it("keeps a draft after Cancel and discards only after confirmation", async () => {
     const { onOpenChange, onSave } = await setup();
     change("truck-model", "Isuzu"); await click("Cancel");

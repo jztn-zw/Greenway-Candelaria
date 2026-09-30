@@ -19,6 +19,7 @@ import {
   reportTruckBreakdown,
 } from "@/services/driverManagerService";
 import { fetchMyRouteToday } from "@/services/routesService";
+import { fetchCalendarEvents } from "@/services/scheduleService";
 import useAuthStore from "@/store/authStore";
 
 const CollectorDashboard = () => {
@@ -28,11 +29,13 @@ const CollectorDashboard = () => {
   const profileQuery = useCollectorQuery("profile", ["dashboard"], fetchCollectorDashboardProfile);
   const routeQuery = useCollectorQuery("routes", ["dashboard", getManilaNow().dateKey], () => fetchMyRouteToday(true));
   const historyQuery = useCollectorQuery("history", ["recent", 3], () => fetchDriverMyHistory(3, true));
+  const calendarMonth = getManilaNow().dateKey.slice(0, 7);
+  const calendarQuery = useCollectorQuery("schedule", [calendarMonth], () => fetchCalendarEvents({ view: "collector", event_type: "PRIVATE_EVENT", visibility: "PRIVATE", month: calendarMonth }));
   const runAction = useCollectorAction("profile", "routes", "history", "messenger", "notifications");
   const driverMe = profileQuery.data ?? null;
   const routeToday = routeQuery.data ?? null;
   const recentHistory = historyQuery.data ?? [];
-  const isLoading = profileQuery.isLoading || routeQuery.isLoading || historyQuery.isLoading;
+  const isLoading = profileQuery.isLoading || routeQuery.isLoading || historyQuery.isLoading || calendarQuery.isLoading;
   const loadErrors = { profile: Boolean(profileQuery.error) && profileQuery.data === undefined,
     route: Boolean(routeQuery.error) && routeQuery.data === undefined, history: Boolean(historyQuery.error) && historyQuery.data === undefined };
   const hasRefreshError = Boolean(profileQuery.error || routeQuery.error || historyQuery.error);

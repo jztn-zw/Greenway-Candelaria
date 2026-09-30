@@ -37,6 +37,9 @@ it("separates loading, empty, and failed requests without claiming there are no 
   vi.mocked(fetchCalendarEvents).mockReturnValue(new Promise((done) => { resolve = done; }));
   await render();
   expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading schedule");
+  expect(host.textContent).toContain("Loading schedule calendar");
+  expect(host.textContent).toContain("Loading schedule events");
+  expect(host.querySelector('button[aria-label*="September"]')).toBeNull();
   expect(host.textContent).not.toContain("No internal events scheduled");
   await act(async () => resolve([]));
   expect(host.textContent).toContain("No internal events scheduled");
@@ -74,19 +77,44 @@ it("provides focusable date buttons and keeps Today available after selecting an
 });
 
 it("ignores late responses from a previous month and refreshes only the active month", async () => {
+  await render();
   let resolve!: (events: CalendarEvent[]) => void;
   vi.mocked(fetchCalendarEvents).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
-  await render();
-  vi.mocked(fetchCalendarEvents).mockResolvedValue([{ ...sample, title: "October event", event_date: "2026-10-01", end_date: null }]);
   await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
-  await act(async () => resolve([sample]));
-  expect(host.querySelector("aside")?.textContent).toContain("October event");
+  expect(host.querySelector("h1")?.textContent).toBe("Internal schedule");
+  expect(host.textContent).toContain("Loading schedule calendar");
+  expect(host.querySelector("aside")?.textContent).toContain("Loading schedule events");
+  expect(host.textContent).not.toContain("No internal events scheduled");
+  vi.mocked(fetchCalendarEvents).mockResolvedValue([{ ...sample, title: "November event", event_date: "2026-11-01", end_date: null }]);
+  await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
+  await act(async () => resolve([{ ...sample, title: "October event", event_date: "2026-10-01", end_date: null }]));
+  expect(host.querySelector("aside")?.textContent).toContain("November event");
+  expect(host.querySelector("aside")?.textContent).not.toContain("October event");
   expect(host.querySelector("aside")?.textContent).not.toContain("Dispatch briefing");
   await act(async () => {
     await vi.advanceTimersByTimeAsync(120000);
     window.dispatchEvent(new Event("focus"));
   });
-  expect(fetchCalendarEvents).toHaveBeenCalledTimes(4);
+  expect(fetchCalendarEvents).toHaveBeenCalledTimes(5);
+  expect(vi.mocked(fetchCalendarEvents).mock.calls.slice(3).every(([options]) => options?.month === "2026-11")).toBe(true);
+});
+
+it("keeps cached events visible during background refresh and returning to a loaded month", async () => {
+  await render();
+  let resolve!: (events: CalendarEvent[]) => void;
+  vi.mocked(fetchCalendarEvents).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+  expect(host.querySelector("aside")?.textContent).toContain("Dispatch briefing");
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  await act(async () => resolve([sample]));
+  vi.mocked(fetchCalendarEvents).mockResolvedValue([]);
+  await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[title="Previous Month"]')!.click());
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  await act(async () => dateButton(27).click());
+  expect(host.querySelector("aside")?.textContent).toContain("Dispatch briefing");
+  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(fetchCalendarEvents).toHaveBeenCalledTimes(3);
 });
 
 it("keeps colors stable and indexes spanning events only within the displayed month", () => {

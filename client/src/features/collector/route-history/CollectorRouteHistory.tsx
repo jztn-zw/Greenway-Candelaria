@@ -2,7 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { collectorKey, collectorQueryDefaults, useCollectorQuery } from "@/lib/collectorQuery";
 import useAuthStore from "@/store/authStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getWasteBadgeClass, isNonBiodegradable } from "../dashboard/dashboard.utils";
 import {
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CollectorRouteHistorySkeleton, CollectorRouteHistoryRowsSkeleton, CollectorRouteHistoryDetailSkeleton } from "@/components/PageLoadingSkeletons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   fetchCollectorHistoryPage,
@@ -41,41 +41,6 @@ const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
   { key: "Non-Biodegradable", label: "Non-biodegradable" },
   { key: "General", label: "General" },
 ];
-
-const RouteHistorySkeleton = () => (
-  <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
-    <div className="space-y-2 pb-1">
-      <Skeleton className="h-9 w-56 max-w-full rounded-lg" />
-      <Skeleton className="h-4 w-[440px] max-w-full rounded-md" />
-    </div>
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap gap-2">
-        {[112, 104, 76, 126].map((width) => <Skeleton key={width} className="h-10 rounded-xl" style={{ width }} />)}
-      </div>
-      <Skeleton className="h-10 w-full rounded-xl sm:w-48" />
-    </div>
-    <div className="space-y-3">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
-          <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Skeleton className="h-5 w-40 rounded-md" />
-              <Skeleton className="h-6 w-24 rounded-lg" />
-              <Skeleton className="h-6 w-32 rounded-lg" />
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Skeleton className="h-4 w-36 rounded-md" />
-              <Skeleton className="h-4 w-32 rounded-md" />
-              <Skeleton className="h-4 w-24 rounded-md" />
-            </div>
-          </div>
-          <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 const getStatusBadge = (status: RouteHistoryItem["status"]) => {
   switch (status) {
@@ -174,6 +139,10 @@ const CollectorRouteHistory = () => {
   const detail = useCollectorQuery("history", ["detail", routeParam], () => fetchCollectorHistoryRun(routeParam!), { enabled: Boolean(routeParam) });
   const selectedRoute = routeParam ? detail.data ?? null : null;
   const historyList = [...new Map((history.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])).values()];
+  const [hasSettledHistoryLoad, setHasSettledHistoryLoad] = useState(false);
+  useEffect(() => {
+    if (history.isFetched) setHasSettledHistoryLoad(true);
+  }, [history.isFetched]);
   const isLoading = routeParam ? detail.isLoading : history.isLoading || history.isFetchingNextPage;
   const failure = routeParam ? detail.error : history.error;
   const error = failure ? "Route history could not be loaded. Please try again." : null;
@@ -184,8 +153,8 @@ const CollectorRouteHistory = () => {
   const changeStatus = (status: StatusFilter) => setStatusFilter(status);
   const changeWaste = (waste: WasteTypeFilter) => setWasteFilter(waste);
   const filtered = historyList;
-  if (isLoading && (routeParam || historyList.length === 0)) return <RouteHistorySkeleton />;
-  if (routeParam && selectedRoute?.id !== routeParam && !error && !notFound) return <RouteHistorySkeleton />;
+  if (!routeParam && history.isLoading && !hasSettledHistoryLoad) return <CollectorRouteHistorySkeleton />;
+  if (routeParam && (detail.isLoading || (selectedRoute?.id !== routeParam && !error && !notFound))) return <CollectorRouteHistoryDetailSkeleton />;
   if (routeParam && selectedRoute?.id !== routeParam) return (
     <PageErrorState
       kind={notFound ? "not-found" : "unavailable"}
@@ -420,7 +389,7 @@ const CollectorRouteHistory = () => {
 
       {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button disabled={isLoading} onClick={() => retry()}>Retry</Button></div>}
       {/* ── Route Logs List ── */}
-      {filtered.length === 0 && !error ? (
+      {history.isLoading ? <CollectorRouteHistoryRowsSkeleton /> : filtered.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs">
           <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
             <History className="w-6 h-6 text-muted-foreground" />
@@ -507,6 +476,7 @@ const CollectorRouteHistory = () => {
           })}
         </div>
       )}
+      {history.isFetchingNextPage && <CollectorRouteHistoryRowsSkeleton count={2} />}
       {nextCursor && <Button variant="outline" disabled={isLoading} onClick={() => void history.fetchNextPage()}>{isLoading ? "Loading…" : `Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
     </div>
   );

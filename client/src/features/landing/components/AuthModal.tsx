@@ -227,8 +227,9 @@ const AuthModal = ({
       resetRegisterForm();
       setErrors({});
       setTab("login");
-    } catch (err: any) {
-      setErrors({ form: err.response?.data?.message || "Registration failed. Please try again." });
+    } catch (err: unknown) {
+      const responseError = err as { response?: { data?: { message?: string } } };
+      setErrors({ form: responseError.response?.data?.message || "Registration failed. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -251,8 +252,9 @@ const AuthModal = ({
       if (user?.role === "ADMIN") navigate("/admin");
       else if (user?.role === "DRIVER") navigate("/collector");
       else navigate("/resident");
-    } catch (err: any) {
-      setErrors({ form: err.response?.data?.message || "Invalid credentials. Please try again." });
+    } catch (err: unknown) {
+      const responseError = err as { response?: { data?: { message?: string } } };
+      setErrors({ form: responseError.response?.data?.message || "Invalid credentials. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -322,6 +324,7 @@ const AuthModal = ({
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <ClearableInput
                         id="identifier"
+                        aria-invalid={Boolean(errors.identifier)}
                         placeholder="Enter your email, phone, or username"
                         value={identifier}
                         onChange={(e) => { setIdentifier(e.target.value); setErrors((prev) => { const { identifier, ...rest } = prev; return rest; }); }}
@@ -339,6 +342,7 @@ const AuthModal = ({
                       <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="login-password"
+                        aria-invalid={Boolean(errors.loginPassword)}
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         value={loginPassword}
@@ -400,6 +404,7 @@ const AuthModal = ({
                         <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <ClearableInput
                           id="fullName"
+                          aria-invalid={Boolean(errors.fullName)}
                           placeholder="Juan Dela Cruz"
                           value={fullName}
                           onChange={(e) => { setFullName(e.target.value); setErrors((prev) => { const { fullName, ...rest } = prev; return rest; }); }}
@@ -414,6 +419,7 @@ const AuthModal = ({
                         <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <ClearableInput
                           id="username"
+                          aria-invalid={Boolean(errors.username)}
                           placeholder="juandc"
                           value={username}
                           onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
@@ -430,6 +436,7 @@ const AuthModal = ({
                       <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <ClearableInput
                         id="email"
+                        aria-invalid={Boolean(errors.email)}
                         type="email"
                         placeholder="juan@email.com"
                         value={email}
@@ -451,6 +458,7 @@ const AuthModal = ({
                       </div>
                       <ClearableInput
                         id="phone"
+                        aria-invalid={Boolean(errors.phone)}
                         type="tel"
                         placeholder="9XX XXX XXXX"
                         value={formatPhone(phone)}
@@ -465,6 +473,7 @@ const AuthModal = ({
                   <div className="space-y-1.5">
                     <Label htmlFor="barangay" className={fieldLabelClass}>Barangay</Label>
                     <SearchableSelect
+                      aria-invalid={Boolean(errors.barangay)}
                       value={barangay}
                       onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}
                       options={barangayOptions.map((b) => ({ value: b.id, label: b.name }))}
@@ -479,6 +488,7 @@ const AuthModal = ({
                   <div className="space-y-1.5">
                     <Label htmlFor="street" className={fieldLabelClass}>Select street</Label>
                     <SearchableSelect
+                      aria-invalid={Boolean(errors.street)}
                       value={street}
                       onValueChange={(value) => { setStreet(value); setErrors((prev) => { const { street, ...rest } = prev; return rest; }); }}
                       options={streetOptions.map((option) => ({ value: option.id, label: `${option.name}${option.area ? ` (${option.area})` : ""}` }))}
@@ -497,6 +507,7 @@ const AuthModal = ({
                       <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="reg-password"
+                        aria-invalid={Boolean(errors.password)}
                         type={showPassword ? "text" : "password"}
                         placeholder="Minimum 8 characters"
                         value={password}
