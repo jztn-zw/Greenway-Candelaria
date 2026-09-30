@@ -39,7 +39,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MyReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { MyReportDetailSkeleton, MyReportsListSkeleton, MyReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import type { SubmittedReport, ReportStatus } from "./types";
 import {
   VIOLATION_OPTIONS,
@@ -48,7 +48,6 @@ import {
 } from "./types";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/lib/toast";
-import { MyReportsSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   fetchMyReports,
   fetchMyReportById,
@@ -121,6 +120,7 @@ const MyReports = () => {
   const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
+  const [initialListReady, setInitialListReady] = useState(false);
 
   // Filters
   const [search, setSearch]       = useState("");
@@ -138,10 +138,14 @@ const MyReports = () => {
   const reports = (listQuery.data?.reports ?? []).map(mapMyReport);
   const total = listQuery.data?.total ?? 0;
   const totalPages = listQuery.data?.totalPages ?? 0;
-  const isLoading = listQuery.isLoading;
+  const isListLoading = !listQuery.isError && (listQuery.isLoading || listQuery.isPlaceholderData);
   const error = listQuery.error?.message ?? null;
   const statsQuery = useResidentQuery("reports", ["stats"], fetchMyReportStats);
   const stats = statsQuery.data;
+  const initialPageLoading = !initialListReady && (listQuery.isLoading || statsQuery.isLoading);
+  useEffect(() => {
+    if (!listQuery.isLoading && !statsQuery.isLoading) setInitialListReady(true);
+  }, [listQuery.isLoading, statsQuery.isLoading]);
   const detailQuery = useResidentQuery("reports", ["detail", reportParam],
     () => fetchMyReportById(reportParam!), { enabled: !!reportParam });
   const inaccessible = [403, 404].includes((detailQuery.error as { response?: { status?: number } } | null)?.response?.status ?? 0);
@@ -267,6 +271,10 @@ const MyReports = () => {
     }
   };
 
+  if (reportParam && isLoadingDetail) {
+    return <MyReportDetailSkeleton preview={reports.find((report) => report.id === reportParam)} />;
+  }
+
   if (reportParam && detailError && !selectedReport) return (
     <div role="alert"><p>{detailError}</p></div>
   );
@@ -288,14 +296,15 @@ const MyReports = () => {
     );
   }
 
-  // ─── Initial Page Loading Skeleton (only on true initial boot) ─────────
-  if (isLoading || isLoadingDetail) {
+  // First load waits for the report list and filter counts. Later list changes
+  // keep the header and filters mounted while the result cards refresh.
+  if (initialPageLoading) {
     return <MyReportsPageSkeleton />;
   }
 
   // ─── Error state ──────────────────────────────────────────
 
-  if ((error || detailError) && !isLoading && !reports.length) {
+  if (error && !isListLoading && !reports.length) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
@@ -358,7 +367,7 @@ const MyReports = () => {
             placeholder="Search by reference number or description…"
             className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs lg:text-sm shadow-2xs focus-visible:ring-foreground/20"
           />
-          {isLoading && search !== "" ? (
+          {isListLoading && search !== "" ? (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
           ) : search ? (
             <button
@@ -437,23 +446,8 @@ const MyReports = () => {
 
       <div className="space-y-4">
       {/* Report List */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="border border-border animate-pulse">
-              <CardContent className="p-4 md:p-4.5 lg:p-5">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-muted shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-1/3" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                    <div className="h-3 bg-muted rounded w-2/3" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {isListLoading ? (
+        <MyReportsListSkeleton />
       ) : reports.length === 0 ? (
         <Card className="border border-border">
           <CardContent className="py-16 text-center">
@@ -604,7 +598,7 @@ const MyReports = () => {
       )}
 
       {/* Pagination */}
-      {!isLoading && total > 0 && (
+      {!isListLoading && total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
           <p className="text-xs text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{firstReportNumber}–{lastReportNumber}</span> of <span className="font-semibold text-foreground">{total}</span> report{total !== 1 ? "s" : ""}

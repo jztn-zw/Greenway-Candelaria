@@ -1,6 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { getEventColors, getManilaCalendarDate, calendarDateKey, eventOccursOnDate } from "@/components/calendar/calendar.utils";
-import { PageHeaderSkeleton, ScheduleGridSkeleton } from "@/components/PageLoadingSkeletons";
+import { AdminScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import { SearchInput } from "@/components/common";
 import { Button } from "@/components/ui/button";
 
@@ -114,12 +114,7 @@ const AdminCollectionSchedule: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-8">
-        <PageHeaderSkeleton showButton={true} />
-        <ScheduleGridSkeleton />
-      </div>
-    );
+    return <AdminScheduleSkeleton currentDate={currentDate} />;
   }
 
   return (

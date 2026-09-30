@@ -9,7 +9,7 @@ updateAnnouncement as apiupdateAnnouncement,
 fetchAdminAnnouncementsPage,
 fetchBarangayList,
 } from "@/services/announcementsService";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Announcement, AnnouncementStatus, EditorForm } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -155,6 +155,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
   >([]);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [hasLoadedPage, setHasLoadedPage] = useState(false);
 
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -175,12 +176,13 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
   const isLoading = pageQuery.isLoading || barangaysQuery.isLoading;
   const error = pageQuery.error?.message ?? barangaysQuery.error?.message ?? null;
   const loadInitialData = () => Promise.all([pageQuery.refetch(), barangaysQuery.refetch()]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!pageQuery.data) return;
     const pageData = pageQuery.data;
     setAnnouncements((pageData.items as unknown as Record<string, unknown>[]).map(mapFromApi));
     setTotalItems(pageData.total); setTotalPages(pageData.totalPages);
     setStatusCounts(pageData.statusCounts); setMetrics(pageData.metrics);
+    setHasLoadedPage(true);
   }, [pageQuery.data]);
   useEffect(() => { if (barangaysQuery.data) setBarangayOptions(barangaysQuery.data); }, [barangaysQuery.data]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
@@ -365,7 +367,10 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
   return {
     announcements,
     barangayOptions,
-    isLoading,
+    isInitialLoading: isLoading && !hasLoadedPage,
+    isResultsLoading: pageQuery.isLoading && hasLoadedPage,
+    pageError: pageQuery.data ? null : pageQuery.error?.message ?? null,
+    retryPage: pageQuery.refetch,
     isSaving,
     error,
     totalItems,

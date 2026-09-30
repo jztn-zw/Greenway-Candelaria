@@ -90,6 +90,7 @@ export interface HistoryRow {
 export interface RouteStopHistoryItem {
   stop_id: string;
   route_id: string;
+  route_started_at?: string | null;
   stop_order: number;
   stop_status: string;
   completed_at?: string | null;

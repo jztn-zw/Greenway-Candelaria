@@ -41,7 +41,6 @@ import { fetchAnnouncementById } from "@/services/announcementsService";
 import { fetchLiveTrucks, fetchTodayRoutes } from "@/services/trackingService";
 import { toast } from "@/lib/toast";
 import {
-  PageHeaderSkeleton,
   NotificationsPageSkeleton,
 } from "@/components/PageLoadingSkeletons";
 
@@ -377,7 +376,7 @@ const ResidentNotifications = () => {
         openNotificationDetails();
       }
     } else if (n.type === "COLLECTION_REMINDER") {
-      navigate("/resident/schedule");
+      openNotificationDetails();
     } else if (n.type === "ANNOUNCEMENT" || n.ref_module === "announcements") {
       // Check availability before opening the modal. Expired announcements are
       // intentionally unavailable to residents, so show only a clear message.
@@ -410,7 +409,7 @@ const ResidentNotifications = () => {
   };
 
   if (isLoading && notifications.length === 0) {
-    return <NotificationsPageSkeleton />;
+    return <NotificationsPageSkeleton role="resident" />;
   }
 
   return (
@@ -537,10 +536,11 @@ const ResidentNotifications = () => {
             });
 
             return (
-              <div
+              <button
                 key={n.id}
+                type="button"
                 onClick={() => handleClick(n)}
-                className={`group flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-muted/50 active:bg-muted/70 dark:hover:bg-muted/30 md:gap-4 md:p-4 lg:p-5 ${
+                className={`group flex w-full items-start gap-3 p-3.5 text-left transition-colors cursor-pointer select-none hover:bg-muted/50 active:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:hover:bg-muted/30 md:gap-4 md:p-4 lg:p-5 ${
                   isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
                 }`}
               >
@@ -593,7 +593,7 @@ const ResidentNotifications = () => {
                 <div className="flex items-center self-center shrink-0 pl-1">
                   <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -639,6 +639,10 @@ const ResidentNotifications = () => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           notification={modalNotification}
+          onViewSchedule={() => {
+            setModalOpen(false);
+            navigate("/resident/schedule");
+          }}
         />
       )}
     </div>

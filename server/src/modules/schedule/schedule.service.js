@@ -375,6 +375,17 @@ const updateReminder = async ({ timing }) => {
 
 const MANILA_TIME_ZONE = "Asia/Manila";
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const REMINDER_GRACE_MS = 5 * 60 * 1000;
+
+const formatCollectionStart = (start) => {
+  const date = new Intl.DateTimeFormat("en-PH", {
+    timeZone: MANILA_TIME_ZONE, month: "long", day: "numeric", year: "numeric",
+  }).format(start);
+  const time = new Intl.DateTimeFormat("en-PH", {
+    timeZone: MANILA_TIME_ZONE, hour: "numeric", minute: "2-digit", hour12: true,
+  }).format(start);
+  return `${date} at ${time}`;
+};
 
 const getManilaDate = (date) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -416,9 +427,10 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
 
     for (const route of matchingRoutes) {
       const collectionStart = getScheduleStart(collectionDate, route.start_time);
+      if (Number.isNaN(collectionStart.getTime())) continue;
       for (const timing of timings) {
         const reminderAt = new Date(collectionStart.getTime() - timing.hours * 60 * 60 * 1000);
-        if (now < reminderAt || now >= collectionStart) continue;
+        if (now < reminderAt || now >= new Date(reminderAt.getTime() + REMINDER_GRACE_MS)) continue;
         const connection = await pool.getConnection();
         try {
           await connection.beginTransaction();
@@ -449,10 +461,15 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
             user_ids: recipients.map((resident) => resident.id),
             type: "COLLECTION_REMINDER",
             title: "Collection reminder",
-            body: `Please prepare your ${wasteLabel} for collection on ${collectionDate} at ${String(route.start_time).slice(0, 5)}.`,
+            body: `Your ${wasteLabel} collection is scheduled for ${formatCollectionStart(collectionStart)}. Please have it ready.`,
             ref_id: route.id,
             ref_module: "routes",
-            metadata: { collection_date: collectionDate, waste_type: route.waste_type, reminder_timing: timing.label },
+            metadata: {
+              collection_date: collectionDate,
+              scheduled_start_time: String(route.start_time).slice(0, 5),
+              waste_type: route.waste_type,
+              reminder_timing: timing.label,
+            },
             db: connection,
             emit: false,
           });

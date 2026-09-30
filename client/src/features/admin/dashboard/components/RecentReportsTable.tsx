@@ -88,19 +88,19 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
 
   return (
     <div
-      className={`bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full ${className}`}
+      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col min-w-0 h-full ${className}`}
     >
-      <div className="space-y-4">
+      <div className="min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground font-display">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
             Recent Incident Reports
           </h3>
 
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-primary font-semibold h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary rounded-xl cursor-pointer group active:scale-95 transition-all"
+            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
             onClick={() => navigate("/admin/reports")}
           >
             <span>View All</span>
@@ -109,24 +109,24 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
         </div>
 
         {/* Table Container */}
-        <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
+        <div className="border border-border/60 rounded-xl overflow-hidden bg-muted/20">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/40 border-b border-border/80">
-                <TableRow>
-                  <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3 pl-4">
+            <Table className="min-w-[560px]">
+              <TableHeader className="bg-muted/30 border-b border-border/60">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Ref ID
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3">
+                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Type
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3">
+                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Barangay
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell text-xs font-bold text-muted-foreground uppercase tracking-wider py-3">
+                  <TableHead className="hidden sm:table-cell h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Time
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-muted-foreground uppercase tracking-wider py-3 pr-4 text-right sm:text-left">
+                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4 text-right sm:text-left">
                     Status
                   </TableHead>
                 </TableRow>
@@ -153,37 +153,37 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                       <TableRow
                         key={r.id}
                         onClick={() => navigate(r.id ? `/admin/reports?report=${r.id}` : "/admin/reports")}
-                        className="cursor-pointer hover:bg-muted/40 transition-colors group"
+                        className="border-border/60 cursor-pointer hover:bg-muted/40 transition-colors group"
                       >
-                        {/* Ref ID — monospace font, non-breaking single line badge */}
-                        <TableCell className="py-3 pl-4 whitespace-nowrap">
-                          <span className="text-xs font-mono font-semibold tabular-nums text-foreground bg-muted/60 group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/30 transition-colors px-2.5 py-1 rounded-lg border border-border/70 shadow-2xs inline-block">
+                        {/* Ref ID */}
+                        <TableCell className="py-3.5 px-3 sm:px-4 whitespace-nowrap">
+                          <span className="text-xs font-mono font-medium tabular-nums text-foreground group-hover:text-primary transition-colors">
                             {r.ref}
                           </span>
                         </TableCell>
 
                         {/* Violation Type — Clean formatted badge matching the reports manager */}
-                        <TableCell className="py-3">
-                          <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs whitespace-nowrap ${violationStyle}`}>
+                        <TableCell className="py-3.5 px-3 sm:px-4">
+                          <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${violationStyle}`}>
                             {r.type}
                           </span>
                         </TableCell>
 
                         {/* Barangay */}
-                        <TableCell className="py-3 text-xs text-muted-foreground font-medium whitespace-nowrap">
+                        <TableCell className="py-3.5 px-3 sm:px-4 text-xs text-muted-foreground font-medium whitespace-nowrap">
                           <span className="text-foreground font-medium">{r.barangay}</span>
                         </TableCell>
 
                         {/* Time */}
-                        <TableCell className="hidden sm:table-cell py-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                        <TableCell className="hidden sm:table-cell py-3.5 px-3 sm:px-4 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                           {r.date}
                         </TableCell>
 
                         {/* Status with colored indicator dot */}
-                        <TableCell className="py-3 pr-4 text-right sm:text-left">
+                        <TableCell className="py-3.5 px-3 sm:px-4 text-right sm:text-left">
                           <Badge
                             variant="outline"
-                            className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs inline-flex items-center gap-1.5 whitespace-nowrap ${statusMeta.badge}`}
+                            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5 whitespace-nowrap ${statusMeta.badge}`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
                             <span>{r.status}</span>

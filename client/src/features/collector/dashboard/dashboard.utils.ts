@@ -15,10 +15,13 @@ export const getAssignmentDestination = (state: RouteState) =>
   isFinishedRoute(state) || state === "unassigned" || state === "no-schedule"
     ? "/collector/route-history" : "/collector/route-map";
 
+export const isNonBiodegradable = (value?: string | null) =>
+  value?.trim().toUpperCase().replace(/[\s-]+/g, "_") === "NON_BIODEGRADABLE";
+
 export const getWasteBadgeClass = (value: string) => {
   switch (value.trim().toUpperCase().replace(/[\s-]+/g, "_")) {
     case "BIODEGRADABLE": return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25";
-    case "NON_BIODEGRADABLE": return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25";
+    case "NON_BIODEGRADABLE": return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
     default: return "bg-muted text-muted-foreground border-border/60";
   }
 };

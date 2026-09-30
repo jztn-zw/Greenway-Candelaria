@@ -2,10 +2,8 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
 import {
 AdminPostDetailSkeleton,
-CardGridSkeleton,
-KPIRowSkeleton,
-PageHeaderSkeleton,
-ToolbarSkeleton,
+AdminPostsSkeleton,
+AdminPostsContentSkeleton,
 } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
@@ -146,7 +144,6 @@ const AdminPosts = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewPost, setPreviewPost] = useState<Post | null>(() => {
@@ -159,6 +156,7 @@ const AdminPosts = () => {
   });
   const [previewActiveImageIndex, setPreviewActiveImageIndex] = useState(0);
   const wasPreviewRef = useRef(false);
+  const hasLoadedListRef = useRef(false);
   const postsPerPage =
     viewMode === "grid" ? POSTS_PER_PAGE_GRID : POSTS_PER_PAGE_TABLE;
 
@@ -191,13 +189,14 @@ const AdminPosts = () => {
           : statusFilter.toUpperCase() as "PUBLISHED" | "DRAFT" | "SCHEDULED" | "ARCHIVED",
         sort: sortBy === "newest" ? "latest" : sortBy as "oldest" | "views",
       }));
-  const isInitialSync = listQuery.isLoading;
+  const isInitialSync = listQuery.isLoading && !hasLoadedListRef.current;
   const isListLoading = listQuery.isFetching;
   const loadError = listQuery.error ? "Posts could not be loaded. Please try again." : null;
   const loadPosts = () => listQuery.refetch();
   useEffect(() => {
     const result = listQuery.data;
     if (!result) return;
+    hasLoadedListRef.current = true;
     setPosts(mapApiPosts(result.posts)); setTotalItems(result.total);
     setTotalPages(Math.max(1, result.totalPages)); setPostStats(result.stats || null);
     if (currentPage > Math.max(1, result.totalPages)) setCurrentPage(Math.max(1, result.totalPages));
@@ -206,8 +205,8 @@ const AdminPosts = () => {
   const requestedPostId = searchParams.get("post");
   const detailQuery = useAdminQuery("posts", ["detail", requestedPostId],
     () => postsService.getById(requestedPostId!), { enabled: !!requestedPostId });
+  const isDetailLoading = !!requestedPostId && detailQuery.isLoading;
   useEffect(() => {
-    setIsDetailLoading(detailQuery.isLoading);
     if (!requestedPostId) {
       setViewingPost(null);
       sessionStorage.removeItem("viewingPostId");
@@ -215,7 +214,7 @@ const AdminPosts = () => {
       setViewingPost(mapApiPost(detailQuery.data));
       sessionStorage.setItem("viewingPostId", requestedPostId);
     }
-  }, [requestedPostId, detailQuery.data, detailQuery.isLoading]);
+  }, [requestedPostId, detailQuery.data]);
   useEffect(() => {
     if (!detailQuery.error) return;
     const status = (detailQuery.error as { response?: { status?: number } }).response?.status;
@@ -420,7 +419,6 @@ const AdminPosts = () => {
   }, [viewMode]);
 
   const handleViewPost = (post: Post) => {
-    setIsDetailLoading(true);
     setViewingPost(post);
     sessionStorage.setItem("viewingPostId", post.id);
     setSearchParams({ post: post.id, title: post.title });
@@ -451,21 +449,6 @@ const AdminPosts = () => {
         next.set("action", "create");
         next.delete("title");
       }
-      return next;
-    });
-  };
-
-  const handleReturnFromPreview = () => {
-    try {
-      sessionStorage.removeItem("admin_preview_post");
-    } catch {
-      // ignore
-    }
-    wasPreviewRef.current = false;
-    setPreviewPost(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("preview");
       return next;
     });
   };
@@ -573,23 +556,6 @@ const AdminPosts = () => {
     });
   };
 
-  if (isInitialSync) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto">
-        {sessionStorage.getItem("viewingPostId") ? (
-          <AdminPostDetailSkeleton />
-        ) : (
-          <div className="space-y-6">
-            <PageHeaderSkeleton />
-            <KPIRowSkeleton count={4} />
-            <ToolbarSkeleton />
-            <CardGridSkeleton count={6} cols={3} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
   if (isDetailLoading)
     return (
       <div className="w-full max-w-[1600px] mx-auto">
@@ -597,12 +563,11 @@ const AdminPosts = () => {
       </div>
     );
 
-  if (viewingPost) {
+  if (viewingPost && viewingPost.id === requestedPostId) {
     return (
       <div className="w-full max-w-[1600px] mx-auto">
         <AdminPostDetail
           post={viewingPost}
-          onBack={handleBackFromDetail}
           onEdit={(post) => {
             handleBackFromDetail();
             openEditor(post);
@@ -617,6 +582,10 @@ const AdminPosts = () => {
         />
       </div>
     );
+  }
+
+  if (isInitialSync) {
+    return <AdminPostsSkeleton viewMode={viewMode} />;
   }
 
   // Keep the editor mounted while previewing.  PostEditor owns the unsaved form
@@ -641,7 +610,6 @@ const AdminPosts = () => {
           <div className="w-full max-w-[1000px] mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
             <AdminPostDetail
               post={previewPost}
-              onBack={handleReturnFromPreview}
               isPreview={true}
             />
           </div>
@@ -845,8 +813,8 @@ const AdminPosts = () => {
         </div>
       </section>
 
-      <div className={isListLoading ? "opacity-60 pointer-events-none" : ""} aria-busy={isListLoading}>
-      {!isListLoading && !loadError && posts.length === 0 ? (
+      <div aria-busy={isListLoading}>
+      {listQuery.isLoading ? <AdminPostsContentSkeleton viewMode={viewMode} /> : !loadError && posts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
           <p className="text-sm font-semibold text-foreground">No posts found</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -886,7 +854,7 @@ const AdminPosts = () => {
       </div>
 
       {/* ── Pagination ── */}
-      {totalPages > 1 && (
+      {!listQuery.isLoading && totalPages > 1 && (
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}

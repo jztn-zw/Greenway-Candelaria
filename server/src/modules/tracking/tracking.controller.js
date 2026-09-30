@@ -1,5 +1,5 @@
 const service = require("./tracking.service");
-const { pingSchema, roadRouteQuerySchema } = require("./tracking.schema");
+const { pingSchema, roadRouteQuerySchema, streetCoverageRouteSchema } = require("./tracking.schema");
 const { success } = require("../../utils/apiResponse");
 const { broadcastLiveUpdate } = require("../../sockets/tracking.socket");
 
@@ -68,4 +68,14 @@ const getRoadRoute = async (req, res, next) => {
   }
 };
 
-module.exports = { ping, getLive, getHistory, clearHistory, getAdminOverview, getRoadRoute };
+const getStreetCoverageRoute = async (req, res, next) => {
+  try {
+    const { points } = streetCoverageRouteSchema.parse(req.body);
+    const route = await service.fetchStreetCoverageRoute(points);
+    return success(res, route, "Street coverage matched to roads");
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { ping, getLive, getHistory, clearHistory, getAdminOverview, getRoadRoute, getStreetCoverageRoute };

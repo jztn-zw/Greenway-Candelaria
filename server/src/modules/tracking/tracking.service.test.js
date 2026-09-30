@@ -32,15 +32,18 @@ test("replay history uses the selected Manila day and dated route-run stops", as
   await withQueries(async (sql) => {
     if (sql.startsWith("SELECT id FROM trucks")) return [[{ id: "truck-1" }]];
     if (sql.includes("FROM tracking_logs tl")) return [[{ id: "ping-1" }]];
-    if (sql.includes("FROM route_runs rr")) return [[{ stop_id: "stop-1", stop_name: "Main Street" }]];
+    if (sql.includes("FROM route_runs rr")) return [[{ stop_id: "stop-1", stop_name: "Main Street", route_started_at: "2026-09-25 01:00:00" }]];
     throw new Error(`Unexpected query: ${sql}`);
   }, async (queries) => {
     const history = await tracking.getHistory("truck-1", { date: "2026-09-25", limit: 100 });
     assert.equal(history.logs[0].id, "ping-1");
     assert.equal(history.stops[0].stop_name, "Main Street");
+    assert.equal(history.stops[0].route_started_at, "2026-09-25 01:00:00");
     assert.deepEqual(queries[1].params, ["truck-1", "2026-09-24 16:00:00", "2026-09-25 16:00:00", 101]);
     assert.deepEqual(queries[2].params, ["truck-1", "2026-09-25"]);
     assert.match(queries[2].sql, /JOIN route_run_stops/);
+    assert.match(queries[2].sql, /rr\.collection_started_at AS route_started_at/);
+    assert.match(queries[2].sql, /ORDER BY COALESCE\(rr\.collection_started_at, rr\.scheduled_start_time\)/);
   });
 });
 

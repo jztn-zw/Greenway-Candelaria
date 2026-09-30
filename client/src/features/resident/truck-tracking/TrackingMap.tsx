@@ -20,7 +20,9 @@ import {
   Info,
   Plus,
   Minus,
+  WifiOff,
 } from "lucide-react";
+import { formatManilaDateTime, formatRelativeTime } from "@/utils/date";
 import {
   getMultiStopRoadRoute,
   getRoadRoute,
@@ -125,10 +127,10 @@ const createBarangayPinIcon = (isCompleted = false, isMissed = false) => {
   });
 };
 
-const createTruckPinIcon = (isFocused = false, isPaused = false) => {
+const createTruckPinIcon = (isFocused = false, status: Truck["status"] = "on-the-way") => {
   const width = isFocused ? 42 : 36;
   const height = isFocused ? 54 : 48;
-  const color = isPaused ? "#d97706" : "hsl(145, 63%, 32%)";
+  const color = status === "paused" ? "#d97706" : status === "offline" ? "#64748b" : "hsl(145, 63%, 32%)";
   const cx = width / 2;
 
   // ViewBox matching width and height with 1.5px safe margin
@@ -152,7 +154,7 @@ const createTruckPinIcon = (isFocused = false, isPaused = false) => {
           </g>
         </svg>
         ${
-          isFocused
+          isFocused && status === "on-the-way"
             ? `<div style="position:absolute;top:-1px;right:-1px;display:flex;width:12px;height:12px;pointer-events:none;">
                  <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#10b981;opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
                  <span style="position:relative;width:100%;height:100%;border-radius:50%;background:#10b981;border:2px solid white;"></span>
@@ -186,8 +188,9 @@ const TrackingMap = ({
   const trucksLayerRef = useRef<L.LayerGroup | null>(null);
   const coverageLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
-  const lastViewModeRef = useRef<"bounds" | "focused" | "barangay" | null>(null);
+  const lastViewModeRef = useRef<"bounds" | "focused" | "barangay" | "route" | null>(null);
   const lastFocusedTruckIdRef = useRef<string | null>(null);
+  const lastResidentPositionRef = useRef<string | null>(null);
 
   const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);
   const [arrivalRouteData, setArrivalRouteData] = useState<RoadRouteResult | null>(null);
@@ -236,15 +239,24 @@ const TrackingMap = ({
       ),
     [trucks, hasResidentCollectionOutcome, isResidentTrackingComplete],
   );
+  const unavailableTrucks = useMemo(
+    () => trucks.filter((truck) => truck.status === "offline" && truck.collectionStarted &&
+      truck.coords && !hasResidentCollectionOutcome),
+    [trucks, hasResidentCollectionOutcome],
+  );
   const visibleTrucks = useMemo(
-    () => [...activeTrucks, ...pausedTrucks],
-    [activeTrucks, pausedTrucks],
+    () => [...activeTrucks, ...pausedTrucks, ...unavailableTrucks],
+    [activeTrucks, pausedTrucks, unavailableTrucks],
   );
   const pausedResidentTruck = useMemo(
     () => trucks.find((truck) => truck.isResidentTruck && truck.status === "paused") ?? null,
     [trucks],
   );
-  const hasActiveTrucks = activeTrucks.length > 0;
+  const unavailableResidentTruck = useMemo(
+    () => trucks.find((truck) => truck.isResidentTruck && truck.status === "offline" && truck.collectionStarted) ?? null,
+    [trucks],
+  );
+  const coverageTruck = hasResidentCollectionOutcome ? null : residentTruck;
 
   // Selected or primary active truck heading towards resident
   const targetTruck = useMemo(() => {
@@ -258,6 +270,8 @@ const TrackingMap = ({
     return activeTrucks[0] ?? null;
   }, [activeTrucks, focusedTruckId, isResidentTrackingComplete]);
 
+  const mapTruck = hasResidentCollectionOutcome ? null : targetTruck ?? pausedResidentTruck ?? unavailableResidentTruck;
+
   const stopsBeforeResident = targetTruck?.barangaysAway ?? 0;
   // Other areas' coordinates are private. This estimates direct travel only.
   const arrivalWaypoints = useMemo((): [number, number][] =>
@@ -266,6 +280,7 @@ const TrackingMap = ({
 
   const targetTruckLatitude = targetTruck?.coords?.[0] ?? null;
   const targetTruckLongitude = targetTruck?.coords?.[1] ?? null;
+  const targetTruckId = targetTruck?.id ?? null;
   const residentLatitude = residentBarangayCoords?.[0] ?? null;
   const residentLongitude = residentBarangayCoords?.[1] ?? null;
 
@@ -300,14 +315,16 @@ const TrackingMap = ({
       resizeObserver.observe(mapElementRef.current);
     }
 
-    setTimeout(() => {
+    const resizeTimer = setTimeout(() => {
       map.invalidateSize();
-      map.fitBounds(BOUNDS, { padding: DEFAULT_PADDING });
-      map.setMaxBounds(BOUNDS);
     }, 0);
 
     return () => {
       resizeObserver.disconnect();
+      clearTimeout(resizeTimer);
+      lastViewModeRef.current = null;
+      lastFocusedTruckIdRef.current = null;
+      lastResidentPositionRef.current = null;
       residentLayerRef.current = null;
       trucksLayerRef.current = null;
       coverageLayerRef.current = null;
@@ -352,7 +369,7 @@ const TrackingMap = ({
     if (!layer) return;
     layer.clearLayers();
 
-    targetTruck?.routeStops
+    coverageTruck?.routeStops
       .filter((stop) => stop.isResidentBarangay)
       .forEach((stop) => {
         if (!stop.coveragePath || stop.coveragePath.length < 2) return;
@@ -383,7 +400,7 @@ const TrackingMap = ({
           interactive: false,
         }).addTo(layer);
       });
-  }, [targetTruck?.id, targetTruck?.routeStops]);
+  }, [coverageTruck?.id, coverageTruck?.routeStops]);
 
   // Road snapping route calculation and polyline rendering
   useEffect(() => {
@@ -392,13 +409,14 @@ const TrackingMap = ({
     routeLayer.clearLayers();
 
     if (
-      !targetTruck ||
+      !targetTruckId ||
       targetTruckLatitude === null ||
       targetTruckLongitude === null ||
       residentLatitude === null ||
       residentLongitude === null
     ) {
       setRouteData(null);
+      setIsCalculatingRoute(false);
       return;
     }
 
@@ -406,13 +424,14 @@ const TrackingMap = ({
     const residentCoordinates: [number, number] = [residentLatitude, residentLongitude];
 
     let isMounted = true;
+    setRouteData(null);
     setIsCalculatingRoute(true);
 
     fetchResident("road-routing", [truckCoordinates, residentCoordinates], () => getRoadRoute(truckCoordinates, residentCoordinates))
       .then((result) => {
         if (!isMounted) return;
         setRouteData(result);
-        onRouteCalculated?.(targetTruck.id, result);
+        onRouteCalculated?.(targetTruckId, result);
 
         if (result.coordinates && result.coordinates.length > 1) {
           // Outer glow road line
@@ -446,7 +465,7 @@ const TrackingMap = ({
     };
   }, [
     fetchResident,
-    targetTruck,
+    targetTruckId,
     targetTruckLatitude,
     targetTruckLongitude,
     residentLatitude,
@@ -487,21 +506,25 @@ const TrackingMap = ({
 
     visibleTrucks.forEach((truck) => {
       const isFocused = targetTruck?.id === truck.id;
-      const size = isFocused ? 42 : 36;
-
-      const truckIcon = createTruckPinIcon(isFocused, truck.status === "paused");
+      const truckIcon = createTruckPinIcon(isFocused, truck.status);
 
       const marker = L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
 
       const popup = document.createElement("div");
       popup.style.cssText = "font-family:Inter,sans-serif;font-size:13px;";
       const truckTitle = document.createElement("strong");
-      truckTitle.textContent = `${truck.name} · ${truck.plateNumber}`;
+      truckTitle.textContent = truck.plateNumber ? `${truck.name} · ${truck.plateNumber}` : truck.name;
       const details = document.createElement("span");
-      details.textContent = truck.status === "paused"
-        ? "Paused — last known location"
-        : truck.driver || "Assigned Driver";
+      details.textContent = truck.status === "offline"
+        ? "Last known location — live GPS unavailable"
+        : truck.status === "paused" ? "Paused — last known location" : "Live truck location";
       popup.append(truckTitle, document.createElement("br"), details);
+      if (truck.status !== "on-the-way" && truck.lastPing) {
+        const updated = document.createElement("div");
+        updated.style.cssText = "font-size:11px;margin-top:4px;";
+        updated.textContent = `Last GPS update: ${formatManilaDateTime(truck.lastPing, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+        popup.append(updated);
+      }
       marker.bindPopup(popup);
 
       if (onSelectTruck) {
@@ -515,10 +538,13 @@ const TrackingMap = ({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const residentPosition = residentBarangayCoords?.join(",") ?? null;
+    const areaChanged = lastResidentPositionRef.current !== residentPosition;
+    lastResidentPositionRef.current = residentPosition;
 
     if (lockedToBarangay && residentBarangayCoords) {
       lastFocusedTruckIdRef.current = null;
-      if (lastViewModeRef.current !== "barangay") {
+      if (lastViewModeRef.current !== "barangay" || areaChanged) {
         map.flyTo(residentBarangayCoords, Math.max(map.getZoom(), 15), {
           duration: 0.8,
         });
@@ -528,7 +554,7 @@ const TrackingMap = ({
     }
 
     if (focusedTruckId) {
-      const truck = trucks.find((item) => item.id === focusedTruckId);
+      const truck = visibleTrucks.find((item) => item.id === focusedTruckId);
       if (truck?.coords) {
         const focusChanged = lastFocusedTruckIdRef.current !== focusedTruckId;
         if (lastViewModeRef.current !== "focused" || focusChanged) {
@@ -538,16 +564,43 @@ const TrackingMap = ({
           lastViewModeRef.current = "focused";
           lastFocusedTruckIdRef.current = focusedTruckId;
         }
+        return;
+      }
+    }
+
+    if (residentBarangayCoords) {
+      if (mapTruck?.coords) {
+        if (lastViewModeRef.current !== "route" || lastFocusedTruckIdRef.current !== mapTruck.id || areaChanged) {
+          map.fitBounds(L.latLngBounds([mapTruck.coords, residentBarangayCoords]), {
+            padding: [48, 48], maxZoom: 15,
+          });
+          lastViewModeRef.current = "route";
+          lastFocusedTruckIdRef.current = mapTruck.id;
+        }
+      } else {
+        if (lastViewModeRef.current !== "barangay" || areaChanged) {
+          map.setView(residentBarangayCoords, 15);
+          lastViewModeRef.current = "barangay";
+        }
+        lastFocusedTruckIdRef.current = null;
       }
       return;
     }
 
+    if (mapTruck?.coords) {
+      if (lastViewModeRef.current !== "focused" || lastFocusedTruckIdRef.current !== mapTruck.id) {
+        map.setView(mapTruck.coords, 15);
+        lastViewModeRef.current = "focused";
+        lastFocusedTruckIdRef.current = mapTruck.id;
+      }
+      return;
+    }
     lastFocusedTruckIdRef.current = null;
     if (lastViewModeRef.current !== "bounds") {
       map.flyToBounds(BOUNDS, { padding: DEFAULT_PADDING, duration: 0.8 });
       lastViewModeRef.current = "bounds";
     }
-  }, [focusedTruckId, lockedToBarangay, residentBarangayCoords, trucks]);
+  }, [focusedTruckId, lockedToBarangay, residentBarangayCoords, visibleTrucks, mapTruck]);
 
   // Map Controls
   const handleRecenterBarangay = () => {
@@ -557,8 +610,8 @@ const TrackingMap = ({
   };
 
   const handleRecenterTruck = () => {
-    if (mapRef.current && targetTruck?.coords) {
-      mapRef.current.setView(targetTruck.coords, 16, { animate: true });
+    if (mapRef.current && mapTruck?.coords) {
+      mapRef.current.setView(mapTruck.coords, 16, { animate: true });
     }
   };
 
@@ -572,7 +625,7 @@ const TrackingMap = ({
 
   const handleFitRouteBounds = () => {
     if (!mapRef.current) return;
-    const coveragePoints = targetTruck?.routeStops
+    const coveragePoints = coverageTruck?.routeStops
       .filter((stop) => stop.isResidentBarangay)
       .flatMap(
       (stop) => stop.coveragePath ?? [],
@@ -588,8 +641,8 @@ const TrackingMap = ({
         padding: [48, 48],
         maxZoom: 16,
       });
-    } else if (targetTruck?.coords && residentBarangayCoords) {
-      const bounds = L.latLngBounds([targetTruck.coords, residentBarangayCoords]);
+    } else if (mapTruck?.coords && residentBarangayCoords) {
+      const bounds = L.latLngBounds([mapTruck.coords, residentBarangayCoords]);
       mapRef.current.fitBounds(bounds, {
         padding: [48, 48],
         maxZoom: 16,
@@ -621,9 +674,27 @@ const TrackingMap = ({
           icon: <CalendarClock className="w-6 h-6 text-primary" />,
           iconBg: "bg-primary/10 border-primary/25",
           title: "Collection Scheduled Today",
-          desc: "The truck hasn't started its route yet. Live tracking will appear here once collection begins.",
+          desc: "Live tracking will appear when the assigned truck starts sending GPS updates.",
           hint: "Map updates automatically when live",
           isLiveWaiting: true,
+        };
+      case "gps-unavailable":
+        return {
+          badge: unavailableResidentTruck?.name || "Collection started",
+          icon: <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+          iconBg: "bg-amber-500/10 border-amber-500/25",
+          title: unavailableResidentTruck?.lastPing ? "GPS updates delayed" : "Waiting for truck location",
+          desc: unavailableResidentTruck?.coords
+            ? "Showing the last known location until GPS updates resume."
+            : "Collection started. Waiting for GPS updates.",
+        };
+      case "active":
+        return {
+          badge: targetTruck?.name || "Collection started",
+          icon: <TruckIcon className="w-4 h-4 text-primary" />,
+          iconBg: "bg-primary/10 border-primary/25",
+          title: "Collection in progress",
+          desc: isCalculatingRoute ? "Live location is available. Calculating the travel estimate…" : "Live location is available, but a travel estimate is unavailable.",
         };
       case "paused":
         return {
@@ -639,7 +710,7 @@ const TrackingMap = ({
           icon: <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
           iconBg: "bg-emerald-500/10 border-emerald-500/25",
           title: "Today's Collection is Complete",
-          desc: "All trucks have finished their routes. See you on your next collection day!",
+          desc: "Collection for your street has ended. Check your next scheduled collection day.",
           hint: "Thank you for keeping your waste segregated",
           isLiveWaiting: false,
         };
@@ -813,7 +884,7 @@ const TrackingMap = ({
             </div>
           )}
         </div>
-      ) : !hasActiveTrucks && collectionDayStatus !== "paused" ? (
+      ) : collectionDayStatus !== "paused" ? (
         <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] animate-in fade-in-50 duration-300">
           <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2">
             <div className="flex items-center gap-2.5">
@@ -834,11 +905,17 @@ const TrackingMap = ({
             <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
               {emptyState.desc}
             </p>
+            {collectionDayStatus === "gps-unavailable" && unavailableResidentTruck?.lastPing && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                <Clock className="w-3 h-3 shrink-0" />
+                Last GPS update: {formatManilaDateTime(unavailableResidentTruck.lastPing, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {formatRelativeTime(unavailableResidentTruck.lastPing)}
+              </p>
+            )}
           </div>
         </div>
       ) : null}
 
-      {targetTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
+      {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
         <div className="absolute bottom-2.5 left-2.5 z-[450] flex items-center gap-2 rounded-xl border border-border/80 bg-card/90 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-sm backdrop-blur-md lg:bottom-3 lg:left-3">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-amber-500" /> Current
@@ -854,12 +931,12 @@ const TrackingMap = ({
 
       {/* Floating Map Action Controls (Bottom-Right) */}
       <div className="absolute bottom-2.5 right-2.5 lg:bottom-3 lg:right-3 z-[500] flex items-center gap-1 lg:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-sm pointer-events-auto">
-        {targetTruck?.coords && (
+        {mapTruck?.coords && (
           <button
             type="button"
             onClick={handleRecenterTruck}
             className="flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
-            title="Recenter on Truck"
+            title={mapTruck.status === "on-the-way" ? "Recenter on Truck" : "Recenter on Last Known Truck Location"}
           >
             <TruckIcon className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden lg:inline">Truck</span>

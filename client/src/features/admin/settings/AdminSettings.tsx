@@ -1,3 +1,4 @@
+import { AdminAlertSettingsSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAdminAction, useAdminResource } from "@/lib/adminQuery";
@@ -43,7 +44,7 @@ const Section = ({ title, subtitle, icon: Icon, children }: {
 
 const AdminSettings = () => {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
-  const { data: alerts, setData: setAlerts, isLoading: alertsLoading, isError: alertsError, refetch: loadAlerts } =
+  const { data: alerts, setData: setAlerts, dataUpdatedAt: alertsUpdatedAt, isLoading: alertsLoading, isError: alertsError, refetch: loadAlerts } =
     useAdminResource("settings", ["alerts"], fetchAdminAlertSettings, defaultAlerts);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const runAction = useAdminAction("settings");
@@ -84,7 +85,7 @@ const AdminSettings = () => {
       </header>
 
       <Section title="Admin Notifications" subtitle="Choose the operational alerts that matter to you" icon={Bell}>
-        <div className="space-y-1">
+        {alertsLoading ? <AdminAlertSettingsSkeleton /> : alertsError && !alertsUpdatedAt ? null : <div className="space-y-1">
           {alertOptions.map(({ key, label, description, icon: Icon }) => (
             <div key={key} className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 last:border-b-0 lg:-mx-2.5 lg:px-2.5 lg:py-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -94,7 +95,7 @@ const AdminSettings = () => {
               <Switch checked={alerts[key]} onCheckedChange={(checked) => void updateAlert(key, checked)} aria-label={label} className="shrink-0" disabled={alertsLoading || alertsError || savingAlerts} />
             </div>
           ))}
-        </div>
+        </div>}
         <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
           <p className="text-[11px] text-muted-foreground">{alertsError ? "Alert preferences could not load." : alertsLoading ? "Loading alert preferences..." : savingAlerts ? "Saving your preference..." : "Changes save automatically."}</p>
           {alertsError && <Button type="button" size="sm" variant="outline" className="h-9 rounded-xl px-4 text-xs" onClick={() => void loadAlerts()}>Try again</Button>}

@@ -1,9 +1,4 @@
-import {
-KPIRowSkeleton,
-PageHeaderSkeleton,
-SplitPanelSkeleton,
-ToolbarSkeleton,
-} from "@/components/PageLoadingSkeletons";
+import { WasteReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
 import {
 Sheet,
@@ -25,7 +20,7 @@ type AdminReportsKPIs,
 type AdminReportsParams,
 } from "@/services/reportsService";
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReportDetailPanel from "./ReportDetailPanel";
 import ReportFilters from "./ReportFilters";
@@ -75,6 +70,9 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   falseReason: r.false_reason || undefined,
   isFalseReport: Boolean(r.is_false),
 });
+
+const pageTitle = "Waste Reports";
+const pageDescription = "Monitor, manage, and dispatch waste collection and incident reports across Candelaria.";
 
 const AdminWasteReports = () => {
   const updateAdminReportStatus = useAdminMutation(apiupdateAdminReportStatus, "reports", "residents", "notifications");
@@ -142,11 +140,13 @@ const AdminWasteReports = () => {
   const listQuery = useAdminQuery("reports", ["list", reportParams], () => fetchAdminReports(reportParams));
   const hasLoadedRef = useRef(false);
   if (listQuery.isSuccess) hasLoadedRef.current = true;
-  const isInitialLoading = listQuery.isLoading && !hasLoadedRef.current;
-  const isTableLoading = listQuery.isFetching;
+  const isInitialLoading = !hasLoadedRef.current && !listQuery.isError;
+  // Background live-sync refreshes retain the loaded table. Only a filter
+  // without cached data needs row skeletons after the first page load.
+  const isTableLoading = listQuery.isLoading;
   const error = listQuery.error?.message ?? null;
   const loadReports = listQuery.refetch;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const data = listQuery.data;
     if (!data) return;
     setReports(data.reports.map(mapAdminReport)); setTotal(data.total);
@@ -318,15 +318,8 @@ const AdminWasteReports = () => {
     }
   };
 
-  if (isInitialLoading && !error) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6">
-        <PageHeaderSkeleton />
-        <KPIRowSkeleton count={4} />
-        <ToolbarSkeleton />
-        <SplitPanelSkeleton />
-      </div>
-    );
+  if (isInitialLoading) {
+    return <WasteReportsPageSkeleton title={pageTitle} description={pageDescription} />;
   }
 
   return (
@@ -335,10 +328,10 @@ const AdminWasteReports = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-            Waste Reports
+            {pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Monitor, manage, and dispatch waste collection and incident reports across Candelaria.
+            {pageDescription}
           </p>
         </div>
 

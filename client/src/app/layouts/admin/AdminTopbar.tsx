@@ -23,7 +23,6 @@ import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
 const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin": "Admin Dashboard",
   "/admin/reports": "Waste Reports",
-  "/admin/bug-reports": "Bug Reports",
   "/admin/posts": "News & Articles",
   "/admin/announcements": "Announcements",
   "/admin/schedule": "Collection Schedule",
@@ -128,7 +127,7 @@ const AdminTopBar = () => {
         >
           <Menu className="w-4 h-4 text-foreground" />
         </button>
-        <div className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
           {isCollectorProfile ? (
             <>
               <button
@@ -196,6 +195,7 @@ const AdminTopBar = () => {
             <>
               <button
                 type="button"
+                aria-label="Back to News & Articles"
                 onClick={() => {
                   setSearchParams((prev) => {
                     const next = new URLSearchParams(prev);
@@ -211,7 +211,7 @@ const AdminTopBar = () => {
               >
                 News & Articles
               </button>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
               {isPreview ? (
                 <>
                   <button
@@ -228,12 +228,12 @@ const AdminTopBar = () => {
                     {subViewTitle}
                   </button>
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-                  <span className="font-bold text-foreground truncate tracking-tight">
+                  <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
                     Preview
                   </span>
                 </>
               ) : (
-                <span className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
+                <span aria-current="page" className="font-bold text-foreground truncate tracking-tight max-w-[120px] sm:max-w-[200px] md:max-w-[300px]">
                   {subViewTitle}
                 </span>
               )}
@@ -243,7 +243,7 @@ const AdminTopBar = () => {
               {pageTitle}
             </span>
           )}
-        </div>
+        </nav>
       </div>
 
       {/* Right */}

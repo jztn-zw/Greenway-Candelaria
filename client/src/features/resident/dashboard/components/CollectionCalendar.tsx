@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
@@ -31,6 +32,8 @@ const CollectionCalendar = () => {
     () => fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }));
   const events = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
   const calendarError = calendarQuery.isError;
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const scheduleColorById = useMemo(
     () => new Map(events.map((event) => [event.id, eventColor(event.id)])),
@@ -54,6 +57,33 @@ const CollectionCalendar = () => {
     setCurrentDate(new Date(today.year, today.month - 1, 1));
     setSelectedDateStr(todayStr);
   };
+
+  if (calendarQuery.isLoading) {
+    return (
+      <section>
+        <div role="status" aria-label="Loading calendar" className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-6">
+          <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+            <Skeleton className="h-6 w-44" />
+            <Skeleton className="h-8 w-28 rounded-xl" />
+          </div>
+          <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-1.5">
+            {Array.from({ length: 7 }).map((_, index) => <Skeleton key={index} className="mx-auto h-4 w-6" />)}
+          </div>
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+            {Array.from({ length: firstDayIndex + daysInMonth }).map((_, index) => (
+              <div key={index} className="aspect-square rounded-xl border border-border/60 p-1.5 sm:aspect-auto sm:min-h-[95px] sm:p-2">
+                {index >= firstDayIndex && <Skeleton className="h-5 w-5 rounded-full" />}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-3 border-t border-border/60 pt-3">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-5 w-48 max-w-[50%]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -88,7 +118,9 @@ const CollectionCalendar = () => {
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
           <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">ANNOUNCEMENTS</span>
           {selectedDateEvents.length === 0 ? (
-            <span className="text-xs text-muted-foreground">No official announcements on this date.</span>
+            <span className="text-xs text-muted-foreground">
+              {calendarError ? "Announcements unavailable right now." : "No official announcements on this date."}
+            </span>
           ) : selectedDateEvents.map((event) => {
             const start = event.event_date.split("T")[0];
             const end = event.end_date?.split("T")[0] || start;

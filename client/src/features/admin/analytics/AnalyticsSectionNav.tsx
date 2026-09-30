@@ -1,15 +1,14 @@
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BarChart3, Building2, AlertTriangle, Users, Truck, CircleAlert } from "lucide-react";
 
 const sections = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "collection-performance", label: "Collection efficiency", icon: BarChart3 },
-  { id: "missed-collections", label: "Missed collections", icon: CircleAlert },
-  { id: "waste-reports", label: "Reports & incidents", icon: AlertTriangle },
-  { id: "resident-engagement", label: "Residents", icon: Users },
-  { id: "truck-driver", label: "Driver operations", icon: Truck },
-  { id: "barangay-compliance", label: "Barangay coverage", icon: Building2 },
+  { id: "overview", label: "Overview" },
+  { id: "collection-performance", label: "Collection efficiency" },
+  { id: "missed-collections", label: "Missed collections" },
+  { id: "waste-reports", label: "Reports & incidents" },
+  { id: "resident-engagement", label: "Residents" },
+  { id: "truck-driver", label: "Driver operations" },
+  { id: "barangay-compliance", label: "Barangay coverage" },
 ];
 
 interface Props {
@@ -67,25 +66,19 @@ const AnalyticsSectionNav: React.FC<Props> = ({ activeSection, onSectionChange }
     >
       {sections.map((s) => {
         const active = activeSection === s.id;
-        const Icon = s.icon;
         return (
           <button
             key={s.id}
             type="button"
+            aria-pressed={active}
             onClick={(e) => handleTabClick(s.id, e)}
             className={cn(
-              "group h-9 px-3.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center gap-2 shrink-0 active:scale-95 border cursor-pointer",
+              "flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-xl border px-3.5 py-2 font-body text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95",
               active
-                ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                : "bg-card border-border/80 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-foreground"
+                ? "border-primary bg-primary text-primary-foreground shadow-xs shadow-primary/25"
+                : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            <Icon
-              className={cn(
-                "w-3.5 h-3.5 transition-colors",
-                active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-              )}
-            />
             <span>{s.label}</span>
           </button>
         );

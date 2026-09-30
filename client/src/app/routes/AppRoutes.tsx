@@ -7,7 +7,6 @@ import AdminAnalyticsDashboard from "@/features/admin/analytics/AdminAnalyticsDa
 import AdminAnnouncements from "@/features/admin/announcements/AdminAnnouncements";
 import AdminAuditLogs from "@/features/admin/audit-logs/AdminAuditLogs";
 import AdminBarangays from "@/features/admin/barangays/AdminBarangays";
-import AdminBugReports from "@/features/admin/bug-reports/AdminBugReports";
 import AdminDashboard from "@/features/admin/dashboard/AdminDashboard";
 import AdminDrivers from "@/features/admin/drivers/AdminDrivers";
 import AdminNotifications from "@/features/admin/notifications/AdminNotifications";
@@ -52,10 +51,10 @@ const AppRoutes = () => (
         <Route path="settings" element={<ResidentSettings />} />
         <Route path="schedule" element={<ResidentSchedule />} />
       </Route>
+      <Route path="/resident/*" element={<ProtectedRoute allowedRoles={["RESIDENT"]}><NotFound /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="reports" element={<AdminWasteReports />} />
-        <Route path="bug-reports" element={<AdminBugReports />} />
         <Route path="posts" element={<AdminPosts />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="schedule" element={<AdminCollectionSchedule />} />
@@ -70,6 +69,7 @@ const AppRoutes = () => (
         <Route path="settings" element={<AdminSettings />} />
         <Route path="profile" element={<AdminProfile />} />
       </Route>
+      <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["ADMIN"]}><NotFound /></ProtectedRoute>} />
       <Route path="/collector" element={<ProtectedRoute allowedRoles={["DRIVER"]}><CollectorLayout /></ProtectedRoute>}>
         <Route index element={<CollectorDashboard />} />
         <Route path="route-map" element={<CollectorRouteMap />} />
@@ -78,6 +78,7 @@ const AppRoutes = () => (
         <Route path="notifications" element={<CollectorNotifications />} />
         <Route path="profile" element={<CollectorProfile />} />
       </Route>
+      <Route path="/collector/*" element={<ProtectedRoute allowedRoles={["DRIVER"]}><NotFound /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
 );

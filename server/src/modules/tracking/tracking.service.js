@@ -295,6 +295,7 @@ const getHistory = async (truckId, filters = {}) => {
       `SELECT
          rrs.id            AS stop_id,
          rr.id             AS route_id,
+         rr.collection_started_at AS route_started_at,
          rrs.stop_order,
          rrs.status        AS stop_status,
          rrs.completed_at,
@@ -309,7 +310,7 @@ const getHistory = async (truckId, filters = {}) => {
        JOIN route_run_stops rrs ON rrs.route_run_id = rr.id
        JOIN barangays b ON b.id = rrs.barangay_id
        WHERE rr.truck_id = ? AND rr.run_date = ?
-       ORDER BY rr.scheduled_start_time ASC, rr.id ASC, rrs.stop_order ASC`,
+       ORDER BY COALESCE(rr.collection_started_at, rr.scheduled_start_time) ASC, rr.id ASC, rrs.stop_order ASC`,
       [truckId, targetDate],
     );
     stops = runStops;
@@ -466,6 +467,62 @@ const fetchRoadRoute = async (...coordinates) => {
   try { return await request; } finally { roadRequests.delete(key); }
 };
 
+// Coverage editing requires a complete road shape, never the tracking ETA's
+// straight-line fallback. Route all marked points together to preserve order.
+const fetchStreetCoverageRoute = async (points) => {
+  if (points.every(([lat, lng]) => lat === points[0][0] && lng === points[0][1])) {
+    reject("Choose at least two different points for the street path.", 400);
+  }
+  const key = `coverage:${points.map(([lat, lng]) => `${lat.toFixed(6)},${lng.toFixed(6)}`).join(";")}`;
+  const cached = SERVER_ROUTE_CACHE.get(key);
+  if (cached && Date.now() - cached.timestamp < ROUTE_CACHE_TTL_MS) return cached.data;
+  if (roadRequests.has(key)) return roadRequests.get(key);
+  if (roadRequests.size >= 24) reject("Road matching is busy. Please retry shortly.", 429);
+
+  const request = (async () => {
+    for (const baseUrl of ROUTING_ENDPOINTS) {
+      const locations = points.map(([lat, lng]) => `${lng},${lat}`).join(";");
+      const radiuses = points.map(() => "50").join(";");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      try {
+        const response = await fetch(`${baseUrl}/${locations}?overview=full&geometries=geojson&radiuses=${radiuses}`, {
+          headers: { "User-Agent": "GreenWay-Fleet/1.0" }, signal: controller.signal,
+        });
+        const data = await response.json();
+        if (["NoSegment", "NoRoute"].includes(data.code)) {
+          reject("Could not match these points. Move them closer to the street or add a point at the turn.", 422);
+        }
+        if (!response.ok || data.code !== "Ok") continue;
+        const geometry = data.routes?.[0]?.geometry?.coordinates;
+        const validCoordinate = (p) => Array.isArray(p) && p.length >= 2 &&
+          Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0]) <= 180 && Math.abs(p[1]) <= 90;
+        if (!Array.isArray(geometry) || geometry.length < 2 || !geometry.every(validCoordinate) ||
+            !Array.isArray(data.waypoints) || data.waypoints.length !== points.length ||
+            !data.waypoints.every((waypoint) => validCoordinate(waypoint.location))) continue;
+        const snappedPoints = data.waypoints.map(({ location: [lng, lat] }) => [lat, lng]);
+        if (snappedPoints.some(([lat, lng], i) => calculateHaversineDistanceKm(lat, lng, points[i][0], points[i][1]) > 0.05)) {
+          reject("Move the numbered points closer to the street and try again.", 422);
+        }
+        const result = { coordinates: geometry.map(([lng, lat]) => [lat, lng]), snappedPoints, source: "osrm" };
+        for (const [oldKey, entry] of SERVER_ROUTE_CACHE) {
+          if (Date.now() - entry.timestamp >= ROUTE_CACHE_TTL_MS) SERVER_ROUTE_CACHE.delete(oldKey);
+        }
+        if (SERVER_ROUTE_CACHE.size >= 256) SERVER_ROUTE_CACHE.delete(SERVER_ROUTE_CACHE.keys().next().value);
+        SERVER_ROUTE_CACHE.set(key, { data: result, timestamp: Date.now() });
+        return result;
+      } catch (error) {
+        if (error.statusCode) throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    reject("Road matching is unavailable. Please try again.", 503);
+  })();
+  roadRequests.set(key, request);
+  try { return await request; } finally { roadRequests.delete(key); }
+};
+
 // Optional retention is explicit so deployment does not silently erase archives.
 let lastRetentionPass = 0;
 const pruneTrackingHistory = async () => {
@@ -487,4 +544,5 @@ module.exports = {
   checkProximityAndNotify,
   notifyStaleGpsRoutes,
   fetchRoadRoute,
+  fetchStreetCoverageRoute,
 };

@@ -18,21 +18,21 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
     - items.filter((item) => item.kind === "report").length);
 
   return (
-    <section aria-labelledby="needs-attention-heading" className="relative min-h-[380px] rounded-2xl border border-border/80 bg-card shadow-2xs transition-shadow hover:shadow-md">
+    <section aria-labelledby="needs-attention-heading" className="relative min-h-[380px] min-w-0 rounded-2xl border border-border/80 bg-card shadow-2xs">
       {/* Keep list contents from expanding the dashboard grid row. */}
-      <div className="absolute inset-5 sm:inset-6 flex min-h-0 flex-col gap-4">
-        <div className="flex shrink-0 items-center justify-between gap-3">
-          <h3 id="needs-attention-heading" className="text-base font-bold text-foreground font-display">Needs Attention</h3>
+      <div className="absolute inset-4 sm:inset-6 flex min-h-0 flex-col">
+        <div className="mb-3 flex min-h-8 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+          <h3 id="needs-attention-heading" className="flex min-h-8 items-center text-base sm:text-lg font-bold text-foreground font-display tracking-tight">Needs Attention</h3>
           <Badge variant="outline" className={attentionCount > 0
-            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25 text-xs font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
-            : "bg-muted text-muted-foreground border-border/70 text-xs font-medium px-2.5 py-0.5 rounded-full"}>
+            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-[11px] font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
+            : "bg-muted/40 text-muted-foreground border-border/60 text-[11px] font-semibold px-2.5 py-0.5 rounded-full tabular-nums"}>
             {attentionCount} {attentionCount === 1 ? "item" : "items"}
           </Badge>
         </div>
         <div role="region" aria-label="Items needing attention" tabIndex={0}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 space-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl [scrollbar-gutter:stable]">
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
           {items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-border/80 bg-background p-5 text-center">
+            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 sm:p-5 text-center">
               <CheckCircle2 className="w-9 h-9 text-emerald-500 mb-2" />
               <p className="text-sm font-semibold text-foreground">No items in these queues</p>
               <p className="text-xs text-muted-foreground mt-1">No submitted reports, missed stops today, or trucks under maintenance.</p>
@@ -44,9 +44,9 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
               ? `/admin/reports?report=${encodeURIComponent(item.target_id)}`
               : `/admin/drivers?truckId=${encodeURIComponent(item.target_id)}`;
             return (
-              <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-background p-3.5 shadow-2xs transition-colors hover:border-primary/30">
+              <div key={item.id} className="flex flex-col items-stretch gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-border hover:bg-muted/40">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-muted text-muted-foreground">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground">
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -59,18 +59,18 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
                   </div>
                 </div>
                 <Button size="sm" variant="outline" aria-label={`${action}: ${item.title}`}
-                  className="h-7 shrink-0 rounded-lg px-2.5 text-xs font-semibold"
+                  className="h-8 shrink-0 self-end sm:self-auto rounded-xl border-border/70 bg-muted/30 px-3 text-xs font-semibold shadow-none hover:bg-muted/60"
                   onClick={() => navigate(destination)}>
                   {action}<ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </div>
             );
           })}
-          {remainingReports > 0 && <Button variant="ghost" className="w-full text-xs" onClick={() => navigate("/admin/reports")}>
+          {remainingReports > 0 && <Button variant="ghost" className="h-8 w-full rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary" onClick={() => navigate("/admin/reports")}>
             View {remainingReports} more reports<ArrowRight className="ml-1 h-3 w-3" />
           </Button>}
         </div>
-        <p className="shrink-0 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+        <p className="mt-4 shrink-0 border-t border-border/60 pt-3 text-[11px] leading-relaxed text-muted-foreground">
           Missed stops first, then oldest reports and fleet maintenance.
         </p>
       </div>

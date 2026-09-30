@@ -5,6 +5,7 @@ import {
   CalendarSkeleton,
   OperationsAndAttentionSkeleton,
   ReportsTableSkeleton,
+  ActivityFeedSkeleton,
 } from "@/components/PageLoadingSkeletons";
 import DashboardHeader from "./components/DashboardHeader";
 import KPICards from "./components/KPICards";
@@ -17,6 +18,7 @@ import ActivityFeed from "./components/ActivityFeed";
 import { useAdminDashboard } from "./components/useAdminDashboard";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PageErrorState from "@/components/PageErrorState";
 
 const AdminDashboard = () => {
   const {
@@ -34,37 +36,40 @@ const AdminDashboard = () => {
     attention,
   } = useAdminDashboard();
 
-  if (isLoading) {
+  if (isLoading || (!overview && !error)) {
     return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-10">
-        <DashboardHeaderSkeleton />
-        <KPICardsSkeleton />
-        <TrendChartsSkeleton />
-        <OperationsAndAttentionSkeleton />
-        <CalendarSkeleton />
-        <ReportsTableSkeleton />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
-        <DashboardHeader />
-        <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-amber-500/25 bg-card px-6 py-12 text-center">
-          <AlertTriangle className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-          <h2 className="text-lg font-bold text-foreground">Dashboard data is unavailable</h2>
-          <p className="max-w-lg text-sm text-muted-foreground">The current figures could not be loaded. {error}</p>
-          <Button onClick={refetch} disabled={isRefreshing}> {isRefreshing ? "Retrying…" : "Retry"} </Button>
+      <div role="status" aria-busy="true" className="w-full max-w-[1600px] mx-auto pb-12">
+        <span className="sr-only">Loading dashboard data…</span>
+        <div aria-hidden="true" className="space-y-6">
+          <DashboardHeaderSkeleton />
+          <KPICardsSkeleton />
+          <TrendChartsSkeleton />
+          <OperationsAndAttentionSkeleton />
+          <CalendarSkeleton />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+            <ReportsTableSkeleton />
+            <ActivityFeedSkeleton />
+          </div>
         </div>
       </div>
     );
   }
 
+  if (error && !overview) {
+    return <PageErrorState kind="unavailable" title="Dashboard data couldn't load" description="We couldn't load the current figures. Check your connection and try again." onRetry={() => void refetch()} retrying={isRefreshing} />;
+  }
+
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
+    <div aria-busy={isRefreshing} className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
       {/* ── 1. Executive Hero Header ── */}
       <DashboardHeader />
+
+      {error && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm">
+          <p className="flex items-center gap-2 text-foreground"><AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />Dashboard refresh failed. Showing the last loaded figures.</p>
+          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isRefreshing}>{isRefreshing ? "Retrying…" : "Try again"}</Button>
+        </div>
+      )}
 
       {/* ── 2. Executive 4-Card KPI Metric Strip ── */}
       <KPICards overview={overview} reportsAnalytics={reportsAnalytics} />

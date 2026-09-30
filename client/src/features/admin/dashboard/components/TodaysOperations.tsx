@@ -106,18 +106,18 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
     : 0;
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
-      <div className="space-y-4">
+    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col justify-between min-w-0 h-full">
+      <div>
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground font-display">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
             Today's Fleet Operations
           </h3>
 
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-primary font-semibold h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary rounded-xl cursor-pointer group active:scale-95 transition-all"
+            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
             onClick={() => navigate("/admin/routes")}
           >
             <span>Route Manager</span>
@@ -126,12 +126,12 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         </div>
 
         {/* Overall Municipal Route Dispatch Progress */}
-        <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
+        <div className="mb-3 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/60 text-xs space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
             <span className="font-semibold text-foreground">
               Today's Barangay Coverage
             </span>
-            <span className="font-bold text-primary tabular-nums">
+            <span className="font-semibold text-primary tabular-nums">
               {totalTargetBarangays > 0
                 ? `${doneCount} of ${totalTargetBarangays} barangays (${overallFleetProgress}%)`
                 : "No barangays scheduled today"}
@@ -146,28 +146,28 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         </div>
 
         {/* Truck Fleet Cards */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {displayTrucks.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
               No trucks are registered yet.
             </div>
           ) : totalTargetBarangays === 0 ? (
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-3">
               {displayTrucks.map((t) => {
                 const style = statusStyles[t.status];
 
                 return (
                   <div
                     key={t.id}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-background px-3 py-3 shadow-2xs"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-bold text-foreground">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{t.plate}</p>
+                      <p className="truncate text-xs font-semibold text-foreground">{t.name}</p>
+                      <p className="mt-1 text-[11px] font-mono text-muted-foreground">{t.plate}</p>
                     </div>
                     <Badge
                       variant="outline"
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${style.bg} ${style.text} ${style.border}`}
+                      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${style.bg} ${style.text} ${style.border}`}
                     >
                       {t.status}
                     </Badge>
@@ -182,38 +182,38 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
             return (
               <div
                 key={t.id}
-                className="bg-background border border-border/80 rounded-xl p-3.5 shadow-2xs space-y-2.5 hover:border-primary/30 transition-all"
+                className="bg-muted/20 border border-border/60 rounded-xl p-3 sm:p-4 space-y-3"
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-foreground">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-xs text-foreground">
                         {t.name}
                       </span>
-                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/60">
+                      <span className="text-[11px] font-mono font-medium tabular-nums text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/60">
                         {t.plate}
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    <p className="text-[11px] text-muted-foreground truncate mt-1">
                       Driver: <span className="font-medium text-foreground">{t.driver}</span>
                     </p>
                   </div>
 
                   <Badge
                     variant="outline"
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs ${style.bg} ${style.text} ${style.border}`}
+                    className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${style.bg} ${style.text} ${style.border}`}
                   >
                     {t.status}
                   </Badge>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="flex items-center gap-1 text-muted-foreground truncate">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
+                    <span className="flex min-w-0 items-center gap-1 text-muted-foreground truncate">
                       <MapPin className="w-3 h-3 text-primary shrink-0" />
                       {t.currentRoute}
                     </span>
-                    <span className="font-bold text-foreground tabular-nums">
+                    <span className="shrink-0 font-semibold text-foreground tabular-nums">
                       {t.completed}/{t.total} stops ({pct}%)
                     </span>
                   </div>
@@ -231,19 +231,19 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         </div>
 
         {/* Compact Expandable Barangay Coverage with ScrollArea & 2-Column Grid */}
-        {displayBarangays.length > 0 && <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
+        {displayBarangays.length > 0 && <div className="mt-3 border border-border/60 rounded-xl overflow-hidden bg-muted/20">
           <button
             type="button"
             onClick={() => setShowBarangays(!showBarangays)}
-            className="w-full flex items-center justify-between p-3 text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between gap-3 p-3 sm:px-4 text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-left">
                   <span>Today's Barangays ({displayBarangays.length})</span>
               <span className="text-[10px] font-normal text-muted-foreground hidden sm:inline">
                 · {doneCount} Done, {inProgressCount} Active
               </span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
               <span className="text-[11px] font-normal">{showBarangays ? "Collapse" : "View"}</span>
               {showBarangays ? (
                 <ChevronUp className="w-3.5 h-3.5" />
@@ -254,26 +254,26 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
           </button>
 
           {showBarangays && (
-            <div className="border-t border-border/80 bg-muted/20 p-2.5 animate-fade-in">
+            <div className="border-t border-border/60 p-3 animate-fade-in">
               {displayBarangays.length === 0 ? (
                 <p className="px-1 py-3 text-center text-xs text-muted-foreground">
                   No active routes are scheduled for today.
                 </p>
               ) : (
-              <ScrollArea className="h-[210px] pr-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <ScrollArea className="h-[210px] pr-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {displayBarangays.map((b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between p-2 px-2.5 rounded-lg bg-card border border-border/60 text-xs shadow-2xs"
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-card border border-border/60 text-xs"
                     >
                       <div className="min-w-0 flex-1 pr-2">
                         <p className="font-medium text-foreground truncate">{b.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{b.truck}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{b.truck}</p>
                       </div>
                       <Badge
                         variant="outline"
-                        className={`text-[9px] font-semibold px-1.5 py-0 shrink-0 rounded-md border ${
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 shrink-0 rounded-full border ${
                           b.status === "Done"
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                             : b.status === "In Progress"
@@ -293,7 +293,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         </div>}
       </div>
       {totalTargetBarangays === 0 && displayTrucks.length > 0 && (
-        <p className="mt-auto border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+        <p className="mt-4 border-t border-border/60 pt-3 text-[11px] leading-relaxed text-muted-foreground">
           No collection activity is scheduled for today.
         </p>
       )}

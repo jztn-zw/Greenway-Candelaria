@@ -1,4 +1,5 @@
 import type { RouteStop } from "@/features/collector/route-map/types";
+import { createTrackingLocationPin } from "@/components/maps/trackingLocationPin";
 import { useAdminFetch } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
 import {
@@ -142,67 +143,12 @@ const coverageColor = (status: "done" | "in-progress" | "not-started" | "skipped
 const createCoverageOrderIcon = (
   stopNumber: number,
   state: "done" | "in-progress" | "not-started" | "skipped",
-) => {
-  const active = state === "in-progress";
-  const size = active ? 30 : 26;
-  const color = coverageColor(state);
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #fff;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.32);${active ? "outline:3px solid rgba(34,197,94,.28);" : ""}">${stopNumber}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-};
+) => createTrackingLocationPin(coverageColor(state), state, stopNumber);
 
-// Teardrop Pin Marker for Route Stops matching Collector Route Map
 const createAdminStopTeardropIcon = (
   stopNumber: number,
   state: "done" | "in-progress" | "not-started" | "skipped",
-) => {
-  const isActive = state === "in-progress";
-  const isDone = state === "done";
-  const isSkipped = state === "skipped";
-
-  const width = isActive ? 38 : 34;
-  const height = isActive ? 50 : 46;
-  const color = statusColor(state);
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.32));cursor:pointer;">
-        <svg width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-          <path d="M 18 1 C 8.6 1 1 8.6 1 18 C 1 29.5 18 47 18 47 C 18 47 35 29.5 35 18 C 35 8.6 27.4 1 18 1 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="18" cy="18" r="11" fill="#ffffff"/>
-          <text x="18" y="18.5" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="800" fill="${color}" text-anchor="middle" dominant-baseline="central" alignment-baseline="central">
-            ${stopNumber}
-          </text>
-        </svg>
-        ${
-          isActive
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;pointer-events:none;">
-                 <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#3b82f6;opacity:0.75;animation:ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
-                 <span style="position:relative;display:block;width:100%;height:100%;border-radius:50%;background:#2563eb;border:2px solid #ffffff;"></span>
-               </div>`
-            : isDone
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:#059669;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);">
-                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                   <polyline points="20 6 9 17 4 12"></polyline>
-                 </svg>
-               </div>`
-            : isSkipped
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#d97706;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);color:white;font-size:9px;font-weight:900;">
-                 !
-               </div>`
-            : ""
-        }
-      </div>
-    `,
-    iconSize: [width, height],
-    iconAnchor: [width / 2, height],
-    popupAnchor: [0, -height],
-  });
-};
+) => createTrackingLocationPin(statusColor(state), state, stopNumber);
 
 const createAdminTruckPinIcon = (
   isFocused = false,

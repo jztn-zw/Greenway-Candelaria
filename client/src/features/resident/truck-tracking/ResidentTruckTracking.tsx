@@ -6,7 +6,7 @@ import TrackingMap from "./TrackingMap";
 import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
 import type { Truck, CollectionDayStatus, CollectionSchedule } from "./types";
-import { PageHeaderSkeleton, MapPanelSkeleton } from "@/components/PageLoadingSkeletons";
+import { ResidentTrackingSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchBarangays } from "@/services/barangaysService";
 import { fetchRoutes, type ApiRoute } from "@/services/routesService";
 import useAuthStore from "@/store/authStore";
@@ -133,7 +133,8 @@ const resolveResidentTruckStatus = (
   now = Date.now(),
 ): Truck["status"] => {
   const liveStatus = live ? normaliseTruckStatus(live.truck_status) : null;
-  const hasFreshPing = live ? isPingFresh(live.last_ping, now) : false;
+  const hasFreshPing = Boolean(live && isPingFresh(live.last_ping, now) &&
+    parseCoordinate(live.latitude) !== null && parseCoordinate(live.longitude) !== null);
   const persistedTruckStatus = normaliseTruckStatus(truckStatus);
 
   if (String(route?.route_status || "").toUpperCase() === "PAUSED") {
@@ -298,6 +299,7 @@ const ResidentTruckTracking = () => {
   const residentStreetId = normaliseId(currentUser?.street_id);
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [hasInitialSnapshot, setHasInitialSnapshot] = useState(false);
 
   const lastLive = useRef<LiveRow[] | null>(null);
   const liveVersion = useRef(0);
@@ -373,10 +375,12 @@ const ResidentTruckTracking = () => {
       const liveLatitude = parseCoordinate(live?.latitude);
       const liveLongitude = parseCoordinate(live?.longitude);
       const coords =
-        liveLatitude !== null && liveLongitude !== null && (isPingFresh(live?.last_ping) || route?.route_status === "PAUSED")
+        liveLatitude !== null && liveLongitude !== null
           ? ([liveLatitude, liveLongitude] as [number, number])
           : null;
-      const distanceKm = coords && effectiveResidentCoords
+      const status = resolveResidentTruckStatus(truck.status, live, route);
+      // Stale coordinates are a last known location, never a live arrival estimate.
+      const distanceKm = status === "on-the-way" && coords && effectiveResidentCoords
         ? calculateDistanceInKilometers(coords, effectiveResidentCoords)
         : null;
       const eta = distanceKm !== null ? Math.max(1, Math.round((distanceKm / 20) * 60)) : null;
@@ -413,12 +417,6 @@ const ResidentTruckTracking = () => {
 
       const residentStop = routeStops.find((s) => s.isResidentBarangay);
 
-      const status = resolveResidentTruckStatus(
-        truck.status,
-        live,
-        route,
-      );
-
       return {
         id: truck.id,
         name: truck.name,
@@ -430,6 +428,8 @@ const ResidentTruckTracking = () => {
         completedBarangays: route?.completed_stops ?? 0,
         totalBarangays: route?.total_stops ?? 0,
         coords,
+        lastPing: parseBackendDate(live?.last_ping) !== null ? live?.last_ping : undefined,
+        collectionStarted: Boolean(route?.collection_started_at),
         eta,
         isResidentTruck,
         barangaysAway,
@@ -443,7 +443,8 @@ const ResidentTruckTracking = () => {
 
     setTrucks(mappedTrucks);
     setRouteTemplates(allRoutes);
-  }, [residentBarangayId, residentStreetId, residentStreetLabel, residentCoords, planQuery.data, liveQuery.data, queryError]);
+    if (!isLoading) setHasInitialSnapshot(true);
+  }, [residentBarangayId, residentStreetId, residentStreetLabel, residentCoords, planQuery.data, liveQuery.data, queryError, isLoading]);
 
   // Keep socket event handlers current without recreating a connection when
   // location/profile data changes during the page's initial load.
@@ -557,11 +558,14 @@ const ResidentTruckTracking = () => {
     if (residentCollectionFinalized) return "completed";
     if (hasActiveTrucks) return "active";
     if (residentTrucks.some((t) => t.status === "paused")) return "paused";
-    if (residentTrucks.some((t) => t.status === "scheduled")) {
+    if (residentTrucks.some((t) => t.status === "offline" && t.collectionStarted)) {
+      return "gps-unavailable";
+    }
+    if (residentTrucks.some((t) => t.status === "scheduled") || schedule.nextCollectionDay === "today") {
       return "scheduled-not-started";
     }
     return "not-collection-day";
-  }, [hasActiveTrucks, residentCollectionFinalized, residentTrucks]);
+  }, [hasActiveTrucks, residentCollectionFinalized, residentTrucks, schedule.nextCollectionDay]);
 
   const nextCollectionInfo = `Your next collection day is ${schedule.nextCollectionDay}${
     schedule.wasteType ? ` - ${schedule.wasteType}` : ""
@@ -575,7 +579,7 @@ const ResidentTruckTracking = () => {
     (truckId: string, roadRoute: RoadRouteResult) => {
       setTrucks((currentTrucks) =>
         currentTrucks.map((truck) =>
-          truck.id === truckId &&
+          truck.id === truckId && truck.status === "on-the-way" &&
           (truck.eta !== roadRoute.durationMinutes ||
             truck.roadDistanceKm !== roadRoute.distanceKm)
             ? {
@@ -590,14 +594,11 @@ const ResidentTruckTracking = () => {
     [],
   );
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-3.5 px-2 md:space-y-4 md:px-4">
-        <PageHeaderSkeleton />
-        <MapPanelSkeleton />
-      </div>
-    );
-  }
+  const displayedTrackingError = trackingError || (queryError
+    ? "Tracking could not be refreshed. Last known information may be outdated."
+    : null);
+
+  if (isLoading || (planQuery.data && !hasInitialSnapshot)) return <ResidentTrackingSkeleton />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-2 md:px-4">
@@ -613,11 +614,11 @@ const ResidentTruckTracking = () => {
 
       <div className="space-y-3.5 md:space-y-4">
 
-      {trackingError && (
+      {displayedTrackingError && (
         <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 text-foreground">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>{trackingError}</span>
+            <span>{displayedTrackingError}</span>
           </div>
           <button
             type="button"
@@ -629,7 +630,7 @@ const ResidentTruckTracking = () => {
         </div>
       )}
 
-      {!residentCoords && !trackingError && (
+      {!residentCoords && !displayedTrackingError && (
         <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           Your barangay location is not configured yet, so distance and arrival estimates are unavailable.

@@ -2,9 +2,11 @@ import type { HistoryRow, RouteStopHistoryItem } from "@/services/trackingServic
 import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
 
 interface ReplayStop {
+  id: string;
   targetName: string;
   order: number;
   status: string;
+  startedAt: number | null;
   endedAt: number | null;
   location: ReplayTargetLocation | null;
 }
@@ -92,20 +94,51 @@ export const buildReplayTrip = (logs: HistoryRow[], stops: RouteStopHistoryItem[
     const streetName = String(stop.stop_name ?? "").trim();
     const targetName = streetName && streetName !== barangayName ? streetName + " (" + barangayName + ")" : barangayName;
     const endedAt = parseApiTimestamp(stop.completed_at)?.getTime() ?? NaN;
+    const startedAt = parseApiTimestamp(stop.route_started_at)?.getTime() ?? NaN;
     const routeStops = routes.get(routeId) ?? [];
     const coords = targetCoordinates(stop);
     const status = String(stop.stop_status ?? "").toUpperCase();
     routeStops.push({
+      id: JSON.stringify([routeId, stop.stop_id ?? stop.stop_order]),
       targetName,
       location: coords ? { name: targetName, coords, ...((status === "MISSED" || status === "SKIPPED") && stop.skipped_reason ? { skippedReason: stop.skipped_reason } : {}) } : null,
       order: stop.stop_order, status,
+      startedAt: Number.isFinite(startedAt) ? startedAt : null,
       endedAt: Number.isFinite(endedAt) ? endedAt : null,
     });
     routes.set(routeId, routeStops);
   }
-  const replayStops = [...routes.values()].flatMap((routeStops) => routeStops.sort((a, b) => a.order - b.order));
+  const replayStops = [...routes.values()]
+    .map((routeStops) => {
+      routeStops.sort((a, b) => a.order - b.order);
+      // A target begins at collection start, or when the preceding target is
+      // completed/skipped. Never carry a boundary across separate route runs.
+      const routeStart = routeStops[0].startedAt;
+      for (let index = 1; index < routeStops.length; index++) {
+        const previous = routeStops[index - 1];
+        const boundary = previous.endedAt;
+        routeStops[index].startedAt = isTerminal(previous) && boundary !== null
+          && (routeStart === null || boundary >= routeStart)
+          && (previous.startedAt === null || boundary >= previous.startedAt) ? boundary : null;
+      }
+      return routeStops;
+    })
+    .sort((a, b) => (a[0].startedAt ?? Infinity) - (b[0].startedAt ?? Infinity))
+    .flat();
   return { path, timestamps: points.map((point) => point.timestamp), times: points.map((point) => point.time), distanceKm: total, stops: replayStops };
 };
+
+const isTerminal = (stop: ReplayStop) => ["DONE", "MISSED", "SKIPPED"].includes(stop.status);
+
+export const getReplayTargetState = (stop: ReplayStop, time: number) => {
+  if (isTerminal(stop) && stop.endedAt !== null && stop.endedAt <= time) return stop.status === "DONE" ? "completed" : "skipped";
+  if (stop.startedAt !== null && stop.startedAt > time) return "upcoming";
+  if (stop.startedAt === null || (isTerminal(stop) && stop.endedAt === null)) return "unknown";
+  return "current";
+};
+
+const currentTargetAt = (trip: ReplayTrip, time: number) =>
+  (trip.stops ?? []).find((stop) => getReplayTargetState(stop, time) === "current");
 
 // Follow individual street targets and their recorded completion times as the
 // full-trip timeline plays or seeks, without introducing stop transitions.
@@ -114,23 +147,12 @@ export const getReplayTargetProgress = (trip: ReplayTrip, pointIndex: number, ti
   const completed = [...new Set(stops
     .filter((stop) => stop.status === "DONE" && stop.endedAt !== null && stop.endedAt <= time)
     .map((stop) => stop.targetName))];
-  for (const stop of stops) {
-    const terminal = ["DONE", "MISSED", "SKIPPED"].includes(stop.status);
-    if (terminal && stop.endedAt === null) return { currentTarget: null, targetUnknown: true, completed };
-    if (terminal && stop.endedAt! <= time) continue;
-    return { currentTarget: stop.targetName, targetUnknown: false, completed };
-  }
-  return { currentTarget: null, targetUnknown: stops.length === 0, completed };
+  const current = currentTargetAt(trip, time);
+  return { currentTarget: current?.targetName ?? null, targetUnknown: !current && (stops.length === 0 || stops.some((stop) => getReplayTargetState(stop, time) === "unknown")), completed };
 };
 
 export const getReplayTargetLocation = (trip: ReplayTrip, pointIndex: number, time = trip.times[pointIndex]): ReplayTargetLocation | null => {
-  for (const stop of trip.stops ?? []) {
-    const terminal = ["DONE", "MISSED", "SKIPPED"].includes(stop.status);
-    if (terminal && stop.endedAt === null) return null;
-    if (terminal && stop.endedAt! <= time) continue;
-    return stop.location;
-  }
-  return null;
+  return currentTargetAt(trip, time)?.location ?? null;
 };
 
 // Completion pins follow recorded outcomes, independently of the current
@@ -157,20 +179,14 @@ export const formatReplayDuration = (milliseconds: number) => {
   return hours ? hours + " h" + (minutes % 60 ? " " + minutes % 60 + " min" : "") : minutes + " min";
 };
 
-export const getReplayGaps = (trip: ReplayTrip) => trip.times.flatMap((end, index) => {
-  if (index === 0) return [];
-  const start = trip.times[index - 1];
-  return end - start > 60000 ? [{ start, end, durationMs: end - start }] : [];
-});
-
-// A named street may recur in several runs. Jump to its latest completion at
-// the current replay time, only when that event lies inside the GPS timeline.
-export const getReplayCompletionElapsed = (trip: ReplayTrip, targetName: string, time: number) => {
-  const completion = (trip.stops ?? [])
-    .filter((stop) => stop.targetName === targetName && stop.status === "DONE" && stop.endedAt !== null && stop.endedAt <= time)
-    .reduce<number | null>((latest, stop) => latest === null ? stop.endedAt : Math.max(latest, stop.endedAt!), null);
-  if (completion === null || completion < trip.times[0] || completion > trip.times[trip.times.length - 1]) return null;
-  return completion - trip.times[0];
+// Seek to this exact stop's target interval, including repeated street names.
+// When recording begins partway through a target, use its first available GPS
+// time. Targets with no playable interval remain listed but cannot be selected.
+export const getReplayTargetStartElapsed = (trip: ReplayTrip, stop: ReplayStop) => {
+  if (stop.startedAt === null || (isTerminal(stop) && stop.endedAt === null)) return null;
+  const start = Math.max(stop.startedAt, trip.times[0]);
+  const end = Math.min(isTerminal(stop) ? stop.endedAt! : Infinity, trip.times[trip.times.length - 1]);
+  return start < end ? start - trip.times[0] : null;
 };
 
 export const sampleReplayTrip = (trip: ReplayTrip, progress: number) => {

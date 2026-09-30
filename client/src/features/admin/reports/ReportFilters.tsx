@@ -270,11 +270,11 @@ const ReportFilters = ({
                         <Button
                           variant="outline"
                           className={cn(
-                            "h-9 w-full justify-start text-xs rounded-xl gap-2 font-medium bg-background/80 border-border/80",
-                            dateRange.from && "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold"
+                            "h-9 w-full justify-start gap-2 rounded-xl border-border/80 bg-card font-body text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                            dateRange.from && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                           )}
                         >
-                          <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                          <CalendarIcon className="w-3.5 h-3.5" />
                           <span>
                             {dateRange.from
                               ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
@@ -356,13 +356,13 @@ const ReportFilters = ({
               <Button
                 variant="outline"
                 size="sm"
-                className={`h-9 text-xs rounded-xl gap-1.5 cursor-pointer font-medium transition-all ${
+                className={`h-9 rounded-xl gap-1.5 cursor-pointer font-body text-xs font-semibold transition-colors ${
                   dateRange.from
-                    ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs"
-                    : "bg-card border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/40 shadow-2xs"
+                    ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-xs shadow-primary/25"
+                    : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <CalendarIcon className={`w-3.5 h-3.5 ${dateRange.from ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
+                <CalendarIcon className="w-3.5 h-3.5" />
                 <span>
                   {dateRange.from
                     ? `${format(dateRange.from, "MMM d")}${

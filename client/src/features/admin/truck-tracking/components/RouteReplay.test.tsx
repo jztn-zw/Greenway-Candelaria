@@ -8,7 +8,7 @@ import RouteReplay from "./RouteReplay";
 
 vi.mock("@/lib/adminQuery", () => ({ useAdminFetch: () => (_domain: string, _key: unknown, request: () => unknown) => request() }));
 vi.mock("@/services/trackingService", () => ({ fetchTruckHistory: vi.fn() }));
-vi.mock("../utils/replayVideoExporter", () => ({ exportReplayVideo: vi.fn(async () => {}) }));
+vi.mock("../utils/replayVideoExporter", () => ({ exportReplayVideo: vi.fn(async () => {}), REPLAY_VIDEO_SPEEDS: [1, 2, 5, 10, 30, 60] }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({ value, onValueChange, disabled, children }: { value: string; onValueChange: (value: string) => void; disabled: boolean; children: ReactNode }) => <select aria-label="Truck" value={value} disabled={disabled} onChange={(event) => onValueChange(event.target.value)}><option value="">Select a truck</option>{children}</select>,
@@ -32,7 +32,7 @@ const onSkippedTargets = vi.fn();
 const trucks = [{ id: "one", name: "Truck 1", plateNumber: "ABC-123" }, { id: "two", name: "Truck 2", plateNumber: "DEF-456" }] as AdminTruck[];
 const logs = [0, 1, 2, 3].map((index) => ({ latitude: 14 + index / 1000, longitude: 121, created_at: "2026-09-28T01:0" + index + ":00Z" })) as HistoryRow[];
 const button = (name: string) => {
-  const element = [...host.querySelectorAll("button")].find((item) => item.getAttribute("aria-label") === name || item.textContent === name);
+  const element = [...document.querySelectorAll("button")].find((item) => item.getAttribute("aria-label") === name || item.textContent === name);
   if (!element) throw new Error("Missing button " + name);
   return element;
 };
@@ -67,7 +67,7 @@ it("plays one complete GPS trail across street boundaries without transition pau
   expect(host.textContent).toContain("Finished");
   expect(host.textContent).toContain("100%");
   expect(button("Replay again")).toBeTruthy();
-  expect(host.textContent).not.toMatch(/Target|Leg Progress|GPS Point|A street|B street/);
+  expect(host.textContent).not.toMatch(/Leg Progress|GPS Point|A street|B street/);
   await click("Replay again");
   expect(onIndex).toHaveBeenLastCalledWith(0);
 });
@@ -117,38 +117,47 @@ it("shows a lone recorded position without playback or video controls", async ()
   expect(host.textContent).not.toContain("Download video");
 });
 
-it("shows the actual target street and completed streets while playback remains continuous", async () => {
+it("lists every target immediately and updates its state while playback remains continuous", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_id: "pob", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z" },
-    { route_id: "run", barangay_id: "pob", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z" },
-    { route_id: "run", barangay_id: "mal", barangay_name: "Malabanan", stop_name: "Malabanan Street", stop_order: 3, stop_status: "DONE", completed_at: "2026-09-28T01:03:00Z" },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_id: "pob", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z" },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_id: "pob", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z" },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_id: "mal", barangay_name: "Malabanan", stop_name: "Malabanan Street", stop_order: 3, stop_status: "DONE", completed_at: "2026-09-28T01:03:00Z" },
   ] as RouteStopHistoryItem[] });
   await load();
   const target = () => host.querySelector("dl dd")!.textContent;
+  const list = () => host.querySelector('[aria-label="Target street locations"]')!;
   expect(target()).toBe("Argao Street (Poblacion)");
-  expect(host.querySelectorAll("dl li")).toHaveLength(0);
+  expect(list().querySelectorAll("li")).toHaveLength(3);
+  expect(list().textContent).toContain("Upcoming");
+  expect(button("Play from target 1: Argao Street (Poblacion)").getAttribute("aria-current")).toBe("step");
   await tick(30000);
   expect(target()).toBe("Another Street (Poblacion)");
-  expect([...host.querySelectorAll("dl li")].map((item) => item.textContent)).toEqual(["Argao Street (Poblacion)"]);
+  expect(list().querySelectorAll("li")).toHaveLength(3);
+  expect(button("Play from target 1: Argao Street (Poblacion)").textContent).toContain("Completed");
   await tick(30000);
   expect(target()).toBe("Malabanan Street (Malabanan)");
-  expect([...host.querySelectorAll("dl li")].map((item) => item.textContent)).toEqual(["Argao Street (Poblacion)", "Another Street (Poblacion)"]);
+  expect(button("Play from target 2: Another Street (Poblacion)").textContent).toContain("Completed");
   expect(button("Pause")).toBeTruthy();
   await tick(30000);
   expect(target()).toBe("No remaining target");
-  expect(host.querySelectorAll("dl li")).toHaveLength(3);
+  expect(list().querySelectorAll("li")).toHaveLength(3);
   await click("Restart replay");
   expect(target()).toBe("Argao Street (Poblacion)");
-  expect(host.querySelectorAll("dl li")).toHaveLength(0);
+  expect(list().querySelectorAll("li")).toHaveLength(3);
   expect(host.textContent).toContain("Current target street");
-  expect(host.textContent).toContain("Completed streets");
+  expect(host.textContent).toContain("Target streets");
+  expect(host.textContent).not.toContain("Completed streets");
   expect(host.textContent).not.toContain("Completed barangays");
 });
 
 it("exports the full trip and aborts video work when the panel closes", async () => {
   vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new Error("Aborted")))));
   await load(); await click("Download video");
+  expect(exportReplayVideo).not.toHaveBeenCalled();
+  await act(async () => (document.querySelector('input[name="replay-video-speed"][value="5"]') as HTMLInputElement).click());
+  await click("Create video");
   const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
+  expect(options.speed).toBe(5);
   expect(options.trip.path).toHaveLength(4);
   expect(options).not.toHaveProperty("legs");
   expect(host.querySelector("select")!.disabled).toBe(true);
@@ -156,6 +165,24 @@ it("exports the full trip and aborts video work when the panel closes", async ()
   expect(options.signal!.aborted).toBe(true);
   expect(onPath).toHaveBeenLastCalledWith(undefined);
   expect(onIndex).toHaveBeenLastCalledWith(undefined);
+});
+
+it("cancels a video export from the popup and allows another attempt", async () => {
+  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+  await load(); await click("Download video"); await click("Create video");
+  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
+  await click("Cancel");
+  expect(options.signal!.aborted).toBe(true);
+  expect(host.querySelector("select")!.disabled).toBe(false);
+  await click("Download video");
+  expect(button("Create video").disabled).toBe(false);
+});
+
+it("shows a failed map export in the popup and lets the user retry", async () => {
+  vi.mocked(exportReplayVideo).mockRejectedValueOnce(new Error("Could not load the map. Please check your connection and try again."));
+  await load(); await click("Download video"); await click("Create video");
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain("Could not load the map");
+  expect(button("Create video").disabled).toBe(false);
 });
 
 it("uses real recorded time gaps at 1× and keeps the clock accurate through pause and speed changes", async () => {
@@ -194,55 +221,54 @@ it("offers faster playback and shows the recorded trip duration once", async () 
   expect(onIndex).toHaveBeenLastCalledWith(1.5);
 });
 
-it("flags the active GPS gap and clears its active message at the next recorded point", async () => {
-  vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs: [
-    { latitude: 14, longitude: 121, created_at: "2026-09-28T01:00:00Z" },
-    { latitude: 14.001, longitude: 121, created_at: "2026-09-28T01:00:30Z" },
-    { latitude: 14.003, longitude: 121, created_at: "2026-09-28T01:05:00Z" },
-  ] as HistoryRow[], stops: [] });
-  await load();
-  const notice = () => host.querySelector('[aria-label="GPS recording gaps"]')!.textContent;
-  expect(notice()).toContain("1 gap over 1 min");
-  await tick(20000);
-  expect(notice()).toContain("GPS gap: 09:00 AM – 09:05 AM");
-  expect(notice()).toContain("Locations inside gaps are estimated.");
+it("plays from a selected target's start while playing, paused, or finished", async () => {
+  vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao St (Ilaya)", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao St (Ibaba)", stop_order: 2, stop_status: "MISSED", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.05, 121.43]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Cabunag St (Ibaba)", stop_order: 3, stop_status: "DONE", completed_at: "2026-09-28T01:03:00Z", coverage_path: [[14.06, 121.44]] },
+  ] as RouteStopHistoryItem[] });
+  await load(); await tick(5000);
+  await click("Play from target 3: Cabunag St (Ibaba) (Poblacion)");
+  expect(onIndex).toHaveBeenLastCalledWith(2);
+  expect(host.querySelector("dl dd")!.textContent).toBe("Cabunag St (Ibaba) (Poblacion)");
+  expect(onTargetLocation).toHaveBeenLastCalledWith({ name: "Cabunag St (Ibaba) (Poblacion)", coords: [14.06, 121.44] });
+  expect(onCompletedTargets).toHaveBeenLastCalledWith([{ name: "Argao St (Ilaya) (Poblacion)", coords: [14.04, 121.42] }]);
+  expect(onSkippedTargets).toHaveBeenLastCalledWith([{ name: "Argao St (Ibaba) (Poblacion)", coords: [14.05, 121.43] }]);
+  expect(host.textContent).toContain("Replay time: 09:02 AM");
   expect(button("Pause")).toBeTruthy();
-  await tick(130000);
-  expect(notice()).not.toContain("GPS gap:");
-  expect(button("Replay again")).toBeTruthy();
-  await select("two");
-  expect(host.querySelector('[aria-label="GPS recording gaps"]')).toBeNull();
-});
-
-it("clicking a completed street seeks to its saved completion and pauses until resumed", async () => {
-  vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z" },
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z" },
-  ] as RouteStopHistoryItem[] });
-  await load(); await tick(60000);
-  expect(onIndex).toHaveBeenLastCalledWith(2);
-  await click("Jump to Argao Street (Poblacion) completion");
+  await tick(3000);
+  expect(onIndex).toHaveBeenLastCalledWith(2.1);
+  await click("Pause");
+  await click("Play from target 2: Argao St (Ibaba) (Poblacion)");
   expect(onIndex).toHaveBeenLastCalledWith(1);
+  expect(onSkippedTargets).toHaveBeenLastCalledWith([]);
   expect(host.textContent).toContain("Replay time: 09:01 AM");
-  expect(button("Play")).toBeTruthy();
-  await tick(5000); expect(onIndex).toHaveBeenLastCalledWith(1);
-  await click("Play"); await tick(30000);
-  expect(onIndex).toHaveBeenLastCalledWith(2);
+  expect(button("Pause")).toBeTruthy();
+  await tick(60000);
+  expect(host.textContent).toContain("Finished");
+  await click("Play from target 1: Argao St (Ilaya) (Poblacion)");
+  expect(onIndex).toHaveBeenLastCalledWith(0);
+  expect(onCompletedTargets).toHaveBeenLastCalledWith([]);
+  expect(button("Pause")).toBeTruthy();
+  await tick(3000); expect(onIndex).toHaveBeenLastCalledWith(0.1);
 });
 
-it("keeps completed streets visible but disables jumps outside the GPS timeline", async () => {
+it("keeps targets visible but disables jumps with no matching GPS interval or recorded start", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Earlier Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T00:59:00Z" },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Earlier Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T00:59:00Z" },
+    { route_id: "missing-start", route_started_at: null, barangay_name: "Poblacion", stop_name: "Unknown Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z" },
   ] as RouteStopHistoryItem[] });
   await load();
-  expect(button("Jump to Earlier Street (Poblacion) completion").disabled).toBe(true);
+  expect(button("Play from target 1: Earlier Street (Poblacion)").disabled).toBe(true);
+  expect(button("Play from target 2: Unknown Street (Poblacion)").disabled).toBe(true);
   expect(host.textContent).toContain("Earlier Street (Poblacion)");
+  expect(host.textContent).toContain("Time not recorded");
 });
 
 it("updates the target map location without interrupting playback and clears it when leaving the trip", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42], [14.05, 121.43]] },
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44], [14.07, 121.45]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42], [14.05, 121.43]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44], [14.07, 121.45]] },
   ] as RouteStopHistoryItem[] });
   await load();
   expect(onTargetLocation).toHaveBeenLastCalledWith({ name: "Argao Street (Poblacion)", coords: [14.04, 121.42] });
@@ -263,7 +289,7 @@ it("updates the target map location without interrupting playback and clears it 
 
 it("explains unavailable street coordinates instead of placing a target at the barangay center", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "IN_PROGRESS", latitude: 14.1, longitude: 121.5 },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "IN_PROGRESS", latitude: 14.1, longitude: 121.5 },
   ] as RouteStopHistoryItem[] });
   await load();
   expect(onTargetLocation).toHaveBeenLastCalledWith(null);
@@ -272,8 +298,8 @@ it("explains unavailable street coordinates instead of placing a target at the b
 
 it("retains completed map locations after finishing and publishes them only when outcomes change", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42]] },
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "DONE", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44]] },
   ] as RouteStopHistoryItem[] });
   const first = { name: "Argao Street (Poblacion)", coords: [14.04, 121.42] };
   const second = { name: "Another Street (Poblacion)", coords: [14.06, 121.44] };
@@ -285,7 +311,7 @@ it("retains completed map locations after finishing and publishes them only when
   await tick(30000); expect(host.textContent).toContain("Finished");
   expect(onCompletedTargets).toHaveBeenCalledTimes(changes);
   expect(onCompletedTargets).toHaveBeenLastCalledWith([first, second]);
-  await click("Jump to Argao Street (Poblacion) completion");
+  await click("Play from target 2: Another Street (Poblacion)");
   expect(onCompletedTargets).toHaveBeenLastCalledWith([first]);
   await click("Restart replay"); expect(onCompletedTargets).toHaveBeenLastCalledWith([]);
   await tick(30000); expect(onCompletedTargets).toHaveBeenLastCalledWith([first]);
@@ -294,8 +320,8 @@ it("retains completed map locations after finishing and publishes them only when
 
 it("retains skipped map locations through playback and clears future skips on rewind", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs, stops: [
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "MISSED", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42]], skipped_reason: "Blocked road" },
-    { route_id: "run", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44]] },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Argao Street", stop_order: 1, stop_status: "MISSED", completed_at: "2026-09-28T01:01:00Z", coverage_path: [[14.04, 121.42]], skipped_reason: "Blocked road" },
+    { route_id: "run", route_started_at: "2026-09-28T01:00:00Z", barangay_name: "Poblacion", stop_name: "Another Street", stop_order: 2, stop_status: "DONE", completed_at: "2026-09-28T01:02:00Z", coverage_path: [[14.06, 121.44]] },
   ] as RouteStopHistoryItem[] });
   const skipped = { name: "Argao Street (Poblacion)", coords: [14.04, 121.42], skippedReason: "Blocked road" };
   await load(); onSkippedTargets.mockClear();

@@ -73,7 +73,8 @@ const AuditLogTable = ({
   };
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs flex flex-col">
+    <div aria-busy={isLoading} className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs flex flex-col">
+      {isLoading && <span role="status" className="sr-only">Loading audit logs…</span>}
       {/* ── Desktop Table ── */}
       <div className="hidden md:block overflow-x-auto">
         <Table>
@@ -100,8 +101,8 @@ const AuditLogTable = ({
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className={cn(isLoading && logs.length > 0 && "opacity-60 transition-opacity pointer-events-none")}>
-            {isLoading && logs.length === 0 ? (
+          <TableBody>
+            {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i} className="border-b border-border/60">
                   <TableCell className="py-4 text-center"><div className="h-4 w-4 mx-auto bg-muted animate-pulse rounded" /></TableCell>
@@ -372,7 +373,7 @@ const AuditLogTable = ({
 
       {/* ── Mobile Card View ── */}
       <div className="md:hidden divide-y divide-border/60">
-        {isLoading && logs.length === 0 ? (
+        {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="p-4 space-y-3">
               <div className="h-4 w-28 bg-muted animate-pulse rounded" />

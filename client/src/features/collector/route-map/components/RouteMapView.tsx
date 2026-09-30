@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createTrackingLocationPin } from "@/components/maps/trackingLocationPin";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteStop } from "../types";
@@ -10,6 +11,7 @@ interface RouteMapViewProps {
   truckCoords: [number, number] | null;
   activeStopCoords?: [number, number] | null;
   onActiveRouteChange?: (route: RoadRouteResult | null) => void;
+  preview?: boolean;
 }
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -65,65 +67,11 @@ const escapeHtml = (value: string) => {
 const formatDistance = (distanceKm: number) =>
   distanceKm > 0 ? `${distanceKm.toFixed(1)} km away` : "At current location";
 
-// Teardrop Pin Marker for Route Stops
-const createStopTeardropIcon = (stop: RouteStop) => {
-  const isActive = stop.status === "in-progress";
-  const isDone = stop.status === "done";
-  const isSkipped = stop.status === "skipped";
+const createStopTeardropIcon = (stop: RouteStop) =>
+  createTrackingLocationPin(statusColor(stop.status), stop.status, stop.stopNumber);
 
-  const width = isActive ? 38 : 34;
-  const height = isActive ? 50 : 46;
-  const color = statusColor(stop.status);
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.32));cursor:pointer;">
-        <svg width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-          <path d="M 18 1 C 8.6 1 1 8.6 1 18 C 1 29.5 18 47 18 47 C 18 47 35 29.5 35 18 C 35 8.6 27.4 1 18 1 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="18" cy="18" r="11" fill="#ffffff"/>
-          <text x="18" y="18.5" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="800" fill="${color}" text-anchor="middle" dominant-baseline="central" alignment-baseline="central">
-            ${stop.stopNumber}
-          </text>
-        </svg>
-        ${
-          isActive
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;pointer-events:none;">
-                 <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#3b82f6;opacity:0.75;animation:ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
-                 <span style="position:relative;display:block;width:100%;height:100%;border-radius:50%;background:#2563eb;border:2px solid #ffffff;"></span>
-               </div>`
-            : isDone
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:#059669;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);">
-                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                   <polyline points="20 6 9 17 4 12"></polyline>
-                 </svg>
-               </div>`
-            : isSkipped
-            ? `<div style="position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#d97706;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);color:white;font-size:9px;font-weight:900;">
-                 !
-               </div>`
-            : ""
-        }
-      </div>
-    `,
-    iconSize: [width, height],
-    iconAnchor: [width / 2, height],
-    popupAnchor: [0, -height],
-  });
-};
-
-const createCoverageOrderIcon = (stop: RouteStop) => {
-  const color = coverageColor(stop.status);
-  const isActive = stop.status === "in-progress";
-  const size = isActive ? 30 : 26;
-
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #fff;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.32);${isActive ? "outline:3px solid rgba(34,197,94,.28);" : ""}">${stop.stopNumber}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-};
+const createCoverageOrderIcon = (stop: RouteStop) =>
+  createTrackingLocationPin(coverageColor(stop.status), stop.status, stop.stopNumber);
 
 // Teardrop Pin Marker for Collector Truck
 const createCollectorTruckPinIcon = () => {
@@ -158,7 +106,7 @@ const createCollectorTruckPinIcon = () => {
   });
 };
 
-const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChange }: RouteMapViewProps) => {
+const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChange, preview = false }: RouteMapViewProps) => {
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -279,8 +227,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     const allCoords = stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]);
 
-    // Render full street coverage. Pins remain only as a fallback for legacy
-    // stops that do not have a saved street path.
+    // Render full street coverage with location pins at each street's start.
     stops.forEach((stop) => {
       if (stop.hasCoordinates === false) return;
       const isActive = stop.status === "in-progress";
@@ -374,7 +321,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     // Auto-fit only on larger screens, on first load or when stop set changes,
     // and only if the collector has not manually interacted with the map.
-    if (!isSmallScreen && !hasAutoFittedRef.current && !userInteractedRef.current) {
+    if ((!isSmallScreen || preview) && !hasAutoFittedRef.current && !userInteractedRef.current) {
       const bounds = L.latLngBounds([...allCoords, ...(truckCoords ? [truckCoords] : [])]);
       if (bounds.isValid()) {
         map.fitBounds(bounds, {
@@ -384,7 +331,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         hasAutoFittedRef.current = true;
       }
     }
-  }, [stops, truckCoords]);
+  }, [stops, truckCoords, preview]);
 
   const handleRecenter = () => {
     const map = mapRef.current;
@@ -451,7 +398,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   };
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-border bg-card [&_.leaflet-control-attribution]:!hidden shadow-xs">
+    <div className={`relative h-full w-full overflow-hidden bg-card [&_.leaflet-control-attribution]:!hidden ${preview ? "" : "rounded-2xl border border-border shadow-xs"}`}>
       <div ref={mapElRef} className="h-full w-full z-0" />
 
       {/* Floating Zoom Controls (Top-Right) */}
@@ -477,29 +424,31 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/80 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-2xs backdrop-blur-md sm:left-3 sm:top-3">
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-green-600" /> Current
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-green-900" /> Done
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
-        </span>
+      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/90 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
+        {preview ? (
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned stops</span>
+        ) : (
+          <>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-600" /> Current</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-900" /> Done</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming</span>
+          </>
+        )}
       </div>
 
       {/* Floating Map Action Controls (Bottom-Right) */}
       <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs">
-        <button
-          type="button"
-          onClick={handleRecenter}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
-          title="Recenter on Truck"
-        >
-          <Crosshair className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">Truck</span>
-        </button>
+        {!preview && (
+          <button
+            type="button"
+            onClick={handleRecenter}
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            title="Recenter on Truck"
+          >
+            <Crosshair className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Truck</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -514,7 +463,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
       <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
         <span className="text-[10px] sm:text-[11px] font-display font-semibold text-foreground truncate">
-          {activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
+          {preview ? "Route preview · GPS off" : activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
         </span>
       </div>
     </div>

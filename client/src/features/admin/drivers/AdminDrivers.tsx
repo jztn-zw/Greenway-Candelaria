@@ -2,10 +2,7 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { SearchInput } from "@/components/common/SearchInput";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
-import {
-DriverManagerSkeleton,
-PageHeaderSkeleton,
-} from "@/components/PageLoadingSkeletons";
+import { CollectorManagerPageSkeleton, CollectorManagerProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -373,6 +370,10 @@ const AdminDrivers = () => {
     }
   };
 
+  if (isLoading && (selectedDriverId || selectedTruckId)) {
+    return <CollectorManagerProfileSkeleton kind={selectedTruckId ? "truck" : "collector"} />;
+  }
+
   if (selectedDriver) {
     return (
       <>
@@ -430,12 +431,7 @@ const AdminDrivers = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6">
-        <PageHeaderSkeleton />
-        <DriverManagerSkeleton />
-      </div>
-    );
+    return <CollectorManagerPageSkeleton activeTab={activeTab} />;
   }
 
   return (

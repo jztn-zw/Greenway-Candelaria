@@ -37,30 +37,30 @@ const DashboardHeader = () => {
   }, []);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         {/* Left: Greeting & Clock */}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight">
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight leading-tight">
               {getGreeting()}, <span className="text-primary">{adminName}</span>
             </h1>
             </div>
-            <div className="flex items-center gap-2.5 mt-1 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>{formatDate(time)}</span>
               <span className="text-muted-foreground/40 font-semibold">·</span>
-              <span className="font-mono font-medium text-foreground tabular-nums bg-muted/40 px-2 py-0.5 rounded-md border border-border/60">
+              <span className="inline-flex items-center rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 font-mono font-medium text-foreground tabular-nums">
                 {time.toLocaleTimeString("en-US", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </span>
             </div>
           </div>
 
         {/* Right: Quick Operational Actions */}
-        <div className="flex items-center gap-2.5 shrink-0 self-start xl:self-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 border-t border-border/60 pt-3 lg:w-auto lg:shrink-0 lg:border-t-0 lg:pt-0">
           <Button
             size="sm"
             variant="outline"
-            className="h-10 px-3.5 sm:px-4 rounded-xl border-border/80 bg-background hover:bg-muted font-semibold text-xs shadow-2xs gap-2 cursor-pointer active:scale-95 transition-all"
+            className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl border-border/70 bg-muted/20 hover:bg-muted/50 font-semibold text-xs gap-1.5 cursor-pointer active:scale-95 transition-all"
             onClick={() => navigate("/admin/announcements")}
           >
             <Megaphone className="w-4 h-4 text-primary" />
@@ -68,7 +68,7 @@ const DashboardHeader = () => {
           </Button>
           <Button
             size="sm"
-            className="h-10 px-3.5 sm:px-4 rounded-xl font-semibold shadow-2xs text-xs gap-2 cursor-pointer active:scale-95 transition-all"
+            className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-semibold shadow-2xs text-xs gap-1.5 cursor-pointer active:scale-95 transition-all"
             onClick={() => navigate("/admin/truck-tracking")}
           >
             <MapPin className="w-4 h-4" />

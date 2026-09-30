@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { CalendarSkeleton } from "@/components/PageLoadingSkeletons";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
 import { fetchCalendarEvents } from "@/services/scheduleService";
@@ -18,7 +19,7 @@ interface AdminCollectionCalendarProps {
 const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "", asOfDate }) => {
   const navigate = useNavigate();
   const currentDate = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
-  const { data: events = [], isError: error } = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
+  const { data: events = [], isLoading, isError: error } = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
 
   const year = currentDate.getUTCFullYear();
   const month = currentDate.getUTCMonth();
@@ -90,17 +91,21 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
     });
   }, [selectedDayEvents, currentMonthEvents]);
 
+  if (isLoading) {
+    return <CalendarSkeleton asOfDate={asOfDate} className={className} />;
+  }
+
   return (
     <div
-      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all space-y-3.5 ${className}`}
+      className={cn("bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs", className)}
     >
-      {/* Header with Title, Month Badge & Manager Link */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h3 className="text-base font-bold text-foreground font-display">
+      {/* Header with Title, Month & Manager Link */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
             MENRO Schedule
           </h3>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+          <span className="text-xs font-medium text-muted-foreground">
             {monthName} {year}
           </span>
         </div>
@@ -108,7 +113,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs text-primary font-semibold h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary rounded-xl cursor-pointer group active:scale-95 transition-all"
+          className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
           onClick={() => navigate("/admin/schedule")}
         >
           <span>Schedule Manager</span>
@@ -120,26 +125,26 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
       {error && <p role="alert" className="text-sm text-destructive">Schedule data could not be refreshed. Please open Schedule Manager to retry.</p>}
       {!error &&
       <TooltipProvider delayDuration={100}>
-        <div className="border border-border/80 rounded-xl p-3 sm:p-3.5 bg-background space-y-2">
+        <div>
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1">
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider pb-2">
           {dayLabels.map((d) => (
             <div
               key={d}
-              className="text-center text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-0.5"
+              className="py-1"
             >
               {d}
             </div>
           ))}
         </div>
 
-        {/* Calendar Day Cells — matched to Schedule Manager CalendarGrid */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+        {/* Calendar Day Cells */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 min-h-0">
           {/* Empty offset slots */}
           {Array.from({ length: firstDayIndex }).map((_, i) => (
             <div
               key={`empty-${i}`}
-              className="min-h-[64px] sm:min-h-[72px] rounded-xl bg-muted/15 border border-transparent opacity-30"
+              className="aspect-square min-h-0 sm:aspect-auto sm:min-h-[95px] rounded-xl bg-muted/20 border border-transparent opacity-30"
             />
           ))}
 
@@ -161,23 +166,23 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                 key={dateStr}
                 onClick={() => setSelectedDateStr(dateStr)}
                 className={cn(
-                  "relative min-h-[64px] sm:min-h-[72px] p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group",
+                  "relative aspect-square min-h-0 p-1 sm:aspect-auto sm:p-2 sm:min-h-[95px] rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left",
                   isSelected
-                    ? "border-primary bg-primary/5 shadow-2xs ring-1.5 ring-primary/40"
+                    ? "border-primary bg-primary/[0.07] dark:bg-primary/10 shadow-2xs ring-1 ring-primary/50"
                     : isToday
-                      ? "border-primary/40 bg-muted/30"
-                      : "border-border/60 hover:border-primary/30 hover:bg-muted/40"
+                      ? "border-primary/40 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
+                      : "border-border/60 hover:border-border hover:bg-muted/40"
                 )}
               >
                 {/* Day Number Circle */}
                 <div className="flex items-center justify-between">
                   <span
                     className={cn(
-                      "text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full transition-colors",
+                      "text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full transition-all",
                       isToday
-                        ? "bg-primary text-primary-foreground font-extrabold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                         : isSelected
-                          ? "text-primary font-black"
+                          ? "text-primary font-bold"
                           : "text-foreground group-hover:text-primary"
                     )}
                   >
@@ -186,9 +191,9 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                 </div>
 
                 {/* All schedule color dots directly on date with hover details */}
-                <div className="relative mt-auto min-h-[16px] flex items-center">
+                <div className="relative mt-0.5 sm:mt-1 min-h-3.5 sm:min-h-4 flex items-center justify-center w-full max-w-full">
                   {dayEvents.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 max-w-full">
+                    <div className="flex flex-wrap items-center justify-center gap-1 w-full max-w-full sm:px-0.5 sm:py-0.5">
                       {dayEvents.map((evt) => {
                         const dateText = evt.event_date
                           ? new Date(evt.event_date.split("T")[0] + "T00:00:00").toLocaleDateString("en-US", {
@@ -207,7 +212,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                           <Tooltip key={evt.id}>
                             <TooltipTrigger asChild>
                               <span
-                                className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 shadow-2xs transition-transform hover:scale-150 cursor-pointer"
+                                className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0 shadow-2xs transition-transform hover:scale-125 cursor-pointer"
                                 style={{
                                   backgroundColor:
                                     scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
@@ -216,7 +221,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                             </TooltipTrigger>
                             <TooltipContent
                               side="top"
-                              className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50"
+                              className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left"
                             >
                               <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                                 <span
@@ -270,7 +275,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
 
         {/* Footer: Schedule Legend with full details on hover and click */}
         {eventsToShow.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2.5 mt-1 border-t border-border/60">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">
                 Schedule Legend:
               </span>
@@ -298,21 +303,21 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                             setSelectedDateStr(evt.event_date.split("T")[0]);
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs text-foreground bg-muted/40 hover:bg-muted/80 hover:border-primary/40 px-2.5 py-1 rounded-full border border-border/70 shadow-2xs transition-all cursor-pointer group"
+                        className="inline-flex max-w-[180px] items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
                       >
                         <span
-                          className="w-2 h-2 rounded-full shrink-0 shadow-2xs group-hover:scale-125 transition-transform"
+                          className="w-2 h-2 rounded-full shrink-0"
                           style={{
                             backgroundColor:
                               scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
                           }}
                         />
-                        <span className="font-semibold text-xs text-foreground">
+                        <span className="truncate font-semibold">
                           {evt.title}
                         </span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground">
+                    <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left">
                       <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                         <span
                           className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"

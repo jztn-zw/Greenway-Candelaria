@@ -22,7 +22,7 @@ import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
 import { formatRelativeTime } from "@/utils/date";
 import CollectorNotificationModal from "./CollectorNotificationModal";
-import { NotificationsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { NotificationsListSkeleton, NotificationsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   getCollectorNotificationCategory,
   openCollectorNotification,
@@ -57,6 +57,11 @@ const CollectorNotifications = () => {
   const [confirmClear, setConfirmClear] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const hasShownFeed = useRef(false);
+
+  useEffect(() => {
+    if (!isLoading) hasShownFeed.current = true;
+  }, [isLoading]);
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -121,8 +126,8 @@ const CollectorNotifications = () => {
     setModalOpen(true);
   };
 
-  if (isLoading && notifications.length === 0) {
-    return <NotificationsPageSkeleton />;
+  if (isLoading && notifications.length === 0 && !hasShownFeed.current) {
+    return <NotificationsPageSkeleton role="collector" />;
   }
 
   return (
@@ -190,7 +195,9 @@ const CollectorNotifications = () => {
 
       {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button variant="outline" disabled={isLoading} onClick={() => void fetchNotifications({ category: activeTab })}>Retry</Button></div>}
       {/* ── Notification List ── */}
-      {paginated.length > 0 ? (
+      {isLoading && notifications.length === 0 ? (
+        <NotificationsListSkeleton />
+      ) : paginated.length > 0 ? (
         <div className="rounded-2xl border border-border/80 overflow-hidden divide-y divide-border/60 bg-card shadow-2xs">
           {paginated.map((n) => {
             const { Icon, style: iconStyle } = getCollectorNotificationVisual(n);

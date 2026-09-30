@@ -2,8 +2,14 @@ import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { notifyManager, QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import AppProviders from "@/app/providers/AppProviders";
+import api from "@/lib/api";
+import AdminCollectionCalendar from "@/features/admin/dashboard/components/AdminCollectionCalendar";
+import { useAdminDashboard } from "@/features/admin/dashboard/components/useAdminDashboard";
+import AdminPosts from "@/features/admin/posts/AdminPosts";
+import postsService from "@/services/postsService";
 import { adminKey, useAdminAction, useAdminQuery } from "./adminQuery";
 
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
@@ -22,12 +28,16 @@ describe("admin server state", () => {
     host = document.createElement("div");
     document.body.appendChild(host);
     root = createRoot(host);
+    sessionStorage.removeItem("viewingPostId");
+    sessionStorage.removeItem("admin_preview_post");
   });
 
   afterEach(() => {
     act(() => root.unmount());
     client.clear();
     host.remove();
+    sessionStorage.removeItem("viewingPostId");
+    vi.restoreAllMocks();
     notifyManager.setScheduler((callback) => setTimeout(callback, 0));
   });
 
@@ -43,6 +53,137 @@ describe("admin server state", () => {
     await render(false);
     await render(true);
     expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps dashboard loading active until its data request resolves", async () => {
+    let finish!: (response: Awaited<ReturnType<typeof api.get>>) => void;
+    const request = new Promise<Awaited<ReturnType<typeof api.get>>>((resolve) => { finish = resolve; });
+    const read = vi.spyOn(api, "get").mockReturnValueOnce(request);
+    let state!: ReturnType<typeof useAdminDashboard>;
+    const View = () => {
+      state = useAdminDashboard();
+      return <span>{state.isLoading ? "Loading" : state.overview?.reports.total}</span>;
+    };
+    await act(async () => root.render(<QueryClientProvider client={client}><View /></QueryClientProvider>));
+    expect(read).toHaveBeenCalledWith("/dashboard");
+    expect(state.isLoading).toBe(true);
+    expect(state.overview).toBeNull();
+    expect(host.textContent).toBe("Loading");
+
+    await act(async () => finish({ data: { data: { overview: { reports: { total: 7 } } } } } as never));
+    expect(state.isLoading).toBe(false);
+    expect(state.isRefreshing).toBe(false);
+    expect(host.textContent).toBe("7");
+  });
+
+  it("reuses cached dashboard data and keeps it visible during a real refresh", async () => {
+    client.setQueryData(adminKey("admin-a", "dashboard"), { overview: { reports: { total: 7 } } });
+    let finish!: (response: Awaited<ReturnType<typeof api.get>>) => void;
+    const request = new Promise<Awaited<ReturnType<typeof api.get>>>((resolve) => { finish = resolve; });
+    const read = vi.spyOn(api, "get").mockReturnValueOnce(request);
+    let state!: ReturnType<typeof useAdminDashboard>;
+    const View = () => {
+      state = useAdminDashboard();
+      return <span>{state.isLoading ? "Loading" : state.overview?.reports.total}</span>;
+    };
+    await act(async () => root.render(<QueryClientProvider client={client}><View /></QueryClientProvider>));
+    expect(read).not.toHaveBeenCalled();
+    expect(state.isLoading).toBe(false);
+    expect(host.textContent).toBe("7");
+
+    await act(async () => { void state.refetch(); });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(state.isLoading).toBe(false);
+    expect(state.isRefreshing).toBe(true);
+    expect(host.textContent).toBe("7");
+
+    await act(async () => finish({ data: { data: { overview: { reports: { total: 9 } } } } } as never));
+    expect(state.isRefreshing).toBe(false);
+    expect(host.textContent).toBe("9");
+  });
+
+  it("shows the calendar skeleton only while its schedule request is pending", async () => {
+    let finish!: (response: Awaited<ReturnType<typeof api.get>>) => void;
+    const request = new Promise<Awaited<ReturnType<typeof api.get>>>((resolve) => { finish = resolve; });
+    const read = vi.spyOn(api, "get").mockReturnValueOnce(request);
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AdminCollectionCalendar asOfDate="2026-09-29" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    expect(read).toHaveBeenCalledWith("/schedule/events", { params: undefined });
+    expect(host.querySelector('[aria-label="Loading schedule"]')).not.toBeNull();
+    expect(host.textContent).not.toContain("MENRO Schedule");
+
+    await act(async () => finish({ data: { data: [] } } as never));
+    expect(host.querySelector('[aria-label="Loading schedule"]')).toBeNull();
+    expect(host.textContent).toContain("MENRO Schedule");
+  });
+
+  it("loads the community list from its request despite a stale stored detail id", async () => {
+    sessionStorage.setItem("viewingPostId", "old-post");
+    let finish!: (value: Awaited<ReturnType<typeof postsService.getPage>>) => void;
+    const request = new Promise<Awaited<ReturnType<typeof postsService.getPage>>>((resolve) => { finish = resolve; });
+    vi.spyOn(postsService, "getPage").mockReturnValueOnce(request);
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/admin/posts"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><AdminPosts /></MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    expect(host.textContent).toContain("Loading community posts");
+    expect(host.textContent).not.toContain("Loading article details");
+
+    await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
+    expect(host.textContent).not.toContain("Loading community posts");
+    expect(host.querySelector("h1")?.textContent).toBe("News & Articles");
+    expect(host.textContent).toContain("No posts found");
+  });
+
+  it("keeps community filters visible while a new filtered list is loading", async () => {
+    const read = vi.spyOn(postsService, "getPage").mockResolvedValueOnce({
+      posts: [{ id: "post-a", title: "Collection guide", body: "Full article", category: "WASTE_TIP", status: "PUBLISHED", images: [], tags: [] }],
+      total: 1, totalPages: 1, page: 1, limit: 6,
+    });
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/admin/posts"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><AdminPosts /></MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    let finish!: (value: Awaited<ReturnType<typeof postsService.getPage>>) => void;
+    const request = new Promise<Awaited<ReturnType<typeof postsService.getPage>>>((resolve) => { finish = resolve; });
+    read.mockReturnValueOnce(request);
+    const published = [...host.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Published");
+    expect(published).toBeDefined();
+    await act(async () => published!.click());
+    expect(host.querySelector("h1")?.textContent).toBe("News & Articles");
+    expect(host.querySelector('input[placeholder="Search articles by title, tag, or author..."]')).not.toBeNull();
+    expect(host.textContent).toContain("Loading articles");
+    expect(host.textContent).not.toContain("Collection guide");
+
+    await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
+    expect(host.textContent).not.toContain("Loading articles");
+    expect(host.textContent).toContain("No posts found");
+  });
+
+  it("finishes article detail loading independently of the community list", async () => {
+    vi.spyOn(postsService, "getPage").mockReturnValueOnce(new Promise(() => {}));
+    let finish!: (value: unknown) => void;
+    const request = new Promise((resolve) => { finish = resolve; });
+    vi.spyOn(postsService, "getById").mockReturnValueOnce(request);
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/admin/posts?post=post-a"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><AdminPosts /></MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    expect(host.textContent).toContain("Loading article details");
+    expect(host.textContent).not.toContain("Loading community posts");
+
+    await act(async () => finish({ id: "post-a", title: "Collection guide", body: "Full article", category: "WASTE_TIP", status: "PUBLISHED", images: [], tags: [] }));
+    expect(host.textContent).not.toContain("Loading article details");
+    expect(host.querySelector("h1")?.textContent).toBe("Collection guide");
+    expect(host.textContent).toContain("Full article");
   });
 
   it("refreshes related views after a save without invalidating another account", async () => {

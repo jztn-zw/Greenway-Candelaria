@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import PageErrorState from "@/components/PageErrorState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -410,13 +411,7 @@ const CollectorProfile = () => {
   if (isLoading) return <ProfileSkeleton />;
 
   if (!profile && !driverData) {
-    return (
-      <div role="alert" className="mx-auto max-w-3xl rounded-2xl border border-destructive/25 bg-card p-6 text-center shadow-xs">
-        <h1 className="font-display text-lg font-bold text-foreground">Profile unavailable</h1>
-        <p className="mt-2 text-sm text-muted-foreground">We could not load your collector information. Please try again.</p>
-        <Button type="button" onClick={retry} className="mt-4">Retry loading profile</Button>
-      </div>
-    );
+    return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your collector information. Please try again." onRetry={retry} homeHref="/collector" />;
   }
 
   const displayName = profile?.full_name || driverData?.full_name || authUser?.full_name || "Collector";

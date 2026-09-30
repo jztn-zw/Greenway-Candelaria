@@ -22,7 +22,7 @@ import ResidentAnnouncementModal, {
   type AnnouncementDetail,
 } from "@/features/resident/announcements/ResidentAnnouncementModal";
 import PaginationControls from "@/components/common/PaginationControls";
-import { AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { AnnouncementsContentSkeleton, AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import { Announcement, EditorForm, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
@@ -74,9 +74,11 @@ const AdminAnnouncements = () => {
   const {
     announcements,
     barangayOptions,
-    isLoading,
+    isInitialLoading,
+    isResultsLoading,
+    pageError,
+    retryPage,
     isSaving,
-    loadAnnouncements,
     createNew,
     updateExisting,
     remove,
@@ -195,7 +197,7 @@ const AdminAnnouncements = () => {
     setCurrentPage(1);
   };
 
-  if (isLoading) return <AnnouncementsPageSkeleton />;
+  if (isInitialLoading) return <AnnouncementsPageSkeleton viewMode={viewMode} />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-300">
@@ -384,7 +386,15 @@ const AdminAnnouncements = () => {
       </section>
 
       {/* ── Content View (Grid or Table) ── */}
-      {announcements.length === 0 ? (
+      {pageError ? (
+        <div role="alert" className="rounded-2xl border border-border/80 bg-card p-8 text-center space-y-3">
+          <p className="text-sm font-semibold text-foreground">Could not load announcements</p>
+          <p className="text-xs text-muted-foreground">{pageError}</p>
+          <Button variant="outline" onClick={() => void retryPage()} className="rounded-xl">Try again</Button>
+        </div>
+      ) : isResultsLoading ? (
+        <AnnouncementsContentSkeleton viewMode={viewMode} />
+      ) : announcements.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-12 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground border border-border flex items-center justify-center mx-auto">
             <Megaphone className="w-7 h-7" />
@@ -441,7 +451,7 @@ const AdminAnnouncements = () => {
       )}
 
       {/* ── Pagination ── */}
-      {totalPages > 1 && (
+      {!isResultsLoading && !pageError && totalPages > 1 && (
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}

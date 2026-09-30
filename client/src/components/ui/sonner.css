@@ -1,0 +1,170 @@
+.greenway-toaster[data-sonner-toaster] {
+  width: min(390px, calc(100vw - 32px));
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.greenway-toaster [data-sonner-toast][data-styled='true'] {
+  --greenway-toast-accent: var(--primary);
+  width: 100%;
+  min-height: 70px;
+  padding: 14px 48px 16px 16px;
+  gap: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: linear-gradient(100deg, hsl(var(--greenway-toast-accent) / 0.1), hsl(var(--card)) 44%);
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.16);
+  font-size: 14px;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease, height 240ms ease;
+}
+
+.greenway-toaster [data-sonner-toast][data-type='error'] {
+  --greenway-toast-accent: var(--destructive);
+}
+
+.greenway-toaster [data-sonner-toast][data-type='warning'] {
+  --greenway-toast-accent: 39 92% 46%;
+}
+
+.greenway-toaster [data-sonner-toast][data-type='info'] {
+  --greenway-toast-accent: 199 85% 43%;
+}
+
+.greenway-toaster [data-sonner-toast] [data-icon] {
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: hsl(var(--greenway-toast-accent) / 0.14);
+}
+
+.greenway-toaster [data-sonner-toast] [data-icon] svg {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 5px;
+  border-radius: 50%;
+  background: hsl(var(--greenway-toast-accent));
+  color: white;
+  stroke-width: 2.8;
+}
+
+.greenway-toaster [data-sonner-toast] [data-content] {
+  gap: 3px;
+  min-width: 0;
+}
+
+.greenway-toaster [data-sonner-toast]:not([data-type='loading']) [data-content]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 16px;
+  left: 16px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: hsl(var(--greenway-toast-accent));
+  transform-origin: left;
+  animation: greenway-toast-lifetime 4200ms linear forwards;
+  pointer-events: none;
+}
+
+.greenway-toaster:hover [data-sonner-toast] [data-content]::after,
+.greenway-toaster:focus-within [data-sonner-toast] [data-content]::after {
+  animation-play-state: paused;
+}
+
+@keyframes greenway-toast-lifetime {
+  to { transform: scaleX(0); }
+}
+
+.greenway-toaster [data-sonner-toast] [data-title] {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.greenway-toaster [data-sonner-toast] [data-description] {
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.greenway-toaster [data-sonner-toast] [data-close-button] {
+  top: 50%;
+  right: 10px;
+  left: auto;
+  width: 30px;
+  height: 30px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  box-shadow: none;
+}
+
+.greenway-toaster [data-sonner-toast] [data-close-button]:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.greenway-toaster [data-sonner-toast] [data-close-button]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.greenway-toaster [data-sonner-toast] [data-close-button] svg {
+  width: 18px;
+  height: 18px;
+}
+
+.greenway-toaster [data-sonner-toast] [data-button] {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+}
+
+.greenway-toaster [data-sonner-toast] [data-cancel] {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.greenway-toaster [data-sonner-toast][data-type='loading'] [data-icon] svg {
+  background: transparent;
+  color: hsl(var(--primary));
+  animation: greenway-toast-spin 900ms linear infinite;
+}
+
+@keyframes greenway-toast-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .greenway-toaster[data-sonner-toaster] {
+    right: 16px;
+    left: 16px;
+    width: auto;
+    transform: none;
+  }
+
+  .greenway-toaster [data-sonner-toast][data-styled='true'] {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .greenway-toaster [data-sonner-toast] [data-content]::after {
+    display: none;
+  }
+
+  .greenway-toaster [data-sonner-toast],
+  .greenway-toaster [data-sonner-toast] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

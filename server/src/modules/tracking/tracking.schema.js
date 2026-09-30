@@ -16,4 +16,11 @@ const roadRouteQuerySchema = z.object({
   toLat: z.coerce.number().min(-90).max(90),
 });
 
-module.exports = { pingSchema, roadRouteQuerySchema };
+const streetCoverageRouteSchema = z.object({
+  points: z.array(z.tuple([
+    z.number().min(-90).max(90),
+    z.number().min(-180).max(180),
+  ])).min(2).max(100),
+});
+
+module.exports = { pingSchema, roadRouteQuerySchema, streetCoverageRouteSchema };

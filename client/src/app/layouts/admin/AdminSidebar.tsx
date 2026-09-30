@@ -18,7 +18,6 @@ import {
   Navigation,
   CalendarDays,
   MapPinned,
-  Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -104,13 +103,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Analytics Dashboard", url: "/admin/analytics", icon: BarChart3 },
       { title: "Audit Logs", url: "/admin/audit-logs", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "SYSTEM SUPPORT",
-    collapsible: true,
-    items: [
-      { title: "Bug Reports", url: "/admin/bug-reports", icon: Bug },
     ],
   },
 ];

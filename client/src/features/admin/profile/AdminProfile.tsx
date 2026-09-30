@@ -2,7 +2,8 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { FormDialogHeader } from "@/components/FormDialog";
 import { formDialogStyles } from "@/components/formDialogStyles";
-import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { AdminProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/PageErrorState";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -13,7 +14,7 @@ import { toast } from "@/lib/toast";
 import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import { formatManilaDateTime } from "@/utils/date";
-import { AlertCircle, AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Loader2, Lock, LogOut, Mail, Paintbrush, Phone, ShieldCheck, User } from "lucide-react";
+import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Loader2, Lock, LogOut, Mail, Paintbrush, Phone, ShieldCheck, User } from "lucide-react";
 import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -162,8 +163,8 @@ const AdminProfile = () => {
     else closePassword();
   };
 
-  if (loading) return <div className="mx-auto max-w-3xl"><ProfileSkeleton /></div>;
-  if (loadError || !profile) return <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 py-16"><AlertCircle className="size-10 text-destructive" /><p className="text-sm text-muted-foreground">Could not load your profile.</p><Button variant="outline" onClick={() => void loadProfile()}>Try again</Button></div>;
+  if (loading) return <AdminProfileSkeleton />;
+  if (loadError || !profile) return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your profile right now. Please try again." onRetry={() => void loadProfile()} homeHref="/admin" />;
 
   const initials = profile.full_name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "A";
   const selectedStyle = avatarStyles.find(({ id }) => id === avatarStyle) ?? avatarStyles[0];

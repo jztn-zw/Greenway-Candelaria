@@ -1,5 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ type BarangayManagerRow,
 type ManagedStreet,
 } from "@/services/barangaysService";
 import { Loader2, MapPin, Pencil, Plus, Route, Search, Trash2, Truck } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import StreetCoverageEditor, { type CoveragePoint } from "./StreetCoverageEditor";
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Please try again.";
@@ -63,7 +64,7 @@ const AdminBarangays = () => {
   const { data: streets, setData: setStreets, isLoading: isLoadingStreets, refetch: retryStreets } = streetsQuery;
   const overviewError = overviewQuery.error?.message ?? "";
   const streetsError = streetsQuery.error?.message ?? "";
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!overviewQuery.data.length) return;
     setSelectedId((current) => current && barangays.some((row) => row.id === current) ? current
       : barangays.find((row) => row.name.toLowerCase() === "poblacion")?.id ?? barangays[0]?.id ?? "");
@@ -269,6 +270,8 @@ const AdminBarangays = () => {
     setDeletingStreet(null);
     setSelectedId(barangayId);
   };
+
+  if (isLoadingBarangays) return <BarangayManagerPageSkeleton />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-8">
@@ -509,9 +512,7 @@ const AdminBarangays = () => {
                       {/* Scrollable Rows Container (scroll limited below the header line, max ~10 rows) */}
                       <div className="max-h-[30rem] overflow-y-auto [scrollbar-gutter:stable] divide-y divide-border/40 scrollbar-thin">
                         {isLoadingStreets ? (
-                          <div className="py-12 text-center text-xs text-muted-foreground">
-                            <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading streets…
-                          </div>
+                          <BarangayStreetRowsSkeleton />
                         ) : streetsError ? (
                           <div className="py-12 text-center text-xs">
                             <p role="alert" className="text-destructive">{streetsError}</p>

@@ -1,11 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
-import {
-KPIRowSkeleton,
-PageHeaderSkeleton,
-TableSkeleton,
-ToolbarSkeleton,
-} from "@/components/PageLoadingSkeletons";
+import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -55,7 +50,7 @@ Trash2,
 Users,
 X
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { mapResidentDetails, mapResidentListRow } from "./residentManager.utils";
 import ResidentProfileView from "./ResidentProfile";
@@ -85,7 +80,7 @@ const AdminResidents = () => {
   const [activeCount, setActiveCount] = useState(0);
   const [deactivatedCount, setDeactivatedCount] = useState(0);
   const [bannedCount, setBannedCount] = useState(0);
-  const [listError, setListError] = useState("");
+  const [hasLoadedList, setHasLoadedList] = useState(false);
   const [kpiError, setKpiError] = useState(false);
   const [kpiLoading, setKpiLoading] = useState(true);
   const [barangayOptions, setBarangayOptions] = useState<
@@ -111,15 +106,19 @@ const AdminResidents = () => {
     return mapResidentDetails(details, reports);
   }, { enabled: !!residentProfileId });
   const isLoading = listQuery.isLoading;
+  const isInitialLoading = isLoading && !hasLoadedList;
+  const isResultsLoading = isLoading && hasLoadedList;
+  const listError = listQuery.data ? "" : listQuery.error?.message ?? "";
   const loadResidents = listQuery.refetch;
   const loadKpiCounts = countQuery.refetch;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const result = listQuery.data;
-    setListError(listQuery.error?.message ?? "");
-    setResidents((result?.data ?? []).map(mapResidentListRow));
-    setTotalPages(Math.max(1, Number(result?.pagination?.total_pages || 1)));
-    setFilteredResidentsCount(Number(result?.pagination?.total || 0));
-  }, [listQuery.data, listQuery.error]);
+    if (!result) return;
+    setResidents(result.data.map(mapResidentListRow));
+    setTotalPages(Math.max(1, Number(result.pagination?.total_pages || 1)));
+    setFilteredResidentsCount(Number(result.pagination?.total || 0));
+    setHasLoadedList(true);
+  }, [listQuery.data]);
   useEffect(() => {
     setKpiLoading(countQuery.isLoading); setKpiError(countQuery.isError);
     if (!countQuery.data) return;
@@ -128,7 +127,7 @@ const AdminResidents = () => {
     setDeactivatedCount(Number(deactivated.pagination?.total || 0)); setBannedCount(Number(banned.pagination?.total || 0));
   }, [countQuery.data, countQuery.isLoading, countQuery.isError]);
   useEffect(() => { setBarangayOptions((barangaysQuery.data ?? []).map(({ id, name }) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))); }, [barangaysQuery.data]);
-  useEffect(() => { setViewingResident(residentProfileId ? detailQuery.data ?? null : null); }, [residentProfileId, detailQuery.data]);
+  useLayoutEffect(() => { setViewingResident(residentProfileId ? detailQuery.data ?? null : null); }, [residentProfileId, detailQuery.data]);
   useEffect(() => {
     if (!detailQuery.error) return;
     toast.error(detailQuery.error.message);
@@ -204,24 +203,11 @@ const AdminResidents = () => {
   }
 
   if (residentProfileId) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6">
-        <PageHeaderSkeleton />
-        <div className="h-64 rounded-2xl border border-border/80 bg-card animate-pulse" />
-        <TableSkeleton cols={4} rows={4} />
-      </div>
-    );
+    return <ResidentManagerProfileSkeleton />;
   }
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-6">
-        <PageHeaderSkeleton />
-        <KPIRowSkeleton count={4} />
-        <ToolbarSkeleton />
-        <TableSkeleton cols={7} rows={10} />
-      </div>
-    );
+  if (isInitialLoading) {
+    return <ResidentManagerPageSkeleton />;
   }
 
   const STATUS_TABS = [
@@ -426,7 +412,9 @@ const AdminResidents = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {listError ? (
+              {isResultsLoading ? (
+                <ResidentManagerRowsSkeleton />
+              ) : listError ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-12 text-center text-sm text-destructive">
                     <p role="alert">Could not load residents. {listError}</p>
@@ -590,7 +578,7 @@ const AdminResidents = () => {
         </div>
 
         {/* ── Table Pagination Bar ── */}
-        {totalPages > 1 && (
+        {!isResultsLoading && !listError && totalPages > 1 && (
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}

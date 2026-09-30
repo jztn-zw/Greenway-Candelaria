@@ -1,5 +1,6 @@
 import { useResidentQuery } from "@/lib/residentQuery";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Package,
   Truck,
@@ -62,6 +63,33 @@ const formatViolationType = (type?: string) => {
     .join(" ");
 };
 
+const HeroCardSkeleton = ({ className = "" }: { className?: string }) => (
+  <Card
+    role="status"
+    aria-label="Loading dashboard card"
+    className={`flex flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs lg:space-y-4 lg:p-5 ${className}`}
+  >
+    <div className="space-y-3 lg:space-y-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-5 w-24 rounded-full" />
+      </div>
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      </div>
+      <div className="flex items-center justify-between border-t border-border/50 pt-2.5 lg:pt-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+    </div>
+    <Skeleton className="h-3 w-28" />
+  </Card>
+);
+
 const HeroCards = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -115,7 +143,7 @@ const HeroCards = () => {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
       {/* ─── Card 1: Today's Collection Schedule ─── */}
-      <Card
+      {scheduleLoading ? <HeroCardSkeleton /> : <Card
         onClick={() => navigate(scheduleDestination)}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
       >
@@ -156,10 +184,10 @@ const HeroCards = () => {
           <span>{addressMissing ? "Update collection address" : "View route details"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
-      </Card>
+      </Card>}
 
       {/* ─── Card 2: Live Truck Status ─── */}
-      <Card
+      {liveQuery.isLoading ? <HeroCardSkeleton /> : <Card
         onClick={() => navigate("/resident/tracking")}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
       >
@@ -217,10 +245,10 @@ const HeroCards = () => {
           <span>Open live GPS map</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
-      </Card>
+      </Card>}
 
       {/* ─── Card 3: Latest Report ─── */}
-      <Card
+      {reportsQuery.isLoading ? <HeroCardSkeleton className="md:col-span-2 lg:col-span-1" /> : <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
       >
@@ -288,7 +316,7 @@ const HeroCards = () => {
           <span>{latestReport || reportsFailed ? "View report history" : "Submit new report"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
-      </Card>
+      </Card>}
     </div>
   );
 };

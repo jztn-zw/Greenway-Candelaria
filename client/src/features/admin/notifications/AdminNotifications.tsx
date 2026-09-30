@@ -133,7 +133,7 @@ const AdminNotifications: React.FC = () => {
   };
 
   if (isLoading && notifications.length === 0) {
-    return <NotificationsPageSkeleton />;
+    return <NotificationsPageSkeleton role="admin" />;
   }
 
   return (

@@ -35,8 +35,8 @@ import PostDetail from "./PostDetail";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
 import PostCard from "./PostCard";
 import {
-  PageHeaderSkeleton,
-  ContentGridSkeleton,
+  ContentCardsSkeleton,
+  ResidentContentsSkeleton,
   ResidentPostDetailSkeleton,
 } from "@/components/PageLoadingSkeletons";
 import {
@@ -58,6 +58,7 @@ const ResidentContents = () => {
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [initialFeedReady, setInitialFeedReady] = useState(false);
   const scrollPositionRef = useRef(0);
   const previousPostIdRef = useRef(postIdParam);
   useEffect(() => {
@@ -79,11 +80,16 @@ const ResidentContents = () => {
   const posts = feed.data.posts;
   const totalPosts = feed.data.total;
   const totalPages = feed.data.totalPages;
-  const isPageLoading = feed.isLoading;
+  const isGridLoading = !feed.isError && (feed.isLoading || feed.isPlaceholderData);
   const fetchError = feed.error?.message ?? null;
   const setPosts = (update: (previous: PostItem[]) => PostItem[]) => feed.setData((previous) => ({ ...previous, posts: update(previous.posts) }));
+  const featuredEnabled = activeTab === "All" && !search.trim();
   const featuredQuery = useResidentQuery<PostItem[]>("posts", ["featured"],
-    () => postsService.getAll({ status: "PUBLISHED", is_featured: true }), { enabled: activeTab === "All" && !search.trim() });
+    () => postsService.getAll({ status: "PUBLISHED", is_featured: true }), { enabled: featuredEnabled });
+  const initialFeedLoading = !initialFeedReady && (feed.isLoading || (featuredEnabled && featuredQuery.isLoading));
+  useEffect(() => {
+    if (!feed.isLoading && (!featuredEnabled || !featuredQuery.isLoading)) setInitialFeedReady(true);
+  }, [feed.isLoading, featuredEnabled, featuredQuery.isLoading]);
   const featuredPosts = useMemo(() => activeTab === "All" && !search.trim() ? featuredQuery.data ?? [] : [], [activeTab, search, featuredQuery.data]);
   const detail = useResidentResource<PostItem | null>("posts", ["detail", postIdParam],
     () => postsService.getById(postIdParam!), null, { enabled: !!postIdParam });
@@ -252,20 +258,14 @@ const ResidentContents = () => {
   const firstVisiblePost = totalPosts === 0 ? 0 : (currentPage - 1) * CONTENT_PAGE_SIZE + 1;
   const lastVisiblePost = Math.min(currentPage * CONTENT_PAGE_SIZE, totalPosts);
 
-  // Keep the contents page mounted while a filter, search, sort, or page change
-  // is fetching. Replacing the whole view with a skeleton on every update makes
-  // an in-place filter change look like a full browser reload.
-  if (isPageLoading && posts.length === 0 && !fetchError) {
-    return (
-      <div className="w-full max-w-[1400px] mx-auto space-y-6">
-        <PageHeaderSkeleton showButton={false} />
-        <ContentGridSkeleton />
-      </div>
-    );
-  }
-
   if (isDetailLoading) {
     return <ResidentPostDetailSkeleton />;
+  }
+
+  // The first feed and featured requests share one page-level loading state.
+  // Later filter and page requests only replace the post grid.
+  if (initialFeedLoading && !openPost) {
+    return <ResidentContentsSkeleton />;
   }
 
   if (openPost) {
@@ -583,13 +583,15 @@ const ResidentContents = () => {
             {activeTab === "All" ? "All Updates & Guides" : activeTab}
           </h2>
           <span className="shrink-0 pt-1 text-xs font-medium text-muted-foreground">
-            {isPageLoading
+            {isGridLoading
               ? "Updating…"
               : `Showing ${totalPosts} ${totalPosts === 1 ? "article" : "articles"}`}
           </span>
         </div>
 
-        {posts.length === 0 ? (
+        {isGridLoading ? (
+          <ContentCardsSkeleton />
+        ) : posts.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-2xl border border-dashed border-border/80 bg-card/50">
             <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 text-primary">
@@ -632,7 +634,7 @@ const ResidentContents = () => {
         )}
 
         {/* ── Pagination Controls ── */}
-        {totalPages > 1 && (
+        {!isGridLoading && totalPages > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
             <p className="text-xs text-muted-foreground">
               Showing <span className="font-semibold text-foreground">{firstVisiblePost}–{lastVisiblePost}</span> of <span className="font-semibold text-foreground">{totalPosts}</span> articles

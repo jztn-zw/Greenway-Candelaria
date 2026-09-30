@@ -20,6 +20,8 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
+import NotificationModal from "@/features/resident/notifications/NotificationModal";
+import type { ResidentNotification } from "@/features/resident/notifications/types";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
 
@@ -149,6 +151,7 @@ const ResidentTopBar = () => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
   const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState<ResidentNotification | null>(null);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const pageTitle = getResidentPageTitle(location.pathname);
@@ -181,7 +184,14 @@ const ResidentTopBar = () => {
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
     } else if (n.type === "COLLECTION_REMINDER") {
-      navigate("/resident/schedule");
+      setSelectedReminder({
+        id: n.id,
+        type: "collection-reminder",
+        title: n.title,
+        message: n.body,
+        time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
+        read: true,
+      });
     } else if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
       const targetId = n.ref_id || n.id;
       navigate(`/resident/notifications?announcement=${targetId}`);
@@ -206,6 +216,7 @@ const ResidentTopBar = () => {
   };
 
   return (
+    <>
     <header className="h-14 border-b border-border/80 bg-background/95 backdrop-blur-md flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -434,6 +445,18 @@ const ResidentTopBar = () => {
         </Popover>
       </div>
     </header>
+    {selectedReminder && (
+      <NotificationModal
+        notification={selectedReminder}
+        open={true}
+        onOpenChange={(open) => { if (!open) setSelectedReminder(null); }}
+        onViewSchedule={() => {
+          setSelectedReminder(null);
+          navigate("/resident/schedule");
+        }}
+      />
+    )}
+    </>
   );
 };
 

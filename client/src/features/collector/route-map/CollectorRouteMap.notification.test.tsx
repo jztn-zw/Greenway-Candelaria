@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import CollectorRouteMap from "./CollectorRouteMap";
+import CollectorTopBar from "@/app/layouts/collector/CollectorTopbar";
 import type { RouteInfo, RouteStop } from "./types";
 import { getManilaNow } from "@/utils/date";
 import useAuthStore from "@/store/authStore";
@@ -13,6 +14,8 @@ import { startMyRoute, setMyRoutePaused, completeStop, skipStop, endRoute } from
 const state = vi.hoisted(() => ({ routeInfo: null as RouteInfo | null, stops: [] as RouteStop[], isLoading: false, refresh: vi.fn() }));
 vi.mock("./useCollectorTracking", () => ({ useCollectorTracking: () => ({ ...state, error: null, truckCoords: null, isOffline: false, pendingSync: false, gpsError: null }) }));
 vi.mock("./components/RouteMapView", () => ({ default: () => <div>Live map</div> }));
+vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => ({ toggleSidebar: vi.fn() }) }));
+vi.mock("@/hooks/useNotifications", () => ({ default: () => ({ recentNotifications: [], unreadCount: 0, markAsRead: vi.fn(), markAllAsRead: vi.fn(), isMutating: false, error: null, fetchNotifications: vi.fn() }) }));
 vi.mock("@/services/trackingService", () => ({ completeStop: vi.fn(), skipStop: vi.fn(), endRoute: vi.fn(), startMyRoute: vi.fn(), setMyRoutePaused: vi.fn() }));
 const Location = () => { const location = useLocation(); return <output data-location>{location.pathname}</output>; };
 let host: HTMLDivElement; let root: Root;
@@ -28,7 +31,7 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
 const mount = async (search: string) => {
-  await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter key={search} initialEntries={[`/collector/route-map${search}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Location /><CollectorRouteMap /></MemoryRouter></QueryClientProvider>));
+  await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter key={search} initialEntries={[`/collector/route-map${search}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Location /><CollectorTopBar /><CollectorRouteMap /></MemoryRouter></QueryClientProvider>));
 };
 
 it("renders the matching assignment from a notification and keeps ordinary map access working", async () => {
@@ -37,6 +40,9 @@ it("renders the matching assignment from a notification and keeps ordinary map a
   expect(host.textContent).not.toContain("Route alert unavailable");
   await mount("");
   expect(host.textContent).toContain("Current assignment");
+  expect(host.querySelector('nav[aria-label="Breadcrumb"] button')?.textContent).toBe("Driver Dashboard");
+  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Back to Driver Dashboard"]')!.click());
+  expect(host.querySelector("[data-location]")?.textContent).toBe("/collector");
 });
 
 it("never renders another route when the notification refers to a replaced assignment", async () => {
@@ -46,7 +52,9 @@ it("never renders another route when the notification refers to a replaced assig
   expect(host.textContent).not.toContain("Live map");
   await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Try again"))!.click());
   expect(state.refresh).toHaveBeenCalledOnce();
-  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Back to notifications"))!.click());
+  expect(host.querySelector('button[aria-label="Back to Notifications"]')?.textContent).toBe("Notifications");
+  expect(host.textContent).not.toContain("Back to notifications");
+  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Back to Notifications"]')!.click());
   expect(host.querySelector("[data-location]")?.textContent).toBe("/collector/notifications");
 });
 

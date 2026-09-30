@@ -124,3 +124,18 @@ export const getMultiStopRoadRoute = async (points: [number, number][]): Promise
     source: legs.length && legs.every((leg) => leg.source === "osrm") ? "osrm" : "haversine",
   };
 };
+
+export const getStreetCoverageRoadPath = async (points: [number, number][], signal: AbortSignal) => {
+  const response = await api.post<{ data: {
+    coordinates: [number, number][];
+    snappedPoints: [number, number][];
+    source: string;
+  } }>("/tracking/street-coverage-route", { points }, { signal, timeout: 8000 });
+  const result = response.data.data;
+  if (result?.source !== "osrm" || !Array.isArray(result.coordinates) || result.coordinates.length < 2 ||
+      !Array.isArray(result.snappedPoints) || result.snappedPoints.length !== points.length ||
+      !result.coordinates.every(validPoint) || !result.snappedPoints.every(validPoint)) {
+    throw new Error("Road matching is unavailable. Please try again.");
+  }
+  return result;
+};

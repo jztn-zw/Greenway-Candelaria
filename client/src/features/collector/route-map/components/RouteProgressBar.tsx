@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock, MapPin, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getWasteBadgeClass } from "../../dashboard/dashboard.utils";
 
 interface RouteProgressBarProps {
   completed: number;
@@ -23,7 +24,23 @@ const RouteProgressBar = ({
   hasStarted,
 }: RouteProgressBarProps) => {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const isBio = wasteType?.toLowerCase().includes("bio") && !wasteType?.toLowerCase().includes("non");
+
+  if (!hasStarted) {
+    return (
+      <section aria-label="Collection route summary" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="mr-1 truncate font-display text-base font-bold tracking-tight text-foreground sm:text-lg">{routeName}</h2>
+          {wasteType && <span className={cn("inline-flex shrink-0 items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold", getWasteBadgeClass(wasteType))}>{wasteType}</span>}
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 text-primary" /> {total} {total === 1 ? "stop" : "stops"}
+          </span>
+        </div>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold", isScheduled ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border-primary/20 bg-primary/10 text-primary")}>
+          <Clock className="h-3.5 w-3.5" /> {isScheduled ? "Scheduled" : "Ready to start"}
+        </span>
+      </section>
+    );
+  }
 
   return (
     <div className="bg-card border border-border/80 shadow-xs rounded-2xl p-3.5 sm:p-4 space-y-3">
@@ -38,9 +55,7 @@ const RouteProgressBar = ({
             <span
               className={cn(
                 "text-xs font-semibold px-2.5 py-0.5 rounded-lg border shrink-0 inline-flex items-center",
-                isBio
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
-                  : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25"
+                getWasteBadgeClass(wasteType)
               )}
             >
               {wasteType}

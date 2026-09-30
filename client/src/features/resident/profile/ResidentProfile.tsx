@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Mail, Phone, Lock, User, Award, Calendar,
   Heart, ChevronRight, Check,
-  ClipboardList, Loader2, AlertCircle, Eye, EyeOff,
+  ClipboardList, Loader2, Eye, EyeOff,
   ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Paintbrush,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/PageErrorState";
 import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
@@ -108,7 +109,6 @@ const ResidentProfile = () => {
   const statsQuery = useResidentQuery("reports", ["profile-stats"], fetchMyReportStats);
   const stats = statsQuery.data;
   const isLoading = profileQuery.isLoading || statsQuery.isLoading;
-  const error = profileQuery.isError ? "Failed to load profile. Please try again." : null;
   const saveProfile = useResidentMutation(updateProfile, "profile", "routes", "tracking", "schedule", "announcements");
   const savePassword = useResidentMutation(changePassword);
   const [avatarStyle, setAvatarStyle] = useState<(typeof AVATAR_STYLES)[number]["id"]>("forest");
@@ -378,17 +378,7 @@ const ResidentProfile = () => {
   }
 
   if (!profile) {
-    return (
-      <div className="max-w-3xl mx-auto flex flex-col items-center justify-center gap-4 py-16">
-        <AlertCircle className="w-10 h-10 text-destructive" />
-        <p className="text-sm text-muted-foreground">
-          {error ?? "Profile unavailable."}
-        </p>
-        <Button variant="outline" onClick={() => void profileQuery.refetch()}>
-          Try Again
-        </Button>
-      </div>
-    );
+    return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your profile right now. Please try again." onRetry={() => void profileQuery.refetch()} homeHref="/resident" />;
   }
 
   return (

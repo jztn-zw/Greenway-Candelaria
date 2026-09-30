@@ -137,9 +137,9 @@ const AuditLogFilters = ({
         </div>
 
         {/* ── Right Controls: Quick Date Pill + Custom Calendar + Reset ── */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          {/* Quick Date Presets Capsule */}
-          <div className="inline-flex items-center rounded-xl border border-border/80 bg-muted/40 p-1 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Quick date filters */}
+          <div className="flex flex-wrap items-center gap-2">
             {[
               { label: "Today", days: 0 },
               { label: "7 days", days: 7 },
@@ -150,11 +150,12 @@ const AuditLogFilters = ({
                 <button
                   key={preset.label}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => handlePresetClick(preset.days)}
-                  className={`h-8 px-3.5 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer active:scale-95 ${
+                  className={`h-10 rounded-xl border px-3.5 font-body text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
                     active
-                      ? "bg-emerald-600 dark:bg-emerald-500 text-white font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/80"
+                      ? "border-primary bg-primary text-primary-foreground shadow-xs shadow-primary/25"
+                      : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   {preset.label}
@@ -169,23 +170,17 @@ const AuditLogFilters = ({
               <Button
                 variant="outline"
                 size="sm"
-                className={`h-10 px-3.5 text-xs rounded-xl shadow-2xs gap-2 cursor-pointer active:scale-95 font-medium transition-all ${
+                className={`h-10 rounded-xl px-3.5 font-body text-xs font-semibold transition-colors gap-2 cursor-pointer active:scale-95 ${
                   isCustomDateSelected
-                    ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold hover:bg-emerald-500/15"
-                    : "bg-background border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-xs shadow-primary/25"
+                    : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <CalendarIcon
-                  className={`w-3.5 h-3.5 ${
-                    isCustomDateSelected
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-emerald-600/70"
-                  }`}
-                />
+                <CalendarIcon className="w-3.5 h-3.5" />
                 <span>
-                  {dateRange.from
+                  {isCustomDateSelected && dateRange.from
                     ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
-                    : "Custom Date"}
+                    : "Date range"}
                 </span>
               </Button>
             </PopoverTrigger>

@@ -52,6 +52,9 @@ const CollectorTopBar = () => {
   const [searchParams] = useSearchParams();
   const routeParam = searchParams.get("route");
   const isNestedRoute = location.pathname.startsWith("/collector/route-history") && Boolean(routeParam);
+  const isRouteMap = location.pathname === "/collector/route-map";
+  const isNotificationRouteMap = isRouteMap &&
+    (searchParams.has("date") || searchParams.has("template") || searchParams.has("run"));
 
   const toggleTheme = () => {
     const nextDark = !document.documentElement.classList.contains("dark");
@@ -86,8 +89,23 @@ const CollectorTopBar = () => {
         >
           <Menu className="w-4 h-4 text-foreground" />
         </button>
-        <div className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
-          {isNestedRoute ? (
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+          {isRouteMap ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(isNotificationRouteMap ? "/collector/notifications" : "/collector")}
+                className="font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors shrink-0 cursor-pointer"
+                aria-label={isNotificationRouteMap ? "Back to Notifications" : "Back to Driver Dashboard"}
+              >
+                {isNotificationRouteMap ? "Notifications" : "Driver Dashboard"}
+              </button>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
+              <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
+                {pageTitle}
+              </span>
+            </>
+          ) : isNestedRoute ? (
             <>
               <button
                 type="button"
@@ -106,7 +124,7 @@ const CollectorTopBar = () => {
               {pageTitle}
             </span>
           )}
-        </div>
+        </nav>
       </div>
 
       {/* Right */}

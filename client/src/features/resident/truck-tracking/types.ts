@@ -23,6 +23,8 @@ export interface Truck {
   completedBarangays: number;
   totalBarangays: number;
   coords: [number, number] | null;
+  lastPing?: string;
+  collectionStarted?: boolean;
   eta: number | null; // minutes
   roadDistanceKm?: number | null;
   isResidentTruck: boolean;
@@ -41,5 +43,5 @@ export interface CollectionSchedule {
   wasteType?: string;
 }
 
-export type CollectionDayStatus = "not-collection-day" | "scheduled-not-started" | "active" | "paused" | "completed";
+export type CollectionDayStatus = "not-collection-day" | "scheduled-not-started" | "active" | "gps-unavailable" | "paused" | "completed";
 

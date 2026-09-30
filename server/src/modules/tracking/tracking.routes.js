@@ -28,6 +28,8 @@ router.get(
   controller.getLive,
 );
 
+router.post("/street-coverage-route", authorize("ADMIN"), roadLimit, controller.getStreetCoverageRoute);
+
 router.get(
   "/admin/overview",
   authorize("ADMIN"),

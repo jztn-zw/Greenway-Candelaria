@@ -8,6 +8,7 @@ interface NotificationModalProps {
   notification: ResidentNotification | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onViewSchedule?: () => void;
 }
 
 const typeConfig: Record<string, { icon: React.ElementType; accent: string; label: string }> = {
@@ -21,7 +22,7 @@ const typeConfig: Record<string, { icon: React.ElementType; accent: string; labe
   "missed-collection": { icon: CircleAlert, accent: "text-destructive", label: "Missed Collection" },
 };
 
-const NotificationModal = ({ notification, open, onOpenChange }: NotificationModalProps) => {
+const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }: NotificationModalProps) => {
   if (!notification) return null;
 
   const config = typeConfig[notification.type] || {
@@ -34,7 +35,14 @@ const NotificationModal = ({ notification, open, onOpenChange }: NotificationMod
 
   return (
     <FormDialog open={open} onOpenChange={onOpenChange} title="Notification" description={config.label} icon={<Icon className={config.accent} />}
-      footer={<Button type="button" onClick={() => onOpenChange(false)} className={modalStyles.primaryButton}>Close</Button>}>
+      footer={
+        <>
+          {notification.type === "collection-reminder" && onViewSchedule && (
+            <Button type="button" variant="outline" onClick={onViewSchedule} className={modalStyles.cancelButton}>View schedule</Button>
+          )}
+          <Button type="button" onClick={() => onOpenChange(false)} className={modalStyles.primaryButton}>Close</Button>
+        </>
+      }>
       <div className="space-y-1">
         <h3 className="font-display text-base font-semibold leading-snug tracking-tight text-foreground break-words [overflow-wrap:anywhere]">{notification.title}</h3>
         {notification.time && <p className="text-xs text-muted-foreground">{notification.time}</p>}

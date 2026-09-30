@@ -14,11 +14,7 @@ import useAuthStore from "@/store/authStore";
  *  4. Reconcile the full snapshot once per minute while connected.
  */
 
-import {
-KPIRowSkeleton,
-MapPanelSkeleton,
-PageHeaderSkeleton,
-} from "@/components/PageLoadingSkeletons";
+import { AdminTruckTrackingPageSkeleton } from "@/components/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
@@ -617,6 +613,8 @@ const mergeLiveIntoTrucks = (
 
 type TrackingSidebarTab = "FLEET" | "REPLAY";
 type TrackingStatusFilter = "ALL" | TruckStatus;
+const pageTitle = "Live Fleet Tracking";
+const pageDescription = "Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.";
 
 const AdminTruckTracking = () => {
   const [trucks, setTrucks] = useState<AdminTruck[]>([]);
@@ -939,13 +937,7 @@ const AdminTruckTracking = () => {
 
   //  Render 
   if (isPageLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-5">
-        <PageHeaderSkeleton />
-        <KPIRowSkeleton count={4} />
-        <MapPanelSkeleton />
-      </div>
-    );
+    return <AdminTruckTrackingPageSkeleton title={pageTitle} description={pageDescription} />;
   }
 
   return (
@@ -956,14 +948,14 @@ const AdminTruckTracking = () => {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
-              Live Fleet Tracking
+              {pageTitle}
             </h1>
             <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold border-primary/30 text-primary bg-primary/5">
               Candelaria
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.
+            {pageDescription}
           </p>
         </div>
       </div>

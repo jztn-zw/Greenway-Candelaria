@@ -6,11 +6,7 @@ SearchInput,
 SegmentedControl,
 SegmentedControlOption,
 } from "@/components/common";
-import {
-KPIRowSkeleton,
-PageHeaderSkeleton,
-RouteManagerSkeleton,
-} from "@/components/PageLoadingSkeletons";
+import { RouteManagerPageSkeleton } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -364,13 +360,7 @@ const AdminRouteManager: React.FC = () => {
   const totalBarangays = barangays.length || 0;
 
   if (isLoading) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto space-y-5">
-        <PageHeaderSkeleton />
-        <KPIRowSkeleton count={4} />
-        <RouteManagerSkeleton />
-      </div>
-    );
+    return <RouteManagerPageSkeleton viewMode={viewMode} />;
   }
 
   if (error && routes.length === 0) {

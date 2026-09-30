@@ -26,11 +26,11 @@ import {
   Navigation,
   Pause,
   Play,
-  ArrowLeft,
   History,
   CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PageErrorState from "@/components/PageErrorState";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -90,14 +90,12 @@ const RouteMapSkeleton = () => (
 interface NoScheduledRouteViewProps {
   onRetry: () => void;
   onViewHistory: () => void;
-  onBackToDashboard: () => void;
   message?: string;
 }
 
 const NoScheduledRouteView = ({
   onRetry,
   onViewHistory,
-  onBackToDashboard,
   message = "No route has been assigned to your truck for today. Check back later or review past route runs.",
 }: NoScheduledRouteViewProps) => (
   <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
@@ -159,14 +157,6 @@ const NoScheduledRouteView = ({
             <History className="w-4 h-4 mr-2" /> View route history
           </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBackToDashboard}
-            className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted/70 cursor-pointer active:scale-[0.99] transition-all"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to dashboard
-          </Button>
         </div>
 
         <div className="pt-1.5">
@@ -188,55 +178,12 @@ const NoScheduledRouteView = ({
 const RouteMapError = ({
   message,
   onRetry,
-  onBack,
   title = "Could not load route",
-  backLabel = "Back to dashboard",
 }: {
   message: string;
   onRetry: () => void;
-  onBack?: () => void;
   title?: string;
-  backLabel?: string;
-}) => (
-  <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
-    <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-5">
-      {/* Icon */}
-      <div className="w-12 h-12 rounded-2xl bg-destructive/10 border border-destructive/15 flex items-center justify-center text-destructive mx-auto shadow-2xs">
-        <AlertCircle className="w-6 h-6" />
-      </div>
-
-      {/* Copy */}
-      <div className="space-y-1.5">
-        <p className="text-base font-display font-bold text-foreground tracking-tight">
-          {title}
-        </p>
-        <p role="alert" className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">{message}</p>
-      </div>
-
-      {/* Action */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
-        <Button
-          variant="default"
-          onClick={onRetry}
-          className="w-full sm:w-auto gap-2 rounded-xl h-10 px-5 text-xs font-semibold cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Try again
-        </Button>
-        {onBack && (
-          <Button
-            variant="outline"
-            onClick={onBack}
-            className="w-full sm:w-auto gap-2 rounded-xl h-10 px-5 text-xs font-semibold border-border cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            {backLabel}
-          </Button>
-        )}
-      </div>
-    </div>
-  </div>
-);
+}) => <PageErrorState kind="unavailable" title={title} description={message} onRetry={onRetry} homeHref="/collector" />;
 
 // ─── Main Component ───────────────────────────────────────────────────
 
@@ -270,6 +217,10 @@ const CollectorRouteMap = () => {
   // scheduled by the admin. GPS is used for the road path and ETA only; it
   // must never reorder collection barangays by straight-line proximity.
   const autoRoutedStops = useScheduledRouteOrder(stops);
+  const previewStops = useMemo(
+    () => autoRoutedStops.map((stop) => stop.status === "in-progress" ? { ...stop, status: "not-yet" as const } : stop),
+    [autoRoutedStops],
+  );
 
   // ─── Elapsed timer with pause support ─────────────────────────────────────
   const [elapsed, setElapsed] = useState("0h 00m 00s");
@@ -467,74 +418,69 @@ const CollectorRouteMap = () => {
   // ─── Render guards ──────────────────────────────────────────────────────────
   if (isLoading) return <RouteMapSkeleton />;
 
-  if (error) return <RouteMapError message={error} onRetry={refresh} onBack={() => navigate("/collector")} />;
+  if (error) return <RouteMapError message={error} onRetry={refresh} />;
 
   if (!matchesCollectorRouteAlert(searchParams, routeInfo)) {
-    return <RouteMapError title="Route alert unavailable" backLabel="Back to notifications" message="The route in this notification is no longer your current assignment. Return to notifications to review the alert." onRetry={refresh} onBack={() => navigate("/collector/notifications")} />;
+    return <RouteMapError title="Route alert unavailable" message="The route in this notification is no longer your current assignment. Open Notifications in the topbar to review the alert." onRetry={refresh} />;
   }
 
   if (!routeInfo) {
-    return <NoScheduledRouteView onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} onBackToDashboard={() => navigate("/collector")} />;
+    return <NoScheduledRouteView onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} />;
   }
 
   // Active Stop Card render function (used both on mobile above the map and desktop in sidebar)
   const renderActiveStopCard = () => {
     if (!hasStartedRoute && isScheduledRoute) {
       return (
-        <div className="bg-card border border-border/80 rounded-2xl p-5 text-center space-y-2 shrink-0 shadow-xs">
-          <div className="w-10 h-10 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
-            <Clock className="w-5 h-5" />
+        <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-4 min-w-0">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="font-display text-lg font-bold tracking-tight text-foreground">Route scheduled</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Review the planned stops below. Collection is scheduled for{" "}
+                {routeInfo.startedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.
+              </p>
+            </div>
           </div>
-          <p className="text-sm font-display font-bold text-foreground">
-            Route is scheduled
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Start the route when you are ready to depart. Scheduled for{" "}
-            {routeInfo.startedAt.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}.
-          </p>
+          <div className="min-w-0 rounded-xl border border-border/70 bg-muted/25 px-4 py-3 sm:min-w-56">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">First stop</p>
+            <p className="mt-0.5 truncate font-display text-sm font-bold text-foreground">{autoRoutedStops[0]?.barangay ?? "Not assigned"}</p>
+          </div>
         </div>
       );
     }
 
     if (!hasStartedRoute) {
       return (
-        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 text-center space-y-3.5 shrink-0 shadow-xs">
-          <div className="w-11 h-11 mx-auto rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs">
-            <Navigation className="w-5 h-5" />
+        <div className="grid gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-8">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+              <Navigation className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-display text-lg font-bold tracking-tight text-foreground">Ready to begin collection?</p>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                Review the planned route, then start when you depart. Live GPS tracking begins when you start.
+              </p>
+              <p className="mt-3 text-sm text-foreground">
+                <span className="text-muted-foreground">First stop: </span>
+                <span className="font-semibold">{autoRoutedStops[0]?.barangay ?? "Not assigned"}</span>
+              </p>
+            </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm sm:text-base font-display font-bold text-foreground tracking-tight">
-              Ready to begin collection route?
-            </p>
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
-              Start your shift run when you depart for the first stop. This activates live GPS telemetry and resident alerts.
-            </p>
-          </div>
-
-          <div className="p-3 rounded-xl bg-muted/20 border border-border/60 text-left flex items-center justify-between gap-3 text-xs">
-            <span className="text-muted-foreground font-medium">Initial checkpoint:</span>
-            <span className="font-bold text-foreground font-display truncate">
-              {autoRoutedStops[0]?.barangay || "First Stop"}
-            </span>
-          </div>
-
           <Button
             type="button"
             onClick={handleStartRoute}
             disabled={isStartingRoute || isPaused}
-            className="w-full h-11 sm:h-12 rounded-xl font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
+            className="h-12 w-full rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.99] lg:w-auto"
           >
             {isStartingRoute ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" /> Starting route...
-              </span>
+              <span className="flex items-center gap-2"><RefreshCw className="h-4 w-4 animate-spin" /> Starting route...</span>
             ) : (
-              <span className="flex items-center gap-2">
-                <Play className="w-4 h-4 fill-current" /> Start collection route
-              </span>
+              <span className="flex items-center gap-2"><Play className="h-4 w-4 fill-current" /> Start collection route</span>
             )}
           </Button>
         </div>
@@ -654,11 +600,11 @@ const CollectorRouteMap = () => {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground font-display tracking-tight truncate">
-              Live route navigation
+              {hasStartedRoute ? "Live route navigation" : "Today's collection route"}
             </h1>
           </div>
           <p className="text-[11px] sm:text-xs md:text-sm text-muted-foreground truncate">
-            Checkpoint navigation and stop collection management
+            {hasStartedRoute ? "Checkpoint navigation and stop collection management" : "Review the route and stops before starting collection"}
           </p>
         </div>
       </div>
@@ -713,8 +659,54 @@ const CollectorRouteMap = () => {
       )}
 
       {!hasStartedRoute ? (
-        <div className="mx-auto w-full max-w-xl py-4">
+        <div className="space-y-4">
           {renderActiveStopCard()}
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,1fr)]">
+            <section aria-label="Planned route map" className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3 sm:px-5">
+                <div>
+                  <h2 className="font-display text-sm font-bold text-foreground sm:text-base">Planned route</h2>
+                  <p className="text-xs text-muted-foreground">Assigned street locations on the map</p>
+                </div>
+                <span className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">Preview</span>
+              </div>
+              <div className="h-[320px] sm:h-[420px] lg:h-[520px]">
+                {previewStops.some((stop) => stop.hasCoordinates !== false) ? (
+                  <RouteMapView preview stops={previewStops} truckCoords={null} activeStopCoords={null} />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 bg-muted/20 px-6 text-center">
+                    <MapPin className="h-7 w-7 text-muted-foreground" />
+                    <p className="font-display text-sm font-semibold text-foreground">Map locations are not available yet</p>
+                    <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">Use the assigned stop order beside the map to review your route.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+            <section aria-label="Assigned stop order" className="min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-sm font-bold text-foreground sm:text-base">Stop order</h2>
+                  <p className="text-xs text-muted-foreground">Follow the assigned order once collection starts</p>
+                </div>
+                <span className="shrink-0 rounded-lg bg-muted/60 px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-foreground">{autoRoutedStops.length}</span>
+              </div>
+              {autoRoutedStops.length > 0 ? (
+                <ol className="max-h-[360px] divide-y divide-border/60 overflow-y-auto pr-1 lg:max-h-[424px]">
+                  {autoRoutedStops.map((stop, index) => (
+                    <li key={stop.id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
+                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold", index === 0 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{stop.stopNumber}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">{stop.barangay}</p>
+                        {index === 0 && <p className="text-xs font-medium text-primary">First stop</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="rounded-xl bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">No stops have been added to this route.</p>
+              )}
+            </section>
+          </div>
         </div>
       ) : (
         <>

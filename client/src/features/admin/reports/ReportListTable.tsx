@@ -23,6 +23,7 @@ import {
   MapPin,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
+import { WasteReportRowsSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   WasteReport,
   statusBadgeStyles,
@@ -64,7 +65,8 @@ const ReportListTable = ({
   };
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs flex flex-col">
+    <div aria-busy={isLoading} className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs flex flex-col">
+      {isLoading && <span role="status" className="sr-only">Loading reports…</span>}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -90,23 +92,12 @@ const ReportListTable = ({
               <TableHead className="text-right pr-4 py-3.5 w-10"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className={cn(isLoading && reports.length > 0 && "opacity-60 transition-opacity pointer-events-none")}>
-            {isLoading && reports.length === 0 ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i} className="border-b border-border/60">
-                  <TableCell className="py-3.5"><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-3.5"><div className="h-5 w-28 bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-3.5"><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-3.5"><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-3.5 text-center"><div className="h-4 w-8 mx-auto bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-3.5"><div className="h-5 w-16 bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-3.5"><div className="h-5 w-20 bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-3.5 pr-4 text-right"><div className="h-6 w-6 ml-auto bg-muted animate-pulse rounded" /></TableCell>
-                </TableRow>
-              ))
+          <TableBody>
+            {isLoading ? (
+              <WasteReportRowsSkeleton />
             ) : reports.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-14 text-center">
+                <TableCell colSpan={7} className="py-14 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
                     <AlertOctagon className="w-6 h-6" />
                   </div>

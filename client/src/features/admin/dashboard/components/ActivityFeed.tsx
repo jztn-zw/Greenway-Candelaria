@@ -111,19 +111,19 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
 
   return (
     <div
-      className={`bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full ${className}`}
+      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col min-w-0 h-full ${className}`}
     >
-      <div className="space-y-4">
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground font-display">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
             Activity Stream
           </h3>
 
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-primary font-semibold h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary rounded-xl cursor-pointer group active:scale-95 transition-all"
+            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
             onClick={() => navigate("/admin/audit-logs")}
           >
             <span>Audit Logs</span>
@@ -132,10 +132,10 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
         </div>
 
         {/* Stream List */}
-        <ScrollArea className="h-[275px] sm:h-[315px] pr-2">
-          <div className="space-y-2">
+        <ScrollArea className="h-[275px] sm:h-[315px] pr-3">
+          <div className="space-y-3">
             {activities.length === 0 ? (
-              <div className="h-[250px] flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border/70 bg-background/40 px-5">
+              <div className="h-[250px] flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 sm:px-5">
                 <ShieldCheck className="w-8 h-8 text-primary/60 mb-2" />
                 <p className="text-xs font-semibold text-foreground">No audited activity yet</p>
                 <p className="text-[11px] text-muted-foreground mt-1">New administrative actions will appear here.</p>
@@ -144,13 +144,13 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
               <div
                 key={a.id}
                 onClick={() => navigate("/admin/audit-logs")}
-                className="p-2.5 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer space-y-1.5 group"
+                className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/60 hover:border-border hover:bg-muted/40 transition-colors cursor-pointer space-y-2 group"
               >
                 {/* Top Row: Event Title + Module Tag */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${a.tone.dot}`}
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.tone.dot}`}
                     />
                     <span className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                       {a.actionText}
@@ -158,17 +158,17 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
                   </div>
                   <Badge
                     variant="outline"
-                    className={`text-[9px] font-semibold px-2 py-0.5 rounded-md shrink-0 border shadow-2xs ${a.tone.badge}`}
+                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border ${a.tone.badge}`}
                   >
                     {a.moduleBadge}
                   </Badge>
                 </div>
 
                 {/* Bottom Row: Actor & Time */}
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground pl-3.5">
-                  <span className="truncate flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-muted-foreground pl-3">
+                  <span className="min-w-0 flex-1 flex items-center gap-1">
                     <User className="w-3 h-3 text-muted-foreground/80 shrink-0" />
-                    <span>{a.actor}</span>
+                    <span className="truncate">{a.actor}</span>
                   </span>
                   <span className="shrink-0 flex items-center gap-1 tabular-nums">
                     <Clock className="w-3 h-3 text-muted-foreground/80 shrink-0" />

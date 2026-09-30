@@ -1,4 +1,5 @@
 import { Truck, ShieldCheck, Wrench, Building2 } from "lucide-react";
+import { isNonBiodegradable } from "../dashboard.utils";
 
 export interface TruckCardProps {
   name?: string;
@@ -91,7 +92,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
             Assigned load
           </span>
           <div className="min-w-0 mt-1">
-            <p className="text-xs sm:text-sm font-bold text-foreground font-display leading-tight break-words [overflow-wrap:anywhere]">
+            <p className={`text-xs sm:text-sm font-bold font-display leading-tight break-words [overflow-wrap:anywhere] ${isNonBiodegradable(data.wasteType) ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
               {data.wasteType || "General waste"}
             </p>
             <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight truncate">

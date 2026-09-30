@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/common";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +25,6 @@ import PostImagePlaceholder from "./PostImagePlaceholder";
 
 interface AdminPostDetailProps {
   post: Post;
-  onBack: () => void;
   onEdit?: (post: Post) => void;
   onDuplicate?: (post: Post) => void;
   onArchive?: (post: Post) => void;
@@ -38,7 +36,6 @@ interface AdminPostDetailProps {
 
 const AdminPostDetail = ({
   post,
-  onBack,
   onEdit,
   onDuplicate,
   onArchive,
@@ -81,13 +78,6 @@ const AdminPostDetail = ({
       ref={contentRef}
       className="w-full max-w-[1000px] mx-auto space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-300"
     >
-      {/* ── Top Back Navigation (Admin view only) ── */}
-      {!isPreview && (
-        <div>
-          <BackButton label="Back to Posts" onClick={onBack} />
-        </div>
-      )}
-
       {/* ── Main Post Article ── */}
       <article className="space-y-6">
         {/* ── 1080 × 566 Responsive Landscape Image Container with Blurred Backdrop ── */}

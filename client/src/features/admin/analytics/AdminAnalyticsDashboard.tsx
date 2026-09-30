@@ -1,11 +1,12 @@
-import { AnalyticsDashboardSkeleton, PageHeaderSkeleton } from "@/components/PageLoadingSkeletons";
+import { AnalyticsDashboardSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
+import PageErrorState from "@/components/PageErrorState";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
 import { MapPin } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { AnalyticsDataProvider } from "./AnalyticsDataContext";
 import AnalyticsSectionNav, { sections } from "./AnalyticsSectionNav";
 import AnalyticsSummaryKPIs from "./AnalyticsSummaryKPIs";
@@ -19,6 +20,8 @@ import SectionWasteReports from "./SectionWasteReports";
 import { useAnalyticsDashboard } from "./useAnalyticsDashboard";
 
 type DatePreset = "this-month" | "last-8-weeks" | "last-3-months";
+const pageTitle = "Analytics dashboard";
+const pageDescription = "A single view of collection operations, resident reports, and fleet activity.";
 
 const sectionComponents: Record<string, { component: React.FC; title: string; subtitle: string }> = {
   overview: { component: SectionOverview, title: "Operations overview", subtitle: "Collection coverage, open reports, missed stops, and fleet readiness." },
@@ -65,32 +68,38 @@ const AdminAnalyticsDashboard: React.FC = () => {
     [barangays],
   );
   const filters = useMemo(() => ({ ...dateRangeFor(datePreset), ...(barangayId === "all" ? {} : { barangayId }) }), [datePreset, barangayId]);
-  const { data, error, isLoading, isFetching, refetch } = useAnalyticsDashboard(filters);
+  const { data, error, isFetching, refetch } = useAnalyticsDashboard(filters);
+  const lastDataRef = useRef(data);
+  if (data) lastDataRef.current = data;
+  const visibleData = data ?? lastDataRef.current;
 
-  if (isLoading) {
-    return <div className="mx-auto w-full max-w-[1600px] space-y-6"><PageHeaderSkeleton showButton={false} /><AnalyticsDashboardSkeleton /></div>;
+  if (!visibleData && !error) {
+    return <AnalyticsDashboardSkeleton title={pageTitle} description={pageDescription} />;
   }
 
-  if (!data) {
-    return (
-      <div className="mx-auto flex min-h-[360px] w-full max-w-[1600px] items-center justify-center rounded-2xl border border-destructive/20 bg-card p-6 text-center">
-        <div><h1 className="text-lg font-bold text-foreground">Analytics could not load</h1><p className="mt-1 max-w-md text-sm text-muted-foreground">{error instanceof Error ? error.message : "Please try again."}</p><Button className="mt-4" onClick={() => refetch()}>Try again</Button></div>
-      </div>
-    );
+  if (!visibleData) {
+    return <PageErrorState kind="unavailable" title="Analytics couldn't load" description="We couldn't load the analytics for this period. Try again in a moment." onRetry={() => void refetch()} homeHref="/admin" />;
   }
 
   const config = sectionComponents[activeSection] || sectionComponents.overview;
   const SectionComp = config.component;
 
   return (
-    <AnalyticsDataProvider value={data}>
+    <AnalyticsDataProvider value={visibleData}>
       <main className="mx-auto w-full max-w-[1600px] space-y-5 pb-12 sm:space-y-6">
         <header className="pb-1">
-          <div><h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Analytics dashboard</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">A single view of collection operations, resident reports, and fleet activity.</p></div>
+          <div><h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">{pageTitle}</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{pageDescription}</p></div>
         </header>
 
+        {error && !data && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-xs text-destructive">
+            <span>Could not update analytics. Showing the previous results.</span>
+            <Button size="sm" variant="outline" onClick={() => void refetch()}>Try again</Button>
+          </div>
+        )}
+
         <section aria-label="Analytics filters" className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <p className="text-xs text-muted-foreground">Showing <span className="font-semibold text-foreground">{formatRange(data.range.from, data.range.to)}</span></p>
+          <p className="text-xs text-muted-foreground">Showing <span className="font-semibold text-foreground">{formatRange(visibleData.range.from, visibleData.range.to)}</span></p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select value={datePreset} onValueChange={(value) => setDatePreset(value as DatePreset)}><SelectTrigger className="min-w-[168px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="this-month">This month</SelectItem><SelectItem value="last-8-weeks">Last 8 weeks</SelectItem><SelectItem value="last-3-months">Last 3 months</SelectItem></SelectContent></Select>
             <SearchableSelect
