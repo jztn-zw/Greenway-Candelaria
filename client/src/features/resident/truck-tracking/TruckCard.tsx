@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, getCategoryBadgeColors, badgeStyles } from "@/components/ui/badgeStyles";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,21 +28,21 @@ const statusConfig = {
   scheduled: {
     label: "Scheduled",
     className:
-      "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30",
+      getStatusBadgeStyle("Scheduled").className,
   },
   "on-the-way": {
     label: "On The Way",
     className:
-      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      getStatusBadgeStyle("On The Way").className,
   },
   done: {
     label: "Completed",
     className:
-      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      getStatusBadgeStyle("Completed").className,
   },
   offline: {
     label: "Offline",
-    className: "bg-muted text-muted-foreground border-border",
+    className: getStatusBadgeStyle("Offline").className,
   },
 };
 
@@ -56,11 +57,6 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
       ? Math.min(100, Math.round((truck.completedBarangays / truck.totalBarangays) * 100))
       : 0;
 
-  const isBio = truck.wasteType?.toLowerCase().includes("bio");
-  const isNonBio =
-    truck.wasteType?.toLowerCase().includes("non-bio") ||
-    truck.wasteType?.toLowerCase().includes("recycl");
-
   return (
     <Card
       onClick={onClick}
@@ -68,7 +64,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
         "cursor-pointer transition-all duration-200 border rounded-2xl group overflow-hidden",
         isSelected
           ? "border-primary ring-2 ring-primary/20 bg-primary/[0.02] shadow-md"
-          : "border-border/80 hover:border-primary/40 hover:shadow-xs bg-card"
+          : "border-border/80 hover:border-primary/40 bg-card"
       )}
     >
       <CardContent className="p-3.5 lg:p-4 space-y-3">
@@ -86,10 +82,10 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
               <Truck className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-display font-bold text-foreground truncate">
+              <p className="text-sm font-body font-semibold text-foreground truncate">
                 {truck.name}
               </p>
-              <p className="text-[11px] text-muted-foreground font-mono">
+              <p className="text-ui-caption text-muted-foreground tabular-nums">
                 {truck.plateNumber}
               </p>
             </div>
@@ -105,7 +101,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
             <Badge
               variant="outline"
               className={cn(
-                "text-[10px] px-2 py-0.5 font-bold rounded-full border",
+                "text-ui-overline px-2 py-0.5 font-bold rounded-md border",
                 status.className
               )}
             >
@@ -133,12 +129,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           {hasWaste && (
             <div className="flex items-center gap-2 pt-0.5">
               <span
-                className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded-md border",
-                  isBio && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-                  isNonBio && "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
-                  !isBio && !isNonBio && "bg-primary/10 text-primary border-primary/20"
-                )}
+                className={"text-ui-overline font-bold px-2 py-0.5 rounded-md border " + getCategoryBadgeColors(truck.wasteType).className}
               >
                 {truck.wasteType}
               </span>
@@ -150,8 +141,8 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
         {truck.totalBarangays > 0 && (
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground text-[11px] font-medium">Route Progress</span>
-              <span className="font-bold text-foreground tabular-nums text-[11px]">
+              <span className="text-muted-foreground text-ui-caption font-medium">Route Progress</span>
+              <span className="font-semibold text-foreground tabular-nums text-ui-caption">
                 {truck.completedBarangays}/{truck.totalBarangays} stops ({progressPercent}%)
               </span>
             </div>
@@ -169,7 +160,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
 
         {/* Resident Barangay Status Banner */}
         {truck.isResidentTruck && truck.residentStopStatus === "done" && (
-          <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 transition-all">
+          <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 transition-all">
             <div className="flex items-center gap-2 min-w-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <div className="min-w-0">
@@ -177,11 +168,11 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                   Collection Completed for Your Barangay
                 </p>
                 {truck.residentStopCompletedAt ? (
-                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/90">
+                  <p className="text-ui-caption text-emerald-700/90 dark:text-emerald-300/90">
                     Finished at {truck.residentStopCompletedAt}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/90">
+                  <p className="text-ui-caption text-emerald-700/90 dark:text-emerald-300/90">
                     Collection finished today
                   </p>
                 )}
@@ -189,7 +180,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
             </div>
             <Badge
               variant="outline"
-              className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold shrink-0"
+              className={"text-ui-overline px-2 py-0.5 font-bold shrink-0 " + getStatusBadgeStyle("Completed").className}
             >
               Completed
             </Badge>
@@ -197,7 +188,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
         )}
 
         {truck.isResidentTruck && truck.residentStopStatus === "skipped" && (
-          <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-800 dark:text-yellow-200 transition-all">
+          <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-800 dark:text-yellow-200 transition-all">
             <div className="flex items-center gap-2 min-w-0">
               <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0" />
               <p className="text-xs font-bold truncate">
@@ -206,7 +197,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
             </div>
             <Badge
               variant="outline"
-              className="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30 font-bold shrink-0"
+              className={"text-ui-overline px-2 py-0.5 font-bold shrink-0 " + getStatusBadgeStyle("Skipped").className}
             >
               Skipped
             </Badge>
@@ -220,7 +211,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           truck.status === "on-the-way" && (
             <div
               className={cn(
-                "flex items-center justify-between gap-2 p-2.5 rounded-xl border transition-all",
+                "flex items-center justify-between gap-2 p-2.5 rounded-lg border transition-all",
                 truck.arrivedAtResident || truck.residentStopStatus === "in-progress"
                   ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
                   : "bg-primary/10 border-primary/20 text-primary"
@@ -247,7 +238,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
               {truck.barangaysAway !== null &&
                 !truck.arrivedAtResident &&
                 truck.residentStopStatus !== "in-progress" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-background/80 border border-border/60 shrink-0">
+                  <span className="text-ui-overline font-bold px-2 py-0.5 rounded-md bg-background/80 border border-border/60 shrink-0">
                     {truck.barangaysAway} stop{truck.barangaysAway > 1 ? "s" : ""} away
                   </span>
                 )}
@@ -259,7 +250,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
           truck.residentStopStatus !== "done" &&
           truck.residentStopStatus !== "skipped" &&
           truck.status === "scheduled" && (
-            <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
               <div className="flex items-center gap-2 min-w-0">
                 <Clock className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                 <span className="font-medium truncate">
@@ -268,7 +259,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
               </div>
               <Badge
                 variant="outline"
-                className="text-[10px] px-2 py-0.5 bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-bold shrink-0"
+                className={"text-ui-overline px-2 py-0.5 font-bold shrink-0 " + getStatusBadgeStyle("In Queue").className}
               >
                 In Queue
               </Badge>
@@ -284,7 +275,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                 e.stopPropagation();
                 setRouteExpanded(!routeExpanded);
               }}
-              className="flex items-center justify-between w-full text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-2 cursor-pointer select-none touch-manipulation"
+              className="gw-action-ghost flex items-center justify-between w-full text-xs font-semibold transition-colors py-2 cursor-pointer select-none touch-manipulation"
             >
               <span>Route Sequence ({truck.routeStops.length} stops)</span>
               {routeExpanded ? (
@@ -344,7 +335,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                       </span>
 
                       {stop.isResidentBarangay && (
-                        <Badge className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shrink-0">
+                        <Badge className={"text-[9px] px-1.5 py-0 h-4 font-bold shrink-0 " + badgeStyles.primary.className}>
                           Your Barangay
                         </Badge>
                       )}
@@ -353,7 +344,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                     {stop.status === "done" && (
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 font-bold shrink-0"
+                        className={"text-[9px] px-1.5 py-0 h-4 font-bold shrink-0 " + getStatusBadgeStyle("Done").className}
                       >
                         Done
                       </Badge>
@@ -361,7 +352,7 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                     {stop.status === "in-progress" && (
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20 font-bold shrink-0"
+                        className={"text-[9px] px-1.5 py-0 h-4 font-bold shrink-0 " + getStatusBadgeStyle("In Progress").className}
                       >
                         In Progress
                       </Badge>
@@ -369,13 +360,13 @@ const TruckCard = ({ truck, isSelected, onClick }: TruckCardProps) => {
                     {stop.status === "skipped" && (
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1.5 py-0 h-4 bg-yellow-500/10 text-yellow-700 border-yellow-500/20 font-bold shrink-0"
+                        className={"text-[9px] px-1.5 py-0 h-4 font-bold shrink-0 " + getStatusBadgeStyle("Skipped").className}
                       >
                         Skipped
                       </Badge>
                     )}
                     {stop.completedAt && stop.status === "done" && (
-                      <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                      <span className="text-ui-overline text-muted-foreground tabular-nums shrink-0">
                         {stop.completedAt}
                       </span>
                     )}

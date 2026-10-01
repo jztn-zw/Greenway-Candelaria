@@ -47,7 +47,7 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
 
         <div className={styles.body}>
           <div className="space-y-1">
-            <h3 className="text-base font-bold font-display text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">{getCollectorNotificationTitle(notification)}</h3>
+            <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">{getCollectorNotificationTitle(notification)}</h3>
             {notification.created_at && <p className="text-xs text-muted-foreground font-normal">{formatRelativeTime(notification.created_at)}</p>}
           </div>
           <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">{notification.body}</div>

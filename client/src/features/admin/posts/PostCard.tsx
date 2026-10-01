@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Post, statusStyles, categoryStyles } from "./types";
 import PostActionsDropdown from "./PostActionsDropdown";
 import PostImagePlaceholder from "./PostImagePlaceholder";
+import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 
 interface PostCardProps {
   post: Post;
@@ -59,29 +60,20 @@ const PostCard = ({
 
   return (
     <div
-      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:shadow-xl hover:border-primary/40 transition-all duration-300 cursor-pointer shadow-2xs"
+      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:border-primary/40 transition-all duration-300 cursor-pointer shadow-2xs"
       onClick={() => onView(post)}
     >
       {/* Card header image */}
-      <div className="h-40 sm:h-44 relative overflow-hidden bg-black/40 border-b border-border/40 flex items-center justify-center">
+      <div className="h-40 sm:h-44 relative overflow-hidden bg-muted/30 border-b border-border/40 flex items-center justify-center">
         {currentImage && !imageFailed ? (
           <>
-            {/* Blurred background backdrop */}
-            <img
-              key={`bg-${post.id}-${imageIndex}`}
-              src={currentImage}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-50 dark:opacity-40 select-none pointer-events-none transition-all duration-500 ease-in-out"
-            />
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] pointer-events-none" />
-
+            <PostImageBackdrop src={currentImage} />
             {/* Crisp centered foreground image */}
             <img
               key={`img-${post.id}-${imageIndex}`}
               src={currentImage}
               alt={post.title}
-              className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-md group-hover:scale-105 transition-all duration-500 ease-in-out"
+              className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-500 ease-in-out"
               onError={() => setImageFailed(true)}
             />
           </>
@@ -93,13 +85,13 @@ const PostCard = ({
         <div className="absolute top-3 left-3 flex gap-1.5 z-20 pointer-events-none">
           <Badge
             variant="outline"
-            className={`text-[10px] font-semibold border shadow-2xs rounded-full px-2.5 py-0.5 pointer-events-none ${categoryStyles[post.category] || "bg-primary/15 text-primary border-primary/30"}`}
+            className={`text-ui-overline font-semibold border shadow-2xs rounded-md px-2.5 py-0.5 pointer-events-none ${categoryStyles[post.category] || "bg-primary/15 text-primary border-primary/30"}`}
           >
             {post.category}
           </Badge>
           <Badge
             variant="outline"
-            className={`text-[10px] font-semibold border shadow-2xs rounded-full px-2.5 py-0.5 pointer-events-none ${statusStyles[post.status] || "bg-muted text-foreground border-border"}`}
+            className={`text-ui-overline font-semibold border shadow-2xs rounded-md px-2.5 py-0.5 pointer-events-none ${statusStyles[post.status] || "bg-muted text-foreground border-border"}`}
           >
             {post.status}
           </Badge>
@@ -107,13 +99,13 @@ const PostCard = ({
 
         {post.featured && (
           <div className="absolute top-3 right-3 z-20">
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 drop-shadow" />
+            <Star className="w-4 h-4 text-warning-foreground fill-yellow-400 drop-shadow" />
           </div>
         )}
 
         {post.status === "Scheduled" && post.scheduledDate && (
           <div className="absolute bottom-3 left-3 z-20">
-            <span className="text-[10px] font-medium text-foreground bg-card/90 backdrop-blur-sm rounded-md px-2 py-1 flex items-center gap-1 shadow-sm">
+            <span className="text-ui-overline font-medium text-foreground bg-card/90 backdrop-blur-sm rounded-md px-2 py-1 flex items-center gap-1 shadow-sm">
               <Calendar className="w-3 h-3" />
               {new Date(post.scheduledDate).toLocaleDateString("en-US", {
                 month: "short",
@@ -141,11 +133,11 @@ const PostCard = ({
 
       {/* Card body */}
       <div className="p-4 sm:p-5 flex flex-col flex-1 space-y-2.5">
-        <h3 className="font-display text-sm sm:text-base font-bold text-foreground leading-snug line-clamp-2">
+        <h3 className="gw-heading text-sm sm:text-base text-foreground leading-snug line-clamp-2">
           {post.title}
         </h3>
         {post.source && (
-          <p className="text-[10px] text-muted-foreground/70 italic line-clamp-1">
+          <p className="text-ui-overline text-muted-foreground/70 italic line-clamp-1">
             {post.source}
           </p>
         )}
@@ -159,13 +151,13 @@ const PostCard = ({
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
+                className="text-ui-overline bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
               >
                 #{tag.replace(/^#+/, "")}
               </span>
             ))}
             {post.tags.length > 3 && (
-              <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+              <span className="inline-flex items-center text-ui-overline font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                 +{post.tags.length - 3} more
               </span>
             )}
@@ -173,7 +165,7 @@ const PostCard = ({
         )}
 
         {/* Meta row - Views and React count */}
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-2 border-t border-border">
+        <div className="flex items-center gap-3 text-ui-caption text-muted-foreground pt-2 border-t border-border">
           <span className="font-medium text-foreground">{post.author}</span>
           {post.publishedDate && <span>{post.publishedDate}</span>}
           <div className="flex items-center gap-3 ml-auto">

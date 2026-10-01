@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import {
   Clock,
   CheckCircle2,
@@ -49,7 +50,7 @@ const DriverDetailView = ({
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Collector Profile
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -61,17 +62,17 @@ const DriverDetailView = ({
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-lg font-display shrink-0 shadow-2xs">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
               {getInitials(driver.fullName)}
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">
+                <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {driver.fullName}
                 </h2>
                 <Badge
                   variant="outline"
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
                     driverStatusStyles[driver.status] || ""
                   }`}
                 >
@@ -89,7 +90,7 @@ const DriverDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onEdit(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+              className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
               Edit Profile
@@ -98,7 +99,7 @@ const DriverDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onResetPassword(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+              className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               <KeyRound className="w-3.5 h-3.5 text-muted-foreground" />
               Reset Password
@@ -107,7 +108,7 @@ const DriverDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onToggleStatus(driver)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+              className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               {driver.status === "Active" ? (
                 <>
@@ -128,7 +129,7 @@ const DriverDetailView = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
           {/* Layer 1: Primary Contact & Assigned Vehicle */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-muted-foreground/70" />
               Contact Number
             </span>
@@ -138,7 +139,7 @@ const DriverDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-muted-foreground/70" />
               Email Address
             </span>
@@ -148,7 +149,7 @@ const DriverDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-muted-foreground/70" />
               Assigned Truck
             </span>
@@ -165,7 +166,7 @@ const DriverDetailView = ({
 
           {/* Layer 2: Activity & Account */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
               Date Added
             </span>
@@ -175,7 +176,7 @@ const DriverDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
               Last Login
             </span>
@@ -185,7 +186,7 @@ const DriverDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
               Account Status
             </span>
@@ -199,7 +200,7 @@ const DriverDetailView = ({
       {/* ── Collection Activity Log ── */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-bold font-display text-foreground tracking-tight">
+          <h3 className="gw-heading text-lg text-foreground tracking-tight">
             Collection Activity Log
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -231,16 +232,16 @@ const DriverDetailView = ({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold font-display text-foreground">
+                    <span className="text-sm font-semibold font-body tabular-nums text-foreground">
                       {a.date}
                     </span>
                     <Badge
                       variant="outline"
-                      className="bg-muted/60 text-foreground border-border/80 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                      className={"text-xs font-semibold px-2.5 py-0.5 rounded-md " + badgeStyles.neutral.className}
                     >
                       {a.route}
                     </Badge>
-                    <Badge variant="outline" className="text-xs font-semibold rounded-full">
+                    <Badge variant="outline" className={"text-xs font-semibold rounded-md " + getStatusBadgeStyle(a.status).className}>
                       {a.status}
                     </Badge>
                   </div>

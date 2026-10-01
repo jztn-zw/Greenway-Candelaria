@@ -1,4 +1,5 @@
-﻿import React from "react";
+import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,26 +24,26 @@ interface ScheduleAgendaViewProps {
 const categoryMeta: Record<EventType, { label: string; badge: string; icon: React.ElementType }> = {
   PRIVATE_EVENT: {
     label: "MENRO Private",
-    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    badge: getCategoryBadgeColors("MENRO Private").className,
     icon: Lock,
   },
   COMMUNITY_EVENT: {
     label: "Public Community",
-    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    badge: getCategoryBadgeColors("Public Community").className,
     icon: Users,
   },
   COLLECTION_SCHEDULE: {
     label: "Collection Route",
-    badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    badge: getCategoryBadgeColors("Collection Route").className,
     icon: Truck,
   },
 };
 
 const statusMeta: Record<EventStatus, { label: string; badge: string }> = {
-  UPCOMING: { label: "Upcoming", badge: "bg-primary/10 text-primary border-primary/20" },
-  ONGOING: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  COMPLETED: { label: "Completed", badge: "bg-muted text-muted-foreground border-border" },
-  CANCELLED: { label: "Cancelled", badge: "bg-destructive/10 text-destructive border-destructive/20" },
+  UPCOMING: { label: "Upcoming", badge: getStatusBadgeStyle("Upcoming").className },
+  ONGOING: { label: "In Progress", badge: getStatusBadgeStyle("In Progress").className },
+  COMPLETED: { label: "Completed", badge: getStatusBadgeStyle("Completed").className },
+  CANCELLED: { label: "Cancelled", badge: getStatusBadgeStyle("Cancelled").className },
 };
 
 export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
@@ -58,7 +59,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
           <CalendarDays className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-foreground">No events found</h3>
+          <h3 className="gw-heading text-sm text-foreground">No events found</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             No schedule matches your active filters or search criteria.
           </p>
@@ -71,10 +72,10 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
     <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-3">
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div>
-          <h3 className="text-sm font-bold text-foreground font-display">
+          <h3 className="gw-heading text-sm text-foreground ">
             Chronological Agenda ({events.length})
           </h3>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-ui-caption text-muted-foreground">
             All active schedules sorted by date and time
           </p>
         </div>
@@ -111,10 +112,10 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
               <div className="flex items-start sm:items-center gap-3 min-w-0">
                 {/* Date Badge */}
                 <div className="w-14 shrink-0 text-center p-1.5 rounded-xl bg-muted/60 border border-border/80 text-xs">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                  <span className="text-ui-overline uppercase font-bold text-muted-foreground block">
                     {dateLabel.split(",")[0]}
                   </span>
-                  <span className="font-extrabold text-foreground font-display text-sm">
+                  <span className="font-semibold text-foreground font-body tabular-nums text-sm">
                     {dateLabel.split(",")[1] || dateLabel}
                   </span>
                 </div>
@@ -127,7 +128,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                 {/* Event Info */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+                    <h4 className="gw-heading text-xs sm:text-sm text-foreground truncate">
                       {evt.title}
                     </h4>
                     <Badge
@@ -144,7 +145,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-1 flex-wrap">
+                  <div className="flex items-center gap-3 text-ui-caption text-muted-foreground mt-1 flex-wrap">
                     {endDateLabel && <span>{dateLabel} – {endDateLabel}</span>}
                     {evt.start_time && (
                       <span className="flex items-center gap-1">
@@ -152,7 +153,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                         {evt.start_time.slice(0, 5)} {evt.end_time ? `– ${evt.end_time.slice(0, 5)}` : ""}
                       </span>
                     )}
-                    <span className="text-[10px] text-muted-foreground/80">
+                    <span className="text-ui-overline text-muted-foreground/80">
                       {evt.visibility === "PRIVATE" ? "Hidden from Residents" : "Public to Residents"}
                     </span>
                   </div>
@@ -165,7 +166,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                   size="sm"
                   variant="ghost"
                   onClick={() => onViewEvent(evt)}
-                  className="h-8 px-2.5 text-xs rounded-xl text-muted-foreground hover:text-foreground cursor-pointer gap-1"
+                  className="h-8 px-2.5 text-xs rounded-xl cursor-pointer gap-1"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>View</span>
@@ -181,9 +182,9 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="destructive-ghost"
                   onClick={() => onDeleteEvent(evt)}
-                  className="h-8 px-2 text-xs rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                  className="h-8 px-2 text-xs rounded-xl cursor-pointer"
                   title="Delete event"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

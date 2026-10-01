@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 export interface DriverActivity {
   date: string;
   route: string;
@@ -37,14 +38,14 @@ export interface Truck {
 
 export const driverStatusStyles: Record<Driver["status"], string> = {
   Active:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    getStatusBadgeStyle("Active").className,
   Deactivated:
-    "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30",
+    getStatusBadgeStyle("Deactivated").className,
 };
 
 export const truckStatusStyles: Record<TruckOperationalStatus, string> = {
   Active:
-    "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    getStatusBadgeStyle("Active").className,
   "Under Maintenance":
-    "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    getStatusBadgeStyle("Under Maintenance").className,
 };

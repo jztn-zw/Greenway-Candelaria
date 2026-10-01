@@ -17,12 +17,12 @@ import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 
 const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-1 rounded-md border border-border/70 bg-muted/20 p-4">
-    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    <h3 className="gw-heading text-sm text-foreground">{title}</h3>
     <div className="text-xs leading-relaxed text-muted-foreground">{children}</div>
   </section>
 );
 
-/* ─── Premium Section Wrapper ─── */
+/* Group related settings inside a shared section panel. */
 interface SectionProps {
   title: string;
   subtitle?: string;
@@ -32,7 +32,7 @@ interface SectionProps {
 }
 
 const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionProps) => (
-  <section className="space-y-3 rounded-2xl border border-border/80 bg-card/90 p-3.5 shadow-2xs backdrop-blur-sm transition-all md:space-y-4 md:p-5 lg:p-6">
+  <section className="space-y-3 rounded-xl border border-border/80 bg-card p-3.5 md:space-y-4 md:p-5 lg:p-6">
     <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5 lg:gap-3 lg:pb-3">
       <div
         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${
@@ -42,11 +42,11 @@ const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionPr
         <Icon className="w-4 h-4" />
       </div>
       <div>
-        <h2 className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight">
+        <h2 className="gw-heading text-sm lg:text-base text-foreground tracking-tight">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-[11px] lg:text-xs text-muted-foreground mt-0.5 leading-tight">
+          <p className="text-ui-caption lg:text-xs text-muted-foreground mt-0.5 leading-tight">
             {subtitle}
           </p>
         )}
@@ -74,7 +74,7 @@ const ToggleRow = ({
     <div className="min-w-0 flex-1">
       <p className="text-xs lg:text-sm text-foreground font-semibold tracking-tight">{label}</p>
       {description && (
-        <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{description}</p>
+        <p className="text-ui-caption text-muted-foreground leading-relaxed mt-0.5">{description}</p>
       )}
     </div>
     <Switch checked={checked} onCheckedChange={onCheckedChange} className="shrink-0" />
@@ -100,11 +100,11 @@ const ActionRow = ({
   <button
     type="button"
     onClick={onClick}
-    className="group -mx-2 flex w-[calc(100%+16px)] cursor-pointer items-center justify-between rounded-xl border-b border-border/40 px-2 py-2.5 text-left transition-all hover:bg-muted/40 last:border-b-0 lg:-mx-2.5 lg:w-[calc(100%+20px)] lg:px-2.5 lg:py-3"
+    className="group -mx-2 flex w-[calc(100%+16px)] cursor-pointer items-center justify-between rounded-xl border-b border-border/40 px-2 py-2.5 text-left transition-all hover:bg-[var(--button-neutral-hover)] last:border-b-0 lg:-mx-2.5 lg:w-[calc(100%+20px)] lg:px-2.5 lg:py-3"
   >
     <div className="flex items-center gap-3 min-w-0 flex-1">
       <div
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs transition-transform duration-200 group-hover:scale-105 ${
+        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs transition-transform duration-200 ${
           iconStyle || "bg-muted/70 text-foreground/80 border-border/60"
         }`}
       >
@@ -115,7 +115,7 @@ const ActionRow = ({
           {label}
         </span>
         {description && (
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+          <p className="text-ui-caption text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
         )}
       </div>
     </div>
@@ -208,7 +208,7 @@ const ResidentSettings = () => {
       {/* ── Page Header ── */}
       <div className="hidden flex-col gap-2.5 md:flex md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight">
+          <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight">
             Settings
           </h1>
           <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
@@ -233,7 +233,7 @@ const ResidentSettings = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Collection Day Reminder</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                <p className="text-ui-caption text-muted-foreground mt-0.5 leading-relaxed">
                   Receive an automated alert 3 hours before scheduled municipal waste pickups
                 </p>
               </div>
@@ -294,29 +294,29 @@ const ResidentSettings = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Theme Mode</span>
-              <span className="text-[11px] text-muted-foreground">{dark ? "Dark Mode Active" : "Light Mode Active"}</span>
+              <span className="text-ui-caption text-muted-foreground">{dark ? "Dark Mode Active" : "Light Mode Active"}</span>
             </div>
             <div className="grid grid-cols-2 gap-2.5 p-1 rounded-2xl bg-muted/40 border border-border/60">
               <button
                 type="button"
                 onClick={() => toggleTheme(false)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs lg:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs lg:text-sm font-semibold transition-all cursor-pointer ${
                   !dark
-                    ? "bg-card text-foreground shadow-2xs border border-border/80 font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                    ? "bg-card text-foreground shadow-2xs border border-border/80 font-semibold"
+                    : "gw-action-ghost "
                 }`}
               >
-                <Sun className={`w-4 h-4 ${!dark ? "text-amber-500" : "text-muted-foreground"}`} />
+                <Sun className={`w-4 h-4 ${!dark ? "text-warning-foreground" : "text-muted-foreground"}`} />
                 <span>Light Mode</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => toggleTheme(true)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs lg:text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs lg:text-sm font-semibold transition-all cursor-pointer ${
                   dark
-                    ? "bg-card text-foreground shadow-2xs border border-border/80 font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                    ? "bg-card text-foreground shadow-2xs border border-border/80 font-semibold"
+                    : "gw-action-ghost "
                 }`}
               >
                 <Moon className={`w-4 h-4 ${dark ? "text-primary" : "text-muted-foreground"}`} />
@@ -379,7 +379,7 @@ const ResidentSettings = () => {
       </Section>
 
       <div className="text-center py-2">
-        <p className="text-[11px] text-muted-foreground/70 font-medium">
+        <p className="text-ui-caption text-muted-foreground/70 font-medium">
           GreenWay Candelaria · Version 2.0.0 · Municipality of Candelaria, Quezon
         </p>
       </div>

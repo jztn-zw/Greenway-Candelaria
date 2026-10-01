@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,12 +29,12 @@ const wasteTypeDetails: Record<"BIODEGRADABLE" | "NON_BIODEGRADABLE", {
   BIODEGRADABLE: {
     label: "Biodegradable",
     tag: "Biodegradable",
-    tagColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    tagColor: getCategoryBadgeColors("Biodegradable").className,
   },
   NON_BIODEGRADABLE: {
     label: "Non-Biodegradable",
     tag: "Non-Bio / Recyclables",
-    tagColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    tagColor: getCategoryBadgeColors("Non-Biodegradable").className,
   },
 };
 
@@ -48,11 +49,11 @@ const getWasteTypeDetails = (value?: string | null) => {
 type ResidentRoute = { route: ApiRoute; stop: ApiRouteStop };
 
 const statusBadgeConfig: Record<string, { class: string; label: string }> = {
-  SUBMITTED:    { class: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", label: "Submitted" },
-  PENDING:      { class: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", label: "Pending" },
-  UNDER_REVIEW: { class: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25", label: "Under Review" },
-  DISPATCHED:   { class: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25", label: "Dispatched" },
-  RESOLVED:     { class: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25", label: "Resolved" },
+  SUBMITTED:    { class: getStatusBadgeStyle("Submitted").className, label: "Submitted" },
+  PENDING:      { class: getStatusBadgeStyle("Pending").className, label: "Pending" },
+  UNDER_REVIEW: { class: getStatusBadgeStyle("Under Review").className, label: "Under Review" },
+  DISPATCHED:   { class: getStatusBadgeStyle("Dispatched").className, label: "Dispatched" },
+  RESOLVED:     { class: getStatusBadgeStyle("Resolved").className, label: "Resolved" },
 };
 
 const formatViolationType = (type?: string) => {
@@ -67,12 +68,12 @@ const HeroCardSkeleton = ({ className = "" }: { className?: string }) => (
   <Card
     role="status"
     aria-label="Loading dashboard card"
-    className={`flex flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs lg:space-y-4 lg:p-5 ${className}`}
+    className={`flex flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs lg:space-y-4 lg:p-5 ${className}`}
   >
     <div className="space-y-3 lg:space-y-3.5">
       <div className="flex items-center justify-between gap-2">
         <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-5 w-24 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-md" />
       </div>
       <div className="flex items-start gap-3">
         <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
@@ -145,24 +146,24 @@ const HeroCards = () => {
       {/* ─── Card 1: Today's Collection Schedule ─── */}
       {scheduleLoading ? <HeroCardSkeleton /> : <Card
         onClick={() => navigate(scheduleDestination)}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
       >
           <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
               Today's Schedule
             </span>
-            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${todayRoute && todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
+            <span className={`px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs ${todayRoute && todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
               {scheduleBadge}
             </span>
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
               <Package className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+              <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                 {scheduleTitle}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -189,35 +190,35 @@ const HeroCards = () => {
       {/* ─── Card 2: Live Truck Status ─── */}
       {liveQuery.isLoading ? <HeroCardSkeleton /> : <Card
         onClick={() => navigate("/resident/tracking")}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md lg:space-y-4 lg:p-5"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
       >
           <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
               Collection Truck
             </span>
             {trucksFailed ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs " + getStatusBadgeStyle("Status unavailable").className}>
                 Status unavailable
               </span>
             ) : hasActive ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center gap-1.5 shadow-2xs">
+              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border flex items-center gap-1.5 shadow-2xs " + getStatusBadgeStyle("Live On Route").className}>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live On Route
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 text-muted-foreground border border-border/80 shadow-2xs">
+              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs " + getStatusBadgeStyle("No active collection").className}>
                 No active collection
               </span>
             )}
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
               <Truck className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+              <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                 {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -250,16 +251,16 @@ const HeroCards = () => {
       {/* ─── Card 3: Latest Report ─── */}
       {reportsQuery.isLoading ? <HeroCardSkeleton className="md:col-span-2 lg:col-span-1" /> : <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
+        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
       >
           <div className="space-y-3 lg:space-y-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
               Latest Waste Report
             </span>
             {latestReport && (
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs ${
+                className={`px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs ${
                   statusBadgeConfig[latestReport.status]?.class || "bg-muted/60 text-muted-foreground border-border/80"
                 }`}
               >
@@ -271,11 +272,11 @@ const HeroCards = () => {
           {latestReport ? (
             <>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate font-display text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+                  <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
                     {formatViolationType(latestReport.violation_type)}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -285,11 +286,11 @@ const HeroCards = () => {
               </div>
 
               <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
-                <span className="text-muted-foreground font-mono text-[11px] flex items-center gap-1.5">
+                <span className="text-muted-foreground tabular-nums text-ui-caption flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5 text-muted-foreground/80" />
                   {latestReport.reference_number}
                 </span>
-                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
+                <span className="text-muted-foreground text-ui-caption flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
                   {formatManilaDateTime(latestReport.created_at, { month: "short", day: "numeric" }, "—")}
                 </span>
@@ -303,7 +304,7 @@ const HeroCards = () => {
               <p className="text-xs font-semibold text-foreground">
                 {reportsFailed ? "Reports unavailable" : "No waste reports yet"}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-ui-caption text-muted-foreground">
                 {reportsFailed
                   ? "Your report history could not be loaded right now."
                   : "You have not submitted a waste report."}

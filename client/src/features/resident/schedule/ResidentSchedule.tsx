@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors, badgeStyles } from "@/components/ui/badgeStyles";
 import { FormDialogHeader } from "@/components/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
@@ -45,7 +46,7 @@ const toDateString = (year: number, month: number, day: number) =>
 const eventColor = (id: string) => {
   let value = 0;
   for (let index = 0; index < id.length; index += 1) value = (value * 31 + id.charCodeAt(index)) >>> 0;
-  return `hsl(${value % 360} 72% 52%)`;
+  return `hsl(var(--chart-${(value % 6) + 1}))`;
 };
 
 const formatTime12 = (timeStr?: string | null) => {
@@ -66,34 +67,34 @@ const getEventBadgeInfo = (event: CalendarEvent) => {
   if (titleLower.includes("holiday")) {
     return {
       label: "Holiday Reminder",
-      badgeClass: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      badgeClass: getCategoryBadgeColors("Holiday Reminder").className,
       iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     };
   }
   if (titleLower.includes("cleanup") || titleLower.includes("clean-up")) {
     return {
       label: "Clean-up Drive",
-      badgeClass: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+      badgeClass: getCategoryBadgeColors("Clean-up Drive").className,
       iconClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     };
   }
   if (titleLower.includes("collection") || event.event_type === "COLLECTION_SCHEDULE") {
     return {
       label: "Collection Schedule",
-      badgeClass: "border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10",
+      badgeClass: getCategoryBadgeColors("Collection Schedule").className,
       iconClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
     };
   }
   if (event.event_type === "COMMUNITY_EVENT") {
     return {
       label: "Community Event",
-      badgeClass: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      badgeClass: getCategoryBadgeColors("Community Event").className,
       iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     };
   }
   return {
     label: "Official Notice",
-    badgeClass: "border-primary/30 text-primary bg-primary/10",
+    badgeClass: getCategoryBadgeColors("Official Notice").className,
     iconClass: "bg-primary/10 text-primary border-primary/20",
   };
 };
@@ -120,14 +121,14 @@ const wasteGuidance: Record<NonNullable<CollectionScheduleDay["waste_type"]>, {
 }> = {
   BIODEGRADABLE: {
     title: "Biodegradable",
-    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    badgeClass: getCategoryBadgeColors("Biodegradable").className,
     accepted: ["Food leftovers & peelings", "Fruit & vegetable scraps", "Garden clippings & dry leaves", "Eggshells & coffee grounds"],
     prohibited: ["Plastics & styrofoam", "Tin cans & scrap metals", "Hazardous chemicals", "Diapers & napkins"],
     tips: "Drain all liquids from organic waste before placing it curbside. Use compostable bags when possible.",
   },
   NON_BIODEGRADABLE: {
     title: "Non-Biodegradable",
-    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+    badgeClass: getCategoryBadgeColors("Non-Biodegradable").className,
     accepted: ["Plastics & styrofoam", "Tin cans & scrap metals", "Cartons & wrappers", "Glass bottles & jars"],
     prohibited: ["Wet food scraps", "Soil & garden waste", "Hazardous chemicals", "Medical waste"],
     tips: "Ensure all non-biodegradable waste is bagged securely before placing curbside.",
@@ -136,7 +137,7 @@ const wasteGuidance: Record<NonNullable<CollectionScheduleDay["waste_type"]>, {
 
 const generalCollectionGuidance = {
   title: "Waste collection",
-  badgeClass: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25",
+  badgeClass: getCategoryBadgeColors("Waste collection").className,
   accepted: [] as string[],
   prohibited: [] as string[],
   tips: "Follow your barangay's waste segregation guidance.",
@@ -269,10 +270,10 @@ const ResidentSchedule = () => {
       {/* ─── Page Header ─── */}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <div className="hidden md:block">
-          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight lg:text-3xl">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Resident Calendar
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground lg:text-sm">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             View collection days and official announcements.
           </p>
         </div>
@@ -297,7 +298,7 @@ const ResidentSchedule = () => {
           {/* Main Interactive Calendar */}
           <div className="lg:col-span-2 space-y-4">
             {calendarError && (
-              <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                 Calendar announcements could not be loaded. Please try again later.
               </p>
             )}
@@ -314,21 +315,21 @@ const ResidentSchedule = () => {
               compactMobileCells
               footer={
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                  <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="mr-1 text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">
                     Announcements
                   </span>
                   {selectedEvents.length === 0 ? (
                     <span className="text-xs text-muted-foreground">No announcements for this date.</span>
                   ) : (
                     selectedEvents.map((event) => {
-                      const color = scheduleColorById.get(event.id) || "hsl(160 72% 52%)";
+                      const color = scheduleColorById.get(event.id) || "hsl(var(--chart-1))";
                       const date = event.event_date.split("T")[0];
                       return (
                         <button
                           key={event.id}
                           type="button"
                           onClick={() => setSelectedDateStr(date)}
-                          className="inline-flex max-w-[180px] items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
+                          className="gw-action-outline inline-flex max-w-[180px] items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors cursor-pointer"
                         >
                           <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                           <span className="truncate">{event.title}</span>
@@ -347,7 +348,7 @@ const ResidentSchedule = () => {
               <CardHeader className="border-b border-border/60 p-4 lg:p-5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="font-display text-base font-bold text-foreground truncate">
+                    <CardTitle className="gw-heading text-base text-foreground truncate">
                       {formatDateOnly(selectedDateStr, {
                         weekday: "long",
                         month: "short",
@@ -362,7 +363,7 @@ const ResidentSchedule = () => {
                   {isSelectedToday && (
                     <Badge
                       variant="secondary"
-                      className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-border/70 text-muted-foreground bg-muted/60 shrink-0"
+                      className={"text-ui-overline font-semibold px-2.5 py-0.5 rounded-md border shrink-0 " + badgeStyles.neutral.className}
                     >
                       Today
                     </Badge>
@@ -375,10 +376,10 @@ const ResidentSchedule = () => {
                 {selectedDayCollection ? (
                 <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                    <span className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                       <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> Regular Collection
                     </span>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs shrink-0 whitespace-nowrap ${selectedDayCollection.badgeClass}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs shrink-0 whitespace-nowrap ${selectedDayCollection.badgeClass}`}>
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelectedDayBio ? "bg-emerald-500" : selectedDayCollection.wasteType ? "bg-amber-500" : "bg-sky-500"}`} />
                       <span>{selectedDayCollection.title}</span>
                     </span>
@@ -398,12 +399,12 @@ const ResidentSchedule = () => {
 
                   {/* Accepted items quick list */}
                   {selectedDayCollection.accepted.length > 0 && <div className="pt-2 border-t border-border/50 space-y-2">
-                    <p className="text-[11px] font-medium text-foreground">Examples you can put out:</p>
+                    <p className="text-ui-caption font-medium text-foreground">Examples you can put out:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedDayCollection.accepted.map((item) => (
                         <span
                           key={item}
-                          className="inline-flex items-center text-[11px] font-medium bg-background px-2.5 py-1 rounded-lg border border-border/70 text-foreground/80 transition-colors hover:border-primary/30"
+                          className="inline-flex items-center text-ui-caption font-medium bg-background px-2.5 py-1 rounded-lg border border-border/70 text-foreground/80 transition-colors hover:border-primary/30"
                         >
                           {item}
                         </span>
@@ -411,7 +412,7 @@ const ResidentSchedule = () => {
                     </div>
                   </div>}
 
-                  <p className="text-[11px] text-muted-foreground/85 italic leading-relaxed pt-0.5">
+                  <p className="text-ui-caption text-muted-foreground/85 italic leading-relaxed pt-0.5">
                     Tip: {selectedDayCollection.tips}
                   </p>
                 </div>
@@ -419,14 +420,14 @@ const ResidentSchedule = () => {
                   <div className="rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center text-xs text-muted-foreground space-y-1">
                     <CalendarDays className="mx-auto h-5 w-5 text-muted-foreground/60" />
                     <p className="font-semibold text-foreground">No collection schedule</p>
-                    <p className="text-[11px]">No active collection route covers your address on this day.</p>
+                    <p className="text-ui-caption">No active collection route covers your address on this day.</p>
                   </div>
                 )}
 
                 {/* 2. Official Announcement Events on this date */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground">
                       Special Events ({selectedEvents.length})
                     </h3>
                   </div>
@@ -435,7 +436,7 @@ const ResidentSchedule = () => {
                     <div className="rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center text-xs text-muted-foreground space-y-1">
                       <CalendarDays className="mx-auto h-5 w-5 text-muted-foreground/60" />
                       <p className="font-semibold text-foreground">No special events</p>
-                      <p className="text-[11px]">
+                      <p className="text-ui-caption">
                         {selectedDayCollection
                           ? "Your scheduled collection route remains in effect."
                           : "No collection or special event is published for this date."}
@@ -448,15 +449,15 @@ const ResidentSchedule = () => {
                           type="button"
                           key={evt.id}
                           onClick={() => setSelectedEventModal(evt)}
-                          className="group relative w-full rounded-xl border border-border/80 bg-background p-3.5 text-left shadow-2xs hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer space-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="group relative w-full rounded-xl border border-border/80 bg-background p-3.5 text-left shadow-2xs hover:border-primary/30 hover:bg-[var(--button-neutral-hover)] transition-all cursor-pointer space-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <div className="flex items-start gap-2 justify-between">
                             <div className="flex items-start gap-2 min-w-0">
                               <span
                                 className="mt-1 h-2 w-2 shrink-0 rounded-full shadow-2xs group-hover:scale-125 transition-transform"
-                                style={{ backgroundColor: scheduleColorById.get(evt.id) || "hsl(160 72% 52%)" }}
+                                style={{ backgroundColor: scheduleColorById.get(evt.id) || "hsl(var(--chart-1))" }}
                               />
-                              <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                              <h4 className="gw-heading text-xs text-foreground group-hover:text-primary transition-colors leading-snug">
                                 {evt.title}
                               </h4>
                             </div>
@@ -464,7 +465,7 @@ const ResidentSchedule = () => {
                           </div>
 
                           {(evt.start_time || evt.location) && (
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-ui-caption text-muted-foreground pt-1 border-t border-border/40">
                               {evt.start_time && (
                                 <span className="inline-flex items-center gap-1">
                                   <Clock className="w-3 h-3 text-muted-foreground" />
@@ -482,7 +483,7 @@ const ResidentSchedule = () => {
                           )}
 
                           {evt.description && (
-                            <p className="text-[11px] text-muted-foreground/90 line-clamp-2 leading-relaxed">
+                            <p className="text-ui-caption text-muted-foreground/90 line-clamp-2 leading-relaxed">
                               {evt.description}
                             </p>
                           )}
@@ -498,7 +499,7 @@ const ResidentSchedule = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate("/resident/tracking")}
-                    className="w-full h-9 text-xs font-medium justify-between rounded-xl hover:bg-muted/80 hover:border-primary/30 hover:text-primary text-foreground border-border/80 cursor-pointer transition-all"
+                    className="w-full h-9 text-xs font-medium justify-between rounded-xl cursor-pointer transition-all"
                   >
                     <span className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-muted-foreground" />
@@ -511,7 +512,7 @@ const ResidentSchedule = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate("/resident/report")}
-                    className="w-full h-9 text-xs font-medium justify-between rounded-xl hover:bg-muted/80 hover:border-primary/30 hover:text-primary text-foreground border-border/80 cursor-pointer transition-all"
+                    className="w-full h-9 text-xs font-medium justify-between rounded-xl cursor-pointer transition-all"
                   >
                     <span className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-muted-foreground" />
@@ -550,7 +551,7 @@ const ResidentSchedule = () => {
               return (
                 <Card
                   key={day.id}
-                  className={`rounded-2xl border bg-card p-3.5 shadow-2xs transition-all lg:p-5 lg:hover:shadow-md ${
+                  className={`rounded-2xl border bg-card p-3.5 shadow-2xs transition-all lg:p-5 ${
                     day.dayIndex === today.weekdayIndex ? "ring-2 ring-primary/40 border-primary/40" : "border-border/80"
                   }`}
                 >
@@ -562,13 +563,13 @@ const ResidentSchedule = () => {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="text-sm font-bold font-display text-foreground">{day.dayName}</span>
+                        <span className="text-sm font-semibold font-body text-foreground">{day.dayName}</span>
                         {day.dayIndex === today.weekdayIndex && (
-                          <span className="rounded-md border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Today</span>
+                          <span className="rounded-md border border-border/70 bg-muted px-1.5 py-0.5 text-ui-overline font-semibold text-muted-foreground">Today</span>
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${day.badgeClass}`}>
+                        <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-ui-overline font-semibold ${day.badgeClass}`}>
                           <span className={`size-1.5 rounded-full ${day.wasteType === "BIODEGRADABLE" ? "bg-emerald-500" : day.wasteType ? "bg-amber-500" : "bg-sky-500"}`} />
                           {day.title}
                         </span>
@@ -584,22 +585,22 @@ const ResidentSchedule = () => {
 
                   <div className={`${isExpanded ? "block" : "hidden"} space-y-3 border-t border-border/50 pt-3 lg:mt-3 lg:block`}>
                     {day.accepted.length > 0 && <div className="space-y-1.5 text-xs">
-                      <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                      <p className="flex items-center gap-1.5 text-ui-caption font-medium text-foreground">
                         <Check className="size-3.5 text-muted-foreground" /> Examples you can put out:
                       </p>
-                      <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
+                      <ul className="list-disc space-y-1 pl-4 text-ui-caption text-muted-foreground">
                         {day.accepted.map((item) => <li key={item}>{item}</li>)}
                       </ul>
                     </div>}
                     {day.prohibited.length > 0 && <div className="space-y-1.5 border-t border-border/50 pt-2 text-xs">
-                      <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                      <p className="flex items-center gap-1.5 text-ui-caption font-medium text-foreground">
                         <CloseIcon className="size-3.5 text-muted-foreground" /> Items to avoid:
                       </p>
-                      <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
+                      <ul className="list-disc space-y-1 pl-4 text-ui-caption text-muted-foreground">
                         {day.prohibited.map((item) => <li key={item}>{item}</li>)}
                       </ul>
                     </div>}
-                    <div className="border-t border-border/50 pt-2.5 text-[11px] italic text-muted-foreground/90">Tip: {day.tips}</div>
+                    <div className="border-t border-border/50 pt-2.5 text-ui-caption italic text-muted-foreground/90">Tip: {day.tips}</div>
                   </div>
                 </Card>
               );
@@ -644,12 +645,12 @@ const ResidentSchedule = () => {
                   {/* Title, Category & Date Lockup (No container) */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-bold font-display text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
+                      <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
                         {selectedEventModal.title}
                       </h3>
                       <Badge
                         variant="outline"
-                        className={`text-[10px] font-semibold rounded-md px-2 py-0.5 border shrink-0 ${badgeInfo.badgeClass}`}
+                        className={`text-ui-overline font-semibold rounded-md px-2 py-0.5 border shrink-0 ${badgeInfo.badgeClass}`}
                       >
                         {badgeInfo.label}
                       </Badge>

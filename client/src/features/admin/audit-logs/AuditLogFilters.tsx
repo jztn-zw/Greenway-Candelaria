@@ -107,7 +107,7 @@ const AuditLogFilters = ({
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted transition-colors cursor-pointer"
+                className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full transition-colors cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -137,10 +137,10 @@ const AuditLogFilters = ({
                   type="button"
                   aria-pressed={active}
                   onClick={() => handlePresetClick(preset.days)}
-                  className={`h-10 rounded-xl border px-3.5 font-body text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95 ${
+                  className={`h-10 rounded-lg border px-3.5 font-body text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     active
                       ? "border-primary bg-primary text-primary-foreground shadow-xs shadow-primary/25"
-                      : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
                   }`}
                 >
                   {preset.label}
@@ -153,13 +153,9 @@ const AuditLogFilters = ({
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
-                variant="outline"
+                variant={isCustomDateSelected ? "default" : "outline"}
                 size="sm"
-                className={`h-10 rounded-xl px-3.5 font-body text-xs font-semibold transition-colors gap-2 cursor-pointer active:scale-95 ${
-                  isCustomDateSelected
-                    ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-xs shadow-primary/25"
-                    : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                className={`h-10 rounded-xl px-3.5 font-body text-xs font-semibold transition-colors gap-2 cursor-pointer ${isCustomDateSelected ? "shadow-xs" : ""}`}
               >
                 <CalendarIcon className="w-3.5 h-3.5" />
                 <span>
@@ -170,7 +166,7 @@ const AuditLogFilters = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-auto p-0 rounded-2xl shadow-xl border-border/80"
+              className="w-auto p-0 rounded-2xl shadow-md border-border/80"
               align="end"
             >
               <Calendar
@@ -194,7 +190,7 @@ const AuditLogFilters = ({
               variant="ghost"
               size="sm"
               onClick={clearAll}
-              className="h-10 px-3 text-xs text-muted-foreground hover:text-foreground rounded-xl gap-1.5 cursor-pointer hover:bg-muted/60 transition-colors"
+              className="h-10 px-3 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>

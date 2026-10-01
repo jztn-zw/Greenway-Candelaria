@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { readThemeColor } from "@/lib/themeColors";
 import type { ReplayTargetLocation } from "./replayTrip";
 
 type TargetState = "current" | "done" | "skipped";
@@ -11,7 +12,7 @@ export const createReplayTargetIcon = (state: TargetState) => {
   const active = state === "current";
   const width = active ? 38 : 34;
   const height = active ? 50 : 46;
-  const color = state === "skipped" ? "hsl(38, 92%, 50%)" : "hsl(var(--primary))";
+  const color = state === "skipped" ? "hsl(var(--warning))" : "hsl(var(--primary))";
   const glyph = state === "done"
     ? '<path d="m12 18 4 4 8-9"/>'
     : state === "skipped"
@@ -24,8 +25,8 @@ export const createReplayTargetIcon = (state: TargetState) => {
   // Match the live tracking teardrop silhouette. Markup contains only static
   // glyphs; street names and reasons are inserted as text nodes in popups.
   root.innerHTML = `<svg aria-hidden="true" width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;color:${color}">
-    <path d="M 18 1 C 8.6 1 1 8.6 1 18 C 1 29.5 18 47 18 47 C 18 47 35 29.5 35 18 C 35 8.6 27.4 1 18 1 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="18" cy="18" r="11" fill="#ffffff"/>
+    <path d="M 18 1 C 8.6 1 1 8.6 1 18 C 1 29.5 18 47 18 47 C 18 47 35 29.5 35 18 C 35 8.6 27.4 1 18 1 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="18" cy="18" r="11" fill="hsl(var(--map-inset))"/>
     <g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>
   </svg>`;
   if (active) {
@@ -112,8 +113,7 @@ export const createReplayMapRenderer = (map: L.Map, layer: L.LayerGroup, truckIc
   const targets = new Map<string, { marker: L.Marker; state: TargetState }>();
   const readColors = () => {
     const styles = getComputedStyle(document.documentElement);
-    const color = (variable: string, fallback: string) => "hsl(" + (styles.getPropertyValue(variable).trim() || fallback) + ")";
-    return { primary: color("--primary", "145 55% 42%"), muted: color("--muted-foreground", "160 5% 45%"), card: color("--card", "0 0% 100%") };
+    return { primary: readThemeColor("primary", styles), muted: readThemeColor("muted-foreground", styles), card: readThemeColor("card", styles) };
   };
   let colors = readColors();
 

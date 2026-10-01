@@ -208,10 +208,10 @@ export const EventModal: React.FC<EventModalProps> = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-sm sm:text-base font-semibold font-display text-foreground tracking-tight break-words">
+                  <DialogTitle className="gw-heading text-sm sm:text-base text-foreground tracking-tight break-words">
                     {isEditing ? "Edit Schedule Event" : "Create Schedule / Event"}
                   </DialogTitle>
-                  <DialogDescription className="text-[13px] text-muted-foreground leading-relaxed break-words mt-0.5">
+                  <DialogDescription className="text-ui-label text-muted-foreground leading-relaxed break-words mt-0.5">
                     {isEditing
                       ? "Modify this internal MENRO schedule."
                       : "Register a task, meeting, or internal MENRO activity."}
@@ -221,7 +221,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+                className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -232,7 +232,7 @@ export const EventModal: React.FC<EventModalProps> = ({
           <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Title */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className="text-xs font-medium text-foreground">
                 Event Title
               </Label>
               <Input
@@ -247,14 +247,14 @@ export const EventModal: React.FC<EventModalProps> = ({
                 className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs", errors.title ? "border-destructive/70 focus-visible:ring-destructive/25" : "border-border/80 focus-visible:ring-primary/20")}
                 maxLength={255}
               />
-              {errors.title && <p id="event-title-error" className="text-[11px] font-medium text-destructive">{errors.title}</p>}
+              {errors.title && <p id="event-title-error" className="text-ui-caption font-medium text-destructive">{errors.title}</p>}
             </div>
 
             {/* Start and optional end date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Start date dropdown */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className="text-xs font-medium text-foreground">
                   Date
                 </Label>
                 <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -273,7 +273,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                       <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     </FieldButton>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-border/80 shadow-xl" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-border/80 shadow-md" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -294,12 +294,12 @@ export const EventModal: React.FC<EventModalProps> = ({
                     />
                   </PopoverContent>
                 </Popover>
-                {errors.eventDate && <p id="event-date-error" className="text-[11px] font-medium text-destructive">{errors.eventDate}</p>}
+                {errors.eventDate && <p id="event-date-error" className="text-ui-caption font-medium text-destructive">{errors.eventDate}</p>}
               </div>
 
               {/* Optional end date */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className="text-xs font-medium text-foreground">
                   End Date <span className="text-muted-foreground font-normal">(optional)</span>
                 </Label>
                 <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
@@ -339,7 +339,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                       )}
                     </FieldButton>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-border/80 shadow-xl" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-border/80 shadow-md" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedEndDate}
@@ -365,7 +365,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                             setEndDate("");
                             setIsEndDatePickerOpen(false);
                           }}
-                          className="h-7 text-xs px-2.5 text-muted-foreground hover:text-foreground"
+                          className="h-7 text-xs px-2.5"
                         >
                           Clear end date
                         </Button>
@@ -373,13 +373,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                     )}
                   </PopoverContent>
                 </Popover>
-                {errors.endDate && <p id="event-end-date-error" className="text-[11px] font-medium text-destructive">{errors.endDate}</p>}
+                {errors.endDate && <p id="event-end-date-error" className="text-ui-caption font-medium text-destructive">{errors.endDate}</p>}
               </div>
             </div>
 
             {/* Description & Notes */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Description & Notes</Label>
+              <Label className="text-xs font-medium text-foreground">Description & Notes</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -388,7 +388,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 className="text-xs rounded-xl resize-none bg-background border-border/80 shadow-2xs focus-visible:ring-primary/20 min-h-[72px] leading-relaxed"
               />
             </div>
-            {errors.form && <p className="text-[11px] font-medium text-destructive">{errors.form}</p>}
+            {errors.form && <p className="text-ui-caption font-medium text-destructive">{errors.form}</p>}
 
           </div>
 
@@ -398,14 +398,14 @@ export const EventModal: React.FC<EventModalProps> = ({
               type="button"
               variant="outline"
               onClick={handleRequestClose}
-              className="h-9 px-4 rounded-lg text-xs font-medium cursor-pointer border-border/80 bg-background text-foreground hover:bg-muted/60"
+              className="h-9 px-4 rounded-lg text-xs font-medium cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-9 px-5 rounded-lg font-semibold text-xs cursor-pointer shadow-2xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-9 px-5 rounded-lg font-semibold text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {isSubmitting ? "Saving..." : isEditing ? "Save Changes" : "Create Schedule"}

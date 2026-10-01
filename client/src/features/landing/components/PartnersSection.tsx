@@ -20,7 +20,7 @@ const PartnersSection = () => {
           <span className="text-xs font-semibold uppercase tracking-widest text-primary">Trusted Partners & Stakeholders</span>
           <div className="flex flex-wrap justify-center gap-4">
             {partners.map((p) => (
-              <span key={p} className="px-5 py-2.5 rounded-full border bg-card text-sm font-medium hover:border-primary/30 transition-all duration-300">{p}</span>
+              <span key={p} className="px-5 py-2.5 rounded-md border bg-card text-sm font-medium hover:border-primary/30 transition-all duration-300">{p}</span>
             ))}
           </div>
         </div>
@@ -28,12 +28,12 @@ const PartnersSection = () => {
         <div className="bg-forest rounded-2xl p-10 lg:p-14 text-forest-foreground">
           <div className="max-w-3xl mx-auto text-center space-y-6">
             <span className="text-xs font-semibold uppercase tracking-widest opacity-80">By the Numbers</span>
-            <h2 className="text-3xl sm:text-4xl font-bold">GreenWay Is Built on Real Community Impact</h2>
+            <h2 className="gw-heading text-3xl sm:text-4xl ">GreenWay Is Built on Real Community Impact</h2>
           </div>
           <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
             {stats.map((s) => (
               <div key={s.label} className="text-center space-y-1">
-                <div className="text-4xl lg:text-5xl font-bold font-display">{s.value}</div>
+                <div className="gw-stat-value text-4xl lg:text-5xl ">{s.value}</div>
                 <div className="text-sm font-semibold opacity-90">{s.label}</div>
                 <div className="text-xs opacity-70">{s.sub}</div>
               </div>

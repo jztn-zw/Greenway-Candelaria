@@ -188,7 +188,7 @@ const DriverEditorModal = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight truncate">
+                  <DialogTitle className="gw-heading text-base text-foreground tracking-tight truncate">
                     {isEditing ? "Edit Collector Account" : "Add New Collector"}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -201,7 +201,7 @@ const DriverEditorModal = ({
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+                className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -213,7 +213,7 @@ const DriverEditorModal = ({
               {/* Row 1: Full Name & Contact */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                   <Label htmlFor="driver-name" className="text-xs font-semibold text-foreground">
+                   <Label htmlFor="driver-name" className="text-xs font-medium text-foreground">
                     Full Name
                   </Label>
                   <Input
@@ -223,11 +223,11 @@ const DriverEditorModal = ({
                     placeholder="e.g. Roberto Navarro"
                      aria-invalid={Boolean(errors.name)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.name ? "border-destructive" : "border-border/80")}
                    />
-                   {errors.name && <p className="text-[11px] font-medium text-destructive">{errors.name}</p>}
+                   {errors.name && <p className="text-ui-caption font-medium text-destructive">{errors.name}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                   <Label htmlFor="driver-contact" className="text-xs font-semibold text-foreground">
+                   <Label htmlFor="driver-contact" className="text-xs font-medium text-foreground">
                     Contact Number
                   </Label>
                   <Input
@@ -243,13 +243,13 @@ const DriverEditorModal = ({
                     maxLength={11}
                      aria-invalid={Boolean(errors.contact)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.contact ? "border-destructive" : "border-border/80")}
                    />
-                   {errors.contact && <p className="text-[11px] font-medium text-destructive">{errors.contact}</p>}
+                   {errors.contact && <p className="text-ui-caption font-medium text-destructive">{errors.contact}</p>}
                 </div>
               </div>
 
               {/* Row 2: Email Address */}
               <div className="space-y-1.5">
-                <Label htmlFor="driver-email" className="text-xs font-semibold text-foreground">
+                <Label htmlFor="driver-email" className="text-xs font-medium text-foreground">
                   Email Address
                 </Label>
                 <Input
@@ -261,9 +261,9 @@ const DriverEditorModal = ({
                   disabled={isEditing}
                   aria-invalid={Boolean(errors.email)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3 disabled:opacity-60", errors.email ? "border-destructive" : "border-border/80")}
                 />
-                {errors.email && <p className="text-[11px] font-medium text-destructive">{errors.email}</p>}
+                {errors.email && <p className="text-ui-caption font-medium text-destructive">{errors.email}</p>}
                 {isEditing && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-ui-caption text-muted-foreground">
                     Email address cannot be changed once registered.
                   </p>
                 )}
@@ -273,7 +273,7 @@ const DriverEditorModal = ({
               {!isEditing && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="driver-username" className="text-xs font-semibold text-foreground">
+                    <Label htmlFor="driver-username" className="text-xs font-medium text-foreground">
                       Username
                     </Label>
                     <Input
@@ -283,11 +283,11 @@ const DriverEditorModal = ({
                       placeholder="e.g. r.navarro"
                       aria-invalid={Boolean(errors.username)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.username ? "border-destructive" : "border-border/80")}
                     />
-                    {errors.username && <p className="text-[11px] font-medium text-destructive">{errors.username}</p>}
+                    {errors.username && <p className="text-ui-caption font-medium text-destructive">{errors.username}</p>}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="driver-password" className="text-xs font-semibold text-foreground">
+                    <Label htmlFor="driver-password" className="text-xs font-medium text-foreground">
                       Initial Password
                     </Label>
                     <Input
@@ -298,16 +298,16 @@ const DriverEditorModal = ({
                       placeholder="At least 6 characters"
                       aria-invalid={Boolean(errors.password)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.password ? "border-destructive" : "border-border/80")}
                     />
-                    {errors.password && <p className="text-[11px] font-medium text-destructive">{errors.password}</p>}
+                    {errors.password && <p className="text-ui-caption font-medium text-destructive">{errors.password}</p>}
                   </div>
                 </div>
               )}
 
               {/* Row 4: Assigned Truck */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Assigned Truck</Label>
+                <Label className="text-xs font-medium text-foreground">Assigned Truck</Label>
                 {availableTrucks.length === 0 && !isEditing ? (
-                  <p className="text-xs text-muted-foreground bg-muted/20 rounded-xl px-3 py-2.5 border border-border/60">
+                  <p className="text-xs text-muted-foreground bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
                     All operational trucks are currently assigned.
                   </p>
                 ) : (
@@ -321,20 +321,20 @@ const DriverEditorModal = ({
 
             {/* Modal Footer (Pinned / Sticky) */}
             <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
-              {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
+              {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleRequestClose}
                 disabled={isSaving}
-                className="h-9 px-4 rounded-xl text-xs font-semibold border-border/80 cursor-pointer"
+                className="h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-sm gap-1.5"
+                className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer shadow-sm gap-1.5"
               >
                 {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>

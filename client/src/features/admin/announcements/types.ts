@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Community Event" | "Emergency Advisory" | "General Notice" | "System Maintenance";
 export type AnnouncementStatus = "Draft" | "Scheduled" | "Active" | "Archived";
 export type TargetAudience = "All Residents" | "Specific Barangays";
@@ -70,15 +71,15 @@ export const isAnnouncementExpired = (expiryDate?: string | null): boolean => {
 
 export const announcementTypeStyles: Record<AnnouncementType, string> = {
   "Schedule Change":
-    "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("Schedule Change").className,
   "Holiday Reminder":
-    "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("Holiday Reminder").className,
   "Community Event":
-    "bg-background/95 dark:bg-zinc-900/90 text-violet-700 dark:text-violet-300 border-violet-500/40 dark:border-violet-400/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("Community Event").className,
   "Emergency Advisory":
-    "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("Emergency Advisory").className,
   "General Notice":
-    "bg-background/95 dark:bg-zinc-900/90 text-primary dark:text-emerald-400 border-primary/40 dark:border-primary/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("General Notice").className,
   "System Maintenance":
-    "bg-background/95 dark:bg-zinc-900/90 text-sky-700 dark:text-sky-300 border-sky-500/40 dark:border-sky-400/40 backdrop-blur-md shadow-2xs",
+    getCategoryBadgeColors("System Maintenance").className,
 };

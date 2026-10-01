@@ -1,43 +1,54 @@
 /* Shared presentation for web dialogs; dimensions remain with each modal. */
 .gw-modal[data-state] {
-  --muted-foreground: 160 6% 40%;
-  --gw-modal-shadow: 0 24px 64px -20px hsl(160 30% 8% / 0.3), 0 4px 16px -8px hsl(160 30% 8% / 0.16);
+  --gw-modal-shadow: 0 12px 32px -8px hsl(var(--shadow) / 0.18);
   border-color: hsl(var(--border) / 0.8);
-  border-radius: 1rem;
+  border-radius: var(--radius-modal);
   background: hsl(var(--card));
   color: hsl(var(--foreground));
   box-shadow: var(--gw-modal-shadow);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   line-height: 1.6;
   backdrop-filter: none;
 }
 
 .dark .gw-modal {
-  --muted-foreground: 40 8% 68%;
-  --gw-modal-shadow: 0 24px 64px -20px hsl(160 30% 3% / 0.65), 0 4px 16px -8px hsl(160 30% 3% / 0.4);
-  border-color: hsl(150 8% 28% / 0.8);
+  --gw-modal-shadow: 0 12px 32px -8px hsl(var(--shadow) / 0.4);
+  border-color: hsl(var(--border));
 }
 
 .gw-modal-overlay {
-  background: hsl(160 30% 3% / 0.6);
+  background: hsl(var(--overlay) / 0.6);
   backdrop-filter: none;
 }
 
 .dark .gw-modal-overlay {
-  background: hsl(160 30% 3% / 0.7);
+  background: hsl(var(--overlay) / 0.7);
 }
 
 .gw-modal .gw-modal-title {
-  font-family: Poppins, sans-serif;
-  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-title);
   font-weight: 600;
   line-height: 1.5;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--font-tracking-heading);
   color: hsl(var(--foreground));
 }
 
+/* Authentication has a page-level welcome heading within its larger dialog. */
+.gw-modal .gw-auth-title {
+  font-size: var(--font-size-page);
+  line-height: 1.25;
+  letter-spacing: var(--font-tracking-page);
+}
+
+@media (min-width: 640px) {
+  .gw-modal .gw-auth-title {
+    font-size: var(--font-size-page-lg);
+  }
+}
+
 .gw-modal .gw-modal-description {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   line-height: 1.6;
   color: hsl(var(--muted-foreground));
   white-space: normal;
@@ -52,19 +63,9 @@
   border-color: hsl(var(--border) / 0.6);
 }
 
-.gw-modal :is(button, a).inline-flex.border.bg-card {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  border-color: hsl(var(--border) / 0.8);
-}
-
-.gw-modal :is(button, a).inline-flex.border.bg-card:hover {
-  background: hsl(var(--muted) / 0.6);
-}
-
 /* Button dimensions and semantic colors stay specific to their purpose. */
 .gw-modal :is(button, a).inline-flex.items-center.justify-center {
-  border-radius: 0.625rem;
+  border-radius: var(--radius);
   font-weight: 600;
 }
 
@@ -82,7 +83,7 @@
   height: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   color: hsl(var(--muted-foreground));
   background: transparent;
   opacity: 1;
@@ -90,7 +91,7 @@
 
 .gw-modal .gw-modal-close:hover {
   color: hsl(var(--foreground));
-  background: hsl(var(--muted) / 0.7);
+  background: var(--button-neutral-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {

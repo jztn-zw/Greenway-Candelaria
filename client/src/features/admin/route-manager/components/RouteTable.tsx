@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import {
   Table,
@@ -77,25 +78,25 @@ export const RouteTable: React.FC<RouteTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border/80 bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 pl-5">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5 pl-5">
                 Day & Waste Category
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Assigned Truck
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Assigned Driver
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Departure
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5">
                 Collection Sequence
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 text-center">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5 text-center">
                 Status
               </TableHead>
-              <TableHead className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider py-3.5 pr-5 text-right">
+              <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5 pr-5 text-right">
                 Actions
               </TableHead>
             </TableRow>
@@ -104,7 +105,6 @@ export const RouteTable: React.FC<RouteTableProps> = ({
             {routes.map((route) => {
               const truck = getTruck(route.truckId);
               const waste = WASTE_MAP[route.day];
-              const isBio = waste.type === "biodegradable";
               const isToggling = isTogglingId === route.id;
               const isDeleting = isDeletingId === route.id;
 
@@ -124,12 +124,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                         {route.day}
                       </span>
                       <span
-                        className={cn(
-                          "text-[10px] font-semibold px-2 py-0.5 rounded-md border w-fit tracking-wide",
-                          isBio
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                        )}
+                        className={"text-ui-overline font-semibold px-2 py-0.5 rounded-md border w-fit tracking-wide " + getCategoryBadgeColors(waste.label).className}
                       >
                         {waste.label}
                       </span>
@@ -144,7 +139,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                           ? "Loading..."
                           : truck?.name ?? route.truckName}
                       </span>
-                      <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/60 w-fit">
+                      <span className="text-ui-overline tabular-nums font-medium px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/60 w-fit">
                         {isLoadingTrucks
                           ? "..."
                           : truck?.plate_number ?? route.truckPlate}
@@ -171,7 +166,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                   {/* Sequence Preview */}
                   <TableCell className="py-3.5">
                     <div className="flex items-center gap-2 max-w-xs">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted border border-border/60 text-foreground shrink-0 tabular-nums">
+                      <span className="text-ui-overline font-semibold px-2 py-0.5 rounded-md bg-muted border border-border/60 text-foreground shrink-0 tabular-nums">
                         {route.barangays.length} {route.barangays.length === 1 ? "stop" : "stops"}
                       </span>
                       <span
@@ -186,12 +181,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                   {/* Status */}
                   <TableCell className="py-3.5 text-center">
                     <span
-                      className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border",
-                        route.active
-                          ? "bg-primary/10 text-primary border-primary/20"
-                          : "bg-muted text-muted-foreground border-border/70"
-                      )}
+                      className={"inline-flex items-center px-2.5 py-0.5 rounded-md text-ui-overline font-bold tracking-wider uppercase border " + getStatusBadgeStyle(route.active ? "Enabled" : "Paused").className}
                     >
                       {route.active ? "Enabled" : "Paused"}
                     </span>
@@ -208,7 +198,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="w-8 h-8 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="w-8 h-8 rounded-xl cursor-pointer"
                             aria-label="More options"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -247,7 +237,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             <span>Delete</span>
                             {route.active && (
-                              <span className="ml-auto whitespace-nowrap text-[10px] text-muted-foreground font-normal">
+                              <span className="ml-auto whitespace-nowrap text-ui-overline text-muted-foreground font-normal">
                                 Disable first
                               </span>
                             )}

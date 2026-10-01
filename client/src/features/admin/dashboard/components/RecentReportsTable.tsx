@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,31 +16,31 @@ import { formatRelativeTime } from "@/utils/date";
 
 const statusStyles: Record<string, { badge: string; dot: string }> = {
   Pending: {
-    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    dot: "bg-amber-500",
+    badge: getStatusBadgeStyle("Pending").className,
+    dot: getStatusBadgeStyle("Pending").dot,
   },
   "Under Review": {
-    badge: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-    dot: "bg-sky-500",
+    badge: getStatusBadgeStyle("Under Review").className,
+    dot: getStatusBadgeStyle("Under Review").dot,
   },
   Dispatched: {
-    badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-    dot: "bg-purple-500",
+    badge: getStatusBadgeStyle("Dispatched").className,
+    dot: getStatusBadgeStyle("Dispatched").dot,
   },
   Resolved: {
-    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    dot: "bg-emerald-500",
+    badge: getStatusBadgeStyle("Resolved").className,
+    dot: getStatusBadgeStyle("Resolved").dot,
   },
 };
 
 const violationStyles: Record<string, string> = {
-  "Illegal Dumping": "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
-  "Missed Collection": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  "Overflowing Bin": "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  "Improper Segregation": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  "Open Burning": "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  Littering: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  Other: "bg-muted text-muted-foreground border-border/80",
+  "Illegal Dumping": getCategoryBadgeColors("Illegal Dumping").className,
+  "Missed Collection": getCategoryBadgeColors("Missed Collection").className,
+  "Overflowing Bin": getCategoryBadgeColors("Overflowing Bin").className,
+  "Improper Segregation": getCategoryBadgeColors("Improper Segregation").className,
+  "Open Burning": getCategoryBadgeColors("Open Burning").className,
+  Littering: getCategoryBadgeColors("Littering").className,
+  Other: getCategoryBadgeColors("Other").className,
 };
 
 const formatViolationType = (t: string) => {
@@ -93,14 +94,14 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
       <div className="min-w-0">
         {/* Header */}
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
+          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
             Recent Incident Reports
           </h3>
 
           <Button
-            variant="ghost"
+            variant="primary-ghost"
             size="sm"
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
+            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all cursor-pointer"
             onClick={() => navigate("/admin/reports")}
           >
             <span>View All</span>
@@ -114,19 +115,19 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
             <Table className="min-w-[560px]">
               <TableHeader className="bg-muted/30 border-b border-border/60">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
+                  <TableHead className="h-10 text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Ref ID
                   </TableHead>
-                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
+                  <TableHead className="h-10 text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Type
                   </TableHead>
-                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
+                  <TableHead className="h-10 text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Barangay
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
+                  <TableHead className="hidden sm:table-cell h-10 text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4">
                     Time
                   </TableHead>
-                  <TableHead className="h-10 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4 text-right sm:text-left">
+                  <TableHead className="h-10 text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider py-2.5 px-3 sm:px-4 text-right sm:text-left">
                     Status
                   </TableHead>
                 </TableRow>
@@ -157,14 +158,14 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                       >
                         {/* Ref ID */}
                         <TableCell className="py-3.5 px-3 sm:px-4 whitespace-nowrap">
-                          <span className="text-xs font-mono font-medium tabular-nums text-foreground group-hover:text-primary transition-colors">
+                          <span className="text-xs tabular-nums font-medium tabular-nums text-foreground group-hover:text-primary transition-colors">
                             {r.ref}
                           </span>
                         </TableCell>
 
                         {/* Violation Type — Clean formatted badge matching the reports manager */}
                         <TableCell className="py-3.5 px-3 sm:px-4">
-                          <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${violationStyle}`}>
+                          <span className={`inline-flex items-center text-ui-caption font-semibold px-2.5 py-0.5 rounded-md border whitespace-nowrap ${violationStyle}`}>
                             {r.type}
                           </span>
                         </TableCell>
@@ -183,7 +184,7 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
                         <TableCell className="py-3.5 px-3 sm:px-4 text-right sm:text-left">
                           <Badge
                             variant="outline"
-                            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5 whitespace-nowrap ${statusMeta.badge}`}
+                            className={`text-ui-caption font-semibold px-2.5 py-0.5 rounded-md border inline-flex items-center gap-1.5 whitespace-nowrap ${statusMeta.badge}`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
                             <span>{r.status}</span>

@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import type { MyReportRow } from "@/services/reportsService";
 import { parseApiTimestamp } from "@/utils/date";
 import {
@@ -19,25 +20,25 @@ export const REPORT_STATUS_CONFIG: Record<
   submitted: {
     label: "Submitted",
     className:
-      "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25",
+      getStatusBadgeStyle("Submitted").className + " border",
     order: 1,
   },
   "under-review": {
     label: "Under Review",
     className:
-      "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/25",
+      getStatusBadgeStyle("Under Review").className + " border",
     order: 2,
   },
   dispatched: {
     label: "Dispatched",
     className:
-      "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/25",
+      getStatusBadgeStyle("Dispatched").className + " border",
     order: 3,
   },
   resolved: {
     label: "Resolved",
     className:
-      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25",
+      getStatusBadgeStyle("Resolved").className + " border",
     order: 4,
   },
 };

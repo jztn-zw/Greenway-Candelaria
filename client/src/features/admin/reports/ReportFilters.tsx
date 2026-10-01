@@ -68,22 +68,18 @@ const ReportFilters = ({
   onSortByChange,
   dateRange,
   onDateRangeChange,
-  kpis,
-  total = 0,
 }: ReportFiltersProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [modalCalendarOpen, setModalCalendarOpen] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const { data: barangays = [] } = useAdminQuery("barangays", ["locations"], fetchBarangays);
 
-  const totalCount = kpis ? kpis.total : total;
-
-  const STATUS_TABS: { key: string; label: string; count?: number }[] = [
-    { key: "all", label: "All Reports", count: totalCount },
-    { key: "Submitted", label: "Submitted", count: kpis?.submitted },
-    { key: "Under Review", label: "Under Review", count: kpis?.under_review },
-    { key: "Dispatched", label: "Dispatched", count: kpis?.dispatched },
-    { key: "Resolved", label: "Resolved", count: kpis?.resolved },
+  const STATUS_TABS: { key: string; label: string }[] = [
+    { key: "all", label: "All Reports" },
+    { key: "Submitted", label: "Submitted" },
+    { key: "Under Review", label: "Under Review" },
+    { key: "Dispatched", label: "Dispatched" },
+    { key: "Resolved", label: "Resolved" },
   ];
 
   const secondaryFilterCount = [
@@ -113,7 +109,7 @@ const ReportFilters = ({
   return (
     <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
-        {/* Status Pills with count badges (Smooth swipeable snap carousel on mobile) */}
+        {/* Status filters (Smooth swipeable snap carousel on mobile) */}
         <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x snap-x snap-mandatory scroll-smooth overscroll-x-contain">
             {STATUS_TABS.map((tab) => {
@@ -123,26 +119,13 @@ const ReportFilters = ({
                   key={tab.key}
                   type="button"
                   onClick={() => onStatusFilterChange(tab.key)}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 snap-start select-none ${
+                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 snap-start select-none ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
                   }`}
                 >
                   <span>{tab.key === "all" ? "All" : tab.label}</span>
-                  {isActive && tab.count !== undefined && (
-                    <span
-                      className={`inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] ${
-                        tab.count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
-                      } ${
-                        isActive
-                          ? "bg-primary-foreground text-primary"
-                          : "bg-muted text-muted-foreground group-hover:bg-muted/80"
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -163,7 +146,7 @@ const ReportFilters = ({
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer"
+                className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -176,11 +159,8 @@ const ReportFilters = ({
             <Dialog open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
               <DialogTrigger asChild>
                 <Button
-                  variant="outline"
-                  className={cn(
-                    "h-10 px-3 rounded-xl gap-2 text-xs font-semibold border-border/80 bg-card hover:bg-muted/60 active:scale-95 transition-all shadow-2xs",
-                    secondaryFilterCount > 0 && "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  )}
+                  variant={secondaryFilterCount > 0 ? "primary-outline" : "outline"}
+                  className={"h-10 px-3 rounded-xl gap-2 text-xs font-semibold transition-all shadow-2xs"}
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   <span>Filters</span>
@@ -190,18 +170,18 @@ const ReportFilters = ({
                 <DialogHeader className="gw-modal-header text-left pb-3 border-b border-border/60 bg-card">
                   <div className="flex items-center justify-between pr-6">
                     <div>
-                      <DialogTitle className="text-sm font-bold text-foreground font-display flex items-center gap-2">
+                      <DialogTitle className="gw-heading text-sm text-foreground flex items-center gap-2">
                         <SlidersHorizontal className="w-4 h-4 text-primary" />
                         Filter Reports
                       </DialogTitle>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Refine and narrow table records</p>
+                      <p className="text-ui-caption text-muted-foreground mt-0.5">Refine and narrow table records</p>
                     </div>
                     {secondaryFilterCount > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={clearSecondary}
-                        className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground rounded-lg gap-1 hover:bg-muted/60 cursor-pointer"
+                        className="h-7 px-2 text-ui-caption rounded-lg gap-1 cursor-pointer"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Reset</span>
@@ -215,7 +195,7 @@ const ReportFilters = ({
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* Violation Type */}
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Violation</label>
+                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Violation</label>
                       <Select value={violationFilter} onValueChange={onViolationFilterChange}>
                         <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
                           <SelectValue placeholder="All Violations" />
@@ -231,7 +211,7 @@ const ReportFilters = ({
 
                     {/* Barangay */}
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Barangay</label>
+                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Barangay</label>
                       <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
                         options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
                         placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
@@ -242,7 +222,7 @@ const ReportFilters = ({
                   <div className="space-y-1">
                     {/* Sort Order */}
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Sort Order</label>
+                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Sort Order</label>
                       <Select value={sortBy} onValueChange={onSortByChange}>
                         <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
                           <SelectValue placeholder="Sort by" />
@@ -258,15 +238,12 @@ const ReportFilters = ({
 
                   {/* Date Range (Full Width) */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Date Range</label>
+                    <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Date Range</label>
                     <Popover open={modalCalendarOpen} onOpenChange={setModalCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
-                          className={cn(
-                            "h-9 w-full justify-start gap-2 rounded-xl border-border/80 bg-card font-body text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                            dateRange.from && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-                          )}
+                          variant={dateRange.from ? "default" : "outline"}
+                          className={"h-9 w-full justify-start gap-2 rounded-xl font-body text-xs font-semibold transition-colors"}
                         >
                           <CalendarIcon className="w-3.5 h-3.5" />
                           <span>
@@ -276,7 +253,7 @@ const ReportFilters = ({
                           </span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-border/80 z-[60]" align="center" side="top">
+                      <PopoverContent className="w-auto p-0 rounded-2xl shadow-md border-border/80 z-[60]" align="center" side="top">
                         <Calendar
                           mode="range"
                           selected={dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined}
@@ -309,7 +286,7 @@ const ReportFilters = ({
 
       {/* ── Secondary Filter Strip (Visible only on XL desktop where all fit in 1 single line) ── */}
       <div className="hidden xl:flex items-center gap-2 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-        <div className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+        <div className="mr-1 inline-flex items-center gap-1.5 text-ui-caption font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filters
         </div>
@@ -339,13 +316,9 @@ const ReportFilters = ({
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
-                variant="outline"
+                variant={dateRange.from ? "default" : "outline"}
                 size="sm"
-                className={`h-9 rounded-xl gap-1.5 cursor-pointer font-body text-xs font-semibold transition-colors ${
-                  dateRange.from
-                    ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-xs shadow-primary/25"
-                    : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                className={`h-9 rounded-xl gap-1.5 cursor-pointer font-body text-xs font-semibold transition-colors ${dateRange.from ? "shadow-xs" : ""}`}
               >
                 <CalendarIcon className="w-3.5 h-3.5" />
                 <span>
@@ -357,7 +330,7 @@ const ReportFilters = ({
                 </span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border/80" align="start">
+            <PopoverContent className="w-auto p-0 rounded-2xl shadow-md border-border/80" align="start">
               <Calendar
                 mode="range"
                 selected={
@@ -378,7 +351,7 @@ const ReportFilters = ({
             variant="ghost"
             size="sm"
             onClick={clearAll}
-            className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
+            className="h-9 px-2.5 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Clear all</span>

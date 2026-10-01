@@ -92,12 +92,12 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
       {/* ── Street Selector Box ── */}
       <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 space-y-3 shadow-2xs">
         <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+          <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-primary" />
             Pick Barangay & Add Streets
           </Label>
           {selectedBarangay && (
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-ui-caption font-medium text-muted-foreground">
               {availableStopPoints.length} available to add
             </span>
           )}
@@ -106,7 +106,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
         <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           {/* Barangay Dropdown */}
           <div className="grid grid-rows-[1.25rem_auto] gap-1">
-            <span className="flex h-5 items-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="flex h-5 items-center text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
               Barangay
             </span>
             <SearchableSelect
@@ -127,16 +127,16 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
           {/* Available Streets Selector */}
           <div className="grid grid-rows-[1.25rem_auto] gap-1">
             <div className="flex h-5 items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
                 Available Streets
               </span>
               {filteredAvailable.length > 0 && isCollectionAvailable && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="primary-ghost"
                   size="sm"
                   onClick={handleAddAll}
-                  className="h-5 px-1.5 text-[11px] font-bold text-primary hover:text-primary hover:bg-primary/10 rounded cursor-pointer"
+                  className="h-5 px-1.5 text-ui-caption font-semibold rounded cursor-pointer"
                   title="Add all listed streets to route"
                 >
                   + Add All ({filteredAvailable.length})
@@ -206,15 +206,15 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                             variant="outline"
                             size="sm"
                             onClick={() => onAdd(point)}
-                            className="h-7 gap-1 rounded-lg border-border/70 bg-card px-2.5 text-[11px] font-medium hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all cursor-pointer"
+                            className="h-7 gap-1 rounded-lg px-2.5 text-ui-caption font-medium transition-all cursor-pointer"
                             title={hasCoveragePath
                               ? `Add ${label} to route`
                               : `${label} needs a coverage path in Barangay Manager`}
                           >
-                            <Plus className="h-3 w-3 text-emerald-500" />
+                            <Plus className="h-3 w-3 text-success-foreground" />
                             <span>{label}</span>
                             {!hasCoveragePath && (
-                              <AlertTriangle className="h-3 w-3 text-amber-500" aria-label="Coverage path missing" />
+                              <AlertTriangle className="h-3 w-3 text-warning-foreground" aria-label="Coverage path missing" />
                             )}
                           </Button>
                         );
@@ -232,11 +232,11 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2">
-            <Label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+            <Label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
               <Layers className="w-3.5 h-3.5 text-primary" />
               Route Stop Sequence
             </Label>
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-primary">
+            <span className="rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-ui-caption font-semibold tabular-nums text-primary">
               {form.barangays.length} {form.barangays.length === 1 ? "stop" : "stops"}
             </span>
           </div>
@@ -244,10 +244,10 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
           {form.barangays.length > 0 && onClearAll && (
             <Button
               type="button"
-              variant="ghost"
+              variant="destructive-ghost"
               size="sm"
               onClick={onClearAll}
-              className="h-6 px-2 text-[11px] text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+              className="h-6 px-2 text-ui-caption rounded-lg cursor-pointer"
             >
               <Trash2 className="w-3 h-3 mr-1" />
               Clear Stops
@@ -255,7 +255,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
           )}
         </div>
 
-        {error && <p className="text-[11px] font-medium text-destructive px-1">{error}</p>}
+        {error && <p className="text-ui-caption font-medium text-destructive px-1">{error}</p>}
 
         <div
           className={cn(
@@ -271,7 +271,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
               <p className="text-xs font-bold text-foreground">
                 No collection stops added yet
               </p>
-              <p className="mx-auto max-w-xs text-[11px] leading-relaxed text-muted-foreground">
+              <p className="mx-auto max-w-xs text-ui-caption leading-relaxed text-muted-foreground">
                 Select a barangay above to pick and add streets in their intended collection sequence.
               </p>
             </div>
@@ -306,7 +306,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
 
                   {/* Order Number Badge */}
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-                    <span className="text-[11px] font-black tabular-nums">
+                    <span className="text-ui-caption font-semibold tabular-nums">
                       {index + 1}
                     </span>
                   </div>
@@ -317,7 +317,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       {stop.name}
                     </span>
                     {barangayName && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60 shrink-0 hidden sm:inline-block">
+                      <span className="text-ui-overline px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60 shrink-0 hidden sm:inline-block">
                         {barangayName}
                       </span>
                     )}
@@ -325,12 +325,12 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
 
                   {stop.coveragePath && stop.coveragePath.length >= 2 ? (
                     <CheckCircle2
-                      className="h-3.5 w-3.5 shrink-0 text-emerald-500"
+                      className="h-3.5 w-3.5 shrink-0 text-success-foreground"
                       aria-label="Coverage path saved"
                     />
                   ) : (
                     <AlertTriangle
-                      className="h-3.5 w-3.5 shrink-0 text-amber-500"
+                      className="h-3.5 w-3.5 shrink-0 text-warning-foreground"
                       aria-label="Coverage path missing"
                     />
                   )}
@@ -343,7 +343,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       size="icon"
                       onClick={() => onMove(index, "up")}
                       disabled={index === 0}
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer disabled:opacity-20"
+                      className="h-7 w-7 rounded-lg cursor-pointer disabled:opacity-20"
                       title="Move up"
                     >
                       <ChevronUp className="h-3.5 w-3.5" />
@@ -354,17 +354,17 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       size="icon"
                       onClick={() => onMove(index, "down")}
                       disabled={index === form.barangays.length - 1}
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer disabled:opacity-20"
+                      className="h-7 w-7 rounded-lg cursor-pointer disabled:opacity-20"
                       title="Move down"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive-ghost"
                       size="icon"
                       onClick={() => onRemove(stop.id)}
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer ml-1"
+                      className="h-7 w-7 rounded-lg cursor-pointer ml-1"
                       title="Remove stop"
                     >
                       <X className="h-3.5 w-3.5" />

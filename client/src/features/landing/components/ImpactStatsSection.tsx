@@ -85,17 +85,17 @@ const StatCard = ({
   return (
     <div
       ref={ref}
-      className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 flex flex-col items-center text-center border border-white/10 hover:bg-white/15 transition-colors duration-300"
+      className="p-4 sm:p-5 flex flex-col items-center text-center"
     >
-      <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-full bg-white/90 flex items-center justify-center mb-2 sm:mb-4 shadow-lg shadow-black/10">
-        <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-[hsl(var(--forest))]" />
+      <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 text-white/80 flex items-center justify-center mb-2 sm:mb-4">
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white/80" />
       </div>
-      <p className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white font-display tabular-nums">
+      <p className="gw-stat-value text-2xl sm:text-3xl lg:text-4xl text-white tabular-nums">
         {isNumeric ? formatNumber(count) : value}
         {isNumeric ? suffix : ""}
       </p>
       <p className="text-xs sm:text-sm lg:text-base font-medium text-white mt-1 sm:mt-2">{label}</p>
-      <p className="text-[11px] sm:text-xs lg:text-sm text-white/60 mt-0.5 sm:mt-1">{sub}</p>
+      <p className="text-ui-caption sm:text-xs lg:text-sm text-white/60 mt-0.5 sm:mt-1">{sub}</p>
     </div>
   );
 };
@@ -111,9 +111,7 @@ const ImpactStatsSection = ({ content = CONTENT.statistics }: ImpactStatsSection
   return (
     <section id="statistics" className="py-10 sm:py-16 lg:py-20">
       <div className="container">
-        <div className="bg-gradient-to-br from-[hsl(var(--forest))] via-[hsl(var(--accent))] to-[hsl(var(--canopy))] rounded-2xl sm:rounded-3xl p-6 sm:p-10 lg:p-14 text-forest-foreground relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none hidden sm:block" />
-          <div className="absolute bottom-0 left-10 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 pointer-events-none hidden sm:block" />
+        <div className="bg-forest rounded-2xl p-5 sm:p-8 lg:p-10 text-forest-foreground relative overflow-hidden">
 
           <div className="max-w-3xl mx-auto text-center space-y-3 sm:space-y-6 relative">
             <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest opacity-80">
@@ -121,7 +119,7 @@ const ImpactStatsSection = ({ content = CONTENT.statistics }: ImpactStatsSection
               {content.sectionLabel}
               <span className="w-8 h-px bg-white/40" />
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold whitespace-pre-line">{content.heading}</h2>
+            <h2 className="gw-heading text-2xl sm:text-3xl lg:text-4xl whitespace-pre-line">{content.heading}</h2>
           </div>
           <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mt-6 sm:mt-10 relative">
             {content.stats.map((stat, index) => (

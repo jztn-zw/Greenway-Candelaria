@@ -47,27 +47,15 @@ export function SegmentedControl<T extends string = string>({
             aria-pressed={isActive}
             onClick={() => onChange(optKey)}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg font-semibold transition-all cursor-pointer select-none active:scale-95",
-              size === "sm" ? "h-7 px-2.5 text-[11px]" : "h-8 px-3 text-xs",
+              "flex items-center gap-1.5 rounded-lg font-semibold transition-all cursor-pointer select-none ",
+              size === "sm" ? "h-7 px-2.5 text-ui-caption" : "h-8 px-3 text-xs",
               isActive
                 ? "bg-card text-foreground shadow-2xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                : "gw-action-ghost "
             )}
           >
             {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
             <span>{opt.label}</span>
-            {opt.badge !== undefined && (
-              <span
-                className={cn(
-                  "ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold",
-                  isActive
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted-foreground/15 text-muted-foreground"
-                )}
-              >
-                {opt.badge}
-              </span>
-            )}
           </button>
         );
       })}

@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Post, statusStyles, categoryStyles } from "./types";
 import PostImagePlaceholder from "./PostImagePlaceholder";
+import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 
 interface AdminPostDetailProps {
   post: Post;
@@ -80,26 +82,16 @@ const AdminPostDetail = ({
     >
       {/* ── Main Post Article ── */}
       <article className="space-y-6">
-        {/* ── 1080 × 566 Responsive Landscape Image Container with Blurred Backdrop ── */}
-        <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-black/40 border border-border/40 flex items-center justify-center">
+        <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-muted/30 border border-border/40 flex items-center justify-center">
           {currentImage && !imageFailed ? (
             <>
-              {/* Blurred background */}
-              <img
-                key={`bg-${activeImageIndex}`}
-                src={currentImage}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-60 dark:opacity-40 select-none pointer-events-none transition-all duration-700 ease-in-out"
-              />
-              <div className="absolute inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-[2px] pointer-events-none" />
-
+              <PostImageBackdrop src={currentImage} />
               {/* Crisp original image centered */}
               <img
                 key={`img-${activeImageIndex}`}
                 src={currentImage}
                 alt={post.title}
-                className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-md transition-all duration-700 ease-in-out"
+                className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-700 ease-in-out"
                 onError={() => setImageFailed(true)}
               />
             </>
@@ -114,7 +106,7 @@ const AdminPostDetail = ({
           {/* Top-left Content Category Badge */}
           <div className="absolute top-4 left-4 z-20 pointer-events-none">
             <span
-              className={`inline-flex items-center text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border shadow-sm backdrop-blur-md ${categoryStyles[post.category] || "bg-background/95 text-foreground border-border"}`}
+              className={`inline-flex items-center text-ui-caption font-bold uppercase tracking-wider px-3 py-1 rounded-md border shadow-sm backdrop-blur-md ${categoryStyles[post.category] || "bg-background/95 text-foreground border-border"}`}
             >
               {post.category}
             </span>
@@ -125,7 +117,7 @@ const AdminPostDetail = ({
             <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-none">
               <Badge
                 variant="outline"
-                className={`text-xs font-semibold px-3 py-1 border shadow-xs rounded-full backdrop-blur-md pointer-events-none ${statusStyles[post.status] || "bg-background/95 text-foreground border-border"}`}
+                className={`text-xs font-semibold px-3 py-1 border shadow-xs rounded-md backdrop-blur-md pointer-events-none ${statusStyles[post.status] || "bg-background/95 text-foreground border-border"}`}
               >
                 {post.status}
               </Badge>
@@ -133,7 +125,7 @@ const AdminPostDetail = ({
               {post.featured && (
                 <Badge
                   variant="outline"
-                  className="text-xs font-semibold bg-amber-500/90 text-white border-amber-400/50 shadow-xs gap-1 px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none"
+                  className={"text-xs font-semibold shadow-xs gap-1 px-2.5 py-1 rounded-md pointer-events-none " + getCategoryBadgeColors("Featured").className}
                 >
                   <Star className="w-3.5 h-3.5 fill-white" /> Featured
                 </Badge>
@@ -143,7 +135,7 @@ const AdminPostDetail = ({
 
           {/* Multi-image index indicator */}
           {validImages.length > 1 && (
-            <div className="absolute bottom-4 right-4 z-20 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-semibold text-white/90 border border-white/10">
+            <div className="absolute bottom-4 right-4 z-20 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white/90 border border-white/10">
               {activeImageIndex + 1} / {validImages.length}
             </div>
           )}
@@ -162,7 +154,7 @@ const AdminPostDetail = ({
                   className={`relative w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs ${
                     isActive
                       ? "border-primary ring-2 ring-primary/40 opacity-100 shadow-sm"
-                      : "border-border/60 opacity-60 hover:opacity-100 hover:border-primary/50"
+                      : "gw-action-ghost opacity-60 hover:opacity-100"
                   }`}
                 >
                   <img
@@ -179,7 +171,7 @@ const AdminPostDetail = ({
         {/* ── Post Header Info with 3-dots Action Dropdown ── */}
         <div className="space-y-3 pt-1">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-tight leading-tight flex-1">
+            <h1 className="gw-page-title sm:text-ui-page-lg md:text-4xl text-foreground tracking-tight leading-tight flex-1">
               {post.title}
             </h1>
 
@@ -190,7 +182,7 @@ const AdminPostDetail = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0 mt-1"
+                    className="h-9 w-9 p-0 rounded-xl cursor-pointer shrink-0 mt-1"
                     aria-label="Post actions"
                   >
                     <MoreVertical className="w-5 h-5" />

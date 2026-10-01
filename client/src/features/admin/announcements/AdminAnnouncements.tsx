@@ -90,7 +90,6 @@ const AdminAnnouncements = () => {
     resendToUnread,
     totalItems,
     totalPages,
-    statusCounts,
     metrics,
   } = useAnnouncements({
     page: currentPage,
@@ -204,7 +203,7 @@ const AdminAnnouncements = () => {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Announcements
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -213,7 +212,7 @@ const AdminAnnouncements = () => {
         </div>
         <Button
           onClick={() => openEditor()}
-          className="h-11 px-5 rounded-xl font-semibold text-xs gap-2 shadow-xs cursor-pointer active:scale-95 shrink-0"
+          className="h-11 px-5 rounded-xl font-semibold text-xs gap-2 shadow-xs cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Create Announcement</span>
@@ -229,7 +228,6 @@ const AdminAnnouncements = () => {
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x">
             {STATUS_TABS.map((tab) => {
-              const count = statusCounts[tab.key] || 0;
               const isActive = statusFilter === tab.key;
               return (
                 <button
@@ -239,26 +237,13 @@ const AdminAnnouncements = () => {
                     setStatusFilter(tab.key);
                     setCurrentPage(1);
                   }}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 ${
+                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 ${
                     isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
+                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
                   }`}
                 >
                   <span>{tab.label}</span>
-                  {isActive && (
-                  <span
-                    className={`inline-flex items-center justify-center rounded-full leading-none font-bold text-[10px] transition-colors ${
-                      count > 9 ? "h-5 min-w-5 px-1.5" : "w-5 h-5"
-                    } ${
-                      isActive
-                        ? "bg-primary-foreground text-primary"
-                        : "bg-muted text-muted-foreground group-hover:bg-muted/80"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                  )}
                 </button>
               );
             })}
@@ -283,7 +268,7 @@ const AdminAnnouncements = () => {
                   setSearch("");
                   setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded cursor-pointer"
+                className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -294,7 +279,7 @@ const AdminAnnouncements = () => {
 
         {/* Tier 2: Secondary Filter Strip */}
         <div className="flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="mr-1 inline-flex items-center gap-1.5 text-ui-caption font-semibold uppercase tracking-wider text-muted-foreground">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span>Filters</span>
           </div>
@@ -327,7 +312,7 @@ const AdminAnnouncements = () => {
               variant="ghost"
               size="sm"
               onClick={handleClearAllFilters}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="h-9 px-2.5 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Clear all</span>
@@ -359,10 +344,10 @@ const AdminAnnouncements = () => {
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
+                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
                   viewMode === "grid"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    : "gw-action-ghost "
                 }`}
                 title="Grid View"
               >
@@ -371,10 +356,10 @@ const AdminAnnouncements = () => {
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none active:scale-95 border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
+                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
                   viewMode === "list"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    : "gw-action-ghost "
                 }`}
                 title="Table View"
               >
@@ -400,7 +385,7 @@ const AdminAnnouncements = () => {
             <Megaphone className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold font-display text-foreground">
+            <h3 className="gw-heading text-base text-foreground">
               No announcements found
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -411,7 +396,7 @@ const AdminAnnouncements = () => {
           </div>
           <Button
             onClick={() => openEditor()}
-            className="h-10 px-4 rounded-xl text-xs font-semibold gap-2 shadow-xs cursor-pointer active:scale-95"
+            className="h-10 px-4 rounded-xl text-xs font-semibold gap-2 shadow-xs cursor-pointer "
           >
             <Plus className="w-4 h-4" />
             <span>Create Announcement</span>

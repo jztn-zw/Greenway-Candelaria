@@ -88,7 +88,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   <ViolationIcon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground">Violation Type</p>
+                  <p className="text-ui-caption font-medium text-muted-foreground">Violation Type</p>
                   <p className="text-xs lg:text-sm font-bold text-foreground truncate">
                     {violation ? violation.label : "General Waste Issue"}
                   </p>
@@ -103,7 +103,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground">Incident Location</p>
+                  <p className="text-ui-caption font-medium text-muted-foreground">Incident Location</p>
                   <p className="text-xs lg:text-sm font-bold text-foreground">
                     Brgy. {form.barangayName || "Candelaria"}
                   </p>
@@ -116,7 +116,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               </div>
 
               {form.pinLocation && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-muted border border-border/70 px-2 py-0.5 rounded-full shrink-0">
+                <span className="inline-flex items-center gap-1 text-ui-overline font-semibold text-muted-foreground bg-muted border border-border/70 px-2 py-0.5 rounded-md shrink-0">
                   <Navigation className="w-2.5 h-2.5" /> Pinned
                 </span>
               )}
@@ -146,7 +146,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   <Camera className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="font-semibold text-foreground">Attached Photo Evidence</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border/70">
+                <span className="px-2 py-0.5 rounded-md text-ui-overline font-bold bg-muted text-muted-foreground border border-border/70">
                   {form.photos.length} Photo{form.photos.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -160,7 +160,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                     <img
                       src={recoveredPreviewsRef.current[photo.id] || photo.preview}
                       alt={`Evidence photo ${idx + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-200 "
                       onError={() => recoverPreview(photo)}
                     />
                     <span className="absolute bottom-1 right-1 text-[9px] font-bold text-white/95 drop-shadow-sm bg-black/65 px-1.5 py-0.5 rounded-md leading-none backdrop-blur-xs">
@@ -173,7 +173,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           )}
 
           {/* MENRO Dispatch Reassurance Banner */}
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-md bg-muted/30 border border-border/70 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-md bg-muted/30 border border-border/70 text-ui-caption text-muted-foreground">
             <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
             <span>Submitted reports are logged and immediately forwarded to MENRO Candelaria officers.</span>
           </div>

@@ -56,10 +56,10 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
     >
       {/* Header */}
       <div className="pb-3.5 mb-3.5 border-b border-border/60 shrink-0">
-        <h3 className="text-sm sm:text-base font-bold text-foreground font-display">
+        <h3 className="gw-heading text-sm sm:text-base text-foreground ">
           {formattedDate}
         </h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5">
+        <p className="text-ui-caption text-muted-foreground mt-0.5">
           {isLoading ? "Loading internal events…" : error ? "Schedule unavailable" : `${events.length} internal event${events.length === 1 ? "" : "s"} on this date`}
         </p>
       </div>
@@ -75,7 +75,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
             </div>
             <div className="space-y-0.5">
               <p className="text-xs font-bold text-foreground">No internal events scheduled</p>
-              <p className="text-[11px] text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
+              <p className="text-ui-caption text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
                 {onEditEvent
                   ? 'Click "New Internal Schedule" above to add an event for admin and collectors.'
                   : "Admin has not added an internal event for this date."}
@@ -94,8 +94,8 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: scheduleColorById.get(evt.id) || "hsl(160 72% 52%)" }} />
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-tight break-words">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: scheduleColorById.get(evt.id) || "hsl(var(--chart-1))" }} />
+                      <h4 className="gw-heading text-xs sm:text-sm text-foreground leading-tight break-words">
                         {evt.title}
                       </h4>
                   </div>
@@ -103,7 +103,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                   {onEditEvent && onDeleteEvent && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button type="button" className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors" title="Schedule actions">
+                        <button type="button" className="gw-action-ghost w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors" title="Schedule actions">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </DropdownMenuTrigger>
@@ -116,12 +116,12 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                 </div>
 
                 {evt.description && (
-                  <p className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
+                  <p className="text-ui-caption text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                     {evt.description}
                   </p>
                 )}
 
-                <div className="flex text-[10px] text-muted-foreground pt-2 border-t border-border/40">
+                <div className="flex text-ui-overline text-muted-foreground pt-2 border-t border-border/40">
                   <span>{dateRange}</span>
                 </div>
               </div>

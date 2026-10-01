@@ -89,7 +89,7 @@ const DashboardPostCarousel = () => {
 
   return (
     <Card
-      className="group h-full border border-border overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between rounded-2xl"
+      className="group h-full border border-border overflow-hidden transition-shadow cursor-pointer flex flex-col justify-between rounded-2xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onClick={() => navigate(`/resident/contents?post=${post.id}`)}
@@ -126,7 +126,7 @@ const DashboardPostCarousel = () => {
                   key={`${post.id}-img`}
                   src={image}
                   alt={post.title}
-                  className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-md group-hover:scale-105 transition-transform duration-500"
+                  className="relative z-10 max-w-full max-h-full object-contain object-center transition-transform duration-500"
                   onError={() => setImgFailed(true)}
                 />
               </>
@@ -139,11 +139,11 @@ const DashboardPostCarousel = () => {
           <div className="flex flex-col justify-between flex-1 min-w-0 w-full">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                <p className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider truncate">
                   Community Update
                 </p>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                  className={`px-2 py-0.5 rounded-md text-ui-overline font-bold border shrink-0 ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                 >
                   {categoryLabel}
                 </span>
@@ -168,7 +168,7 @@ const DashboardPostCarousel = () => {
                     type="button"
                     aria-label="Previous"
                     onClick={() => goTo(activeIndex - 1)}
-                    className="w-5 h-5 rounded-full flex items-center justify-center border border-border/70 hover:bg-primary/10 hover:border-primary/40 hover:text-primary text-muted-foreground transition-all cursor-pointer"
+                    className="gw-action-ghost w-5 h-5 rounded-full flex items-center justify-center border transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-3 h-3" />
                   </button>
@@ -193,7 +193,7 @@ const DashboardPostCarousel = () => {
                     type="button"
                     aria-label="Next"
                     onClick={() => goTo(activeIndex + 1)}
-                    className="w-5 h-5 rounded-full flex items-center justify-center border border-border/70 hover:bg-primary/10 hover:border-primary/40 hover:text-primary text-muted-foreground transition-all cursor-pointer"
+                    className="gw-action-ghost w-5 h-5 rounded-full flex items-center justify-center border transition-all cursor-pointer"
                   >
                     <ChevronRight className="w-3 h-3" />
                   </button>

@@ -371,10 +371,10 @@ const AdminRouteManager: React.FC = () => {
             <AlertCircle className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-base font-bold font-display text-foreground">Routes could not be loaded</h2>
+            <h2 className="gw-heading text-base text-foreground">Routes could not be loaded</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">{error}</p>
           </div>
-          <Button onClick={() => void loadRoutes()} className="h-9 rounded-xl text-xs font-bold">
+          <Button onClick={() => void loadRoutes()} className="h-9 rounded-xl text-xs font-semibold">
             Try Again
           </Button>
         </div>
@@ -387,7 +387,7 @@ const AdminRouteManager: React.FC = () => {
       {/* ── Page Header (Unboxed Canvas) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Route Manager
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -397,7 +397,7 @@ const AdminRouteManager: React.FC = () => {
 
         <Button
           onClick={startCreate}
-          className="gap-2 h-10 px-5 rounded-xl font-bold shadow-sm self-start sm:self-auto cursor-pointer"
+          className="gap-2 h-10 px-5 rounded-xl font-semibold shadow-sm self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Create New Route</span>
@@ -466,7 +466,7 @@ const AdminRouteManager: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0 gap-1.5 cursor-pointer active:scale-95 transition-all hover:bg-muted/50"
+                className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
                 title="Reset active filters"
               >
                 <RotateCcw className="w-3.5 h-3.5" />

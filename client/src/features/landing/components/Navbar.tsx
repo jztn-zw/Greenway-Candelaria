@@ -60,7 +60,7 @@ const Navbar = () => {
           : "bg-background/80 backdrop-blur border-b border-transparent"
       }`}>
         <div className="container flex items-center justify-between h-16">
-          <a href="#" className="flex items-center gap-2 font-display text-xl font-bold text-primary">
+          <a href="#" className="font-display font-semibold tracking-tight flex items-center gap-2 text-xl text-primary">
             <img src="/greenway.svg" alt="GreenWay Logo" className="w-8 h-8" />
             GreenWay
           </a>
@@ -80,7 +80,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-secondary transition-colors relative w-8 h-8 flex items-center justify-center overflow-hidden"
+              className="gw-action-ghost p-2 rounded-md transition-colors relative w-8 h-8 flex items-center justify-center overflow-hidden"
             >
               <Sun
                 className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${

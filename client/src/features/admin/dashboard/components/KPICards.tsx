@@ -40,7 +40,7 @@ const KPISegment = ({
       <div className="flex items-center min-h-[22px]">
         <span
           className={cn(
-            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+            "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
             tag
           )}
         >
@@ -48,16 +48,16 @@ const KPISegment = ({
         </span>
       </div>
 
-      <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+      <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
         {animated.toLocaleString()}
         {suffix}
       </div>
 
-      <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
+      <div className="text-ui-caption text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
         {trend && (
           <span
             className={cn(
-              "inline-flex items-center font-bold text-[10px] px-1.5 py-0.5 rounded-md",
+              "inline-flex items-center font-bold text-ui-overline px-1.5 py-0.5 rounded-md",
               trend.up
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                 : "bg-destructive/10 text-destructive"

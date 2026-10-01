@@ -35,7 +35,7 @@ const RouteHeader = ({
             <Route className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground font-display">Route Manager</h1>
+            <h1 className="gw-page-title tracking-tight text-foreground ">Route Manager</h1>
             <p className="text-sm text-muted-foreground">Build and manage collection routes for each truck</p>
           </div>
         </div>
@@ -54,7 +54,7 @@ const RouteHeader = ({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className="text-xl leading-tight font-bold text-foreground">{kpi.value}</p>
+                <p className="gw-stat-value text-xl leading-tight text-foreground">{kpi.value}</p>
               </div>
             </CardContent>
           </Card>

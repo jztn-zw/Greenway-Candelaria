@@ -2,8 +2,25 @@ import type { Config } from "tailwindcss";
 import tailwindAnimate from "tailwindcss-animate";
 import typography from "@tailwindcss/typography";
 
+// Legacy utility names share the global palette; colors are edited in index.css.
+const colorScale = (name: string) => Object.fromEntries(
+  [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+    .map((shade) => [shade, `hsl(var(--${name}-${shade}) / <alpha-value>)`]),
+);
+
+const badgeColors = Object.fromEntries(
+  ["primary", "success", "warning", "info", "violet", "error", "neutral"].map((name) => [name, {
+    DEFAULT: `var(--badge-${name}-background)`,
+    foreground: `var(--badge-${name}-foreground)`,
+    border: `var(--badge-${name}-border)`,
+  }]),
+);
+
 export default {
   darkMode: ["class"],
+  safelist: Object.keys(badgeColors).flatMap((name) => [
+    `bg-badge-${name}`, `text-badge-${name}-foreground`, `border-badge-${name}-border`,
+  ]),
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -21,12 +38,55 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Poppins"', "sans-serif"],
-        body: ['"Inter"', "sans-serif"],
+        sans: ["var(--font-ui)"],
+        display: ["var(--font-heading)"],
+        body: ["var(--font-ui)"],
+      },
+      fontSize: {
+        "ui-overline": ["var(--font-size-overline)", { lineHeight: "1.4" }],
+        "ui-caption": ["var(--font-size-caption)", { lineHeight: "1.5" }],
+        "ui-label": ["var(--font-size-label)", { lineHeight: "1.5" }],
+        "ui-body": ["var(--font-size-body)", { lineHeight: "1.5" }],
+        "ui-title": ["var(--font-size-title)", { lineHeight: "1.375" }],
+        "ui-page": ["var(--font-size-page)", { lineHeight: "1.25" }],
+        "ui-page-lg": ["var(--font-size-page-lg)", { lineHeight: "1.25" }],
       },
       colors: {
+        badge: badgeColors,
+        brand: colorScale("brand"),
+        emerald: colorScale("success"),
+        green: colorScale("success"),
+        lime: colorScale("success"),
+        teal: colorScale("brand"),
+        amber: colorScale("warning"),
+        orange: colorScale("warning"),
+        yellow: colorScale("warning"),
+        red: colorScale("error"),
+        rose: colorScale("error"),
+        blue: colorScale("info"),
+        sky: colorScale("info"),
+        cyan: colorScale("info"),
+        violet: colorScale("violet"),
+        purple: colorScale("violet"),
+        indigo: colorScale("violet"),
+        fuchsia: colorScale("violet"),
+        pink: colorScale("error"),
+        slate: colorScale("neutral"),
+        gray: colorScale("neutral"),
+        zinc: colorScale("neutral"),
+        neutral: colorScale("neutral"),
+        stone: colorScale("neutral"),
+        highlight: "hsl(var(--highlight) / <alpha-value>)",
+        success: { ...colorScale("success"), DEFAULT: "hsl(var(--success) / <alpha-value>)", foreground: "hsl(var(--success-foreground) / <alpha-value>)" },
+        warning: { ...colorScale("warning"), DEFAULT: "hsl(var(--warning) / <alpha-value>)", foreground: "hsl(var(--warning-foreground) / <alpha-value>)" },
+        info: { ...colorScale("info"), DEFAULT: "hsl(var(--info) / <alpha-value>)", foreground: "hsl(var(--info-foreground) / <alpha-value>)" },
+        error: "hsl(var(--error) / <alpha-value>)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
+        field: {
+          DEFAULT: "var(--field-background)",
+          placeholder: "var(--field-placeholder)",
+        },
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -84,9 +144,26 @@ export default {
         },
       },
       borderRadius: {
+        DEFAULT: "var(--radius-small)",
+        sm: "var(--radius-small)",
+        md: "var(--radius)",
+        detail: "var(--radius-detail)",
+        compact: "var(--radius-compact)",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl: "var(--radius-card)",
+        "2xl": "var(--radius-card)",
+        "3xl": "var(--radius-card)",
+        modal: "var(--radius-modal)",
+        full: "var(--radius-full)",
+      },
+      boxShadow: {
+        "2xs": "none",
+        xs: "none",
+        sm: "0 1px 2px hsl(var(--shadow) / 0.04)",
+        md: "0 4px 12px -2px hsl(var(--shadow) / 0.08)",
+        lg: "0 8px 24px -6px hsl(var(--shadow) / 0.12)",
+        xl: "0 12px 32px -8px hsl(var(--shadow) / 0.14)",
+        "2xl": "0 16px 40px -10px hsl(var(--shadow) / 0.18)",
       },
       keyframes: {
         "accordion-down": {

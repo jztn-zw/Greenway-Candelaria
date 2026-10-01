@@ -88,7 +88,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
     <AnalyticsDataProvider value={visibleData}>
       <main className="mx-auto w-full max-w-[1600px] space-y-5 pb-12 sm:space-y-6">
         <header className="pb-1">
-          <div><h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">{pageTitle}</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{pageDescription}</p></div>
+          <div><h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">{pageTitle}</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{pageDescription}</p></div>
         </header>
 
         {error && !data && (
@@ -118,7 +118,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
         <AnalyticsSummaryKPIs />
         <nav aria-label="Analytics sections" className="rounded-2xl border border-border/80 bg-card/60 p-4 shadow-2xs sm:p-5"><AnalyticsSectionNav activeSection={activeSection} onSectionChange={setActiveSection} /></nav>
         <section className="space-y-4" aria-live="polite">
-          <div className="flex flex-col gap-1 pb-1 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-base font-bold tracking-tight text-foreground sm:text-lg">{config.title}</h2><p className="text-xs text-muted-foreground">{config.subtitle}</p></div>{isFetching && <span className="text-xs text-muted-foreground">Updating…</span>}</div>
+          <div className="flex flex-col gap-1 pb-1 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="gw-heading text-base tracking-tight text-foreground sm:text-lg">{config.title}</h2><p className="text-xs text-muted-foreground">{config.subtitle}</p></div>{isFetching && <span className="text-xs text-muted-foreground">Updating…</span>}</div>
           <SectionComp />
         </section>
       </main>

@@ -69,7 +69,7 @@ const SkipReasonModal = ({
                 className={`text-left px-3 py-2.5 rounded-md border text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selected === reason
                     ? "border-primary/50 bg-primary/10 text-primary font-semibold ring-1 ring-primary/20"
-                    : "border-border/70 bg-card text-foreground hover:bg-muted/60 hover:border-border"
+                    : "border-border/70 bg-card text-foreground hover:bg-[var(--button-neutral-hover)] hover:border-border"
                 }`}
               >
                 {reason}

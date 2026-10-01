@@ -150,7 +150,7 @@ it("uses safe street labels, different current/completed symbols, and refreshes 
   expect(current.querySelector("g circle")).not.toBeNull();
   expect(done.querySelector("g path")?.getAttribute("d")).toBe("m12 18 4 4 8-9");
   expect(skipped.querySelector("g path")?.getAttribute("d")).toBe("M18 12v8");
-  expect(skipped.querySelector("svg")?.getAttribute("style")).toContain("hsl(38, 92%, 50%)");
+  expect(skipped.querySelector("svg")?.getAttribute("style")).toContain("hsl(var(--warning))");
   renderer.refreshColors();
   expect(leaflet.polyline.mock.results[0].value.setStyle).toHaveBeenCalledOnce();
   expect(leaflet.polyline).toHaveBeenCalledTimes(3);

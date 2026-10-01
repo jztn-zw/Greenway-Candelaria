@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -157,7 +158,7 @@ const AuditLogTable = ({
                         <div className="text-xs font-semibold tabular-nums text-foreground">
                           {safeFormatDate(log.timestamp, "MMM d, yyyy")}
                         </div>
-                        <p className="text-[11px] text-muted-foreground tabular-nums">
+                        <p className="text-ui-caption text-muted-foreground tabular-nums">
                           {safeFormatDate(log.timestamp, "h:mm a")}
                         </p>
                       </TableCell>
@@ -170,7 +171,7 @@ const AuditLogTable = ({
                           </p>
                           <Badge
                             variant="outline"
-                            className="text-[9px] px-1.5 py-0 bg-muted/60 text-muted-foreground border-border/70 font-semibold"
+                            className={"text-[9px] px-1.5 py-0 font-semibold " + badgeStyles.neutral.className}
                           >
                             <Shield className="w-2.5 h-2.5 mr-0.5" />
                             {log.adminRole}
@@ -182,7 +183,7 @@ const AuditLogTable = ({
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs ${sc.badge}`}
+                          className={`text-ui-overline font-semibold px-2 py-0.5 rounded-md border shadow-2xs ${sc.badge}`}
                         >
                           {log.actionType}
                         </Badge>
@@ -192,7 +193,7 @@ const AuditLogTable = ({
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] px-2 py-0.5 rounded-full border shadow-2xs ${mc}`}
+                          className={`text-ui-overline px-2 py-0.5 rounded-md border shadow-2xs ${mc}`}
                         >
                           {log.module}
                         </Badge>
@@ -211,7 +212,7 @@ const AuditLogTable = ({
                           <button
                             type="button"
                             onClick={(e) => handleCopy(e, log.affectedRecord, "Record ID")}
-                            className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
+                            className="gw-action-ghost p-0.5 rounded cursor-pointer"
                             title="Copy record"
                           >
                             <Copy className="w-3 h-3" />
@@ -235,13 +236,13 @@ const AuditLogTable = ({
                             {/* Card 1: State Transition & Field Delta */}
                             <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-2xs space-y-3.5">
                               <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                                <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                                <div className="flex items-center gap-2 text-muted-foreground text-ui-caption font-bold uppercase tracking-wider">
                                   <GitCompare className="w-3.5 h-3.5 text-muted-foreground" />
                                   <span>State Transition & Field Delta</span>
                                 </div>
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] px-2 py-0.5 bg-muted/50 text-muted-foreground border-border/70 font-semibold"
+                                  className={"text-ui-overline px-2 py-0.5 font-semibold " + badgeStyles.neutral.className}
                                 >
                                   {log.beforeValue || log.afterValue ? "State Delta" : "Standard Action"}
                                 </Badge>
@@ -252,10 +253,10 @@ const AuditLogTable = ({
                                   <div className="flex items-center gap-3 flex-wrap">
                                     {log.beforeValue && (
                                       <div className="space-y-1">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                                        <span className="text-ui-overline font-bold text-muted-foreground uppercase tracking-wider block">
                                           Previous
                                         </span>
-                                        <span className="inline-block px-3 py-1 rounded-xl bg-muted text-muted-foreground text-xs font-medium border border-border/80 tabular-nums">
+                                        <span className="inline-block px-3 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-medium border border-border/80 tabular-nums">
                                           {log.beforeValue}
                                         </span>
                                       </div>
@@ -267,11 +268,11 @@ const AuditLogTable = ({
                                     )}
                                     {log.afterValue && (
                                       <div className="space-y-1">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                                        <span className="text-ui-overline font-bold text-muted-foreground uppercase tracking-wider block">
                                           Updated
                                         </span>
                                         <span
-                                          className={`inline-block px-3 py-1 rounded-xl text-xs font-semibold border tabular-nums ${
+                                          className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold border tabular-nums ${
                                             isDestructiveState(log.afterValue)
                                               ? "bg-destructive/10 text-destructive border-destructive/20"
                                               : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
@@ -290,7 +291,7 @@ const AuditLogTable = ({
                               )}
 
                               <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="text-[11px] uppercase tracking-wider font-bold">Target Resource</span>
+                                <span className="text-ui-caption uppercase tracking-wider font-bold">Target Resource</span>
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-semibold tabular-nums text-foreground bg-muted/60 px-2.5 py-0.5 rounded-lg border border-border/60">
                                     {log.affectedRecord}
@@ -298,7 +299,7 @@ const AuditLogTable = ({
                                   <button
                                     type="button"
                                     onClick={(e) => handleCopy(e, log.affectedRecord, "Record reference")}
-                                    className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer transition-colors"
+                                    className="gw-action-ghost p-0.5 rounded cursor-pointer transition-colors"
                                     title="Copy target reference"
                                   >
                                     <Copy className="w-3 h-3" />
@@ -310,11 +311,11 @@ const AuditLogTable = ({
                             {/* Card 2: Security & Forensic Traceability */}
                             <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-2xs space-y-3">
                               <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                                <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                                <div className="flex items-center gap-2 text-muted-foreground text-ui-caption font-bold uppercase tracking-wider">
                                   <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
                                   <span>Security & Origin Traceability</span>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                <span className="text-ui-overline text-muted-foreground font-semibold uppercase tracking-wider">
                                   Audit Record
                                 </span>
                               </div>
@@ -344,13 +345,13 @@ const AuditLogTable = ({
                                     Audit UUID
                                   </span>
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] font-mono text-muted-foreground max-w-[180px] sm:max-w-[220px] truncate">
+                                    <span className="text-ui-caption tabular-nums text-muted-foreground max-w-[180px] sm:max-w-[220px] truncate">
                                       {log.id}
                                     </span>
                                     <button
                                       type="button"
                                       onClick={(e) => handleCopy(e, log.id, "Audit UUID")}
-                                      className="text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer transition-colors"
+                                      className="gw-action-ghost p-0.5 rounded cursor-pointer transition-colors"
                                       title="Copy full Audit UUID"
                                     >
                                       <Copy className="w-3 h-3" />
@@ -425,7 +426,7 @@ const AuditLogTable = ({
                     <p className="text-xs font-bold text-foreground">
                       {log.adminName}
                     </p>
-                    <p className="text-[10px] text-muted-foreground tabular-nums">
+                    <p className="text-ui-overline text-muted-foreground tabular-nums">
                       {safeFormatDate(log.timestamp, "MMM d, yyyy · h:mm a")}
                     </p>
                   </div>
@@ -447,7 +448,7 @@ const AuditLogTable = ({
                 {isExpanded && (
                   <div className="mt-3 pt-3 border-t border-border/60 space-y-3 text-xs animate-in fade-in">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+                      <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-bold mb-1">
                         Target Record
                       </p>
                       <span className="text-xs font-semibold tabular-nums text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
@@ -456,7 +457,7 @@ const AuditLogTable = ({
                     </div>
 
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+                      <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-bold mb-1">
                         Event Summary
                       </p>
                       <p className="text-foreground leading-relaxed">{log.summary}</p>
@@ -464,12 +465,12 @@ const AuditLogTable = ({
 
                     {(log.beforeValue || log.afterValue) && (
                       <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+                        <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-bold mb-1">
                           Before → After
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
                           {log.beforeValue && (
-                            <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-[11px] font-medium border border-border/80">
+                            <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-ui-caption font-medium border border-border/80">
                               {log.beforeValue}
                             </span>
                           )}
@@ -478,7 +479,7 @@ const AuditLogTable = ({
                           )}
                           {log.afterValue && (
                             <span
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                              className={`px-2 py-0.5 rounded text-ui-caption font-semibold border ${
                                 isDestructiveState(log.afterValue)
                                   ? "bg-destructive/10 text-destructive border-destructive/20"
                                   : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
@@ -491,7 +492,7 @@ const AuditLogTable = ({
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-[11px] pt-2 border-t border-border/50 text-muted-foreground">
+                    <div className="flex items-center justify-between text-ui-caption pt-2 border-t border-border/50 text-muted-foreground">
                       <span>IP: {log.ipAddress || "Internal Server"}</span>
                       <span>Role: {log.adminRole}</span>
                     </div>

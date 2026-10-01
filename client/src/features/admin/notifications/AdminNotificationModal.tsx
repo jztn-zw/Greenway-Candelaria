@@ -113,18 +113,18 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
               <Icon className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-sm lg:text-base font-bold font-display text-foreground tracking-tight truncate">Notification</DialogTitle>
+              <DialogTitle className="gw-heading text-sm lg:text-base text-foreground tracking-tight truncate">Notification</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">{notification.ref_module === "truck-breakdowns" ? "Vehicle breakdown report" : config.label}</DialogDescription>
             </div>
           </div>
-          <button type="button" onClick={() => onOpenChange(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1" title="Close">
+          <button type="button" onClick={() => onOpenChange(false)} className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1" title="Close">
             <X className="w-4 h-4" />
           </button>
         </DialogHeader>
 
         <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold font-display text-foreground leading-relaxed tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
+            <h3 className="gw-heading text-sm text-foreground leading-relaxed tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
             {notification.time && (
               <p className="text-xs text-muted-foreground font-normal">
                 <span>{notification.time}</span>
@@ -141,12 +141,12 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
               <p className="whitespace-pre-wrap break-words">{reportText("description") || notification.message}</p>
             </div>
           )}
-          {notification.ref_module !== "truck-breakdowns" && <div className="text-[13px] text-foreground/90 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/10 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
+          {notification.ref_module !== "truck-breakdowns" && <div className="text-ui-label text-foreground/90 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/10 border border-border/60 rounded-xl p-3.5 lg:p-4 max-h-[38vh] overflow-y-auto scrollbar-thin">
             {notification.details || notification.message}
           </div>}
         </div>
         <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 flex items-center justify-end shrink-0 bg-card">
-          <Button type="button" onClick={() => onOpenChange(false)} className="h-9 rounded-lg px-5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer">
+          <Button type="button" onClick={() => onOpenChange(false)} className="h-9 rounded-lg px-5 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
             Close
           </Button>
         </div>

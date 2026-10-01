@@ -1,3 +1,5 @@
+import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { collectorKey, useCollectorAction, useCollectorQuery } from "@/lib/collectorQuery";
@@ -27,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CollectorProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
@@ -71,10 +74,10 @@ const FieldRow = ({
         <Icon className="w-4.5 h-4.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+        <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
           {label}
         </p>
-        <p className="mt-0.5 truncate text-[13px] font-medium text-foreground lg:text-sm">
+        <p className="mt-0.5 truncate text-ui-label font-medium text-foreground lg:text-sm">
           {masked ? (
             "••••••••"
           ) : value ? (
@@ -95,10 +98,10 @@ const FieldRow = ({
     ) : onEdit ? (
       <Button
         type="button"
-        variant="outline"
+        variant="primary-outline"
         size="sm"
         onClick={onEdit}
-        className="h-8 shrink-0 cursor-pointer rounded-xl border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary shadow-none transition-all hover:border-primary/55 hover:bg-primary/15 hover:text-primary focus-visible:ring-primary/25 active:scale-95"
+        className="h-8 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold shadow-none transition-all focus-visible:ring-primary/25"
       >
         <span>{masked ? "Change" : "Edit"}</span>
       </Button>
@@ -374,12 +377,10 @@ const CollectorProfile = () => {
       )}
       {/* ── 1. Profile Header Banner (Resident-style) ── */}
       <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
-        {/* Atmospheric banner with gradient and subtle decorative glows */}
-        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 lg:h-36">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-8 left-1/3 w-36 h-36 rounded-full bg-primary/10 blur-xl pointer-events-none" />
-
-          {accountStatus && <div className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${accountStatus === "ACTIVE" ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-destructive/30 text-destructive"}`}>
+        {/* Profile banner */}
+        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
+          <ProfileBannerImage />
+          {accountStatus && <div className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${accountStatus === "ACTIVE" ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-destructive/30 text-destructive"}`}>
             <span className={`size-2 rounded-full ${accountStatus === "ACTIVE" ? "bg-emerald-500" : "bg-destructive"}`} />
             <span>{accountStatus === "ACTIVE" ? "Active collector" : accountStatus === "DEACTIVATED" ? "Deactivated collector" : "Collector account restricted"}</span>
           </div>}
@@ -391,11 +392,11 @@ const CollectorProfile = () => {
             <div className="flex shrink-0 flex-col items-center gap-2">
               <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
                 <AvatarImage src={avatarUrl} />
-                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full font-display text-3xl font-bold text-primary-foreground`}>
+                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full font-body text-3xl font-semibold text-primary-foreground`}>
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <Button type="button" variant="outline" onClick={() => setAvatarOpen(true)} className="h-8 gap-1.5 rounded-xl border-border/80 px-3 text-[11px] font-semibold hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+              <Button type="button" variant="outline" onClick={() => setAvatarOpen(true)} className="h-8 gap-1.5 rounded-xl px-3 text-ui-caption font-semibold">
                 <Paintbrush className="size-3.5" /> Customize
               </Button>
               <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -403,11 +404,11 @@ const CollectorProfile = () => {
 
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
-                <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground lg:text-2xl">
+                <h1 className="gw-heading truncate text-lg tracking-tight text-foreground lg:text-2xl">
                   {displayName}
                 </h1>
                 {displayUsername && displayUsername !== "—" && (
-                  <span className="inline-flex w-fit items-center rounded-full border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                  <span className="inline-flex w-fit items-center rounded-md border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
                     @{displayUsername}
                   </span>
                 )}
@@ -430,7 +431,7 @@ const CollectorProfile = () => {
               <Truck className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Assigned vehicle & equipment
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -440,16 +441,10 @@ const CollectorProfile = () => {
           </div>
           {hasAssignedTruck && (
             <span
-              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
-                isUnderMaintenance
-                  ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/25"
-                  : vehicleReadiness === "Operational / Ready" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25" : "bg-muted text-muted-foreground border-border/70"
-              }`}
+              className={collectorBadgeClassName + " " + getStatusBadgeStyle(vehicleReadiness).className}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isUnderMaintenance ? "bg-rose-500" : vehicleReadiness === "Operational / Ready" ? "bg-emerald-500" : "bg-muted-foreground"
-                }`}
+                className={"w-1.5 h-1.5 rounded-full shrink-0 " + getStatusBadgeStyle(vehicleReadiness).dot}
               />
               {vehicleReadiness}
             </span>
@@ -463,7 +458,7 @@ const CollectorProfile = () => {
                 <p className="text-xs text-muted-foreground font-medium">
                   Vehicle plate number
                 </p>
-                <p className="text-base sm:text-lg font-bold font-display text-foreground font-mono">
+                <p className="text-base sm:text-lg font-semibold font-body text-foreground tabular-nums">
                   {truckPlate || "Unavailable"}
                 </p>
               </div>
@@ -472,7 +467,7 @@ const CollectorProfile = () => {
                 <p className="text-xs text-muted-foreground font-medium">
                   Unit designation
                 </p>
-                <p className="text-base sm:text-lg font-bold font-display text-foreground">
+                <p className="text-base sm:text-lg font-semibold font-body text-foreground">
                   {truckName}
                 </p>
               </div>
@@ -484,10 +479,10 @@ const CollectorProfile = () => {
               </p>
               <Button
                 type="button"
-                variant="outline"
+                variant="warning-outline"
                 size="sm"
                 onClick={() => setBreakdownModal(true)}
-                className="w-full sm:w-auto h-9 px-4 gap-1.5 rounded-xl text-xs font-semibold border-amber-500/30 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer shadow-2xs"
+                className="w-full sm:w-auto h-9 px-4 gap-1.5 rounded-xl text-xs font-semibold cursor-pointer shadow-2xs"
               >
                 <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Report truck issue</span>
@@ -519,7 +514,7 @@ const CollectorProfile = () => {
               <User className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Personal Information
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -527,7 +522,7 @@ const CollectorProfile = () => {
               </p>
             </div>
           </div>
-          <span className="hidden md:inline-block text-[11px] font-medium text-muted-foreground">
+          <span className="hidden md:inline-block text-ui-caption font-medium text-muted-foreground">
             Tap edit to update
           </span>
         </div>
@@ -614,7 +609,7 @@ const CollectorProfile = () => {
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
-            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
+            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] transition-all duration-150 group cursor-pointer text-left"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
@@ -636,7 +631,7 @@ const CollectorProfile = () => {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70 pt-1">
+        <div className="flex items-center justify-center gap-1.5 text-ui-caption text-muted-foreground/70 pt-1">
           <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/60" />
           <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
         </div>
@@ -648,7 +643,7 @@ const CollectorProfile = () => {
           <div className={modalStyles.body}>
             <div className="grid grid-cols-2 gap-3">
               {avatarStyles.map((style) => (
-                <button key={style.id} type="button" disabled={avatarUploading} aria-pressed={avatarStyle === style.id} onClick={() => saveAvatarStyle(style.id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${avatarStyle === style.id ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"}`}>
+                <button key={style.id} type="button" disabled={avatarUploading} aria-pressed={avatarStyle === style.id} onClick={() => saveAvatarStyle(style.id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${avatarStyle === style.id ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-[var(--button-neutral-hover)]"}`}>
                   <span className={`flex size-10 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
                   <span className="text-xs font-semibold text-foreground">{style.label}</span>
                 </button>
@@ -763,7 +758,7 @@ const CollectorProfile = () => {
                   onClick={() =>
                     setPwModal((m) => ({ ...m, showOld: !m.showOld }))
                   }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
                 >
                   {pwModal.showOld ? (
                     <EyeOff className="w-4 h-4" />
@@ -797,7 +792,7 @@ const CollectorProfile = () => {
                   onClick={() =>
                     setPwModal((m) => ({ ...m, showNew: !m.showNew }))
                   }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
                 >
                   {pwModal.showNew ? (
                     <EyeOff className="w-4 h-4" />

@@ -86,12 +86,13 @@ const PostListView = ({
                           <img
                             src={post.images[0]}
                             alt=""
-                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover object-center transition-transform duration-300"
                           />
                         ) : (
                           <PostImagePlaceholder
                             category={post.category}
                             title={post.title}
+                            compact
                           />
                         )}
 
@@ -111,7 +112,7 @@ const PostListView = ({
                           {post.title}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                          <span className="text-[11px] truncate max-w-[160px]">
+                          <span className="text-ui-caption truncate max-w-[160px]">
                             {post.source || post.author || "MENRO Candelaria"}
                           </span>
                           {post.tags && post.tags.length > 0 && (
@@ -121,13 +122,13 @@ const PostListView = ({
                                 {post.tags.slice(0, 2).map((tag) => (
                                    <span
                                      key={tag}
-                                     className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
+                                     className="text-ui-overline bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
                                    >
                                      #{tag.replace(/^#+/, "")}
                                    </span>
                                  ))}
                                  {post.tags.length > 2 && (
-                                   <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                                   <span className="inline-flex items-center text-ui-overline font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                                      +{post.tags.length - 2} more
                                    </span>
                                  )}
@@ -143,7 +144,7 @@ const PostListView = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs pointer-events-none ${
+                      className={`text-xs font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs pointer-events-none ${
                         categoryStyles[post.category] ||
                         "bg-primary/15 text-primary border-primary/30"
                       }`}
@@ -156,7 +157,7 @@ const PostListView = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs pointer-events-none ${
+                      className={`text-xs font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs pointer-events-none ${
                         statusStyles[post.status] ||
                         "bg-muted text-foreground border-border"
                       }`}

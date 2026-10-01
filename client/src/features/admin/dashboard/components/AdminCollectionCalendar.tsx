@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { CalendarSkeleton } from "@/components/PageLoadingSkeletons";
+import { getEventColor } from "@/components/calendar/calendar.utils";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
 import { fetchCalendarEvents } from "@/services/scheduleService";
@@ -53,9 +54,9 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
     ].sort();
 
     return new Map(
-      visibleScheduleIds.map((id, index) => [
+      visibleScheduleIds.map((id) => [
         id,
-        `hsl(${Math.round((index * 360) / Math.max(visibleScheduleIds.length, 1))} 72% 52%)`,
+        getEventColor(id),
       ])
     );
   }, [events, monthStart, monthEnd]);
@@ -102,7 +103,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
       {/* Header with Title, Month & Manager Link */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
+          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
             MENRO Schedule
           </h3>
           <span className="text-xs font-medium text-muted-foreground">
@@ -111,9 +112,9 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         </div>
 
         <Button
-          variant="ghost"
+          variant="primary-ghost"
           size="sm"
-          className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
+          className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
           onClick={() => navigate("/admin/schedule")}
         >
           <span>Schedule Manager</span>
@@ -127,7 +128,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
       <TooltipProvider delayDuration={100}>
         <div>
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider pb-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-ui-caption font-semibold text-muted-foreground/80 uppercase tracking-wider pb-2">
           {dayLabels.map((d) => (
             <div
               key={d}
@@ -215,48 +216,48 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                                 className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0 shadow-2xs transition-transform hover:scale-125 cursor-pointer"
                                 style={{
                                   backgroundColor:
-                                    scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                                    scheduleColorById.get(evt.id) || "hsl(var(--chart-1))",
                                 }}
                               />
                             </TooltipTrigger>
                             <TooltipContent
                               side="top"
-                              className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left"
+                              className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-md border border-border bg-popover text-popover-foreground z-50 text-left"
                             >
                               <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                                 <span
                                   className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
                                   style={{
                                     backgroundColor:
-                                      scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                                      scheduleColorById.get(evt.id) || "hsl(var(--chart-1))",
                                   }}
                                 />
                                 <span className="break-words break-all [overflow-wrap:anywhere]">{evt.title}</span>
                               </div>
 
                               {dateText && (
-                                <p className="text-[11px] text-muted-foreground">
+                                <p className="text-ui-caption text-muted-foreground">
                                   <strong className="text-foreground">Date:</strong> {dateText}
                                   {endDateText ? ` – ${endDateText}` : ""}
                                 </p>
                               )}
 
                               {evt.start_time && (
-                                <p className="text-[11px] text-muted-foreground">
+                                <p className="text-ui-caption text-muted-foreground">
                                   <strong className="text-foreground">Time:</strong> {evt.start_time.slice(0, 5)}
                                   {evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}
                                 </p>
                               )}
 
                               {(evt.location || evt.barangay_name) && (
-                                <p className="text-[11px] text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
+                                <p className="text-ui-caption text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
                                   <strong className="text-foreground">Location:</strong> {evt.location || evt.barangay_name}
                                 </p>
                               )}
 
                               {evt.description && (
                                 <div className="pt-1.5 border-t border-border/60 max-h-36 overflow-y-auto pr-1">
-                                  <p className="text-[11px] text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
+                                  <p className="text-ui-caption text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
                                     {evt.description}
                                   </p>
                                 </div>
@@ -276,7 +277,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         {/* Footer: Schedule Legend with full details on hover and click */}
         {eventsToShow.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mr-1">
+            <span className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider mr-1">
                 Schedule Legend:
               </span>
               {eventsToShow.map((evt) => {
@@ -303,13 +304,13 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                             setSelectedDateStr(evt.event_date.split("T")[0]);
                           }
                         }}
-                        className="inline-flex max-w-[180px] items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
+                        className="gw-action-outline inline-flex max-w-[180px] items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors cursor-pointer"
                       >
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
                           style={{
                             backgroundColor:
-                              scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                              scheduleColorById.get(evt.id) || "hsl(var(--chart-1))",
                           }}
                         />
                         <span className="truncate font-semibold">
@@ -317,41 +318,41 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                         </span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left">
+                    <TooltipContent side="top" className="w-[280px] sm:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-md border border-border bg-popover text-popover-foreground z-50 text-left">
                       <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                         <span
                           className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
                           style={{
                             backgroundColor:
-                              scheduleColorById.get(evt.id) || "hsl(160 72% 52%)",
+                              scheduleColorById.get(evt.id) || "hsl(var(--chart-1))",
                           }}
                         />
                         <span className="break-words break-all [overflow-wrap:anywhere]">{evt.title}</span>
                       </div>
 
                       {dateText && (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-ui-caption text-muted-foreground">
                           <strong className="text-foreground">Date:</strong> {dateText}
                           {endDateText ? ` – ${endDateText}` : ""}
                         </p>
                       )}
 
                       {evt.start_time && (
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-ui-caption text-muted-foreground">
                           <strong className="text-foreground">Time:</strong> {evt.start_time.slice(0, 5)}
                           {evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}
                         </p>
                       )}
 
                       {(evt.location || evt.barangay_name) && (
-                        <p className="text-[11px] text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
+                        <p className="text-ui-caption text-muted-foreground break-words break-all [overflow-wrap:anywhere]">
                           <strong className="text-foreground">Location:</strong> {evt.location || evt.barangay_name}
                         </p>
                       )}
 
                       {evt.description && (
                         <div className="pt-1.5 border-t border-border/60 max-h-36 overflow-y-auto pr-1">
-                          <p className="text-[11px] text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
+                          <p className="text-ui-caption text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
                             {evt.description}
                           </p>
                         </div>

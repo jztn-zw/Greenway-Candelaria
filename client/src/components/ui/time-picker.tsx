@@ -167,6 +167,7 @@ export function TimePicker({
       {/* Time Input Trigger */}
       <div
         data-field-container
+        data-state={isOpen ? "open" : "closed"}
         aria-disabled={disabled}
         className={cn(
           "flex items-center justify-between gap-1.5",
@@ -184,7 +185,7 @@ export function TimePicker({
           onFocus={() => setIsOpen(true)}
           placeholder="12:00 am"
           aria-label="Time"
-          className="w-full bg-transparent text-xs font-semibold tabular-nums tracking-wide text-foreground outline-none placeholder:text-muted-foreground/70"
+          className={cn("w-full bg-transparent text-xs font-semibold tabular-nums tracking-wide text-foreground outline-none", fieldStyles.placeholder)}
         />
         <button
           type="button"
@@ -192,7 +193,7 @@ export function TimePicker({
             e.stopPropagation();
             setIsOpen((prev) => !prev);
           }}
-          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
+          className="gw-action-ghost transition-colors cursor-pointer p-0.5"
           title="Toggle Time Picker"
         >
           <Clock className="w-3.5 h-3.5" />
@@ -211,7 +212,7 @@ export function TimePicker({
           onTouchMove={(e) => e.stopPropagation()}
         >
           {/* Header Row */}
-          <div className="grid grid-cols-3 border-b border-border/70 bg-muted/40 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-3 border-b border-border/70 bg-muted/40 py-1.5 text-center text-ui-overline font-bold uppercase tracking-wider text-muted-foreground">
             <span>Hour</span>
             <span>Min</span>
             <span>Period</span>
@@ -238,7 +239,7 @@ export function TimePicker({
                         "w-full h-7 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
                         isSelected
                           ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                          : "gw-action-ghost ",
                       )}
                     >
                       {String(h).padStart(2, "0")}
@@ -267,7 +268,7 @@ export function TimePicker({
                         "w-full h-7 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
                         isSelected
                           ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                          : "gw-action-ghost ",
                       )}
                     >
                       {String(m).padStart(2, "0")}
@@ -290,7 +291,7 @@ export function TimePicker({
                       "w-full h-7 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer uppercase",
                       isSelected
                         ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                        : "gw-action-ghost ",
                     )}
                   >
                     {p}
@@ -305,14 +306,14 @@ export function TimePicker({
             <button
               type="button"
               onClick={handleSetNow}
-              className="text-[11px] font-semibold text-primary hover:text-emerald-500 transition-colors cursor-pointer"
+              className="gw-action-primary-ghost text-ui-caption font-semibold transition-colors cursor-pointer"
             >
               Now
             </button>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-muted"
+              className="gw-action-ghost text-ui-caption font-semibold transition-colors cursor-pointer px-2 py-0.5 rounded-md"
             >
               Done
             </button>

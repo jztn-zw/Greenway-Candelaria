@@ -1,9 +1,22 @@
 /* One interaction language for form fields across the web app. */
 .gw-field {
-  border-radius: 0.625rem;
+  border-radius: var(--radius);
   border-color: hsl(var(--input) / 0.8);
-  background-color: hsl(var(--background));
+  background-color: var(--field-background);
   font-size: 0.875rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.gw-field::placeholder,
+.gw-field[data-field-container] input::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+.gw-field[data-placeholder],
+.gw-field [data-placeholder] {
+  color: var(--field-placeholder);
 }
 
 .gw-field:is(.h-9, .h-8, .h-8\.5) {
@@ -14,11 +27,10 @@
   border-color: hsl(var(--primary) / 0.55);
 }
 
-.gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):is(:focus-visible, [data-state="open"]),
+.gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):is(:focus, :focus-visible, [data-state="open"]),
 .gw-field[data-field-container]:not([aria-disabled="true"]):not([aria-invalid="true"]):focus-within {
   border-color: hsl(var(--primary));
-  outline: 2px solid hsl(var(--primary) / 0.55);
-  outline-offset: 2px;
+  outline: none;
   box-shadow: none;
 }
 
@@ -27,11 +39,10 @@
   border-color: hsl(var(--destructive));
 }
 
-.gw-field[aria-invalid="true"]:is(:focus-visible, [data-state="open"]),
+.gw-field[aria-invalid="true"]:is(:focus, :focus-visible, [data-state="open"]),
 .gw-field[data-field-container][aria-invalid="true"]:focus-within {
   border-color: hsl(var(--destructive));
-  outline: 2px solid hsl(var(--destructive) / 0.65);
-  outline-offset: 2px;
+  outline: none;
   box-shadow: none;
 }
 
@@ -43,8 +54,9 @@
   cursor: not-allowed;
 }
 
-.gw-field[data-field-container] input:focus-visible {
+.gw-field[data-field-container] input:is(:focus, :focus-visible) {
   outline: none;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

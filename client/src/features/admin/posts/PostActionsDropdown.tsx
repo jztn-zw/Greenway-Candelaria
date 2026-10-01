@@ -50,7 +50,7 @@ const PostActionsDropdown = ({
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 w-8 p-0 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+          className="h-8 w-8 p-0 rounded-xl cursor-pointer"
           aria-label="More options"
         >
           <MoreHorizontal className="w-4 h-4" />

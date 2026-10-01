@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery, useResidentFetch } from "@/lib/residentQuery";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,7 +102,7 @@ const AnnouncementAndTip = () => {
           <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                <p className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider truncate">
                   Latest Announcement
                 </p>
               </div>
@@ -120,11 +121,11 @@ const AnnouncementAndTip = () => {
               <button
                 type="button"
                 onClick={() => navigate("/resident/contents")}
-                className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
+                className="gw-action-primary-ghost group inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all"
               >
                 View all bulletins <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+              <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden lg:inline">MENRO Verified</span>
               </div>
@@ -139,7 +140,7 @@ const AnnouncementAndTip = () => {
   return (
     <>
       <Card
-        className="group h-full border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between rounded-2xl"
+        className="group h-full border border-border overflow-hidden hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between rounded-2xl"
         onClick={openAnnouncement}
       >
         <CardContent className="p-0 flex flex-col h-full">
@@ -150,10 +151,10 @@ const AnnouncementAndTip = () => {
             {/* Header row */}
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                <p className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider truncate">
                   Latest Announcement
                 </p>
-                <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold shrink-0">
+                <span className={"px-2 py-0.5 rounded-md border text-ui-overline font-bold shrink-0 " + getCategoryBadgeColors(announcement.type).className}>
                   {announcement.type}
                 </span>
               </div>
@@ -171,7 +172,7 @@ const AnnouncementAndTip = () => {
 
             {/* Footer matching post carousel */}
             <div className="mt-2 flex items-center justify-end border-t border-border/40 pt-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+              <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden lg:inline">MENRO Verified</span>
               </div>

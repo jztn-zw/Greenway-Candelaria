@@ -67,16 +67,16 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
       {/* Left: Contextual count */}
       <div className={cn(
         "text-xs text-muted-foreground",
-        isInline ? "min-w-0 whitespace-nowrap text-[11px] sm:text-xs" : "order-2 text-center sm:order-1 sm:text-left"
+        isInline ? "min-w-0 whitespace-nowrap text-ui-caption sm:text-xs" : "order-2 text-center sm:order-1 sm:text-left"
       )}>
         {totalItems != null && start != null && end != null ? (
           <>
             Showing{" "}
-            <span className="font-semibold text-foreground font-mono">
+            <span className="font-semibold text-foreground tabular-nums">
               {start}–{end}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-foreground font-mono">
+            <span className="font-semibold text-foreground tabular-nums">
               {totalItems}
             </span>{" "}
             {itemLabel}
@@ -84,11 +84,11 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         ) : (
           <>
             Page{" "}
-            <span className="font-semibold text-foreground font-mono">
+            <span className="font-semibold text-foreground tabular-nums">
               {currentPage}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-foreground font-mono">
+            <span className="font-semibold text-foreground tabular-nums">
               {totalPages}
             </span>
           </>
@@ -100,7 +100,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
+          className="h-8 w-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
           aria-label="Previous page"
@@ -115,7 +115,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 <span
                   key={`ellipsis-${idx}`}
                   className={cn(
-                    "h-8 w-8 items-center justify-center text-xs text-muted-foreground font-mono",
+                    "h-8 w-8 items-center justify-center text-xs text-muted-foreground tabular-nums",
                     isInline ? "hidden sm:flex" : "flex"
                   )}
                 >
@@ -130,11 +130,11 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                 type="button"
                 onClick={() => onPageChange(p as number)}
                 className={cn(
-                  "h-8 min-w-[32px] px-2 text-xs font-mono rounded-lg transition-all cursor-pointer items-center justify-center select-none",
+                  "h-8 min-w-[32px] px-2 text-xs tabular-nums rounded-lg transition-all cursor-pointer items-center justify-center select-none",
                   isInline && totalPages > 3 && !isCurrent ? "hidden sm:flex" : "flex",
                   isCurrent
                     ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/70 font-medium"
+                    : "gw-action-ghost font-medium"
                 )}
               >
                 {p}
@@ -146,7 +146,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
+          className="h-8 w-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
           aria-label="Next page"

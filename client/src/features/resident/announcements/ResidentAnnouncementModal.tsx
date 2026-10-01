@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { FormDialogHeader } from "@/components/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
 import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
@@ -246,13 +247,13 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
           {/* Title, Category & Date Lockup (No container) */}
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base font-bold font-display text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
+              <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
                 {title}
               </h3>
               {mappedType ? (
                 <Badge
                   variant="outline"
-                  className={`text-[10px] font-semibold rounded-md px-2 py-0.5 border shrink-0 ${
+                  className={`text-ui-overline font-semibold rounded-md px-2 py-0.5 border shrink-0 ${
                     announcementTypeStyles[mappedType]
                   }`}
                 >
@@ -261,7 +262,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
               ) : (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold rounded-md px-2 py-0.5 border shrink-0 border-primary/30 text-primary bg-primary/10"
+                  className={"text-ui-overline font-semibold rounded-md px-2 py-0.5 border shrink-0 " + getCategoryBadgeColors("Official Notice").className}
                 >
                   Official Notice
                 </Badge>

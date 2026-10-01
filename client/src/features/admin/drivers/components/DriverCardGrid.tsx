@@ -113,16 +113,16 @@ const DriverCardGrid = ({
               <div
                 key={d.id}
                 onClick={() => onView(d)}
-                className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 hover:border-primary/40 transition-all duration-200 cursor-pointer group flex flex-col justify-between"
               >
                 {/* Header Row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-sm sm:text-base font-display shrink-0 shadow-2xs group-hover:scale-105 group-hover:bg-primary/15 transition-all duration-200">
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-sm sm:text-base font-body shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
                       {getInitials(d.fullName)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold font-display text-foreground text-sm sm:text-base truncate group-hover:text-primary transition-colors">
+                      <p className="font-semibold font-body text-foreground text-sm sm:text-base truncate group-hover:text-primary transition-colors">
                         {d.fullName}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
@@ -134,7 +134,7 @@ const DriverCardGrid = ({
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
                         driverStatusStyles[d.status] || ""
                       }`}
                     >
@@ -146,7 +146,7 @@ const DriverCardGrid = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg cursor-pointer"
+                          className="h-8 w-8 rounded-lg cursor-pointer"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>

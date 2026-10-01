@@ -20,10 +20,7 @@ const ContactSection = ({ content = CONTENT.contact }: ContactSectionProps) => {
   ];
 
   return (
-    <section id="contact" className="py-10 sm:py-16 lg:py-20 bg-gradient-to-b from-secondary/50 to-background relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none hidden sm:block">
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-primary/3 rounded-full blur-3xl" />
-      </div>
+    <section id="contact" className="py-10 sm:py-16 lg:py-20 bg-secondary/30 relative overflow-hidden">
 
       <div className="container relative">
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
@@ -32,7 +29,7 @@ const ContactSection = ({ content = CONTENT.contact }: ContactSectionProps) => {
               <span className="w-8 h-px bg-primary" />
               {content.sectionLabel}
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold whitespace-pre-line">{content.heading}</h2>
+            <h2 className="gw-heading text-2xl sm:text-3xl lg:text-4xl whitespace-pre-line">{content.heading}</h2>
             <p className="text-muted-foreground">
               Have questions or need help? Reach out and we&apos;ll get back to you as soon as possible.
             </p>
@@ -48,7 +45,7 @@ const ContactSection = ({ content = CONTENT.contact }: ContactSectionProps) => {
             </div>
           </div>
 
-          <form ref={rightRef} className="bg-card border border-border/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 space-y-4 sm:space-y-5 shadow-lg shadow-primary/3" onSubmit={(event) => event.preventDefault()}>
+          <form ref={rightRef} className="bg-card border border-border/60 rounded-xl p-5 sm:p-8 space-y-4 sm:space-y-5 shadow-lg shadow-primary/3" onSubmit={(event) => event.preventDefault()}>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label htmlFor="contact-name" className="text-xs font-medium">Full Name</label>

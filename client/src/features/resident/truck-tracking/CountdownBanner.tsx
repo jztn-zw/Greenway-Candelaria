@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { CalendarDays, Clock, Info } from "lucide-react";
 import type { CollectionSchedule } from "./types";
 import { cn } from "@/lib/utils";
@@ -23,16 +24,16 @@ const CountdownBanner = ({
     return (
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
         <div className="min-w-0 space-y-0.5">
-          <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
+          <h3 className="gw-heading text-xs lg:text-sm text-foreground tracking-tight">
             {collectionFinishedToday ? "No Collection Scheduled Tomorrow" : "No Scheduled Collection"} • {residentArea || "Your Barangay"}
           </h3>
-          <p className="text-[11px] lg:text-xs text-muted-foreground">
+          <p className="text-ui-caption lg:text-xs text-muted-foreground">
             {collectionFinishedToday
               ? "Today's street collection has ended, and this street has no collection scheduled tomorrow."
               : "There is currently no upcoming collection schedule set for your location."}
           </p>
         </div>
-        <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
+        <div className="flex max-w-full items-center gap-1.5 self-start rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-ui-caption text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
           <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <span className="truncate">Check announcements for schedule updates</span>
         </div>
@@ -61,22 +62,13 @@ const CountdownBanner = ({
       <div className="min-w-0 space-y-1">
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-xs lg:text-sm font-display font-bold text-foreground tracking-tight">
+          <h3 className="gw-heading text-xs lg:text-sm text-foreground tracking-tight">
             {collectionFinishedToday ? "Tomorrow's collection for" : "Collection for"} {residentArea || "Your Location"}
           </h3>
 
           {schedule.wasteType && (
             <span
-              className={cn(
-                "inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0",
-                isBio &&
-                  "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-                isNonBio &&
-                  "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
-                !isBio &&
-                  !isNonBio &&
-                  "bg-muted/80 text-muted-foreground border-border/80"
-              )}
+              className={"inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shrink-0 " + getCategoryBadgeColors(schedule.wasteType).className}
             >
               <span
                 className={cn(
@@ -92,7 +84,7 @@ const CountdownBanner = ({
         </div>
 
         {/* Sub-line: Date and Time of Start with neutral monochrome icons */}
-        <div className="flex items-center gap-2 lg:gap-3 text-[11px] lg:text-xs text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-2 lg:gap-3 text-ui-caption lg:text-xs text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span>
@@ -109,14 +101,14 @@ const CountdownBanner = ({
         </div>
       </div>
 
-      {/* Right: Reminder Pill with neutral monochrome icon */}
-       <div className="flex max-w-full items-center gap-1.5 self-start rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
+      {/* Right: Reminder note with neutral monochrome icon */}
+      <div className="flex max-w-full items-center gap-1.5 self-start rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-ui-caption text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
         <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-         <span className="truncate">
-           {collectionFinishedToday
-             ? "Today's street collection has ended"
-             : "Please have segregated bins ready"}
-         </span>
+        <span className="truncate">
+          {collectionFinishedToday
+            ? "Today's street collection has ended"
+            : "Please have segregated bins ready"}
+        </span>
       </div>
     </div>
   );

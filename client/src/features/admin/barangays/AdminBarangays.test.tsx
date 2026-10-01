@@ -111,13 +111,143 @@ describe("street coverage road matching", () => {
     // asynchronous and should not consume a matching test's deadline.
     ({ default: Editor } = await vi.importActual<typeof import("./StreetCoverageEditor")>("./StreetCoverageEditor"));
   });
-  const openCoverage = async (save = vi.fn(), initialPath: [number, number][] | null = null) => {
+  const openCoverage = async (save = vi.fn(), initialPath: [number, number][] | null = null, onOpenChange = vi.fn()) => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    await act(async () => root.render(<Editor open streetName="Test street" barangayName="Poblacion" initialPath={initialPath} center={points[0]} onOpenChange={vi.fn()} onSave={save} />));
+    await act(async () => root.render(<Editor open streetName="Test street" barangayName="Poblacion" initialPath={initialPath} center={points[0]} onOpenChange={onOpenChange} onSave={save} />));
     return save;
   };
   const mark = (point: [number, number]) => act(() => mocks.mapHandlers.get("click")!({ latlng: { lat: point[0], lng: point[1] } }));
   const finishMatching = () => act(async () => { await vi.advanceTimersByTimeAsync(300); });
+
+  it.each(["Cancel", "Close", "Escape", "outside"])("confirms before closing an unfinished path with %s", async (method) => {
+    const close = vi.fn();
+    const save = await openCoverage(vi.fn(), null, close);
+    mark(points[0]);
+    const editor = document.querySelector('[role="dialog"]')!;
+    if (method === "Escape") {
+      await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    } else if (method === "outside") {
+      // Radix installs the outside-pointer listener on the next timer tick.
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      await act(async () => document.body.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
+    } else {
+      await click(method, editor);
+    }
+    expect(document.body.textContent).toContain("Discard Path Changes?");
+    expect(close).not.toHaveBeenCalled();
+    await click("Keep Editing");
+    expect(document.body.textContent).not.toContain("Discard Path Changes?");
+    expect(mocks.markers.map(marker => marker.coordinate)).toEqual([points[0]]);
+    expect(close).not.toHaveBeenCalled();
+    await click("Cancel", editor);
+    await click("Discard Changes");
+    expect(close).toHaveBeenCalledExactlyOnceWith(false);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it.each<{ initialPath: [number, number][] | null }>([{ initialPath: null }, { initialPath: road }])("closes an unchanged path directly: $initialPath", async ({ initialPath }) => {
+    const close = vi.fn();
+    await openCoverage(vi.fn(), initialPath, close);
+    await click("Cancel");
+    expect(close).toHaveBeenCalledExactlyOnceWith(false);
+    expect(document.body.textContent).not.toContain("Discard Path Changes?");
+  });
+
+  it("keeps failed road-matching points when the discard dialog is dismissed", async () => {
+    mocks.road.mockRejectedValue(new Error("Road service unavailable"));
+    const close = vi.fn();
+    await openCoverage(vi.fn(), null, close); mark(points[0]); mark(points[1]); await finishMatching();
+    await click("Cancel");
+    expect(document.body.textContent).toContain("Discard Path Changes?");
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(document.body.textContent).not.toContain("Discard Path Changes?");
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Road service unavailable");
+    expect(mocks.markers.map(marker => marker.coordinate)).toEqual(points);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it("guards clearing a saved path and closes a successful save without a discard prompt", async () => {
+    const close = vi.fn();
+    const save = await openCoverage(vi.fn(), road, close);
+    await click("Clear"); await click("Cancel");
+    expect(document.body.textContent).toContain("Discard Path Changes?");
+    await click("Keep Editing"); await click("Save path");
+    expect(save).toHaveBeenCalledWith(null);
+    expect(close).toHaveBeenCalledExactlyOnceWith(false);
+    expect(document.body.textContent).not.toContain("Discard Path Changes?");
+  });
+
+  it("does not close or show a discard prompt while saving", async () => {
+    let finishSave!: () => void;
+    const close = vi.fn();
+    const save = vi.fn(() => new Promise<void>(resolve => { finishSave = resolve; }));
+    await openCoverage(save, road, close); await click("Clear"); await click("Save path");
+    await click("Close");
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(close).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("Discard Path Changes?");
+    await act(async () => finishSave());
+    expect(close).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it.each<{ initialPath: [number, number][] | null }>([{ initialPath: null }, { initialPath: [] }])("does not save an unchanged empty path: $initialPath", async ({ initialPath }) => {
+    const save = await openCoverage(vi.fn(), initialPath);
+    expect(button("Save path")).toBeDisabled();
+    await click("Save path");
+    expect(save).not.toHaveBeenCalled();
+    mark(points[0]);
+    expect(button("Save path")).toBeDisabled();
+    await click("Undo");
+    expect(button("Save path")).toBeDisabled();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("does not save an existing path until it changes", async () => {
+    const save = await openCoverage(vi.fn(), road);
+    expect(button("Save path")).toBeDisabled();
+    expect(document.body.textContent).toContain("No changes to save");
+    await click("Save path");
+    expect(save).not.toHaveBeenCalled();
+    expect(mocks.road).not.toHaveBeenCalled();
+    await click("Clear");
+    expect(button("Save path")).not.toBeDisabled();
+    await click("Save path");
+    expect(save).toHaveBeenCalledWith(null);
+  });
+
+  it("does not treat simplified control points as changes to a saved path", async () => {
+    const detailedPath: [number, number][] = Array.from({ length: 30 }, (_, index) => [13.931 + index * 0.00001, 121.424 + index * 0.00001]);
+    const save = await openCoverage(vi.fn(), detailedPath);
+    expect(mocks.markers.length).toBeLessThan(detailedPath.length);
+    expect(mocks.lines).toContainEqual(detailedPath);
+    expect(button("Save path")).toBeDisabled();
+    await click("Save path");
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("disables saving when road matching returns the existing geometry", async () => {
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: [...road, road[road.length - 1]], source: "osrm" });
+    const save = await openCoverage(vi.fn(), road);
+    mark(road[road.length - 1]);
+    await finishMatching();
+    expect(button("Save path")).toBeDisabled();
+    await click("Save path");
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("disables saving after reversing twice restores the original collection order", async () => {
+    mocks.road.mockResolvedValue({ coordinates: road.slice().reverse(), snappedPoints: points.slice().reverse(), source: "osrm" });
+    const save = await openCoverage(vi.fn(), points);
+    await click("Reverse");
+    await finishMatching();
+    expect(button("Save path")).not.toBeDisabled();
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    await click("Reverse");
+    await finishMatching();
+    expect(button("Save path")).toBeDisabled();
+    await click("Save path");
+    expect(save).not.toHaveBeenCalled();
+  });
 
   it("draws and saves the road shape rather than a line between clicks", async () => {
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
@@ -141,7 +271,8 @@ describe("street coverage road matching", () => {
     expect(signal.aborted).toBe(true);
     expect(document.body.textContent).toContain("No path saved");
     expect(mocks.lines).toHaveLength(0);
-    await click("Save path"); expect(save).toHaveBeenCalledWith(null);
+    expect(button("Save path")).toBeDisabled();
+    await click("Save path"); expect(save).not.toHaveBeenCalled();
   });
 
   it("keeps marked points through a 503 and retries without saving an unmatched path", async () => {
@@ -179,7 +310,8 @@ describe("street coverage road matching", () => {
 
   it("keeps the matched path after a failed save and lets the user save again", async () => {
     const save = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Something went wrong"), { isAxiosError: true, response: { status: 503 } })).mockResolvedValueOnce(undefined);
-    await openCoverage(save, road);
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    await openCoverage(save); mark(points[0]); mark(points[1]); await finishMatching();
     await click("Save path");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Path wasn't saved");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Your changes are kept in this window");

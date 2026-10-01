@@ -113,10 +113,10 @@ const TruckBreakdownDialog = ({
                 <Truck className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-muted-foreground">Assigned vehicle</p>
+                <p className="text-ui-caption font-medium text-muted-foreground">Assigned vehicle</p>
                 <p className="truncate text-sm font-semibold text-foreground">{truckName || "Assigned truck"}</p>
               </div>
-              {truckPlate && <span className="max-w-[42%] truncate rounded-md bg-background px-2 py-1 font-mono text-xs font-semibold text-foreground">{truckPlate}</span>}
+              {truckPlate && <span className="max-w-[42%] truncate rounded-md bg-background px-2 py-1 tabular-nums text-xs font-semibold text-foreground">{truckPlate}</span>}
             </div>
 
             <div className="space-y-1.5">
@@ -134,7 +134,7 @@ const TruckBreakdownDialog = ({
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <label className={styles.label} htmlFor={descriptionId}>Issue details and location</label>
-                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{description.length}/{descriptionLimit}</span>
+                <span className="shrink-0 text-ui-caption tabular-nums text-muted-foreground">{description.length}/{descriptionLimit}</span>
               </div>
               <Textarea
                 id={descriptionId}

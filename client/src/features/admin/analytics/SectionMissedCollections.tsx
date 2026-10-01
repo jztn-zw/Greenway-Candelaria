@@ -4,9 +4,9 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { AlertTriangle, MapPin, MessageSquareWarning } from "lucide-react";
 import { useAnalyticsData } from "./AnalyticsDataContext";
 
-const weeklyConfig = { missed: { label: "Missed stops", color: "hsl(13, 70%, 48%)" } };
-const areaConfig = { missed: { label: "Missed stops", color: "hsl(13, 70%, 48%)" } };
-const reasonColors = ["hsl(13, 70%, 48%)", "hsl(35, 82%, 52%)", "hsl(204, 62%, 48%)", "hsl(145, 58%, 31%)"];
+const weeklyConfig = { missed: { label: "Missed stops", color: "hsl(var(--error))" } };
+const areaConfig = { missed: { label: "Missed stops", color: "hsl(var(--error))" } };
+const reasonColors = ["hsl(var(--error))", "hsl(var(--warning))", "hsl(var(--info))", "hsl(var(--chart-1))"];
 
 const SectionMissedCollections: React.FC = () => {
   const { missedByArea, missedCollectionsWeekly, missedReasons } = useAnalyticsData();
@@ -23,11 +23,11 @@ const SectionMissedCollections: React.FC = () => {
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Missed stops by week</h3>
+                <h3 className="gw-heading text-sm text-foreground">Missed stops by week</h3>
                 <p className="text-xs text-muted-foreground">A stop marked missed after a route ends or is skipped.</p>
               </div>
             </div>
-            <span className="shrink-0 text-2xl font-bold tabular-nums text-destructive">{totalMissed}</span>
+            <span className="gw-stat-value shrink-0 text-2xl tabular-nums text-destructive">{totalMissed}</span>
           </div>
           <ChartContainer config={weeklyConfig} className="h-[230px] w-full aspect-auto">
             <BarChart data={missedCollectionsWeekly}>
@@ -46,7 +46,7 @@ const SectionMissedCollections: React.FC = () => {
               <MapPin className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Areas needing follow-up</h3>
+              <h3 className="gw-heading text-sm text-foreground">Areas needing follow-up</h3>
               <p className="text-xs text-muted-foreground">Stops missed within the selected period.</p>
             </div>
           </div>
@@ -69,7 +69,7 @@ const SectionMissedCollections: React.FC = () => {
             <MessageSquareWarning className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">Recorded skip reasons</h3>
+            <h3 className="gw-heading text-sm text-foreground">Recorded skip reasons</h3>
             <p className="text-xs text-muted-foreground">Reasons saved when a driver marks a route stop as missed.</p>
           </div>
         </div>
@@ -77,7 +77,7 @@ const SectionMissedCollections: React.FC = () => {
           {missedReasons.map((item, index) => (
             <article key={item.reason} className="rounded-xl bg-muted/45 p-4">
               <div className="mb-5 h-1.5 w-12 rounded-full" style={{ background: reasonColors[index] }} />
-              <p className="text-2xl font-bold tabular-nums text-foreground">{item.count}</p>
+              <p className="gw-stat-value text-2xl tabular-nums text-foreground">{item.count}</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.reason}</p>
             </article>
           ))}

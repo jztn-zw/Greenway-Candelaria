@@ -1,20 +1,20 @@
 .greenway-toaster[data-sonner-toaster] {
   width: min(390px, calc(100vw - 32px));
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui);
 }
 
 .greenway-toaster [data-sonner-toast][data-styled='true'] {
   --greenway-toast-accent: var(--primary);
   width: 100%;
   min-height: 70px;
-  padding: 14px 48px 16px 16px;
+  padding: 14px 58px 16px 16px;
   gap: 12px;
   border: 1px solid hsl(var(--border));
-  border-radius: 14px;
-  background: linear-gradient(100deg, hsl(var(--greenway-toast-accent) / 0.1), hsl(var(--card)) 44%);
+  border-radius: var(--radius-card);
+  background: hsl(var(--card));
   color: hsl(var(--card-foreground));
-  box-shadow: 0 10px 28px rgb(0 0 0 / 0.16);
-  font-size: 14px;
+  box-shadow: 0 4px 12px -2px hsl(var(--shadow) / 0.12);
+  font-size: var(--font-size-body);
   transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease, height 240ms ease;
 }
 
@@ -23,31 +23,30 @@
 }
 
 .greenway-toaster [data-sonner-toast][data-type='warning'] {
-  --greenway-toast-accent: 39 92% 46%;
+  --greenway-toast-accent: var(--warning-foreground);
 }
 
 .greenway-toaster [data-sonner-toast][data-type='info'] {
-  --greenway-toast-accent: 199 85% 43%;
+  --greenway-toast-accent: var(--info-foreground);
 }
 
 .greenway-toaster [data-sonner-toast] [data-icon] {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   margin: 0;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius);
   background: hsl(var(--greenway-toast-accent) / 0.14);
 }
 
 .greenway-toaster [data-sonner-toast] [data-icon] svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   margin: 0;
-  padding: 5px;
-  border-radius: 50%;
-  background: hsl(var(--greenway-toast-accent));
-  color: white;
-  stroke-width: 2.8;
+  padding: 2px;
+  background: transparent;
+  color: hsl(var(--greenway-toast-accent));
+  stroke-width: 2;
 }
 
 .greenway-toaster [data-sonner-toast] [data-content] {
@@ -62,7 +61,7 @@
   right: 16px;
   left: 16px;
   height: 2px;
-  border-radius: 0 0 2px 2px;
+  border-radius: 0 0 var(--radius-detail) var(--radius-detail);
   background: hsl(var(--greenway-toast-accent));
   transform-origin: left;
   animation: greenway-toast-lifetime 4200ms linear forwards;
@@ -90,40 +89,49 @@
   line-height: 1.4;
 }
 
-.greenway-toaster [data-sonner-toast] [data-close-button] {
+/* Outrank Sonner's theme rules so the close control uses our shared palette. */
+.greenway-toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-close-button] {
   top: 50%;
   right: 10px;
   left: auto;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   transform: translateY(-50%);
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--muted) / 0.5);
   color: hsl(var(--muted-foreground));
   box-shadow: none;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 100ms ease;
 }
 
-.greenway-toaster [data-sonner-toast] [data-close-button]:hover {
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
+.greenway-toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-close-button]:not(:disabled):hover {
+  background: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
 }
 
-.greenway-toaster [data-sonner-toast] [data-close-button]:focus-visible {
+.greenway-toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-close-button]:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
   box-shadow: none;
 }
 
+.greenway-toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-close-button]:not(:disabled):active {
+  transform: translateY(-50%) scale(0.94);
+}
+
 .greenway-toaster [data-sonner-toast] [data-close-button] svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 .greenway-toaster [data-sonner-toast] [data-button] {
   height: 30px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   font-weight: 600;
@@ -154,6 +162,17 @@
 
   .greenway-toaster [data-sonner-toast][data-styled='true'] {
     width: 100%;
+  }
+}
+
+@media (pointer: coarse) {
+  .greenway-toaster [data-sonner-toast][data-styled='true'] {
+    padding-right: 66px;
+  }
+
+  .greenway-toaster[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-close-button] {
+    width: 44px;
+    height: 44px;
   }
 }
 

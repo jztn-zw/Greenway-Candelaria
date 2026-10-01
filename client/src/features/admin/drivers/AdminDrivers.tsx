@@ -439,7 +439,7 @@ const AdminDrivers = () => {
       {/* ── Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Collector Manager
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -451,7 +451,7 @@ const AdminDrivers = () => {
           onClick={() =>
             activeTab === "drivers" ? openDriverEditor() : openTruckEditor()
           }
-          className="h-10 px-4 rounded-xl font-semibold shadow-xs gap-2 cursor-pointer active:scale-95 shrink-0"
+          className="h-10 px-4 rounded-xl font-semibold shadow-xs gap-2 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           {activeTab === "drivers" ? "Add Collector" : "Add Truck"}
@@ -501,7 +501,7 @@ const AdminDrivers = () => {
             <div className="flex items-center min-h-[22px]">
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
                   kpi.tag
                 )}
               >
@@ -509,11 +509,11 @@ const AdminDrivers = () => {
               </span>
             </div>
 
-            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
               {kpi.value}
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-medium truncate">
+            <div className="text-ui-caption text-muted-foreground font-medium truncate">
               {kpi.subtext}
             </div>
           </div>
@@ -606,7 +606,7 @@ const AdminDrivers = () => {
               variant="ghost"
               size="sm"
               onClick={handleResetFilters}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0 gap-1.5 cursor-pointer active:scale-95 transition-all hover:bg-muted/50"
+              className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
               title="Reset active filters"
             >
               <RotateCcw className="w-3.5 h-3.5" />

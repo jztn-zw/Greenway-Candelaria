@@ -22,7 +22,7 @@ const DEFAULT_CENTER: L.LatLngExpression = [13.93, 121.42];
 const createOrderBadge = (stopNumber: number) =>
   L.divIcon({
     className: "",
-    html: `<div style="width:26px;height:26px;border-radius:9999px;border:2px solid #fff;background:hsl(145,63%,32%);color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px Inter,system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.32);">${stopNumber}</div>`,
+    html: `<div style="width:26px;height:26px;border-radius:var(--radius-full);border:2px solid hsl(var(--map-inset));background:hsl(var(--primary));color:hsl(var(--map-inset));display:flex;align-items:center;justify-content:center;font:600 12px var(--font-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 7px rgba(0,0,0,.32);">${stopNumber}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
@@ -69,14 +69,14 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
       allPoints.push(...stop.points);
 
       L.polyline(stop.points, {
-        color: "#ffffff",
+        color: "hsl(var(--map-inset))",
         weight: 8,
         opacity: 0.92,
         interactive: false,
       }).addTo(map);
 
       const coverageLine = L.polyline(stop.points, {
-        color: "#16a34a",
+        color: "hsl(var(--highlight))",
         weight: 5,
         opacity: 0.95,
         lineCap: "round",
@@ -117,7 +117,7 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
           <p className="text-xs font-semibold text-foreground">
             {stops.length === 0 ? "Add streets to preview the route" : "Street coverage paths are missing"}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-ui-caption text-muted-foreground">
             {stops.length === 0
               ? "Selected streets will appear here as full coverage lines."
               : "Draw these street paths in Barangay Manager before scheduling the route."}
@@ -136,7 +136,7 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
         <button
           type="button"
           onClick={() => mapRef.current?.zoomIn()}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-foreground transition-all hover:bg-muted/80 hover:text-primary active:scale-95"
+          className="gw-action-ghost flex h-7 w-7 items-center justify-center rounded-lg transition-all"
           title="Zoom in"
           aria-label="Zoom in"
         >
@@ -146,19 +146,19 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
         <button
           type="button"
           onClick={() => mapRef.current?.zoomOut()}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-foreground transition-all hover:bg-muted/80 hover:text-primary active:scale-95"
+          className="gw-action-ghost flex h-7 w-7 items-center justify-center rounded-lg transition-all"
           title="Zoom out"
           aria-label="Zoom out"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="absolute bottom-2 left-2 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/95 px-2 py-1 text-[10px] text-muted-foreground shadow-sm">
+      <div className="absolute bottom-2 left-2 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/95 px-2 py-1 text-ui-overline text-muted-foreground shadow-sm">
         <span className="h-1 w-5 rounded-full bg-green-600" />
         Street coverage
       </div>
       {missingCount > 0 && (
-        <div className="absolute bottom-2 right-2 z-[400] rounded-lg border border-amber-500/30 bg-amber-50/95 px-2 py-1 text-[10px] font-medium text-amber-800 shadow-sm dark:bg-amber-950/90 dark:text-amber-300">
+        <div className="absolute bottom-2 right-2 z-[400] rounded-lg border border-amber-500/30 bg-amber-50/95 px-2 py-1 text-ui-overline font-medium text-amber-800 shadow-sm dark:bg-amber-950/90 dark:text-amber-300">
           {missingCount} path{missingCount === 1 ? "" : "s"} missing
         </div>
       )}

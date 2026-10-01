@@ -3,6 +3,7 @@ import { Heart, Calendar, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
+import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 
 interface PostCardProps {
   post: PostItem;
@@ -48,28 +49,19 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <article
       onClick={onClick}
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99]"
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs transition-all duration-300 cursor-pointer select-none hover:border-primary/30 "
     >
       {/* ── Image Area ── */}
       <div className="relative aspect-[16/10] overflow-hidden bg-muted/30 border-b border-border/60 flex items-center justify-center">
         {currentImage && !imageFailed ? (
           <>
-            {/* Ambient blurred backdrop */}
-            <img
-              key={`bg-${post.id}-${imageIndex}`}
-              src={currentImage}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-40 dark:opacity-30 select-none pointer-events-none transition-all duration-500 ease-in-out"
-            />
-            <div className="absolute inset-0 bg-background/10 dark:bg-black/20 pointer-events-none" />
-
+            <PostImageBackdrop src={currentImage} />
             {/* Crisp foreground image */}
             <img
               key={`img-${post.id}-${imageIndex}`}
               src={currentImage}
               alt={post.title}
-              className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-sm group-hover:scale-[1.03] transition-all duration-500 ease-in-out"
+              className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-500 ease-in-out"
               onError={() => setImageFailed(true)}
             />
           </>
@@ -80,7 +72,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         {/* Top-left category badge */}
         <div className="absolute top-3 left-3 z-20">
           <span
-            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-2xs backdrop-blur-md ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+            className={`inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shadow-2xs backdrop-blur-md ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`} />
             <span>{categoryLabel}</span>
@@ -105,7 +97,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       {/* ── Content Area ── */}
       <div className="p-4 lg:p-5 flex flex-col flex-1 justify-between gap-3">
         <div className="space-y-1.5">
-          <h3 className="font-display text-[15px] lg:text-base font-bold text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
+          <h3 className="gw-heading text-ui-title lg:text-base text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
             {post.title}
           </h3>
 
@@ -116,7 +108,7 @@ export const PostCard: React.FC<PostCardProps> = ({
 
         {/* ── Card Footer: Reactions & Metadata ── */}
         <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-ui-caption text-muted-foreground">
             <span className="flex shrink-0 items-center gap-1 font-medium">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               {dateInfo.formatted}
@@ -135,10 +127,10 @@ export const PostCard: React.FC<PostCardProps> = ({
                 e.stopPropagation();
                 onToggleLike(post);
               }}
-              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold transition-all duration-200 shrink-0 cursor-pointer active:scale-95 ${
+              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold transition-all duration-200 shrink-0 cursor-pointer ${
                 post.is_liked
                   ? "text-destructive bg-destructive/10 border border-destructive/20 shadow-2xs"
-                  : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent hover:border-border/60"
+                  : "gw-action-ghost border"
               }`}
             >
               <Heart className={`w-3.5 h-3.5 ${post.is_liked ? "fill-destructive" : ""}`} />

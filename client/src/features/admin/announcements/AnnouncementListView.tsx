@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import {
   MoreHorizontal,
   Edit2,
@@ -41,13 +42,13 @@ const typeBadges: Record<AnnouncementType, string> = announcementTypeStyles;
 
 const statusBadges: Record<AnnouncementStatus, string> = {
   Draft:
-    "bg-background/95 dark:bg-zinc-900/90 text-zinc-600 dark:text-zinc-400 border-zinc-400/40 dark:border-zinc-700 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Draft").className,
   Scheduled:
-    "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Scheduled").className,
   Active:
-    "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Active").className,
   Archived:
-    "bg-background/95 dark:bg-zinc-900/90 text-muted-foreground border-border/80 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Archived").className,
 };
 
 const formatScheduledDateTime = (value: string) => {
@@ -150,7 +151,7 @@ const AnnouncementListView = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs whitespace-nowrap pointer-events-none ${
+                      className={`text-xs font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs whitespace-nowrap pointer-events-none ${
                         typeBadges[ann.type] || "bg-muted text-muted-foreground"
                       }`}
                     >
@@ -189,7 +190,7 @@ const AnnouncementListView = ({
                           <span className="font-semibold tabular-nums text-foreground">
                             {readPct}%
                           </span>
-                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                          <span className="text-ui-overline text-muted-foreground tabular-nums">
                             {ann.readCount}/{ann.totalRecipients}
                           </span>
                         </div>
@@ -208,7 +209,7 @@ const AnnouncementListView = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs whitespace-nowrap pointer-events-none ${
+                      className={`text-xs font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs whitespace-nowrap pointer-events-none ${
                         statusBadges[ann.status] ||
                         "bg-muted text-muted-foreground"
                       }`}
@@ -228,7 +229,7 @@ const AnnouncementListView = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 hover:bg-muted cursor-pointer rounded-xl"
+                            className="h-8 w-8 p-0 cursor-pointer rounded-xl"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>

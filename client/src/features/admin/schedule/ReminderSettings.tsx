@@ -9,7 +9,7 @@ export const ReminderSettings = () => (
           <Bell className="h-4 w-4" />
         </div>
         <div>
-          <CardTitle className="font-display text-sm font-bold">Automatic Resident Reminders</CardTitle>
+          <CardTitle className="gw-heading text-sm ">Automatic Resident Reminders</CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">Sent 3 hours before collection to residents covered by active routes who allow reminders.</p>
         </div>
       </div>

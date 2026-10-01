@@ -27,26 +27,26 @@ const FOCUS_TOLERANCE_METERS = 20;
 const statusColor = (status: RouteStop["status"]) => {
   switch (status) {
     case "done":
-      return "hsl(145, 63%, 32%)";
+      return "hsl(var(--primary))";
     case "in-progress":
-      return "hsl(217, 91%, 60%)";
+      return "hsl(var(--info))";
     case "skipped":
-      return "hsl(38, 92%, 50%)";
+      return "hsl(var(--warning))";
     default:
-      return "hsl(215, 14%, 60%)";
+      return "hsl(var(--muted-foreground))";
   }
 };
 
 const coverageColor = (status: RouteStop["status"]) => {
   switch (status) {
     case "in-progress":
-      return "#16a34a";
+      return "hsl(var(--highlight))";
     case "done":
-      return "#166534";
+      return "hsl(var(--success-700))";
     case "skipped":
-      return "#f59e0b";
+      return "hsl(var(--warning))";
     default:
-      return "#94a3b8";
+      return "hsl(var(--neutral-400))";
   }
 };
 
@@ -77,15 +77,15 @@ const createCoverageOrderIcon = (stop: RouteStop) =>
 const createCollectorTruckPinIcon = () => {
   const width = 42;
   const height = 54;
-  const color = "hsl(145, 63%, 32%)";
+  const color = "hsl(var(--primary))";
 
   return L.divIcon({
     className: "",
     html: `
       <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));cursor:pointer;">
         <svg width="${width}" height="${height}" viewBox="0 0 42 54" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-          <path d="M 21 1.5 C 10.2 1.5 1.5 10.2 1.5 21 C 1.5 33.5 21 52.5 21 52.5 C 21 52.5 40.5 33.5 40.5 21 C 40.5 10.2 31.8 1.5 21 1.5 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="21" cy="21" r="12" fill="#ffffff"/>
+          <path d="M 21 1.5 C 10.2 1.5 1.5 10.2 1.5 21 C 1.5 33.5 21 52.5 21 52.5 C 21 52.5 40.5 33.5 40.5 21 C 40.5 10.2 31.8 1.5 21 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="21" cy="21" r="12" fill="hsl(var(--map-inset))"/>
           <g transform="translate(11.2, 11.5) scale(0.8)">
             <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M15 18H9" fill="none" stroke="${color}" stroke-width="2.3"/>
@@ -95,8 +95,8 @@ const createCollectorTruckPinIcon = () => {
           </g>
         </svg>
         <div style="position:absolute;top:-1px;right:-1px;display:flex;width:12px;height:12px;pointer-events:none;">
-          <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#10b981;opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
-          <span style="position:relative;width:100%;height:100%;border-radius:50%;background:#10b981;border:2px solid #ffffff;"></span>
+          <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:hsl(var(--highlight));opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
+          <span style="position:relative;width:100%;height:100%;border-radius:50%;background:hsl(var(--highlight));border:2px solid hsl(var(--map-inset));"></span>
         </div>
       </div>
     `,
@@ -180,7 +180,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         if (result.coordinates && result.coordinates.length > 1) {
           // Route glow outer casing
           L.polyline(result.coordinates, {
-            color: "#2563eb",
+            color: "hsl(var(--info-600))",
             dashArray: result.source === "haversine" ? "8 8" : undefined,
             weight: 6,
             opacity: 0.7,
@@ -190,7 +190,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
           // Inner vibrant road track
           L.polyline(result.coordinates, {
-            color: "#60a5fa",
+            color: "hsl(var(--info-400))",
             weight: 3.5,
             opacity: 1,
             lineCap: "round",
@@ -235,7 +235,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
       if (stop.coveragePath && stop.coveragePath.length >= 2) {
         L.polyline(stop.coveragePath, {
-          color: "#ffffff",
+          color: "hsl(var(--map-inset))",
           weight: isActive ? 10 : 8,
           opacity: 0.9,
           lineCap: "round",
@@ -277,15 +277,15 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       const progressInfo = stop.status === "done" && stop.completedAt
         ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.7;margin-top:4px">Completed at ${escapeHtml(stop.completedAt)}</div>`
         : stop.status === "skipped" && stop.skippedReason
-        ? `<div style="font-size:11px;color:hsl(38,92%,40%);margin-top:4px">${escapeHtml(stop.skippedReason)}</div>`
+        ? `<div style="font-size:11px;color:hsl(var(--warning-foreground));margin-top:4px">${escapeHtml(stop.skippedReason)}</div>`
         : stop.status === "not-yet" && stop.distanceKm > 0
         ? `<div style="font-size:11px;opacity:0.6;margin-top:4px">${formatDistance(stop.distanceKm)}</div>`
         : "";
 
       const popupContent = `
-        <div style="font-family:Inter,system-ui,sans-serif;min-width:180px;max-width:240px;padding:2px 0">
+        <div style="font-family:var(--font-ui);font-variant-numeric:tabular-nums;min-width:180px;max-width:240px;padding:2px 0">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="width:28px;height:28px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
+            <div style="width:28px;height:28px;border-radius:var(--radius);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
               ${stop.stopNumber}
             </div>
             <div style="flex:1;min-width:0">
@@ -406,7 +406,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleZoomIn}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom In"
           aria-label="Zoom in"
         >
@@ -416,7 +416,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleZoomOut}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom Out"
           aria-label="Zoom out"
         >
@@ -424,7 +424,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/90 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
+      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
         {preview ? (
           <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned stops</span>
         ) : (
@@ -437,12 +437,12 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       </div>
 
       {/* Floating Map Action Controls (Bottom-Right) */}
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs">
+      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-lg border border-border/70 shadow-2xs">
         {!preview && (
           <button
             type="button"
             onClick={handleRecenter}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
             title="Recenter on Truck"
           >
             <Crosshair className="w-3.5 h-3.5 shrink-0" />
@@ -453,7 +453,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleFitRoute}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
           title="Fit All Stops"
         >
           <Maximize2 className="w-3.5 h-3.5 shrink-0" />
@@ -461,8 +461,8 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
-        <span className="text-[10px] sm:text-[11px] font-display font-semibold text-foreground truncate">
+      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
+        <span className="text-ui-overline sm:text-ui-caption font-body font-semibold text-foreground truncate">
           {preview ? "Route preview · GPS off" : activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
         </span>
       </div>
@@ -471,5 +471,4 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 };
 
 export default RouteMapView;
-
 

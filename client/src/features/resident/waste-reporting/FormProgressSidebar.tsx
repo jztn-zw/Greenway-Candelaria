@@ -44,12 +44,12 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
       <div className="rounded-2xl border border-border/80 bg-card p-4 lg:p-5 shadow-2xs space-y-4">
         <div>
           <div className="flex items-center justify-between gap-2">
-            <h4 className="text-xs font-bold font-display text-foreground tracking-tight flex items-center gap-1.5">
+            <h4 className="gw-heading text-xs text-foreground tracking-tight flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-primary" />
               Submission Checklist
             </h4>
             <span className={cn(
-              "text-[10px] font-bold px-2 py-0.5 rounded-full border leading-none",
+              "text-ui-overline font-bold px-2 py-0.5 rounded-md border leading-none",
               isComplete
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 : "bg-muted text-muted-foreground border-border/70"
@@ -58,7 +58,7 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
             </span>
           </div>
 
-          <p className="text-[11px] text-muted-foreground mt-1">
+          <p className="text-ui-caption text-muted-foreground mt-1">
             {isComplete ? "All requirements complete" : `${4 - requiredCompleted} remaining requirements`}
           </p>
 
@@ -89,7 +89,7 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
                   className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all",
                     done
-                      ? "bg-emerald-500 text-white shadow-2xs"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
                       : "border border-border/90 bg-muted/40 text-transparent"
                   )}
                 >
@@ -103,7 +103,7 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
                   )}>
                     {step.label}
                   </p>
-                  <p className="text-[10px] text-muted-foreground/80 leading-none mt-0.5 truncate">
+                  <p className="text-ui-overline text-muted-foreground/80 leading-none mt-0.5 truncate">
                     {step.helper}
                   </p>
                 </div>
@@ -116,10 +116,10 @@ export const FormProgressSidebar: React.FC<FormProgressSidebarProps> = ({
       {/* ── Tip Card ── */}
       <div className="p-4 rounded-2xl bg-muted/20 border border-border/80 shadow-2xs space-y-1.5">
         <div className="flex items-center gap-1.5 text-foreground font-semibold text-xs">
-          <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <Lightbulb className="w-3.5 h-3.5 text-warning-foreground shrink-0" />
           <span>Tip for Fast Resolution</span>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-ui-caption text-muted-foreground leading-relaxed">
           Clear photos showing nearby landmarks help MENRO field inspectors pinpoint and dispatch response units quickly.
         </p>
       </div>

@@ -1,3 +1,4 @@
+import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { useCollectorQuery, useCollectorAction } from "@/lib/collectorQuery";
 import { getManilaNow } from "@/utils/date";
 import { useState, useEffect } from "react";
@@ -94,7 +95,7 @@ const CollectorDashboard = () => {
               <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60 bg-muted/20">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-bold text-foreground font-display tracking-tight">
+                  <span className="text-xs font-semibold text-foreground font-body tracking-tight">
                     Route runs and historical logs
                   </span>
                 </div>
@@ -126,20 +127,20 @@ const CollectorDashboard = () => {
                           </p>
                           {item.wasteType && (
                             <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border shrink-0 ${getWasteBadgeClass(item.wasteType)}`}
+                              className={collectorBadgeClassName + " " + getWasteBadgeClass(item.wasteType)}
                             >
                               {item.wasteType}
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                        <p className="text-ui-caption text-muted-foreground mt-0.5">
                           {item.date} · {item.completedStops} of {item.totalStops} stops cleared
                         </p>
                       </div>
 
                       <div className="text-right shrink-0 flex flex-col items-end gap-1 min-w-[64px]">
                         <span
-                          className={`text-xs font-mono font-bold ${
+                          className={`text-xs tabular-nums font-semibold ${
                             item.completionPct >= 100
                               ? "text-emerald-600 dark:text-emerald-400"
                               : item.completionPct > 0
@@ -169,7 +170,7 @@ const CollectorDashboard = () => {
             </div>
           ) : (
             <div className="h-full rounded-2xl border border-border bg-card p-5">
-              <h2 className="text-sm font-semibold">Recent route history</h2>
+              <h2 className="gw-heading text-sm ">Recent route history</h2>
               <p className="mt-2 text-sm text-muted-foreground">No finished collection routes yet.</p>
             </div>
           )}

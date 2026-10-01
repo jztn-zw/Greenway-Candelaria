@@ -73,10 +73,10 @@ const AnalyticsSectionNav: React.FC<Props> = ({ activeSection, onSectionChange }
             aria-pressed={active}
             onClick={(e) => handleTabClick(s.id, e)}
             className={cn(
-              "flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-xl border px-3.5 py-2 font-body text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95",
+              "flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-lg border px-3.5 py-2 font-body text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ",
               active
                 ? "border-primary bg-primary text-primary-foreground shadow-xs shadow-primary/25"
-                : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
             )}
           >
             <span>{s.label}</span>

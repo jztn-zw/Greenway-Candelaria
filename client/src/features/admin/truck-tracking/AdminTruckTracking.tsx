@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import { AdminMessenger } from "./components/AdminMessenger";
 import { useAdminQuery } from "@/lib/adminQuery";
 import useAdminNotifications from "@/features/admin/notifications/useAdminNotifications";
@@ -89,7 +90,7 @@ const buildRouteMap = (routes: TruckRouteRow[], selectedByTruck: Record<string, 
   return map;
 };
 
-//  Helpers 
+//  Helpers
 
 const normaliseStatus = (raw: string): TruckStatus => {
   const map: Record<string, TruckStatus> = {
@@ -609,7 +610,7 @@ const mergeLiveIntoTrucks = (
   });
 };
 
-//  Component 
+//  Component
 
 type TrackingSidebarTab = "FLEET" | "REPLAY";
 type TrackingStatusFilter = "ALL" | TruckStatus;
@@ -734,13 +735,13 @@ const AdminTruckTracking = () => {
     if (overviewQuery.error) { setLastSyncSuccess(false); setOverviewFailed(true); }
   }, [overviewQuery.error]);
 
-  //  Live clock 
+  //  Live clock
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
 
-  //  Socket.IO with background throttling 
+  //  Socket.IO with background throttling
   useEffect(() => {
     const socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
@@ -810,7 +811,7 @@ const AdminTruckTracking = () => {
     };
   }, [refreshTrackingData]);
 
-  //  Handlers 
+  //  Handlers
 
   const handleTruckClick = useCallback((truckId: string) => {
     setFocusedTruckId((prev) => (prev === truckId ? null : truckId));
@@ -837,7 +838,7 @@ const AdminTruckTracking = () => {
     setTrucks(attachTruckMessages(rebuilt, overview.messages));
   }, []);
 
-  //  Recompute elapsed labels every tick 
+  //  Recompute elapsed labels every tick
   const displayTrucks = useMemo(
     () =>
       trucks.map((t) =>
@@ -854,7 +855,6 @@ const AdminTruckTracking = () => {
       ),
     [trucks, currentTime],
   );
-
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -914,7 +914,7 @@ const AdminTruckTracking = () => {
   );
   const activeStopCoords = activeStop?.coords ?? null;
 
-  //  KPI calculations 
+  //  KPI calculations
   const activeRouteTruckIds = new Set(todayRoutes
     .filter((route) => String(route.route_status || "").toUpperCase() === "ACTIVE")
     .map((route) => route.truck_id));
@@ -935,7 +935,7 @@ const AdminTruckTracking = () => {
   const animatedCompleted = useCountUp(totalCompleted);
   const animatedDone = useCountUp(doneRoutes);
 
-  //  Render 
+  //  Render
   if (isPageLoading) {
     return <AdminTruckTrackingPageSkeleton title={pageTitle} description={pageDescription} />;
   }
@@ -947,10 +947,10 @@ const AdminTruckTracking = () => {
       <div className="flex items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
               {pageTitle}
             </h1>
-            <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold border-primary/30 text-primary bg-primary/5">
+            <Badge variant="outline" className={"hidden sm:inline-flex text-ui-caption font-semibold " + badgeStyles.primary.className}>
               Candelaria
             </Badge>
           </div>
@@ -1000,7 +1000,7 @@ const AdminTruckTracking = () => {
             <div className="flex items-center min-h-[22px]">
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
                   kpi.tag
                 )}
               >
@@ -1008,11 +1008,11 @@ const AdminTruckTracking = () => {
               </span>
             </div>
 
-            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
               {kpi.value}
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-medium truncate">
+            <div className="text-ui-caption text-muted-foreground font-medium truncate">
               {kpi.description}
             </div>
           </div>
@@ -1029,7 +1029,7 @@ const AdminTruckTracking = () => {
               "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
               mobileView === "MAP"
                 ? "bg-card text-foreground shadow-2xs border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
+                : "gw-action-ghost "
             )}
           >
             <Navigation className="w-3.5 h-3.5 text-primary" />
@@ -1042,7 +1042,7 @@ const AdminTruckTracking = () => {
               "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
               mobileView === "LIST"
                 ? "bg-card text-foreground shadow-2xs border border-border/60"
-                : "text-muted-foreground hover:text-foreground"
+                : "gw-action-ghost "
             )}
           >
             <Truck className="w-3.5 h-3.5 text-primary" />
@@ -1097,12 +1097,12 @@ const AdminTruckTracking = () => {
             <button
               type="button"
               onClick={() => setIsFleetPanelMinimized(false)}
-              className="h-9 px-2.5 rounded-xl border border-border/70 bg-card/90 backdrop-blur-md text-foreground shadow-md flex items-center gap-1.5 hover:bg-muted/90 hover:border-border active:scale-[0.98] transition-colors cursor-pointer"
+              className="gw-action-outline h-9 px-2.5 rounded-lg border backdrop-blur-md shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Open Fleet controls"
               aria-label="Open Fleet controls"
             >
               <Truck className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-[11px] font-semibold">Fleet</span>
+              <span className="text-ui-caption font-semibold">Fleet</span>
             </button>
           ) : (
             <>
@@ -1132,8 +1132,8 @@ const AdminTruckTracking = () => {
                     className={cn(
                       "h-8 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
                       isActive
-                        ? "bg-card text-foreground font-bold shadow-xs border border-border/80"
-                        : "text-muted-foreground hover:text-foreground hover:bg-card/40"
+                        ? "bg-card text-foreground font-semibold shadow-xs border border-border/80"
+                        : "gw-action-ghost "
                     )}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
@@ -1146,7 +1146,7 @@ const AdminTruckTracking = () => {
             <button
               type="button"
               onClick={() => setIsFleetPanelMinimized(true)}
-              className="hidden xl:flex h-10 w-10 rounded-xl border border-border/70 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs"
+              className="gw-action-outline hidden xl:flex h-10 w-10 rounded-lg border items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
               title="Minimize Fleet panel"
               aria-label="Minimize Fleet panel"
             >
@@ -1165,7 +1165,7 @@ const AdminTruckTracking = () => {
                     <p className="text-xs font-semibold text-foreground">
                       {overviewFailed ? "Could not load fleet vehicles" : "No fleet vehicles found"}
                     </p>
-                    <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+                    <p className="text-ui-caption text-muted-foreground max-w-xs mx-auto">
                       {overviewFailed
                         ? "The tracking service did not return the fleet list. Try again."
                         : "There are currently no trucks configured for live tracking."}
@@ -1207,10 +1207,8 @@ const AdminTruckTracking = () => {
         </div>
       </div>
 
-
-
       {/* Footer */}
-      <p className="text-[11px] text-muted-foreground text-center pt-1">
+      <p className="text-ui-caption text-muted-foreground text-center pt-1">
         All changes are immediately reflected on the resident-facing Truck
         Tracking page · GPS updates via authenticated Socket.IO with secure REST fallback
       </p>
@@ -1219,10 +1217,4 @@ const AdminTruckTracking = () => {
 };
 
 export default AdminTruckTracking;
-
-
-
-
-
-
 

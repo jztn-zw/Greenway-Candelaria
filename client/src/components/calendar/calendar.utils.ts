@@ -20,7 +20,7 @@ export const eventOccursOnDate = (event: CalendarEvent, date: string) => {
 export const getEventColor = (id: string) => {
   let hash = 0;
   for (const char of id) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
-  return `hsl(${hash % 360} 72% 52%)`;
+  return `hsl(var(--chart-${(hash % 6) + 1}))`;
 };
 
 export const getEventColors = (events: CalendarEvent[]) =>

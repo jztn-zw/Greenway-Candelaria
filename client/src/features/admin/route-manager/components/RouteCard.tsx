@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,7 +73,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
         }
       }}
       className={cn(
-        "rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs hover:shadow-md hover:border-primary/40 transition-all space-y-3.5 flex flex-col justify-between cursor-pointer group text-left",
+        "rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs hover:border-primary/40 transition-all space-y-3.5 flex flex-col justify-between cursor-pointer group text-left",
         !route.active && "opacity-75 bg-muted/20"
       )}
     >
@@ -83,11 +84,11 @@ export const RouteCard: React.FC<RouteCardProps> = ({
             <Truck className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-bold font-display text-foreground truncate group-hover:text-primary transition-colors">
+            <h4 className="gw-heading text-sm text-foreground truncate group-hover:text-primary transition-colors">
               {isLoadingTruck ? "Loading truck..." : truck?.name ?? route.truckName}
             </h4>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
+              <span className="text-ui-overline tabular-nums font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
                 {isLoadingTruck ? (
                   <span className="inline-flex items-center gap-1">
                     <Loader2 className="w-2.5 h-2.5 animate-spin" /> ...
@@ -106,12 +107,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           <span
-            className={cn(
-              "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase border mr-0.5",
-              route.active
-                ? "bg-primary/10 text-primary border-primary/20"
-                : "bg-muted text-muted-foreground border-border/70"
-            )}
+            className={"inline-flex items-center px-2.5 py-1 rounded-md text-ui-overline font-bold tracking-wide uppercase border mr-0.5 " + getStatusBadgeStyle(route.active ? "Enabled" : "Paused").className}
           >
             {route.active ? "Enabled" : "Paused"}
           </span>
@@ -122,7 +118,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                className="w-8 h-8 rounded-lg cursor-pointer"
                 aria-label="Route actions"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -161,7 +157,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
                 <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                 <span>Delete</span>
                 {route.active && (
-                  <span className="ml-auto whitespace-nowrap text-[10px] text-muted-foreground font-normal">
+                  <span className="ml-auto whitespace-nowrap text-ui-overline text-muted-foreground font-normal">
                     Disable first
                   </span>
                 )}
@@ -187,15 +183,15 @@ export const RouteCard: React.FC<RouteCardProps> = ({
         </div>
 
         {/* Departure & Stops summary */}
-        <div className="flex items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/40 border border-border/60">
+        <div className="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-muted/40 border border-border/60">
           <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
             <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="text-foreground font-bold tabular-nums">{formatTime12h(route.startTime)}</span>
+            <span className="text-foreground font-semibold tabular-nums">{formatTime12h(route.startTime)}</span>
             <span>departure</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
             <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="text-foreground font-bold tabular-nums">{route.barangays.length}</span>
+            <span className="text-foreground font-semibold tabular-nums">{route.barangays.length}</span>
             <span>{route.barangays.length === 1 ? "stop" : "stops"}</span>
           </div>
         </div>

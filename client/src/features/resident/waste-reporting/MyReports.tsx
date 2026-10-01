@@ -1,5 +1,4 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import {
   useState,
@@ -141,7 +140,6 @@ const MyReports = () => {
   const isListLoading = !listQuery.isError && (listQuery.isLoading || listQuery.isPlaceholderData);
   const error = listQuery.error?.message ?? null;
   const statsQuery = useResidentQuery("reports", ["stats"], fetchMyReportStats);
-  const stats = statsQuery.data;
   const initialPageLoading = !initialListReady && (listQuery.isLoading || statsQuery.isLoading);
   useEffect(() => {
     if (!listQuery.isLoading && !statsQuery.isLoading) setInitialListReady(true);
@@ -239,15 +237,6 @@ const MyReports = () => {
   };
   const closeDetail = () => setSearchParams({});
 
-  const statusCounts: Record<ReportFilterTab, number> = {
-    all: stats?.total ?? total,
-    submitted: stats?.pending ?? 0,
-    "under-review": stats?.under_review ?? 0,
-    dispatched: stats?.in_progress ?? 0,
-    resolved: stats?.resolved ?? 0,
-  };
-  const hasStats = Boolean(stats);
-
   const getViolationLabel = (type: string) =>
     VIOLATION_OPTIONS.find((v) => v.value === type)?.label ?? type;
 
@@ -339,17 +328,17 @@ const MyReports = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
         <div className="hidden md:block">
-          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             My Reports
           </h1>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             View and track your submitted waste violation reports.
           </p>
         </div>
 
         <Button
           onClick={() => navigate("/resident/report")}
-          className="h-10 w-full shrink-0 rounded-xl bg-primary text-xs font-bold gap-1.5 shadow-xs transition-all hover:bg-primary/90 active:scale-[0.98] cursor-pointer md:w-auto md:px-4 lg:text-sm"
+          className="h-10 w-full shrink-0 rounded-xl text-xs font-semibold gap-1.5 shadow-xs transition-all cursor-pointer md:w-auto md:px-4 lg:text-sm"
         >
           <Plus className="w-4 h-4" />
           <span>Submit New Report</span>
@@ -373,7 +362,7 @@ const MyReports = () => {
             <button
               type="button"
               onClick={() => handleSearchChange("")}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              className="gw-action-ghost absolute right-3.5 top-1/2 -translate-y-1/2 p-1 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -402,14 +391,13 @@ const MyReports = () => {
                   aria-pressed={isActive}
                   onClick={(e) => handleTabClick(tab.value, e)}
                   className={cn(
-                    "flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border shrink-0 active:scale-95 cursor-pointer",
+                    "flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer",
                     isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
                       : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold",
                   )}
                 >
                   <span>{tab.label}</span>
-                  {isActive && (hasStats || tab.value === "all") && <FilterTabCount count={statusCounts[tab.value]} />}
                 </button>
               );
             })}
@@ -504,7 +492,7 @@ const MyReports = () => {
               <div
                 key={report.id}
                 onClick={() => openDetail(report)}
-                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:scale-[0.99] md:space-y-3 md:p-4.5 lg:p-5"
+                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:border-primary/30 md:space-y-3 md:p-4.5 lg:p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3.5 min-w-0">
@@ -525,7 +513,7 @@ const MyReports = () => {
                         </span>
                         <span
                           className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs inline-flex items-center shrink-0",
+                            "text-ui-overline font-bold px-2 py-0.5 rounded-md border shadow-2xs inline-flex items-center shrink-0",
                             statusConf.className,
                           )}
                         >
@@ -555,10 +543,10 @@ const MyReports = () => {
                 )}
 
                 {report.adminResponse && (
-                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 border border-border/60">
                     <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-foreground/90">
+                      <p className="text-ui-overline uppercase tracking-wider font-bold text-foreground/90">
                         MENRO Response
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
@@ -570,7 +558,7 @@ const MyReports = () => {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground lg:gap-2.5 lg:pt-1">
                   <div className="flex flex-wrap items-center gap-2 lg:gap-2.5">
-                    <span className="font-mono font-semibold text-foreground/90 bg-muted/60 border border-border/70 px-2.5 py-0.5 rounded-lg text-[11px]">
+                    <span className="tabular-nums font-semibold text-foreground/90 bg-muted/60 border border-border/70 px-2.5 py-0.5 rounded-lg text-ui-caption">
                       {report.referenceNumber}
                     </span>
                     <span className="flex items-center gap-1 font-medium text-xs">
@@ -609,7 +597,7 @@ const MyReports = () => {
                 type="button"
                 disabled={page === 1}
                 onClick={() => setPage((currentPage) => currentPage - 1)}
-                className="size-9 rounded-xl inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer active:scale-95"
+                className="gw-action-ghost size-9 rounded-lg inline-flex items-center justify-center disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -621,7 +609,7 @@ const MyReports = () => {
                   key={item}
                   type="button"
                   onClick={() => setPage(item)}
-                  className={`size-9 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${item === page ? "bg-primary/10 text-primary border border-primary/30 font-bold shadow-2xs" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"}`}
+                  className={`size-9 rounded-lg text-xs font-semibold transition-all cursor-pointer ${item === page ? "bg-primary/10 text-primary border border-primary/30 font-semibold shadow-2xs" : "gw-action-ghost "}`}
                   aria-current={item === page ? "page" : undefined}
                 >
                   {item}
@@ -631,7 +619,7 @@ const MyReports = () => {
                 type="button"
                 disabled={page === totalPages}
                 onClick={() => setPage((currentPage) => currentPage + 1)}
-                className="size-9 rounded-xl inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer active:scale-95"
+                className="gw-action-ghost size-9 rounded-lg inline-flex items-center justify-center disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
                 aria-label="Next page"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -770,17 +758,17 @@ const ReportDetail = ({
         <div className="space-y-2.5 py-4 md:space-y-3 md:p-5 lg:p-6">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Reference Number
               </span>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-mono font-bold tracking-tight text-foreground lg:text-2xl">
+                <h2 className="gw-heading text-lg tabular-nums tracking-tight text-foreground lg:text-2xl">
                   {report.referenceNumber}
                 </h2>
                 <button
                   type="button"
                   onClick={() => handleCopyReference(report.referenceNumber)}
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer active:scale-95 border border-transparent hover:border-border/60"
+                  className="gw-action-ghost inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors cursor-pointer border"
                   title="Copy reference number"
                   aria-label="Copy reference number"
                 >
@@ -795,7 +783,7 @@ const ReportDetail = ({
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold shadow-2xs lg:px-3 lg:py-1 lg:text-xs",
+                  "inline-flex shrink-0 items-center rounded-md border px-2.5 py-0.5 text-ui-overline font-bold shadow-2xs lg:px-3 lg:py-1 lg:text-xs",
                   statusConf.className,
                 )}
               >
@@ -804,7 +792,7 @@ const ReportDetail = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[11px] text-muted-foreground lg:gap-4 lg:text-xs">
+          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-ui-caption text-muted-foreground lg:gap-4 lg:text-xs">
             <span className="flex items-center gap-1.5 font-medium">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
               Submitted on{" "}
@@ -829,7 +817,7 @@ const ReportDetail = ({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             {/* Violation Details */}
             <div className="space-y-1.5">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Violation Type
               </span>
               <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
@@ -860,7 +848,7 @@ const ReportDetail = ({
 
             {/* Location Details */}
             <div className="space-y-1.5">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Reported Location
               </span>
               <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
@@ -881,7 +869,7 @@ const ReportDetail = ({
 
           {/* Description */}
           <div className="space-y-1.5 pt-1.5 md:pt-2">
-            <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+            <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
               Incident Description
             </span>
             <div className="max-h-56 overflow-y-auto rounded-xl border border-border/70 bg-muted/30 p-3 text-xs leading-relaxed text-foreground/90 dark:bg-muted/20 md:p-4 md:text-sm">
@@ -912,10 +900,10 @@ const ReportDetail = ({
         {report.photos && report.photos.length > 0 && (
           <div className="space-y-2.5 py-4 md:p-5 lg:p-6">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Photo Evidence
               </span>
-              <span className="text-xs font-mono text-muted-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {report.photos.length} photo{report.photos.length !== 1 ? "s" : ""} attached
               </span>
             </div>
@@ -926,16 +914,16 @@ const ReportDetail = ({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs transition-all hover:border-primary/40 hover:shadow-sm md:size-16 lg:size-20"
+                  className="group relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs transition-all hover:border-primary/40 md:size-16 lg:size-20"
                   title="View full image in new tab"
                 >
                   <img
                     src={url}
                     alt={`Evidence ${i + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="w-full h-full object-cover transition-transform duration-200"
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs">
+                    <span className="text-ui-overline font-bold text-white px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs">
                       Enlarge
                     </span>
                   </div>
@@ -948,7 +936,7 @@ const ReportDetail = ({
         {/* Section 4: Resolution / Progress Stepper & Timeline */}
         <div className="space-y-4 py-4 md:space-y-4 md:p-5 lg:space-y-5 lg:p-6">
           <div>
-            <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+            <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
               Review & Dispatch Status
             </span>
             <div className="mt-3.5 space-y-2.5">
@@ -969,7 +957,7 @@ const ReportDetail = ({
                   <span
                     key={label}
                     className={cn(
-                      "text-[10px] md:text-xs transition-colors",
+                      "text-ui-overline md:text-xs transition-colors",
                       idx <= currentIdx
                         ? "font-bold text-foreground"
                         : "font-normal text-muted-foreground",
@@ -985,7 +973,7 @@ const ReportDetail = ({
           {/* Activity History timeline */}
           {report.statusHistory && report.statusHistory.length > 0 && (
             <div className="border-t border-border/60 pt-4 space-y-3">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Activity Milestones
               </span>
               <div className="space-y-0 pl-1">
@@ -1008,7 +996,7 @@ const ReportDetail = ({
                       <p className="text-xs font-semibold text-foreground">
                         {entry.label}
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                      <p className="text-ui-overline text-muted-foreground mt-0.5">
                         {entry.timestamp.toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
@@ -1035,7 +1023,7 @@ const ReportDetail = ({
           <div className="space-y-2 border-t border-border/60 bg-muted/20 py-4 md:p-5 lg:p-6">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
-              <span className="text-[11px] uppercase tracking-wider font-bold text-foreground">
+              <span className="text-ui-caption uppercase tracking-wider font-bold text-foreground">
                 MENRO Official Response
               </span>
             </div>
@@ -1053,7 +1041,7 @@ const ReportDetail = ({
             type="button"
             onClick={() => setShowCancelModal(true)}
             disabled={isCancelling}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-destructive/5 hover:border-destructive/25 transition-all duration-200 group active:scale-[0.99] cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-destructive/5 hover:border-destructive/25 transition-all duration-200 group cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-muted/70 border border-border/70 flex items-center justify-center text-muted-foreground group-hover:bg-destructive/10 group-hover:text-destructive group-hover:border-destructive/20 transition-colors shrink-0">
@@ -1076,7 +1064,7 @@ const ReportDetail = ({
           <button
             type="button"
             onClick={onResubmit}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-muted/40 hover:border-foreground/20 transition-all duration-200 group active:scale-[0.99] cursor-pointer shadow-2xs"
+            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-[var(--button-neutral-hover)] hover:border-foreground/20 transition-all duration-200 group cursor-pointer shadow-2xs"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-muted/70 border border-border/70 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors shrink-0">

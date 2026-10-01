@@ -13,10 +13,10 @@ const Kpi = ({ label, value, suffix = "", helper, tone, index }: { label: string
       index < 2 && "border-b lg:border-b-0 border-border/70",
     )}>
       <div className="flex items-center min-h-[22px]">
-        <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border", tone)}>{label}</span>
+        <span className={cn("text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border", tone)}>{label}</span>
       </div>
-      <p className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">{animated.toLocaleString()}{suffix}</p>
-      <p className="text-[11px] text-muted-foreground font-medium">{helper}</p>
+      <p className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">{animated.toLocaleString()}{suffix}</p>
+      <p className="text-ui-caption text-muted-foreground font-medium">{helper}</p>
     </article>
   );
 };

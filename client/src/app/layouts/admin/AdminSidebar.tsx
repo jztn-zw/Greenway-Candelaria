@@ -171,10 +171,10 @@ const AdminSidebar = () => {
               isActive={active}
               tooltip={item.title}
               className={cn(
-                "relative h-9 px-2.5 rounded-xl font-medium text-xs sm:text-[13px] transition-all duration-150 select-none group",
+                "relative h-9 px-2.5 rounded-xl font-medium text-xs sm:text-ui-label transition-all duration-150 select-none group",
                 active
                   ? "bg-primary/10 text-primary font-bold shadow-2xs border border-primary/20 hover:bg-primary/15 hover:text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-[0.99]",
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 ",
                 "group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:rounded-xl"
               )}
             >
@@ -212,7 +212,7 @@ const AdminSidebar = () => {
         onClick={() => navigate("/admin")}
         title="Go to Admin Dashboard"
         className="h-14 px-4 flex items-center gap-3 border-b border-border/70 shrink-0 bg-sidebar/50 text-left cursor-pointer
-          group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+ group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
       >
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20 shadow-2xs">
           <img src="/greenway.svg" alt="GreenWay Logo" className="w-5 h-5 object-contain" />
@@ -220,14 +220,14 @@ const AdminSidebar = () => {
 
         <div
           className="min-w-0 overflow-hidden transition-all duration-200
-            group-data-[collapsible=icon]:hidden"
+ group-data-[collapsible=icon]:hidden"
         >
           <div className="flex items-center gap-1.5">
-            <span className="font-display text-[15px] font-extrabold text-foreground tracking-tight leading-none">
+            <span className="font-display text-ui-title font-semibold text-foreground tracking-tight leading-none">
               GreenWay
             </span>
           </div>
-          <p className="text-[11px] font-medium text-muted-foreground truncate mt-1 leading-none">
+          <p className="text-ui-caption font-medium text-muted-foreground truncate mt-1 leading-none">
             MENRO Candelaria
           </p>
         </div>
@@ -239,7 +239,7 @@ const AdminSidebar = () => {
           if (!group.collapsible || collapsed) {
             return (
               <SidebarGroup key={group.label} className="p-0">
-                <SidebarGroupLabel className="text-[10px] tracking-[0.08em] text-muted-foreground/60 font-bold uppercase mb-1 px-2.5 h-auto py-0.5 group-data-[collapsible=icon]:hidden select-none">
+                <SidebarGroupLabel className="text-ui-overline tracking-[0.08em] text-muted-foreground/60 font-bold uppercase mb-1 px-2.5 h-auto py-0.5 group-data-[collapsible=icon]:hidden select-none">
                   {group.label}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -253,7 +253,7 @@ const AdminSidebar = () => {
             <Collapsible key={group.label} defaultOpen className="group/collapsible">
               <SidebarGroup className="p-0">
                 <CollapsibleTrigger className="flex w-full items-center justify-between px-2.5 py-1 mb-0.5 rounded-lg hover:bg-muted/40 cursor-pointer group-data-[collapsible=icon]:hidden transition-colors">
-                  <span className="text-[10px] tracking-[0.08em] text-muted-foreground/60 font-bold uppercase select-none">
+                  <span className="text-ui-overline tracking-[0.08em] text-muted-foreground/60 font-bold uppercase select-none">
                     {group.label}
                   </span>
                   <ChevronDown className="w-3 h-3 text-muted-foreground/40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90 group-hover:text-foreground/70" />
@@ -273,13 +273,13 @@ const AdminSidebar = () => {
       {/* ── Footer ── */}
       <SidebarFooter className="p-2.5 border-t border-border/60 bg-sidebar/30">
         <div
-          className="rounded-2xl border border-border/80 bg-card/75 backdrop-blur-md p-2.5 shadow-2xs
-            group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
+          className="rounded-xl border border-border/80 bg-card p-2.5
+ group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
         >
           <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
-                <AvatarFallback className="bg-primary/15 text-primary text-xs font-extrabold rounded-xl">
+                <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -287,13 +287,13 @@ const AdminSidebar = () => {
 
             <div
               className="flex flex-1 items-center justify-between min-w-0 overflow-hidden
-                transition-all duration-200 group-data-[collapsible=icon]:hidden"
+ transition-all duration-200 group-data-[collapsible=icon]:hidden"
             >
               <div className="min-w-0 flex-1 pr-1">
-                <p className="text-xs font-bold font-display text-foreground truncate leading-tight">
+                <p className="text-xs font-semibold font-body text-foreground truncate leading-tight">
                   {fullName}
                 </p>
-                <p className="text-[10.5px] text-muted-foreground truncate leading-none mt-1">
+                <p className="text-ui-caption text-muted-foreground truncate leading-none mt-1">
                   Admin
                 </p>
               </div>
@@ -301,7 +301,7 @@ const AdminSidebar = () => {
               <button
                 type="button"
                 onClick={handleSettingsClick}
-                className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                className="gw-action-ghost h-7 w-7 rounded-lg transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                 aria-label="Settings"
               >
                 <Settings
@@ -313,10 +313,10 @@ const AdminSidebar = () => {
             </div>
 
             {showGearMenu && !collapsed && (
-              <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border/80 rounded-xl shadow-md py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2">
                 <button
                   type="button"
-                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-[var(--button-neutral-hover)] cursor-pointer"
                   onClick={(event) => {
                     event.stopPropagation();
                     setShowGearMenu(false);
@@ -327,7 +327,7 @@ const AdminSidebar = () => {
                 </button>
                 <button
                   type="button"
-                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
+                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-[var(--button-neutral-hover)] cursor-pointer"
                   onClick={(event) => {
                     event.stopPropagation();
                     setShowGearMenu(false);
@@ -344,10 +344,7 @@ const AdminSidebar = () => {
 
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="flex items-center gap-2 w-full h-8 px-2.5 rounded-xl text-xs
-              text-destructive hover:bg-destructive/10
-              transition-colors duration-150 font-bold border-none bg-transparent cursor-pointer
-              group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:mt-1.5"
+            className="gw-action-destructive-ghost flex items-center gap-2 w-full h-8 px-2.5 rounded-lg text-xs transition-colors duration-150 font-semibold border-none cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:mt-1.5"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0 text-destructive" />
             <span className="group-data-[collapsible=icon]:hidden text-xs font-bold text-destructive truncate">
@@ -373,11 +370,7 @@ const AdminSidebar = () => {
 
       <button
         onClick={toggleSidebar}
-        className="absolute z-50 top-[56px] -translate-y-1/2 -right-3
-          w-6 h-6 rounded-full shrink-0
-          bg-card border border-border/80 shadow-xs
-          flex items-center justify-center text-muted-foreground hover:text-foreground
-          hover:bg-muted hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        className="gw-action-outline absolute z-50 top-[56px] -translate-y-1/2 -right-3 w-6 h-6 rounded-full shrink-0 border shadow-xs flex items-center justify-center transition-all cursor-pointer"
         aria-label="Toggle Sidebar"
       >
         {collapsed ? (

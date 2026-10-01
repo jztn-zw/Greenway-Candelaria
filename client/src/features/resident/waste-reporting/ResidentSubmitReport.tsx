@@ -278,7 +278,7 @@ const ResidentSubmitReport = () => {
       {/* ── Page Header ── */}
       <div className="hidden max-w-3xl mx-auto mb-6 md:flex md:items-center md:justify-between md:gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight">
             Submit a Waste Report
           </h1>
           <p className="text-xs lg:text-sm text-muted-foreground mt-1">
@@ -290,7 +290,7 @@ const ResidentSubmitReport = () => {
           <button
             type="button"
             onClick={resetForm}
-            className="self-start lg:self-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/80 hover:border-destructive/30 rounded-xl px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
+            className="gw-action-destructive-outline self-start lg:self-auto inline-flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Clear draft</span>
@@ -345,7 +345,7 @@ const ResidentSubmitReport = () => {
           <Button
             onClick={handleReview}
             disabled={isSubmitting}
-            className="w-full h-12 rounded-xl text-sm font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-[0.99] disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-xl text-sm font-semibold gap-2 transition-all cursor-pointer shadow-sm disabled:cursor-not-allowed"
             size="lg"
           >
             <Send className="w-4 h-4" />

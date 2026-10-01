@@ -118,11 +118,11 @@ const AdminCollectionSchedule: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-fade-in pb-12">
+    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Schedule Manager
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -132,7 +132,7 @@ const AdminCollectionSchedule: React.FC = () => {
 
         <Button
           onClick={handleOpenCreate}
-          className="h-10 px-4 rounded-xl font-semibold shadow-xs active:scale-95 cursor-pointer text-xs shrink-0 self-start sm:self-auto gap-2"
+          className="h-10 px-4 rounded-xl font-semibold shadow-xs cursor-pointer text-xs shrink-0 self-start sm:self-auto gap-2"
         >
           <Plus className="w-4 h-4" />
           <span>New Internal Schedule</span>
@@ -160,7 +160,7 @@ const AdminCollectionSchedule: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={handleResetFilters}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0 gap-1.5 cursor-pointer active:scale-95 transition-all hover:bg-muted/50"
+              className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
               title="Reset active filters"
             >
               <RotateCcw className="w-3.5 h-3.5" />

@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import PageErrorState from "@/components/PageErrorState";
 import useAuthStore from "@/store/authStore";
 import {
@@ -51,10 +53,10 @@ const FieldRow = ({
         <Icon className="w-4.5 h-4.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:text-[11px]">
+        <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
           {label}
         </p>
-        <p className="mt-0.5 truncate text-[13px] font-medium text-foreground lg:text-sm">
+        <p className="mt-0.5 truncate text-ui-label font-medium text-foreground lg:text-sm">
           {masked ? (
             "••••••••"
           ) : value ? (
@@ -68,17 +70,17 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/70 bg-muted/70 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-muted/70 px-2.5 py-1.5 text-ui-caption font-medium text-muted-foreground">
         <ShieldCheck className="size-3.5 text-primary" />
         Registered email
       </span>
     ) : (
       <Button
         type="button"
-        variant="outline"
+        variant="primary-outline"
         size="sm"
         onClick={onEdit}
-        className="h-8 shrink-0 cursor-pointer rounded-xl border-primary/35 bg-primary/10 px-3 text-xs font-semibold text-primary shadow-none transition-all hover:border-primary/55 hover:bg-primary/15 hover:text-primary focus-visible:ring-primary/25 active:scale-95"
+        className="h-8 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold shadow-none transition-all focus-visible:ring-primary/25"
       >
         {masked ? "Change" : "Edit"}
       </Button>
@@ -100,7 +102,6 @@ const ResidentProfile = () => {
   const logout  = useAuthStore((s) => s.logout);
   const authUser = useAuthStore((s) => s.user);
   const setUser  = useAuthStore((s) => s.setUser);
-
 
   // ── State ─────────────────────────────────────────────────────────────────
   const profileQuery = useResidentResource<UserProfile | null>("profile", ["me"], fetchProfile, null);
@@ -385,13 +386,11 @@ const ResidentProfile = () => {
     <div className="max-w-3xl mx-auto space-y-5 md:space-y-6">
       {/* ── Profile Header Banner ─────────────────────────────────────────── */}
       <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
-        {/* Subtle decorative atmospheric banner */}
-        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-gradient-to-r from-primary/20 via-emerald-500/15 to-teal-500/20 lg:h-36">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-8 left-1/3 w-36 h-36 rounded-full bg-primary/10 blur-xl pointer-events-none" />
-
+        {/* Profile banner */}
+        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
+          <ProfileBannerImage />
           <div
-            className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${
+            className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${
               isActiveResident
                 ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                 : "border-amber-500/30 text-amber-600 dark:text-amber-400"
@@ -418,7 +417,7 @@ const ResidentProfile = () => {
           <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
             <div className="flex shrink-0 flex-col items-center gap-2">
               <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
-                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full text-3xl font-display font-bold text-primary-foreground`}>
+                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full text-3xl font-body font-semibold text-primary-foreground`}>
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -426,7 +425,7 @@ const ResidentProfile = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setAvatarModal(true)}
-                className="h-8 gap-1.5 rounded-xl border-border/80 px-3 text-[11px] font-semibold hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                className="h-8 gap-1.5 rounded-xl px-3 text-ui-caption font-semibold"
               >
                 <Paintbrush className="size-3.5" />
                 Customize
@@ -435,10 +434,10 @@ const ResidentProfile = () => {
 
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
-                <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground lg:text-2xl">
+                <h1 className="gw-heading truncate text-lg tracking-tight text-foreground lg:text-2xl">
                   {profile.full_name}
                 </h1>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto lg:mx-0">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto lg:mx-0">
                   @{profile.username}
                 </span>
               </div>
@@ -471,7 +470,7 @@ const ResidentProfile = () => {
               <User className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Personal Information
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -479,7 +478,7 @@ const ResidentProfile = () => {
               </p>
             </div>
           </div>
-          <span className="hidden md:inline-block text-[11px] font-medium text-muted-foreground">
+          <span className="hidden md:inline-block text-ui-caption font-medium text-muted-foreground">
             Tap edit to update
           </span>
         </div>
@@ -543,7 +542,7 @@ const ResidentProfile = () => {
               <ClipboardList className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Community Impact & Reports
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -555,7 +554,7 @@ const ResidentProfile = () => {
             variant="outline"
             size="sm"
             onClick={() => navigate("/resident/my-reports")}
-            className="h-8.5 px-3.5 rounded-xl text-xs font-semibold border-border/80 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all cursor-pointer shadow-2xs flex items-center gap-1 active:scale-95"
+            className="h-8.5 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
           >
             My Reports History <ChevronRight className="w-3.5 h-3.5" />
           </Button>
@@ -570,7 +569,7 @@ const ResidentProfile = () => {
               </span>
               <span className="text-muted-foreground">• MENRO Response</span>
             </div>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold font-display bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-body bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               {totalReports > 0
                 ? `${resolutionRate}% Resolved`
                 : "Ready to Report"}
@@ -578,11 +577,11 @@ const ResidentProfile = () => {
           </div>
           <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden p-0.5 border border-border/40">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+              className="h-full bg-primary rounded-full transition-all duration-500"
               style={{ width: `${totalReports > 0 ? resolutionRate : 0}%` }}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-ui-caption text-muted-foreground">
             {totalReports > 0
               ? `${resolvedReports} of ${totalReports} reported community issues have been successfully cleared or resolved.`
               : "Help keep Candelaria clean and green by submitting a report whenever you spot waste issues."}
@@ -591,35 +590,35 @@ const ResidentProfile = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-primary/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl lg:text-3xl font-bold font-display text-primary group-hover:scale-105 transition-transform">
+          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+            <p className="gw-stat-value text-2xl lg:text-3xl text-primary tabular-nums">
               {stats?.total ?? 0}
             </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
               Total Submitted
             </p>
           </div>
-          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-emerald-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl lg:text-3xl font-bold font-display text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+            <p className="gw-stat-value text-2xl lg:text-3xl text-emerald-600 dark:text-emerald-400 tabular-nums">
               {stats?.resolved ?? 0}
             </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
               Resolved
             </p>
           </div>
-          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl lg:text-3xl font-bold font-display text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+            <p className="gw-stat-value text-2xl lg:text-3xl text-amber-600 dark:text-amber-400 tabular-nums">
               {stats?.pending ?? 0}
             </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
               Pending Review
             </p>
           </div>
-          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-sky-500/40 hover:shadow-2xs transition-all space-y-1 text-center group">
-            <p className="text-2xl lg:text-3xl font-bold font-display text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
+          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+            <p className="gw-stat-value text-2xl lg:text-3xl text-sky-600 dark:text-sky-400 tabular-nums">
               {(stats?.in_progress ?? 0) + (stats?.under_review ?? 0)}
             </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
               In Progress
             </p>
           </div>
@@ -634,7 +633,7 @@ const ResidentProfile = () => {
               <Award className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Badges & Recognition
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -642,7 +641,7 @@ const ResidentProfile = () => {
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground border border-border/60">
             {badges.filter((b) => b.earned).length} of {badges.length} unlocked
           </span>
         </div>
@@ -655,7 +654,7 @@ const ResidentProfile = () => {
                 key={badge.id}
                 className={`p-3.5 lg:p-4 rounded-xl border flex items-start gap-3.5 transition-all ${
                   badge.earned
-                    ? "bg-card border-border/80 shadow-2xs hover:border-primary/40 hover:shadow-xs"
+                    ? "bg-card border-border/80 shadow-2xs hover:border-primary/40 "
                     : "bg-muted/15 border-border/40 opacity-70"
                 }`}
               >
@@ -674,16 +673,16 @@ const ResidentProfile = () => {
                       {badge.label}
                     </p>
                     {badge.earned ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                      <span className={"inline-flex items-center gap-1 text-ui-overline font-bold px-2 py-0.5 rounded-md border shrink-0 " + getStatusBadgeStyle("Earned").className}>
                         <Check className="w-2.5 h-2.5" /> Earned
                       </span>
                     ) : (
-                      <span className="text-[10px] font-semibold text-muted-foreground shrink-0 tabular-nums">
+                      <span className="text-ui-overline font-semibold text-muted-foreground shrink-0 tabular-nums">
                         {badge.progress}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-tight">
+                  <p className="text-ui-caption text-muted-foreground leading-tight">
                     {badge.description}
                   </p>
                 </div>
@@ -699,7 +698,7 @@ const ResidentProfile = () => {
           <button
             type="button"
             onClick={() => setLogoutModal(true)}
-            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 group cursor-pointer text-left"
+            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] transition-all duration-150 group cursor-pointer text-left"
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
@@ -721,7 +720,7 @@ const ResidentProfile = () => {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70 pt-1">
+        <div className="flex items-center justify-center gap-1.5 text-ui-caption text-muted-foreground/70 pt-1">
           <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/60" />
           <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
         </div>
@@ -762,7 +761,7 @@ const ResidentProfile = () => {
         <div className="grid grid-cols-2 gap-3">
           {AVATAR_STYLES.map((style) => (
             <button key={style.id} type="button" onClick={() => saveAvatarStyle(style.id)} aria-label={style.label} aria-pressed={style.id === avatarStyle}
-              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style.id === avatarStyle ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-muted/40"}`}>
+              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style.id === avatarStyle ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-[var(--button-neutral-hover)]"}`}>
               <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
               <span className="text-xs font-semibold text-foreground">{style.label}</span>
             </button>
@@ -809,11 +808,11 @@ const ResidentProfile = () => {
                 className={`${modalStyles.input} ${key !== "confirmPw" ? "pr-10" : ""}`} />
               {key !== "confirmPw" && <button type="button" disabled={pwModal.saving} aria-label={`${visible ? "Hide" : "Show"} ${label.toLowerCase()}`}
                 onClick={() => setPwModal((p) => key === "oldPw" ? ({ ...p, showOld: !p.showOld }) : ({ ...p, showNew: !p.showNew }))}
-                className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+                className="gw-action-ghost absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
                 {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>}
             </div>
-            {key === "newPw" && <p className="text-[11px] leading-relaxed text-muted-foreground">Use at least 8 characters.</p>}
+            {key === "newPw" && <p className="text-ui-caption leading-relaxed text-muted-foreground">Use at least 8 characters.</p>}
           </div>
         ))}
         {pwModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{pwModal.error}</p>}

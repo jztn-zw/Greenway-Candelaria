@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -291,7 +292,7 @@ const ReportDetailPanel = ({
                   navigator.clipboard.writeText(report.referenceNumber);
                   toast.success("Reference copied");
                 }}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted/70 p-1 rounded transition-colors cursor-pointer"
+                className="gw-action-ghost p-1 rounded transition-colors cursor-pointer"
                 title="Copy reference number"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -305,14 +306,14 @@ const ReportDetailPanel = ({
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <Badge
                 variant="outline"
-                className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${vc}`}
+                className={`text-ui-overline font-medium px-2 py-0.5 rounded-md border ${vc}`}
               >
                 {report.violationType}
               </Badge>
               {report.isDuplicate && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 rounded-md"
+                  className={"text-ui-overline font-medium px-2 py-0.5 rounded-md " + getStatusBadgeStyle("Duplicate").className}
                 >
                   Duplicate
                 </Badge>
@@ -320,7 +321,7 @@ const ReportDetailPanel = ({
               {report.isFalseReport && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-medium bg-destructive/10 text-destructive border-destructive/20 px-2 py-0.5 rounded-md"
+                  className={"text-ui-overline font-medium px-2 py-0.5 rounded-md " + badgeStyles.error.className}
                 >
                   Invalid / False
                 </Badge>
@@ -337,7 +338,7 @@ const ReportDetailPanel = ({
                   size="icon"
                   onClick={onPrevious}
                   disabled={!hasPrevious}
-                  className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                  className="h-7 w-7 rounded-lg disabled:opacity-30 cursor-pointer"
                   title="Previous report"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -347,7 +348,7 @@ const ReportDetailPanel = ({
                   size="icon"
                   onClick={onNext}
                   disabled={!hasNext}
-                  className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                  className="h-7 w-7 rounded-lg disabled:opacity-30 cursor-pointer"
                   title="Next report"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -358,7 +359,7 @@ const ReportDetailPanel = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
                 title="Close Inspector"
               >
                 <X className="w-4 h-4" />
@@ -378,7 +379,7 @@ const ReportDetailPanel = ({
                 {report.isDuplicate ? "Duplicate Report Note" : "Review Reason"}
               </span>
               {report.isDuplicate && (report.duplicateOfReference || report.duplicateOfId) && (
-                <span className="text-[11px] text-muted-foreground font-medium">
+                <span className="text-ui-caption text-muted-foreground font-medium">
                   Linked: {report.duplicateOfReference || report.duplicateOfId}
                 </span>
               )}
@@ -413,11 +414,11 @@ const ReportDetailPanel = ({
                     isCurrent && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs cursor-default",
                     isPast && wasRecorded && "bg-primary/10 border-primary/20 text-primary font-medium cursor-not-allowed opacity-85",
                     isPast && !wasRecorded && "bg-muted/30 border-border/70 text-muted-foreground cursor-not-allowed",
-                    isFuture && "bg-background border-border/70 text-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer shadow-2xs",
+                    isFuture && "bg-background border-border/70 text-foreground hover:border-primary/50 hover:bg-[var(--button-neutral-hover)] cursor-pointer shadow-2xs",
                   )}
                   title={isPast ? (wasRecorded ? "Recorded status" : "Stage skipped") : isCurrent ? "Current status" : `Move to ${st}`}
                 >
-                  <span className="text-[10px] font-medium leading-tight truncate w-full px-0.5">
+                  <span className="text-ui-overline font-medium leading-tight truncate w-full px-0.5">
                     {st}
                   </span>
                 </button>
@@ -432,35 +433,35 @@ const ReportDetailPanel = ({
             <span className="text-xs font-semibold text-foreground">
               Incident Details
             </span>
-            <span className="text-[11px] text-muted-foreground font-medium">
+            <span className="text-ui-caption text-muted-foreground font-medium">
               {safeFormatDate(report.submittedAt, "MMM d, yyyy · h:mm a")}
             </span>
           </div>
 
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
             <div>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
+              <span className="text-ui-overline uppercase font-semibold tracking-wider text-muted-foreground block">
                 Barangay & Street
               </span>
               <span className="font-semibold text-foreground block mt-0.5 text-xs">
                 {report.barangay}
               </span>
               {report.street && (
-                <span className="text-[11px] text-muted-foreground block mt-0.5">
+                <span className="text-ui-caption text-muted-foreground block mt-0.5">
                   {report.street}
                 </span>
               )}
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
+              <span className="text-ui-overline uppercase font-semibold tracking-wider text-muted-foreground block">
                 Reporter Information
               </span>
               <span className="font-semibold text-foreground block mt-0.5 text-xs">
                 {report.submitterName}
               </span>
               {report.submitterEmail && (
-                <span className="text-[11px] text-muted-foreground block mt-0.5 truncate">
+                <span className="text-ui-caption text-muted-foreground block mt-0.5 truncate">
                   {report.submitterEmail}
                 </span>
               )}
@@ -483,7 +484,7 @@ const ReportDetailPanel = ({
           <div className="flex items-center justify-between text-xs font-semibold text-foreground">
             <span>Evidence Photos ({report.photos?.length || 0})</span>
             {report.photos && report.photos.length > 0 && (
-              <span className="text-[10px] text-muted-foreground font-normal">Click to enlarge</span>
+              <span className="text-ui-overline text-muted-foreground font-normal">Click to enlarge</span>
             )}
           </div>
 
@@ -500,7 +501,7 @@ const ReportDetailPanel = ({
                   <img
                     src={photo.url}
                     alt={`Evidence photo ${idx + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="w-full h-full object-cover transition-transform duration-200"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <ExternalLink className="w-3.5 h-3.5 text-white" />
@@ -521,7 +522,7 @@ const ReportDetailPanel = ({
             <span className="text-xs font-semibold text-foreground">
               Official Resident Response
             </span>
-            <span className="text-[11px] text-muted-foreground font-medium">
+            <span className="text-ui-caption text-muted-foreground font-medium">
               Visible to resident
             </span>
           </div>
@@ -537,7 +538,7 @@ const ReportDetailPanel = ({
               size="sm"
               onClick={handleResponseSubmit}
               disabled={isSavingResponse || !officialResponse.trim() || (!!report.officialResponse && officialResponse.trim() === report.officialResponse)}
-              className="h-8 text-xs px-3.5 rounded-xl font-semibold cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
+              className="h-8 text-xs px-3.5 rounded-xl font-semibold cursor-pointer shadow-xs disabled:opacity-40"
             >
               {isSavingResponse && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
               {report.officialResponse && officialResponse.trim() === report.officialResponse
@@ -551,7 +552,7 @@ const ReportDetailPanel = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground">Internal Notes</span>
-            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-medium">
+            <Badge variant="secondary" className="text-ui-overline px-2 py-0.5 rounded-md font-medium">
               Staff only
             </Badge>
           </div>
@@ -564,7 +565,7 @@ const ReportDetailPanel = ({
                   className="bg-muted/30 rounded-xl p-3 border border-border/60 space-y-1"
                 >
                   <p className="text-xs text-foreground leading-relaxed">{note.text}</p>
-                  <p className="text-[10px] text-muted-foreground font-medium">
+                  <p className="text-ui-overline text-muted-foreground font-medium">
                     {note.adminName || "Admin"} ·{" "}
                     {safeFormatDate(note.timestamp, "MMM d, h:mm a")}
                   </p>
@@ -585,7 +586,7 @@ const ReportDetailPanel = ({
               variant="outline"
               onClick={handleNoteSubmit}
               disabled={isSavingNote || !internalNote.trim()}
-              className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-2xs active:scale-95 disabled:opacity-40"
+              className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-2xs disabled:opacity-40"
             >
               {isSavingNote && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
               Add Note
@@ -599,14 +600,11 @@ const ReportDetailPanel = ({
         <div className="flex items-center gap-2">
           {!report.isFalseReport && (
             <Button
-              variant="outline"
+              variant={report.isDuplicate ? "warning-outline" : "outline"}
               size="sm"
               disabled={isFlagging}
               onClick={() => openFlagDialog("duplicate")}
-              className={cn(
-                "h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold",
-                report.isDuplicate && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-              )}
+              className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
               {report.isDuplicate ? "Edit Duplicate" : "Flag Duplicate"}
             </Button>
@@ -614,16 +612,11 @@ const ReportDetailPanel = ({
 
           {!report.isDuplicate && (
             <Button
-              variant="outline"
+              variant={report.isFalseReport ? "destructive-outline" : "outline"}
               size="sm"
               disabled={isFlagging}
               onClick={() => openFlagDialog("false")}
-              className={cn(
-                "h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold",
-                report.isFalseReport
-                  ? "border-destructive/30 text-destructive hover:bg-destructive/10"
-                  : "text-foreground hover:bg-muted",
-              )}
+              className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
               {report.isFalseReport ? "Edit Flag" : "Flag as False"}
             </Button>
@@ -636,7 +629,7 @@ const ReportDetailPanel = ({
               size="sm"
               disabled={isFlagging}
               onClick={() => handleFlag(report.isDuplicate ? { is_duplicate: false } : { is_false: false })}
-              className="h-8 text-xs px-3 rounded-xl font-semibold text-muted-foreground hover:text-foreground hover:bg-muted border-border/70 cursor-pointer"
+              className="h-8 text-xs px-3 rounded-xl font-semibold cursor-pointer"
             >
               Clear Flag
             </Button>
@@ -645,11 +638,11 @@ const ReportDetailPanel = ({
 
         {onDeleteReport && (
           <Button
-            variant="ghost"
+            variant="destructive-ghost"
             size="sm"
             disabled={isDeleting}
             onClick={() => setShowDeleteModal(true)}
-            className="h-8 text-xs px-3 rounded-xl font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 cursor-pointer ml-auto transition-colors"
+            className="h-8 text-xs px-3 rounded-xl font-semibold border cursor-pointer ml-auto transition-colors"
           >
             Delete
           </Button>
@@ -660,13 +653,13 @@ const ReportDetailPanel = ({
       <Dialog open={!!previewPhoto} onOpenChange={(open) => !open && setPreviewPhoto(null)}>
         <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] w-[95vw] sm:max-w-2xl p-4 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden">
           <div className="flex items-center justify-between pb-3 border-b border-border/60">
-            <DialogTitle className="text-sm font-bold text-foreground font-display">
+            <DialogTitle className="gw-heading text-sm text-foreground ">
               Evidence Photo Preview
             </DialogTitle>
             <button
               type="button"
               onClick={() => setPreviewPhoto(null)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              className="gw-action-ghost w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -699,7 +692,7 @@ const ReportDetailPanel = ({
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
             <div>
-              <DialogTitle className="text-base font-bold font-display text-foreground">
+              <DialogTitle className="gw-heading text-base text-foreground">
                 {flagType === "duplicate" ? "Flag as Duplicate" : "Mark as Invalid Report"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -713,7 +706,7 @@ const ReportDetailPanel = ({
                 setSelectedDuplicateCandidate(null);
                 onFlagDialogOpenChange?.(false);
               }}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -724,10 +717,10 @@ const ReportDetailPanel = ({
             {/* If Duplicate: Clean Reference Search */}
             {flagType === "duplicate" && (
               <div className="space-y-1.5 relative">
-                <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <label className="text-xs font-medium text-foreground flex items-center justify-between">
                   <span>Original Report Reference</span>
                   {selectedDuplicateCandidate && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="text-ui-overline text-emerald-600 dark:text-emerald-400 font-medium">
                       Linked
                     </span>
                   )}
@@ -743,7 +736,7 @@ const ReportDetailPanel = ({
                       }
                     }}
                     placeholder="e.g. RPT-2026-00012"
-                    className="h-10 text-xs font-mono placeholder:font-sans rounded-xl pl-9 pr-8"
+                    className="h-10 text-xs tabular-nums placeholder:font-sans rounded-xl pl-9 pr-8"
                   />
                   {isSearchingDuplicates && (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
@@ -762,12 +755,12 @@ const ReportDetailPanel = ({
                           setSelectedDuplicateCandidate(candidate);
                           setDuplicateMatches([]);
                         }}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/60 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                        className="w-full px-3 py-2 text-left hover:bg-[var(--button-neutral-hover)] transition-colors flex items-center justify-between text-xs cursor-pointer"
                       >
-                        <span className="font-mono font-bold text-foreground">
+                        <span className="tabular-nums font-semibold text-foreground">
                           {candidate.reference_number}
                         </span>
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                        <span className="text-ui-caption text-muted-foreground truncate max-w-[180px]">
                           {candidate.violation_type.replace(/_/g, " ")}
                         </span>
                       </button>
@@ -779,7 +772,7 @@ const ReportDetailPanel = ({
 
             {/* Reason */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Reason</label>
+              <label className="text-xs font-medium text-foreground">Reason</label>
               <Textarea
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
@@ -827,12 +820,12 @@ const ReportDetailPanel = ({
                     {flagType === "duplicate" ? "Resolve & Notify Resident" : "Close as Resolved & Notify"}
                   </span>
                   {resolveOnFlag && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-semibold bg-primary/20 text-primary">
+                    <span className="text-ui-overline px-1.5 py-0.2 rounded-md font-semibold bg-primary/20 text-primary">
                       Will Resolve
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-ui-caption text-muted-foreground leading-relaxed">
                   {flagType === "duplicate"
                     ? resolveOnFlag
                       ? "Close this duplicate report and send an update to the resident."
@@ -865,11 +858,8 @@ const ReportDetailPanel = ({
               type="button"
               onClick={handleFlagSubmit}
               disabled={isFlagging}
-              variant={flagType === "false" ? "destructive" : "default"}
-              className={cn(
-                "rounded-xl h-9 text-xs px-4 font-semibold cursor-pointer",
-                flagType === "duplicate" && "bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700",
-              )}
+              variant={flagType === "false" ? "destructive" : "warning"}
+              className={"rounded-xl h-9 text-xs px-4 font-semibold cursor-pointer"}
             >
               {isFlagging ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -30,7 +30,7 @@ const TruckDetailView = ({
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Truck Details
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -47,12 +47,12 @@ const TruckDetailView = ({
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">
+                <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {truck.name}
                 </h2>
                 <Badge
                   variant="outline"
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
                     truckStatusStyles[truck.status] || ""
                   }`}
                 >
@@ -70,7 +70,7 @@ const TruckDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onEdit(truck)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+              className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
               Edit Truck
@@ -79,7 +79,7 @@ const TruckDetailView = ({
               variant="outline"
               size="sm"
               onClick={() => onToggleStatus(truck)}
-              className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+              className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
               {truck.status === "Active" ? (
                 <>
@@ -100,7 +100,7 @@ const TruckDetailView = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
           {/* Layer 1: Vehicle Identification & Driver */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Hash className="w-3.5 h-3.5 text-muted-foreground/70" />
               Plate Number
             </span>
@@ -110,7 +110,7 @@ const TruckDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <TruckIcon className="w-3.5 h-3.5 text-muted-foreground/70" />
               Vehicle Model
             </span>
@@ -120,7 +120,7 @@ const TruckDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-muted-foreground/70" />
               Assigned Driver
             </span>
@@ -141,7 +141,7 @@ const TruckDetailView = ({
           {/* Layer 2: Specifications & Operational Status */}
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
               Date Added
             </span>
@@ -151,7 +151,7 @@ const TruckDetailView = ({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
               Fleet Status
             </span>

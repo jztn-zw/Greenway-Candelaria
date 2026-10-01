@@ -289,7 +289,7 @@ const CustomDateTimePicker = ({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-auto p-3 shadow-xl rounded-2xl border-border bg-popover z-50"
+        className="w-auto p-3 shadow-md rounded-2xl border-border bg-popover z-50"
       >
         <div className="space-y-3">
           <CalendarPicker
@@ -328,7 +328,7 @@ const CustomDateTimePicker = ({
                   className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
                   aria-label="Hour (1-12)"
                 />
-                <span className="text-[10px] text-muted-foreground font-medium">hr</span>
+                <span className="text-ui-overline text-muted-foreground font-medium">hr</span>
               </div>
 
               <span className="text-muted-foreground font-bold text-base pb-3.5">:</span>
@@ -346,7 +346,7 @@ const CustomDateTimePicker = ({
                   className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
                   aria-label="Minute (0-59)"
                 />
-                <span className="text-[10px] text-muted-foreground font-medium">min</span>
+                <span className="text-ui-overline text-muted-foreground font-medium">min</span>
               </div>
 
               <div className="flex rounded-xl border border-input/80 overflow-hidden shadow-2xs h-9 mb-3.5">
@@ -356,7 +356,7 @@ const CustomDateTimePicker = ({
                   className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     selectedPeriod === "AM"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:bg-muted"
+                      : "gw-action-ghost "
                   }`}
                 >
                   AM
@@ -367,7 +367,7 @@ const CustomDateTimePicker = ({
                   className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     selectedPeriod === "PM"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:bg-muted"
+                      : "gw-action-ghost "
                   }`}
                 >
                   PM
@@ -655,7 +655,7 @@ const PostEditor = ({
       {/* ── Section 1: Post Content & Details ── */}
       <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
-          <h1 className="text-lg sm:text-xl font-bold font-display text-foreground tracking-tight leading-tight">
+          <h1 className="gw-heading text-lg sm:text-xl text-foreground tracking-tight leading-tight">
             {editingPost ? "Edit Post" : "Create Post"}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -666,7 +666,7 @@ const PostEditor = ({
         <div className="space-y-3.5">
           {/* Post Title */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Post Title
             </Label>
             <Input
@@ -681,12 +681,12 @@ const PostEditor = ({
               aria-describedby={errors.title ? "post-title-error" : undefined}
               className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.title ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
-            {errors.title && <p id="post-title-error" className="text-[11px] font-medium text-destructive">{errors.title}</p>}
+            {errors.title && <p id="post-title-error" className="text-ui-caption font-medium text-destructive">{errors.title}</p>}
           </div>
 
           {/* Subtitle / Source */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Source or Attribution <span className="text-muted-foreground font-normal">(Optional)</span>
             </Label>
             <Input
@@ -701,12 +701,12 @@ const PostEditor = ({
               aria-describedby={errors.source ? "post-source-error" : undefined}
               className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.source ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
-            {errors.source && <p id="post-source-error" className="text-[11px] font-medium text-destructive">{errors.source}</p>}
+            {errors.source && <p id="post-source-error" className="text-ui-caption font-medium text-destructive">{errors.source}</p>}
           </div>
 
           {/* Body Content */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Post Body
             </Label>
             <Textarea
@@ -721,7 +721,7 @@ const PostEditor = ({
               aria-describedby={errors.body ? "post-body-error" : undefined}
               className={`resize-none overflow-y-auto rounded-xl bg-background text-sm leading-relaxed shadow-2xs p-3.5 ${errors.body ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
-            {errors.body && <p id="post-body-error" className="text-[11px] font-medium text-destructive">{errors.body}</p>}
+            {errors.body && <p id="post-body-error" className="text-ui-caption font-medium text-destructive">{errors.body}</p>}
           </div>
         </div>
       </section>
@@ -729,7 +729,7 @@ const PostEditor = ({
       {/* ── Section 2: Media & Cover Photo ── */}
       <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
-          <h2 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight">
+          <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight">
             Media & Cover Photo
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
@@ -744,15 +744,15 @@ const PostEditor = ({
               <img
                 src={uploadedImages[0]}
                 alt="Primary Cover"
-                className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.01]"
+                className="w-full h-full object-cover object-center transition-transform duration-300 "
               />
-              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1 rounded-full border border-white/20 shadow-xs">
+              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md text-white text-ui-caption font-semibold px-3 py-1 rounded-md border border-white/20 shadow-xs">
                 Primary Cover Photo
               </div>
               <button
                 type="button"
                 onClick={() => removeImage(0)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/70 hover:bg-destructive text-white flex items-center justify-center shadow-sm cursor-pointer transition-colors backdrop-blur-md"
+                className="gw-action-destructive absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm cursor-pointer transition-colors backdrop-blur-md"
                 title="Remove photo"
               >
                 <X className="w-4 h-4" />
@@ -777,7 +777,7 @@ const PostEditor = ({
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity backdrop-blur-[1px]">
                         <button
                           type="button"
-                          className="w-6 h-6 rounded-full bg-background/90 text-foreground flex items-center justify-center shadow-xs hover:bg-background cursor-pointer active:scale-90 transition-transform"
+                          className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center shadow-xs cursor-pointer transition-transform"
                           onClick={() => {
                             const newImgs = [...uploadedImages];
                             [newImgs[realIndex - 1], newImgs[realIndex]] = [
@@ -792,7 +792,7 @@ const PostEditor = ({
                         </button>
                         <button
                           type="button"
-                          className="w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-xs hover:opacity-90 cursor-pointer active:scale-90 transition-transform"
+                          className="gw-action-destructive w-6 h-6 rounded-lg flex items-center justify-center shadow-xs cursor-pointer transition-transform"
                           onClick={() => removeImage(realIndex)}
                           title="Remove photo"
                         >
@@ -813,7 +813,7 @@ const PostEditor = ({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading || uploadedImages.length >= MAX_POST_IMAGES}
-                className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-2 cursor-pointer border-border/80 bg-background hover:bg-muted/50 transition-all shadow-2xs"
+                className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-2 cursor-pointer transition-all shadow-2xs"
               >
                 <UploadCloud className="w-3.5 h-3.5 text-muted-foreground" />
                 {isUploading
@@ -843,14 +843,14 @@ const PostEditor = ({
               </>
             ) : (
               <>
-                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 transition-transform duration-200">
                   <UploadCloud className="w-5 h-5" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs sm:text-sm font-semibold text-foreground">
                     Upload Cover Photo & Gallery
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-ui-caption text-muted-foreground">
                     Click or drag photos here (PNG, JPG, or WebP)
                   </p>
                 </div>
@@ -873,7 +873,7 @@ const PostEditor = ({
       {/* ── Section 3: Publishing & Visibility Settings ── */}
       <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
-          <h2 className="text-sm sm:text-base font-bold font-display text-foreground tracking-tight">
+          <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight">
             Publishing Settings
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
@@ -884,7 +884,7 @@ const PostEditor = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {/* Category Dropdown */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Category
             </Label>
             <Select
@@ -909,7 +909,7 @@ const PostEditor = ({
 
           {/* Status Dropdown (Published vs Scheduled) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Status
             </Label>
             <Select
@@ -948,7 +948,7 @@ const PostEditor = ({
         {/* Scheduled Publishing Time (if Scheduled) */}
         {form.status === "Scheduled" && (
           <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
-            <Label className="text-xs font-bold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Scheduled Publish Time
             </Label>
             <CustomDateTimePicker
@@ -959,8 +959,8 @@ const PostEditor = ({
                 setErrors((current) => ({ ...current, scheduledDate: undefined, form: undefined }));
               }}
             />
-            {errors.scheduledDate && <p className="text-[11px] font-medium text-destructive">{errors.scheduledDate}</p>}
-            <p className="text-[11px] text-muted-foreground">
+            {errors.scheduledDate && <p className="text-ui-caption font-medium text-destructive">{errors.scheduledDate}</p>}
+            <p className="text-ui-caption text-muted-foreground">
               This post will automatically become visible to residents at this scheduled date and time.
             </p>
           </div>
@@ -968,7 +968,7 @@ const PostEditor = ({
 
         {/* Tags */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-foreground">
+          <Label className="text-xs font-medium text-foreground">
             Tags <span className="text-muted-foreground font-normal">(Optional)</span>
           </Label>
           <div className="relative">
@@ -997,10 +997,10 @@ const PostEditor = ({
         {/* Featured Post Toggle */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-border/80 bg-muted/20 hover:bg-muted/30 transition-colors">
           <div className="space-y-0.5 pr-4">
-            <Label className="text-xs font-semibold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Feature on Resident Carousel
             </Label>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-ui-caption text-muted-foreground">
               Pin this post to the hero carousel on the resident home page.
             </p>
           </div>
@@ -1011,7 +1011,7 @@ const PostEditor = ({
             }
           />
         </div>
-        {errors.form && <p className="text-[11px] font-medium text-destructive">{errors.form}</p>}
+        {errors.form && <p className="text-ui-caption font-medium text-destructive">{errors.form}</p>}
       </section>
 
       {/* ── Section 4: Footer Action Controls ── */}
@@ -1022,7 +1022,7 @@ const PostEditor = ({
               type="button"
               variant="outline"
               onClick={() => onPreview(getFormWithImages())}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold gap-2 border-border/80 bg-card hover:bg-muted/60 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs"
+              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold gap-2 transition-all cursor-pointer shadow-2xs"
             >
               <Eye className="w-4 h-4 text-muted-foreground" />
               <span>Preview as Resident</span>
@@ -1035,7 +1035,7 @@ const PostEditor = ({
             type="button"
             variant="outline"
             onClick={handleAttemptBack}
-            className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs"
+            className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs"
           >
             Cancel
           </Button>
@@ -1047,7 +1047,7 @@ const PostEditor = ({
               isUploading ||
               isSaving
             }
-            className="h-10 px-5 rounded-xl text-xs sm:text-sm font-semibold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all cursor-pointer active:scale-95"
+            className="h-10 px-5 rounded-xl text-xs sm:text-sm font-semibold gap-2 shadow-sm transition-all cursor-pointer"
           >
             {(isUploading || isSaving) && (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />

@@ -45,7 +45,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md flex items-center justify-center transition-colors cursor-pointer"
           title="Clear search"
           aria-label="Clear search"
         >

@@ -12,7 +12,7 @@ const Footer = ({ content = CONTENT.footer, contactContent = CONTENT.contact }: 
       <div className="container py-10 sm:py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-10">
           <div className="space-y-3 sm:space-y-4 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 font-display text-lg font-bold">
+            <div className="flex items-center gap-2 font-display text-lg font-semibold">
               <img src="/greenway.svg" alt="GreenWay Logo" className="w-7 h-7" /> GreenWay
             </div>
             <p className="text-xs font-semibold opacity-80">MENRO Candelaria, Quezon</p>
@@ -25,7 +25,7 @@ const Footer = ({ content = CONTENT.footer, contactContent = CONTENT.contact }: 
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-display font-semibold text-sm">System</h4>
+            <h4 className="gw-heading text-sm">System</h4>
             <ul className="space-y-2.5">
               {content.systemLinks.map((link) => (
                 <li key={link}>
@@ -36,7 +36,7 @@ const Footer = ({ content = CONTENT.footer, contactContent = CONTENT.contact }: 
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-display font-semibold text-sm">Information</h4>
+            <h4 className="gw-heading text-sm">Information</h4>
             <ul className="space-y-2.5">
               {content.informationLinks.map((link) => (
                 <li key={link}>
@@ -47,7 +47,7 @@ const Footer = ({ content = CONTENT.footer, contactContent = CONTENT.contact }: 
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-display font-semibold text-sm">Contact</h4>
+            <h4 className="gw-heading text-sm">Contact</h4>
             <ul className="space-y-3 text-sm opacity-70">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
@@ -65,7 +65,7 @@ const Footer = ({ content = CONTENT.footer, contactContent = CONTENT.contact }: 
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-display font-semibold text-sm">Legal</h4>
+            <h4 className="gw-heading text-sm">Legal</h4>
             <ul className="space-y-2.5">
               {content.legalLinks.map((link) => (
                 <li key={link}>

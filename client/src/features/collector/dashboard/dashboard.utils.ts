@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import type { RouteRunToday } from "@/services/routesService";
 import { parseApiTimestamp } from "@/utils/date";
 import type { AssignmentData, RouteState } from "./components/types";
@@ -19,11 +20,7 @@ export const isNonBiodegradable = (value?: string | null) =>
   value?.trim().toUpperCase().replace(/[\s-]+/g, "_") === "NON_BIODEGRADABLE";
 
 export const getWasteBadgeClass = (value: string) => {
-  switch (value.trim().toUpperCase().replace(/[\s-]+/g, "_")) {
-    case "BIODEGRADABLE": return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25";
-    case "NON_BIODEGRADABLE": return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
-    default: return "bg-muted text-muted-foreground border-border/60";
-  }
+  return getCategoryBadgeColors(value).className;
 };
 
 export const buildAssignment = (

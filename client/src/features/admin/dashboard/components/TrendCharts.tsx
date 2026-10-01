@@ -18,16 +18,16 @@ import {
 import { ReportsAnalytics, UsersAnalytics } from "./useAdminDashboard";
 
 const lineConfig = {
-  reports: { label: "Reports", color: "hsl(145, 63%, 32%)" },
+  reports: { label: "Reports", color: "hsl(var(--chart-1))" },
 };
 const barConfig = {
-  residents: { label: "Residents", color: "hsl(145, 63%, 32%)" },
+  residents: { label: "Residents", color: "hsl(var(--chart-1))" },
 };
 const pieConfig = {
-  Resolved: { label: "Resolved", color: "hsl(145, 63%, 38%)" },
-  "Under Review": { label: "Under Review", color: "hsl(210, 70%, 55%)" },
-  Dispatched: { label: "Dispatched", color: "hsl(270, 50%, 55%)" },
-  Pending: { label: "Pending", color: "hsl(35, 90%, 52%)" },
+  Resolved: { label: "Resolved", color: "hsl(var(--chart-1))" },
+  "Under Review": { label: "Under Review", color: "hsl(var(--info))" },
+  Dispatched: { label: "Dispatched", color: "hsl(var(--chart-3))" },
+  Pending: { label: "Pending", color: "hsl(var(--warning))" },
 };
 
 // Generate continuous 6-month rolling window (e.g. Mar -> Aug)
@@ -81,10 +81,10 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
   });
 
   const reportStatusData = [
-    { name: "Pending", value: statusCounts["Pending"], fill: "hsl(35, 90%, 52%)" },
-    { name: "Under Review", value: statusCounts["Under Review"], fill: "hsl(210, 70%, 55%)" },
-    { name: "Dispatched", value: statusCounts["Dispatched"], fill: "hsl(270, 50%, 55%)" },
-    { name: "Resolved", value: statusCounts["Resolved"], fill: "hsl(145, 63%, 38%)" },
+    { name: "Pending", value: statusCounts["Pending"], fill: "hsl(var(--warning))" },
+    { name: "Under Review", value: statusCounts["Under Review"], fill: "hsl(var(--info))" },
+    { name: "Dispatched", value: statusCounts["Dispatched"], fill: "hsl(var(--chart-3))" },
+    { name: "Resolved", value: statusCounts["Resolved"], fill: "hsl(var(--chart-1))" },
   ];
 
   const totalReportsCount =
@@ -109,14 +109,14 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
   return (
     <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-3">
       {/* ── 1. Report Volume Trend (Continuous Area Chart) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-3">
             <div>
-              <h3 className="text-sm font-bold text-foreground font-display">
+              <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Report Volume Trend
               </h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
+              <p className="text-ui-caption text-muted-foreground mt-0.5">
                 6-Month incident volume
               </p>
             </div>
@@ -132,8 +132,8 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
             <AreaChart data={reportTrendData}>
               <defs>
                 <linearGradient id="emeraldArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(145, 63%, 32%)" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="hsl(145, 63%, 32%)" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -151,7 +151,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
               />
               <ChartTooltip
                 cursor={{
-                  stroke: "hsl(145, 63%, 32%)",
+                  stroke: "hsl(var(--chart-1))",
                   strokeWidth: 1.5,
                   strokeDasharray: "4 4",
                 }}
@@ -160,7 +160,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
               <Area
                 type="monotone"
                 dataKey="reports"
-                stroke="hsl(145, 63%, 32%)"
+                stroke="hsl(var(--chart-1))"
                 strokeWidth={2.5}
                 fill="url(#emeraldArea)"
               />
@@ -170,14 +170,14 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
       </div>
 
       {/* ── 2. Reports by Status (Donut Chart + Symmetrical 2x2 Grid) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h3 className="text-sm font-bold text-foreground font-display">
+              <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Reports by Status
               </h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
+              <p className="text-ui-caption text-muted-foreground mt-0.5">
                 Resolution distribution
               </p>
             </div>
@@ -211,7 +211,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
                 y="46%"
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-xl font-extrabold fill-foreground font-display"
+                className="gw-stat-value text-xl fill-foreground "
               >
                 {totalReportsCount}
               </text>
@@ -232,7 +232,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
             {reportStatusData.map((d) => (
               <div
                 key={d.name}
-                className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-muted/40 border border-border/50 text-[11px]"
+                className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-muted/40 border border-border/50 text-ui-caption"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
@@ -241,7 +241,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
                   />
                   <span className="text-muted-foreground truncate">{d.name}</span>
                 </div>
-                <span className="font-bold text-foreground tabular-nums ml-1">
+                <span className="font-semibold text-foreground tabular-nums ml-1">
                   {d.value}
                 </span>
               </div>
@@ -251,14 +251,14 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
       </div>
 
       {/* ── 3. Resident Community (Continuous Bar Chart with Clean Hover) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-3">
             <div>
-              <h3 className="text-sm font-bold text-foreground font-display">
+              <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Resident Community
               </h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
+              <p className="text-ui-caption text-muted-foreground mt-0.5">
                 Monthly registered users
               </p>
             </div>
@@ -291,7 +291,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
               />
               <Bar
                 dataKey="residents"
-                fill="hsl(145, 63%, 32%)"
+                fill="hsl(var(--chart-1))"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={28}
                 className="transition-opacity hover:opacity-85"

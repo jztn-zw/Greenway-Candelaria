@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 export type ActionSeverity = "routine" | "positive" | "change" | "critical";
 
 export type AuditModule =
@@ -71,29 +72,29 @@ export const severityStyles: Record<
   { badge: string; dot: string; text: string }
 > = {
   routine: {
-    badge: "bg-muted/60 text-foreground/80 border-border/70",
-    dot: "bg-muted-foreground/60",
+    badge: badgeStyles.neutral.className,
+    dot: badgeStyles.neutral.dot,
     text: "Routine",
   },
   positive: {
-    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-    dot: "bg-emerald-500",
+    badge: badgeStyles.success.className,
+    dot: badgeStyles.success.dot,
     text: "Restoration",
   },
   change: {
-    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
-    dot: "bg-amber-500",
+    badge: badgeStyles.warning.className,
+    dot: badgeStyles.warning.dot,
     text: "Modification",
   },
   critical: {
-    badge: "bg-destructive/10 text-destructive border-destructive/20",
-    dot: "bg-destructive",
+    badge: badgeStyles.error.className,
+    dot: badgeStyles.error.dot,
     text: "Critical",
   },
 };
 
 const neutralModuleBadge =
-  "bg-muted/60 text-muted-foreground border-border/70 font-medium";
+  badgeStyles.neutral.className + " font-medium";
 
 export const moduleBadgeStyles: Record<string, string> = {
   Accounts: neutralModuleBadge,

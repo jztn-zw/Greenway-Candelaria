@@ -112,13 +112,13 @@ const escapeHtml = (value: unknown) =>
 const statusColor = (status: "done" | "in-progress" | "not-started" | "skipped") => {
   switch (status) {
     case "done":
-      return "hsl(145, 63%, 32%)";
+      return "hsl(var(--primary))";
     case "in-progress":
-      return "hsl(217, 91%, 60%)";
+      return "hsl(var(--info))";
     case "skipped":
-      return "hsl(38, 92%, 50%)";
+      return "hsl(var(--warning))";
     default:
-      return "hsl(215, 14%, 60%)";
+      return "hsl(var(--muted-foreground))";
   }
 };
 
@@ -133,10 +133,10 @@ const statusLabel = (status: "done" | "in-progress" | "not-started" | "skipped")
 
 const coverageColor = (status: "done" | "in-progress" | "not-started" | "skipped") => {
   switch (status) {
-    case "in-progress": return "#16a34a";
-    case "done": return "#166534";
-    case "skipped": return "#f59e0b";
-    default: return "#94a3b8";
+    case "in-progress": return "hsl(var(--highlight))";
+    case "done": return "hsl(var(--success-700))";
+    case "skipped": return "hsl(var(--warning))";
+    default: return "hsl(var(--neutral-400))";
   }
 };
 
@@ -158,10 +158,10 @@ const createAdminTruckPinIcon = (
   const height = isFocused ? 54 : 48;
   const color =
     state === "live"
-      ? "hsl(145, 63%, 32%)"
+      ? "hsl(var(--primary))"
       : state === "delayed"
-        ? "hsl(38, 92%, 42%)"
-        : "hsl(215, 14%, 45%)";
+        ? "hsl(var(--warning-foreground))"
+        : "hsl(var(--muted-foreground))";
   const scale = isFocused ? 1.16 : 1;
   const cx = width / 2;
   const cy = isFocused ? 21 : 18;
@@ -173,8 +173,8 @@ const createAdminTruckPinIcon = (
     html: `
       <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35));cursor:pointer;">
         <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-          <path d="M ${cx} 1.5 C ${cx * 0.48} 1.5 1.5 ${cy * 0.48} 1.5 ${cy} C 1.5 ${cy * 1.6} ${cx} ${height - 1.5} ${cx} ${height - 1.5} C ${cx} ${height - 1.5} ${width - 1.5} ${cy * 1.6} ${width - 1.5} ${cy} C ${width - 1.5} ${cy * 0.48} ${cx * 1.52} 1.5 ${cx} 1.5 Z" fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff"/>
+          <path d="M ${cx} 1.5 C ${cx * 0.48} 1.5 1.5 ${cy * 0.48} 1.5 ${cy} C 1.5 ${cy * 1.6} ${cx} ${height - 1.5} ${cx} ${height - 1.5} C ${cx} ${height - 1.5} ${width - 1.5} ${cy * 1.6} ${width - 1.5} ${cy} C ${width - 1.5} ${cy * 0.48} ${cx * 1.52} 1.5 ${cx} 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="hsl(var(--map-inset))"/>
           <g transform="${translateOffset}">
             <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M15 18H9" fill="none" stroke="${color}" stroke-width="2.3"/>
@@ -186,8 +186,8 @@ const createAdminTruckPinIcon = (
         ${
            isFocused && state === "live"
             ? `<div style="position:absolute;top:-1px;right:-1px;display:flex;width:12px;height:12px;pointer-events:none;">
-                 <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:#10b981;opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
-                 <span style="position:relative;width:100%;height:100%;border-radius:50%;background:#10b981;border:2px solid white;"></span>
+                 <span style="position:absolute;width:100%;height:100%;border-radius:50%;background:hsl(var(--highlight));opacity:0.75;animation:ping 1s cubic-bezier(0,0,0.2,1) infinite;"></span>
+                 <span style="position:relative;width:100%;height:100%;border-radius:50%;background:hsl(var(--highlight));border:2px solid white;"></span>
                </div>`
             : ""
         }
@@ -423,7 +423,7 @@ const AdminTrackingMap = ({
 
           // Outer blue glow casing
           L.polyline(result.coordinates, {
-            color: "#2563eb",
+            color: "hsl(var(--info-600))",
             weight: 6,
             opacity: 0.7,
             lineCap: "round",
@@ -432,7 +432,7 @@ const AdminTrackingMap = ({
 
           // Inner vibrant road track
           L.polyline(result.coordinates, {
-            color: "#60a5fa",
+            color: "hsl(var(--info-400))",
             weight: 3.5,
             opacity: 1,
             lineCap: "round",
@@ -478,7 +478,7 @@ const AdminTrackingMap = ({
       if (stop.coveragePath && stop.coveragePath.length >= 2) {
         if (isLiveTruckOnline) {
           L.polyline(stop.coveragePath, {
-            color: "#ffffff",
+            color: "hsl(var(--map-inset))",
             weight: isTarget ? 10 : 8,
             opacity: 0.9,
             lineCap: "round",
@@ -522,9 +522,9 @@ const AdminTrackingMap = ({
 
       const color = statusColor(mappedState);
       const popupContent = `
-        <div style="font-family:Inter,system-ui,sans-serif;min-width:180px;max-width:240px;padding:2px 0">
+        <div style="font-family:var(--font-ui);font-variant-numeric:tabular-nums;min-width:180px;max-width:240px;padding:2px 0">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="width:28px;height:28px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
+            <div style="width:28px;height:28px;border-radius:var(--radius);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
               ${stop.stopNumber}
             </div>
             <div style="flex:1;min-width:0">
@@ -535,7 +535,7 @@ const AdminTrackingMap = ({
             </div>
           </div>
           ${stop.completedAt ? `<div style="font-size:11px;opacity:0.7;margin-top:4px">Completed at ${escapeHtml(stop.completedAt)}</div>` : ""}
-          ${stop.skippedReason ? `<div style="font-size:11px;color:hsl(38,92%,40%);margin-top:4px">${escapeHtml(stop.skippedReason)}</div>` : ""}
+          ${stop.skippedReason ? `<div style="font-size:11px;color:hsl(var(--warning-foreground));margin-top:4px">${escapeHtml(stop.skippedReason)}</div>` : ""}
         </div>`;
 
       marker.bindPopup(popupContent, {
@@ -567,12 +567,12 @@ const AdminTrackingMap = ({
       const isDelayed = truck.status === "offline" && Boolean(truck.lastPingIso);
       const isDone = truck.status === "done";
       const markerBg = isLive
-        ? "hsl(145,63%,32%)"
+        ? "hsl(var(--primary))"
         : isDone
-          ? "hsl(145,63%,32%)"
+          ? "hsl(var(--primary))"
           : isPaused || isDelayed
-            ? "hsl(38, 92%, 42%)"
-            : "hsl(215, 14%, 45%)";
+            ? "hsl(var(--warning-foreground))"
+            : "hsl(var(--muted-foreground))";
 
       const truckIcon = createAdminTruckPinIcon(
         isFocused,
@@ -591,9 +591,9 @@ const AdminTrackingMap = ({
       );
 
       const popupContent = `
-        <div style="font-family:Inter,system-ui,sans-serif;font-size:13px;min-width:220px;max-width:280px;padding:4px 0">
+        <div style="font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:13px;min-width:220px;max-width:280px;padding:4px 0">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
-            <div style="width:32px;height:32px;background:${markerBg};border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <div style="width:32px;height:32px;background:${markerBg};border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
                 <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H3m10 0h2m0 0a1 1 0 011-1V9h3l3 3v5a1 1 0 01-1 1h-1"/>
@@ -603,9 +603,9 @@ const AdminTrackingMap = ({
               <div style="font-weight:700;font-size:13px;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                 ${safeTruckName}
               </div>
-              <div style="font-size:11px;opacity:0.6;font-family:monospace">${safePlateNumber}</div>
+              <div style="font-size:12px;opacity:0.6;font-family:var(--font-ui);font-variant-numeric:tabular-nums">${safePlateNumber}</div>
             </div>
-            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:${markerBg};color:white;text-transform:uppercase;letter-spacing:0.04em">
+            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--radius-compact);background:${markerBg};color:white;text-transform:uppercase;letter-spacing:0.04em">
               ${isLive ? "EN ROUTE" : isDone ? "COMPLETED" : isPaused ? "PAUSED" : isDelayed ? "GPS DELAYED" : truck.status.toUpperCase()}
             </span>
           </div>
@@ -627,29 +627,29 @@ const AdminTrackingMap = ({
             </div>
             ${truck.wasteType ? `
             <div style="display:flex;align-items:center;gap:6px">
-              <div style="width:10px;height:10px;border-radius:50%;background:hsl(145,63%,32%);opacity:0.8"></div>
+              <div style="width:10px;height:10px;border-radius:50%;background:hsl(var(--primary));opacity:0.8"></div>
               <span>${safeWasteType}</span>
             </div>` : ''}
           </div>
 
           ${truck.totalBarangays > 0 ? `
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(128,128,128,0.15)">
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid hsl(var(--border) / 0.7)">
             <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
               <span style="opacity:0.6">Route Progress</span>
               <span style="font-weight:600">${truck.completedBarangays}/${truck.totalBarangays}</span>
             </div>
-            <div style="height:6px;border-radius:3px;background:rgba(128,128,128,0.15);overflow:hidden">
-              <div style="height:100%;width:${truck.totalBarangays > 0 ? Math.min(100, Math.max(0, Math.round((truck.completedBarangays / truck.totalBarangays) * 100))) : 0}%;border-radius:3px;background:hsl(145,63%,32%);transition:width 0.3s ease"></div>
+            <div style="height:6px;border-radius:var(--radius-full);background:hsl(var(--border) / 0.7);overflow:hidden">
+              <div style="height:100%;width:${truck.totalBarangays > 0 ? Math.min(100, Math.max(0, Math.round((truck.completedBarangays / truck.totalBarangays) * 100))) : 0}%;border-radius:var(--radius-full);background:hsl(var(--primary));transition:width 0.3s ease"></div>
             </div>
           </div>` : ''}
 
           ${truck.driverMessages.length > 0 ? `
-          <div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(128,128,128,0.08);border:1px solid rgba(128,128,128,0.1);font-size:11px;font-style:italic;line-height:1.4">
+          <div style="margin-top:10px;padding:8px 10px;border-radius:var(--radius);background:hsl(var(--muted) / 0.6);border:1px solid hsl(var(--border) / 0.5);font-size:11px;font-style:italic;line-height:1.4">
             "${safeLatestMessage}"
           </div>` : ''}
 
           ${isNear ? `
-          <div style="margin-top:8px;padding:6px 10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);font-size:11px;font-weight:600;color:hsl(145,63%,32%)">
+          <div style="margin-top:8px;padding:6px 10px;border-radius:var(--radius);background:hsl(var(--success) / 0.08);border:1px solid hsl(var(--success) / 0.15);font-size:11px;font-weight:600;color:hsl(var(--primary))">
             ${truck.barangaysAway} barangay${truck.barangaysAway! > 1 ? 's' : ''} away from next stop
           </div>` : ''}
         </div>`;
@@ -731,7 +731,6 @@ const AdminTrackingMap = ({
     }
   }, [focusedTruckId, activeTruck?.id, trucks, activeTruckCoords, activeStopCoords, scheduledStops, isReplayMode]);
 
-
   // Replay geometry changes only for a new trip or target outcome. Playback
   // moves the existing truck and trail head without rebuilding the map layers.
   useEffect(() => {
@@ -811,7 +810,7 @@ const AdminTrackingMap = ({
         <button
           type="button"
           onClick={handleZoomIn}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom In"
           aria-label="Zoom in"
         >
@@ -821,7 +820,7 @@ const AdminTrackingMap = ({
         <button
           type="button"
           onClick={handleZoomOut}
-          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-foreground hover:bg-muted/80 hover:text-primary active:scale-95 transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom Out"
           aria-label="Zoom out"
         >
@@ -838,7 +837,7 @@ const AdminTrackingMap = ({
               <button
                 type="button"
                 onClick={() => setIsCardCollapsed(false)}
-                className="flex items-center gap-2 bg-card/85 backdrop-blur-md px-3.5 py-2 rounded-xl border border-border/70 shadow-2xs text-xs font-bold text-foreground cursor-pointer hover:bg-muted/80 transition-all pointer-events-auto"
+                className="gw-action-outline flex items-center gap-2 backdrop-blur-md px-3.5 py-2 rounded-lg border shadow-2xs text-xs font-semibold cursor-pointer transition-all pointer-events-auto"
               >
                 <TruckIcon className={cn(
                   "w-3.5 h-3.5 shrink-0",
@@ -878,10 +877,10 @@ const AdminTrackingMap = ({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-xs font-bold font-display text-foreground truncate">
+                      <h4 className="gw-heading text-xs text-foreground truncate">
                         {activeTruck.name}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-[11px] leading-none">
+                      <div className="flex items-center gap-1.5 text-ui-caption leading-none">
                         <span className="text-muted-foreground truncate">{activeTruck.plateNumber}</span>
                         {activeTruck.status === "offline" || activeTruck.status === "done" ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
@@ -904,7 +903,7 @@ const AdminTrackingMap = ({
                     <button
                       type="button"
                       onClick={() => setIsCardCollapsed(true)}
-                      className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
                       title="Collapse card"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
@@ -919,7 +918,7 @@ const AdminTrackingMap = ({
                             onMarkerClick(activeTruck.id);
                           }
                         }}
-                        className="w-6 h-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                        className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
                         title="Deselect truck"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -929,7 +928,7 @@ const AdminTrackingMap = ({
                 </div>
 
                 {activeTruck.status === "offline" || activeTruck.status === "done" ? (
-                  <div className="text-[11px] text-muted-foreground border-t border-border/60 pt-2.5 flex items-center justify-between">
+                  <div className="text-ui-caption text-muted-foreground border-t border-border/60 pt-2.5 flex items-center justify-between">
                     <span>
                       {scheduledStops.length > 0 && scheduledStops.every((s) => s.status === "done")
                         ? "Collection completed"
@@ -940,7 +939,7 @@ const AdminTrackingMap = ({
                     </span>
                   </div>
                 ) : isRoutePaused ? (
-                  <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
+                  <p className="text-ui-caption text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
                     Collection is temporarily paused. The amber pin shows the truck's last known location.
                   </p>
                 ) : (
@@ -948,21 +947,21 @@ const AdminTrackingMap = ({
                     {routeData && (
                       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
                         <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
-                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                          <span className="text-ui-overline text-muted-foreground font-medium flex items-center gap-1">
                             <MapPin className="w-3 h-3 text-primary" />
                             Road Distance
                           </span>
-                          <span className="text-sm font-extrabold text-foreground tracking-tight mt-0.5">
+                          <span className="text-sm font-semibold text-foreground tracking-tight mt-0.5">
                             {routeData.distanceKm} km
                           </span>
                         </div>
 
                         <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
-                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                          <span className="text-ui-overline text-muted-foreground font-medium flex items-center gap-1">
                             <Clock className="w-3 h-3 text-primary" />
                             Est. Arrival
                           </span>
-                          <span className="text-sm font-extrabold text-primary tracking-tight mt-0.5">
+                          <span className="text-sm font-semibold text-primary tracking-tight mt-0.5">
                             ~{routeData.durationMinutes} mins
                           </span>
                         </div>
@@ -970,7 +969,7 @@ const AdminTrackingMap = ({
                     )}
 
                     {activeStop && (
-                      <div className="flex items-center text-[11px] text-muted-foreground pt-0.5">
+                      <div className="flex items-center text-ui-caption text-muted-foreground pt-0.5">
                         <span className="flex items-center gap-1 truncate">
                           <RouteIcon className="w-3 h-3 text-primary shrink-0" />
                           <span className="truncate">Target: {activeStop.barangay}</span>
@@ -994,7 +993,7 @@ const AdminTrackingMap = ({
                   <span className="text-xs font-bold text-foreground leading-tight truncate">
                     Collection Completed · Offline
                   </span>
-                  <span className="text-[10.5px] text-muted-foreground leading-tight truncate">
+                  <span className="text-ui-caption text-muted-foreground leading-tight truncate">
                     Click a truck card to view barangay pins
                   </span>
                 </div>
@@ -1008,18 +1007,18 @@ const AdminTrackingMap = ({
                   <span className="text-xs font-bold text-foreground leading-tight truncate">
                     Fleet Standby · Offline
                   </span>
-                  <span className="text-[10.5px] text-muted-foreground leading-tight truncate">
+                  <span className="text-ui-caption text-muted-foreground leading-tight truncate">
                     Click a truck card to view route pins
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="bg-card/85 backdrop-blur-md rounded-xl border border-border/70 shadow-xs px-3 py-1.5 flex items-center gap-2">
+              <div className="bg-card/85 backdrop-blur-md rounded-lg border border-border/70 shadow-xs px-3 py-1.5 flex items-center gap-2">
                 <span className="relative flex h-2 w-2 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-[11px] font-medium text-foreground truncate">
+                <span className="text-ui-caption font-medium text-foreground truncate">
                   {visibleTrucks.length} truck{visibleTrucks.length > 1 ? "s" : ""} active
                   <span className="text-muted-foreground font-normal"> · Select card for pins</span>
                 </span>
@@ -1029,12 +1028,12 @@ const AdminTrackingMap = ({
         )
       )}
 
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-xl border border-border/70 shadow-2xs pointer-events-auto">
+      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-lg border border-border/70 shadow-2xs pointer-events-auto">
         {activeTruck?.coords && activeTruck.status !== "offline" && activeTruck.status !== "done" && (
           <button
             type="button"
             onClick={handleRecenterFocusedTruck}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
             title="Recenter on Focused Truck"
           >
             <TruckIcon className="w-3.5 h-3.5 shrink-0" />
@@ -1046,7 +1045,7 @@ const AdminTrackingMap = ({
           <button
             type="button"
             onClick={handleFitFocusedRoute}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
             title="Fit Focused Truck Route"
           >
             <RouteIcon className="w-3.5 h-3.5 shrink-0" />
@@ -1057,7 +1056,7 @@ const AdminTrackingMap = ({
         <button
           type="button"
           onClick={handleResetBounds}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+          className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
           title="Fit Whole Municipal Fleet"
         >
           <Maximize2 className="w-3.5 h-3.5 shrink-0" />
@@ -1065,7 +1064,7 @@ const AdminTrackingMap = ({
         </button>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-xl border border-border/70 bg-card/75 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-2xs backdrop-blur-md">
+      <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/75 px-3 py-1.5 text-ui-caption font-semibold text-foreground shadow-2xs backdrop-blur-md">
         {isLiveTruckOnline && activeTruck && scheduledStops.some((stop) => (stop.coveragePath?.length ?? 0) >= 2) ? (
           <>
             <span className="flex items-center gap-1">

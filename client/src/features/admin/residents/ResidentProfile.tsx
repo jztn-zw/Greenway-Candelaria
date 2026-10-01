@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,22 +24,22 @@ import type { Resident } from "./types";
 
 const reportStatusStyles: Record<string, string> = {
   Submitted:
-    "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Submitted").className,
   "Under Review":
-    "bg-background/95 dark:bg-zinc-900/90 text-sky-700 dark:text-sky-300 border-sky-500/40 dark:border-sky-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Under Review").className,
   Dispatched:
-    "bg-background/95 dark:bg-zinc-900/90 text-violet-700 dark:text-violet-300 border-violet-500/40 dark:border-violet-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Dispatched").className,
   Resolved:
-    "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Resolved").className,
 };
 
 const residentStatusStyles: Record<string, string> = {
   Active:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    getStatusBadgeStyle("Active").className,
   Deactivated:
-    "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30",
+    getStatusBadgeStyle("Deactivated").className,
   Banned:
-    "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Banned").className,
 };
 
 interface Props {
@@ -57,7 +58,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight leading-tight">
+        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Resident Profile
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -69,17 +70,17 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-lg font-display shrink-0 shadow-2xs">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
               {initials || "R"}
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">
+                <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {resident.fullName}
                 </h2>
                 <Badge
                   variant="outline"
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
                     residentStatusStyles[resident.status] ||
                     residentStatusStyles.Active
                   }`}
@@ -99,7 +100,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
                 variant="outline"
                 size="sm"
                 onClick={() => onToggleStatus(resident)}
-                className="h-9 px-3.5 rounded-xl border-border/80 hover:bg-muted font-medium text-xs cursor-pointer active:scale-95 shadow-2xs gap-1.5"
+                className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
               >
                 {resident.status === "Active" ? (
                   <>
@@ -121,7 +122,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
           {/* Layer 1: Contact & Location */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-muted-foreground/70" />
               Contact Number
             </span>
@@ -131,7 +132,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-muted-foreground/70" />
               Email Address
             </span>
@@ -141,7 +142,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
               Barangay
             </span>
@@ -152,7 +153,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
 
           {/* Layer 2: Activity & Verification */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/70" />
               Date Registered
             </span>
@@ -162,7 +163,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
               Last Login
             </span>
@@ -172,7 +173,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
               Account Status
             </span>
@@ -190,14 +191,14 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-bold font-display text-foreground tracking-tight">
+            <h3 className="gw-heading text-lg text-foreground tracking-tight">
               Waste Report History
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Environmental and collection reports submitted by this resident.
             </p>
           </div>
-          <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/60 tabular-nums self-start sm:self-auto">
+          <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-md border border-border/60 tabular-nums self-start sm:self-auto">
             {resident.reports.length} {resident.reports.length === 1 ? "report" : "reports"}
           </span>
         </div>
@@ -247,7 +248,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
+                          className={`text-ui-caption font-semibold rounded-md px-2.5 py-0.5 ${
                             reportStatusStyles[r.status] ||
                             reportStatusStyles.Submitted
                           }`}

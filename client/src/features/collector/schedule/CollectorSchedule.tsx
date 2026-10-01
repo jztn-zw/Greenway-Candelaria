@@ -40,8 +40,8 @@ const CollectorSchedule = () => {
     <div className="w-full max-w-[1600px] mx-auto space-y-5 pb-8">
       <div>
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-foreground">Internal schedule</h1>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">View internal events added by admin. Route assignments are shown separately in your route map.</p>
+          <h1 className="gw-page-title sm:text-ui-page-lg tracking-tight text-foreground">Internal schedule</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">View internal events added by admin. Route assignments are shown separately in your route map.</p>
         </div>
       </div>
 

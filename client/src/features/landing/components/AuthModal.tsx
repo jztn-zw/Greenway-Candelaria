@@ -60,7 +60,7 @@ const ClearableInput = ({
             }
             onChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
           }}
-          className={`absolute top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground/50 hover:text-destructive transition-colors ${rightElement ? "right-10" : "right-3"}`}
+          className={`gw-action-destructive-ghost absolute top-1/2 -translate-y-1/2 p-0.5 transition-colors ${rightElement ? "right-10" : "right-3"}`}
           tabIndex={-1}
         >
           <X className="w-3.5 h-3.5" />
@@ -264,7 +264,7 @@ const AuthModal = ({
     <button
       type="button"
       onClick={() => setShowPassword(!showPassword)}
-      className="text-muted-foreground transition-colors hover:text-foreground"
+      className="gw-action-ghost transition-colors"
       tabIndex={-1}
     >
       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -272,7 +272,7 @@ const AuthModal = ({
   );
 
   const fieldClass = "";
-  const fieldLabelClass = "text-xs font-semibold text-foreground";
+  const fieldLabelClass = "text-ui-label font-medium text-foreground";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,7 +282,7 @@ const AuthModal = ({
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Close authentication dialog"
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:bg-canopy/60 md:text-forest-foreground/80 md:hover:bg-canopy/80 md:hover:text-forest-foreground"
+            className="gw-action-ghost absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:bg-canopy/60 md:text-forest-foreground/80 md:hover:bg-canopy/80 md:hover:text-forest-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -294,9 +294,9 @@ const AuthModal = ({
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
                   <img src="/greenway.svg" alt="GreenWay Logo" className="h-8 w-8" />
                   </div>
-                <span className="font-display text-lg font-bold tracking-tight text-foreground">GreenWay</span>
+                <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
-              <DialogTitle className="font-display text-[1.8rem] font-bold leading-[1.05] tracking-[-0.045em] text-foreground sm:text-[2rem]">
+              <DialogTitle className="gw-heading gw-auth-title text-foreground">
                 {tab === "login" ? "Welcome back" : "Create an account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
@@ -312,7 +312,7 @@ const AuthModal = ({
               {tab === "login" ? (
                 <form onSubmit={handleLogin} noValidate className="space-y-3.5">
                   {errors.form && (
-                    <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl px-4 py-2.5 font-medium">
+                    <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
                   )}
@@ -355,7 +355,7 @@ const AuthModal = ({
                     </div>
                     {errors.loginPassword && <p className="text-xs text-destructive mt-0.5">{errors.loginPassword}</p>}
                     <div className="text-right">
-                      <button type="button" className="text-xs font-medium text-primary transition-colors hover:text-primary/80 hover:underline">
+                      <button type="button" className="gw-action-link text-xs font-medium transition-colors hover:underline">
                         Forgot password?
                       </button>
                     </div>
@@ -369,7 +369,7 @@ const AuthModal = ({
                   <div className="relative my-1">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-3 text-[10px] tracking-wide text-muted-foreground">or continue with</span>
+                      <span className="bg-card px-3 text-ui-overline tracking-wide text-muted-foreground">or continue with</span>
                     </div>
                   </div>
 
@@ -385,7 +385,7 @@ const AuthModal = ({
 
                   <p className="pt-1 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <button type="button" onClick={() => { setTab("register"); setErrors({}); }} className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline">
+                    <button type="button" onClick={() => { setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Sign Up
                     </button>
                   </p>
@@ -393,7 +393,7 @@ const AuthModal = ({
               ) : (
                 <form onSubmit={handleRegister} noValidate className="space-y-3">
                   {errors.form && (
-                    <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-xl px-4 py-2.5 font-medium">
+                    <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
                   )}
@@ -544,7 +544,7 @@ const AuthModal = ({
 
                   <div className="relative my-1">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-[10px] tracking-wide text-muted-foreground">or</span></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-ui-overline tracking-wide text-muted-foreground">or</span></div>
                   </div>
 
                   <Button type="button" variant="outline" className="w-full" disabled>
@@ -559,7 +559,7 @@ const AuthModal = ({
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already a member?{" "}
-                    <button type="button" onClick={() => { setTab("login"); setErrors({}); }} className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline">
+                    <button type="button" onClick={() => { setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Log In
                     </button>
                   </p>
@@ -570,16 +570,13 @@ const AuthModal = ({
 
           {/* Right side - Visual panel (hidden on mobile) */}
           <aside className="relative hidden w-[360px] shrink-0 overflow-hidden bg-forest text-forest-foreground md:flex">
-            <div className="pointer-events-none absolute inset-0 opacity-35" aria-hidden="true">
-              <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-leaf/30 blur-3xl" />
-              <div className="absolute -bottom-32 -left-24 h-72 w-72 rounded-full bg-canopy/30 blur-3xl" />
-            </div>
+
             <div className="relative z-10 flex w-full flex-col justify-between p-8">
               <div>
                 <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-forest-foreground/15 ring-1 ring-forest-foreground/15">
                   <Leaf className="h-5 w-5" />
                 </div>
-                <h3 className="font-display text-[1.55rem] font-bold leading-[1.08] tracking-[-0.035em]">
+                <h3 className="gw-heading text-[1.55rem] leading-[1.08] tracking-[-0.035em]">
                   Join the green<br />movement today.
                 </h3>
                 <p className="mt-3 max-w-[27ch] text-sm leading-relaxed text-forest-foreground/80">
@@ -605,16 +602,16 @@ const AuthModal = ({
               <div>
                 <div className="flex items-end gap-5 border-t border-forest-foreground/20 pt-5">
                   <div>
-                    <p className="font-display text-2xl font-bold tracking-[-0.04em]">12k+</p>
-                    <p className="text-[11px] text-forest-foreground/70">Active residents</p>
+                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">12k+</p>
+                    <p className="text-ui-caption text-forest-foreground/70">Active residents</p>
                   </div>
                   <div className="h-8 w-px bg-forest-foreground/25" />
                   <div>
-                    <p className="font-display text-2xl font-bold tracking-[-0.04em]">98%</p>
-                    <p className="text-[11px] text-forest-foreground/70">Collection rate</p>
+                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">98%</p>
+                    <p className="text-ui-caption text-forest-foreground/70">Collection rate</p>
                   </div>
                 </div>
-                <p className="mt-6 text-center text-[11px] text-forest-foreground/55">© {new Date().getFullYear()} GreenWay</p>
+                <p className="mt-6 text-center text-ui-caption text-forest-foreground/55">© {new Date().getFullYear()} GreenWay</p>
               </div>
             </div>
           </aside>

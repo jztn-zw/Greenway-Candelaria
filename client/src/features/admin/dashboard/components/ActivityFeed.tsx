@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -73,19 +74,19 @@ const getEventTone = (action: string) => {
   const upper = (action || "").toUpperCase();
   if (upper.includes("DELETE") || upper.includes("FAIL") || upper.includes("DEACTIVATE") || upper.includes("BAN")) {
     return {
-      dot: "bg-destructive",
-      badge: "bg-destructive/10 text-destructive border-destructive/20",
+      dot: badgeStyles.error.dot,
+      badge: badgeStyles.error.className,
     };
   }
   if (upper.includes("UPDATE") || upper.includes("STATUS") || upper.includes("FLAG") || upper.includes("LOGIN")) {
     return {
-      dot: "bg-amber-500",
-      badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+      dot: badgeStyles.warning.dot,
+      badge: badgeStyles.warning.className,
     };
   }
   return {
-    dot: "bg-emerald-500",
-    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+    dot: badgeStyles.success.dot,
+    badge: badgeStyles.success.className,
   };
 };
 
@@ -116,14 +117,14 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Header */}
         <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 className="text-base sm:text-lg font-bold text-foreground font-display tracking-tight">
+          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
             Activity Stream
           </h3>
 
           <Button
-            variant="ghost"
+            variant="primary-ghost"
             size="sm"
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95 cursor-pointer"
+            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all cursor-pointer"
             onClick={() => navigate("/admin/audit-logs")}
           >
             <span>Audit Logs</span>
@@ -138,7 +139,7 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
               <div className="h-[250px] flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 sm:px-5">
                 <ShieldCheck className="w-8 h-8 text-primary/60 mb-2" />
                 <p className="text-xs font-semibold text-foreground">No audited activity yet</p>
-                <p className="text-[11px] text-muted-foreground mt-1">New administrative actions will appear here.</p>
+                <p className="text-ui-caption text-muted-foreground mt-1">New administrative actions will appear here.</p>
               </div>
             ) : activities.map((a) => (
               <div
@@ -158,14 +159,14 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
                   </div>
                   <Badge
                     variant="outline"
-                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border ${a.tone.badge}`}
+                    className={`text-ui-caption font-semibold px-2.5 py-0.5 rounded-md shrink-0 border ${a.tone.badge}`}
                   >
                     {a.moduleBadge}
                   </Badge>
                 </div>
 
                 {/* Bottom Row: Actor & Time */}
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-muted-foreground pl-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-ui-caption text-muted-foreground pl-3">
                   <span className="min-w-0 flex-1 flex items-center gap-1">
                     <User className="w-3 h-3 text-muted-foreground/80 shrink-0" />
                     <span className="truncate">{a.actor}</span>

@@ -64,7 +64,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
               <BarChart3 className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base sm:text-lg font-bold font-display text-foreground tracking-tight truncate">
+              <DialogTitle className="gw-heading text-base sm:text-lg text-foreground tracking-tight truncate">
                 Broadcast & Read Analytics
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -75,7 +75,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+            className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -88,28 +88,28 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
           <div className="rounded-2xl bg-muted/40 border border-border/80 p-4 space-y-3">
             <div className="grid grid-cols-3 gap-2.5 text-center">
               <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="text-xl sm:text-2xl font-extrabold font-display text-foreground tabular-nums">
+                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
                   {recipientCount.toLocaleString()}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Delivered
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="text-xl sm:text-2xl font-extrabold font-display text-primary tabular-nums">
+                <p className="gw-stat-value text-xl sm:text-2xl text-primary tabular-nums">
                   {readCount.toLocaleString()}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Confirmed Read
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="text-xl sm:text-2xl font-extrabold font-display text-foreground tabular-nums">
+                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
                   {readPct}%
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Read Rate
                 </p>
               </div>
@@ -131,14 +131,14 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <h4 className="gw-heading text-xs text-foreground uppercase tracking-wider">
                   Barangay Engagement Breakdown
                 </h4>
-                <span className="text-[11px] font-medium text-muted-foreground">
+                <span className="text-ui-caption font-medium text-muted-foreground">
                   ({analytics?.barangays.length || 0})
                 </span>
               </div>
-              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
+              <span className="text-ui-overline font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
                 <TrendingDown className="w-3 h-3" />
                 Lowest read first
               </span>
@@ -191,7 +191,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                             {stat.name}
                           </span>
                           <span
-                            className={`text-xs font-extrabold tabular-nums px-2 py-0.5 rounded-full border ${
+                            className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md border ${
                               isGood
                                 ? "bg-primary/10 text-primary border-primary/20"
                                 : isLow
@@ -208,7 +208,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                           className="h-1.5 rounded-full"
                         />
 
-                        <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-medium">
+                        <div className="flex items-center justify-between mt-2 text-ui-caption text-muted-foreground font-medium">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3 text-muted-foreground" />
                             {stat.received.toLocaleString()} recipients

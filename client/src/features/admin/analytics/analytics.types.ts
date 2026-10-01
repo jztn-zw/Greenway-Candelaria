@@ -35,8 +35,8 @@ export interface AnalyticsDashboardData {
 }
 
 export const reportStatusColors: Record<string, string> = {
-  Submitted: "hsl(35, 82%, 52%)",
-  "Under Review": "hsl(204, 62%, 48%)",
-  Dispatched: "hsl(268, 45%, 52%)",
-  Resolved: "hsl(145, 58%, 31%)",
+  Submitted: "hsl(var(--warning))",
+  "Under Review": "hsl(var(--info))",
+  Dispatched: "hsl(var(--chart-3))",
+  Resolved: "hsl(var(--chart-1))",
 };

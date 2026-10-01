@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
+import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 import PostCard from "./PostCard";
 
 interface PostDetailProps {
@@ -118,26 +119,16 @@ const PostDetail = ({
       <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
         <article className="space-y-6">
-        {/* ── 1080 × 566 Responsive Landscape Image Container with Blurred Backdrop ── */}
         <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-muted/20 border border-border/80 shadow-2xs flex items-center justify-center">
           {currentImage && !imageFailed ? (
             <>
-              {/* Blurred background filling the full 1080:566 container */}
-              <img
-                key={`bg-${activeImageIndex}`}
-                src={currentImage}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-50 dark:opacity-30 select-none pointer-events-none transition-all duration-700 ease-in-out"
-              />
-              <div className="absolute inset-0 bg-background/10 dark:bg-black/30 pointer-events-none" />
-
+              <PostImageBackdrop src={currentImage} />
               {/* Crisp, uncropped, undistorted original image centered */}
               <img
                 key={`img-${activeImageIndex}`}
                 src={currentImage}
                 alt={post.title}
-                className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-sm transition-all duration-700 ease-in-out"
+                className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-700 ease-in-out"
                 onError={() => setImageFailed(true)}
               />
             </>
@@ -148,7 +139,7 @@ const PostDetail = ({
           {/* Top-left category badge */}
           <div className="absolute left-3 top-3 z-20 lg:left-4 lg:top-4">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md lg:px-3 lg:py-1 lg:text-[11px] ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-ui-overline font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md lg:px-3 lg:py-1 lg:text-ui-caption ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${getCategoryBadgeStyle(post.category).dot}`} />
               <span>{categoryLabel}</span>
@@ -157,7 +148,7 @@ const PostDetail = ({
 
           {/* Image count / index indicator if multiple images */}
           {validImages.length > 1 && (
-            <div className="absolute right-3 top-3 z-20 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white/95 shadow-2xs backdrop-blur-md lg:right-4 lg:top-4">
+            <div className="absolute right-3 top-3 z-20 rounded-md border border-white/15 bg-black/60 px-2.5 py-1 text-ui-caption font-semibold text-white/95 shadow-2xs backdrop-blur-md lg:right-4 lg:top-4">
               {activeImageIndex + 1} / {validImages.length}
             </div>
           )}
@@ -173,10 +164,10 @@ const PostDetail = ({
                   key={idx}
                   type="button"
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-14 lg:w-24 lg:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 ${
+                  className={`relative w-20 h-14 lg:w-24 lg:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs ${
                     isActive
                       ? "border-primary ring-2 ring-primary/30 opacity-100 shadow-xs"
-                      : "border-border/70 opacity-65 hover:opacity-100 hover:border-primary/40"
+                      : "gw-action-ghost opacity-65 hover:opacity-100"
                   }`}
                 >
                   <img
@@ -192,7 +183,7 @@ const PostDetail = ({
 
         {/* ── Post Header Info ── */}
         <div className="space-y-3 pt-1">
-          <h1 className="break-words text-2xl font-display font-extrabold leading-tight tracking-tight text-foreground lg:text-3xl lg:text-4xl">
+          <h1 className="gw-page-title break-words leading-tight tracking-tight text-foreground lg:text-ui-page-lg lg:text-4xl">
             {post.title}
           </h1>
 
@@ -224,10 +215,10 @@ const PostDetail = ({
             type="button"
             onClick={handleToggleLike}
             disabled={isLiking}
-            className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer active:scale-95 shadow-2xs ${
+            className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer shadow-2xs ${
               post.is_liked
                 ? "bg-destructive/10 text-destructive border-destructive/30"
-                : "bg-card text-muted-foreground border-border/80 hover:bg-muted/70 hover:text-foreground hover:border-border"
+                : "gw-action-ghost "
             } disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <Heart
@@ -239,7 +230,7 @@ const PostDetail = ({
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 border bg-card text-muted-foreground border-border/80 hover:bg-muted/70 hover:text-foreground hover:border-border cursor-pointer active:scale-95 shadow-2xs"
+            className="gw-action-outline inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer shadow-2xs"
           >
             {copied ? (
               <>
@@ -288,7 +279,7 @@ const PostDetail = ({
         {relatedPosts.length > 0 && (
           <section className="space-y-4 pt-6 border-t border-border/60">
           <div className="flex items-center justify-between">
-            <h2 className="text-base lg:text-lg font-bold font-display text-foreground">
+            <h2 className="gw-heading text-base lg:text-lg text-foreground">
               Related Updates
             </h2>
           </div>

@@ -21,8 +21,8 @@ const ProximityAlert = ({ truck }: ProximityAlertProps) => {
         <Truck className="w-5 h-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-display font-bold text-foreground">Prepare for collection</p>
-        <p className="mt-0.5 text-[11px] lg:text-xs text-muted-foreground leading-relaxed">
+        <p className="text-sm font-body font-semibold text-foreground">Prepare for collection</p>
+        <p className="mt-0.5 text-ui-caption lg:text-xs text-muted-foreground leading-relaxed">
           Please place your segregated waste outside and keep the pickup area accessible.
         </p>
       </div>

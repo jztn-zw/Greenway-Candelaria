@@ -14,7 +14,7 @@ const AboutSection = ({ content = CONTENT.about }: AboutSectionProps) => {
 
   return (
     <section id="about" className="py-10 sm:py-16 lg:py-20 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-72 h-72 bg-primary/3 rounded-full blur-3xl pointer-events-none hidden sm:block" />
+
 
       <div className="container relative">
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-start">
@@ -23,21 +23,21 @@ const AboutSection = ({ content = CONTENT.about }: AboutSectionProps) => {
               <span className="w-8 h-px bg-primary" />
               {content.sectionLabel}
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight whitespace-pre-line">{content.heading}</h2>
+            <h2 className="gw-heading text-2xl sm:text-3xl lg:text-4xl leading-tight whitespace-pre-line">{content.heading}</h2>
 
             <p className="text-muted-foreground leading-relaxed">{content.paragraph1}</p>
             <p className="text-muted-foreground leading-relaxed">{content.paragraph2}</p>
 
             <div className="flex flex-wrap gap-3 pt-2">
               {content.badges.map((badge) => (
-                <span key={badge} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+                <span key={badge} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-md border border-primary/20">
                   <CheckCircle className="w-3.5 h-3.5" /> {badge}
                 </span>
               ))}
             </div>
           </div>
 
-          <div ref={rightRef} className="bg-card border border-border/60 rounded-xl sm:rounded-2xl p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-lg shadow-primary/3">
+          <div ref={rightRef} className="bg-card border border-border/60 rounded-xl p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-lg shadow-primary/3">
             <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
               <span className="w-8 h-px bg-primary" />
               Our Commitment
@@ -51,7 +51,7 @@ const AboutSection = ({ content = CONTENT.about }: AboutSectionProps) => {
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                       <Icon className="w-5 h-5 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
                     </div>
-                    <h4 className="font-display font-semibold">{pillar.title}</h4>
+                    <h4 className="gw-heading ">{pillar.title}</h4>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed pl-[52px]">{pillar.description}</p>
                   {index < content.pillars.length - 1 && <div className="ml-[52px] h-px bg-border/60 mt-4" />}

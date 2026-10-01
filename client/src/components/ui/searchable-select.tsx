@@ -86,7 +86,7 @@ export function SearchableSelect({
         >
           <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
             {leadingIcon}
-            <span className={cn("truncate", !selected && "text-muted-foreground/70")}>
+            <span className="truncate" data-placeholder={!selected ? "" : undefined}>
               {selected?.label ?? placeholder}
             </span>
           </span>
@@ -104,7 +104,7 @@ export function SearchableSelect({
           (searchRef.current ?? commandRef.current)?.focus();
         }}
         className={cn(
-          "gw-select-menu w-[var(--radix-popover-trigger-width)] min-w-[14rem] overflow-hidden rounded-xl border border-border/80 bg-popover p-0 text-popover-foreground shadow-lg",
+          "gw-select-menu w-[var(--radix-popover-trigger-width)] min-w-[14rem] overflow-hidden rounded-xl border border-border/80 bg-popover p-0 text-popover-foreground shadow-md",
           contentClassName,
         )}
       >

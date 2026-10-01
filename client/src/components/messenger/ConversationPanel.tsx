@@ -73,7 +73,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
         const own = admin ? message.sender_role === "ADMIN" : message.sender_role === "DRIVER";
         return <div key={message.id} data-message-id={message.id} data-unread={!admin && message.sender_role !== "DRIVER" && !message.is_read} className={cn("flex", message.id === targetId && "rounded-xl ring-2 ring-primary", own ? "justify-end" : "justify-start")}>
           <div className={cn("max-w-[85%] rounded-2xl border px-3.5 py-2.5 text-xs shadow-2xs", own ? "border-primary/20 bg-primary/10" : "border-border/70 bg-card")}>
-            <div className="mb-1 text-[10px] text-muted-foreground"><span className="font-semibold">{!admin && own ? "You" : message.sender_name}</span> · {timestamp(message.created_at, now)}</div>
+            <div className="mb-1 text-ui-overline text-muted-foreground"><span className="font-semibold">{!admin && own ? "You" : message.sender_name}</span> · {timestamp(message.created_at, now)}</div>
             <p className="whitespace-pre-wrap break-words leading-relaxed">{message.message}</p>
           </div>
         </div>;
@@ -81,7 +81,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
     </div>
     <footer className={cn("border-t border-border/70 p-3", admin && "bg-card/80")}>
       <div className="flex gap-2"><Input aria-label={admin ? "Message collector" : "Message MENRO"} maxLength={255} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSend(); } }} placeholder={admin ? "Message collector…" : "Message MENRO…"} disabled={sending} className="h-10 rounded-xl border-border/80 bg-background text-xs" /><Button aria-label="Send message" type="button" onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="size-10 shrink-0 rounded-xl"><Send className="size-4" /></Button></div>
-      <p className="mt-1.5 text-right text-[10px] tabular-nums text-muted-foreground">{draft.length}/255</p>
+      <p className="mt-1.5 text-right text-ui-overline tabular-nums text-muted-foreground">{draft.length}/255</p>
     </footer>
   </>;
 };

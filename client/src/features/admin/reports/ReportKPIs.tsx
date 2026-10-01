@@ -66,7 +66,7 @@ const ReportKPIs = ({ reports = [], kpis }: ReportKPIsProps) => {
           <div className="flex items-center min-h-[22px]">
             <span
               className={cn(
-                "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
                 item.tag
               )}
             >
@@ -74,11 +74,11 @@ const ReportKPIs = ({ reports = [], kpis }: ReportKPIsProps) => {
             </span>
           </div>
 
-          <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
             {item.value}
           </div>
 
-          <div className="text-[11px] text-muted-foreground font-medium truncate">
+          <div className="text-ui-caption text-muted-foreground font-medium truncate">
             {item.subtext}
           </div>
         </div>

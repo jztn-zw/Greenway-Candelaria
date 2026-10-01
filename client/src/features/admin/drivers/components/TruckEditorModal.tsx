@@ -131,7 +131,7 @@ const TruckEditorModal = ({
               <TruckIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight truncate">
+              <DialogTitle className="gw-heading text-base text-foreground tracking-tight truncate">
                 {isEditing ? "Edit Truck Record" : "Add New Truck"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -146,7 +146,7 @@ const TruckEditorModal = ({
             onClick={handleRequestClose}
             disabled={isSaving}
             aria-label="Close truck editor"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+            className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -158,7 +158,7 @@ const TruckEditorModal = ({
           {/* Row 1: Name & Model */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-               <Label htmlFor="truck-name" className="text-xs font-semibold text-foreground">
+               <Label htmlFor="truck-name" className="text-xs font-medium text-foreground">
                 Truck Identifier
               </Label>
               <Input
@@ -168,11 +168,11 @@ const TruckEditorModal = ({
                 placeholder="e.g. Truck 1"
                  aria-invalid={Boolean(errors.name)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.name ? "border-destructive" : "border-border/80")}
                />
-               {errors.name && <p className="text-[11px] font-medium text-destructive">{errors.name}</p>}
+               {errors.name && <p className="text-ui-caption font-medium text-destructive">{errors.name}</p>}
             </div>
 
             <div className="space-y-1.5">
-               <Label htmlFor="truck-model" className="text-xs font-semibold text-foreground">
+               <Label htmlFor="truck-model" className="text-xs font-medium text-foreground">
                 Vehicle Model
               </Label>
               <Input
@@ -182,14 +182,14 @@ const TruckEditorModal = ({
                 placeholder="e.g. Isuzu Forward 6-Wheeler"
                  aria-invalid={Boolean(errors.model)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.model ? "border-destructive" : "border-border/80")}
                />
-               {errors.model && <p className="text-[11px] font-medium text-destructive">{errors.model}</p>}
+               {errors.model && <p className="text-ui-caption font-medium text-destructive">{errors.model}</p>}
             </div>
           </div>
 
           {/* Row 2: Plate Number & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-               <Label htmlFor="truck-plate" className="text-xs font-semibold text-foreground">
+               <Label htmlFor="truck-plate" className="text-xs font-medium text-foreground">
                 Plate Number
               </Label>
               <Input
@@ -199,11 +199,11 @@ const TruckEditorModal = ({
                 placeholder="e.g. ABC-1234"
                  aria-invalid={Boolean(errors.plate)} className={cn("h-9 text-xs rounded-xl font-sans tabular-nums font-semibold bg-background shadow-2xs px-3", errors.plate ? "border-destructive" : "border-border/80")}
                />
-               {errors.plate && <p className="text-[11px] font-medium text-destructive">{errors.plate}</p>}
+               {errors.plate && <p className="text-ui-caption font-medium text-destructive">{errors.plate}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Operational Status</Label>
+              <Label className="text-xs font-medium text-foreground">Operational Status</Label>
               <Select
                 value={formStatus}
                 onValueChange={(v) => setFormStatus(v as TruckOperationalStatus)}
@@ -224,13 +224,13 @@ const TruckEditorModal = ({
 
         {/* Footer */}
         <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
-          {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
+          {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
           <Button
             type="button"
             variant="outline"
             onClick={handleRequestClose}
             disabled={isSaving}
-            className="h-9 px-4 rounded-xl text-xs font-semibold border-border/80 cursor-pointer"
+            className="h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer"
           >
             Cancel
           </Button>
@@ -240,7 +240,7 @@ const TruckEditorModal = ({
               void handleSave();
             }}
             disabled={isSaving}
-            className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 shadow-sm gap-1.5"
+            className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer shadow-sm gap-1.5"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>

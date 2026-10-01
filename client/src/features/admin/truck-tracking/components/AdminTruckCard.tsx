@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,17 +58,17 @@ interface AdminTruckCardProps {
 }
 
 const statusConfig: Record<TruckStatus, { label: string; className: string }> = {
-  scheduled: { label: "Scheduled", className: "bg-blue-500/15 text-blue-600 border-blue-500/25 dark:text-blue-400" },
-  "on-the-way": { label: "On The Way", className: "bg-primary/15 text-primary border-primary/25" },
-  paused: { label: "Paused", className: "bg-amber-500/15 text-amber-700 border-amber-500/25 dark:text-amber-300" },
-  done: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
-  offline: { label: "Offline", className: "bg-muted text-muted-foreground border-border" },
+  scheduled: { label: "Scheduled", className: getStatusBadgeStyle("Scheduled").className },
+  "on-the-way": { label: "On The Way", className: getStatusBadgeStyle("On The Way").className },
+  paused: { label: "Paused", className: getStatusBadgeStyle("Paused").className },
+  done: { label: "Offline", className: getStatusBadgeStyle("Offline").className },
+  offline: { label: "Offline", className: getStatusBadgeStyle("Offline").className },
 };
 
 const MessageThread = ({ truck, unreadMessageCount }: { truck: AdminTruck; unreadMessageCount: number }) => <div className="border-t border-border/60 p-3" onClick={(event) => event.stopPropagation()}>
-  <Button type="button" variant="outline" size="sm" disabled={!truck.driverId} onClick={() => window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: { driverId: truck.driverId } }))} className={cn("gap-1.5", unreadMessageCount > 0 && "border-primary/40 bg-primary/5 text-foreground hover:bg-primary/10")}>
+  <Button type="button" variant={unreadMessageCount > 0 ? "primary-outline" : "outline"} size="sm" disabled={!truck.driverId} onClick={() => window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: { driverId: truck.driverId } }))} className={"gap-1.5"}>
     <MessageSquare className="size-4" />Messages
-    {unreadMessageCount > 0 && <span aria-label={`${unreadMessageCount} new collector message${unreadMessageCount === 1 ? "" : "s"}`} className="ml-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}
+    {unreadMessageCount > 0 && <span aria-label={`${unreadMessageCount} new collector message${unreadMessageCount === 1 ? "" : "s"}`} className="ml-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-primary px-1 text-ui-overline font-bold leading-none text-primary-foreground">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}
   </Button>
 </div>;
 
@@ -96,7 +97,7 @@ const AdminTruckCard = ({
         "transition-all duration-200 border rounded-2xl overflow-hidden shadow-2xs",
         isSelected
           ? "border-primary ring-2 ring-primary/20 bg-primary/[0.02]"
-          : "border-border/70 hover:border-primary/40 hover:shadow-xs bg-card"
+          : "border-border/70 hover:border-primary/40 bg-card"
       )}
     >
       <CardContent className="p-0">
@@ -116,10 +117,10 @@ const AdminTruckCard = ({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs sm:text-sm font-display font-bold text-foreground leading-tight truncate">
+                  <h4 className="gw-heading text-xs sm:text-sm text-foreground leading-tight truncate">
                     {truck.name}
                   </h4>
-                  <span className="text-[10px] text-muted-foreground/80 font-mono font-medium px-1.5 py-0.5 rounded-md bg-muted/60">
+                  <span className="text-ui-overline text-muted-foreground/80 tabular-nums font-medium px-1.5 py-0.5 rounded-md bg-muted/60">
                     {truck.plateNumber}
                   </span>
                 </div>
@@ -131,7 +132,7 @@ const AdminTruckCard = ({
               {skippedStops.length > 0 && (
                 <Badge
                   variant="outline"
-                  className="text-[9px] px-1.5 py-0 h-4 font-bold bg-destructive/10 text-destructive border-destructive/30 uppercase tracking-wider"
+                  className={"text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider " + getStatusBadgeStyle("Skipped").className}
                 >
                   {skippedStops.length} Skipped
                 </Badge>
@@ -139,7 +140,7 @@ const AdminTruckCard = ({
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[10px] px-2 py-0.5 font-semibold rounded-lg tracking-wide uppercase",
+                  "text-ui-overline px-2 py-0.5 font-semibold rounded-lg tracking-wide uppercase",
                   status.className
                 )}
               >
@@ -151,7 +152,7 @@ const AdminTruckCard = ({
 
           {truck.routeChoices.length > 1 && truck.routeId && (
             <div className="mt-3" onClick={(event) => event.stopPropagation()}>
-              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="mb-1 block text-ui-overline font-semibold uppercase tracking-wide text-muted-foreground">
                 Showing route
               </span>
               <SearchableSelect value={truck.routeId} onValueChange={onRouteChange ?? (() => {})}
@@ -162,15 +163,15 @@ const AdminTruckCard = ({
           )}
 
           {!isSelected && (
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2">
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                <span className="truncate text-ui-caption font-medium text-muted-foreground">
                   {truck.currentBarangay || "No route assigned"}
                 </span>
               </div>
               {truck.totalBarangays > 0 && (
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-foreground">
+                <span className="shrink-0 text-ui-caption font-semibold tabular-nums text-foreground">
                   {truck.completedBarangays}/{truck.totalBarangays}
                 </span>
               )}
@@ -181,10 +182,10 @@ const AdminTruckCard = ({
             <>
           {/* Essential operational details */}
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-            <div className="col-span-2 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-2.5 py-2 min-w-0">
+            <div className="col-span-2 flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-2 min-w-0">
               <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
               <div className="min-w-0">
-                <p className="text-[10px] font-medium text-muted-foreground">Current stop</p>
+                <p className="text-ui-overline font-medium text-muted-foreground">Current stop</p>
                 <p className={cn(
                   "truncate text-xs font-semibold",
                   truck.currentBarangay ? "text-foreground" : "italic text-muted-foreground/60"
@@ -194,8 +195,8 @@ const AdminTruckCard = ({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
-              <p className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
+              <p className="flex items-center gap-1 text-ui-overline font-medium text-muted-foreground">
                 <User className="w-3 h-3 shrink-0" /> Driver
               </p>
               <p className={cn(
@@ -206,8 +207,8 @@ const AdminTruckCard = ({
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
-              <p className="text-[10px] font-medium text-muted-foreground">Waste type</p>
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
+              <p className="text-ui-overline font-medium text-muted-foreground">Waste type</p>
               <p className={cn(
                 "mt-0.5 truncate text-xs font-semibold",
                 truck.wasteType && truck.wasteType !== "Not assigned" ? "text-primary" : "italic text-muted-foreground/60"
@@ -217,7 +218,7 @@ const AdminTruckCard = ({
             </div>
           </div>
 
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <div className="mt-2 flex items-center gap-1.5 text-ui-overline text-muted-foreground">
             <Clock className="w-3 h-3 shrink-0" />
             <span>Updated {truck.lastGpsUpdate}</span>
           </div>
@@ -226,8 +227,8 @@ const AdminTruckCard = ({
           {truck.totalBarangays > 0 && (
             <div className="mt-3 pt-2.5 border-t border-border/50 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground text-[11px] font-medium">Route Progress</span>
-                <span className="font-bold text-foreground text-[11px] tabular-nums">
+                <span className="text-muted-foreground text-ui-caption font-medium">Route Progress</span>
+                <span className="font-semibold text-foreground text-ui-caption tabular-nums">
                   {truck.completedBarangays}/{truck.totalBarangays} stops ({progressPct}%)
                 </span>
               </div>
@@ -241,7 +242,7 @@ const AdminTruckCard = ({
           )}
 
           {isNear && (
-            <div className="mt-2.5 flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/15">
+            <div className="mt-2.5 flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/15">
               <Radio className="w-3.5 h-3.5 text-primary animate-pulse shrink-0" />
               <p className="text-xs font-semibold text-primary">
                 {truck.barangaysAway} barangay{truck.barangaysAway! > 1 ? "s" : ""} away from next stop
@@ -251,7 +252,7 @@ const AdminTruckCard = ({
 
           {/* Missed / Skipped Stops Priority Alert */}
           {skippedStops.length > 0 && (
-            <div className="mt-2.5 rounded-xl border border-destructive/25 bg-destructive/10 p-2.5 space-y-1.5">
+            <div className="mt-2.5 rounded-lg border border-destructive/25 bg-destructive/10 p-2.5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
@@ -261,7 +262,7 @@ const AdminTruckCard = ({
                 </div>
                 <Badge
                   variant="destructive"
-                  className="text-[9px] px-1.5 py-0 h-4 font-bold"
+                  className={"text-[9px] px-1.5 py-0 h-4 font-bold " + getStatusBadgeStyle("Attention Required").className}
                 >
                   Attention Required
                 </Badge>
@@ -270,12 +271,12 @@ const AdminTruckCard = ({
                 {skippedStops.map((stop) => (
                   <div
                     key={stop.name}
-                    className="flex items-start justify-between gap-2 text-[11px] bg-background/80 rounded-lg px-2 py-1 border border-destructive/15"
+                    className="flex items-start justify-between gap-2 text-ui-caption bg-background/80 rounded-lg px-2 py-1 border border-destructive/15"
                   >
                     <span className="font-semibold text-foreground truncate">
                       {stop.name}
                     </span>
-                    <span className="text-[10px] text-destructive italic truncate max-w-[60%]">
+                    <span className="text-ui-overline text-destructive italic truncate max-w-[60%]">
                       {stop.skippedReason
                         ? `"${stop.skippedReason}"`
                         : "Reason not specified"}
@@ -297,13 +298,13 @@ const AdminTruckCard = ({
         {isSelected && <div className="border-t border-border/60">
           <button
             type="button"
-            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors cursor-pointer select-none"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground hover:bg-[var(--button-neutral-hover)] hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={(e) => { e.stopPropagation(); setRouteExpanded(!routeExpanded); }}
           >
             <span className="flex items-center gap-2 font-semibold">
               <RouteIcon className="w-3.5 h-3.5 text-primary" />
               Route Details
-              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">{truck.route.length}</span>
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">{truck.route.length}</span>
             </span>
             {routeExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
           </button>
@@ -333,7 +334,7 @@ const AdminTruckCard = ({
                         {/* Stepper Node */}
                         <div
                           className={cn(
-                            "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border text-[9px] font-bold tabular-nums transition-all",
+                            "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border text-[9px] font-semibold tabular-nums transition-all",
                             isDone && "bg-primary text-primary-foreground border-primary shadow-xs",
                             isInProgress && "bg-primary/15 text-primary border-primary ring-2 ring-primary/20",
                             isSkipped && "bg-destructive text-destructive-foreground border-destructive",
@@ -367,14 +368,14 @@ const AdminTruckCard = ({
                             </span>
 
                             {isDone && (
-                              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 font-medium">
+                              <span className="text-ui-overline text-muted-foreground tabular-nums shrink-0 font-medium">
                                 {stop.completedAt ? formatTime12h(stop.completedAt) : "Done"}
                               </span>
                             )}
                             {isInProgress && (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/25 font-bold animate-pulse"
+                                className={"text-[9px] px-1.5 py-0 h-4 font-bold animate-pulse " + getStatusBadgeStyle("Current Stop").className}
                               >
                                 Current Stop
                               </Badge>
@@ -382,7 +383,7 @@ const AdminTruckCard = ({
                             {isSkipped && (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] px-1.5 py-0 h-4 bg-destructive/15 text-destructive border-destructive/25 font-bold"
+                                className={"text-[9px] px-1.5 py-0 h-4 font-bold " + getStatusBadgeStyle("Skipped").className}
                               >
                                 Skipped
                               </Badge>
@@ -390,7 +391,7 @@ const AdminTruckCard = ({
                           </div>
 
                           {isSkipped && stop.skippedReason && (
-                            <p className="mt-0.5 text-[10px] text-destructive/90 italic leading-snug">
+                            <p className="mt-0.5 text-ui-overline text-destructive/90 italic leading-snug">
                               Reason: {stop.skippedReason}
                             </p>
                           )}

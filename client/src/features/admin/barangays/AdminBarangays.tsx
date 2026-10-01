@@ -288,7 +288,7 @@ const AdminBarangays = () => {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Barangay Manager
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -312,7 +312,7 @@ const AdminBarangays = () => {
             <div className="flex items-center min-h-[22px]">
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
                   kpi.tag
                 )}
               >
@@ -320,11 +320,11 @@ const AdminBarangays = () => {
               </span>
             </div>
 
-            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
               {kpi.value.toLocaleString()}
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-medium truncate">
+            <div className="text-ui-caption text-muted-foreground font-medium truncate">
               {kpi.subtitle}
             </div>
           </div>
@@ -335,7 +335,7 @@ const AdminBarangays = () => {
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] xl:grid-cols-[380px_1fr] gap-5 items-start">
         {/* ── Left Column: Barangays Card ── */}
         <aside className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col">
-          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
+          <h2 className="gw-heading text-xl tracking-tight text-foreground">
             Barangays
           </h2>
 
@@ -377,14 +377,14 @@ const AdminBarangays = () => {
                       "w-full rounded-xl p-3 flex items-center gap-3 text-left transition-all border cursor-pointer",
                       isSelected
                         ? "border-emerald-500/70 bg-emerald-950/20 ring-1 ring-emerald-500/40 shadow-xs"
-                        : "border-border/50 bg-muted/10 hover:bg-muted/30 hover:border-border/80"
+                        : "border-border/50 bg-muted/10 hover:bg-[var(--button-neutral-hover)] hover:border-border/80"
                     )}
                   >
                     <div
                       className={cn(
                         "w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-colors",
                         isSelected
-                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-success-foreground"
                           : "bg-muted/40 border-border/60 text-muted-foreground"
                       )}
                     >
@@ -433,7 +433,7 @@ const AdminBarangays = () => {
               {/* Header row */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                  <h2 className="gw-heading text-2xl tracking-tight text-foreground">
                     Barangay {selectedBarangay.name}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
@@ -443,7 +443,7 @@ const AdminBarangays = () => {
 
                 <Button
                   onClick={openCreate}
-                  className="h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                  className="h-10 rounded-xl font-medium px-4 gap-1.5 shadow-sm transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" /> Add street
                 </Button>
@@ -452,13 +452,13 @@ const AdminBarangays = () => {
               {/* Truck Collection Service Banner */}
               <div className="mt-5 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:p-4.5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
-                    <Truck className="w-6 h-6 text-emerald-400" />
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-success-foreground shrink-0">
+                    <Truck className="w-6 h-6 text-success-foreground" />
                   </div>
                   <div>
                     <Label
                       htmlFor="collection-service"
-                      className="text-sm font-semibold text-foreground cursor-pointer"
+                      className="text-sm font-medium text-foreground cursor-pointer"
                     >
                       Truck collection service
                     </Label>
@@ -468,7 +468,7 @@ const AdminBarangays = () => {
                         : "Marked unavailable in this barangay"}
                     </p>
                     {serviceRestriction && (
-                      <p className="text-[11px] text-amber-500/90 mt-0.5">
+                      <p className="text-ui-caption text-warning-foreground/90 mt-0.5">
                         {serviceRestriction}
                       </p>
                     )}
@@ -488,7 +488,7 @@ const AdminBarangays = () => {
               {/* Streets and areas section */}
               <div className="mt-6">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-display text-base font-bold text-foreground">
+                  <h3 className="gw-heading text-base text-foreground">
                     Streets and areas
                   </h3>
                   <span className="text-xs text-muted-foreground">
@@ -512,7 +512,7 @@ const AdminBarangays = () => {
                   <div className="overflow-x-auto">
                     <div className="min-w-[485px]">
                       {/* Fixed Header Row (outside scroll) */}
-                      <div className={cn(streetTableGridClass, "items-center border-b border-border/70 bg-card pl-3 pr-[17px] py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground")}>
+                      <div className={cn(streetTableGridClass, "items-center border-b border-border/70 bg-card pl-3 pr-[17px] py-3 text-ui-caption font-bold uppercase tracking-wider text-muted-foreground")}>
                         <div className="text-left">STREET / AREA</div>
                         <div className="flex w-full items-center justify-center text-center leading-tight">ACTIVE RESIDENTS</div>
                         <div className="flex w-full items-center justify-center text-center leading-tight">ROUTE PLANS</div>
@@ -569,14 +569,9 @@ const AdminBarangays = () => {
 
                                 <div className="flex w-full items-center justify-center gap-1">
                                   <Button
-                                    variant="ghost"
+                                    variant={street.coverage_path?.length ? "primary-ghost" : "ghost"}
                                     size="icon"
-                                    className={cn(
-                                      "h-8 w-8 rounded-lg cursor-pointer",
-                                      street.coverage_path?.length
-                                        ? "text-primary hover:text-primary"
-                                        : "text-muted-foreground hover:text-foreground",
-                                    )}
+                                    className={"h-8 w-8 rounded-lg cursor-pointer"}
                                     title={street.coverage_path?.length
                                       ? `Edit coverage path (${street.coverage_path.length} points)`
                                       : `Draw coverage path for ${street.name}`}
@@ -588,7 +583,7 @@ const AdminBarangays = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+                                    className="h-8 w-8 rounded-lg cursor-pointer"
                                     title={`Edit ${street.name}`}
                                     aria-label={`Edit ${street.name}`}
                                     onClick={() => openEdit(street)}
@@ -596,9 +591,9 @@ const AdminBarangays = () => {
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button
-                                    variant="ghost"
+                                    variant="destructive-ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer"
+                                    className="h-8 w-8 rounded-lg cursor-pointer"
                                     title={
                                       inUse
                                         ? "Cannot delete: linked to an account or route record"

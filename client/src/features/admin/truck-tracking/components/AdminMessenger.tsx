@@ -65,14 +65,14 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
               <MessagesSquare className="size-5" />
             </span>
             <div className="min-w-0">
-              <DialogTitle className="font-display text-base font-bold tracking-tight">Collector messages</DialogTitle>
+              <DialogTitle className="gw-heading text-base tracking-tight">Collector messages</DialogTitle>
               <DialogDescription className="mt-0.5 text-xs leading-relaxed">Choose a collector to view messages and send a reply.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="space-y-1.5 px-5 py-4">
-          <label className="text-xs font-semibold text-foreground" htmlFor="messenger-collector">Collector</label>
+          <label className="text-xs font-medium text-foreground" htmlFor="messenger-collector">Collector</label>
           <SearchableSelect id="messenger-collector" aria-label="Collector" value={driverId || "none"}
             onValueChange={(value) => { setDriverId(value === "none" ? "" : value); setTargetId(undefined); }}
             options={[

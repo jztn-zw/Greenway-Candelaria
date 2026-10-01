@@ -1,5 +1,6 @@
+import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { collectorKey, collectorQueryDefaults, useCollectorQuery } from "@/lib/collectorQuery";
 import useAuthStore from "@/store/authStore";
 import { useEffect, useState } from "react";
@@ -47,19 +48,19 @@ const getStatusBadge = (status: RouteHistoryItem["status"]) => {
     case "completed":
       return {
         label: "Completed",
-        cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+        cls: getStatusBadgeStyle("Completed").className,
         icon: CheckCircle2,
       };
     case "partial":
       return {
         label: "Partial",
-        cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+        cls: getStatusBadgeStyle("Partial").className,
         icon: AlertTriangle,
       };
     default:
       return {
         label: "No collection",
-        cls: "bg-muted text-muted-foreground border-border/70",
+        cls: getStatusBadgeStyle("No collection").className,
         icon: Clock,
       };
   }
@@ -72,7 +73,7 @@ const getWasteBadge = (wasteType?: string | null) => {
   const dotColor = isNonBio ? "bg-amber-500" : isBio ? "bg-emerald-500" : "bg-muted-foreground";
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-body text-xs font-semibold ${getWasteBadgeClass(wasteType)}`}>
+    <span className={collectorBadgeClassName + " " + getWasteBadgeClass(wasteType)}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
       <span>{wasteType}</span>
     </span>
@@ -83,7 +84,7 @@ const MiniRing = ({ pct, status }: { pct: number; status: RouteHistoryItem["stat
   const r = 18;
   const c = 2 * Math.PI * r;
   const offset = c - (Math.min(100, Math.max(0, pct)) / 100) * c;
-  const strokeClass = status === "completed" ? "text-primary" : status === "partial" ? "text-amber-500" : "text-muted-foreground";
+  const strokeClass = status === "completed" ? "text-primary" : status === "partial" ? "text-warning-foreground" : "text-muted-foreground";
 
   return (
     <div className="relative flex h-12 w-12 shrink-0 items-center justify-center" aria-label={`${pct}% completed`}>
@@ -110,7 +111,7 @@ const MiniRing = ({ pct, status }: { pct: number; status: RouteHistoryItem["stat
           className={strokeClass}
         />
       </svg>
-      <span className="absolute font-body text-[11px] font-bold tabular-nums text-foreground">
+      <span className="absolute font-body text-ui-caption font-semibold tabular-nums text-foreground">
         {pct}%
       </span>
     </div>
@@ -179,18 +180,18 @@ const CollectorRouteHistory = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold font-display text-foreground tracking-tight">
+                <h2 className="gw-card-title text-foreground">
                   {r.routeName}
                 </h2>
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-body text-xs font-semibold ${detailBadge.cls}`}
+                  className={collectorBadgeClassName + " " + detailBadge.cls}
                 >
                   <DetailStatusIcon className="w-3.5 h-3.5" />
                   {detailBadge.label}
                 </span>
                 {getWasteBadge(r.wasteType)}
               </div>
-              <p className="font-body text-xs text-muted-foreground sm:text-sm">
+              <p className="font-body text-ui-caption text-muted-foreground">
                 {r.dayOfWeek}, {r.date} · Vehicle: {vehicleLabel(r)}
               </p>
             </div>
@@ -203,7 +204,7 @@ const CollectorRouteHistory = () => {
               <span className="text-xs font-medium text-muted-foreground">
                 Cleared checkpoints
               </span>
-              <p className="mt-1 font-display text-lg font-bold tabular-nums text-foreground sm:text-xl">
+              <p className="gw-stat-value mt-1 text-lg tabular-nums text-foreground sm:text-xl">
                 {r.completedStops} / {r.totalStops}
               </p>
             </div>
@@ -213,7 +214,7 @@ const CollectorRouteHistory = () => {
                 Skipped checkpoints
               </span>
               <p
-                className={`mt-1 font-display text-lg font-bold tabular-nums sm:text-xl ${
+                className={`gw-stat-value mt-1 text-lg tabular-nums sm:text-xl ${
                   r.skippedStops > 0
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-foreground"
@@ -227,7 +228,7 @@ const CollectorRouteHistory = () => {
               <span className="text-xs font-medium text-muted-foreground">
                 Completion rate
               </span>
-              <p className="mt-1 font-display text-lg font-bold tabular-nums text-primary sm:text-xl">
+              <p className="gw-stat-value mt-1 text-lg tabular-nums text-primary sm:text-xl">
                 {r.completionPct}%
               </p>
             </div>
@@ -236,7 +237,7 @@ const CollectorRouteHistory = () => {
               <span className="text-xs font-medium text-muted-foreground">
                 Active collection time
               </span>
-              <p className="mt-1 font-display text-lg font-bold tabular-nums text-foreground sm:text-xl">
+              <p className="gw-stat-value mt-1 text-lg tabular-nums text-foreground sm:text-xl">
                 {r.timeOnRoute ?? "Unavailable"}
               </p>
             </div>
@@ -248,7 +249,7 @@ const CollectorRouteHistory = () => {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+              <h3 className="gw-heading text-sm text-foreground tracking-tight">
                 Checkpoint breakdown
               </h3>
             </div>
@@ -278,7 +279,7 @@ const CollectorRouteHistory = () => {
                     }`}
                   >
                     <div
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border font-body text-xs font-bold tabular-nums ${
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border font-body text-xs font-semibold tabular-nums ${
                         isSkipped
                           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25"
                           : isCleared
@@ -291,19 +292,19 @@ const CollectorRouteHistory = () => {
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate font-display text-sm font-semibold text-foreground">
+                        <p className="truncate font-body text-sm font-semibold text-foreground">
                           {stop.barangay}
                         </p>
                         {isSkipped ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 shrink-0">
+                          <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Skipped").className}>
                             <AlertTriangle className="w-3 h-3" /> Skipped
                           </span>
                         ) : isCleared ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+                          <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Cleared").className}>
                             <CheckCircle2 className="w-3 h-3" /> Cleared
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border/70 shrink-0">
+                          <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Not completed").className}>
                             <Clock className="w-3 h-3" /> Not completed
                           </span>
                         )}
@@ -334,7 +335,6 @@ const CollectorRouteHistory = () => {
           )}
         </div>
 
-
       </div>
     );
   }
@@ -345,8 +345,8 @@ const CollectorRouteHistory = () => {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Route history</h1>
-          <p className="mt-1 font-body text-sm leading-relaxed text-muted-foreground">Review previous collection shifts, stops, and route results.</p>
+          <h1 className="gw-page-title tracking-tight text-foreground sm:text-ui-page-lg">Route history</h1>
+          <p className="mt-0.5 text-ui-caption text-muted-foreground sm:text-ui-body">Review previous collection shifts, stops, and route results.</p>
         </div>
       </div>
 
@@ -360,26 +360,25 @@ const CollectorRouteHistory = () => {
                 key={tab.key}
                 type="button"
                 aria-pressed={isActive} onClick={() => changeStatus(tab.key)}
-                className={`group flex h-10 shrink-0 cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-4 font-body text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] ${
+                className={`group flex h-9 shrink-0 cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 font-body text-ui-caption font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   isActive
-                    ? "border-primary bg-primary font-semibold text-primary-foreground"
-                    : "border-border/80 bg-card font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 <span>{tab.label}</span>
-                {isActive && history.isSuccess && <FilterTabCount count={total} />}
               </button>
             );
           })}
         </div>
 
         <Select value={wasteFilter} onValueChange={(value) => changeWaste(value as WasteTypeFilter)}>
-          <SelectTrigger className="h-10 w-full rounded-xl border-border/80 bg-card font-body text-sm font-medium sm:w-[190px]">
+          <SelectTrigger fieldSize="compact" className="w-full border-border/80 bg-card font-body font-medium sm:w-[190px]">
             <SelectValue placeholder="All waste types" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl">
+          <SelectContent className="rounded-lg">
             {wasteTabs.map((tab) => (
-              <SelectItem key={tab.key} value={tab.key} className="font-body text-sm">
+              <SelectItem key={tab.key} value={tab.key} className="font-body text-ui-label">
                 {tab.label}
               </SelectItem>
             ))}
@@ -387,14 +386,14 @@ const CollectorRouteHistory = () => {
         </Select>
       </div>
 
-      {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button disabled={isLoading} onClick={() => retry()}>Retry</Button></div>}
+      {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button size="sm" disabled={isLoading} onClick={() => retry()}>Retry</Button></div>}
       {/* ── Route Logs List ── */}
       {history.isLoading ? <CollectorRouteHistoryRowsSkeleton /> : filtered.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs">
           <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
             <History className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h3 className="text-sm font-bold text-foreground font-display">
+          <h3 className="gw-heading text-sm text-foreground ">
             No route logs found
           </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -408,7 +407,8 @@ const CollectorRouteHistory = () => {
                 changeStatus("all");
                 changeWaste("all");
               }}
-              className="mt-4 h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer"
+              size="sm"
+              className="mt-4 cursor-pointer"
             >
               Reset filters
             </Button>
@@ -426,18 +426,18 @@ const CollectorRouteHistory = () => {
                 onClick={() => {
                   setSearchParams({ route: item.id });
                 }}
-                className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.995] sm:gap-4 sm:p-5"
+                className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-[var(--button-neutral-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:gap-4 sm:p-5"
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3.5 sm:gap-4">
                   <MiniRing pct={item.completionPct} status={item.status} />
 
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="min-w-0 truncate font-display text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                      <h3 className="gw-heading min-w-0 truncate text-ui-body tracking-tight text-foreground transition-colors group-hover:text-primary">
                         {item.routeName}
                       </h3>
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-body text-xs font-semibold ${badge.cls}`}
+                        className={collectorBadgeClassName + " " + badge.cls}
                       >
                         <StatusIcon className="w-3 h-3" />
                         {badge.label}
@@ -445,7 +445,7 @@ const CollectorRouteHistory = () => {
                       {getWasteBadge(item.wasteType)}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-body text-xs text-muted-foreground sm:text-sm">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-body text-ui-caption text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 shrink-0" />
                         {item.dayOfWeek}, {item.date}
@@ -477,7 +477,7 @@ const CollectorRouteHistory = () => {
         </div>
       )}
       {history.isFetchingNextPage && <CollectorRouteHistoryRowsSkeleton count={2} />}
-      {nextCursor && <Button variant="outline" disabled={isLoading} onClick={() => void history.fetchNextPage()}>{isLoading ? "Loading…" : `Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
+      {nextCursor && <Button variant="outline" size="sm" disabled={isLoading} onClick={() => void history.fetchNextPage()}>{isLoading ? "Loading…" : `Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
     </div>
   );
 };

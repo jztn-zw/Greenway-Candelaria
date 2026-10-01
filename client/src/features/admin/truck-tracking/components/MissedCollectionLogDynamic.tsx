@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -101,7 +102,7 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
             <p className="text-xs font-semibold text-foreground">
               No missed collections recorded
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-ui-caption text-muted-foreground">
               No missed stops were found in the last 30 days.
             </p>
           </div>
@@ -119,15 +120,15 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
                   <span className="text-xs font-bold text-foreground truncate">
                     {entry.barangay}
                   </span>
-                  <Badge variant="outline" className="text-[10px] font-medium border-border/60 shrink-0">
+                  <Badge variant="outline" className={"text-ui-overline font-medium shrink-0 " + badgeStyles.neutral.className}>
                     {entry.event_at ? formatEntryDate(entry.event_at) : entry.run_date.slice(0, 10)}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className="text-ui-caption text-muted-foreground mt-0.5">
                   {entry.truck} · {entry.driver || "Unassigned"}
                 </p>
                 {entry.reason && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1 font-medium bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                  <p className="text-ui-caption text-amber-700 dark:text-amber-300 mt-1 font-medium bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
                     {entry.reason}
                   </p>
                 )}

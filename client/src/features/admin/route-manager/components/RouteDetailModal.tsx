@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import React, { useState } from "react";
 import {
@@ -62,16 +63,11 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           <div className="gw-modal-header px-5 py-3.5 border-b border-border/60 shrink-0 flex items-center justify-between bg-card">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
+                <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
                   {route.day} Collection Route
                 </DialogTitle>
                 <span
-                  className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border",
-                    route.active
-                      ? "bg-primary/10 text-primary border-primary/20"
-                      : "bg-muted text-muted-foreground border-border/70"
-                  )}
+                  className={"inline-flex items-center px-2 py-0.5 rounded-md text-ui-overline font-bold uppercase border " + getStatusBadgeStyle(route.active ? "Enabled" : "Paused").className}
                 >
                   {route.active ? "Enabled" : "Paused"}
                 </span>
@@ -83,7 +79,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+              className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -96,33 +92,33 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             <div className="grid grid-cols-3 gap-2.5">
               {/* Waste Type */}
               <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                   Waste Type
                 </p>
                 <p className="text-xs font-bold text-foreground truncate">{waste.label}</p>
-                <p className="text-[10px] text-muted-foreground italic">({waste.local})</p>
+                <p className="text-ui-overline text-muted-foreground italic">({waste.local})</p>
               </div>
 
               {/* Start Time */}
               <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                   Departure
                 </p>
-                <p className="text-xs font-bold text-foreground tabular-nums">
+                <p className="text-xs font-semibold text-foreground tabular-nums">
                   {formatTime12h(route.startTime)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Scheduled Start</p>
+                <p className="text-ui-overline text-muted-foreground">Scheduled Start</p>
               </div>
 
               {/* Total Stops */}
               <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                   Coverage
                 </p>
-                <p className="text-xs font-bold text-foreground tabular-nums">
+                <p className="text-xs font-semibold text-foreground tabular-nums">
                   {route.barangays.length} Stops
                 </p>
-                <p className="text-[10px] text-muted-foreground">Ordered Sequence</p>
+                <p className="text-ui-overline text-muted-foreground">Ordered Sequence</p>
               </div>
             </div>
 
@@ -132,20 +128,20 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 <span className="text-xs font-semibold text-foreground">
                   Assigned Vehicle & Collector
                 </span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-muted border border-border/60 text-foreground">
+                <span className="text-ui-overline tabular-nums font-semibold px-2 py-0.5 rounded-lg bg-muted border border-border/60 text-foreground">
                   {truck?.plate_number ?? route.truckPlate}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Truck</p>
+                  <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-semibold">Truck</p>
                   <p className="text-xs font-bold text-foreground mt-0.5 truncate">
                     {truck?.name ?? route.truckName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Driver</p>
+                  <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-semibold">Driver</p>
                   <p className="text-xs font-bold text-foreground mt-0.5 truncate">
                     {route.driverName || "Unassigned"}
                   </p>
@@ -158,7 +154,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 <span className="text-xs font-semibold text-foreground">
                   Route Preview
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium">Sequence follows the numbered markers</span>
+                <span className="text-ui-overline text-muted-foreground font-medium">Sequence follows the numbered markers</span>
               </div>
               <RouteStopsMap
                 stops={orderedStops.map((stop) => ({
@@ -176,7 +172,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-foreground">Collection Stops</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Order of service</span>
+                <span className="text-ui-overline text-muted-foreground font-medium">Order of service</span>
               </div>
 
               <div className="border border-border/70 rounded-xl max-h-48 overflow-y-auto divide-y divide-border/60 bg-muted/15 scrollbar-thin">
@@ -187,7 +183,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-5 h-5 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold font-mono">{index + 1}</span>
+                        <span className="text-ui-overline font-semibold tabular-nums">{index + 1}</span>
                       </div>
                       <span className="font-semibold text-foreground truncate">
                         {stop.stopName}
@@ -195,7 +191,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                     </div>
 
                     {stop.zone && (
-                      <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/70 px-1.5 py-0.5 rounded border border-border/60 shrink-0">
+                      <span className="text-ui-overline tabular-nums font-medium text-muted-foreground bg-muted/70 px-1.5 py-0.5 rounded border border-border/60 shrink-0">
                         Zone {stop.zone}
                       </span>
                     )}
@@ -214,14 +210,11 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           <div className="gw-modal-footer px-5 py-3 border-t border-border/60 shrink-0 flex items-center justify-between gap-2 bg-card">
             {/* Destructive Delete Button */}
             <Button
-              variant="ghost"
+              variant="destructive-ghost"
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
               disabled={route.active || isDeleting}
-              className={cn(
-                "h-8 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 rounded-xl px-3 transition-colors cursor-pointer",
-                route.active && "opacity-40 cursor-not-allowed"
-              )}
+              className={cn("h-8 text-xs font-semibold border rounded-xl px-3 transition-colors cursor-pointer", route.active && "opacity-40 cursor-not-allowed")}
               title={route.active ? "Pause route before deleting" : "Delete Route"}
             >
               {isDeleting ? (
@@ -239,7 +232,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                   onClose();
                   onDuplicate(route);
                 }}
-                className="h-8 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3 transition-colors cursor-pointer"
+                className="h-8 text-xs font-semibold rounded-xl px-3 transition-colors cursor-pointer"
               >
                 Duplicate
               </Button>
@@ -249,7 +242,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 size="sm"
                 onClick={() => onToggleActive(route)}
                 disabled={isToggling}
-                className="h-8 text-xs font-semibold rounded-xl border-border/70 hover:bg-muted px-3 transition-colors cursor-pointer"
+                className="h-8 text-xs font-semibold rounded-xl px-3 transition-colors cursor-pointer"
               >
                 {isToggling ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
@@ -263,7 +256,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                   onClose();
                   onEdit(route);
                 }}
-                className="h-8 text-xs font-semibold rounded-xl px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-2xs"
+                className="h-8 text-xs font-semibold rounded-xl px-3.5 transition-colors cursor-pointer shadow-2xs"
               >
                 Edit Route
               </Button>

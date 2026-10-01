@@ -44,7 +44,7 @@ const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }:
         </>
       }>
       <div className="space-y-1">
-        <h3 className="font-display text-base font-semibold leading-snug tracking-tight text-foreground break-words [overflow-wrap:anywhere]">{notification.title}</h3>
+        <h3 className="gw-heading text-base leading-snug tracking-tight text-foreground break-words [overflow-wrap:anywhere]">{notification.title}</h3>
         {notification.time && <p className="text-xs text-muted-foreground">{notification.time}</p>}
       </div>
       <div className="whitespace-pre-wrap break-words rounded-md border border-border/60 bg-muted/20 p-3.5 text-xs leading-relaxed text-foreground/85 [overflow-wrap:anywhere]">

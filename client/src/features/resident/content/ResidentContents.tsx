@@ -1,5 +1,5 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
-import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -33,6 +33,7 @@ import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import PostDetail from "./PostDetail";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
+import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 import PostCard from "./PostCard";
 import {
   ContentCardsSkeleton,
@@ -288,10 +289,10 @@ const ResidentContents = () => {
       {/* ── Top Header ── */}
       <div className="hidden items-start justify-between gap-4 md:mb-6 md:flex md:items-center lg:mb-8">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Community Updates
           </h1>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Official MENRO guidelines, collection updates, and eco tips.
           </p>
         </div>
@@ -342,7 +343,7 @@ const ResidentContents = () => {
                 setSearch("");
                 setCurrentPage(1);
               }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              className="gw-action-ghost absolute right-3.5 top-1/2 -translate-y-1/2 p-1 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -368,14 +369,13 @@ const ResidentContents = () => {
                   type="button"
                   aria-pressed={isActive}
                   onClick={(e) => handleTabClick(tab, e)}
-                  className={`flex items-center gap-2 h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 border active:scale-95 shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer ${
                     isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-bold"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
                       : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
                   }`}
                 >
                   {tab}
-                  {isActive && feed.isSuccess && !feed.isPlaceholderData && <FilterTabCount count={totalPosts} />}
                 </button>
               );
             })}
@@ -413,7 +413,7 @@ const ResidentContents = () => {
       {featured && activeTab === "All" && !search && (
         <section className="space-y-3">
           <div
-            className="relative rounded-2xl overflow-hidden bg-card border border-border/80 shadow-2xs hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 text-foreground group cursor-pointer transition-all duration-300"
+            className="relative rounded-2xl overflow-hidden bg-card border border-border/80 shadow-2xs hover:border-primary/30 text-foreground group cursor-pointer transition-all duration-300"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
             onClick={() => handleOpenPost(featured)}
@@ -424,11 +424,11 @@ const ResidentContents = () => {
                 <div className="space-y-2.5">
                   {/* Category Pill & Featured Tag */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                    <span className={"text-ui-overline font-bold uppercase tracking-widest border px-2.5 py-0.5 rounded-md " + getCategoryBadgeColors("Featured").className}>
                       Featured
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoryBadgeStyle(featured.category).bg} ${getCategoryBadgeStyle(featured.category).text} ${getCategoryBadgeStyle(featured.category).border}`}
+                      className={`inline-flex items-center gap-1.5 text-ui-caption font-semibold px-2.5 py-0.5 rounded-md border ${getCategoryBadgeStyle(featured.category).bg} ${getCategoryBadgeStyle(featured.category).text} ${getCategoryBadgeStyle(featured.category).border}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${getCategoryBadgeStyle(featured.category).dot}`} />
                       <span>{featuredCategory}</span>
@@ -436,7 +436,7 @@ const ResidentContents = () => {
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-xl lg:text-2xl lg:text-3xl font-display font-extrabold text-foreground tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                  <h2 className="gw-heading text-xl lg:text-2xl lg:text-3xl text-foreground tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-2">
                     {featured.title}
                   </h2>
 
@@ -479,22 +479,13 @@ const ResidentContents = () => {
                 <div className="relative w-full aspect-[16/10] max-h-[280px] lg:max-h-[300px] rounded-xl overflow-hidden bg-muted/30 border border-border/70 flex items-center justify-center">
                   {featuredImage ? (
                     <>
-                      {/* Ambient background blur */}
-                      <img
-                        key={`feat-bg-${featured.id}-${featuredPhotoIndex}`}
-                        src={featuredImage}
-                        alt=""
-                        aria-hidden="true"
-                        className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-30 select-none pointer-events-none transition-all duration-700 ease-in-out"
-                      />
-                      <div className="absolute inset-0 bg-background/20 pointer-events-none" />
-
+                      <PostImageBackdrop src={featuredImage} />
                       {/* Crisp Foreground Image */}
                       <img
                         key={`feat-img-${featured.id}-${featuredPhotoIndex}`}
                         src={featuredImage}
                         alt={featured.title}
-                        className="relative z-10 max-w-full max-h-full object-contain object-center drop-shadow-sm group-hover:scale-[1.02] transition-all duration-500 ease-in-out"
+                        className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-500 ease-in-out"
                       />
 
                       {/* Multi-image indicator dots */}
@@ -530,7 +521,7 @@ const ResidentContents = () => {
                     );
                   }}
                   aria-label="Previous featured post"
-                  className="absolute left-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 lg:left-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="gw-action-outline absolute left-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 lg:left-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -542,7 +533,7 @@ const ResidentContents = () => {
                     nextFeatured();
                   }}
                   aria-label="Next featured post"
-                  className="absolute right-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/80 text-foreground opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 hover:bg-background hover:text-primary active:scale-95 lg:right-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="gw-action-outline absolute right-2.5 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-100 shadow-xs backdrop-blur-md transition-all duration-200 lg:right-4 lg:pointer-events-none lg:opacity-0 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -579,7 +570,7 @@ const ResidentContents = () => {
       {/* ── Main Post Grid ── */}
       <section className="space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="min-w-0 text-lg font-bold font-display text-foreground">
+          <h2 className="gw-heading min-w-0 text-lg text-foreground">
             {activeTab === "All" ? "All Updates & Guides" : activeTab}
           </h2>
           <span className="shrink-0 pt-1 text-xs font-medium text-muted-foreground">
@@ -597,7 +588,7 @@ const ResidentContents = () => {
             <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 text-primary">
               <FileText className="w-5 h-5" />
             </div>
-            <h3 className="font-display font-bold text-foreground text-base mb-1">
+            <h3 className="gw-heading text-foreground text-base mb-1">
               No updates found
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm">
@@ -609,7 +600,7 @@ const ResidentContents = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-4 rounded-xl text-xs h-9 px-3.5 border-border/80 hover:bg-muted"
+                className="mt-4 rounded-xl text-xs h-9 px-3.5"
                 onClick={() => {
                   setSearch("");
                   setCurrentPage(1);
@@ -646,7 +637,7 @@ const ResidentContents = () => {
                 aria-label="Previous page"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35 cursor-pointer active:scale-95"
+                className="gw-action-ghost flex h-9 w-9 items-center justify-center rounded-lg transition-all disabled:pointer-events-none disabled:opacity-35 cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -662,10 +653,10 @@ const ResidentContents = () => {
                   aria-label={`Page ${item}`}
                   aria-current={item === currentPage ? "page" : undefined}
                   onClick={() => setCurrentPage(item)}
-                  className={`h-9 w-9 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
+                  className={`h-9 w-9 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     item === currentPage
-                      ? "border border-primary/30 bg-primary/10 text-primary font-bold shadow-2xs"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "border border-primary/30 bg-primary/10 text-primary font-semibold shadow-2xs"
+                      : "gw-action-ghost "
                   }`}
                 >
                   {item}
@@ -677,7 +668,7 @@ const ResidentContents = () => {
                 aria-label="Next page"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35 cursor-pointer active:scale-95"
+                className="gw-action-ghost flex h-9 w-9 items-center justify-center rounded-lg transition-all disabled:pointer-events-none disabled:opacity-35 cursor-pointer"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -691,4 +682,3 @@ const ResidentContents = () => {
 };
 
 export default ResidentContents;
-

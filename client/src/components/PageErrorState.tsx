@@ -54,29 +54,17 @@ const PageErrorState = ({
       role={fullScreen ? "main" : kind === "not-found" ? undefined : "alert"}
       className={`mx-auto flex w-full max-w-[1600px] items-center justify-center px-3 py-8 sm:px-6 ${fullScreen ? "min-h-dvh bg-background" : "min-h-[65vh]"}`}
     >
-      <div className="relative w-full max-w-[560px] overflow-hidden rounded-3xl border border-border/80 bg-card px-6 pb-9 pt-10 text-center shadow-2xs sm:px-10 sm:pb-11 sm:pt-12">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/[0.08] to-transparent" />
-
-        <div aria-hidden="true" className="relative mx-auto mb-7 flex h-36 w-44 items-center justify-center sm:h-40 sm:w-48">
-          <div className="absolute bottom-2 h-6 w-36 rounded-full bg-primary/10 blur-xl" />
-          <div className="absolute left-3 top-3 h-24 w-28 -rotate-12 rounded-2xl border border-border/60 bg-muted/50" />
-          <div className="absolute right-2 top-6 h-24 w-28 rotate-9 rounded-2xl border border-border/60 bg-muted/70" />
-          <div className="relative flex h-28 w-32 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card shadow-md shadow-primary/5 sm:h-32 sm:w-36">
-            <span className="absolute left-4 top-4 h-1.5 w-12 rounded-full bg-primary/20" />
-            <span className="absolute right-4 top-4 h-1.5 w-4 rounded-full bg-muted" />
-            <span className="flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary sm:size-16">
-              <Icon className="size-7 sm:size-8" strokeWidth={1.75} />
-            </span>
-            <span className="h-1.5 w-16 rounded-full bg-muted" />
-          </div>
+      <div className="w-full max-w-[560px] px-5 py-6 text-center sm:px-8 sm:py-8">
+        <div aria-hidden="true" className="mx-auto mb-5 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-6" strokeWidth={1.75} />
         </div>
 
         <p className={kind === "not-found"
-          ? "relative font-display text-3xl font-extrabold tracking-tight text-primary"
-          : "relative text-xs font-bold uppercase tracking-[0.16em] text-primary"}>
+          ? "relative font-body text-3xl font-semibold tracking-tight text-primary"
+          : "relative text-xs font-semibold uppercase tracking-[0.16em] text-primary"}>
           {details.eyebrow}
         </p>
-        <h1 className="relative mt-3 text-balance font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="gw-page-title relative mt-3 text-balance tracking-tight text-foreground sm:text-ui-page-lg">
           {title ?? details.title}
         </h1>
         <p className="relative mx-auto mt-3 max-w-sm text-pretty text-sm leading-6 text-muted-foreground">

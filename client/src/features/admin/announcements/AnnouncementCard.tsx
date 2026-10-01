@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import {
   Calendar,
@@ -41,38 +42,38 @@ const typeConfig: Record<
   AnnouncementType,
   {
     badge: string;
-    gradient: string;
+    surface: string;
     icon: React.ElementType;
   }
 > = {
   "Schedule Change": {
     badge: announcementTypeStyles["Schedule Change"],
-    gradient: "from-emerald-700/80 via-teal-800/60 to-emerald-950/90",
+    surface: "bg-emerald-900",
     icon: Calendar,
   },
   "Holiday Reminder": {
     badge: announcementTypeStyles["Holiday Reminder"],
-    gradient: "from-amber-700/80 via-orange-800/60 to-emerald-950/90",
+    surface: "bg-amber-900",
     icon: Calendar,
   },
   "Emergency Advisory": {
     badge: announcementTypeStyles["Emergency Advisory"],
-    gradient: "from-red-800/90 via-rose-900/70 to-zinc-950/95",
+    surface: "bg-red-900",
     icon: AlertTriangle,
   },
   "General Notice": {
     badge: announcementTypeStyles["General Notice"],
-    gradient: "from-emerald-800/80 via-teal-900/60 to-slate-950/90",
+    surface: "bg-forest",
     icon: Megaphone,
   },
   "System Maintenance": {
     badge: announcementTypeStyles["System Maintenance"],
-    gradient: "from-blue-800/80 via-cyan-900/60 to-slate-950/90",
+    surface: "bg-slate-800",
     icon: Shield,
   },
   "Community Event": {
     badge: announcementTypeStyles["Community Event"],
-    gradient: "from-violet-800/80 via-purple-900/60 to-slate-950/90",
+    surface: "bg-slate-800",
     icon: Calendar,
   },
 };
@@ -82,19 +83,19 @@ const statusConfig: Record<
   { badge: string; icon: React.ElementType }
 > = {
   Draft: {
-    badge: "bg-background/95 dark:bg-zinc-900/90 text-zinc-600 dark:text-zinc-400 border-zinc-400/40 dark:border-zinc-700 backdrop-blur-md shadow-2xs",
+    badge: getStatusBadgeStyle("Draft").className,
     icon: Lock,
   },
   Scheduled: {
-    badge: "bg-background/95 dark:bg-zinc-900/90 text-amber-700 dark:text-amber-300 border-amber-500/40 dark:border-amber-400/40 backdrop-blur-md shadow-2xs",
+    badge: getStatusBadgeStyle("Scheduled").className,
     icon: Clock,
   },
   Active: {
-    badge: "bg-background/95 dark:bg-zinc-900/90 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 dark:border-emerald-400/40 backdrop-blur-md shadow-2xs",
+    badge: getStatusBadgeStyle("Active").className,
     icon: Globe,
   },
   Archived: {
-    badge: "bg-background/95 dark:bg-zinc-900/90 text-muted-foreground border-border/80 backdrop-blur-md shadow-2xs",
+    badge: getStatusBadgeStyle("Archived").className,
     icon: Archive,
   },
 };
@@ -280,33 +281,16 @@ const AnnouncementCard = ({
   return (
     <div
       onClick={() => onPreview(ann)}
-      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:shadow-xl hover:border-primary/30 transition-all duration-300 cursor-pointer shadow-2xs"
+      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:border-primary/30 transition-all duration-300 cursor-pointer shadow-2xs"
     >
-      {/* ── Top Ambient Visual Band ── */}
+      {/* Announcement category */}
       <div className="h-28 relative overflow-hidden select-none border-b border-border/40">
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${typeStyle.gradient} transition-transform duration-700 ease-out group-hover:scale-105`}
+          className={`absolute inset-0 ${typeStyle.surface}`}
         >
-          {/* Radial light blooms */}
-          <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/15 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-black/20 blur-2xl pointer-events-none" />
-
-          {/* Organic topography hills SVG */}
-          <svg
-            className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 400 250"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M-50,150 C80,80 180,240 280,120 C360,40 420,180 470,100 L470,270 L-50,270 Z"
-              fill="#ffffff"
-            />
-          </svg>
-
-          {/* Centered watermark icon */}
+          {/* Category icon */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <TypeIcon className="w-12 h-12 text-white/15 drop-shadow-md" strokeWidth={1.5} />
+            <TypeIcon className="w-12 h-12 text-white/40" strokeWidth={1.5} />
           </div>
         </div>
 
@@ -314,7 +298,7 @@ const AnnouncementCard = ({
         <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap z-10 pointer-events-none">
           <Badge
             variant="outline"
-            className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${typeStyle.badge}`}
+            className={`text-ui-caption font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${typeStyle.badge}`}
           >
             {ann.type}
           </Badge>
@@ -325,7 +309,7 @@ const AnnouncementCard = ({
           <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
             <Badge
               variant="outline"
-              className={`text-[11px] font-semibold border rounded-full px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${statusStyle.badge}`}
+              className={`text-ui-caption font-semibold border rounded-md px-2.5 py-0.5 shadow-2xs backdrop-blur-md pointer-events-none ${statusStyle.badge}`}
             >
               <span>{ann.status}</span>
             </Badge>
@@ -337,7 +321,7 @@ const AnnouncementCard = ({
       <div className="p-4 sm:p-5 flex flex-col flex-1 space-y-3.5">
         {/* Title & Body */}
         <div className="space-y-1 flex-1 min-w-0">
-          <h3 className="font-display text-base font-bold text-foreground leading-snug line-clamp-2 break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
+          <h3 className="gw-heading text-base text-foreground leading-snug line-clamp-2 break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
             {ann.title}
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 break-words [overflow-wrap:anywhere]">
@@ -364,7 +348,7 @@ const AnnouncementCard = ({
                 e.stopPropagation();
                 onReadReceipt(ann);
               }}
-              className="text-[11px] font-semibold text-primary hover:underline cursor-pointer shrink-0 ml-2"
+              className="text-ui-caption font-semibold text-primary hover:underline cursor-pointer shrink-0 ml-2"
               title="Click to view read analytics breakdown"
             >
               {readPct}% read
@@ -374,7 +358,7 @@ const AnnouncementCard = ({
 
         {/* Footer Meta Row: Dates & 3-dot Action Menu */}
         <div
-          className="flex items-center justify-between text-[11px] text-muted-foreground pt-2.5 mt-auto border-t border-border/60"
+          className="flex items-center justify-between text-ui-caption text-muted-foreground pt-2.5 mt-auto border-t border-border/60"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-3 min-w-0 truncate">
@@ -405,7 +389,7 @@ const AnnouncementCard = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                className="h-7 w-7 p-0 rounded-lg shrink-0 cursor-pointer"
               >
                 <MoreHorizontal className="w-4 h-4" />
               </Button>

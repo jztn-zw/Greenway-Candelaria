@@ -103,14 +103,14 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
       }`}
       onClick={openFilePicker}
     >
-      <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200 shadow-2xs">
+      <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200 shadow-2xs">
         <Camera className="w-5 h-5" />
       </div>
       <div className="space-y-1">
         <p className="text-xs lg:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
           Click to upload or drag & drop photos
         </p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-ui-caption text-muted-foreground">
           JPG, PNG, or WebP · Max 5 photos (10MB each) · At least 1 photo required
         </p>
       </div>
@@ -121,7 +121,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+          <h3 className="gw-heading text-sm text-foreground tracking-tight">
             Evidence Photos
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -129,7 +129,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
           </p>
         </div>
 
-        <span className="text-[11px] font-medium shrink-0">
+        <span className="text-ui-caption font-medium shrink-0">
           {photos.length >= MAX_REPORT_PHOTOS ? (
             <span className="text-foreground font-semibold px-2 py-0.5 rounded-md bg-muted border border-border/80">
               5/5 (Max reached)
@@ -158,7 +158,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
               <img
                 src={photo.preview}
                 alt="Upload preview"
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-300 "
               />
               <button
                 type="button"
@@ -166,7 +166,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
                   e.stopPropagation();
                   removePhoto(photo.id);
                 }}
-                className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full border border-border/80 bg-background/90 backdrop-blur-xs text-muted-foreground shadow-xs flex items-center justify-center transition-all hover:border-destructive hover:bg-destructive hover:text-destructive-foreground hover:scale-105 cursor-pointer"
+                className="gw-action-destructive-outline absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-lg border backdrop-blur-xs shadow-xs flex items-center justify-center transition-all cursor-pointer"
                 title="Remove photo"
                 aria-label="Remove photo"
               >
@@ -179,17 +179,17 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
             <button
               type="button"
               onClick={openFilePicker}
-              className="group flex aspect-square min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border/80 bg-muted/20 text-muted-foreground shadow-2xs transition-all cursor-pointer select-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary active:scale-[0.98] md:size-32 md:shrink-0"
+              className="group flex aspect-square min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border/80 bg-muted/20 text-muted-foreground shadow-2xs transition-all cursor-pointer select-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary md:size-32 md:shrink-0"
               aria-label={`Add more photos (${photos.length} of ${MAX_REPORT_PHOTOS})`}
             >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-2xs">
                 <Plus className="w-4 h-4" strokeWidth={2.5} />
               </div>
               <div className="flex flex-col items-center text-center px-1">
                 <span className="text-xs font-semibold text-foreground/90 group-hover:text-primary transition-colors">
                   Add photo
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium">
+                <span className="text-ui-overline text-muted-foreground font-medium">
                   {photos.length}/{MAX_REPORT_PHOTOS} max
                 </span>
               </div>
@@ -198,7 +198,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
         </div>
       )}
       {showError && (
-        <p className="text-[11px] font-medium text-destructive">Please add at least one photo.</p>
+        <p className="text-ui-caption font-medium text-destructive">Please add at least one photo.</p>
       )}
 
       <input

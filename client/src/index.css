@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,103 +6,291 @@
 
 @layer base {
   :root {
-    /* Verdant Circulation Palette */
-    --background: 40 20% 97%;
-    --foreground: 160 10% 12%;
+    /* Inter keeps headings, interface text, and numbers in one font family. */
+    --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-heading: var(--font-ui);
+    --font-tracking-heading: -0.01em;
+    --font-tracking-page: -0.02em;
+    --font-size-overline: 0.625rem;
+    --font-size-caption: 0.75rem;
+    --font-size-label: 0.8125rem;
+    --font-size-body: 0.875rem;
+    --font-size-title: 1rem;
+    --font-size-page: 1.5rem;
+    --font-size-page-lg: 1.875rem;
 
-    --card: 40 15% 99%;
-    --card-foreground: 160 10% 12%;
+    /* Modern Green: neutral surfaces, teal actions, restrained mint accents. */
+    --background: 210 40% 98.039%; /* #F8FAFC */
+    --field-background: hsl(var(--card));
+    --field-placeholder: hsl(var(--muted-foreground));
+    --foreground: 215 27.907% 16.863%; /* #1F2937 */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: var(--foreground);
+    --popover: var(--card);
+    --popover-foreground: var(--foreground);
+    --primary: 175.34 77.444% 26.078%; /* #0F766E */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --secondary-foreground: 163.146 88.119% 19.804%; /* #065F46 */
+    --muted: 210 40% 96.078%; /* #F1F5F9 */
+    --muted-foreground: 220 8.936% 46.078%; /* #6B7280 */
+    --accent: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --accent-foreground: 175.34 77.444% 26.078%; /* #0F766E */
+    --highlight: 160.118 84.08% 39.412%; /* #10B981 */
+    --success: var(--success-500);
+    --success-foreground: var(--success-600);
+    --warning: var(--warning-500);
+    --warning-foreground: var(--warning-700);
+    --info: var(--info-500);
+    --info-foreground: var(--info-600);
+    --error: var(--error-500);
+    --destructive: var(--error-600);
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+    --border: 195 20.69% 88.627%; /* #DCE5E8 */
+    --input: 216 12.195% 83.922%; /* #D1D5DB */
+    --ring: var(--primary);
+    /* Button states use opaque surfaces so they stay consistent on every page. */
+    --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, black);
+    --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, black);
+    --button-destructive-hover: color-mix(in srgb, hsl(var(--destructive)) 92%, black);
+    --button-destructive-active: color-mix(in srgb, hsl(var(--destructive)) 84%, black);
+    --button-primary-soft-foreground: var(--button-primary-hover);
+    --button-destructive-soft-foreground: hsl(var(--error-700));
+    --button-neutral-hover: hsl(var(--muted));
+    --button-neutral-active: color-mix(in srgb, hsl(var(--muted)) 80%, hsl(var(--border)));
+    --button-secondary-hover: color-mix(in srgb, hsl(var(--secondary)) 90%, hsl(var(--primary)));
+    --button-secondary-active: color-mix(in srgb, hsl(var(--secondary)) 84%, hsl(var(--primary)));
+    --button-warning: var(--warning-600);
+    --button-warning-foreground: 0 0% 100%;
+    --button-warning-hover: color-mix(in srgb, hsl(var(--button-warning)) 92%, black);
+    --button-warning-active: color-mix(in srgb, hsl(var(--button-warning)) 84%, black);
+    --button-forest-hover: color-mix(in srgb, hsl(var(--forest)) 92%, black);
+    --button-forest-active: color-mix(in srgb, hsl(var(--forest)) 84%, black);
+    --button-tint: 8%;
+    --button-tint-hover: 12%;
+    --button-tint-active: 18%;
+    --button-tint-border: 30%;
+    --button-tint-border-hover: 50%;
+    /* Badge colors are shared by status/category labels, not action buttons. */
+    --badge-tint: 8%;
+    --badge-border-tint: 30%;
+    --badge-primary-background: color-mix(in srgb, hsl(var(--primary)) var(--badge-tint), hsl(var(--card)));
+    --badge-primary-foreground: var(--button-primary-soft-foreground);
+    --badge-primary-border: color-mix(in srgb, hsl(var(--primary)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-success-background: color-mix(in srgb, hsl(var(--success)) var(--badge-tint), hsl(var(--card)));
+    --badge-success-foreground: hsl(var(--success-600));
+    --badge-success-border: color-mix(in srgb, hsl(var(--success)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-warning-background: color-mix(in srgb, hsl(var(--warning)) var(--badge-tint), hsl(var(--card)));
+    --badge-warning-foreground: hsl(var(--warning-700));
+    --badge-warning-border: color-mix(in srgb, hsl(var(--warning)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-info-background: color-mix(in srgb, hsl(var(--info)) var(--badge-tint), hsl(var(--card)));
+    --badge-info-foreground: hsl(var(--info-700));
+    --badge-info-border: color-mix(in srgb, hsl(var(--info)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-violet-background: color-mix(in srgb, hsl(var(--violet-500)) var(--badge-tint), hsl(var(--card)));
+    --badge-violet-foreground: hsl(var(--violet-700));
+    --badge-violet-border: color-mix(in srgb, hsl(var(--violet-500)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-error-background: color-mix(in srgb, hsl(var(--error)) var(--badge-tint), hsl(var(--card)));
+    --badge-error-foreground: hsl(var(--error-700));
+    --badge-error-border: color-mix(in srgb, hsl(var(--error)) var(--badge-border-tint), hsl(var(--card)));
+    --badge-neutral-background: color-mix(in srgb, hsl(var(--muted-foreground)) var(--badge-tint), hsl(var(--card)));
+    --badge-neutral-foreground: hsl(var(--neutral-600));
+    --badge-neutral-border: color-mix(in srgb, hsl(var(--muted-foreground)) var(--badge-border-tint), hsl(var(--card)));
+    --shadow: 175 35.294% 6.667%; /* #0B1716 */
+    --overlay: 175 35.294% 6.667%; /* #0B1716 */
+    --forest: 163.146 88.119% 19.804%; /* #065F46 */
+    --forest-foreground: 0 0% 100%; /* #FFFFFF */
+    --leaf: var(--highlight);
+    --earth: var(--neutral-200);
+    --earth-dark: var(--neutral-600);
+    --sand: var(--accent);
+    --canopy: 175.61 80.392% 10%; /* #052E2B */
+    --canopy-foreground: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --sidebar-background: 0 0% 100%; /* #FFFFFF */
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+    --chart-1: var(--highlight);
+    --chart-2: var(--info-500);
+    --chart-3: var(--violet-500);
+    --chart-4: var(--warning-500);
+    --chart-5: var(--error-500);
+    --chart-6: var(--primary);
+    --map-inset: 0 0% 100%; /* #FFFFFF */
 
-    --popover: 40 15% 99%;
-    --popover-foreground: 160 10% 12%;
+    /* brand tones, shared by existing Tailwind color utilities. */
+    --brand-50: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --brand-100: 149.268 80.392% 90%; /* #D1FAE5 */
+    --brand-200: 152.368 76% 80.392%; /* #A7F3D0 */
+    --brand-300: 156.198 71.598% 66.863%; /* #6EE7B7 */
+    --brand-400: 158.113 64.372% 51.569%; /* #34D399 */
+    --brand-500: 160.118 84.08% 39.412%; /* #10B981 */
+    --brand-600: 161.379 93.548% 30.392%; /* #059669 */
+    --brand-700: 175.34 77.444% 26.078%; /* #0F766E */
+    --brand-800: 163.146 88.119% 19.804%; /* #065F46 */
+    --brand-900: 164.167 85.714% 16.471%; /* #064E3B */
+    --brand-950: 175.61 80.392% 10%; /* #052E2B */
 
-    --primary: 145 63% 32%;
-    --primary-foreground: 0 0% 100%;
+    /* success tones, shared by existing Tailwind color utilities. */
+    --success-50: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --success-100: 149.268 80.392% 90%; /* #D1FAE5 */
+    --success-200: 152.368 76% 80.392%; /* #A7F3D0 */
+    --success-300: 156.198 71.598% 66.863%; /* #6EE7B7 */
+    --success-400: 158.113 64.372% 51.569%; /* #34D399 */
+    --success-500: 160.118 84.08% 39.412%; /* #10B981 */
+    --success-600: 162.931 93.548% 24.314%; /* #047857 */
+    --success-700: 163.146 88.119% 19.804%; /* #065F46 */
+    --success-800: 164.167 85.714% 16.471%; /* #064E3B */
+    --success-900: 165.714 91.304% 9.02%; /* #022C22 */
+    --success-950: 169.655 87.879% 6.471%; /* #021F1A */
 
-    --secondary: 40 15% 93%;
-    --secondary-foreground: 160 10% 12%;
+    /* warning tones, shared by existing Tailwind color utilities. */
+    --warning-50: 48 100% 96.078%; /* #FFFBEB */
+    --warning-100: 48 96.491% 88.824%; /* #FEF3C7 */
+    --warning-200: 48 96.639% 76.667%; /* #FDE68A */
+    --warning-300: 45.943 96.685% 64.51%; /* #FCD34D */
+    --warning-400: 43.256 96.413% 56.275%; /* #FBBF24 */
+    --warning-500: 37.692 92.126% 50.196%; /* #F59E0B */
+    --warning-600: 25.965 90.476% 37.059%; /* #B45309 */
+    --warning-700: 22.727 82.5% 31.373%; /* #92400E */
+    --warning-800: 21.714 77.778% 26.471%; /* #78350F */
+    --warning-900: 20.909 91.667% 14.118%; /* #451A03 */
+    --warning-950: 20 88.235% 10%; /* #301203 */
 
-    --muted: 40 12% 92%;
-    --muted-foreground: 160 5% 45%;
+    /* error tones, shared by existing Tailwind color utilities. */
+    --error-50: 0 85.714% 97.255%; /* #FEF2F2 */
+    --error-100: 0 93.333% 94.118%; /* #FEE2E2 */
+    --error-200: 0 96.296% 89.412%; /* #FECACA */
+    --error-300: 0 93.548% 81.765%; /* #FCA5A5 */
+    --error-400: 0 90.604% 70.784%; /* #F87171 */
+    --error-500: 0 84.236% 60.196%; /* #EF4444 */
+    --error-600: 0 72.222% 50.588%; /* #DC2626 */
+    --error-700: 0 73.709% 41.765%; /* #B91C1C */
+    --error-800: 0 70% 35.294%; /* #991B1B */
+    --error-900: 0 62.821% 30.588%; /* #7F1D1D */
+    --error-950: 0 74.684% 15.49%; /* #450A0A */
 
-    --accent: 145 50% 22%;
-    --accent-foreground: 0 0% 100%;
+    /* info tones, shared by existing Tailwind color utilities. */
+    --info-50: 213.75 100% 96.863%; /* #EFF6FF */
+    --info-100: 214.286 94.595% 92.745%; /* #DBEAFE */
+    --info-200: 213.333 96.923% 87.255%; /* #BFDBFE */
+    --info-300: 211.698 96.364% 78.431%; /* #93C5FD */
+    --info-400: 213.117 93.902% 67.843%; /* #60A5FA */
+    --info-500: 217.219 91.22% 59.804%; /* #3B82F6 */
+    --info-600: 221.212 83.193% 53.333%; /* #2563EB */
+    --info-700: 224.278 76.327% 48.039%; /* #1D4ED8 */
+    --info-800: 225.931 70.732% 40.196%; /* #1E40AF */
+    --info-900: 224.444 64.286% 32.941%; /* #1E3A8A */
+    --info-950: 226.23 57.009% 20.98%; /* #172554 */
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    /* violet tones, shared by existing Tailwind color utilities. */
+    --violet-50: 250 100% 97.647%; /* #F5F3FF */
+    --violet-100: 251.429 91.304% 95.49%; /* #EDE9FE */
+    --violet-200: 250.5 95.238% 91.765%; /* #DDD6FE */
+    --violet-300: 252.5 94.737% 85.098%; /* #C4B5FD */
+    --violet-400: 255.135 91.736% 76.275%; /* #A78BFA */
+    --violet-500: 258.312 89.535% 66.275%; /* #8B5CF6 */
+    --violet-600: 262.123 83.256% 57.843%; /* #7C3AED */
+    --violet-700: 263.39 69.96% 50.392%; /* #6D28D9 */
+    --violet-800: 263.356 69.302% 42.157%; /* #5B21B6 */
+    --violet-900: 263.5 67.416% 34.902%; /* #4C1D95 */
+    --violet-950: 261.176 72.65% 22.941%; /* #2E1065 */
 
-    --border: 40 12% 88%;
-    --input: 40 12% 88%;
-    --ring: 145 63% 32%;
+    /* neutral tones, shared by existing Tailwind color utilities. */
+    --neutral-50: 210 40% 98.039%; /* #F8FAFC */
+    --neutral-100: 210 40% 96.078%; /* #F1F5F9 */
+    --neutral-200: 214.286 31.818% 91.373%; /* #E2E8F0 */
+    --neutral-300: 212.727 26.829% 83.922%; /* #CBD5E1 */
+    --neutral-400: 215 20.225% 65.098%; /* #94A3B8 */
+    --neutral-500: 215.385 16.318% 46.863%; /* #64748B */
+    --neutral-600: 215.294 19.318% 34.51%; /* #475569 */
+    --neutral-700: 215.294 25% 26.667%; /* #334155 */
+    --neutral-800: 215 27.907% 16.863%; /* #1F2937 */
+    --neutral-900: 220.909 39.286% 10.98%; /* #111827 */
+    --neutral-950: 175 35.294% 6.667%; /* #0B1716 */
 
-    --radius: 0.75rem;
+    /* Balanced corners: controls 8px, cards 12px, dialogs 14px. */
+    --radius: 0.5rem;
+    --radius-detail: 0.125rem;
+    --radius-small: 0.25rem;
+    --radius-compact: 0.375rem;
+    --radius-card: 0.75rem;
+    --radius-modal: 0.875rem;
+    --radius-full: 9999px;
 
-    /* Custom tokens */
-    --forest: 145 63% 22%;
-    --forest-foreground: 0 0% 100%;
-    --leaf: 130 55% 45%;
-    --earth: 35 25% 85%;
-    --earth-dark: 35 15% 35%;
-    --sand: 40 30% 95%;
-    --canopy: 145 40% 15%;
-    --canopy-foreground: 40 20% 95%;
-
-    --sidebar-background: 40 15% 97%;
-    --sidebar-foreground: 160 10% 12%;
-    --sidebar-primary: 145 63% 32%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 12% 92%;
-    --sidebar-accent-foreground: 160 10% 12%;
-    --sidebar-border: 40 12% 88%;
-    --sidebar-ring: 145 63% 32%;
   }
 
   .dark {
-    --background: 150 10% 8%;
-    --foreground: 40 20% 93%;
-
-    --card: 150 10% 11%;
-    --card-foreground: 40 20% 93%;
-
-    --popover: 150 10% 11%;
-    --popover-foreground: 40 20% 93%;
-
-    --primary: 145 55% 42%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 150 8% 16%;
-    --secondary-foreground: 40 20% 93%;
-
-    --muted: 150 8% 18%;
-    --muted-foreground: 40 10% 55%;
-
-    --accent: 145 50% 30%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 150 8% 18%;
-    --input: 150 8% 18%;
-    --ring: 145 55% 42%;
-
-    --forest: 145 55% 35%;
-    --forest-foreground: 0 0% 100%;
-    --leaf: 130 45% 50%;
-    --earth: 35 10% 20%;
-    --earth-dark: 35 10% 60%;
-    --sand: 150 8% 12%;
-    --canopy: 145 40% 8%;
-    --canopy-foreground: 40 20% 93%;
-
-    --sidebar-background: 150 10% 10%;
-    --sidebar-foreground: 40 20% 93%;
-    --sidebar-primary: 145 55% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 8% 16%;
-    --sidebar-accent-foreground: 40 20% 93%;
-    --sidebar-border: 150 8% 18%;
-    --sidebar-ring: 145 55% 42%;
+    /* Original green-charcoal theme, with small refinements to surfaces and contrast. */
+    --background: 175 35.294% 6.667%; /* #0B1716 */
+    --field-background: color-mix(in srgb, hsl(var(--background)) 40%, hsl(var(--card)));
+    --field-placeholder: hsl(var(--muted-foreground) / 0.95);
+    --foreground: 220 13.043% 90.98%; /* #E5E7EB */
+    --card: 165.882 28.814% 11.569%; /* #152622 */
+    --card-foreground: var(--foreground);
+    --popover: 168 27.778% 14.118%; /* #1A2E2A */
+    --popover-foreground: var(--foreground);
+    --primary: 160 61.446% 48.824%; /* #30C996 */
+    --primary-foreground: 170.526 76% 9.804%; /* #062C26 */
+    --secondary: 171 26.316% 14.902%; /* #1C302D */
+    --secondary-foreground: var(--foreground);
+    --muted: 171 26.316% 14.902%; /* #1C302D */
+    --muted-foreground: 217.895 10.615% 64.902%; /* #9CA3AF */
+    --accent: 162.857 41.176% 16.667%; /* #193C32 */
+    --accent-foreground: 156.198 71.598% 66.863%; /* #6EE7B7 */
+    --highlight: 160.118 84.08% 39.412%; /* #10B981 */
+    --success-foreground: var(--success-400);
+    --warning-foreground: var(--warning-400);
+    --info-foreground: var(--info-400);
+    --destructive: var(--error-400);
+    --destructive-foreground: var(--error-950);
+    --border: 158.4 20.661% 23.725%; /* #304940 */
+    --input: 162.5 13.953% 33.725%; /* #4A625B */
+    --ring: var(--primary);
+    --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, white);
+    --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, white);
+    --button-destructive-hover: color-mix(in srgb, hsl(var(--destructive)) 92%, white);
+    --button-destructive-active: color-mix(in srgb, hsl(var(--destructive)) 84%, white);
+    --button-primary-soft-foreground: hsl(var(--primary));
+    --button-destructive-soft-foreground: hsl(var(--error-300));
+    --button-warning: var(--warning-400);
+    --button-warning-foreground: var(--warning-950);
+    --button-warning-hover: color-mix(in srgb, hsl(var(--button-warning)) 92%, white);
+    --button-warning-active: color-mix(in srgb, hsl(var(--button-warning)) 84%, white);
+    --button-tint: 10%;
+    --button-tint-hover: 16%;
+    --button-tint-active: 22%;
+    --button-tint-border: 40%;
+    --button-tint-border-hover: 60%;
+    --badge-tint: 12%;
+    --badge-border-tint: 40%;
+    --badge-primary-foreground: hsl(var(--primary));
+    --badge-success-foreground: hsl(var(--success-300));
+    --badge-warning-foreground: hsl(var(--warning-300));
+    --badge-info-foreground: hsl(var(--info-300));
+    --badge-violet-foreground: hsl(var(--violet-300));
+    --badge-error-foreground: hsl(var(--error-300));
+    --badge-neutral-foreground: hsl(var(--neutral-300));
+    --shadow: 165 66.667% 2.353%; /* #020A08 */
+    --overlay: 165 66.667% 2.353%; /* #020A08 */
+    --forest: 164.167 85.714% 16.471%; /* #064E3B */
+    --forest-foreground: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --earth: var(--muted);
+    --earth-dark: var(--muted-foreground);
+    --sand: var(--accent);
+    --canopy: 175.61 80.392% 10%; /* #052E2B */
+    --canopy-foreground: 151.765 80.952% 95.882%; /* #ECFDF5 */
+    --sidebar-background: 168.75 36.364% 8.627%; /* #0E1E1B */
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
   }
 }
 
@@ -111,12 +299,308 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body text-ui-body antialiased;
+    font-variant-numeric: lining-nums tabular-nums;
     scroll-behavior: smooth;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-display font-semibold;
+    letter-spacing: var(--font-tracking-heading);
+    line-height: 1.4;
   }
+  .leaflet-container, .recharts-wrapper {
+    font-family: var(--font-ui);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+}
+
+@layer components {
+  /* Sizes stay responsive; these roles never change page structure or spacing. */
+  .gw-page-title {
+    @apply font-display font-semibold tracking-tight leading-tight;
+    font-size: var(--font-size-page);
+  }
+  .gw-heading {
+    @apply font-display font-semibold tracking-tight;
+    line-height: 1.3;
+  }
+  .gw-card-title {
+    @apply font-display text-ui-title font-semibold tracking-tight leading-snug;
+  }
+  .gw-stat-value {
+    @apply font-body font-semibold tracking-tight leading-tight;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* Color-only recipes also work on native buttons without changing their layout. */
+  .gw-action-primary, .gw-action-destructive, .gw-action-warning, .gw-action-forest {
+    --action-background: hsl(var(--action-tone));
+    --action-foreground: hsl(var(--action-tone-foreground));
+    --action-border: transparent;
+  }
+  .gw-action-primary {
+    --action-tone: var(--primary);
+    --action-tone-foreground: var(--primary-foreground);
+    --action-hover: var(--button-primary-hover);
+    --action-active: var(--button-primary-active);
+  }
+  .gw-action-destructive {
+    --action-tone: var(--destructive);
+    --action-tone-foreground: var(--destructive-foreground);
+    --action-hover: var(--button-destructive-hover);
+    --action-active: var(--button-destructive-active);
+  }
+  .gw-action-warning {
+    --action-tone: var(--button-warning);
+    --action-tone-foreground: var(--button-warning-foreground);
+    --action-hover: var(--button-warning-hover);
+    --action-active: var(--button-warning-active);
+  }
+  .gw-action-forest {
+    --action-tone: var(--forest);
+    --action-tone-foreground: var(--forest-foreground);
+    --action-hover: var(--button-forest-hover);
+    --action-active: var(--button-forest-active);
+  }
+  .gw-action-outline, .gw-action-ghost {
+    --action-foreground: hsl(var(--foreground));
+    --action-hover: var(--button-neutral-hover);
+    --action-active: var(--button-neutral-active);
+    --action-border-hover: hsl(var(--border));
+  }
+  .gw-action-outline {
+    --action-background: hsl(var(--card));
+    --action-border: hsl(var(--border) / 0.8);
+  }
+  .gw-action-ghost {
+    --action-background: transparent;
+    --action-foreground: hsl(var(--muted-foreground));
+    --action-foreground-hover: hsl(var(--foreground));
+    --action-border: transparent;
+    --action-border-hover: transparent;
+  }
+  .gw-action-secondary {
+    --action-background: hsl(var(--secondary));
+    --action-foreground: hsl(var(--secondary-foreground));
+    --action-hover: var(--button-secondary-hover);
+    --action-active: var(--button-secondary-active);
+    --action-border: transparent;
+  }
+  .gw-action-primary-outline, .gw-action-primary-ghost {
+    --action-tone: var(--primary);
+    --action-soft-foreground: var(--button-primary-soft-foreground);
+  }
+  .gw-action-destructive-outline, .gw-action-destructive-ghost {
+    --action-tone: var(--destructive);
+    --action-soft-foreground: var(--button-destructive-soft-foreground);
+  }
+  .gw-action-warning-outline {
+    --action-tone: var(--warning-foreground);
+  }
+  .gw-action-primary-outline, .gw-action-destructive-outline, .gw-action-warning-outline,
+  .gw-action-primary-ghost, .gw-action-destructive-ghost {
+    --action-foreground: var(--action-soft-foreground, hsl(var(--action-tone)));
+    --action-background: color-mix(in srgb, hsl(var(--action-tone)) var(--button-tint), hsl(var(--card)));
+    --action-hover: color-mix(in srgb, hsl(var(--action-tone)) var(--button-tint-hover), hsl(var(--card)));
+    --action-active: color-mix(in srgb, hsl(var(--action-tone)) var(--button-tint-active), hsl(var(--card)));
+    --action-border: color-mix(in srgb, hsl(var(--action-tone)) var(--button-tint-border), hsl(var(--card)));
+    --action-border-hover: color-mix(in srgb, hsl(var(--action-tone)) var(--button-tint-border-hover), hsl(var(--card)));
+  }
+  .gw-action-primary-ghost, .gw-action-destructive-ghost {
+    --action-background: transparent;
+    --action-border: transparent;
+    --action-border-hover: transparent;
+  }
+  .gw-action-link {
+    --action-background: transparent;
+    --action-foreground: hsl(var(--primary));
+    --action-border: transparent;
+  }
+  .gw-action-inverse-outline {
+    --action-background: transparent;
+    --action-foreground: hsl(var(--forest-foreground));
+    --action-hover: hsl(var(--forest-foreground) / 0.1);
+    --action-active: hsl(var(--forest-foreground) / 0.16);
+    --action-border: hsl(var(--forest-foreground) / 0.3);
+    --action-border-hover: hsl(var(--forest-foreground) / 0.5);
+  }
+  :is(.gw-action-primary, .gw-action-destructive, .gw-action-warning, .gw-action-forest,
+      .gw-action-outline, .gw-action-secondary, .gw-action-ghost, .gw-action-link,
+      .gw-action-primary-outline, .gw-action-destructive-outline, .gw-action-warning-outline,
+      .gw-action-primary-ghost, .gw-action-destructive-ghost, .gw-action-inverse-outline):where(:not(.gw-field)) {
+    background-color: var(--action-background);
+    color: var(--action-foreground);
+    border-color: var(--action-border);
+  }
+  :is(.gw-action-primary, .gw-action-destructive, .gw-action-warning, .gw-action-forest,
+      .gw-action-outline, .gw-action-secondary, .gw-action-ghost,
+      .gw-action-primary-outline, .gw-action-destructive-outline, .gw-action-warning-outline,
+      .gw-action-primary-ghost, .gw-action-destructive-ghost, .gw-action-inverse-outline):where(:not(.gw-field):not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"])):hover {
+    background-color: var(--action-hover);
+    color: var(--action-foreground-hover, var(--action-foreground));
+    border-color: var(--action-border-hover, var(--action-border));
+  }
+  :is(.gw-action-primary, .gw-action-destructive, .gw-action-warning, .gw-action-forest,
+      .gw-action-outline, .gw-action-secondary, .gw-action-ghost,
+      .gw-action-primary-outline, .gw-action-destructive-outline, .gw-action-warning-outline,
+      .gw-action-primary-ghost, .gw-action-destructive-ghost, .gw-action-inverse-outline):where(:not(.gw-field):not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"])):active {
+    background-color: var(--action-active);
+    color: var(--action-foreground-hover, var(--action-foreground));
+  }
+}
+
+/* Keep heading spacing consistent when a page adds local tracking utilities. */
+.gw-heading,
+.gw-card-title {
+  letter-spacing: var(--font-tracking-heading);
+}
+
+.gw-page-title {
+  letter-spacing: var(--font-tracking-page);
+}
+
+/* Shared controls keep the same corners even when a page adds sizing classes. */
+.gw-button:not(.rounded-full) {
+  border-radius: var(--radius);
+}
+
+.gw-button:not(:focus-visible) {
+  box-shadow: none;
+}
+
+/* Shared notification popover in the admin, resident, and collector topbars. */
+.gw-topbar-notification-row:focus-visible,
+.gw-topbar-notification-action:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.gw-topbar-notification-panel {
+  width: min(25.625rem, calc(100vw - 1.5rem));
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid hsl(var(--border) / 0.85);
+  border-radius: var(--radius-modal);
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 14px 32px -16px hsl(var(--shadow) / 0.32);
+}
+
+.gw-topbar-notification-header {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+}
+
+.gw-topbar-notification-count-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid hsl(var(--border) / 0.75);
+  border-radius: var(--radius-compact);
+  background: hsl(var(--muted) / 0.55);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gw-topbar-notification-count-label--new {
+  border-color: hsl(var(--primary) / 0.22);
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+.gw-topbar-notification-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-compact);
+  color: hsl(var(--primary));
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.gw-topbar-notification-action:hover {
+  background: hsl(var(--primary) / 0.09);
+}
+
+.gw-topbar-notification-action:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.gw-topbar-notification-scroll {
+  max-height: min(25rem, calc(100vh - 11rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gw-topbar-notification-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.55);
+  border-left: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.gw-topbar-notification-row:last-child {
+  border-bottom: 0;
+}
+
+.gw-topbar-notification-row:hover {
+  background: hsl(var(--muted) / 0.42);
+}
+
+.gw-topbar-notification-row--unread {
+  border-left-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.055);
+}
+
+.gw-topbar-notification-row--unread:hover {
+  background: hsl(var(--primary) / 0.095);
+}
+
+.gw-topbar-notification-row:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.gw-topbar-notification-icon {
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+}
+
+.gw-topbar-notification-footer {
+  padding: 0.5rem;
+  border-top: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--muted) / 0.18);
+}
+
+.gw-topbar-notification-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
 }
 
 /* Leaflet popup theming */
@@ -124,8 +608,8 @@
   background: hsl(var(--card)) !important;
   color: hsl(var(--card-foreground)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 4px 12px -2px hsl(var(--shadow) / 0.1) !important;
 }
 
 .leaflet-popup-tip {
@@ -165,42 +649,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Aurora gradient animations */
-@keyframes aurora-drift-1 {
-  0%, 100% { transform: translate(0%, 0%) rotate(0deg); }
-  25% { transform: translate(5%, -8%) rotate(3deg); }
-  50% { transform: translate(-3%, -5%) rotate(-2deg); }
-  75% { transform: translate(-6%, -2%) rotate(1deg); }
-}
-
-@keyframes aurora-drift-2 {
-  0%, 100% { transform: translate(0%, 0%) rotate(0deg); }
-  25% { transform: translate(-8%, -4%) rotate(-3deg); }
-  50% { transform: translate(4%, -10%) rotate(2deg); }
-  75% { transform: translate(6%, -3%) rotate(-1deg); }
-}
-
-@keyframes aurora-drift-3 {
-  0%, 100% { transform: translate(0%, 0%) rotate(0deg); }
-  33% { transform: translate(7%, -6%) rotate(2deg); }
-  66% { transform: translate(-5%, -8%) rotate(-2deg); }
-}
-
-.animate-aurora-1 {
-  animation: aurora-drift-1 20s ease-in-out infinite;
-  will-change: transform;
-}
-
-.animate-aurora-2 {
-  animation: aurora-drift-2 25s ease-in-out infinite;
-  will-change: transform;
-}
-
-.animate-aurora-3 {
-  animation: aurora-drift-3 18s ease-in-out infinite;
-  will-change: transform;
-}
-
 /* Custom themed scrollbar — bar only, no arrows */
 * {
   scrollbar-width: thin;
@@ -218,7 +666,7 @@ html {
 
 *::-webkit-scrollbar-thumb {
   background-color: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
 }
 
 *::-webkit-scrollbar-thumb:hover {
@@ -250,8 +698,8 @@ html {
   background: hsl(var(--card));
   color: hsl(var(--foreground));
   border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 12px -2px hsl(var(--shadow) / 0.1);
   padding: 0;
 }
 
@@ -277,7 +725,7 @@ html {
   justify-content: center;
   top: 6px !important;
   right: 6px !important;
-  border-radius: 6px;
+  border-radius: var(--radius);
   transition: background 0.15s, color 0.15s;
 }
 
@@ -294,5 +742,3 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-

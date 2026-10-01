@@ -1,3 +1,4 @@
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -311,7 +312,7 @@ const AnnouncementEditor = ({
                 <Megaphone className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight truncate">
+                <DialogTitle className="gw-heading text-base text-foreground tracking-tight truncate">
                   {editingAnnouncement
                     ? "Edit Announcement"
                     : "Create Announcement"}
@@ -325,7 +326,7 @@ const AnnouncementEditor = ({
             <button
               type="button"
               onClick={handleAttemptClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0 -mr-1"
+              className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -336,7 +337,7 @@ const AnnouncementEditor = ({
           <div className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
             {/* Notice Title */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className="text-xs font-medium text-foreground">
                 Notice Title
               </Label>
               <Input
@@ -349,13 +350,13 @@ const AnnouncementEditor = ({
                 aria-invalid={Boolean(errors.title)}
                 className={cn("h-9 rounded-xl bg-background border text-xs px-3.5 focus-visible:ring-primary/20 shadow-2xs", errors.title ? "border-destructive focus-visible:ring-destructive/20" : "border-border/80")}
               />
-              {errors.title && <p className="text-[11px] font-medium text-destructive">{errors.title}</p>}
+              {errors.title && <p className="text-ui-caption font-medium text-destructive">{errors.title}</p>}
             </div>
 
             {/* Target Audience & Notice Type (50/50 split) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className="text-xs font-medium text-foreground">
                   Target Audience
                 </Label>
                 <Select
@@ -384,7 +385,7 @@ const AnnouncementEditor = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
+                <Label className="text-xs font-medium text-foreground">
                   Notice Type
                 </Label>
                 <Select
@@ -422,7 +423,7 @@ const AnnouncementEditor = ({
 
             {/* Message Body with Character Counter */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className="text-xs font-medium text-foreground">
                 Message Content
               </Label>
               <Textarea
@@ -435,7 +436,7 @@ const AnnouncementEditor = ({
                 aria-invalid={Boolean(errors.body)}
                 className={cn("min-h-[110px] rounded-xl bg-background border p-3 text-xs resize-none focus-visible:ring-primary/20 leading-relaxed shadow-2xs", errors.body ? "border-destructive focus-visible:ring-destructive/20" : "border-border/80")}
               />
-              {errors.body && <p className="text-[11px] font-medium text-destructive">{errors.body}</p>}
+              {errors.body && <p className="text-ui-caption font-medium text-destructive">{errors.body}</p>}
             </div>
 
             {/* Specific Barangays Picker */}
@@ -443,12 +444,12 @@ const AnnouncementEditor = ({
               <div className={cn("space-y-2 p-3 rounded-xl bg-muted/40 border", errors.targetBarangays ? "border-destructive/80" : "border-border/70")}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Label className="text-xs font-semibold text-foreground/90 shrink-0">
+                    <Label className="text-xs font-medium text-foreground/90 shrink-0">
                       Target Barangays
                     </Label>
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-semibold h-5 px-2 rounded-full bg-primary/10 text-primary border-primary/25 shrink-0"
+                      className={"text-ui-overline font-semibold h-5 px-2 rounded-md shrink-0 " + badgeStyles.primary.className}
                     >
                       {form.targetBarangays.length} / {barangayOptions.length}
                     </Badge>
@@ -458,7 +459,7 @@ const AnnouncementEditor = ({
                     <button
                       type="button"
                       onClick={selectAllBarangays}
-                      className="text-xs font-semibold text-primary hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none"
+                      className="gw-action-primary-ghost text-xs font-semibold transition-colors cursor-pointer border-0 p-0 outline-none"
                     >
                       Select All
                     </button>
@@ -466,7 +467,7 @@ const AnnouncementEditor = ({
                     <button
                       type="button"
                       onClick={clearAllBarangays}
-                      className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-0 p-0 outline-none"
+                      className="gw-action-ghost text-xs font-semibold transition-colors cursor-pointer border-0 p-0 outline-none"
                     >
                       Clear
                     </button>
@@ -490,7 +491,7 @@ const AnnouncementEditor = ({
                     </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-[320px] p-0 rounded-xl border border-border shadow-xl z-[70]"
+                    className="w-[320px] p-0 rounded-xl border border-border shadow-md z-[70]"
                     align="start"
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
@@ -508,7 +509,7 @@ const AnnouncementEditor = ({
                           <button
                             type="button"
                             onClick={() => setBarangaySearch("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -534,7 +535,7 @@ const AnnouncementEditor = ({
                                 key={b.id}
                                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors text-xs font-medium select-none ${
                                   isChecked
-                                    ? "bg-primary/10 text-primary font-semibold"
+                                    ? "bg-primary/10 text-primary font-medium"
                                     : "hover:bg-muted text-foreground"
                                 }`}
                               >
@@ -575,7 +576,7 @@ const AnnouncementEditor = ({
                               <button
                                 type="button"
                                 onClick={() => toggleBarangay(id)}
-                                className="text-muted-foreground hover:text-destructive transition-colors cursor-pointer ml-0.5"
+                                className="gw-action-destructive-ghost transition-colors cursor-pointer ml-0.5"
                                 title={`Remove ${bName}`}
                               >
                                 <X className="w-3 h-3" />
@@ -584,7 +585,7 @@ const AnnouncementEditor = ({
                           );
                         })}
                         {form.targetBarangays.length > 4 && (
-                          <span className="text-[11px] font-medium text-muted-foreground px-1 self-center">
+                          <span className="text-ui-caption font-medium text-muted-foreground px-1 self-center">
                             +{form.targetBarangays.length - 4} more
                           </span>
                         )}
@@ -592,7 +593,7 @@ const AnnouncementEditor = ({
                     )}
                   </div>
                 )}
-                {errors.targetBarangays && <p className="text-[11px] font-medium text-destructive">{errors.targetBarangays}</p>}
+                {errors.targetBarangays && <p className="text-ui-caption font-medium text-destructive">{errors.targetBarangays}</p>}
               </div>
             )}
 
@@ -612,7 +613,7 @@ const AnnouncementEditor = ({
               </label>
               {form.showOnResidentCalendar && (
                 <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <Label className="text-xs font-semibold text-foreground/90">Event Date</Label>
+                  <Label className="text-xs font-medium text-foreground/90">Event Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FieldButton
@@ -631,7 +632,7 @@ const AnnouncementEditor = ({
                         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                       </FieldButton>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto rounded-xl border border-border p-0 shadow-xl" align="start">
+                    <PopoverContent className="w-auto rounded-xl border border-border p-0 shadow-md" align="start">
                       <Calendar
                         mode="single"
                         selected={form.calendarDate ? parseStoredDate(form.calendarDate) : undefined}
@@ -648,15 +649,15 @@ const AnnouncementEditor = ({
                       />
                     </PopoverContent>
                   </Popover>
-                  {errors.calendarDate && <p className="text-[11px] font-medium text-destructive">{errors.calendarDate}</p>}
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">Defaults to the announcement’s scheduled date. Change it only if the event is on another day.</p>
+                  {errors.calendarDate && <p className="text-ui-caption font-medium text-destructive">{errors.calendarDate}</p>}
+                  <p className="text-ui-caption leading-relaxed text-muted-foreground">Defaults to the announcement’s scheduled date. Change it only if the event is on another day.</p>
                 </div>
               )}
             </div>}
 
             {/* Publishing Status */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className="text-xs font-medium text-foreground">
                 Publishing Status
               </Label>
               <Select
@@ -684,7 +685,7 @@ const AnnouncementEditor = ({
             {form.status === "Scheduled" && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/40 border border-border/70">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <Label className="text-xs font-medium flex items-center gap-1.5 text-foreground">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                     Broadcast Date & Time
                   </Label>
@@ -705,7 +706,7 @@ const AnnouncementEditor = ({
                       </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
+                      className="w-auto p-0 rounded-xl border border-border/80 shadow-md"
                       align="start"
                     >
                       <Calendar
@@ -739,11 +740,11 @@ const AnnouncementEditor = ({
                       </div>
                     </PopoverContent>
                   </Popover>
-                  {errors.scheduledDate && <p className="text-[11px] font-medium text-destructive">{errors.scheduledDate}</p>}
+                  {errors.scheduledDate && <p className="text-ui-caption font-medium text-destructive">{errors.scheduledDate}</p>}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <Label className="text-xs font-medium flex items-center gap-1.5 text-foreground">
                     <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     Auto-Expiry (Optional)
                   </Label>
@@ -764,7 +765,7 @@ const AnnouncementEditor = ({
                       </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-auto p-0 rounded-xl border border-border/80 shadow-xl"
+                      className="w-auto p-0 rounded-xl border border-border/80 shadow-md"
                       align="start"
                     >
                       <Calendar
@@ -798,7 +799,7 @@ const AnnouncementEditor = ({
                       </div>
                     </PopoverContent>
                   </Popover>
-                  {errors.expiryDate && <p className="text-[11px] font-medium text-destructive">{errors.expiryDate}</p>}
+                  {errors.expiryDate && <p className="text-ui-caption font-medium text-destructive">{errors.expiryDate}</p>}
                 </div>
               </div>
             )}
@@ -806,7 +807,7 @@ const AnnouncementEditor = ({
             {/* Optional Expiry for Draft and Active */}
             {form.status !== "Scheduled" && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                <Label className="text-xs font-medium flex items-center gap-1.5 text-foreground">
                   <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                   Auto-Expiry Date (Optional)
                 </Label>
@@ -827,7 +828,7 @@ const AnnouncementEditor = ({
                     </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-auto p-0 rounded-xl border border-border shadow-xl"
+                    className="w-auto p-0 rounded-xl border border-border shadow-md"
                     align="start"
                   >
                     <Calendar
@@ -861,20 +862,20 @@ const AnnouncementEditor = ({
                     </div>
                   </PopoverContent>
                   </Popover>
-                  {errors.expiryDate && <p className="text-[11px] font-medium text-destructive">{errors.expiryDate}</p>}
+                  {errors.expiryDate && <p className="text-ui-caption font-medium text-destructive">{errors.expiryDate}</p>}
               </div>
             )}
           </div>
 
           {/* ── Fixed Pinned Footer (Non-Scrollable) ── */}
           <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 z-10 flex items-center justify-end gap-2.5 bg-card">
-            {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-[11px] font-medium text-destructive">{errors.form}</p>}
+            {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
             <Button
               type="button"
               variant="outline"
               onClick={handleAttemptClose}
               disabled={isSaving}
-              className="h-9 text-xs rounded-xl border-border/80 px-4 cursor-pointer"
+              className="h-9 text-xs rounded-xl px-4 cursor-pointer"
             >
               Cancel
             </Button>
@@ -882,7 +883,7 @@ const AnnouncementEditor = ({
               type="button"
               onClick={() => void handleSave()}
               disabled={isSaving}
-              className="h-9 px-5 rounded-xl font-bold text-xs gap-1.5 shadow-sm cursor-pointer active:scale-95"
+              className="h-9 px-5 rounded-xl font-semibold text-xs gap-1.5 shadow-sm cursor-pointer "
             >
               {isSaving ? (
                 <>

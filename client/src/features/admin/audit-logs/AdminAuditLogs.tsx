@@ -54,7 +54,7 @@ const AdminAuditLogs = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
               {pageTitle}
             </h1>
           </div>

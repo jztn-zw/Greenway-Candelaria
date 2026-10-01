@@ -2,7 +2,7 @@ import * as React from "react";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants, type ButtonProps } from "@/components/ui/button";
 import "./modal.css";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -72,7 +72,7 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn("gw-modal-description text-[13px] text-muted-foreground leading-relaxed", className)}
+    className={cn("gw-modal-description text-ui-label text-muted-foreground leading-relaxed", className)}
     {...props}
   />
 ));
@@ -80,12 +80,12 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
 
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & Pick<ButtonProps, "variant">
+>(({ className, variant = "default", ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
-      buttonVariants(),
+      buttonVariants({ variant }),
       "h-9 px-5 rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors",
       className
     )}
@@ -96,13 +96,13 @@ AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel> & Pick<ButtonProps, "variant">
+>(({ className, variant = "outline", ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      buttonVariants({ variant: "outline" }),
-      "h-9 px-4 rounded-lg text-xs font-medium cursor-pointer border-border/80 hover:bg-muted/60 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      buttonVariants({ variant }),
+      "h-9 px-4 rounded-lg text-xs font-medium cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       className
     )}
     {...props}

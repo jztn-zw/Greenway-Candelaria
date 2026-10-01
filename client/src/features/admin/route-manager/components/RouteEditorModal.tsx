@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
@@ -268,7 +269,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <DialogTitle className="text-base font-semibold font-display text-foreground tracking-tight">
+                  <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
                     {isCreating ? "Create Collection Route" : "Edit Collection Route"}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -284,7 +285,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRequestClose}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                  className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
                   title="Close modal"
                 >
                   <X className="w-4 h-4" />
@@ -300,11 +301,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   {/* Step 1: Schedule & Assignment Card */}
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-4 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
                         Step 1: Schedule & Assignment
                       </h3>
-                      <span className="text-[11px] font-medium text-muted-foreground">
+                      <span className="text-ui-caption font-medium text-muted-foreground">
                         {form.day} Collection
                       </span>
                     </div>
@@ -313,7 +314,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {/* Day of Week */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-foreground">
+                        <Label className="text-xs font-medium text-foreground">
                           Day of Week
                         </Label>
                         <Select
@@ -342,8 +343,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
                       {/* Waste Category Auto Display */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Waste Type <span className="text-[11px] font-normal text-muted-foreground">(Auto)</span>
+                        <Label className="text-xs font-medium text-foreground">
+                          Waste Type <span className="text-ui-caption font-normal text-muted-foreground">(Auto)</span>
                         </Label>
                         <div
                           className={cn(
@@ -364,7 +365,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
                       {/* Keyboard-editable GreenWay time picker */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-foreground">
+                        <Label className="text-xs font-medium text-foreground">
                           Start Time
                         </Label>
                         <TimePicker
@@ -384,11 +385,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <Label className="text-xs font-semibold text-foreground">
+                          <Label className="text-xs font-medium text-foreground">
                             Assigned Collection Truck
                           </Label>
                           {trucks.length > 0 && (
-                            <span className="text-[11px] text-muted-foreground font-medium">
+                            <span className="text-ui-caption text-muted-foreground font-medium">
                               {trucks.length} truck{trucks.length > 1 ? "s" : ""} available on {form.day}
                             </span>
                           )}
@@ -426,7 +427,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                           )}
                         />
                         {errors.truck && (
-                          <p id="route-truck-error" className="text-[11px] font-medium text-destructive">
+                          <p id="route-truck-error" className="text-ui-caption font-medium text-destructive">
                             {errors.truck}
                           </p>
                         )}
@@ -444,12 +445,12 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                                 <p className="text-xs font-bold text-foreground truncate">
                                   {assignedDriver.full_name}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground truncate">
+                                <p className="text-ui-overline text-muted-foreground truncate">
                                   Assigned Collector
                                 </p>
                               </div>
                             </div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+                            <span className={"inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-ui-overline font-bold border shrink-0 " + getStatusBadgeStyle("Collector Linked").className}>
                               <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                               Collector Linked
                             </span>
@@ -461,7 +462,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                               <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
                                 No collector is currently assigned to this truck
                               </p>
-                              <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 mt-0.5">
+                              <p className="text-ui-caption text-amber-700/90 dark:text-amber-300/90 mt-0.5">
                                 You can save this route as unassigned, but operations require linking a driver in Collector Manager.
                               </p>
                             </div>
@@ -479,11 +480,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   {/* Step 2: Stop Configuration (BarangayOrderList) */}
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-primary" />
                         Step 2: Stop Configuration
                       </h3>
-                      <span className="text-[11px] font-bold text-primary tabular-nums">
+                      <span className="text-ui-caption font-semibold text-primary tabular-nums">
                         {form.barangays.length} {form.barangays.length === 1 ? "stop" : "stops"} ordered
                       </span>
                     </div>
@@ -524,7 +525,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                         <MapPinned className="w-4 h-4 text-primary" />
                         Live Route Overview
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      <span className="text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                         {form.day}
                       </span>
                     </div>
@@ -532,7 +533,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     {/* Parameter Summary Bar */}
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-0.5">
-                        <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                        <span className="text-ui-overline font-medium text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" /> Time & Waste
                         </span>
                         <p className="font-semibold text-foreground truncate">
@@ -541,7 +542,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       </div>
 
                       <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-0.5">
-                        <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                        <span className="text-ui-overline font-medium text-muted-foreground flex items-center gap-1">
                           <TruckIcon className="w-3 h-3" /> Vehicle
                         </span>
                         <p className="font-semibold text-foreground truncate">
@@ -550,7 +551,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       </div>
 
                       <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-0.5">
-                        <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                        <span className="text-ui-overline font-medium text-muted-foreground flex items-center gap-1">
                           <User className="w-3 h-3" /> Driver
                         </span>
                         <p className="font-semibold text-foreground truncate">
@@ -559,7 +560,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       </div>
 
                       <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-0.5">
-                        <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                        <span className="text-ui-overline font-medium text-muted-foreground flex items-center gap-1">
                           <Layers className="w-3 h-3" /> Total Stops
                         </span>
                         <p className="font-semibold text-primary">
@@ -570,7 +571,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
                     {/* Interactive Leaflet Route Map */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground px-0.5">
+                      <div className="flex items-center justify-between text-ui-caption text-muted-foreground px-0.5">
                         <span>Street coverage route</span>
                         <span>
                           {form.barangays.length - stopsMissingCoverage.length} of {form.barangays.length} mapped
@@ -582,7 +583,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                         className="h-60 sm:h-64 w-full rounded-xl overflow-hidden border border-border/70 shadow-2xs"
                       />
                       {stopsMissingCoverage.length > 0 && (
-                        <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-ui-caption leading-relaxed text-amber-700 dark:text-amber-300">
                           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                           <span>
                             <strong>{stopsMissingCoverage.length} selected {stopsMissingCoverage.length === 1 ? "street needs" : "streets need"} a coverage path.</strong>{" "}
@@ -595,11 +596,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     {/* Route Stop Sequence Itinerary Preview */}
                     <div className="space-y-1.5 pt-1">
                       <div className="flex items-center justify-between px-0.5">
-                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <span className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                           <Layers className="w-3 h-3" />
                           Stop Order Itinerary
                         </span>
-                        <span className="text-[10px] font-semibold text-muted-foreground">
+                        <span className="text-ui-overline font-semibold text-muted-foreground">
                           {form.barangays.length} recorded
                         </span>
                       </div>
@@ -608,7 +609,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                         <div className="py-6 text-center text-xs text-muted-foreground border border-dashed border-border/70 rounded-xl bg-muted/10 px-3">
                           <MapPin className="w-5 h-5 mx-auto mb-1.5 opacity-40 text-primary" />
                           <p className="font-medium text-foreground">No stops in route</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-ui-caption text-muted-foreground mt-0.5">
                             Pick a barangay in Step 2 to add streets to the collection sequence.
                           </p>
                         </div>
@@ -623,7 +624,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                                 key={`${stop.id}-${idx}`}
                                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/70 bg-background/80 text-xs shadow-2xs hover:bg-muted/40 transition-colors"
                               >
-                                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary border border-primary/25 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary border border-primary/25 flex items-center justify-center font-bold text-ui-overline shrink-0">
                                   {idx + 1}
                                 </span>
                                 <div className="min-w-0 flex-1 truncate">
@@ -631,19 +632,19 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                                     {stop.name}
                                   </span>
                                   {parentB && (
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
+                                    <span className="text-ui-overline text-muted-foreground flex items-center gap-0.5 truncate">
                                       <MapPin className="w-2.5 h-2.5 opacity-70 shrink-0" />
                                       {parentB.name}
                                     </span>
                                   )}
                                 </div>
                                 {stop.coveragePath && stop.coveragePath.length >= 2 ? (
-                                  <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                  <span className="flex shrink-0 items-center gap-1 text-ui-overline font-semibold text-emerald-600 dark:text-emerald-400">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Path saved
                                   </span>
                                 ) : (
-                                  <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                  <span className="flex shrink-0 items-center gap-1 text-ui-overline font-semibold text-amber-600 dark:text-amber-400">
                                     <AlertTriangle className="h-3 w-3" />
                                     Needs path
                                   </span>
@@ -701,7 +702,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <Info className="w-3.5 h-3.5 text-warning-foreground shrink-0" />
                     <span>Ready to save as an unassigned route</span>
                   </div>
                 )}
@@ -714,14 +715,14 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   variant="outline"
                   onClick={handleRequestClose}
                   disabled={isSaving}
-                  className="h-9 text-xs rounded-xl border-border/80 px-4 cursor-pointer"
+                  className="h-9 text-xs rounded-xl px-4 cursor-pointer"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={isSaving || isLoadingTrucks}
-                  className="h-9 text-xs rounded-xl px-5 font-bold shadow-sm gap-1.5 cursor-pointer"
+                  className="h-9 text-xs rounded-xl px-5 font-semibold shadow-sm gap-1.5 cursor-pointer"
                 >
                   {isSaving ? (
                     <>

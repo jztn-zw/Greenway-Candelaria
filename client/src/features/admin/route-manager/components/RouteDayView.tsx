@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import React from "react";
 import { RouteCard } from "./RouteCard";
 import { DAYS, WASTE_MAP } from "../constants";
@@ -76,23 +77,18 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
                   {isBio ? <Leaf className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-extrabold text-foreground tracking-tight font-display">
+                  <h3 className="gw-heading text-base text-foreground tracking-tight ">
                     {day}
                   </h3>
                   <span
-                    className={cn(
-                      "text-xs font-semibold px-2.5 py-0.5 rounded-full border",
-                      isBio
-                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                        : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                    )}
+                    className={"text-xs font-semibold px-2.5 py-0.5 rounded-md border " + getCategoryBadgeColors(waste.label).className}
                   >
                     {waste.label} <span className="opacity-75 font-normal">({waste.local})</span>
                   </span>
                 </div>
               </div>
 
-              <span className="text-xs text-muted-foreground font-semibold bg-muted/40 px-2.5 py-1 rounded-full border border-border/60 shrink-0">
+              <span className="text-xs text-muted-foreground font-semibold bg-muted/40 px-2.5 py-1 rounded-md border border-border/60 shrink-0">
                 {dayRoutes.length} {dayRoutes.length === 1 ? "route" : "routes"}
               </span>
             </div>

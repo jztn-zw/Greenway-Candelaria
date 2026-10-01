@@ -55,7 +55,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
     <Dialog open onOpenChange={(open) => { if (!open && !isSaving) onClose(); }}>
       <DialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 bg-background p-5 sm:p-6">
         <DialogHeader className="gw-modal-header border-b border-border/60 pb-4 pr-8 text-left bg-card">
-          <DialogTitle className="flex items-center gap-2.5 text-base font-bold font-display">
+          <DialogTitle className="gw-heading flex items-center gap-2.5 text-base ">
             <KeyRound className="h-5 w-5 text-primary" /> Reset Collector Password
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm leading-relaxed">
@@ -65,7 +65,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
         <form onSubmit={(event) => void submit(event)} className="space-y-4 pt-1">
           <div className="space-y-1.5">
-            <Label htmlFor="collector-new-password" className="text-xs font-semibold">New password</Label>
+            <Label htmlFor="collector-new-password" className="text-xs font-medium">New password</Label>
             <div className="relative">
               <Input
                 id="collector-new-password"
@@ -73,7 +73,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => { setPassword(event.target.value); setError(""); }}
-                className="h-9 rounded-lg border-border/80 bg-background pr-10 text-[13px]"
+                className="h-9 rounded-lg border-border/80 bg-background pr-10 text-ui-label"
                 aria-invalid={Boolean(error)}
                 required
                 minLength={8}
@@ -81,24 +81,24 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
               <button
                 type="button"
                 onClick={() => setShowPassword((visible) => !visible)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground">At least 8 characters. Share it with the collector securely.</p>
+            <p className="text-ui-caption text-muted-foreground">At least 8 characters. Share it with the collector securely.</p>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="collector-confirm-password" className="text-xs font-semibold">Confirm new password</Label>
+            <Label htmlFor="collector-confirm-password" className="text-xs font-medium">Confirm new password</Label>
             <Input
               id="collector-confirm-password"
               type="password"
               autoComplete="new-password"
               value={confirmation}
               onChange={(event) => { setConfirmation(event.target.value); setError(""); }}
-              className="h-9 rounded-lg border-border/80 bg-background text-[13px]"
+              className="h-9 rounded-lg border-border/80 bg-background text-ui-label"
               aria-invalid={Boolean(error)}
               required
             />

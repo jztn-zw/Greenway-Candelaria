@@ -1,6 +1,7 @@
 import { formatReplayTime, getReplayDuration, getReplayTargetProgress, getReplayTargetState, sampleReplayTrip, type ReplayTrip } from "./replayTrip";
 import { fitReplayVideoMap, loadReplayVideoMap } from "./replayVideoMap";
 import { encodeReplayVideoFast } from "./replayVideoEncoder";
+import { readThemeColor } from "@/lib/themeColors";
 
 export const REPLAY_VIDEO_SPEEDS = [1, 2, 5, 10, 30, 60] as const;
 
@@ -48,14 +49,18 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
   if (!ctx) throw new Error("Video rendering is unavailable.");
 
   const styles = getComputedStyle(document.documentElement);
-  const color = (token: string, fallback: string) => "hsl(" + (styles.getPropertyValue(token).trim() || fallback) + ")";
+  const fontFamily = styles.getPropertyValue("--font-ui").trim() || "Inter, system-ui, sans-serif";
+  const headingFontFamily = styles.getPropertyValue("--font-heading").trim() || fontFamily;
   const palette = {
-    background: color("--background", "150 10% 8%"),
-    card: color("--card", "150 10% 11%"),
-    foreground: color("--foreground", "40 20% 93%"),
-    muted: color("--muted-foreground", "160 5% 45%"),
-    border: color("--border", "150 8% 18%"),
-    primary: color("--primary", "145 55% 42%"),
+    background: readThemeColor("background", styles),
+    card: readThemeColor("card", styles),
+    foreground: readThemeColor("foreground", styles),
+    muted: readThemeColor("muted-foreground", styles),
+    border: readThemeColor("border", styles),
+    primary: readThemeColor("primary", styles),
+    warning: readThemeColor("warning", styles),
+    upcoming: readThemeColor("neutral-400", styles),
+    inset: readThemeColor("map-inset", styles),
   };
 
   const mapHeight = height - 152;
@@ -90,7 +95,7 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillRect(x - 24, y - 32, 48, 22);
     ctx.fillStyle = palette.foreground;
-    ctx.font = "600 12px Inter, sans-serif";
+    ctx.font = `600 12px ${fontFamily}`;
     ctx.textAlign = "center"; ctx.textBaseline = "bottom";
     ctx.fillText(label, x, y - 12);
   };
@@ -103,19 +108,19 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
   };
   const drawPin = (point: [number, number], kind: keyof typeof glyphs | "upcoming", order?: number) => {
     const [x, y] = plot(point);
-    const pinColor = kind === "skipped" ? "#f59e0b" : kind === "upcoming" ? "#94a3b8" : kind === "truck" ? "hsl(145, 63%, 32%)" : palette.primary;
+    const pinColor = kind === "skipped" ? palette.warning : kind === "upcoming" ? palette.upcoming : palette.primary;
     ctx.save();
     ctx.translate(x, y);
     const scale = kind === "truck" ? 1.2 : 1;
     ctx.scale(scale, scale);
     ctx.translate(-18, -48);
-    ctx.fillStyle = pinColor; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+    ctx.fillStyle = pinColor; ctx.strokeStyle = palette.inset; ctx.lineWidth = 2;
     ctx.fill(pinShape); ctx.stroke(pinShape);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = palette.inset;
     ctx.beginPath(); ctx.arc(18, 18, 11, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = pinColor; ctx.fillStyle = pinColor; ctx.lineWidth = 2.5;
     if (kind === "upcoming") {
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "700 12px Inter, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `600 12px ${fontFamily}`;
       ctx.fillText(String(order ?? ""), 18, 18);
     } else {
       ctx.stroke(glyphs[kind]);
@@ -153,10 +158,10 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     ctx.fillRect(0, height - 76, width, 76);
     ctx.fillStyle = palette.foreground;
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    ctx.font = "600 20px Poppins, sans-serif";
+    ctx.font = `600 20px ${headingFontFamily}`;
     ctx.fillText("Collection replay · Candelaria", 32, 27);
     ctx.fillStyle = palette.muted;
-    ctx.font = "13px Inter, sans-serif";
+    ctx.font = `13px ${fontFamily}`;
     ctx.fillText(truckName + (plateNumber ? " · " + plateNumber : ""), 32, 53, width - 260);
     ctx.textAlign = "right";
     ctx.fillText(dateStr + " · " + speed + "× speed", width - 32, 38);
@@ -164,13 +169,13 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     ctx.textAlign = "left";
     ctx.fillText("Replay time", 32, height - 53);
     ctx.fillStyle = palette.foreground;
-    ctx.font = "600 15px Inter, sans-serif";
+    ctx.font = `600 15px ${fontFamily}`;
     ctx.fillText(formatReplayTime(sample.timestamp), 32, height - 29);
     ctx.fillStyle = palette.muted;
-    ctx.font = "13px Inter, sans-serif";
+    ctx.font = `13px ${fontFamily}`;
     ctx.fillText("Current target street", 245, height - 53);
     ctx.fillStyle = palette.foreground;
-    ctx.font = "600 15px Inter, sans-serif";
+    ctx.font = `600 15px ${fontFamily}`;
     const target = getReplayTargetProgress(trip, sample.index, replayTime);
     ctx.fillText(target.currentTarget ?? (target.targetUnknown ? "Not recorded" : "No active target"), 245, height - 29, 640);
     ctx.textAlign = "right";
@@ -179,10 +184,10 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     ctx.fillRect(width - 312, height - 27, 280, 5);
     ctx.fillStyle = palette.primary;
     ctx.fillRect(width - 312, height - 27, 280 * progress, 5);
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillStyle = palette.card;
     ctx.fillRect(width - 205, height - 95, 205, 19);
-    ctx.fillStyle = "#1f2937";
-    ctx.font = "10px Inter, sans-serif";
+    ctx.fillStyle = palette.foreground;
+    ctx.font = `10px ${fontFamily}`;
     ctx.fillText("© OpenStreetMap contributors", width - 8, height - 85);
   };
 

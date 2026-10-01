@@ -109,14 +109,14 @@ const CollectionCalendar = () => {
           <button
             type="button"
             onClick={() => navigate("/resident/schedule")}
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 hover:text-primary active:scale-95"
+            className="gw-action-primary-ghost group inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all active:scale-95"
           >
             View Calendar <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </button>
         }
         footer={<TooltipProvider delayDuration={100}>
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-          <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">ANNOUNCEMENTS</span>
+          <span className="mr-1 text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">ANNOUNCEMENTS</span>
           {selectedDateEvents.length === 0 ? (
             <span className="text-xs text-muted-foreground">
               {calendarError ? "Announcements unavailable right now." : "No official announcements on this date."}
@@ -126,18 +126,18 @@ const CollectionCalendar = () => {
             const end = event.end_date?.split("T")[0] || start;
             const dateLabel = formatDateOnly(start, { month: "short", day: "numeric" });
             const endLabel = end === start ? null : formatDateOnly(end, { month: "short", day: "numeric" });
-            const color = scheduleColorById.get(event.id) || "hsl(160 72% 52%)";
+            const color = scheduleColorById.get(event.id) || "hsl(var(--chart-1))";
             return (
               <Tooltip key={event.id}>
                 <TooltipTrigger asChild>
                   <span
-                    className="inline-flex max-w-[180px] items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
+                    className="inline-flex max-w-[180px] items-center gap-1.5 rounded-md border border-border/70 bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-muted/80 cursor-pointer"
                   >
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                     <span className="truncate font-semibold">{event.title}</span>
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="w-[280px] lg:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-xl border border-border bg-popover text-popover-foreground z-50 text-left">
+                <TooltipContent side="top" className="w-[280px] lg:w-[320px] max-w-[90vw] space-y-2 p-3 rounded-xl shadow-md border border-border bg-popover text-popover-foreground z-50 text-left">
                   <div className="flex items-start gap-2 font-bold text-xs leading-tight">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
@@ -146,13 +146,13 @@ const CollectionCalendar = () => {
                     <span className="break-words break-all [overflow-wrap:anywhere]">{event.title}</span>
                   </div>
 
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-ui-caption text-muted-foreground">
                     <strong className="text-foreground">Date:</strong> {dateLabel}{endLabel ? ` – ${endLabel}` : ""}
                   </p>
 
                   {event.description && (
                     <div className="pt-1.5 border-t border-border/60 max-h-36 overflow-y-auto pr-1">
-                      <p className="text-[11px] text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
+                      <p className="text-ui-caption text-muted-foreground/90 italic leading-relaxed break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap">
                         {event.description}
                       </p>
                     </div>

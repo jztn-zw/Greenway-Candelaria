@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PaginationControls from "@/components/common/PaginationControls";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
@@ -54,11 +55,11 @@ import type { Resident } from "./types";
 const ITEMS_PER_PAGE = 10;
 const residentStatusStyles: Record<string, string> = {
   Active:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    getStatusBadgeStyle("Active").className,
   Deactivated:
-    "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30",
+    getStatusBadgeStyle("Deactivated").className,
   Banned:
-    "bg-background/95 dark:bg-zinc-900/90 text-rose-700 dark:text-rose-300 border-rose-500/40 dark:border-rose-400/40 backdrop-blur-md shadow-2xs",
+    getStatusBadgeStyle("Banned").className,
 };
 
 const AdminResidents = () => {
@@ -217,7 +218,7 @@ const AdminResidents = () => {
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground tracking-tight">
+          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
             Resident Manager
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -267,7 +268,7 @@ const AdminResidents = () => {
             <div className="flex items-center min-h-[22px]">
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
                   kpi.tag
                 )}
               >
@@ -275,11 +276,11 @@ const AdminResidents = () => {
               </span>
             </div>
 
-            <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
               {kpi.value.toLocaleString()}
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-medium truncate">
+            <div className="text-ui-caption text-muted-foreground font-medium truncate">
               {kpi.subtitle}
             </div>
           </div>
@@ -319,7 +320,7 @@ const AdminResidents = () => {
                     setSearch("");
                     setCurrentPage(1);
                   }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-md"
+                  className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer p-0.5 rounded-md"
                   title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -421,14 +422,14 @@ const AdminResidents = () => {
                       {/* Resident Name & Initials */}
                       <TableCell className="pl-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs font-display shrink-0 shadow-2xs">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs font-body shrink-0 shadow-2xs">
                             {initials}
                           </div>
                           <div className="min-w-0">
                             <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
                               {r.fullName}
                             </span>
-                            <span className="text-[11px] text-muted-foreground md:hidden truncate block mt-0.5">
+                            <span className="text-ui-caption text-muted-foreground md:hidden truncate block mt-0.5">
                               @{r.username}
                             </span>
                           </div>
@@ -448,7 +449,7 @@ const AdminResidents = () => {
                             <span className="truncate">{r.email}</span>
                           </div>
                           {r.phone !== "N/A" && (
-                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                            <div className="flex items-center gap-1.5 text-muted-foreground text-ui-caption">
                               <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                               <span>{r.phone}</span>
                             </div>
@@ -480,7 +481,7 @@ const AdminResidents = () => {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
+                          className={`text-ui-caption font-semibold rounded-md px-2.5 py-0.5 ${
                             residentStatusStyles[r.status] ||
                             residentStatusStyles.Active
                           }`}
@@ -499,7 +500,7 @@ const AdminResidents = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg opacity-70 group-hover:opacity-100 hover:bg-muted cursor-pointer transition-opacity"
+                              className="h-8 w-8 rounded-lg opacity-70 group-hover:opacity-100 cursor-pointer transition-opacity"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>

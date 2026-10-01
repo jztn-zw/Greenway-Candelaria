@@ -1,3 +1,5 @@
+import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
+import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import type { RouteStop } from "../types";
 import { CheckCircle2, Circle, Navigation, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,22 +12,22 @@ const statusConfig = {
   done: {
     label: "Completed",
     icon: CheckCircle2,
-    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+    badgeClass: getStatusBadgeStyle("Completed").className,
   },
   "in-progress": {
     label: "Current target",
     icon: Navigation,
-    badgeClass: "bg-primary/10 text-primary border-primary/25 font-bold",
+    badgeClass: getStatusBadgeStyle("Current target").className,
   },
   skipped: {
     label: "Skipped",
     icon: AlertTriangle,
-    badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25",
+    badgeClass: getStatusBadgeStyle("Skipped").className,
   },
   "not-yet": {
     label: "Upcoming",
     icon: Circle,
-    badgeClass: "bg-muted text-muted-foreground border-border/80",
+    badgeClass: getStatusBadgeStyle("Upcoming").className,
   },
 };
 
@@ -50,9 +52,9 @@ const StopListItem = ({ stop }: StopListItemProps) => {
     >
       {/* Stop number badge */}
       <div
-        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-mono font-bold transition-transform shadow-2xs ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 text-xs tabular-nums font-semibold transition-transform shadow-2xs ${
           isActive
-            ? "bg-primary text-primary-foreground font-black shadow-primary/20"
+            ? "bg-primary text-primary-foreground font-semibold shadow-primary/20"
             : isDone
             ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
             : isSkipped
@@ -72,11 +74,11 @@ const StopListItem = ({ stop }: StopListItemProps) => {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1.5">
-          <p className="text-xs sm:text-sm font-bold text-foreground font-display truncate">
+          <p className="text-xs sm:text-sm font-semibold text-foreground font-body truncate">
             {stop.barangay}
           </p>
           {stop.status === "not-yet" && stop.distanceKm > 0 && (
-            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 font-medium px-2 py-0.5 rounded-lg bg-muted/60 border border-border/60">
+            <span className="text-ui-overline text-muted-foreground tabular-nums shrink-0 font-medium px-2 py-0.5 rounded-lg bg-muted/60 border border-border/60">
               {stop.distanceKm} km
             </span>
           )}
@@ -85,18 +87,18 @@ const StopListItem = ({ stop }: StopListItemProps) => {
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
           <Badge
             variant="outline"
-            className={`text-[10px] px-2 py-0.5 rounded-lg font-semibold ${config.badgeClass}`}
+            className={collectorBadgeClassName + " " + config.badgeClass}
           >
-            <Icon className="w-2.5 h-2.5 mr-1 shrink-0" />
+            <Icon className="w-3 h-3 shrink-0" />
             {config.label}
           </Badge>
           {stop.completedAt && (
-            <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
+            <span className="text-ui-overline text-muted-foreground tabular-nums font-medium">
               at {stop.completedAt}
             </span>
           )}
           {stop.status === "skipped" && stop.skippedReason && (
-            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 truncate max-w-[160px]">
+            <span className="text-ui-overline font-medium text-amber-600 dark:text-amber-400 truncate max-w-[160px]">
               • {stop.skippedReason}
             </span>
           )}

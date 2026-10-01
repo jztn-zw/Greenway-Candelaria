@@ -121,7 +121,7 @@ const ReportListTable = ({
                     className={cn(
                       "cursor-pointer transition-all duration-150 border-b border-border/60 group",
                       isSelected
-                        ? "bg-primary/10 border-l-4 border-l-primary font-medium shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                        ? "bg-primary/10 border-l-2 border-l-primary font-medium"
                         : "hover:bg-muted/40",
                     )}
                   >
@@ -130,7 +130,7 @@ const ReportListTable = ({
                     <div className="flex items-center gap-1.5">
                       <span
                         onClick={(e) => handleCopyRef(e, report.referenceNumber)}
-                        className="text-xs font-sans tabular-nums font-bold text-foreground hover:text-primary transition-colors cursor-copy"
+                        className="text-xs font-sans tabular-nums font-semibold text-foreground hover:text-primary transition-colors cursor-copy"
                         title="Click to copy reference"
                       >
                         {report.referenceNumber}
@@ -142,7 +142,7 @@ const ReportListTable = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${vc}`}
+                      className={`inline-flex items-center text-ui-caption font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${vc}`}
                     >
                       {report.violationType}
                     </Badge>
@@ -155,7 +155,7 @@ const ReportListTable = ({
                         {report.barangay}
                       </span>
                       {report.street && (
-                        <p className="text-[11px] text-muted-foreground truncate max-w-[160px] flex items-center gap-1">
+                        <p className="text-ui-caption text-muted-foreground truncate max-w-[160px] flex items-center gap-1">
                           <MapPin className="w-3 h-3 shrink-0" />
                           {report.street}
                         </p>
@@ -173,12 +173,12 @@ const ReportListTable = ({
                   {/* Photos */}
                   <TableCell className="py-3 text-center">
                     {report.photos?.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted/60 border border-border/60 text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-ui-caption font-semibold bg-muted/60 border border-border/60 text-muted-foreground">
                         <Camera className="w-3 h-3 text-muted-foreground" />
                         <span>{report.photos.length}</span>
                       </span>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground/60">—</span>
+                      <span className="text-ui-caption text-muted-foreground/60">—</span>
                     )}
                   </TableCell>
 
@@ -186,7 +186,7 @@ const ReportListTable = ({
                   <TableCell className="py-3">
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${sc.badge}`}
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${sc.badge}`}
                     >
                       {report.status}
                     </Badge>
@@ -199,7 +199,7 @@ const ReportListTable = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+                          className="h-8 w-8 rounded-lg cursor-pointer"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>

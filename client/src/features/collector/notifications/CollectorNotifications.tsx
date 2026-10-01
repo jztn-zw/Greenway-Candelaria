@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { FilterTabCount } from "@/components/common/FilterTabCount";
 import { useNavigate } from "react-router-dom";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
@@ -112,9 +111,6 @@ const CollectorNotifications = () => {
   const safePage = Math.min(currentPage, totalPages);
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   useEffect(() => setCurrentPage((page) => Math.min(page, totalPages)), [totalPages]);
-  const tabUnread = (cat: CollectorCategory) => {
-    return cat === "all" ? unreadCount : 0;
-  };
 
   const handleClick = (n: NotificationRow) => {
     if (!n.is_read) {
@@ -136,15 +132,15 @@ const CollectorNotifications = () => {
       <div className="hidden items-center justify-between gap-4 lg:flex">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl lg:text-3xl font-extrabold font-display text-foreground tracking-tight">Notifications</h1>
-            {unreadCount > 0 && <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-full border border-primary/20 shadow-2xs">{unreadCount} unread</span>}
+            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">Notifications</h1>
+            {unreadCount > 0 && <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-md border border-primary/20 shadow-2xs">{unreadCount} unread</span>}
           </div>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-1">Live route alerts, dispatch updates, and municipal announcements</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Live route alerts, dispatch updates, and municipal announcements</p>
         </div>
         {(unreadCount > 0 || notifications.length > 0) && (
           <div className="flex items-center gap-2 shrink-0">
-            {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} onClick={() => void markAllAsRead()} className="gap-1.5 text-xs h-9 px-3 rounded-xl border-border/80 bg-card hover:bg-muted/70 text-foreground font-semibold shadow-2xs transition-all active:scale-[0.98] cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
-            {notifications.length > 0 && <Button variant="ghost" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className="gap-1.5 text-xs h-9 px-3 rounded-xl border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 text-destructive font-semibold transition-all active:scale-[0.98] cursor-pointer"><Trash2 className="w-3.5 h-3.5" /><span>Clear all</span></Button>}
+            {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} onClick={() => void markAllAsRead()} className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
+            {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className="gap-1.5 text-xs h-9 px-3 rounded-xl border font-semibold transition-all cursor-pointer"><Trash2 className="w-3.5 h-3.5" /><span>Clear all</span></Button>}
           </div>
         )}
       </div>
@@ -160,7 +156,6 @@ const CollectorNotifications = () => {
           className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth lg:pr-4"
         >
           {tabs.map((tab) => {
-          const count = tabUnread(tab.key);
           const isActive = activeTab === tab.key;
           return (
             <button
@@ -168,14 +163,9 @@ const CollectorNotifications = () => {
               type="button"
               aria-pressed={isActive}
               onClick={(e) => handleTabClick(tab.key, e)}
-              className={`group h-9 px-3.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 active:scale-95 border cursor-pointer ${
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
-                  : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
-              }`}
+              className={`group h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 border cursor-pointer ${isActive ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-semibold" : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"}`}
             >
               <span>{tab.label}</span>
-              {isActive && count > 0 && <FilterTabCount count={count} />}
             </button>
           );
           })}
@@ -183,7 +173,7 @@ const CollectorNotifications = () => {
         {(unreadCount > 0 || notifications.length > 0) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="size-9 shrink-0 rounded-xl border-border/80 bg-card text-muted-foreground shadow-2xs lg:hidden" title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" className="size-9 shrink-0 rounded-xl shadow-2xs lg:hidden" title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-44 lg:hidden">
               {unreadCount > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => void markAllAsRead()} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark all as read</DropdownMenuItem>}
@@ -209,18 +199,18 @@ const CollectorNotifications = () => {
                 key={n.id}
                 disabled={isMutating}
                 onClick={() => handleClick(n)}
-                className={`group w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-muted/50 active:bg-muted/70 dark:hover:bg-muted/30 md:gap-4 md:p-4 lg:p-5 ${
+                className={`group w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] dark:hover:bg-[var(--button-neutral-hover)] md:gap-4 md:p-4 lg:p-5 ${
                   isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
                 }`}
               >
-                <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 group-hover:scale-105 ${iconStyle}`}>
+                <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 ${iconStyle}`}>
                   <Icon className="w-5 h-5" />
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className={`text-sm leading-snug break-words group-hover:text-primary transition-colors ${isUnread ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}>{title}</p>
                   {n.body && <p className="break-words pt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-1 lg:line-clamp-2">{n.body}</p>}
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium pt-1">
+                  <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground/80 font-medium pt-1">
                     <Clock className="w-3 h-3 text-muted-foreground/70" />
                     <span>{formatRelativeTime(n.created_at)}</span>
                   </div>
@@ -237,7 +227,7 @@ const CollectorNotifications = () => {
       ) : !error && !isLoading ? (
         <div className="p-16 text-center border border-dashed border-border/80 rounded-2xl bg-card/50 shadow-2xs">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary"><Bell className="w-6 h-6" /></div>
-          <h3 className="text-base font-bold font-display text-foreground">
+          <h3 className="gw-heading text-base text-foreground">
             No driver alerts found
           </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">

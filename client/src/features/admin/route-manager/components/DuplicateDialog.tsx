@@ -49,7 +49,7 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
         </p>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-foreground">
+          <label className="text-xs font-medium text-foreground">
             Target Day of Week
           </label>
           <Select value={targetDay} onValueChange={(v) => setTargetDay(v as Day)}>
@@ -64,11 +64,11 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
                   <SelectItem key={d} value={d} className="text-xs">
                     <div className="flex items-center justify-between gap-3 w-full">
                       <span className="font-semibold">{d}</span>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <span className="text-ui-overline text-muted-foreground flex items-center gap-1">
                         {isBio ? (
-                          <Leaf className="w-3 h-3 text-emerald-500" />
+                          <Leaf className="w-3 h-3 text-success-foreground" />
                         ) : (
-                          <Trash2 className="w-3 h-3 text-amber-500" />
+                          <Trash2 className="w-3 h-3 text-warning-foreground" />
                         )}
                         {waste.label}
                       </span>

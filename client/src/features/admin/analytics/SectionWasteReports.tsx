@@ -5,14 +5,14 @@ import { useAnalyticsData } from "./AnalyticsDataContext";
 import { reportStatusColors } from "./analytics.types";
 import { AlertTriangle, Clock, PieChart as PieIcon, TrendingUp, MapPin } from "lucide-react";
 
-const lineConfig = { reports: { label: "Reports", color: "hsl(210, 60%, 50%)" } };
-const barConfig = { days: { label: "Avg Days", color: "hsl(35, 90%, 55%)" } };
-const brgyConfig = { reports: { label: "Reports", color: "hsl(0, 72%, 51%)" } };
+const lineConfig = { reports: { label: "Reports", color: "hsl(var(--info))" } };
+const barConfig = { days: { label: "Avg Days", color: "hsl(var(--warning))" } };
+const brgyConfig = { reports: { label: "Reports", color: "hsl(var(--error))" } };
 const pieConfig = {
-  Submitted: { label: "Submitted", color: "hsl(35, 90%, 55%)" },
-  "Under Review": { label: "Under Review", color: "hsl(210, 70%, 55%)" },
-  Dispatched: { label: "Dispatched", color: "hsl(270, 50%, 55%)" },
-  Resolved: { label: "Resolved", color: "hsl(145, 63%, 32%)" },
+  Submitted: { label: "Submitted", color: "hsl(var(--warning))" },
+  "Under Review": { label: "Under Review", color: "hsl(var(--info))" },
+  Dispatched: { label: "Dispatched", color: "hsl(var(--chart-3))" },
+  Resolved: { label: "Resolved", color: "hsl(var(--primary))" },
 };
 
 const SectionWasteReports: React.FC = () => {
@@ -30,7 +30,7 @@ const SectionWasteReports: React.FC = () => {
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Incident Reports per Week</h3>
+              <h3 className="gw-heading text-sm text-foreground">Incident Reports per Week</h3>
               <p className="text-xs text-muted-foreground">Total citizen-submitted report intake</p>
             </div>
           </div>
@@ -60,7 +60,7 @@ const SectionWasteReports: React.FC = () => {
               <PieIcon className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Report Lifecycle Distribution</h3>
+              <h3 className="gw-heading text-sm text-foreground">Report Lifecycle Distribution</h3>
               <p className="text-xs text-muted-foreground">Active triage, dispatch, and resolved status</p>
             </div>
           </div>
@@ -107,7 +107,7 @@ const SectionWasteReports: React.FC = () => {
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Average resolution time</h3>
+              <h3 className="gw-heading text-sm text-foreground">Average resolution time</h3>
               <p className="text-xs text-muted-foreground">Time from report submission to resolution</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ const SectionWasteReports: React.FC = () => {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Report categories</h3>
+              <h3 className="gw-heading text-sm text-foreground">Report categories</h3>
               <p className="text-xs text-muted-foreground">Most common issues submitted by residents</p>
             </div>
           </div>
@@ -138,13 +138,13 @@ const SectionWasteReports: React.FC = () => {
           <div className="space-y-3 pt-1">
             {violationTypes.map((v, i) => (
               <div key={v.type} className="flex items-center gap-3">
-                <span className="text-xs font-extrabold text-muted-foreground w-4 text-center font-display">
+                <span className="text-xs font-semibold text-muted-foreground w-4 text-center font-body tabular-nums">
                   #{i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs font-semibold text-foreground truncate">{v.type}</span>
-                    <span className="text-xs font-bold text-destructive tabular-nums">{v.count} reports</span>
+                    <span className="text-xs font-semibold text-destructive tabular-nums">{v.count} reports</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -167,7 +167,7 @@ const SectionWasteReports: React.FC = () => {
             <MapPin className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">Reports by barangay</h3>
+            <h3 className="gw-heading text-sm text-foreground">Reports by barangay</h3>
             <p className="text-xs text-muted-foreground">Barangays with the highest report volume in this period</p>
           </div>
         </div>

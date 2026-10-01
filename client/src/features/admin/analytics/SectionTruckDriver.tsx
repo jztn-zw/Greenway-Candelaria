@@ -1,3 +1,4 @@
+import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -8,16 +9,14 @@ import { useAnalyticsData } from "./AnalyticsDataContext";
 import { withDriverChartLabels } from "./analytics.utils";
 
 const routesConfig = {
-  completed: { label: "Completed", color: "hsl(145, 58%, 31%)" },
-  incomplete: { label: "Incomplete", color: "hsl(35, 82%, 52%)" },
-  missedRoutes: { label: "Missed", color: "hsl(13, 70%, 48%)" },
-  cancelled: { label: "Cancelled", color: "hsl(204, 35%, 52%)" },
+  completed: { label: "Completed", color: "hsl(var(--chart-1))" },
+  incomplete: { label: "Incomplete", color: "hsl(var(--warning))" },
+  missedRoutes: { label: "Missed", color: "hsl(var(--error))" },
+  cancelled: { label: "Cancelled", color: "hsl(var(--muted-foreground))" },
 };
 
 const availabilityClass = (availability: string) => {
-  if (availability === "Collecting") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (availability === "Under maintenance" || availability === "GPS unavailable") return "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300";
-  return "border-border/80 bg-muted/50 text-muted-foreground";
+  return getStatusBadgeStyle(availability).className;
 };
 
 const EmptyState = ({ children }: { children: React.ReactNode }) => (
@@ -37,7 +36,7 @@ const SectionTruckDriver: React.FC = () => {
       <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
-          <div><h3 className="text-sm font-bold text-foreground">Route outcomes by driver</h3><p className="text-xs text-muted-foreground">Completed, incomplete, missed, and cancelled runs in the selected period.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Route outcomes by driver</h3><p className="text-xs text-muted-foreground">Completed, incomplete, missed, and cancelled runs in the selected period.</p></div>
         </div>
         {outcomeCount === 0 ? (
           <EmptyState>No completed, incomplete, missed, or cancelled routes in this period.</EmptyState>
@@ -63,7 +62,7 @@ const SectionTruckDriver: React.FC = () => {
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
-          <div><h3 className="text-sm font-bold text-foreground">Driver operations</h3><p className="text-xs text-muted-foreground">Current truck assignment and route-run outcomes.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Driver operations</h3><p className="text-xs text-muted-foreground">Current truck assignment and route-run outcomes.</p></div>
         </div>
         {driverOperations.length === 0 ? (
           <EmptyState>No driver routes match this period and barangay.</EmptyState>
@@ -88,20 +87,20 @@ const SectionTruckDriver: React.FC = () => {
                     <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.missedRoutes}</TableCell>
                     <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.cancelled}</TableCell>
                     <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.missedStops}</TableCell>
-                    <TableCell className="py-3.5 text-right"><Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300">{driver.rate}%</Badge></TableCell>
+                    <TableCell className="py-3.5 text-right"><Badge variant="outline" className={"text-xs font-bold " + badgeStyles.success.className}>{driver.rate}%</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
         )}
-        <p className="border-t border-border/60 px-4 py-3 text-[11px] text-muted-foreground sm:px-5">Incomplete means a partial or overdue run with some completed stops. Missed means a partial or overdue run with no completed stops. Cancelled plans are separate. Stop completion includes ongoing routes.</p>
+        <p className="border-t border-border/60 px-4 py-3 text-ui-caption text-muted-foreground sm:px-5">Incomplete means a partial or overdue run with some completed stops. Missed means a partial or overdue run with no completed stops. Cancelled plans are separate. Stop completion includes ongoing routes.</p>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Truck className="h-4 w-4" /></div>
-          <div><h3 className="text-sm font-bold text-foreground">Fleet status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Fleet status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
         </div>
         {fleetStatus.length === 0 ? (
           <EmptyState>No trucks served this barangay during the selected period.</EmptyState>
@@ -117,7 +116,7 @@ const SectionTruckDriver: React.FC = () => {
               <TableBody className="divide-y divide-border/60">
                 {fleetStatus.map((truck) => (
                   <TableRow key={truck.id} className="hover:bg-muted/35">
-                    <TableCell className="py-3.5 text-xs font-semibold text-foreground"><div>{truck.truck}</div><div className="mt-0.5 text-[11px] font-normal text-muted-foreground">{truck.plate}</div></TableCell>
+                    <TableCell className="py-3.5 text-xs font-semibold text-foreground"><div>{truck.truck}</div><div className="mt-0.5 text-ui-caption font-normal text-muted-foreground">{truck.plate}</div></TableCell>
                     <TableCell className="py-3.5"><Badge variant="outline" className={availabilityClass(truck.availability)}>{truck.availability}</Badge></TableCell>
                     <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.assigned}</TableCell>
                     <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.completed}</TableCell>

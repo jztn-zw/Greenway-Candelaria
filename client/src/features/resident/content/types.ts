@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
 
 export interface PostItem {
@@ -37,37 +38,7 @@ export function formatCategory(cat: string): string {
 }
 
 export function getCategoryBadgeStyle(cat: string): { bg: string; text: string; border: string; dot: string } {
-  switch (cat) {
-    case "WASTE_TIP":
-      return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
-        text: "text-foreground",
-        border: "border-border/80",
-        dot: "bg-emerald-500",
-      };
-    case "EVENT":
-      return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
-        text: "text-foreground",
-        border: "border-border/80",
-        dot: "bg-amber-500",
-      };
-    case "NEWS":
-    case "ANNOUNCEMENT":
-      return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
-        text: "text-foreground",
-        border: "border-border/80",
-        dot: "bg-blue-500",
-      };
-    default:
-      return {
-        bg: "bg-background/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xs",
-        text: "text-foreground",
-        border: "border-border/80",
-        dot: "bg-primary",
-      };
-  }
+  return getCategoryBadgeColors(cat);
 }
 
 export function getReadingTime(text: string = ""): string {

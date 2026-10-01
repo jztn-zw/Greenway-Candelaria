@@ -33,7 +33,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-bold font-display text-foreground tracking-tight">
+        <h3 className="gw-heading text-sm text-foreground tracking-tight">
           Incident Location
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -44,9 +44,9 @@ const LocationSection: React.FC<LocationSectionProps> = ({
       {query.isError && <p role="alert" className="text-xs text-destructive">Could not refresh barangays. Please try again.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3.5">
         <div>
-          <label className="text-xs font-semibold text-foreground mb-1.5 block">Barangay</label>
+          <label className="text-xs font-medium text-foreground mb-1.5 block">Barangay</label>
           {loadingBarangays ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground h-10 px-3 border border-border/80 rounded-xl bg-muted/20">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground h-10 px-3 border border-border/80 rounded-lg bg-muted/20">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
               Loading barangays…
             </div>
@@ -67,14 +67,14 @@ const LocationSection: React.FC<LocationSectionProps> = ({
             />
           )}
           {showError && !loadingBarangays && (
-            <p className="mt-1.5 text-[11px] font-medium text-destructive">Please select a barangay.</p>
+            <p className="mt-1.5 text-ui-caption font-medium text-destructive">Please select a barangay.</p>
           )}
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+          <label className="text-xs font-medium text-foreground mb-1.5 flex items-center gap-1.5">
             Street or Landmark
-            <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
+            <span className="text-ui-caption text-muted-foreground font-normal">(optional)</span>
           </label>
           <Input
             value={streetOrLandmark}

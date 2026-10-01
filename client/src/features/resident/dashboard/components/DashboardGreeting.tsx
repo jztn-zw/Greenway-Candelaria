@@ -24,11 +24,11 @@ const DashboardGreeting = () => {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground font-display tracking-tight">
+            <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight">
               {greeting}, <span className="text-primary">{firstName}!</span>
             </h1>
             {barangay && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20 shadow-2xs">
                 <MapPin className="w-3 h-3" />
                 <span>{barangay}</span>
               </span>
@@ -40,7 +40,7 @@ const DashboardGreeting = () => {
         </div>
 
         <div className="flex w-full shrink-0 items-center justify-between gap-2.5 md:w-auto md:justify-end">
-          <span className="h-9 px-3.5 rounded-xl text-xs font-semibold text-muted-foreground bg-card border border-border/80 flex items-center shadow-2xs tabular-nums">
+          <span className="h-9 px-3.5 rounded-lg text-xs font-semibold text-muted-foreground bg-card border border-border/80 flex items-center shadow-2xs tabular-nums">
             {formatManilaDateTime(new Date(), {
               weekday: "short",
               month: "short",
@@ -51,7 +51,7 @@ const DashboardGreeting = () => {
           <Button
             size="sm"
             onClick={() => navigate("/resident/report")}
-            className="rounded-xl h-9 px-3.5 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer active:scale-95 transition-all"
+            className="rounded-xl h-9 px-3.5 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Report Waste</span>

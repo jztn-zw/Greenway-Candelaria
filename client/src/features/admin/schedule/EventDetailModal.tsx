@@ -1,3 +1,4 @@
+import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import {
   Dialog,
@@ -31,26 +32,26 @@ interface EventDetailModalProps {
 const categoryMeta: Record<EventType, { label: string; badge: string; icon: React.ElementType }> = {
   PRIVATE_EVENT: {
     label: "MENRO Private Event",
-    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    badge: getCategoryBadgeColors("MENRO Private Event").className,
     icon: Lock,
   },
   COMMUNITY_EVENT: {
     label: "Public Community Event",
-    badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    badge: getCategoryBadgeColors("Public Community Event").className,
     icon: Users,
   },
   COLLECTION_SCHEDULE: {
     label: "Collection Route Schedule",
-    badge: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    badge: getCategoryBadgeColors("Collection Route Schedule").className,
     icon: Truck,
   },
 };
 
 const statusMeta: Record<EventStatus, { label: string; badge: string }> = {
-  UPCOMING: { label: "Upcoming", badge: "bg-primary/10 text-primary border-primary/20" },
-  ONGOING: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  COMPLETED: { label: "Completed", badge: "bg-muted text-muted-foreground border-border" },
-  CANCELLED: { label: "Cancelled", badge: "bg-destructive/10 text-destructive border-destructive/20" },
+  UPCOMING: { label: "Upcoming", badge: getStatusBadgeStyle("Upcoming").className },
+  ONGOING: { label: "In Progress", badge: getStatusBadgeStyle("In Progress").className },
+  COMPLETED: { label: "Completed", badge: getStatusBadgeStyle("Completed").className },
+  CANCELLED: { label: "Cancelled", badge: getStatusBadgeStyle("Cancelled").className },
 };
 
 export const EventDetailModal: React.FC<EventDetailModalProps> = ({
@@ -97,7 +98,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               <CalendarDays className="w-4 h-4" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold font-display text-foreground tracking-tight">
+              <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
                 Schedule Details
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -108,7 +109,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 -mr-1"
+            className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -122,7 +123,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
-                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${meta.badge}`}
+                className={`text-ui-caption font-semibold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${meta.badge}`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{meta.label}</span>
@@ -130,17 +131,17 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
               <Badge
                 variant="outline"
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${status.badge}`}
+                className={`text-ui-caption font-semibold px-2 py-0.5 rounded-md border ${status.badge}`}
               >
                 {status.label}
               </Badge>
 
-              <span className="text-[11px] text-muted-foreground ml-auto">
+              <span className="text-ui-caption text-muted-foreground ml-auto">
                 {event.visibility === "PRIVATE" ? "Hidden from Residents" : "Public on Resident Portal"}
               </span>
             </div>
 
-            <h3 className="text-base sm:text-lg font-bold text-foreground font-display leading-snug">
+            <h3 className="gw-heading text-base sm:text-lg text-foreground leading-snug">
               {event.title}
             </h3>
           </div>
@@ -148,7 +149,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           {/* Date range */}
           <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs">
             <div className="space-y-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <span className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <CalendarDays className="w-3.5 h-3.5 text-primary" />
                  <span>{formattedEndDate ? "Date Range" : "Scheduled Date"}</span>
               </span>
@@ -159,7 +160,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           {/* Description */}
           {event.description ? (
             <div className="space-y-1.5 text-xs">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <span className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                 Notes & Agenda
               </span>
               <p className="text-xs text-foreground/90 leading-relaxed p-3 rounded-xl bg-background border border-border/80 whitespace-pre-wrap">
@@ -175,7 +176,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
           {/* Creator Tag */}
           {event.creator_name && (
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+            <div className="flex items-center gap-2 text-ui-caption text-muted-foreground pt-1 border-t border-border/60">
               <User className="w-3.5 h-3.5 text-primary" />
               <span>Created by: <strong className="text-foreground">{event.creator_name}</strong></span>
             </div>
@@ -209,7 +210,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                 onClose();
                 onEdit(event);
               }}
-              className="h-10 px-5 rounded-xl text-xs font-semibold cursor-pointer gap-1.5 active:scale-95 shadow-xs"
+              className="h-10 px-5 rounded-xl text-xs font-semibold cursor-pointer gap-1.5 shadow-xs"
             >
               <Edit2 className="w-3.5 h-3.5" />
               <span>Edit Schedule</span>
