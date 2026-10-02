@@ -1,4 +1,7 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 import { FormDialog } from "@/components/FormDialog";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/PageLoadingSkeletons";
@@ -59,8 +62,8 @@ const AdminBarangays = () => {
     (await fetchManagedStreets(selectedId)).streets, [], { enabled: !!selectedId });
   const { data: barangays, setData: setBarangays, isLoading: isLoadingBarangays, refetch: retryOverview } = overviewQuery;
   const { data: streets, setData: setStreets, isLoading: isLoadingStreets, refetch: retryStreets } = streetsQuery;
-  const overviewError = overviewQuery.error?.message ?? "";
-  const streetsError = streetsQuery.error?.message ?? "";
+  const overviewError = overviewQuery.dataUpdatedAt === 0 ? overviewQuery.error?.message ?? "" : "";
+  const streetsError = streetsQuery.dataUpdatedAt === 0 ? streetsQuery.error?.message ?? "" : "";
   useLayoutEffect(() => {
     if (!overviewQuery.data.length) return;
     setSelectedId((current) => current && barangays.some((row) => row.id === current) ? current
@@ -282,8 +285,10 @@ const AdminBarangays = () => {
   };
 
   if (isLoadingBarangays) return <BarangayManagerPageSkeleton />;
+  if (overviewError) return <PageErrorState kind="unavailable" description="We couldn't load barangays. Please try again." onRetry={() => void retryOverview()} retrying={overviewQuery.isFetching} homeHref="/admin" />;
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-8">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
@@ -296,6 +301,8 @@ const AdminBarangays = () => {
           </p>
         </div>
       </div>
+
+      {(overviewQuery.error || streetsQuery.error) && <DataRefreshNotice primary message="Some barangay or street information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (overviewQuery.error) void retryOverview(); if (streetsQuery.error) void retryStreets(); }} retrying={overviewQuery.isFetching || streetsQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
@@ -355,11 +362,6 @@ const AdminBarangays = () => {
               <p className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading barangays…
               </p>
-            ) : overviewError ? (
-              <div className="p-6 text-center text-sm">
-                <p role="alert" className="text-destructive">{overviewError}</p>
-                <Button type="button" variant="outline" className="mt-3" onClick={() => void retryOverview()}>Retry</Button>
-              </div>
             ) : visibleBarangays.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted-foreground">
                 No barangays found.
@@ -524,10 +526,7 @@ const AdminBarangays = () => {
                         {isLoadingStreets ? (
                           <BarangayStreetRowsSkeleton />
                         ) : streetsError ? (
-                          <div className="py-12 text-center text-xs">
-                            <p role="alert" className="text-destructive">{streetsError}</p>
-                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void retryStreets()}>Retry</Button>
-                          </div>
+                          <PageErrorState kind="unavailable" variant="section" title="Streets couldn't load" onRetry={() => void retryStreets()} retrying={streetsQuery.isFetching} />
                         ) : visibleStreets.length === 0 ? (
                           <div className="py-12 text-center text-xs text-muted-foreground">
                             {streets.length === 0
@@ -633,8 +632,8 @@ const AdminBarangays = () => {
         description={selectedBarangay ? `Street details for Barangay ${selectedBarangay.name}.` : "Enter street details."}
         footer={<>
           <Button type="button" variant="outline" onClick={requestCloseStreetEditor} disabled={isSavingStreet} className={formDialogStyles.cancelButton}>Cancel</Button>
-          <Button type="submit" form="barangay-street-form" disabled={isSavingStreet} className={formDialogStyles.primaryButton}>
-            {isSavingStreet && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+          <Button type="submit" form="barangay-street-form" disabled={isSavingStreet} className={formDialogStyles.primaryButton} loading={isSavingStreet} loadingLabel={editingStreet ? "Saving street…" : "Adding street…"}>
+
             {editingStreet ? "Save changes" : "Add street"}
           </Button>
         </>}
@@ -699,6 +698,7 @@ const AdminBarangays = () => {
         onConfirm={() => void confirmDelete()}
       />
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

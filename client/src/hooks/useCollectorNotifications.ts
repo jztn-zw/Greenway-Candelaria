@@ -3,6 +3,7 @@ import useAuthStore from "@/store/authStore";
 import notificationsService, { type NotificationFilters } from "@/services/notificationsService";
 import { collectorKey, collectorQueryDefaults, useCollectorAction, useCollectorQuery } from "@/lib/collectorQuery";
 import { toast } from "@/lib/toast";
+import { usePendingAction } from "./usePendingAction";
 
 type Category = NonNullable<NotificationFilters["category"]>;
 const useFeed = (category: Category) => {
@@ -22,6 +23,7 @@ export const useCollectorNotifications = () => {
   const recent = useFeed("all");
   const unread = useCollectorQuery("notifications", ["count"], notificationsService.fetchUnreadCount, { refetchInterval: false });
   const runAction = useCollectorAction("notifications");
+  const markingAll = usePendingAction();
   const isMutating = useIsMutating({ predicate: (mutation) => mutation.meta?.collectorUserId === user?.id && Array.isArray(mutation.meta?.collectorDomains) && mutation.meta.collectorDomains.includes("notifications") }) > 0;
   const perform = async (action: () => Promise<void>, success?: string) => {
     try { await runAction(action); if (success && useAuthStore.getState().user?.id === user?.id) toast.success(success); }
@@ -37,11 +39,17 @@ export const useCollectorNotifications = () => {
     notifications, recentNotifications: (recent.data?.pages[0]?.notifications ?? []).filter((row) => row.user_id === user?.id).slice(0, 20),
     category, unreadCount: unread.data ?? 0, total: feed.data?.pages[0]?.total ?? 0,
     isLoading: feed.isLoading || feed.isFetchingNextPage, isMutating,
+    isRefreshing: feed.isFetching || unread.isFetching || recent.isFetching,
+    hasLoadedData: feed.data !== undefined,
     error: feed.error || unread.error || recent.error ? "Notifications could not be loaded. Please try again." : null,
     nextCursor: feed.hasNextPage ? feed.data?.pages[feed.data.pages.length - 1]?.next_cursor ?? null : null,
     loadMore: async () => { if (feed.hasNextPage && !feed.isFetching) await feed.fetchNextPage(); }, fetchNotifications,
     markAsRead: (id: string) => perform(() => notificationsService.markNotificationAsRead(id)),
-    markAllAsRead: () => perform(() => notificationsService.markAllNotificationsAsRead(), "All notifications marked as read"),
+    isMarkingAll: markingAll.isPending,
+    markAllAsRead: () => {
+      if (isMutating) return;
+      return markingAll.run(() => perform(() => notificationsService.markAllNotificationsAsRead(), "All notifications marked as read"));
+    },
     clearAll: () => perform(() => notificationsService.clearAllNotifications(), "Notification history cleared"),
   };
 };

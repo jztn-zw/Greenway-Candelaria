@@ -82,15 +82,15 @@ const AuthModal = ({
 }: AuthModalProps) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"login" | "register">(defaultTab);
+  const [loading, setLoading] = useState(false);
 
   // Sync tab when defaultTab prop changes (e.g. clicking Sign Up vs Login)
   const prevDefaultTab = useRef(defaultTab);
-  if (prevDefaultTab.current !== defaultTab) {
+  if (prevDefaultTab.current !== defaultTab && !loading) {
     prevDefaultTab.current = defaultTab;
     if (tab !== defaultTab) setTab(defaultTab);
   }
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [barangayOptions, setBarangayOptions] = useState<BarangayLocationRow[]>([]);
   const [streetOptions, setStreetOptions] = useState<BarangayStreetRow[]>([]);
   const [streetsLoading, setStreetsLoading] = useState(false);
@@ -209,6 +209,7 @@ const AuthModal = ({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     const errs = validateRegister();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -239,6 +240,7 @@ const AuthModal = ({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     const errs = validateLogin();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -275,12 +277,13 @@ const AuthModal = ({
   const fieldLabelClass = "text-ui-label font-medium text-foreground";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!loading) onOpenChange(nextOpen); }}>
       <DialogContent className="max-h-[94dvh] gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card p-0 shadow-2xl sm:max-w-[960px] md:max-w-[960px] [&>button]:hidden">
         <div className="relative flex min-h-0 max-h-[94dvh] flex-col md:flex-row">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
+            disabled={loading}
             aria-label="Close authentication dialog"
             className="gw-action-ghost absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:bg-canopy/60 md:text-forest-foreground/80 md:hover:bg-canopy/80 md:hover:text-forest-foreground"
           >
@@ -361,9 +364,10 @@ const AuthModal = ({
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    <span>{loading ? "Logging in…" : "Log In to GreenWay"}</span>
-                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+                  <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Signing in…">
+
+                    <span>{"Log In to GreenWay"}</span>
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
                   <div className="relative my-1">
@@ -385,7 +389,7 @@ const AuthModal = ({
 
                   <p className="pt-1 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <button type="button" onClick={() => { setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
+                    <button type="button" disabled={loading} onClick={() => { setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Sign Up
                     </button>
                   </p>
@@ -537,9 +541,10 @@ const AuthModal = ({
                   </div>
                   {errors.terms && <p className="-mt-2 text-xs text-destructive">{errors.terms}</p>}
 
-                  <Button type="submit" className="mt-0.5 w-full" disabled={loading}>
-                    <span>{loading ? "Creating account…" : "Create My Account"}</span>
-                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+                  <Button type="submit" className="mt-0.5 w-full" disabled={loading} loading={loading} loadingLabel="Creating account…">
+
+                    <span>{"Create My Account"}</span>
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
                   <div className="relative my-1">
@@ -559,7 +564,7 @@ const AuthModal = ({
 
                   <p className="text-center text-sm text-muted-foreground">
                     Already a member?{" "}
-                    <button type="button" onClick={() => { setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
+                    <button type="button" disabled={loading} onClick={() => { setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Log In
                     </button>
                   </p>

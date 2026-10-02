@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isAxiosError } from "axios";
-import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, Loader2, MapPin, Minus, MousePointer2, Plus, RefreshCw, Save, Trash2, Undo2 } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, Loader2, MapPin, Minus, MousePointer2, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import {
   Dialog,
@@ -334,17 +335,7 @@ const StreetCoverageEditor = ({
             </div>
           )}
           {routeError && (
-            <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3.5 sm:flex-row sm:items-center sm:justify-between" role="alert">
-              <div className="flex gap-3">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground">{routeError.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{routeError.description}</p>
-                  <p className="mt-1 text-ui-caption leading-5 text-muted-foreground">Your marked points are kept while this window stays open.</p>
-                </div>
-              </div>
-              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 self-start rounded-lg text-xs sm:self-center" onClick={() => setRetry((current) => current + 1)}><RefreshCw className="size-3.5" /> Retry</Button>
-            </div>
+            <DataRefreshNotice primary role="alert" message={`${routeError.title}. ${routeError.description} Your marked points are kept while this window stays open.`} onRetry={() => setRetry((current) => current + 1)} retrying={routing} />
           )}
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-border/80 bg-card p-3 shadow-2xs sm:px-3.5">
             <div className="min-w-0" role="status" aria-live="polite">
@@ -419,9 +410,9 @@ const StreetCoverageEditor = ({
           </div>
           <div className="flex shrink-0 items-center justify-end gap-2.5">
             <Button type="button" variant="outline" className="h-9 flex-1 rounded-xl px-4 text-xs font-medium sm:flex-none" onClick={requestClose} disabled={saving}>Cancel</Button>
-              <Button type="button" className="h-9 flex-1 gap-1.5 rounded-xl px-5 text-xs font-semibold shadow-sm sm:flex-none" onClick={() => void savePath()} disabled={!canSave}>
-              {saving || routing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? "Saving…" : routing ? "Matching roads…" : "Save path"}
+              <Button type="button" className="h-9 flex-1 gap-1.5 rounded-xl px-5 text-xs font-semibold shadow-sm sm:flex-none" onClick={() => void savePath()} disabled={!canSave} loading={saving} loadingLabel="Saving path…">
+              <Save className="h-4 w-4" />
+              Save path
             </Button>
           </div>
         </div>

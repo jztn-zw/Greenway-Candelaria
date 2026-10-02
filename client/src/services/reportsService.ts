@@ -49,7 +49,7 @@ export interface MyReportRow {
 export interface SubmitReportPayload {
   barangay_id: string;
   violation_type: string;
-  landmark?: string;
+  landmark: string;
   description: string;
   pin_lat?: number;
   pin_lng?: number;

@@ -136,11 +136,6 @@ const PostCard = ({
         <h3 className="gw-heading text-sm sm:text-base text-foreground leading-snug line-clamp-2">
           {post.title}
         </h3>
-        {post.source && (
-          <p className="text-ui-overline text-muted-foreground/70 italic line-clamp-1">
-            {post.source}
-          </p>
-        )}
         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1">
           {post.body}
         </p>

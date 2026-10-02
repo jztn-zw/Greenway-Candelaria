@@ -1,5 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
-import { QUICK_CHIPS, VIOLATION_OPTIONS, type ViolationType } from "./types";
+import { VIOLATION_OPTIONS, type ViolationType } from "./types";
+import { getReportPrompts } from "./reportDescription";
 
 interface DescriptionSectionProps {
   value: string;
@@ -10,11 +11,7 @@ interface DescriptionSectionProps {
 
 const DescriptionSection = ({ value, onChange, violationType, showError = false }: DescriptionSectionProps) => {
   const violation = VIOLATION_OPTIONS.find((option) => option.value === violationType);
-  const prompts = violationType === "missed-collection"
-    ? ["What was the scheduled collection day?", "Which street or landmark was affected?", "How many households are affected?"]
-    : violationType === "open-burning"
-      ? ["When did you observe the burning?", "Is smoke affecting nearby homes?", "Describe the exact location."]
-      : QUICK_CHIPS;
+  const prompts = getReportPrompts(violationType);
   const handleChipClick = (chip: string) => {
     if (value.includes(chip)) return;
     const separator = value.trim() ? "\n\n" : "";
@@ -23,23 +20,13 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h3 className="gw-heading text-sm text-foreground tracking-tight">
-            Incident Description
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Provide specific details about what you observed.
-          </p>
-        </div>
-
-        <span className="text-ui-caption text-muted-foreground hidden md:inline-block">
-          {value.trim().length >= 10 ? (
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Ready</span>
-          ) : (
-            <span className="text-muted-foreground">{10 - value.trim().length} more chars needed</span>
-          )}
-        </span>
+      <div>
+        <h3 className="gw-heading text-sm text-foreground tracking-tight">
+          Incident Description
+        </h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Provide specific details about what you observed.
+        </p>
       </div>
 
       <div>
@@ -86,16 +73,11 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
           maxLength={2000}
         />
 
-        <div className="flex items-center justify-between text-ui-caption px-0.5">
-          {showError ? (
-            <p className="font-medium text-destructive">Please enter at least 10 characters.</p>
-          ) : (
-            <p className="text-muted-foreground">Minimum 10 characters required</p>
-          )}
-          <span className="text-muted-foreground/70 tabular-nums">
-            {value.length}/2000
-          </span>
-        </div>
+        {showError && (
+          <p role="alert" className="px-0.5 text-ui-caption font-medium text-destructive">
+            Please describe the incident in at least 10 characters. Suggested questions do not count.
+          </p>
+        )}
       </div>
     </div>
   );

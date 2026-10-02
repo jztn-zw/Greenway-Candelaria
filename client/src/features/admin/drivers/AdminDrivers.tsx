@@ -1,4 +1,7 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { SearchInput } from "@/components/common/SearchInput";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
@@ -85,8 +88,8 @@ const AdminDrivers = () => {
   const { data: drivers, setData: setDrivers } = driversQuery;
   const { data: trucks, setData: setTrucks } = trucksQuery;
   const isLoading = driversQuery.isLoading || trucksQuery.isLoading;
-  const driversError = driversQuery.error?.message ?? "";
-  const trucksError = trucksQuery.error?.message ?? "";
+  const driversError = driversQuery.dataUpdatedAt === 0 ? driversQuery.error?.message ?? "" : "";
+  const trucksError = trucksQuery.dataUpdatedAt === 0 ? trucksQuery.error?.message ?? "" : "";
   const loadData = () => Promise.all([driversQuery.refetch(), trucksQuery.refetch()]);
   const activityQuery = useAdminQuery("drivers", ["activity", selectedDriverId], async () =>
     (await fetchDriverActivity(selectedDriverId!, 30)).map(mapDriverActivityRow), { enabled: !!selectedDriverId });
@@ -381,6 +384,7 @@ const AdminDrivers = () => {
           driver={selectedDriver}
           trucks={trucks}
           isActivityLoading={isActivityLoading}
+          isActivityRefreshing={activityQuery.isFetching}
           activityError={activityError}
           onRetryActivity={() => activityQuery.refetch()}
           onEdit={openDriverEditorFromDetail}
@@ -433,8 +437,10 @@ const AdminDrivers = () => {
   if (isLoading) {
     return <CollectorManagerPageSkeleton activeTab={activeTab} />;
   }
+  if (driversError && trucksError && !driverEditorOpen && !truckEditorOpen) return <PageErrorState kind="unavailable" description="We couldn't load collectors and trucks. Please try again." onRetry={() => void loadData()} retrying={driversQuery.isFetching || trucksQuery.isFetching} homeHref="/admin" />;
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Executive Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
@@ -457,6 +463,8 @@ const AdminDrivers = () => {
           {activeTab === "drivers" ? "Add Collector" : "Add Truck"}
         </Button>
       </div>
+
+      {(driversQuery.error || trucksQuery.error) && <DataRefreshNotice primary message="Some collector or fleet information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (driversQuery.error) void driversQuery.refetch(); if (trucksQuery.error) void trucksQuery.refetch(); }} retrying={driversQuery.isFetching || trucksQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
@@ -618,15 +626,9 @@ const AdminDrivers = () => {
 
       {/* ── Main Content Grid ── */}
       {activeTab === "drivers" && driversError ? (
-        <div className="rounded-2xl border border-border/80 bg-card p-10 text-center text-sm">
-          <p role="alert" className="text-destructive">Could not load collectors. {driversError}</p>
-          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadData()}>Retry</Button>
-        </div>
+        <PageErrorState kind="unavailable" variant="section" title="Collectors couldn't load" onRetry={() => void driversQuery.refetch()} retrying={driversQuery.isFetching} />
       ) : activeTab === "trucks" && trucksError ? (
-        <div className="rounded-2xl border border-border/80 bg-card p-10 text-center text-sm">
-          <p role="alert" className="text-destructive">Could not load trucks. {trucksError}</p>
-          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadData()}>Retry</Button>
-        </div>
+        <PageErrorState kind="unavailable" variant="section" title="Trucks couldn't load" onRetry={() => void trucksQuery.refetch()} retrying={trucksQuery.isFetching} />
       ) : activeTab === "drivers" ? (
         <DriverCardGrid
           drivers={drivers}
@@ -732,6 +734,7 @@ const AdminDrivers = () => {
         />
       ) : null}
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

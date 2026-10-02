@@ -165,6 +165,8 @@ interface UseRouteDataReturn {
   stops: RouteStop[];
   routeInfo: RouteInfo | null;
   isLoading: boolean;
+  isRefreshing: boolean;
+  hasLoadedData: boolean;
   error: string | null;
   refresh: () => void;
 }
@@ -179,7 +181,7 @@ export const useRouteData = (): UseRouteDataReturn => {
   }, [route.data]);
 
   const error = route.error ? route.error instanceof Error ? route.error.message : "Failed to load route data." : null;
-  return { ...mapped, isLoading: route.isLoading, error, refresh };
+  return { ...mapped, isLoading: route.isLoading, isRefreshing: route.isFetching, hasLoadedData: route.dataUpdatedAt > 0, error, refresh };
 };
 
 

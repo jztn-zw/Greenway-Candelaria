@@ -6,7 +6,6 @@ export interface Post {
   id: string;
   title: string;
   body: string;
-  source: string;
   category: PostCategory;
   status: PostStatus;
   featured: boolean;

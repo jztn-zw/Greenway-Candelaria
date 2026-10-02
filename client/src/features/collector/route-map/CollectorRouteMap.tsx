@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { CollectorRouteMapSkeleton } from "@/components/PageLoadingSkeletons";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -61,12 +62,16 @@ const getErrorMessage = (err: unknown) =>
 interface NoScheduledRouteViewProps {
   onRetry: () => void;
   onViewHistory: () => void;
+  refreshError?: boolean;
+  retrying?: boolean;
   message?: string;
 }
 
 const NoScheduledRouteView = ({
   onRetry,
   onViewHistory,
+  refreshError = false,
+  retrying = false,
   message = "No route has been assigned to your truck for today. Check back later or review past route runs.",
 }: NoScheduledRouteViewProps) => (
   <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
@@ -85,6 +90,8 @@ const NoScheduledRouteView = ({
           {message}
         </p>
       </div>
+
+      {refreshError && <DataRefreshNotice message="Couldn't refresh your assignment. The last loaded information may be outdated." onRetry={onRetry} retrying={retrying} className="text-left sm:flex-col sm:items-start" />}
 
       {/* Standby Operational Telemetry */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3.5 rounded-xl bg-muted/20 border border-border/60 text-left">
@@ -130,15 +137,19 @@ const NoScheduledRouteView = ({
 
         </div>
 
-        <div className="pt-1.5">
-          <button
+        {!refreshError && <div className="pt-1.5">
+          <Button
             type="button"
             onClick={onRetry}
+            variant="ghost"
+            size="sm"
+            loading={retrying}
+            loadingLabel="Checking assignment…"
             className="gw-action-ghost text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Check for newly assigned route
-          </button>
-        </div>
+          </Button>
+        </div>}
       </div>
     </div>
   </div>
@@ -149,12 +160,14 @@ const NoScheduledRouteView = ({
 const RouteMapError = ({
   message,
   onRetry,
+  retrying = false,
   title = "Could not load route",
 }: {
   message: string;
   onRetry: () => void;
+  retrying?: boolean;
   title?: string;
-}) => <PageErrorState kind="unavailable" title={title} description={message} onRetry={onRetry} homeHref="/collector" />;
+}) => <PageErrorState kind="unavailable" title={title} description={message} onRetry={onRetry} retrying={retrying} homeHref="/collector" />;
 
 // ─── Main Component ───────────────────────────────────────────────────
 
@@ -172,7 +185,7 @@ const CollectorRouteMap = () => {
   );
 
   // ─── Data hooks ───────────────────────────────────────────────────────────
-  const { stops, routeInfo, isLoading, error, refresh, truckCoords, isOffline, pendingSync, gpsError } = useCollectorTracking();
+  const { stops, routeInfo, isLoading, isRefreshing, hasLoadedData, error, refresh, truckCoords, isOffline, pendingSync, gpsError } = useCollectorTracking();
   const runRouteAction = useCollectorAction("routes", "history", "profile");
   const hasStartedRoute = Boolean(routeInfo?.collectionStartedAt);
   const isScheduledRoute = Boolean(
@@ -197,7 +210,7 @@ const CollectorRouteMap = () => {
   const routeStartMs = routeInfo?.collectionStartedAt?.getTime() ?? null;
 
   const handleTogglePause = useCallback(async () => {
-    if (!routeInfo || isPauseUpdating) return;
+    if (!routeInfo || isPauseUpdating || mutating !== null) return;
     setIsPauseUpdating(true);
     try {
       const nextPaused = !isPaused;
@@ -212,7 +225,7 @@ const CollectorRouteMap = () => {
     } finally {
       setIsPauseUpdating(false);
     }
-  }, [isPaused, isPauseUpdating, runRouteAction, routeInfo]);
+  }, [isPaused, isPauseUpdating, runRouteAction, routeInfo, mutating]);
 
   const handleStartRoute = useCallback(async () => {
     if (!routeInfo || isStartingRoute) return;
@@ -293,7 +306,7 @@ const CollectorRouteMap = () => {
   // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleMarkDone = useCallback(async () => {
-    if (!activeStop || !routeInfo) return;
+    if (!activeStop || !routeInfo || mutating !== null || isPauseUpdating) return;
     setMutating("done");
 
     const isFinalOutstandingStop = autoRoutedStops.every(
@@ -323,11 +336,11 @@ const CollectorRouteMap = () => {
     } finally {
       setMutating(null);
     }
-  }, [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction]);
+  }, [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction, mutating, isPauseUpdating]);
 
   const handleSkipConfirm = useCallback(
     async (reason: SkipReason, notes?: string) => {
-      if (!activeStop || !routeInfo) return;
+      if (!activeStop || !routeInfo || mutating !== null || isPauseUpdating) return;
       setMutating("skip");
 
       const isFinalOutstandingStop = autoRoutedStops.every(
@@ -339,10 +352,9 @@ const CollectorRouteMap = () => {
 
       const fullReason = reason === "Other" ? (notes ?? reason) : reason;
 
-      setShowSkipModal(false);
-
       try {
         await runRouteAction(() => skipStop(routeInfo.routeId, activeStop.id, fullReason));
+        setShowSkipModal(false);
 
         if (isFinalOutstandingStop) {
               toast.success("Collection route completed", {
@@ -363,16 +375,16 @@ const CollectorRouteMap = () => {
       setMutating(null);
       }
     },
-    [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction],
+    [activeStop, autoRoutedStops, navigate, routeInfo, runRouteAction, mutating, isPauseUpdating],
   );
 
   const handleEndRoute = useCallback(async () => {
-    if (!routeInfo) return;
+    if (!routeInfo || mutating !== null || isPauseUpdating) return;
     setMutating("end");
-    setShowEndModal(false);
 
     try {
       await runRouteAction(() => endRoute(routeInfo.routeId));
+      setShowEndModal(false);
       toast.success("Route ended successfully.");
       navigate("/collector");
     } catch (err: unknown) {
@@ -382,19 +394,19 @@ const CollectorRouteMap = () => {
     } finally {
       setMutating(null);
     }
-  }, [routeInfo, navigate, runRouteAction]);
+  }, [routeInfo, navigate, runRouteAction, mutating, isPauseUpdating]);
 
   // ─── Render guards ──────────────────────────────────────────────────────────
   if (isLoading) return <CollectorRouteMapSkeleton />;
 
-  if (error) return <RouteMapError message={error} onRetry={refresh} />;
+  if (error && !hasLoadedData) return <RouteMapError title="This page couldn't load" message="We couldn't load your assigned route. Check your connection and try again." onRetry={refresh} retrying={isRefreshing} />;
 
   if (!matchesCollectorRouteAlert(searchParams, routeInfo)) {
-    return <RouteMapError title="Route alert unavailable" message="The route in this notification is no longer your current assignment. Open Notifications in the topbar to review the alert." onRetry={refresh} />;
+    return <RouteMapError title="Route alert unavailable" message="The route in this notification is no longer your current assignment. Open Notifications in the topbar to review the alert." onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (!routeInfo) {
-    return <NoScheduledRouteView onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} />;
+    return <NoScheduledRouteView onRetry={refresh} onViewHistory={() => navigate("/collector/route-history")} refreshError={Boolean(error)} retrying={isRefreshing} />;
   }
 
   // Active Stop Card render function (used both on mobile above the map and desktop in sidebar)
@@ -445,12 +457,10 @@ const CollectorRouteMap = () => {
             onClick={handleStartRoute}
             disabled={isStartingRoute || isPaused}
             className="h-12 w-full rounded-xl px-6 text-sm font-semibold shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 lg:w-auto"
+            loading={isStartingRoute}
+            loadingLabel="Starting route…"
           >
-            {isStartingRoute ? (
-              <span className="flex items-center gap-2"><RefreshCw className="h-4 w-4 animate-spin" /> Starting route...</span>
-            ) : (
-              <span className="flex items-center gap-2"><Play className="h-4 w-4 fill-current" /> Start collection route</span>
-            )}
+            <span className="flex items-center gap-2"><Play className="h-4 w-4 fill-current" /> Start collection route</span>
           </Button>
         </div>
       );
@@ -504,15 +514,12 @@ const CollectorRouteMap = () => {
               <Button
                 type="button"
                 onClick={handleMarkDone}
-                disabled={mutating !== null || isPaused}
+            disabled={mutating !== null || isPaused || isPauseUpdating}
                 className={cn("flex-1 h-12 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer min-w-0", isWithinGeofence ? "ring-2 ring-primary/30" : "")}
+                loading={mutating === "done"}
+                loadingLabel="Clearing stop…"
               >
-                {mutating === "done" ? (
-                  <span className="flex items-center gap-1.5 truncate">
-                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                    <span>Saving...</span>
-                  </span>
-                ) : isWithinGeofence ? (
+                {isWithinGeofence ? (
                   <span className="flex items-center gap-1.5 truncate">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span className="truncate">Complete stop (Arrived)</span>
@@ -529,7 +536,7 @@ const CollectorRouteMap = () => {
                 type="button"
                 variant="warning-outline"
                 onClick={() => setShowSkipModal(true)}
-                disabled={mutating !== null || isPaused}
+            disabled={mutating !== null || isPaused || isPauseUpdating}
                 className="h-12 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
                 title="Skip this stop"
               >
@@ -572,6 +579,7 @@ const CollectorRouteMap = () => {
           </p>
         </div>
       </div>
+      {error && <DataRefreshNotice message="Couldn't refresh the route. Showing the last loaded stops, which may be outdated." onRetry={refresh} retrying={isRefreshing} />}
 
       {/* Route Command Header & Integrated Progress Bar (Req 1) */}
 
@@ -738,7 +746,9 @@ const CollectorRouteMap = () => {
               <Button
                 type="button"
                 variant={isPaused ? "warning" : "outline"}
-                onClick={handleTogglePause}
+            onClick={handleTogglePause}
+            loading={isPauseUpdating}
+            loadingLabel={isPaused ? "Resuming route…" : "Pausing route…"}
                 disabled={!hasStartedRoute || isScheduledRoute || mutating !== null || isPauseUpdating}
                 className={cn("h-11 sm:h-12 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-w-0", isPaused ? "border-0" : "")}
               >
@@ -759,22 +769,17 @@ const CollectorRouteMap = () => {
                 type="button"
                 variant="destructive"
                 onClick={() => setShowEndModal(true)}
-                disabled={mutating === "end" || isScheduledRoute || isPauseUpdating}
+            disabled={mutating !== null || isScheduledRoute || isPauseUpdating}
                 className="h-11 sm:h-12 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0 min-w-0"
+                loading={mutating === "end"}
+                loadingLabel={remaining === 0 ? "Concluding shift…" : "Ending route…"}
               >
-                {mutating === "end" ? (
-                  <span className="flex items-center gap-1.5 truncate">
-                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                    <span>Ending...</span>
-                  </span>
-                ) : (
-                  <>
+                <>
                     <Flag className="w-4 h-4 shrink-0" />
                     <span className="truncate">
                       {remaining === 0 ? "Conclude shift" : "End route"}
                     </span>
                   </>
-                )}
               </Button>
             </div>
 
@@ -802,12 +807,14 @@ const CollectorRouteMap = () => {
         open={showSkipModal}
         barangay={activeStop?.barangay ?? ""}
         onConfirm={handleSkipConfirm}
+        isPending={mutating === "skip"}
         onCancel={() => setShowSkipModal(false)}
       />
       <EndRouteModal
         open={showEndModal}
         remaining={remaining}
         onConfirm={handleEndRoute}
+        isPending={mutating === "end"}
         onCancel={() => setShowEndModal(false)}
       />
     </div>

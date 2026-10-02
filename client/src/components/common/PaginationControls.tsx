@@ -1,160 +1,58 @@
-import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface PaginationControlsProps {
   currentPage: number;
   totalPages: number;
-  totalItems?: number;
-  pageSize?: number;
-  itemLabel?: string;
   onPageChange: (page: number) => void;
   className?: string;
   variant?: "table" | "floating" | "inline";
 }
 
-/** Shared pagination footer supporting both integrated table caps and floating pagination. */
-export const PaginationControls: React.FC<PaginationControlsProps> = ({
-  currentPage,
-  totalPages,
-  totalItems,
-  pageSize = 10,
-  itemLabel = "items",
-  onPageChange,
-  className,
-  variant = "table",
-}) => {
+const getPageItems = (currentPage: number, totalPages: number): Array<number | "ellipsis"> => {
+  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  const items: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  if (start > 2) items.push("ellipsis");
+  for (let page = start; page <= end; page += 1) items.push(page);
+  if (end < totalPages - 1) items.push("ellipsis");
+  items.push(totalPages);
+  return items;
+};
+
+/** One pagination design for table, card, and notification footers. */
+export const PaginationControls = ({ currentPage, totalPages, onPageChange, className, variant = "floating" }: PaginationControlsProps) => {
   if (totalPages <= 1) return null;
 
-  const start =
-    totalItems != null && totalItems > 0
-      ? (currentPage - 1) * pageSize + 1
-      : null;
-  const end =
-    totalItems != null ? Math.min(currentPage * pageSize, totalItems) : null;
-
-  const getPages = () => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    const pages: (number | string)[] = [1];
-    if (currentPage > 3) pages.push("...");
-    const s = Math.max(2, currentPage - 1);
-    const e = Math.min(totalPages - 1, currentPage + 1);
-    for (let i = s; i <= e; i++) {
-      if (!pages.includes(i)) pages.push(i);
-    }
-    if (currentPage < totalPages - 2) pages.push("...");
-    if (!pages.includes(totalPages)) pages.push(totalPages);
-    return pages;
-  };
-
-  const pages = getPages();
-  const isInline = variant === "inline";
+  const page = Math.min(Math.max(1, currentPage), totalPages);
+  const pages = getPageItems(page, totalPages);
+  const buttonClass = "flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
   return (
-    <div
-      className={cn(
-        variant === "table"
-          ? "px-4 py-3 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-card"
-          : isInline
-            ? "flex items-center justify-between gap-2 border-t border-border/50 pt-3"
-          : "flex flex-col sm:flex-row items-center justify-between gap-1.5 pt-4 sm:gap-3 sm:pt-3",
-        className
-      )}
-    >
-      {/* Left: Contextual count */}
-      <div className={cn(
-        "text-xs text-muted-foreground",
-        isInline ? "min-w-0 whitespace-nowrap text-ui-caption sm:text-xs" : "order-2 text-center sm:order-1 sm:text-left"
-      )}>
-        {totalItems != null && start != null && end != null ? (
-          <>
-            Showing{" "}
-            <span className="font-semibold text-foreground tabular-nums">
-              {start}–{end}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground tabular-nums">
-              {totalItems}
-            </span>{" "}
-            {itemLabel}
-          </>
+    <nav aria-label="Pagination" className={cn("flex w-full items-center justify-end pt-3", variant === "table" && "bg-card px-4 pb-3", className)}>
+      <div className="flex items-center gap-1.5">
+        <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => onPageChange(page - 1)}
+          className={cn(buttonClass, "gw-action-ghost text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-35")}>
+          <ChevronLeft aria-hidden="true" className="size-4" />
+        </button>
+        {pages.map((item, index) => item === "ellipsis" ? (
+          <span key={`ellipsis-${index}`} aria-hidden="true" className="hidden size-9 items-center justify-center text-xs text-muted-foreground sm:flex">…</span>
         ) : (
-          <>
-            Page{" "}
-            <span className="font-semibold text-foreground tabular-nums">
-              {currentPage}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground tabular-nums">
-              {totalPages}
-            </span>
-          </>
-        )}
+          <button key={item} type="button" aria-label={`Page ${item}`} aria-current={item === page ? "page" : undefined}
+            onClick={() => onPageChange(item)}
+            className={cn(buttonClass, totalPages > 3 && item !== page && "hidden sm:flex",
+              item === page ? "border border-primary/35 bg-primary/10 font-semibold text-primary" : "gw-action-ghost text-muted-foreground hover:text-foreground")}>
+            {item}
+          </button>
+        ))}
+        <button type="button" aria-label="Next page" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}
+          className={cn(buttonClass, "gw-action-ghost text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-35")}>
+          <ChevronRight aria-hidden="true" className="size-4" />
+        </button>
       </div>
-
-      {/* Right: Controls */}
-      <div className={cn("flex shrink-0 items-center gap-1", !isInline && "order-1 sm:order-2")}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
-          disabled={currentPage <= 1}
-          onClick={() => onPageChange(currentPage - 1)}
-          aria-label="Previous page"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-
-        <div className="flex items-center gap-1">
-          {pages.map((p, idx) => {
-            if (p === "...") {
-              return (
-                <span
-                  key={`ellipsis-${idx}`}
-                  className={cn(
-                    "h-8 w-8 items-center justify-center text-xs text-muted-foreground tabular-nums",
-                    isInline ? "hidden sm:flex" : "flex"
-                  )}
-                >
-                  …
-                </span>
-              );
-            }
-            const isCurrent = p === currentPage;
-            return (
-              <button
-                key={p}
-                type="button"
-                onClick={() => onPageChange(p as number)}
-                className={cn(
-                  "h-8 min-w-[32px] px-2 text-xs tabular-nums rounded-lg transition-all cursor-pointer items-center justify-center select-none",
-                  isInline && totalPages > 3 && !isCurrent ? "hidden sm:flex" : "flex",
-                  isCurrent
-                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold shadow-2xs"
-                    : "gw-action-ghost font-medium"
-                )}
-              >
-                {p}
-              </button>
-            );
-          })}
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-lg disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
-          disabled={currentPage >= totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-          aria-label="Next page"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
+    </nav>
   );
 };
 

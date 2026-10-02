@@ -151,7 +151,7 @@ const TruckCardGrid = ({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(t)}
-                          className="text-xs cursor-pointer focus:bg-muted focus:text-foreground"
+                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
                         >
                           Delete Truck
                         </DropdownMenuItem>
@@ -193,9 +193,6 @@ const TruckCardGrid = ({
         <PaginationControls
           currentPage={visiblePage}
           totalPages={totalPages}
-          totalItems={filtered.length}
-          pageSize={ITEMS_PER_PAGE}
-          itemLabel="trucks"
           onPageChange={setCurrentPage}
           variant="floating"
         />

@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 
 import {
   X,
-  Loader2,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,7 +29,7 @@ interface RouteDetailModalProps {
   onEdit: (route: RouteData) => void;
   onDuplicate: (route: RouteData) => void;
   onToggleActive: (route: RouteData) => void;
-  onDelete: (route: RouteData) => void;
+  onDelete: (route: RouteData) => void | Promise<unknown>;
   isToggling?: boolean;
   isDeleting?: boolean;
 }
@@ -217,9 +216,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
               className={cn("h-8 text-xs font-semibold border rounded-xl px-3 transition-colors cursor-pointer", route.active && "opacity-40 cursor-not-allowed")}
               title={route.active ? "Pause route before deleting" : "Delete Route"}
             >
-              {isDeleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-              ) : null}
+
               <span>Delete</span>
             </Button>
 
@@ -243,10 +240,10 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 onClick={() => onToggleActive(route)}
                 disabled={isToggling}
                 className="h-8 text-xs font-semibold rounded-xl px-3 transition-colors cursor-pointer"
+                loading={isToggling}
+                loadingLabel={route.active ? "Pausing route…" : "Enabling route…"}
               >
-                {isToggling ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                ) : null}
+
                 <span>{route.active ? "Pause Route" : "Enable Route"}</span>
               </Button>
 
@@ -277,10 +274,11 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
         isPending={isDeleting}
         pendingLabel="Deleting..."
         closeOnConfirm
-        onConfirm={() => {
+        onConfirm={async () => {
+          const result = await onDelete(route);
+          if (result === false) return false;
           setDeleteDialogOpen(false);
           onClose();
-          onDelete(route);
         }}
       />
     </>

@@ -1,4 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { getEventColors, getManilaCalendarDate, calendarDateKey, eventOccursOnDate } from "@/components/calendar/calendar.utils";
 import { AdminScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import { SearchInput } from "@/components/common";
@@ -44,7 +46,6 @@ const AdminCollectionSchedule: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const scheduleColorById = useMemo(() => getEventColors(events), [events]);
 
-  useEffect(() => { if (eventsQuery.error) toast.error("Failed to fetch schedule data"); }, [eventsQuery.error]);
 
   // Filtered Events
   const filteredEvents = useMemo(() => {
@@ -116,6 +117,7 @@ const AdminCollectionSchedule: React.FC = () => {
   if (isLoading) {
     return <AdminScheduleSkeleton currentDate={currentDate} />;
   }
+  if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the internal schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
@@ -138,6 +140,8 @@ const AdminCollectionSchedule: React.FC = () => {
           <span>New Internal Schedule</span>
         </Button>
       </div>
+
+      {eventsQuery.error && <DataRefreshNotice message="Couldn't refresh the schedule. Your current work is preserved; loaded events may be outdated." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} />}
 
       {/* ── 4 Bento Metric Cards ── */}
       <ScheduleKPIs events={events} />

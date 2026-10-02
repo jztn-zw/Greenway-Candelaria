@@ -1,11 +1,15 @@
 import { AdminAlertSettingsSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAdminAction, useAdminResource } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { setThemeMode } from "@/lib/theme";
 import { fetchAdminAlertSettings, updateAdminAlertSettings, type AdminAlertSettings } from "@/services/settingsService";
 import { AlertTriangle, Bell, FileText, MessageSquare, Moon, Settings, Sun } from "lucide-react";
-import { useEffect, useState, type ElementType, type ReactNode } from "react";
+import { useState, type ElementType, type ReactNode } from "react";
 
 const alertOptions: { key: keyof AdminAlertSettings; label: string; description: string; icon: ElementType }[] = [
   { key: "notif_admin_reports", label: "New resident reports", description: "Be alerted when a resident submits a waste report.", icon: FileText },
@@ -43,23 +47,15 @@ const Section = ({ title, subtitle, icon: Icon, children }: {
 );
 
 const AdminSettings = () => {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
-  const { data: alerts, setData: setAlerts, dataUpdatedAt: alertsUpdatedAt, isLoading: alertsLoading, isError: alertsError, refetch: loadAlerts } =
+  const dark = useThemeMode() === "dark";
+  const { data: alerts, setData: setAlerts, dataUpdatedAt: alertsUpdatedAt, isFetching: alertsRefreshing, isLoading: alertsLoading, isError: alertsError, refetch: loadAlerts } =
     useAdminResource("settings", ["alerts"], fetchAdminAlertSettings, defaultAlerts);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const runAction = useAdminAction("settings");
 
   const changeTheme = (isDark: boolean) => {
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("theme", isDark ? "dark" : "light");
+    setThemeMode(isDark ? "dark" : "light");
   };
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains("dark")));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
 
   const updateAlert = async (key: keyof AdminAlertSettings, checked: boolean) => {
     const previousAlerts = alerts;
@@ -85,7 +81,8 @@ const AdminSettings = () => {
       </header>
 
       <Section title="Admin Notifications" subtitle="Choose the operational alerts that matter to you" icon={Bell}>
-        {alertsLoading ? <AdminAlertSettingsSkeleton /> : alertsError && !alertsUpdatedAt ? null : <div className="space-y-1">
+        {alertsError && alertsUpdatedAt > 0 && <DataRefreshNotice message="Couldn't refresh alert preferences. Showing your last loaded settings." onRetry={() => void loadAlerts()} retrying={alertsRefreshing} />}
+        {alertsLoading ? <AdminAlertSettingsSkeleton /> : alertsError && !alertsUpdatedAt ? <PageErrorState kind="unavailable" variant="section" title="Alert preferences couldn't load" onRetry={() => void loadAlerts()} retrying={alertsRefreshing} /> : <div className="space-y-1">
           {alertOptions.map(({ key, label, description, icon: Icon }) => (
             <div key={key} className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 last:border-b-0 lg:-mx-2.5 lg:px-2.5 lg:py-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -98,7 +95,6 @@ const AdminSettings = () => {
         </div>}
         <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
           <p className="text-ui-caption text-muted-foreground">{alertsError ? "Alert preferences could not load." : alertsLoading ? "Loading alert preferences..." : savingAlerts ? "Saving your preference..." : "Changes save automatically."}</p>
-          {alertsError && <Button type="button" size="sm" variant="outline" className="h-9 rounded-xl px-4 text-xs" onClick={() => void loadAlerts()}>Try again</Button>}
         </div>
       </Section>
 

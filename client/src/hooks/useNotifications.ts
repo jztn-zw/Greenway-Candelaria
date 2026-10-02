@@ -2,10 +2,12 @@ import { useCollectorNotifications } from "./useCollectorNotifications";
 import { useEffect } from "react";
 import useAuthStore from "@/store/authStore";
 import useNotificationsStore from "@/store/notificationsStore";
+import { usePendingAction } from "./usePendingAction";
 
 export const useNotifications = () => {
   const user = useAuthStore((state) => state.user);
   const collector = useCollectorNotifications();
+  const markingAll = usePendingAction();
 
   const notifications = useNotificationsStore((state) => state.notifications);
   const category = useNotificationsStore((state) => state.category);
@@ -43,13 +45,19 @@ export const useNotifications = () => {
     unreadCount,
     total,
     isLoading,
+    isRefreshing: isLoading,
+    hasLoadedData: notifications.length > 0 || (initialized && !error),
     error,
     isMutating,
     nextCursor,
     loadMore,
     fetchNotifications,
     markAsRead,
-    markAllAsRead,
+    isMarkingAll: markingAll.isPending,
+    markAllAsRead: () => {
+      if (useNotificationsStore.getState().isMutating) return;
+      return markingAll.run(markAllAsRead);
+    },
     clearAll,
   };
 };

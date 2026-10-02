@@ -232,9 +232,9 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             onClick={() => onDelete(route)}
                             disabled={route.active || isDeleting}
                             aria-label={route.active ? "Delete route (disable schedule first)" : "Delete route"}
-                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
                           >
-                            <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                             <span>Delete</span>
                             {route.active && (
                               <span className="ml-auto whitespace-nowrap text-ui-overline text-muted-foreground font-normal">

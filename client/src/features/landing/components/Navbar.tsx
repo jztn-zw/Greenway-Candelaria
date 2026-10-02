@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toggleThemeMode } from "@/lib/theme";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Moon, Sun } from "lucide-react";
@@ -9,7 +11,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const dark = useThemeMode() === "dark";
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
 
@@ -18,13 +20,6 @@ const Navbar = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const toggleTheme = () => {
-    const nextDark = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    setDark(nextDark);
-  };
 
   const openAuth = (tab: "login" | "register") => {
     setAuthTab(tab);
@@ -79,16 +74,16 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-3">
             <button
-              onClick={toggleTheme}
+              onClick={toggleThemeMode}
               className="gw-action-ghost p-2 rounded-md transition-colors relative w-8 h-8 flex items-center justify-center overflow-hidden"
             >
               <Sun
-                className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${
+                className={`gw-theme-icon w-4 h-4 absolute ${
                   dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
                 }`}
               />
               <Moon
-                className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${
+                className={`gw-theme-icon w-4 h-4 absolute ${
                   dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
                 }`}
               />

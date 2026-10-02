@@ -29,8 +29,10 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toggleThemeMode } from "@/lib/theme";
 import CollectorLogoutDialog from "@/features/collector/components/CollectorLogoutDialog";
 import { CollectorModalHeader } from "@/features/collector/components/CollectorModal";
 import { collectorModalStyles as modalStyles } from "@/features/collector/components/collectorModalStyles";
@@ -39,7 +41,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import authService from "@/services/authService";
+import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
@@ -67,7 +69,7 @@ const navGroups = [
 
 const CollectorSidebar = () => {
   const navigate = useNavigate();
-  const currentUser = authService.getCurrentUser();
+  const currentUser = useAuthStore((state) => state.user);
   const fullName = currentUser?.full_name?.trim() || "Collector Driver";
   const initials =
     fullName
@@ -83,9 +85,7 @@ const CollectorSidebar = () => {
   const [showGearMenu, setShowGearMenu] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const gearMenuRef = useRef<HTMLDivElement>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    document.documentElement.classList.contains("dark")
-  );
+  const isDarkMode = useThemeMode() === "dark";
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
@@ -101,10 +101,7 @@ const CollectorSidebar = () => {
 
   const handleToggleTheme = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const nextDark = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    setIsDarkMode(nextDark);
+    toggleThemeMode();
     setShowGearMenu(false);
   };
 
@@ -131,8 +128,8 @@ const CollectorSidebar = () => {
   }, [collapsed]);
 
   const handleLogout = async () => {
-    setShowLogoutModal(false);
     await logout();
+    setShowLogoutModal(false);
     navigate("/", { replace: true });
   };
 
@@ -228,6 +225,7 @@ const CollectorSidebar = () => {
           <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
+                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "DRIVER"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>
@@ -311,9 +309,7 @@ const CollectorSidebar = () => {
         <CollectorLogoutDialog
           open={showLogoutModal}
           onOpenChange={setShowLogoutModal}
-          onConfirm={() => {
-            void handleLogout();
-          }}
+          onConfirm={handleLogout}
         />
 
         {/* ── Contact Dispatch Modal ── */}

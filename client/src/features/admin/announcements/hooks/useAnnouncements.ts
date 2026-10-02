@@ -157,7 +157,6 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasLoadedPage, setHasLoadedPage] = useState(false);
 
-  const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [metrics, setMetrics] = useState({
@@ -180,12 +179,11 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
     if (!pageQuery.data) return;
     const pageData = pageQuery.data;
     setAnnouncements((pageData.items as unknown as Record<string, unknown>[]).map(mapFromApi));
-    setTotalItems(pageData.total); setTotalPages(pageData.totalPages);
+    setTotalPages(pageData.totalPages);
     setStatusCounts(pageData.statusCounts); setMetrics(pageData.metrics);
     setHasLoadedPage(true);
   }, [pageQuery.data]);
   useEffect(() => { if (barangaysQuery.data) setBarangayOptions(barangaysQuery.data); }, [barangaysQuery.data]);
-  useEffect(() => { if (error) toast.error(error); }, [error]);
 
   const createNew = useCallback(async (form: EditorForm): Promise<void> => {
     try {
@@ -369,11 +367,12 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
     barangayOptions,
     isInitialLoading: isLoading && !hasLoadedPage,
     isResultsLoading: pageQuery.isLoading && hasLoadedPage,
-    pageError: pageQuery.data ? null : pageQuery.error?.message ?? null,
+    pageError: pageQuery.error?.message ?? null,
+    hasLoadedPage,
+    isRefreshing: pageQuery.isFetching,
     retryPage: pageQuery.refetch,
     isSaving,
     error,
-    totalItems,
     totalPages,
     statusCounts,
     metrics,

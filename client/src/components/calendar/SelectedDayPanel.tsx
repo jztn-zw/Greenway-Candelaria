@@ -109,7 +109,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-28">
                         <DropdownMenuItem onClick={() => onEditEvent(evt)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDeleteEvent(evt)} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDeleteEvent(evt)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}

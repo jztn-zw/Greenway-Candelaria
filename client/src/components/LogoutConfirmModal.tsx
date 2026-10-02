@@ -4,7 +4,7 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 interface LogoutConfirmModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<unknown>;
   title?: string;
   description?: string;
   confirmLabel?: string;

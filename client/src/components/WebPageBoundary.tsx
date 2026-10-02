@@ -12,12 +12,13 @@ interface BoundaryProps {
 
 interface BoundaryState {
   hasError: boolean;
+  retryCount: number;
 }
 
 class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
-  state: BoundaryState = { hasError: false };
+  state: BoundaryState = { hasError: false, retryCount: 0 };
 
-  static getDerivedStateFromError(): BoundaryState {
+  static getDerivedStateFromError(): Partial<BoundaryState> {
     return { hasError: true };
   }
 
@@ -27,7 +28,7 @@ class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
 
   componentDidUpdate(previous: BoundaryProps) {
     if (previous.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.setState({ hasError: false });
+      this.setState({ hasError: false, retryCount: 0 });
     }
   }
 
@@ -36,7 +37,8 @@ class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
       return (
         <PageErrorState
           kind="unexpected"
-          onRetry={() => this.setState({ hasError: false })}
+          description={this.state.retryCount > 0 ? "The page still couldn't open. Please try again in a moment." : undefined}
+          onRetry={() => this.setState((state) => ({ hasError: false, retryCount: state.retryCount + 1 }))}
           homeHref={this.props.homeHref}
           homeLabel={this.props.homeHref === "/" ? "Go to home" : "Go to dashboard"}
           fullScreen

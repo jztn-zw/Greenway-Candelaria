@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import {
   Megaphone,
   CalendarClock,
@@ -240,10 +241,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
         {/* Modal Body */}
         <div className={modalStyles.body}>
           {loadingDetails && <p role="status" className="text-xs text-muted-foreground">Loading announcement…</p>}
-          {detailsError && <div role="alert" className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3.5">
-            <p className="text-xs leading-relaxed text-destructive">Announcement details could not be loaded. Please try again.</p>
-            <Button type="button" variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()} className={modalStyles.cancelButton}>Retry</Button>
-          </div>}
+          {detailsError && <DataRefreshNotice primary role={hasLoadedDetails ? "status" : "alert"} message={hasLoadedDetails ? "Couldn't refresh this announcement. Showing the last loaded details, which may be outdated." : "Announcement details could not be loaded. Please try again."} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* Title, Category & Date Lockup (No container) */}
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">

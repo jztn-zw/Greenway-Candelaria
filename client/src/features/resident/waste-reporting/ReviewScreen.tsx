@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Camera, FileText, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Camera, FileText, Send } from "lucide-react";
 import { VIOLATION_OPTIONS, type ReportFormData } from "./types";
 
 interface ReviewScreenProps {
@@ -107,14 +107,12 @@ const ReviewScreen = ({ form, onBack, onSubmit, isSubmitting }: ReviewScreenProp
         <Button
           onClick={onSubmit}
           disabled={isSubmitting}
+          loading={isSubmitting}
+          loadingLabel="Submitting report…"
           className="min-h-11 rounded-2xl text-sm font-semibold gap-2.5 md:flex-1 md:min-h-11 lg:text-base"
         >
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4 lg:w-5 lg:h-5" />
-          )}
-          <span>{isSubmitting ? "Submitting…" : "Submit Report"}</span>
+          <Send className="w-4 h-4 lg:w-5 lg:h-5" />
+          <span>Submit Report</span>
         </Button>
       </div>
 

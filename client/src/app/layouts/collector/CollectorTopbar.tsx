@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toggleThemeMode } from "@/lib/theme";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   Menu,
@@ -6,6 +8,7 @@ import {
   Sun,
   Moon,
   CheckCheck,
+  Loader2,
   ChevronRight,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -15,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
 import {
@@ -42,11 +46,11 @@ const CollectorTopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toggleSidebar } = useSidebar();
-  const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const dark = useThemeMode() === "dark";
   const [selectedNotification, setSelectedNotification] = useState<NotificationRow | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
 
-  const { recentNotifications, unreadCount, markAsRead, markAllAsRead, isMutating, error, fetchNotifications } = useNotifications();
+  const { recentNotifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating, isRefreshing, error, fetchNotifications } = useNotifications();
   const pageTitle = getCollectorPageTitle(location.pathname);
 
   const [searchParams] = useSearchParams();
@@ -55,13 +59,6 @@ const CollectorTopBar = () => {
   const isRouteMap = location.pathname === "/collector/route-map";
   const isNotificationRouteMap = isRouteMap &&
     (searchParams.has("date") || searchParams.has("template") || searchParams.has("run"));
-
-  const toggleTheme = () => {
-    const nextDark = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    setDark(nextDark);
-  };
 
   const handleNotificationClick = (n: NotificationRow) => {
     if (!n.is_read) {
@@ -130,12 +127,12 @@ const CollectorTopBar = () => {
         {/* Theme toggle */}
         <button
           type="button"
-          onClick={toggleTheme}
+          onClick={toggleThemeMode}
           className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center overflow-hidden cursor-pointer border"
           title="Toggle Theme"
         >
-          <Sun className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
-          <Moon className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
+          <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
+          <Moon className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
         </button>
 
         {/* Notifications */}
@@ -177,10 +174,11 @@ const CollectorTopBar = () => {
                 <button
                   type="button"
                   disabled={isMutating} onClick={() => void markAllAsRead()}
+                  aria-busy={isMarkingAll}
                   className="gw-topbar-notification-action"
                 >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark all read</span>
+                  {isMarkingAll ? <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
+                  <span>{isMarkingAll ? "Marking all read…" : "Mark all read"}</span>
                 </button>
               )}
             </div>
@@ -188,7 +186,19 @@ const CollectorTopBar = () => {
             {/* Notifications Scroll Area */}
             <div className="gw-topbar-notification-scroll scrollbar-thin">
               <div>
-                {error ? <div role="alert" className="p-3 text-xs"><p>{error}</p><button type="button" onClick={() => void fetchNotifications()}>Retry</button></div> : recentNotifications.length === 0 ? (
+                {error && (
+                  <DataRefreshNotice
+                    primary
+                    role={recentNotifications.length === 0 ? "alert" : "status"}
+                    message={recentNotifications.length === 0
+                      ? "Couldn't load notifications. Please try again."
+                      : "Couldn't refresh notifications. Showing the last loaded notifications, which may be outdated."}
+                    onRetry={() => void fetchNotifications()}
+                    retrying={isRefreshing}
+                    className="m-3 sm:flex-col sm:items-start"
+                  />
+                )}
+                {recentNotifications.length === 0 ? (!error && (
                   <div className="gw-topbar-notification-empty">
                     <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center mx-auto mb-3 text-primary">
                       <Bell className="w-4 h-4" />
@@ -196,7 +206,7 @@ const CollectorTopBar = () => {
                     <p className="text-xs font-semibold text-foreground">No notifications</p>
                     <p className="text-ui-caption text-muted-foreground mt-0.5">You're all caught up!</p>
                   </div>
-                ) : (
+                )) : (
                   recentNotifications.map((n) => {
                     const { Icon, style: avatarStyle } = getCollectorNotificationVisual(n);
                     const title = getCollectorNotificationTitle(n);

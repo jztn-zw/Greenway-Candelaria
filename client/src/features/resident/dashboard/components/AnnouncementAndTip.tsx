@@ -1,5 +1,6 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery, useResidentFetch } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,6 +93,8 @@ const AnnouncementAndTip = () => {
       </Card>
     );
   }
+
+  if (loadFailed && announcementQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Announcements couldn't load" description="We couldn't load official notices. Please try again." onRetry={() => void announcementQuery.refetch()} retrying={announcementQuery.isFetching} />;
 
   // Clean empty state when no active announcements exist in database
   if (!announcement) {

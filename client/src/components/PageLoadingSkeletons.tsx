@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { getManilaNow } from "@/utils/date";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
+import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 
 /* ─── Admin Dashboard Skeletons ─── */
 
@@ -398,7 +399,7 @@ export const CollectorProfileSkeleton = () => (
     <span className="sr-only">Loading collector profile…</span>
     <div aria-hidden="true" className="relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
       <div className="relative h-28 border-b border-border/50 bg-muted/40 lg:h-36">
-        <Skeleton className="absolute right-3.5 top-3.5 h-8 w-36 rounded-md lg:right-4 lg:top-4" />
+        <ProfileBannerImage />
       </div>
       <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
         <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
@@ -642,7 +643,6 @@ export const ProfileSkeleton = () => (
     <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
       <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
         <ProfileBannerImage />
-        <Skeleton className="absolute right-3.5 top-3.5 h-8 w-32 rounded-md lg:right-4 lg:top-4" />
       </div>
       <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
         <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
@@ -690,7 +690,7 @@ export const AdminProfileSkeleton = () => (
     <div aria-hidden="true" className="space-y-5 md:space-y-6">
       <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
         <div className="relative h-28 border-b border-border/50 bg-muted/50 lg:h-36">
-          <Skeleton className="absolute right-3.5 top-3.5 h-8 w-40 rounded-md lg:right-4 lg:top-4" />
+          <ProfileBannerImage />
         </div>
         <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
           <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
@@ -1154,7 +1154,7 @@ export const AdminPostsSkeleton = ({ viewMode = "grid" }: { viewMode?: "grid" | 
 
 export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "grid" | "list" }) => (
   <div role="status" aria-busy="true">
-    <span className="sr-only">Loading articles…</span>
+    <span className="sr-only">Loading community posts…</span>
     {viewMode === "grid" ? (
       <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -1220,7 +1220,7 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
 
 export const AdminPostDetailSkeleton = () => (
   <div role="status" aria-busy="true" className="w-full max-w-[1000px] mx-auto pb-12">
-    <span className="sr-only">Loading article details…</span>
+    <span className="sr-only">Loading post details…</span>
     <div aria-hidden="true" className="space-y-6 sm:space-y-8">
       <div className="space-y-6">
         <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden border border-border/40">
@@ -2387,17 +2387,25 @@ export const ResidentDashboardSkeleton = ({ dayCount, firstDayIndex }: { dayCoun
 
 /* ─── Resident Community Updates Skeletons ─── */
 export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
-  <div role="status" aria-label="Loading community updates" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+  <div role="status" aria-label="Loading community updates" className={contentStyles.grid}>
     {Array.from({ length: count }).map((_, index) => (
-      <div key={index} className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
-        <Skeleton className="aspect-[16/10] w-full rounded-none" />
-        <div className="space-y-3 p-4 lg:p-5">
-          <Skeleton className="h-5 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
-          <div className="flex items-center justify-between border-t border-border/60 pt-3">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-12 rounded-lg" />
+      <div key={index} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
+        <div className={contentStyles.cardImage}>
+          <Skeleton className="absolute inset-0 rounded-none" />
+          <Skeleton className="absolute left-3 top-3 h-5 w-20 rounded-md" />
+        </div>
+        <div className={contentStyles.cardContent}>
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-2/3" />
+          </div>
+          <div className={contentStyles.cardFooter}>
+            <div className={contentStyles.cardMetadata}>
+              <Skeleton className="h-3.5 w-24 max-w-full" />
+              <Skeleton className="h-3.5 w-20 max-w-full" />
+            </div>
+            <Skeleton className={cn(contentStyles.reactionSize, "w-14 rounded-lg")} />
           </div>
         </div>
       </div>
@@ -2406,38 +2414,60 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
 );
 
 export const ResidentContentsSkeleton = () => (
-  <div role="status" aria-label="Loading Community Updates" className="mx-auto w-full max-w-[1400px] space-y-4 pb-4 md:space-y-6 lg:space-y-8 lg:pb-6">
-    <div className="hidden space-y-2 md:block">
+  <div role="status" aria-label="Loading Community Updates" className={contentStyles.page}>
+    <div className="hidden space-y-2 md:mb-6 md:block lg:mb-8">
       <Skeleton className="h-8 w-56" />
       <Skeleton className="h-4 w-96 max-w-full" />
     </div>
+    <div className={contentStyles.stack}>
     <div className="space-y-3">
-      <Skeleton className="h-10 w-full rounded-xl" />
+      <Skeleton className="h-11 w-full rounded-xl md:h-10" />
       <div className="flex items-center justify-between gap-2.5">
-        <div className="flex gap-1.5">
-          {["w-24", "w-28", "w-20"].map((width, index) => <Skeleton key={index} className={`h-9 ${width} rounded-xl`} />)}
+        <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
+          {["w-11", "w-20", "w-16"].map((width, index) => <Skeleton key={index} className={`h-11 shrink-0 ${width} rounded-lg md:h-9`} />)}
         </div>
-        <Skeleton className="h-9 w-9 rounded-xl md:w-36" />
+        <Skeleton className="h-11 w-11 shrink-0 rounded-xl md:h-9 md:w-36" />
       </div>
     </div>
-    <div className="grid grid-cols-1 items-center gap-4 rounded-2xl border border-border/80 bg-card p-4 md:grid-cols-12 md:gap-6 md:p-6 lg:gap-8 lg:p-8">
-      <div className="space-y-4 md:col-span-7">
-        <div className="flex gap-2"><Skeleton className="h-5 w-20 rounded-md" /><Skeleton className="h-5 w-24 rounded-md" /></div>
-        <Skeleton className="h-7 w-3/4" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-4 w-28" />
+    <div className={contentStyles.featuredCard}>
+      <div className={contentStyles.featuredGrid}>
+        <div className={contentStyles.featuredDetails}>
+          <div className="space-y-4">
+            <div className="flex gap-2"><Skeleton className="h-5 w-20 rounded-md" /><Skeleton className="h-5 w-24 rounded-md" /></div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-full md:h-6 lg:h-8" />
+              <Skeleton className="h-5 w-3/4 md:h-6 lg:h-8" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-5/6" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3.5 w-32 max-w-full" />
+            </div>
+          </div>
+          <div className={contentStyles.featuredFooter}>
+            <Skeleton className="h-11 w-28 shrink-0 rounded-lg md:h-10" />
+          </div>
+        </div>
+        <div className={contentStyles.featuredMedia}>
+          <Skeleton className={cn(contentStyles.featuredImage, "rounded-none bg-muted")} />
+        </div>
       </div>
-      <Skeleton className="aspect-[16/10] w-full rounded-xl md:col-span-5" />
+      <div className={contentStyles.featuredPagination}>
+        {[0, 1, 2].map((index) => <div key={index} className={`${contentStyles.carouselDotButton} ${index === 0 ? "w-5" : "w-2"}`}><Skeleton className={`h-1 rounded-full ${index === 0 ? "w-4" : "w-1"}`} /></div>)}
+      </div>
     </div>
     <section className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <Skeleton className="h-6 w-44" />
-        <Skeleton className="h-4 w-24" />
+      <div className={contentStyles.sectionHeading}>
+        <Skeleton className="h-5 w-44 max-w-full sm:h-6" />
+        <Skeleton className="h-3.5 w-24" />
       </div>
       <ContentCardsSkeleton />
     </section>
+    </div>
   </div>
 );
 

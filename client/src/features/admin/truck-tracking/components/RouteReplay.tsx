@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { FormDialog } from "@/components/FormDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,7 +10,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchTruckHistory } from "@/services/trackingService";
 import { format } from "date-fns";
-import { CalendarDays, Loader2, Pause, Play, RotateCcw, Video } from "lucide-react";
+import { CalendarDays, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminTruck } from "../types";
 import { buildReplayTrip, formatReplayDuration, formatReplayTime, getReplayCompletedTargetLocations, getReplayDuration, getReplaySkippedTargetLocations, getReplayTargetLocation, getReplayTargetProgress, getReplayTargetStartElapsed, getReplayTargetState, sampleReplayTrip, type ReplayTargetLocation, type ReplayTrip } from "../utils/replayTrip";
@@ -62,6 +63,13 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
   const progress = canPlay ? Math.round((elapsedMs / durationMs) * 100) : 0;
   const sample = trip ? sampleReplayTrip(trip, durationMs > 0 ? elapsedMs / durationMs : 0) : null;
   const exporting = exportProgress !== null;
+  const exportPercent = Math.max(0, Math.min(100, exportProgress ?? 0));
+  const exportStageLabel = {
+    map: "Preparing map…",
+    encoding: "Encoding video…",
+    recording: "Recording video…",
+    finalizing: "Finishing file…",
+  }[exportStage];
   const targetProgress = trip && sample ? getReplayTargetProgress(trip, sample.index, trip.times[0] + elapsedMs) : null;
   const targetLocation = trip && sample ? getReplayTargetLocation(trip, sample.index, trip.times[0] + elapsedMs) : null;
   const targetRows = useMemo(() => trip ? (trip.stops ?? []).map((stop) => ({ stop, elapsed: getReplayTargetStartElapsed(trip, stop) })) : [], [trip]);
@@ -254,11 +262,13 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
       </div>
       {!trip && (
         <div className="space-y-2">
-          <Button onClick={() => void loadReplay()} disabled={!selectedTruck || !date || loading} className="h-9 w-full gap-2 rounded-md text-xs font-semibold">
-            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-            {loading ? "Loading replay…" : loadFailed ? "Retry" : "Load replay"}
+          {loadFailed ? <DataRefreshNotice primary role="alert" message={loadMessage || "Couldn't load the route replay. Please try again."} onRetry={() => void loadReplay()} retrying={loading} disabled={!selectedTruck || !date} /> : <>
+          <Button onClick={() => void loadReplay()} disabled={!selectedTruck || !date || loading} className="h-9 w-full gap-2 rounded-md text-xs font-semibold" loading={loading} loadingLabel="Loading replay…">
+            <Play className="size-3.5" />
+            Load replay
           </Button>
-          {loadMessage && <p role={loadFailed ? "alert" : "status"} className={cn("text-xs leading-relaxed", loadFailed ? "text-destructive" : "text-muted-foreground")}>{loadMessage}</p>}
+          {loadMessage && <p role="status" className="text-xs leading-relaxed text-muted-foreground">{loadMessage}</p>}
+          </>}
         </div>
       )}
       {trip && (
@@ -354,8 +364,8 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
           <div className="space-y-3 border-t border-border/60 pt-3">
             {canPlay && <div className="space-y-1.5">
               <Button variant="outline" disabled={exporting} onClick={() => { setExportError(""); setExportOpen(true); }} className="h-9 w-full gap-2 rounded-md text-xs font-semibold">
-                {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Video className="size-3.5" />}
-                {exporting ? "Generating video… " + exportProgress + "%" : "Download video"}
+                <Video className="size-3.5" />
+                Download video
               </Button>
               <p className="text-ui-caption text-muted-foreground">Save the full map replay at your chosen speed.</p>
             </div>}
@@ -366,9 +376,9 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
         title="Download replay video" description="Choose your playback speed." icon={<Video className="size-5" />}
         footer={<>
           <Button variant="outline" onClick={() => { exportAbortRef.current?.abort(); setExportOpen(false); }}>Cancel</Button>
-          <Button disabled={exporting || !canPlay} onClick={() => void downloadVideo()}>
-            {exporting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {exporting ? "Creating video…" : "Create video"}
+          <Button className="min-w-[12.5rem]" disabled={exporting || !canPlay} onClick={() => void downloadVideo()} loading={exporting} loadingLabel={exportStageLabel}>
+
+            Create video
           </Button>
         </>}>
         <div className="space-y-4">
@@ -385,11 +395,14 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
             <p className="font-medium">Video length: {formatReplayDuration(durationMs / exportSpeed)}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Candelaria map with the truck route and target streets.</p>
           </div>
-          <p className="text-xs leading-relaxed text-muted-foreground">{exporting && exportStage === "recording" ? "Your browser uses real-time recording. Export takes about the video length." : "Keep this tab open. Export time depends on the route and your device."}</p>
-          {exporting && <div role="status" className="space-y-2">
-            <p className="text-sm text-muted-foreground">{exportStage === "map" ? "Loading map…" : exportStage === "finalizing" ? "Preparing download…" : (exportStage === "encoding" ? "Encoding video… " : "Recording video… ") + exportProgress + "%"}</p>
-            {exportStage !== "map" && <progress aria-label="Video export progress" className="h-2 w-full accent-primary" max={100} value={exportProgress ?? 0} />}
+          {exporting && <div role="progressbar" aria-label="Video export progress" aria-valuemin={0} aria-valuemax={100}
+            aria-valuenow={exportStage === "map" ? undefined : exportPercent}
+            aria-valuetext={exportStage === "map" ? "Preparing route map" : exportStage === "finalizing" ? "Finishing video" : `${exportPercent}% ${exportStage === "encoding" ? "encoded" : "recorded"}`}
+            className={cn("h-2.5 overflow-hidden rounded-full bg-primary/15", exportStage === "map" && "motion-safe:animate-pulse")}>
+            {exportStage !== "map" && <div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
+              style={{ width: `${exportPercent}%` }} />}
           </div>}
+          <p className="text-xs leading-relaxed text-muted-foreground">{exporting ? "Keep this tab open until the download begins." : "Keep this tab open. Export time depends on the route and your device."}</p>
           {exportError && <p role="alert" className="text-sm text-destructive">{exportError}</p>}
         </div>
       </FormDialog>

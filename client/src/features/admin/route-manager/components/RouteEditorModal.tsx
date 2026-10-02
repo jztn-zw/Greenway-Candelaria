@@ -25,7 +25,6 @@ import {
   Leaf,
   Trash2,
   X,
-  Loader2,
   CalendarCheck,
   CalendarPlus,
   Save,
@@ -723,14 +722,10 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   type="submit"
                   disabled={isSaving || isLoadingTrucks}
                   className="h-9 text-xs rounded-xl px-5 font-semibold shadow-sm gap-1.5 cursor-pointer"
+                  loading={isSaving}
+                  loadingLabel={isCreating ? "Creating route…" : "Saving route…"}
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving Route...</span>
-                    </>
-                  ) : (
-                    <>
+                  <>
                       <Save className="w-3.5 h-3.5" />
                       <span>
                         {isCreating
@@ -740,7 +735,6 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                           : "Save Changes"}
                       </span>
                     </>
-                  )}
                 </Button>
               </div>
             </div>

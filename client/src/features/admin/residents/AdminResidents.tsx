@@ -1,6 +1,9 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +75,6 @@ const AdminResidents = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResidentsCount, setTotalResidentsCount] = useState(0);
-  const [filteredResidentsCount, setFilteredResidentsCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [deactivatedCount, setDeactivatedCount] = useState(0);
   const [bannedCount, setBannedCount] = useState(0);
@@ -112,7 +114,6 @@ const AdminResidents = () => {
     if (!result) return;
     setResidents(result.data.map(mapResidentListRow));
     setTotalPages(Math.max(1, Number(result.pagination?.total_pages || 1)));
-    setFilteredResidentsCount(Number(result.pagination?.total || 0));
     setHasLoadedList(true);
   }, [listQuery.data]);
   useEffect(() => {
@@ -205,6 +206,7 @@ const AdminResidents = () => {
   if (isInitialLoading) {
     return <ResidentManagerPageSkeleton />;
   }
+  if (listError) return <PageErrorState kind="unavailable" description="We couldn't load residents. Please try again." onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} homeHref="/admin" />;
 
   const STATUS_TABS: FilterPillItem[] = [
     { id: "all", label: "All Residents", count: kpiError || kpiLoading ? undefined : totalResidentsCount },
@@ -227,6 +229,8 @@ const AdminResidents = () => {
         </div>
 
       </div>
+
+      {listQuery.error && <DataRefreshNotice message="Couldn't refresh residents. Showing the last loaded results, which may be outdated." onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
@@ -376,13 +380,6 @@ const AdminResidents = () => {
             <TableBody>
               {isResultsLoading ? (
                 <ResidentManagerRowsSkeleton />
-              ) : listError ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-sm text-destructive">
-                    <p role="alert">Could not load residents. {listError}</p>
-                    <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadResidents()}>Retry</Button>
-                  </TableCell>
-                </TableRow>
               ) : residents.length === 0 ? (
                 <TableRow>
                   <TableCell
@@ -405,25 +402,17 @@ const AdminResidents = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                residents.map((r) => {
-                  const initials = r.fullName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase();
-
-                  return (
+                residents.map((r) => (
                     <TableRow
                       key={r.id}
                       onClick={() => openResidentProfile(r)}
                       className="group hover:bg-muted/40 transition-colors cursor-pointer"
                     >
-                      {/* Resident Name & Initials */}
+                      {/* Resident name and avatar */}
                       <TableCell className="pl-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs font-body shrink-0 shadow-2xs">
-                            {initials}
+                          <div className="w-9 h-9 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs font-body shrink-0 shadow-2xs">
+                            <img src={profileAvatarSrc(profileAvatarForAccount(r.id, r.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                           </div>
                           <div className="min-w-0">
                             <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
@@ -524,7 +513,7 @@ const AdminResidents = () => {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(r)}
-                              className="text-xs cursor-pointer"
+                              className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
                             >
                               Delete Account
                             </DropdownMenuItem>
@@ -532,8 +521,7 @@ const AdminResidents = () => {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  );
-                })
+                ))
               )}
             </TableBody>
           </Table>
@@ -544,9 +532,6 @@ const AdminResidents = () => {
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredResidentsCount}
-            pageSize={ITEMS_PER_PAGE}
-            itemLabel="residents"
             onPageChange={setCurrentPage}
             variant="table"
           />
@@ -563,7 +548,8 @@ const AdminResidents = () => {
         variant="destructive"
         description={<>Remove <strong className="font-semibold text-foreground">{deleteTarget?.fullName}</strong>&apos;s account (@{deleteTarget?.username}) from the manager? The account will be disabled and hidden; existing reports remain on record.</>}
         confirmLabel="Remove Account"
-        onConfirm={() => void deleteResident()}
+        onConfirm={deleteResident}
+        pendingLabel="Removing account…"
       />
     </div>
   );

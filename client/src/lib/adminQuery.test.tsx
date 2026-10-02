@@ -1,8 +1,8 @@
-import { act, useState } from "react";
+import { act, Profiler, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { notifyManager, QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import AppProviders from "@/app/providers/AppProviders";
 import api from "@/lib/api";
@@ -133,11 +133,11 @@ describe("admin server state", () => {
       </QueryClientProvider>,
     ));
     expect(host.textContent).toContain("Loading community posts");
-    expect(host.textContent).not.toContain("Loading article details");
+    expect(host.textContent).not.toContain("Loading post details");
 
     await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
     expect(host.textContent).not.toContain("Loading community posts");
-    expect(host.querySelector("h1")?.textContent).toBe("News & Articles");
+    expect(host.querySelector("h1")?.textContent).toBe("Community Posts");
     expect(host.textContent).toContain("No posts found");
   });
 
@@ -157,17 +157,48 @@ describe("admin server state", () => {
     const published = [...host.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Published");
     expect(published).toBeDefined();
     await act(async () => published!.click());
-    expect(host.querySelector("h1")?.textContent).toBe("News & Articles");
-    expect(host.querySelector('input[placeholder="Search articles by title, tag, or author..."]')).not.toBeNull();
-    expect(host.textContent).toContain("Loading articles");
+    expect(host.querySelector("h1")?.textContent).toBe("Community Posts");
+    expect(host.querySelector('input[placeholder="Search posts by title, tag, or author..."]')).not.toBeNull();
+    expect(host.textContent).toContain("Loading community posts");
     expect(host.textContent).not.toContain("Collection guide");
 
     await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
-    expect(host.textContent).not.toContain("Loading articles");
+    expect(host.textContent).not.toContain("Loading community posts");
     expect(host.textContent).toContain("No posts found");
   });
 
-  it("finishes article detail loading independently of the community list", async () => {
+  it("opens and closes the post editor without committing a view for the previous URL", async () => {
+    vi.spyOn(postsService, "getPage").mockResolvedValue({
+      posts: [], total: 0, totalPages: 1, page: 1, limit: 6,
+    });
+    const commits: { heading: string | null; search: string | null }[] = [];
+    const Location = () => <output data-post-location={useLocation().search} />;
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/admin/posts"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Profiler id="posts" onRender={() => commits.push({
+            heading: host.querySelector("h1")?.textContent ?? null,
+            search: host.querySelector("output")?.getAttribute("data-post-location") ?? null,
+          })}>
+            <Location /><AdminPosts />
+          </Profiler>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    commits.length = 0;
+    const create = [...host.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Create Post")!;
+    await act(async () => create.click());
+    expect(commits.length).toBeGreaterThan(0);
+    expect(commits).toEqual(commits.map(() => ({ heading: "Create Post", search: "?action=create" })));
+
+    commits.length = 0;
+    const cancel = [...host.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Cancel")!;
+    await act(async () => cancel.click());
+    expect(commits.length).toBeGreaterThan(0);
+    expect(commits).toEqual(commits.map(() => ({ heading: "Community Posts", search: "" })));
+  });
+
+  it("finishes post detail loading independently of the community list", async () => {
     vi.spyOn(postsService, "getPage").mockReturnValueOnce(new Promise(() => {}));
     let finish!: (value: unknown) => void;
     const request = new Promise((resolve) => { finish = resolve; });
@@ -177,11 +208,11 @@ describe("admin server state", () => {
         <MemoryRouter initialEntries={["/admin/posts?post=post-a"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><AdminPosts /></MemoryRouter>
       </QueryClientProvider>,
     ));
-    expect(host.textContent).toContain("Loading article details");
+    expect(host.textContent).toContain("Loading post details");
     expect(host.textContent).not.toContain("Loading community posts");
 
     await act(async () => finish({ id: "post-a", title: "Collection guide", body: "Full article", category: "WASTE_TIP", status: "PUBLISHED", images: [], tags: [] }));
-    expect(host.textContent).not.toContain("Loading article details");
+    expect(host.textContent).not.toContain("Loading post details");
     expect(host.querySelector("h1")?.textContent).toBe("Collection guide");
     expect(host.textContent).toContain("Full article");
   });

@@ -21,6 +21,7 @@ interface SkipReasonModalProps {
   barangay: string;
   onConfirm: (reason: SkipReason, notes?: string) => void;
   onCancel: () => void;
+  isPending?: boolean;
 }
 
 const SkipReasonModal = ({
@@ -28,6 +29,7 @@ const SkipReasonModal = ({
   barangay,
   onConfirm,
   onCancel,
+  isPending = false,
 }: SkipReasonModalProps) => {
   const [selected, setSelected] = useState<SkipReason | null>(null);
   const [notes, setNotes] = useState("");
@@ -38,15 +40,14 @@ const SkipReasonModal = ({
   }, [open]);
 
   const requestClose = () => {
+    if (isPending) return;
     if (selected || notes) setShowDiscard(true);
     else onCancel();
   };
 
   const handleConfirm = () => {
-    if (!selected) return;
+    if (!selected || isPending) return;
     onConfirm(selected, selected === "Other" ? notes : undefined);
-    setSelected(null);
-    setNotes("");
   };
 
   return (
@@ -65,6 +66,7 @@ const SkipReasonModal = ({
                 type="button"
                 key={reason}
                 onClick={() => setSelected(reason)}
+                disabled={isPending}
                 aria-pressed={selected === reason}
                 className={`text-left px-3 py-2.5 rounded-md border text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selected === reason
@@ -81,6 +83,7 @@ const SkipReasonModal = ({
             <Textarea
               placeholder="Brief explanation..."
               value={notes}
+              disabled={isPending}
               onChange={(e) => setNotes(e.target.value)}
               className={styles.textarea}
               rows={2}
@@ -89,11 +92,13 @@ const SkipReasonModal = ({
         </div>
 
         <div className={styles.footer}>
-          <Button variant="outline" onClick={requestClose} className={styles.cancelButton}>
+          <Button variant="outline" onClick={requestClose} disabled={isPending} className={styles.cancelButton}>
             Cancel
           </Button>
           <Button
-            disabled={!selected || (selected === "Other" && !notes.trim())}
+            disabled={isPending || !selected || (selected === "Other" && !notes.trim())}
+            loading={isPending}
+            loadingLabel="Skipping stop…"
             className={styles.primaryButton}
             onClick={handleConfirm}
           >

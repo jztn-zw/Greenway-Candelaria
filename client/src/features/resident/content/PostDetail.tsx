@@ -1,6 +1,6 @@
 import { useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
-import { Heart, Calendar, User, MapPin, FileText, Share2, Check } from "lucide-react";
+import { Heart, Calendar, User, FileText, Share2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
@@ -141,7 +141,6 @@ const PostDetail = ({
             <span
               className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-ui-overline font-bold uppercase tracking-wider shadow-2xs backdrop-blur-md lg:px-3 lg:py-1 lg:text-ui-caption ${getCategoryBadgeStyle(post.category).bg} ${getCategoryBadgeStyle(post.category).text} ${getCategoryBadgeStyle(post.category).border}`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${getCategoryBadgeStyle(post.category).dot}`} />
               <span>{categoryLabel}</span>
             </span>
           </div>
@@ -197,15 +196,6 @@ const PostDetail = ({
               <User className="w-4 h-4 text-muted-foreground" />
               <span className="truncate">{post.author_name || "MENRO Candelaria"}</span>
             </span>
-            {post.source && (
-              <>
-                <span className="hidden text-border lg:inline">•</span>
-                <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="truncate">{post.source}</span>
-                </span>
-              </>
-            )}
           </div>
         </div>
 

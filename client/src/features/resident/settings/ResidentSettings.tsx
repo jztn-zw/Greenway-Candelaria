@@ -1,4 +1,6 @@
 import { FormDialog } from "@/components/FormDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
 import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
@@ -13,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { SettingsSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchUserSettings, updateUserSettings, UpdateSettingsPayload } from "@/services/settingsService";
 import { toast } from "@/lib/toast";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { setThemeMode } from "@/lib/theme";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 
 const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -147,13 +151,10 @@ const ResidentSettings = () => {
   const [faqModal, setFaqModal] = useState(false);
   const [contactModal, setContactModal] = useState(false);
 
-  const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const dark = useThemeMode() === "dark";
 
   const toggleTheme = (isDark: boolean) => {
-    setDark(isDark);
-    if (isDark) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", isDark ? "dark" : "light");
+    setThemeMode(isDark ? "dark" : "light");
   };
 
   // Hydrate saved values only while there are no local writes in flight.
@@ -201,10 +202,10 @@ const ResidentSettings = () => {
   if (isLoading) {
     return <SettingsSkeleton />;
   }
+  if (settingsQuery.isError && settingsQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load your saved settings. Please try again." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} homeHref="/resident" />;
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-300 md:space-y-5 lg:space-y-6">
-      {settingsQuery.isError && <p role="alert" className="text-destructive">Could not load saved settings. <button onClick={() => void settingsQuery.refetch()}>Retry</button></p>}
       {/* ── Page Header ── */}
       <div className="hidden flex-col gap-2.5 md:flex md:flex-row md:items-center md:justify-between">
         <div>
@@ -216,6 +217,8 @@ const ResidentSettings = () => {
           </p>
         </div>
       </div>
+
+      {settingsQuery.isError && <DataRefreshNotice message="Couldn't refresh settings. Showing your last loaded preferences." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} />}
 
       {/* ── 1. Collection Reminders ── */}
       <Section

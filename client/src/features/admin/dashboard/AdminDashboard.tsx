@@ -19,6 +19,10 @@ import { useAdminDashboard } from "./components/useAdminDashboard";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
+import { useAdminQuery } from "@/lib/adminQuery";
+import { fetchCalendarEvents } from "@/services/scheduleService";
 
 const AdminDashboard = () => {
   const {
@@ -35,6 +39,8 @@ const AdminDashboard = () => {
     barangays,
     attention,
   } = useAdminDashboard();
+  const calendarQuery = useAdminQuery("schedule", ["calendar", overview?.as_of_date], () => fetchCalendarEvents(), { enabled: !!overview });
+  const retryDashboard = () => { if (error) void refetch(); if (calendarQuery.isError) void calendarQuery.refetch(); };
 
   if (isLoading || (!overview && !error)) {
     return (
@@ -60,16 +66,12 @@ const AdminDashboard = () => {
   }
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div aria-busy={isRefreshing} className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
       {/* ── 1. Executive Hero Header ── */}
       <DashboardHeader />
 
-      {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm">
-          <p className="flex items-center gap-2 text-foreground"><AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />Dashboard refresh failed. Showing the last loaded figures.</p>
-          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isRefreshing}>{isRefreshing ? "Retrying…" : "Try again"}</Button>
-        </div>
-      )}
+      {(error || calendarQuery.isError) && <DataRefreshNotice primary message="Some dashboard information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={retryDashboard} retrying={isRefreshing || calendarQuery.isFetching} />}
 
       {/* ── 2. Executive 4-Card KPI Metric Strip ── */}
       <KPICards overview={overview} reportsAnalytics={reportsAnalytics} />
@@ -104,6 +106,7 @@ const AdminDashboard = () => {
         />
       </div>
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

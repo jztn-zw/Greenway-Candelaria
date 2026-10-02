@@ -1,11 +1,10 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { collectorKey, useCollectorAction, useCollectorQuery } from "@/lib/collectorQuery";
 import { useNavigate } from "react-router-dom";
 import {
-  Camera,
   Calendar,
   User,
   Mail,
@@ -14,17 +13,19 @@ import {
   Truck,
   Eye,
   EyeOff,
-  Loader2,
   Wrench,
-  Paintbrush,
+  Users,
   ChevronRight,
   LogOut,
   ShieldCheck,
   AtSign,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -34,7 +35,6 @@ import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
   updateProfile,
-  uploadAvatar,
   changePassword,
   UserProfile,
 } from "@/services/profileService";
@@ -109,14 +109,6 @@ const FieldRow = ({
   </div>
 );
 
-const avatarStyles = [
-  { id: "forest", label: "Forest", className: "bg-gradient-to-br from-primary to-emerald-700" },
-  { id: "ocean", label: "Ocean", className: "bg-gradient-to-br from-sky-500 to-blue-700" },
-  { id: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-rose-600" },
-  { id: "violet", label: "Violet", className: "bg-gradient-to-br from-violet-500 to-fuchsia-700" },
-] as const;
-type AvatarStyle = (typeof avatarStyles)[number]["id"];
-
 const CollectorProfile = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
@@ -132,11 +124,10 @@ const CollectorProfile = () => {
   const driverData = driverQuery.data ?? null;
   const isLoading = profileQuery.isLoading || driverQuery.isLoading;
   const loadErrors = { profile: Boolean(profileQuery.error), driver: Boolean(driverQuery.error) };
-  const retry = () => { void Promise.all([profileQuery.refetch(), driverQuery.refetch()]); };
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarStyle, setAvatarStyle] = useState<AvatarStyle>("forest");
+  const retry = () => { if (profileQuery.isError) void profileQuery.refetch(); if (driverQuery.isError) void driverQuery.refetch(); };
+  const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
@@ -186,29 +177,16 @@ const CollectorProfile = () => {
   useEffect(() => {
     if (!avatarAccountId) return;
     const saved = localStorage.getItem(`greenway:collector-avatar:${avatarAccountId}`);
-    setAvatarStyle(avatarStyles.some(({ id }) => id === saved) ? saved as AvatarStyle : "forest");
-  }, [avatarAccountId]);
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setAvatarUploading(true);
-      await runProfileAction(async () => {
-        const { avatar_url } = await uploadAvatar(file);
-        client.setQueryData<UserProfile>(collectorKey(authUser?.id, "profile", "account"), (previous) => previous ? { ...previous, avatar_url } : previous);
-        const current = useAuthStore.getState();
-        if (current.user && current.user.id === authUser?.id && current.token === authToken) setUser({ ...current.user, avatar_url });
-      });
-      toast.success("Profile photo updated");
-      setAvatarOpen(false);
-    } catch {
-      toast.error("Failed to upload photo");
-    } finally {
-      setAvatarUploading(false);
-      e.target.value = "";
+    const selected = profileAvatarIdFromUrl(profile?.avatar_url);
+    setAvatarId(selected ?? (isProfileAvatarId(saved) ? saved : profileAvatarForAccount(avatarAccountId, profile?.avatar_url)));
+    if (!selected && !profile?.avatar_url && isProfileAvatarId(saved)) {
+      void updateProfile({ avatar_url: profileAvatarSrc(saved) }).then((updated) => {
+        client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
+        const current = useAuthStore.getState().user;
+        if (current?.id === updated.id) setUser({ ...current, ...updated });
+      }).catch(() => {});
     }
-  };
+  }, [avatarAccountId, profile?.avatar_url, authUser?.id, client, setUser]);
 
   const handleSaveField = async () => {
     if (editModal.saving) return;
@@ -298,8 +276,8 @@ const CollectorProfile = () => {
   };
 
   const handleLogout = async () => {
-    setLogoutOpen(false);
     await logout();
+    setLogoutOpen(false);
     navigate("/", { replace: true });
   };
 
@@ -327,80 +305,54 @@ const CollectorProfile = () => {
   if (isLoading) return <CollectorProfileSkeleton />;
 
   if (!profile && !driverData) {
-    return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your collector information. Please try again." onRetry={retry} homeHref="/collector" />;
+    return <PageErrorState kind="unavailable" description="We couldn't load your collector information. Please try again." onRetry={retry} retrying={profileQuery.isFetching || driverQuery.isFetching} homeHref="/collector" />;
   }
 
   const displayName = profile?.full_name || driverData?.full_name || authUser?.full_name || "Collector";
   const displayEmail = profile?.email || driverData?.email || authUser?.email || "";
   const displayPhone = profile?.phone || driverData?.phone || "";
   const displayUsername = profile?.username || driverData?.username || authUser?.username || "—";
-  const initials =
-    displayName
-      .split(" ")
-      .map((n) => n[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "DR";
-
   const hasAssignedTruck = Boolean(driverData?.truck_id);
   const truckName = driverData?.truck_name || "Assigned Truck";
   const truckPlate = driverData?.truck_plate || "";
-  const accountStatus = profile?.status || driverData?.account_status || authUser?.status;
   const isUnderMaintenance = driverData?.truck_availability === "UNDER_MAINTENANCE" ||
     driverData?.truck_status === "MAINTENANCE" || driverData?.truck_status === "INACTIVE";
   const vehicleReadiness = isUnderMaintenance ? "Under maintenance" :
     driverData?.truck_availability === "ACTIVE" ? "Operational / Ready" : "Readiness unavailable";
-  const selectedAvatarStyle = avatarStyles.find(({ id }) => id === avatarStyle) ?? avatarStyles[0];
   const joinedAt = profile?.created_at || driverData?.created_at;
   const joined = joinedAt ? formatManilaDateTime(joinedAt, { year: "numeric", month: "long" }) : null;
-  const avatarUrl = profile?.avatar_url || authUser?.avatar_url || driverData?.avatar_url || "";
-
-  const saveAvatarStyle = (style: AvatarStyle) => {
-    if (!avatarAccountId) return;
-    localStorage.setItem(`greenway:collector-avatar:${avatarAccountId}`, style);
-    setAvatarStyle(style);
-    setAvatarOpen(false);
-    toast.success("Avatar style updated");
+  const saveAvatar = async (selectedId: ProfileAvatarId) => {
+    if (!avatarAccountId || savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      const updated = await runProfileAction(() => updateProfile({ avatar_url: profileAvatarSrc(selectedId) }));
+      client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
+      if (authUser) setUser({ ...authUser, ...updated });
+      localStorage.setItem(`greenway:collector-avatar:${avatarAccountId}`, selectedId);
+      setAvatarId(selectedId);
+      setAvatarOpen(false);
+      toast.success("Avatar updated");
+    } catch {
+      toast.error("Could not update your avatar. Please try again.");
+    } finally {
+      setSavingAvatar(false);
+    }
   };
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5 pb-8 animate-in fade-in duration-300">
-      {(loadErrors.profile || loadErrors.driver) && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-          <p className="text-sm text-foreground">
-            {loadErrors.profile && loadErrors.driver ? "Profile and vehicle information could not be refreshed." :
-              loadErrors.profile ? "Personal information could not be refreshed." : "Vehicle information could not be refreshed."}
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={retry}>Retry</Button>
-        </div>
-      )}
       {/* ── 1. Profile Header Banner (Resident-style) ── */}
       <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
         {/* Profile banner */}
         <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
           <ProfileBannerImage />
-          {accountStatus && <div className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${accountStatus === "ACTIVE" ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-destructive/30 text-destructive"}`}>
-            <span className={`size-2 rounded-full ${accountStatus === "ACTIVE" ? "bg-emerald-500" : "bg-destructive"}`} />
-            <span>{accountStatus === "ACTIVE" ? "Active collector" : accountStatus === "DEACTIVATED" ? "Deactivated collector" : "Collector account restricted"}</span>
-          </div>}
         </div>
 
         {/* Avatar & Core Identity */}
         <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
           <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
-                <AvatarImage src={avatarUrl} />
-                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full font-body text-3xl font-semibold text-primary-foreground`}>
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <Button type="button" variant="outline" onClick={() => setAvatarOpen(true)} className="h-8 gap-1.5 rounded-xl px-3 text-ui-caption font-semibold">
-                <Paintbrush className="size-3.5" /> Customize
-              </Button>
-              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </div>
+            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
 
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
@@ -422,6 +374,8 @@ const CollectorProfile = () => {
           </div>
         </div>
       </div>
+
+      {(loadErrors.profile || loadErrors.driver) && <DataRefreshNotice primary message="Some profile or vehicle information couldn't load or refresh. Your edits are preserved; loaded data may be outdated." onRetry={retry} retrying={profileQuery.isFetching || driverQuery.isFetching} />}
 
       {/* ── 2. Assigned Vehicle & Equipment ── */}
       <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
@@ -490,10 +444,7 @@ const CollectorProfile = () => {
             </div>
           </div>
         ) : loadErrors.driver && !driverData ? (
-          <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-6 text-center">
-            <p className="text-sm font-semibold text-foreground">Vehicle information unavailable</p>
-            <p className="mt-1 text-xs text-muted-foreground">Retry to check your current assignment.</p>
-          </div>
+          <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" onRetry={() => void driverQuery.refetch()} retrying={driverQuery.isFetching} />
         ) : (
           <div className="p-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
             <p className="text-sm font-semibold text-foreground">
@@ -637,26 +588,14 @@ const CollectorProfile = () => {
         </div>
       </div>
 
-      <Dialog open={avatarOpen} onOpenChange={(open) => { if (!avatarUploading) setAvatarOpen(open); }}>
+      <Dialog open={avatarOpen} onOpenChange={setAvatarOpen}>
         <DialogContent className={modalStyles.content}>
-          <CollectorModalHeader title="Customize avatar" description="Choose a color or upload a photo." icon={<Paintbrush />} onClose={() => setAvatarOpen(false)} disabled={avatarUploading} />
+          <CollectorModalHeader title="Choose avatar" description="Select one of the ten profile avatars." icon={<Users />} onClose={() => setAvatarOpen(false)} />
           <div className={modalStyles.body}>
-            <div className="grid grid-cols-2 gap-3">
-              {avatarStyles.map((style) => (
-                <button key={style.id} type="button" disabled={avatarUploading} aria-pressed={avatarStyle === style.id} onClick={() => saveAvatarStyle(style.id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${avatarStyle === style.id ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-[var(--button-neutral-hover)]"}`}>
-                  <span className={`flex size-10 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
-                  <span className="text-xs font-semibold text-foreground">{style.label}</span>
-                </button>
-              ))}
-            </div>
-            {avatarUrl && <p className="text-xs text-muted-foreground">The initials color appears when your photo is unavailable.</p>}
+            <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
           </div>
           <div className={modalStyles.footer}>
-            <Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} disabled={avatarUploading} className={modalStyles.cancelButton}>Close</Button>
-            <Button type="button" variant="outline" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className={modalStyles.cancelButton}>
-              {avatarUploading ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : <Camera className="mr-1.5 size-3.5" />}
-              {avatarUploading ? "Uploading..." : "Upload profile photo"}
-            </Button>
+            <Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} className={modalStyles.cancelButton}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -712,15 +651,10 @@ const CollectorProfile = () => {
               onClick={handleSaveField}
               disabled={editModal.saving}
               className={modalStyles.primaryButton}
+              loading={editModal.saving}
+              loadingLabel="Saving changes…"
             >
-              {editModal.saving ? (
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Saving...</span>
-                </span>
-              ) : (
-                "Save changes"
-              )}
+              Save changes
             </Button>
           </div>
         </DialogContent>
@@ -845,15 +779,10 @@ const CollectorProfile = () => {
               onClick={handleSavePassword}
               disabled={pwModal.saving}
               className={modalStyles.primaryButton}
+              loading={pwModal.saving}
+              loadingLabel="Updating password…"
             >
-              {pwModal.saving ? (
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Updating...</span>
-                </span>
-              ) : (
-                "Update password"
-              )}
+              Update password
             </Button>
           </div>
         </DialogContent>
@@ -866,7 +795,7 @@ const CollectorProfile = () => {
         description={discardTarget === "password" ? "Your entered passwords will be cleared." : "Your unsaved profile changes will be lost."}
         discardLabel="Discard Changes" isSaving={discardTarget === "password" ? pwModal.saving : editModal.saving}
       />
-      <CollectorLogoutDialog open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={() => { void handleLogout(); }} />
+      <CollectorLogoutDialog open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={handleLogout} />
 
       <TruckBreakdownDialog
         open={breakdownModal}
@@ -876,6 +805,7 @@ const CollectorProfile = () => {
         onSubmit={(report) => runBreakdownAction(() => reportTruckBreakdown(report))}
       />
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

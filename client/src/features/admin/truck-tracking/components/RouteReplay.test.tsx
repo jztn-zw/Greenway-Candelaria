@@ -101,7 +101,7 @@ it("shows useful empty and retry states without a fake route", async () => {
   vi.mocked(fetchTruckHistory).mockRejectedValueOnce(new Error("Unavailable"));
   await click("Load replay");
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not load");
-  await click("Retry"); expect(button("Pause")).toBeTruthy();
+  await click("Try again"); expect(button("Pause")).toBeTruthy();
 });
 
 it("shows a lone recorded position without playback or video controls", async () => {
@@ -161,6 +161,32 @@ it("exports the full trip and aborts video work when the panel closes", async ()
   expect(options.signal!.aborted).toBe(true);
   expect(onPath).toHaveBeenLastCalledWith(undefined);
   expect(onIndex).toHaveBeenLastCalledWith(undefined);
+});
+
+it("shows accurate video export stages and progress while keeping cancel available", async () => {
+  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+  await load(); await click("Download video"); await click("Create video");
+  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
+  const progress = () => document.querySelector('[role="progressbar"][aria-label="Video export progress"]');
+  const loadingButton = () => document.querySelector('button[data-loading="true"]');
+  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Preparing map…");
+  expect(document.querySelector('.gw-action-loader')).toBeTruthy();
+  expect(progress()?.hasAttribute("aria-valuenow")).toBe(false);
+
+  await act(async () => { options.onStage?.("encoding"); options.onProgress?.(17); });
+  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Encoding video…");
+  expect(progress()?.getAttribute("aria-valuenow")).toBe("17");
+  expect(progress()?.firstElementChild?.getAttribute("style")).toContain("width: 17%");
+
+  await act(async () => { options.onStage?.("recording"); options.onProgress?.(42); });
+  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Recording video…");
+  expect(progress()?.getAttribute("aria-valuenow")).toBe("42");
+
+  await act(async () => { options.onStage?.("finalizing"); });
+  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Finishing file…");
+  expect(progress()?.getAttribute("aria-valuenow")).toBe("42");
+  await click("Cancel");
+  expect(options.signal?.aborted).toBe(true);
 });
 
 it("cancels a video export from the popup and allows another attempt", async () => {

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useAdminMutation } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { resetDriverPassword as apiresetDriverPassword } from "@/services/driverManagerService";
-import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
+import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { Driver } from "../types";
 
@@ -108,9 +108,9 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
           <div className="flex justify-end gap-2.5 border-t border-border/60 pt-4">
             <Button type="button" variant="outline" disabled={isSaving} onClick={onClose} className="h-9 rounded-lg px-4 text-xs font-medium">Cancel</Button>
-            <Button type="submit" disabled={isSaving} className="h-9 gap-1.5 rounded-lg px-5 text-xs font-semibold">
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isSaving ? "Saving..." : "Save Password"}
+            <Button type="submit" disabled={isSaving} className="h-9 gap-1.5 rounded-lg px-5 text-xs font-semibold" loading={isSaving} loadingLabel="Saving password…">
+
+              Save Password
             </Button>
           </div>
         </form>

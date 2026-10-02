@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toggleThemeMode } from "@/lib/theme";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   Menu,
@@ -7,6 +9,7 @@ import {
   Sun,
   Moon,
   CheckCheck,
+  Loader2,
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
@@ -23,7 +26,7 @@ import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
 const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin": "Admin Dashboard",
   "/admin/reports": "Waste Reports",
-  "/admin/posts": "News & Articles",
+  "/admin/posts": "Community Posts",
   "/admin/announcements": "Announcements",
   "/admin/schedule": "Collection Schedule",
   "/admin/routes": "Route Management",
@@ -75,24 +78,17 @@ const AdminTopBar = () => {
     (Boolean(postParam) || Boolean(editParam) || isCreateAction || isPreview);
 
   const subViewTitle = isCreateAction
-    ? "Create Article"
+    ? "Create Post"
     : editParam
-      ? postTitle ? `Edit: ${postTitle}` : "Edit Article"
-      : postTitle || "Article Details";
+      ? postTitle ? `Edit: ${postTitle}` : "Edit Post"
+      : postTitle || "Post Details";
 
-  const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const dark = useThemeMode() === "dark";
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
   const [modalNotification, setModalNotification] = useState<AdminNotificationDetail | null>(null);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-
-  const toggleTheme = () => {
-    const nextDark = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    setDark(nextDark);
-  };
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications();
 
   const handleNotificationClick = async (n: NotificationRow) => {
     if (!n.is_read) await markAsRead(n.id);
@@ -195,7 +191,7 @@ const AdminTopBar = () => {
             <>
               <button
                 type="button"
-                aria-label="Back to News & Articles"
+                aria-label="Back to Community Posts"
                 onClick={() => {
                   setSearchParams((prev) => {
                     const next = new URLSearchParams(prev);
@@ -209,7 +205,7 @@ const AdminTopBar = () => {
                 }}
                 className="hover:text-foreground transition-colors text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
               >
-                News & Articles
+                Community Posts
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
               {isPreview ? (
@@ -251,12 +247,12 @@ const AdminTopBar = () => {
         {/* Theme toggle */}
         <button
           type="button"
-          onClick={toggleTheme}
+          onClick={toggleThemeMode}
           className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center overflow-hidden cursor-pointer border"
           title="Toggle Theme"
         >
-          <Sun className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
-          <Moon className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
+          <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
+          <Moon className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
         </button>
 
         {/* Notifications Popover */}
@@ -303,10 +299,12 @@ const AdminTopBar = () => {
                 <button
                   type="button"
                   onClick={markAllAsRead}
+                  disabled={isMutating}
+                  aria-busy={isMarkingAll}
                   className="gw-topbar-notification-action"
                 >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark all read</span>
+                  {isMarkingAll ? <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
+                  <span>{isMarkingAll ? "Marking all read…" : "Mark all read"}</span>
                 </button>
               )}
             </div>

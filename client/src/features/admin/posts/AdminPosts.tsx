@@ -1,4 +1,7 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
 import {
 AdminPostDetailSkeleton,
@@ -20,7 +23,7 @@ import { toast } from "@/lib/toast";
 import postsService, { type AdminPostStats } from "@/services/postsService";
 import useAuthStore from "@/store/authStore";
 import { ArrowUpDown, LayoutGrid, List, Plus, RotateCcw, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminPostDetail from "./AdminPostDetail";
 import PostCard from "./PostCard";
@@ -73,7 +76,6 @@ interface ApiPost {
   id: string;
   title: string;
   body: string;
-  source?: string | null;
   category: "WASTE_TIP" | "EVENT";
   status: string;
   is_featured?: boolean | number;
@@ -91,7 +93,6 @@ const mapApiPost = (p: ApiPost): Post => ({
   id: p.id,
   title: p.title,
   body: p.body,
-  source: p.source || "",
   category: p.category === "WASTE_TIP" ? "Waste Tip" : "Event",
   status: mapStatus(p.status),
   featured: Boolean(p.is_featured),
@@ -138,7 +139,6 @@ const AdminPosts = () => {
   const [sortBy, setSortBy] = useState<string>("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [postStats, setPostStats] = useState<AdminPostStats | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -197,7 +197,7 @@ const AdminPosts = () => {
     const result = listQuery.data;
     if (!result) return;
     hasLoadedListRef.current = true;
-    setPosts(mapApiPosts(result.posts)); setTotalItems(result.total);
+    setPosts(mapApiPosts(result.posts));
     setTotalPages(Math.max(1, result.totalPages)); setPostStats(result.stats || null);
     if (currentPage > Math.max(1, result.totalPages)) setCurrentPage(Math.max(1, result.totalPages));
   }, [listQuery.data, currentPage]);
@@ -276,12 +276,12 @@ const AdminPosts = () => {
     setEditingPost(null);
   }, [editId, isCreateAction, isInitialSync, posts, setSearchParams, fetchAdmin, editorOpen, editingPost?.id]);
 
-  const STATUS_TABS: { key: string; label: string }[] = [
-    { key: "all", label: "All Posts" },
-    { key: "Published", label: "Published" },
-    { key: "Draft", label: "Drafts" },
-    { key: "Scheduled", label: "Scheduled" },
-    { key: "Archived", label: "Archived" },
+  const STATUS_TABS: FilterPillItem<string>[] = [
+    { id: "all", label: "All Posts" },
+    { id: "Published", label: "Published" },
+    { id: "Draft", label: "Drafts" },
+    { id: "Scheduled", label: "Scheduled" },
+    { id: "Archived", label: "Archived" },
   ];
 
   // ─── Actions ───────────────────────────────────────────
@@ -410,20 +410,24 @@ const AdminPosts = () => {
   };
 
   const openEditor = (post?: Post) => {
-    setEditingPost(post || null);
-    setEditorOpen(true);
-    setViewingPost(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("post");
-      if (post) {
-        next.set("edit", post.id);
-        next.set("title", post.title);
-      } else {
-        next.set("action", "create");
-        next.delete("title");
-      }
-      return next;
+    // Router navigation is deferred. Commit the editor state in the same
+    // transition so the URL synchronization effect cannot reopen the list.
+    startTransition(() => {
+      setEditingPost(post || null);
+      setEditorOpen(true);
+      setViewingPost(null);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("post");
+        if (post) {
+          next.set("edit", post.id);
+          next.set("title", post.title);
+        } else {
+          next.set("action", "create");
+          next.delete("title");
+        }
+        return next;
+      });
     });
   };
 
@@ -434,26 +438,28 @@ const AdminPosts = () => {
       // ignore
     }
     wasPreviewRef.current = false;
-    setEditorOpen(false);
-    setEditingPost(null);
-    setPreviewPost(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("action");
-      next.delete("edit");
-      next.delete("title");
-      next.delete("preview");
-      return next;
+    startTransition(() => {
+      setEditorOpen(false);
+      setEditingPost(null);
+      setPreviewPost(null);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("action");
+        next.delete("edit");
+        next.delete("title");
+        next.delete("preview");
+        return next;
+      });
     });
   };
 
   const handleSave = async (form: EditorForm) => {
+    if (isSaving) return;
     setIsSaving(true);
     try {
       const payload = {
         title: form.title,
         body: form.body,
-        source: form.source,
         category: form.category === "Waste Tip" ? "WASTE_TIP" : "EVENT",
         status: mapStatusToApi(form.status),
         is_featured: form.featured,
@@ -491,7 +497,6 @@ const AdminPosts = () => {
       id: "preview",
       title: form.title || "Untitled Announcement",
       body: form.body || "No content provided yet...",
-      source: form.source || "",
       category: form.category || "Waste Tip",
       status: form.status || "Draft",
       featured: Boolean(form.featured),
@@ -592,6 +597,8 @@ const AdminPosts = () => {
     );
   }
 
+  if (loadError && !hasLoadedListRef.current) return <PageErrorState kind="unavailable" description="We couldn't load community posts. Please try again." onRetry={() => void loadPosts()} retrying={listQuery.isFetching} homeHref="/admin" />;
+
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
       {/* ── Top Header ── */}
@@ -599,68 +606,42 @@ const AdminPosts = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-              News & Articles
+              Community Posts
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Publish and manage municipal waste guidelines, eco tips, and event updates.
+            Publish and manage community waste tips, guidelines, and event updates.
           </p>
         </div>
         <Button onClick={() => openEditor()} className="gap-2 rounded-xl shadow-sm cursor-pointer shrink-0">
-          <Plus className="w-4 h-4" /> Create Article
+          <Plus className="w-4 h-4" /> Create Post
         </Button>
       </div>
 
       <PostStats posts={posts} stats={postStats || undefined} />
 
-      {loadError && (
-        <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-destructive">{loadError}</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => void loadPosts()}
-            className="rounded-lg"
-          >
-            Try again
-          </Button>
-        </div>
-      )}
+      {loadError && <DataRefreshNotice message="Couldn't update community posts. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void loadPosts()} retrying={listQuery.isFetching} />}
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
       <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
         {/* Tier 1: Status Navigation & Search */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
           {/* Status filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x">
-            {STATUS_TABS.map((tab) => {
-              const isActive = statusFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setStatusFilter(tab.key);
-                    setCurrentPage(1);
-                  }}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <FilterPillTabs
+            items={STATUS_TABS}
+            activeId={statusFilter}
+            onChange={(status) => {
+              setStatusFilter(status);
+              setCurrentPage(1);
+            }}
+            ariaLabel="Post status filters"
+          />
 
           {/* Search Input */}
           <div className="relative w-full xl:w-[330px] shrink-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Search articles by title, tag, or author..."
+              placeholder="Search posts by title, tag, or author..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -774,13 +755,13 @@ const AdminPosts = () => {
       </section>
 
       <div aria-busy={isListLoading}>
-      {listQuery.isLoading ? <AdminPostsContentSkeleton viewMode={viewMode} /> : !loadError && posts.length === 0 ? (
+      {listQuery.isLoading ? <AdminPostsContentSkeleton viewMode={viewMode} /> : posts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
           <p className="text-sm font-semibold text-foreground">No posts found</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {activeFilterCount > 0
               ? "Try clearing or changing the current filters."
-              : "Create the first community article to get started."}
+              : "Create the first community post to get started."}
           </p>
         </div>
       ) : viewMode === "grid" ? (
@@ -818,9 +799,6 @@ const AdminPosts = () => {
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={postsPerPage}
-          itemLabel="posts"
           onPageChange={setCurrentPage}
           variant="floating"
         />

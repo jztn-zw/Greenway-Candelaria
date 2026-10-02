@@ -8,7 +8,7 @@ ApiRoute,
 updateRoute as apiupdateRoute,
 fetchRoutes,
 } from "@/services/routesService";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { WASTE_MAP } from "../constants";
 
 // ─── Frontend shape (what the component works with) ───────────────────────────
@@ -149,25 +149,21 @@ export const useRoutes = () => {
   const createRoute = useAdminMutation(apicreateRoute, "routes", "tracking", "drivers", "trucks", "schedule");
   const updateRoute = useAdminMutation(apiupdateRoute, "routes", "tracking", "drivers", "trucks", "schedule");
   const deleteRoute = useAdminMutation(apideleteRoute, "routes", "tracking", "drivers", "trucks", "schedule");
-  const { data: routes, setData: setRoutes, isLoading, error: queryError, refetch: loadRoutes } =
+  const { data: routes, setData: setRoutes, isLoading, isFetching: isRefreshing, dataUpdatedAt, error: queryError, refetch: loadRoutes } =
     useAdminResource<RouteData[]>("routes", ["list"], async () => (await fetchRoutes()).map(mapRoute), []);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<"route" | "duplicate" | null>(null);
   const error = queryError?.message ?? null;
 
-  // useRef snapshot for optimistic rollback — avoids stale closure in remove()
-  const routesRef = useRef<RouteData[]>([]);
-  routesRef.current = routes;
 
   // ── Fetch ─────────────────────────────────────────────────────────────────────
 
-  useEffect(() => { if (queryError) toast.error(queryError.message); }, [queryError]);
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
   const createNew = useCallback(
     async (form: RouteForm): Promise<RouteData | null> => {
       try {
-        setIsSaving(true);
+        setSavingAction("route");
         const raw = await createRoute({
           truck_id: form.truckId,
           driver_id: form.driverId || undefined,
@@ -188,7 +184,7 @@ export const useRoutes = () => {
         const message = err instanceof Error ? err.message : "Failed to create route.";
         throw new Error(message);
       } finally {
-        setIsSaving(false);
+        setSavingAction(null);
       }
     },
     [createRoute, setRoutes],
@@ -199,7 +195,7 @@ export const useRoutes = () => {
   const updateExisting = useCallback(
     async (id: string, form: RouteForm): Promise<RouteData | null> => {
       try {
-        setIsSaving(true);
+        setSavingAction("route");
         const raw = await updateRoute(id, {
           truck_id: form.truckId,
           driver_id: form.driverId || undefined,
@@ -220,7 +216,7 @@ export const useRoutes = () => {
         const message = err instanceof Error ? err.message : "Failed to update route.";
         throw new Error(message);
       } finally {
-        setIsSaving(false);
+        setSavingAction(null);
       }
     },
     [setRoutes, updateRoute],
@@ -228,23 +224,19 @@ export const useRoutes = () => {
 
   // ── Toggle Active (ACTIVE ↔ INACTIVE) ─────────────────────────────────────────
 
-  const toggleActive = useCallback(async (route: RouteData): Promise<void> => {
+  const toggleActive = useCallback(async (route: RouteData): Promise<boolean> => {
     const newStatus = route.active ? "INACTIVE" : "ACTIVE";
-
-    // Optimistic update
-    setRoutes((prev) =>
-      prev.map((r) => (r.id === route.id ? { ...r, active: !r.active } : r)),
-    );
 
     try {
       await updateRoute(route.id, { status: newStatus });
+      setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, active: !route.active, status: newStatus } : r));
       toast.success(route.active ? "Route paused" : "Route enabled");
+      return true;
     } catch (err) {
-      // Rollback
-      setRoutes((prev) => prev.map((r) => (r.id === route.id ? route : r)));
       toast.error(
         err instanceof Error ? err.message : "Failed to update route status.",
       );
+      return false;
     }
   }, [setRoutes, updateRoute]);
 
@@ -253,7 +245,7 @@ export const useRoutes = () => {
   const duplicate = useCallback(
     async (route: RouteData, targetDay: Day): Promise<RouteData | null> => {
       try {
-        setIsSaving(true);
+        setSavingAction("duplicate");
         const raw = await createRoute({
           truck_id: route.truckId,
           driver_id: route.driverId ?? undefined,
@@ -276,7 +268,7 @@ export const useRoutes = () => {
         );
         return null;
       } finally {
-        setIsSaving(false);
+        setSavingAction(null);
       }
     },
     [createRoute, setRoutes],
@@ -285,28 +277,28 @@ export const useRoutes = () => {
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   const remove = useCallback(async (id: string): Promise<boolean> => {
-    // Snapshot via ref — no stale closure, no [routes] dependency
-    const previous = routesRef.current;
-    setRoutes((prev) => prev.filter((r) => r.id !== id)); // optimistic
-
     try {
       await deleteRoute(id);
+      setRoutes((prev) => prev.filter((r) => r.id !== id));
       toast.success("Route deleted");
       return true;
     } catch (err) {
-      setRoutes(previous); // rollback
       toast.error(
         err instanceof Error ? err.message : "Failed to delete route.",
       );
       return false;
     }
-  }, [deleteRoute, setRoutes]); // ← no [routes] dependency needed anymore
+  }, [deleteRoute, setRoutes]);
 
   return {
     routes,
     isLoading,
-    isSaving,
+    isSaving: savingAction !== null,
+    isSavingRoute: savingAction === "route",
+    isDuplicating: savingAction === "duplicate",
     error,
+    isRefreshing,
+    hasLoadedData: dataUpdatedAt > 0,
     loadRoutes,
     createNew,
     updateExisting,

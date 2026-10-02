@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Loader2, X, UserPlus, UserCheck } from "lucide-react";
+import { X, UserPlus, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Driver, Truck } from "../types";
@@ -335,12 +335,12 @@ const DriverEditorModal = ({
                 type="submit"
                 disabled={isSaving}
                 className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer shadow-sm gap-1.5"
+                loading={isSaving}
+                loadingLabel={isEditing ? "Saving collector…" : "Creating account…"}
               >
-                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+
                 <span>
-                  {isSaving
-                    ? "Saving..."
-                    : isEditing
+                  {isEditing
                       ? "Save Changes"
                       : "Create Collector Account"}
                 </span>

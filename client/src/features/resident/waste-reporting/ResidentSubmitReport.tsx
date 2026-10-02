@@ -2,6 +2,7 @@ import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import useAuthStore from "@/store/authStore";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/lib/toast";
 import { Send, RotateCcw } from "lucide-react";
@@ -13,6 +14,7 @@ import DuplicateWarning from "./DuplicateWarning";
 import SuccessScreen from "./SuccessScreen";
 import ReviewModal from "./ReviewModal";
 import { compressReportImages } from "./imageCompression";
+import { prepareReportDescription } from "./reportDescription";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
 import {
@@ -153,10 +155,12 @@ const ResidentSubmitReport = () => {
     [],
   );
 
+  const preparedDescription = prepareReportDescription(form.description);
   const canSubmit = Boolean(
     form.violationType &&
       form.barangayId &&
-      form.description.trim().length >= 10 &&
+      form.streetOrLandmark.trim() &&
+      preparedDescription.length >= 10 &&
       form.photos.length > 0,
   );
 
@@ -171,7 +175,7 @@ const ResidentSubmitReport = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    if (!canSubmit || !form.violationType || !form.barangayId) {
+    if (!canSubmit || !form.violationType || !form.barangayId || !form.streetOrLandmark.trim()) {
       setShowValidation(true);
       setReviewModalOpen(false);
       return;
@@ -198,23 +202,11 @@ const ResidentSubmitReport = () => {
 
       // Step 2: Clean and submit report to backend
       setSubmissionStage("creating");
-      const cleanedDescription = form.description
-        .split(/\n\s*\n/)
-        .map((b) => b.trim())
-        .filter(Boolean)
-        .filter((block, _, arr) => {
-          if (/^[^\n?]+\?\s*$/.test(block) && arr.length > 1) {
-            return false;
-          }
-          return true;
-        })
-        .join("\n\n");
-
       const created = await createReport({
         barangay_id: form.barangayId,
         violation_type: VIOLATION_TYPE_MAP[form.violationType],
-        landmark: form.streetOrLandmark || undefined,
-        description: cleanedDescription || form.description,
+        landmark: form.streetOrLandmark.trim(),
+        description: preparedDescription,
         pin_lat: form.pinLocation?.[0],
         pin_lng: form.pinLocation?.[1],
         photos: photoUrls,
@@ -317,6 +309,7 @@ const ResidentSubmitReport = () => {
               onBarangayChange={handleBarangayChange}
               onStreetChange={(v) => update("streetOrLandmark", v)}
               showError={showValidation && !form.barangayId}
+              showStreetError={showValidation && !form.streetOrLandmark.trim()}
             />
           </div>
           {hasSimilarReport && (
@@ -324,12 +317,23 @@ const ResidentSubmitReport = () => {
               <DuplicateWarning barangay={form.barangayName} />
             </div>
           )}
+          {similarQuery.isError && (
+            <div className="py-6">
+              <DataRefreshNotice
+                message={similarQuery.data === undefined
+                  ? "Couldn't check for similar reports. You can still submit, but a matching report may already exist."
+                  : "Couldn't refresh the similar-report check. The last result may be outdated."}
+                onRetry={() => void similarQuery.refetch()}
+                retrying={similarQuery.isFetching}
+              />
+            </div>
+          )}
           <div className="py-6">
             <DescriptionSection
               value={form.description}
               onChange={(v) => update("description", v)}
               violationType={form.violationType}
-              showError={showValidation && form.description.trim().length < 10}
+              showError={showValidation && preparedDescription.length < 10}
             />
           </div>
           <div className="pt-6">
@@ -358,7 +362,7 @@ const ResidentSubmitReport = () => {
       <ReviewModal
         open={reviewModalOpen}
         onOpenChange={setReviewModalOpen}
-        form={form}
+        form={{ ...form, description: preparedDescription }}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         submissionStage={submissionStage}
@@ -369,4 +373,3 @@ const ResidentSubmitReport = () => {
 };
 
 export default ResidentSubmitReport;
-

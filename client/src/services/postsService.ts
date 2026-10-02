@@ -75,7 +75,6 @@ const postsService = {
   create: async (payload: {
     title: string;
     body: string;
-    source?: string;
     category: string;
     status: string;
     is_featured: boolean;
@@ -99,7 +98,6 @@ const postsService = {
     payload: Partial<{
       title: string;
       body: string;
-      source: string;
       category: string;
       status: string;
       is_featured: boolean;

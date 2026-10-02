@@ -62,7 +62,7 @@ afterEach(() => {
 const render = async () => {
   await act(async () => root.render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/resident/contents"]}>
+      <MemoryRouter initialEntries={["/resident/contents"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <HistoryControls /><ResidentTopBar /><ResidentContents />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -82,7 +82,9 @@ const returnToFeed = async () => {
 const openPost = async (post: PostItem) => {
   const heading = [...host.querySelectorAll("h2, h3")].find((item) => item.textContent?.trim() === post.title);
   expect(heading).toBeDefined();
-  await act(async () => (heading as HTMLElement).click());
+  // Featured titles now provide a keyboard-accessible button inside the heading.
+  const target = heading!.querySelector<HTMLButtonElement>("button") || heading as HTMLElement;
+  await act(async () => target.click());
   expect(host.querySelector("h1")).toHaveTextContent(post.title);
   expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(`?post=${post.id}`);
 };
@@ -126,4 +128,85 @@ it("restores the feed scroll position after using the breadcrumb from a related 
   } finally {
     Object.defineProperty(window, "scrollY", { configurable: true, value: originalScrollY });
   }
+});
+
+it("shows a page error for a failed feed, hides empty results, and retries the request", async () => {
+  vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("Network Error"));
+  await render();
+  expect(host.querySelector("h1")).toHaveTextContent("This page couldn't load");
+  expect(host.querySelector('input[aria-label="Search community updates"]')).toBeNull();
+  expect(host.textContent).not.toContain("Showing 0 articles");
+  expect(host.textContent).not.toContain("No updates found");
+  await clickButton("Try again");
+  expect(host.querySelector("h1")).toHaveTextContent("Community Updates");
+  expect(host.textContent).toContain("Community cleanup");
+  expect(postsService.getPage).toHaveBeenCalledTimes(2);
+});
+
+it("preserves loaded articles after a failed refresh", async () => {
+  await render();
+  vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("Network Error"));
+  await act(async () => { await client.refetchQueries({ predicate: ({ queryKey }) => queryKey.includes("feed") }); });
+  expect(host.querySelector("h1")).toHaveTextContent("Community Updates");
+  expect(host.textContent).toContain("Community cleanup");
+  expect(host.textContent).toContain("Showing the last loaded articles");
+});
+
+it("combines failed feed and featured refreshes into one retry action", async () => {
+  await render();
+  vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("offline"));
+  vi.mocked(postsService.getAll).mockRejectedValueOnce(new Error("offline"));
+  await act(async () => { await client.refetchQueries({ predicate: ({ queryKey }) => queryKey.includes("feed") || queryKey.includes("featured") }); });
+  const retries = [...host.querySelectorAll("button")].filter((button) => button.textContent?.trim() === "Try again");
+  expect(retries).toHaveLength(1);
+  expect(host.textContent).toContain("Community cleanup");
+  const feedAttempts = vi.mocked(postsService.getPage).mock.calls.length;
+  const featuredAttempts = vi.mocked(postsService.getAll).mock.calls.length;
+  await act(async () => retries[0].click());
+  expect(postsService.getPage).toHaveBeenCalledTimes(feedAttempts + 1);
+  expect(postsService.getAll).toHaveBeenCalledTimes(featuredAttempts + 1);
+  expect(host.querySelector('[role="status"]')).toBeNull();
+});
+
+it("changes featured slides without opening an article, then opens the selected article from the footer", async () => {
+  vi.mocked(postsService.getAll).mockResolvedValue([featuredPost, { ...regularPost, is_featured: true }]);
+  await render();
+  const next = host.querySelector<HTMLButtonElement>('button[aria-label="Next featured post"]')!;
+  await act(async () => next.click());
+  expect(host.querySelector("h2")).toHaveTextContent(regularPost.title);
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(/^\/resident\/contents$/);
+  expect(postsService.getById).not.toHaveBeenCalled();
+
+  const previous = host.querySelector<HTMLButtonElement>('button[aria-label="Previous featured post"]')!;
+  await act(async () => previous.click());
+  expect(host.querySelector("h2")).toHaveTextContent(featuredPost.title);
+  await clickButton("Read post");
+  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(postsService.getById).toHaveBeenCalledWith(featuredPost.id);
+});
+
+it("keeps the page skeleton until both initial requests finish, then uses only card skeletons for a pending filter", async () => {
+  let finishFeed!: (result: { posts: PostItem[]; total: number; totalPages: number; page: number; limit: number }) => void;
+  let finishFeatured!: (posts: PostItem[]) => void;
+  vi.mocked(postsService.getPage).mockReturnValueOnce(new Promise(resolve => { finishFeed = resolve; }));
+  vi.mocked(postsService.getAll).mockReturnValueOnce(new Promise(resolve => { finishFeatured = resolve; }));
+  await render();
+  expect(host.querySelector('[aria-label="Loading Community Updates"]')).not.toBeNull();
+  await act(async () => finishFeed({ posts: [regularPost], total: 1, totalPages: 1, page: 1, limit: 6 }));
+  expect(host.querySelector('[aria-label="Loading Community Updates"]')).not.toBeNull();
+  expect(host.querySelector('input[aria-label="Search community updates"]')).toBeNull();
+  await act(async () => finishFeatured([featuredPost]));
+  expect(host.querySelector('[aria-label="Loading Community Updates"]')).toBeNull();
+  expect(host.querySelector('input[aria-label="Search community updates"]')).not.toBeNull();
+
+  vi.mocked(postsService.getPage).mockReturnValueOnce(new Promise(resolve => { finishFeed = resolve; }));
+  const wasteTips = [...host.querySelectorAll("button")].find(button => button.textContent?.trim() === "Waste Tips")!;
+  wasteTips.scrollIntoView = vi.fn();
+  await clickButton("Waste Tips");
+  expect(host.querySelector('[aria-label="Loading Community Updates"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Loading community updates"]')).not.toBeNull();
+  expect(host.querySelector('input[aria-label="Search community updates"]')).not.toBeNull();
+  await act(async () => finishFeed({ posts: [regularPost], total: 1, totalPages: 1, page: 1, limit: 6 }));
+  expect(host.querySelector('[aria-label="Loading community updates"]')).toBeNull();
+  expect(host.textContent).toContain(regularPost.title);
 });

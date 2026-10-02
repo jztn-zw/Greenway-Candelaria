@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { parseApiTimestamp } from "@/utils/date";
@@ -20,7 +21,7 @@ const timestamp = (value: string, now: number) => {
   return `${Math.floor(seconds / 31536000)}y ago`;
 };
 export const ConversationPanel = ({ conversation, admin = false, targetId }: { conversation: Conversation; admin?: boolean; targetId?: string }) => {
-  const { messages, loading, error, nextCursor, loadingOlder, sending, draft, setDraft, refresh, loadOlder, send, markVisibleRead } = conversation;
+  const { messages, loading, refreshing, error, nextCursor, loadingOlder, sending, draft, setDraft, refresh, loadOlder, send, markVisibleRead } = conversation;
   const [now, setNow] = useState(() => Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -65,9 +66,9 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
     requestAnimationFrame(() => { if (root) root.scrollTop = top + root.scrollHeight - height; });
   };
   return <>
-    {error && <div role="alert" className="p-3 text-xs"><p>{error}</p><Button variant="outline" size="sm" onClick={() => void refresh()}>Retry latest messages</Button></div>}
+    {error && <DataRefreshNotice primary role="alert" className="m-3" message={error} onRetry={() => void refresh()} retrying={refreshing} />}
     <div ref={scrollRef} onScroll={() => { const root = scrollRef.current; if (root) nearBottom.current = root.scrollHeight - root.scrollTop - root.clientHeight < 48; }} className={cn("min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3.5 py-4", admin ? "bg-muted/10" : "bg-background/20")} aria-label="Conversation messages">
-      {nextCursor && <Button variant="outline" size="sm" onClick={() => void handleOlder()} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</Button>}
+      {nextCursor && <Button variant="outline" size="sm" onClick={() => void handleOlder()} disabled={loadingOlder} loading={loadingOlder} loadingLabel="Loading older messages…">Load older messages</Button>}
       {loading ? <p role="status" className="text-xs text-muted-foreground">Loading messages…</p> : !messages.length && !error ? <p className="py-8 text-center text-xs text-muted-foreground">No messages yet.</p> : null}
       {messages.map((message) => {
         const own = admin ? message.sender_role === "ADMIN" : message.sender_role === "DRIVER";
@@ -80,7 +81,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
       })}<div ref={endRef} />
     </div>
     <footer className={cn("border-t border-border/70 p-3", admin && "bg-card/80")}>
-      <div className="flex gap-2"><Input aria-label={admin ? "Message collector" : "Message MENRO"} maxLength={255} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSend(); } }} placeholder={admin ? "Message collector…" : "Message MENRO…"} disabled={sending} className="h-10 rounded-xl border-border/80 bg-background text-xs" /><Button aria-label="Send message" type="button" onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="size-10 shrink-0 rounded-xl"><Send className="size-4" /></Button></div>
+      <div className="flex gap-2"><Input aria-label={admin ? "Message collector" : "Message MENRO"} maxLength={255} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSend(); } }} placeholder={admin ? "Message collector…" : "Message MENRO…"} disabled={sending} className="h-10 rounded-xl border-border/80 bg-background text-xs" /><Button aria-label={sending ? "Sending message…" : "Send message"} aria-busy={sending} type="button" onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="size-10 shrink-0 rounded-xl">{sending ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></div>
       <p className="mt-1.5 text-right text-ui-overline tabular-nums text-muted-foreground">{draft.length}/255</p>
     </footer>
   </>;

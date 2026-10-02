@@ -40,7 +40,6 @@ interface ReportListTableProps {
   isLoading?: boolean;
   page?: number;
   totalPages?: number;
-  total?: number;
   onPageChange?: (page: number) => void;
   onQuickStatusChange?: (id: string, newStatus: string) => void;
   onFlagReport?: (id: string, payload: { is_false?: boolean; is_duplicate?: boolean }) => void;
@@ -53,7 +52,6 @@ const ReportListTable = ({
   isLoading = false,
   page = 1,
   totalPages = 1,
-  total = 0,
   onPageChange,
   onQuickStatusChange,
   onFlagReport,
@@ -270,9 +268,6 @@ const ReportListTable = ({
         <PaginationControls
           currentPage={page}
           totalPages={totalPages}
-          totalItems={total}
-          pageSize={10}
-          itemLabel="reports"
           onPageChange={onPageChange}
           variant="table"
         />

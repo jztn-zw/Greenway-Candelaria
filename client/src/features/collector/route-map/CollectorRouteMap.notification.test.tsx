@@ -114,3 +114,45 @@ it.each(["start", "pause", "resume", "done", "skip", "end"] as const)("%s preser
   expect(own.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([true, true, true]);
   expect(other.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([false, false, false]);
 });
+
+it("shows pause loading only while the request is pending and releases it after failure", async () => {
+  state.routeInfo = { ...state.routeInfo!, collectionStartedAt: new Date(Date.now() - 60_000), routeStatus: "ACTIVE" };
+  let reject!: (error: Error) => void;
+  vi.mocked(setMyRoutePaused).mockImplementationOnce(() => new Promise((_, no) => { reject = no; }));
+  await mount("");
+  const pause = [...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Pause route")!;
+  expect(pause).toHaveAttribute("aria-busy", "false");
+  await act(async () => pause.click());
+  expect(pause).toHaveAttribute("aria-busy", "true");
+  expect(pause).toBeDisabled();
+  expect(pause).toHaveAccessibleName("Pausing route…");
+  await act(async () => reject(new Error("Offline")));
+  expect(pause).toHaveAttribute("aria-busy", "false");
+  expect(pause).not.toBeDisabled();
+  expect(pause.querySelector(".gw-action-loader")).toBeNull();
+});
+
+it("keeps skip confirmation and its selected reason while the request runs and fails", async () => {
+  state.routeInfo = { ...state.routeInfo!, totalStops: 2, collectionStartedAt: new Date(Date.now() - 60_000), routeStatus: "ACTIVE" };
+  state.stops = [
+    { id: "first", barangay: "Poblacion", stopNumber: 1, status: "in-progress", coords: [14.0388, 121.4285], coveragePath: null, distanceKm: 0 },
+    { id: "next", barangay: "Next barangay", stopNumber: 2, status: "not-yet", coords: [14.04, 121.43], coveragePath: null, distanceKm: 0 },
+  ];
+  let reject!: (error: Error) => void;
+  vi.mocked(skipStop).mockImplementationOnce(() => new Promise((_, no) => { reject = no; }));
+  await mount("");
+  const button = (label: string) => [...document.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.trim() === label)!;
+  await act(async () => button("Skip").click());
+  await act(async () => button("Truck Issue").click());
+  const submit = button("Confirm skip");
+  await act(async () => submit.click());
+  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Skip checkpoint");
+  expect(submit).toHaveAttribute("aria-busy", "true");
+  expect(submit).toBeDisabled();
+  expect(button("Truck Issue")).toHaveAttribute("aria-pressed", "true");
+  await act(async () => reject(new Error("Offline")));
+  expect(submit).not.toBeDisabled();
+  expect(submit).toHaveAttribute("aria-busy", "false");
+  expect(button("Truck Issue")).toHaveAttribute("aria-pressed", "true");
+  expect(submit.querySelector(".gw-action-loader")).toBeNull();
+});

@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, X, Truck as TruckIcon } from "lucide-react";
+import { X, Truck as TruckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Truck, TruckOperationalStatus, Driver } from "../types";
@@ -241,12 +241,12 @@ const TruckEditorModal = ({
             }}
             disabled={isSaving}
             className="h-9 px-5 rounded-xl font-semibold text-xs cursor-pointer shadow-sm gap-1.5"
+            loading={isSaving}
+            loadingLabel={isEditing ? "Saving truck…" : "Registering truck…"}
           >
-            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+
             <span>
-              {isSaving
-                ? "Saving..."
-                : isEditing
+              {isEditing
                   ? "Save Changes"
                   : "Register Truck"}
             </span>

@@ -77,8 +77,8 @@ it("keeps loaded routes visible during a background refresh", async () => {
 });
 it("shows load failure and retry instead of false empty history", async () => {
   vi.mocked(fetchCollectorHistoryPage).mockRejectedValueOnce(new Error("offline")); await render();
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("could not be loaded"); expect(host.textContent).not.toContain("No route logs found");
-  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Retry")!.click());
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This page couldn't load"); expect(host.textContent).not.toContain("No route logs found");
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Try again")!.click());
   expect(host.textContent).toContain("Route run-A");
 });
 it("fetches an older linked route directly without searching only the recent page", async () => {

@@ -1,4 +1,6 @@
 import { badgeStyles } from "@/components/ui/badgeStyles";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -33,8 +35,18 @@ const formatEntryDate = (value?: string | null) => {
 const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
   const [truckFilter, setTruckFilter] = useState("all");
   const [barangayFilter, setBarangayFilter] = useState("all");
-  const { data: entries = [], isFetching: isLoading, isError: error, refetch: loadEntries } =
-    useAdminQuery("tracking", ["missed", 30], () => fetchMissedCollections({ days: 30 }), { refetchInterval: 30_000 });
+  const [isRefreshingManually, setIsRefreshingManually] = useState(false);
+  const query = useAdminQuery("tracking", ["missed", 30], () => fetchMissedCollections({ days: 30 }), { refetchInterval: 30_000 });
+  const { data: entries = [], isLoading, isError: error, refetch: loadEntries } = query;
+
+  const refreshEntries = async () => {
+    setIsRefreshingManually(true);
+    try {
+      await loadEntries();
+    } finally {
+      setIsRefreshingManually(false);
+    }
+  };
 
   const filtered = useMemo(
     () =>
@@ -72,31 +84,26 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
           variant="outline"
           size="sm"
           className="h-8.5 px-2.5 rounded-xl text-xs shrink-0 cursor-pointer"
-          onClick={() => void loadEntries()}
+          onClick={() => void refreshEntries()}
           disabled={isLoading}
           title="Refresh missed stops log"
+          loading={isRefreshingManually}
+          loadingLabel="Refreshing log…"
         >
-          {isLoading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RotateCw className="w-3.5 h-3.5" />
-          )}
+          <RotateCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
         </Button>
       </div>
 
       {/* Entry List */}
       <div className="space-y-2">
-        {error && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-            Could not refresh missed collection records. Showing the last loaded results.
-          </div>
-        )}
-        {isLoading && filtered.length === 0 ? (
+        {error && query.data !== undefined && <DataRefreshNotice message="Couldn't refresh missed collection records. Showing the last loaded results, which may be outdated." onRetry={() => void refreshEntries()} retrying={query.isFetching} />}
+        {error && query.data === undefined ? <PageErrorState kind="unavailable" variant="section" title="Missed collection records couldn't load" onRetry={() => void refreshEntries()} retrying={query.isFetching} /> : isLoading && filtered.length === 0 ? (
           <div className="text-center py-10 text-xs text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
             Loading missed collection logs...
           </div>
-        ) : filtered.length === 0 && !error ? (
+        ) : filtered.length === 0 ? (
           <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border/80 bg-muted/10 space-y-1">
             <AlertTriangle className="w-6 h-6 text-muted-foreground/40 mx-auto" />
             <p className="text-xs font-semibold text-foreground">

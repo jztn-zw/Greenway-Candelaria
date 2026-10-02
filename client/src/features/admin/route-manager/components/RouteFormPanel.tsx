@@ -61,7 +61,7 @@ interface RouteFormPanelProps {
   onSave: () => void;
   onDuplicate: () => void;
   onToggleActive: (route: RouteData) => void;
-  onDelete: (route: RouteData) => void;
+  onDelete: (route: RouteData) => void | Promise<unknown>;
   isTogglingRoute?: boolean;
   isDeletingRoute?: boolean;
 }
@@ -153,8 +153,10 @@ const RouteFormPanel = ({
                   className={cn("gap-2", "shadow-sm")}
                   onClick={() => onToggleActive(selectedRoute)}
                   disabled={isTogglingRoute || isDeletingRoute}
+                  loading={isTogglingRoute}
+                  loadingLabel={selectedRoute.active ? "Deactivating route…" : "Reactivating route…"}
                 >
-                  {isTogglingRoute ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : selectedRoute.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  {selectedRoute.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   {selectedRoute.active ? "Deactivate Route" : "Reactivate Route"}
                 </Button>
               </div>
@@ -204,7 +206,7 @@ const RouteFormPanel = ({
           {!selectedRoute.active && (
             <div className="pt-4 border-t border-border/70 flex justify-end">
               <Button variant="destructive-outline" size="sm" className="gap-2 shadow-sm" onClick={() => setDeleteDialogOpen(true)} disabled={isDeletingRoute}>
-                {isDeletingRoute ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete Route
+                <Trash2 className="w-3.5 h-3.5" /> Delete Route
               </Button>
             </div>
           )}
@@ -221,7 +223,7 @@ const RouteFormPanel = ({
           isPending={isDeletingRoute}
           pendingLabel="Deleting..."
           closeOnConfirm
-          onConfirm={() => { if (selectedRoute) onDelete(selectedRoute); }}
+          onConfirm={() => { if (selectedRoute) return onDelete(selectedRoute); }}
         />
       </Card>
     );
@@ -370,14 +372,16 @@ const RouteFormPanel = ({
               isTogglingRoute
             }
             className="gap-2 shadow-sm"
+            loading={isSaving}
+            loadingLabel={isCreating ? "Creating route…" : "Saving changes…"}
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isSaving ? "Saving..." : isCreating ? "Save Route" : "Save Changes"}
+            <Save className="w-4 h-4" />
+            {isCreating ? "Save Route" : "Save Changes"}
           </Button>
           {!isCreating && selectedRoute && (
             <>
               <Button variant="outline" className="gap-2" onClick={onDuplicate} disabled={isSaving || isDeletingRoute || isTogglingRoute}>
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />} Duplicate
+                <Copy className="w-4 h-4" /> Duplicate
               </Button>
               <Button variant="outline" className="gap-2" onClick={onCancelEdit} disabled={isSaving || isDeletingRoute || isTogglingRoute}>
                 <X className="w-3.5 h-3.5" /> Cancel changes
@@ -387,10 +391,10 @@ const RouteFormPanel = ({
                 className={"gap-2 shadow-sm"}
                 onClick={() => onToggleActive(selectedRoute)}
                 disabled={isTogglingRoute || isSaving || isDeletingRoute}
+                loading={isTogglingRoute}
+                loadingLabel={selectedRoute.active ? "Deactivating route…" : "Reactivating route…"}
               >
-                {isTogglingRoute ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</>
-                ) : selectedRoute.active ? (
+                {selectedRoute.active ? (
                   <><Pause className="w-4 h-4" /> Deactivate</>
                 ) : (
                   <><Play className="w-4 h-4" /> Reactivate</>
@@ -404,7 +408,7 @@ const RouteFormPanel = ({
                 disabled={selectedRoute.active || isDeletingRoute || isSaving || isTogglingRoute}
                 onClick={() => setDeleteDialogOpen(true)}
               >
-                {isDeletingRoute ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete
+                <Trash2 className="w-4 h-4" /> Delete
               </Button>
             </>
           )}
@@ -422,7 +426,7 @@ const RouteFormPanel = ({
           isPending={isDeletingRoute}
           pendingLabel="Deleting..."
           closeOnConfirm
-          onConfirm={() => { if (selectedRoute) onDelete(selectedRoute); }}
+          onConfirm={() => { if (selectedRoute) return onDelete(selectedRoute); }}
         />
       </CardContent>
     </Card>

@@ -2,6 +2,9 @@ import { getCategoryBadgeColors, badgeStyles } from "@/components/ui/badgeStyles
 import { FormDialogHeader } from "@/components/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 import React, { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,8 +191,9 @@ const ResidentSchedule = () => {
   const events = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
   const collectionRules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
   const isLoading = calendarQuery.isLoading || scheduleQuery.isLoading;
-  const calendarError = calendarQuery.isError;
-  const scheduleError = scheduleQuery.isError;
+  const calendarError = calendarQuery.isError && calendarQuery.data === undefined;
+  const scheduleError = scheduleQuery.isError && scheduleQuery.data === undefined;
+  const retrySchedule = () => { if (calendarQuery.isError) void calendarQuery.refetch(); if (scheduleQuery.isError) void scheduleQuery.refetch(); };
 
   // Selected date events
   const selectedEvents = useMemo(
@@ -264,8 +268,10 @@ const ResidentSchedule = () => {
   }, [collectionRules]);
 
   if (isLoading) return <ResidentScheduleSkeleton />;
+  if (calendarError && scheduleError) return <PageErrorState kind="unavailable" description="We couldn't load the calendar and collection schedule. Please try again." onRetry={retrySchedule} retrying={calendarQuery.isFetching || scheduleQuery.isFetching} homeHref="/resident" />;
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="mx-auto w-full max-w-[1400px] space-y-4 pb-8 animate-in fade-in duration-300 md:space-y-5 md:pb-10 lg:pb-12">
       {/* ─── Page Header ─── */}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
@@ -292,16 +298,13 @@ const ResidentSchedule = () => {
         </div>
       </div>
 
+      {(calendarQuery.isError || scheduleQuery.isError) && <DataRefreshNotice primary message="Some schedule information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={retrySchedule} retrying={calendarQuery.isFetching || scheduleQuery.isFetching} />}
+
       {/* ─── View Tab 1: Monthly Calendar ─── */}
-      {activeTab === "CALENDAR" && (
+      {activeTab === "CALENDAR" && (calendarError ? <PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" description="We couldn't load this month's announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} /> : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
           {/* Main Interactive Calendar */}
           <div className="lg:col-span-2 space-y-4">
-            {calendarError && (
-              <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-                Calendar announcements could not be loaded. Please try again later.
-              </p>
-            )}
             <CalendarGrid
               currentDate={currentDate}
               selectedDateStr={selectedDateStr}
@@ -373,7 +376,7 @@ const ResidentSchedule = () => {
 
               <CardContent className="p-4 lg:p-5 space-y-4">
                 {/* 1. Regular Waste Collection Card for Selected Day */}
-                {selectedDayCollection ? (
+                {scheduleError ? <PageErrorState kind="unavailable" variant="section" title="Collection details couldn't load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} /> : selectedDayCollection ? (
                 <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <span className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
@@ -525,18 +528,13 @@ const ResidentSchedule = () => {
             </Card>
           </div>
         </div>
-      )}
-
+      ))}
       {/* ─── View Tab 2: Weekly Barangay Collection Guide ─── */}
       {activeTab === "WEEKLY_GUIDE" && (
         <div className="space-y-4">
           {/* 7-Day Cards Grid */}
           {scheduleError ? (
-            <div role="alert" className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
-              <AlertTriangle className="mx-auto size-6 text-destructive" />
-              <p className="mt-2 text-sm font-semibold text-foreground">Schedule unavailable</p>
-              <p className="mt-1 text-xs text-muted-foreground">The weekly collection schedule could not be loaded.</p>
-            </div>
+            <PageErrorState kind="unavailable" variant="section" title="Weekly schedule couldn't load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} />
           ) : filteredWeeklyGuide.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 text-center">
               <CalendarDays className="mx-auto size-6 text-muted-foreground/60" />
@@ -682,6 +680,7 @@ const ResidentSchedule = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

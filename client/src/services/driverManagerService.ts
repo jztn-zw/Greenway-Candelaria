@@ -6,6 +6,7 @@ export interface DriverApiRow {
   full_name: string;
   username: string;
   email: string;
+  avatar_url?: string | null;
   phone?: string | null;
   account_status?: string;
   last_login?: string | null;

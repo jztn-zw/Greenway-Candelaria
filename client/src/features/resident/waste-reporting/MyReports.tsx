@@ -1,9 +1,12 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PaginationControls from "@/components/common/PaginationControls";
 import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import {
   useState,
   useEffect,
-  useRef,
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +22,6 @@ import {
 import {
   Search,
   ChevronRight,
-  ChevronLeft,
   Clock,
   FileText,
   AlertCircle,
@@ -30,7 +32,6 @@ import {
   RefreshCw,
   SortAsc,
   Loader2,
-  AlertTriangle,
   Trash2,
   X,
   Plus,
@@ -61,6 +62,9 @@ import {
   type ReportFilterTab,
   type ReportSortOption,
 } from "./myReports.utils";
+
+const REPORT_FILTER_ITEMS: FilterPillItem<ReportFilterTab>[] =
+  REPORT_FILTER_TABS.map(({ value, label }) => ({ id: value, label }));
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -135,7 +139,6 @@ const MyReports = () => {
     if (!listQuery.isPlaceholderData && listQuery.data && listQuery.data.page !== page) setPage(listQuery.data.page);
   }, [listQuery.data, listQuery.isPlaceholderData, page]);
   const reports = (listQuery.data?.reports ?? []).map(mapMyReport);
-  const total = listQuery.data?.total ?? 0;
   const totalPages = listQuery.data?.totalPages ?? 0;
   const isListLoading = !listQuery.isError && (listQuery.isLoading || listQuery.isPlaceholderData);
   const error = listQuery.error?.message ?? null;
@@ -152,23 +155,6 @@ const MyReports = () => {
   const detailError = detailQuery.error?.message ?? null;
   const cancelReport = useResidentMutation(deleteReport, "reports");
   const loadReports = () => listQuery.refetch();
-  const firstReportNumber = total === 0 ? 0 : (page - 1) * 10 + 1;
-  const lastReportNumber = Math.min(firstReportNumber + reports.length - 1, total);
-  const paginationItems: Array<number | "ellipsis"> = (() => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    const items: Array<number | "ellipsis"> = [1];
-    const start = Math.max(2, page - 1);
-    const end = Math.min(totalPages - 1, page + 1);
-    if (start > 2) items.push("ellipsis");
-    for (let pageNumber = start; pageNumber <= end; pageNumber += 1) items.push(pageNumber);
-    if (end < totalPages - 1) items.push("ellipsis");
-    items.push(totalPages);
-    return items;
-  })();
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(search);
@@ -180,44 +166,6 @@ const MyReports = () => {
   // Debounced search — waits 400ms after typing stops, resets to page 1
   const handleSearchChange = (value: string) => {
     setSearch(value);
-  };
-
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!tabsContainerRef.current) return;
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    startXRef.current = e.pageX - tabsContainerRef.current.offsetLeft;
-    scrollLeftRef.current = tabsContainerRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !tabsContainerRef.current) return;
-    const x = e.pageX - tabsContainerRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.3;
-    if (Math.abs(walk) > 4) {
-      hasDraggedRef.current = true;
-    }
-    tabsContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    isDraggingRef.current = false;
-  };
-
-  const handleTabClick = (tab: ReportFilterTab, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (hasDraggedRef.current) return;
-    handleTabChange(tab);
-    e.currentTarget.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
   };
 
   const handleTabChange = (tab: ReportFilterTab) => {
@@ -265,23 +213,25 @@ const MyReports = () => {
   }
 
   if (reportParam && detailError && !selectedReport) return (
-    <div role="alert"><p>{detailError}</p></div>
+    <PageErrorState kind={inaccessible ? "not-found" : "unavailable"} title={inaccessible ? "Report not found" : undefined} description={inaccessible ? "This report is unavailable or does not belong to your account." : "We couldn't load this report. Please try again."} onRetry={inaccessible ? undefined : () => void detailQuery.refetch()} retrying={detailQuery.isFetching} homeHref="/resident/my-reports" homeLabel="Back to my reports" />
   );
 
   // ─── Detail view ──────────────────────────────────────────
 
   if (selectedReport) {
     return (
+      <>
+      {detailError && <DataRefreshNotice message="Couldn't refresh this report. Showing the last loaded details, which may be outdated." onRetry={() => void detailQuery.refetch()} retrying={detailQuery.isFetching} />}
       <ReportDetail
         report={selectedReport}
         isLoading={isLoadingDetail}
-        error={detailError}
         onCancelReport={handleCancelReport}
         onResubmit={() => {
           navigate("/resident/report");
           toast.info("Navigate to Submit a Report to file a new report.");
         }}
       />
+      </>
     );
   }
 
@@ -293,38 +243,14 @@ const MyReports = () => {
 
   // ─── Error state ──────────────────────────────────────────
 
-  if (error && !isListLoading && !reports.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
-          <AlertTriangle className="w-7 h-7 text-destructive" />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-semibold text-foreground">
-            Failed to load reports
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">{error}</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            loadReports()
-          }
-          className="gap-2 rounded-xl"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Try Again
-        </Button>
-      </div>
-    );
+  if (error && listQuery.data === undefined) {
+    return <PageErrorState kind="unavailable" description="We couldn't load your reports. Check your connection and try again." onRetry={() => void loadReports()} retrying={listQuery.isFetching} homeHref="/resident" />;
   }
 
   // ─── Main list view ────────────────────────────────────────
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6">
-      {error && <p role="alert" className="text-destructive">Reports could not be refreshed. Last known information is shown.</p>}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
         <div className="hidden md:block">
@@ -371,37 +297,14 @@ const MyReports = () => {
 
         {/* Filter Chips on Left + Sort Dropdown on Right (Single Aligned Row) */}
         <div className="flex items-center justify-between gap-2.5">
-          {/* Status Filter Tabs (Smooth native mobile scroll + slide drag) */}
-          <div
-            role="group"
-            aria-label="Report status filters"
-            ref={tabsContainerRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide -mr-1 touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
-          >
-            {REPORT_FILTER_TABS.map((tab) => {
-              const isActive = activeTab === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  aria-pressed={isActive}
-                  onClick={(e) => handleTabClick(tab.value, e)}
-                  className={cn(
-                    "flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 border shrink-0 cursor-pointer",
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold",
-                  )}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Status filters */}
+          <FilterPillTabs<ReportFilterTab>
+            items={REPORT_FILTER_ITEMS}
+            activeId={activeTab}
+            onChange={handleTabChange}
+            ariaLabel="Report status filters"
+            className="flex-1 pr-2"
+          />
 
           {/* Sort Select */}
           <div className="shrink-0">
@@ -431,6 +334,8 @@ const MyReports = () => {
           </div>
         </div>
       </div>
+
+      {error && <DataRefreshNotice message="Couldn't refresh your reports. Showing the last loaded information, which may be outdated." onRetry={() => void loadReports()} retrying={listQuery.isFetching} />}
 
       <div className="space-y-4">
       {/* Report List */}
@@ -586,47 +491,8 @@ const MyReports = () => {
       )}
 
       {/* Pagination */}
-      {!isListLoading && total > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
-          <p className="text-xs text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{firstReportNumber}–{lastReportNumber}</span> of <span className="font-semibold text-foreground">{total}</span> report{total !== 1 ? "s" : ""}
-          </p>
-          {totalPages > 1 && (
-            <nav className="flex items-center justify-end gap-1.5" aria-label="Report pages">
-              <button
-                type="button"
-                disabled={page === 1}
-                onClick={() => setPage((currentPage) => currentPage - 1)}
-                className="gw-action-ghost size-9 rounded-lg inline-flex items-center justify-center disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {paginationItems.map((item, index) => item === "ellipsis" ? (
-                <span key={`ellipsis-${index}`} className="flex h-9 w-7 items-center justify-center text-xs text-muted-foreground">…</span>
-              ) : (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setPage(item)}
-                  className={`size-9 rounded-lg text-xs font-semibold transition-all cursor-pointer ${item === page ? "bg-primary/10 text-primary border border-primary/30 font-semibold shadow-2xs" : "gw-action-ghost "}`}
-                  aria-current={item === page ? "page" : undefined}
-                >
-                  {item}
-                </button>
-              ))}
-              <button
-                type="button"
-                disabled={page === totalPages}
-                onClick={() => setPage((currentPage) => currentPage + 1)}
-                className="gw-action-ghost size-9 rounded-lg inline-flex items-center justify-center disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
-                aria-label="Next page"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </nav>
-          )}
-        </div>
+      {!isListLoading && totalPages > 1 && (
+        <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={setPage} variant="floating" />
       )}
       </div>
     </div>
@@ -693,13 +559,11 @@ const parseReportDescription = (rawDesc: string): DescriptionBlock[] => {
 const ReportDetail = ({
   report,
   isLoading,
-  error,
   onCancelReport,
   onResubmit,
 }: {
   report: SubmittedReport;
   isLoading: boolean;
-  error: string | null;
   onCancelReport?: (id: string) => Promise<void>;
   onResubmit: () => void;
 }) => {
@@ -742,14 +606,6 @@ const ReportDetail = ({
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span>Syncing...</span>
           </div>
-      )}
-
-      {/* Error alert if any */}
-      {error && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 lg:mb-0">
-          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-          <p className="text-xs text-destructive">{error}</p>
-        </div>
       )}
 
       {/* Unified Main Card */}

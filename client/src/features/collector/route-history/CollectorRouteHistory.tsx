@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { CollectorRouteHistorySkeleton, CollectorRouteHistoryRowsSkeleton, CollectorRouteHistoryDetailSkeleton } from "@/components/PageLoadingSkeletons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -29,11 +31,11 @@ import {
 type StatusFilter = "all" | "completed" | "partial" | "no-collection";
 type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable" | "General";
 
-const statusTabs: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "All routes" },
-  { key: "completed", label: "Completed" },
-  { key: "partial", label: "Partial" },
-  { key: "no-collection", label: "No collection" },
+const statusTabs: FilterPillItem<StatusFilter>[] = [
+  { id: "all", label: "All routes" },
+  { id: "completed", label: "Completed" },
+  { id: "partial", label: "Partial" },
+  { id: "no-collection", label: "No collection" },
 ];
 
 const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
@@ -144,7 +146,6 @@ const CollectorRouteHistory = () => {
   useEffect(() => {
     if (history.isFetched) setHasSettledHistoryLoad(true);
   }, [history.isFetched]);
-  const isLoading = routeParam ? detail.isLoading : history.isLoading || history.isFetchingNextPage;
   const failure = routeParam ? detail.error : history.error;
   const error = failure ? "Route history could not be loaded. Please try again." : null;
   const notFound = Boolean(routeParam && (failure as { response?: { status?: number } } | null)?.response?.status === 404);
@@ -162,6 +163,7 @@ const CollectorRouteHistory = () => {
       title={notFound ? "Route not found" : "Route history couldn't load"}
       description={notFound ? "This route is unavailable or does not belong to your account." : "We couldn't load this route's history. Please try again."}
       onRetry={notFound ? undefined : retry}
+      retrying={detail.isFetching}
       homeHref="/collector/route-history"
       homeLabel="Back to route history"
     />
@@ -340,6 +342,7 @@ const CollectorRouteHistory = () => {
   }
 
   /* ────── Main List View ────── */
+  if (history.error && history.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load route history. Please try again." onRetry={retry} retrying={history.isFetching} homeHref="/collector" />;
   return (
     <div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
       {/* ── Page Header ── */}
@@ -352,25 +355,12 @@ const CollectorRouteHistory = () => {
 
       {/* ── Filter Toolbar ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                aria-pressed={isActive} onClick={() => changeStatus(tab.key)}
-                className={`group flex h-9 shrink-0 cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 font-body text-ui-caption font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <FilterPillTabs<StatusFilter>
+          items={statusTabs}
+          activeId={statusFilter}
+          onChange={changeStatus}
+          className="min-w-0"
+        />
 
         <Select value={wasteFilter} onValueChange={(value) => changeWaste(value as WasteTypeFilter)}>
           <SelectTrigger fieldSize="compact" className="w-full border-border/80 bg-card font-body font-medium sm:w-[190px]">
@@ -386,9 +376,9 @@ const CollectorRouteHistory = () => {
         </Select>
       </div>
 
-      {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button size="sm" disabled={isLoading} onClick={() => retry()}>Retry</Button></div>}
+      {error && <DataRefreshNotice message="Couldn't update route history. Showing the last loaded routes, which may be outdated." onRetry={retry} retrying={history.isFetching} />}
       {/* ── Route Logs List ── */}
-      {history.isLoading ? <CollectorRouteHistoryRowsSkeleton /> : filtered.length === 0 && !error ? (
+      {history.isLoading ? <CollectorRouteHistoryRowsSkeleton /> : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 sm:p-12 text-center shadow-xs">
           <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground border border-border/50">
             <History className="w-6 h-6 text-muted-foreground" />
@@ -477,7 +467,7 @@ const CollectorRouteHistory = () => {
         </div>
       )}
       {history.isFetchingNextPage && <CollectorRouteHistoryRowsSkeleton count={2} />}
-      {nextCursor && <Button variant="outline" size="sm" disabled={isLoading} onClick={() => void history.fetchNextPage()}>{isLoading ? "Loading…" : `Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
+      {nextCursor && <Button variant="outline" size="sm" disabled={history.isFetching} loading={history.isFetchingNextPage} loadingLabel="Loading older routes…" onClick={() => void history.fetchNextPage()}>{`Load older routes (${historyList.length} of ${total} loaded)`}</Button>}
     </div>
   );
 };

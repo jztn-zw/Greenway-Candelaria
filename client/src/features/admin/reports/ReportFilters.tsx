@@ -1,3 +1,4 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -74,12 +75,12 @@ const ReportFilters = ({
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const { data: barangays = [] } = useAdminQuery("barangays", ["locations"], fetchBarangays);
 
-  const STATUS_TABS: { key: string; label: string }[] = [
-    { key: "all", label: "All Reports" },
-    { key: "Submitted", label: "Submitted" },
-    { key: "Under Review", label: "Under Review" },
-    { key: "Dispatched", label: "Dispatched" },
-    { key: "Resolved", label: "Resolved" },
+  const STATUS_TABS: FilterPillItem<string>[] = [
+    { id: "all", label: "All" },
+    { id: "Submitted", label: "Submitted" },
+    { id: "Under Review", label: "Under Review" },
+    { id: "Dispatched", label: "Dispatched" },
+    { id: "Resolved", label: "Resolved" },
   ];
 
   const secondaryFilterCount = [
@@ -109,27 +110,15 @@ const ReportFilters = ({
   return (
     <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
-        {/* Status filters (Smooth swipeable snap carousel on mobile) */}
+        {/* Status filters */}
         <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x snap-x snap-mandatory scroll-smooth overscroll-x-contain">
-            {STATUS_TABS.map((tab) => {
-              const isActive = statusFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => onStatusFilterChange(tab.key)}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 snap-start select-none ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
-                  }`}
-                >
-                  <span>{tab.key === "all" ? "All" : tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <FilterPillTabs
+            items={STATUS_TABS}
+            activeId={statusFilter}
+            onChange={onStatusFilterChange}
+            ariaLabel="Report status filters"
+            className="overscroll-x-contain"
+          />
         </div>
 
         {/* Search Input + Mobile Filter Sheet Trigger */}

@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -40,7 +40,7 @@ const PostListView = ({
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
               <TableHead className="w-[42%] text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-4">
-                Article
+                Post
               </TableHead>
               <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Category
@@ -101,7 +101,7 @@ const PostListView = ({
                             className="absolute top-1 left-1 w-4 h-4 rounded-full bg-amber-500/90 text-white flex items-center justify-center shadow-xs"
                             title="Featured on Resident Carousel"
                           >
-                            <Sparkles className="w-2.5 h-2.5 fill-white text-white" />
+                            <Star className="w-2.5 h-2.5 fill-current" />
                           </div>
                         )}
                       </div>
@@ -113,7 +113,7 @@ const PostListView = ({
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                           <span className="text-ui-caption truncate max-w-[160px]">
-                            {post.source || post.author || "MENRO Candelaria"}
+                            {post.author || "MENRO Candelaria"}
                           </span>
                           {post.tags && post.tags.length > 0 && (
                             <>

@@ -31,13 +31,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import PaginationControls from "@/components/common/PaginationControls";
 
+const auditBadgeClass = "min-h-6 rounded-md px-2.5 py-0.5 text-[11px] font-semibold leading-4 shadow-none";
+
 interface AuditLogTableProps {
   logs: AuditLogEntry[];
   isLoading?: boolean;
   currentPage?: number;
   totalPages?: number;
-  totalEntries?: number;
-  pageSize?: number;
   onPageChange?: (page: number) => void;
 }
 
@@ -46,8 +46,6 @@ const AuditLogTable = ({
   isLoading = false,
   currentPage,
   totalPages = 1,
-  totalEntries,
-  pageSize = 15,
   onPageChange,
 }: AuditLogTableProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -130,7 +128,7 @@ const AuditLogTable = ({
             ) : (
               logs.map((log) => {
                 const sc = severityStyles[log.severity] || severityStyles.routine;
-                const mc = moduleBadgeStyles[log.module] || "bg-muted/60 text-muted-foreground border-border/70 font-medium";
+                const mc = moduleBadgeStyles[log.module] || badgeStyles.neutral.className;
                 const isExpanded = expandedId === log.id;
 
                 return (
@@ -183,7 +181,7 @@ const AuditLogTable = ({
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-ui-overline font-semibold px-2 py-0.5 rounded-md border shadow-2xs ${sc.badge}`}
+                          className={cn(auditBadgeClass, sc.badge)}
                         >
                           {log.actionType}
                         </Badge>
@@ -193,7 +191,7 @@ const AuditLogTable = ({
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={`text-ui-overline px-2 py-0.5 rounded-md border shadow-2xs ${mc}`}
+                          className={cn(auditBadgeClass, mc)}
                         >
                           {log.module}
                         </Badge>
@@ -395,7 +393,7 @@ const AuditLogTable = ({
         ) : (
           logs.map((log) => {
             const sc = severityStyles[log.severity] || severityStyles.routine;
-            const mc = moduleBadgeStyles[log.module] || "bg-muted/60 text-muted-foreground border-border/70 font-medium";
+            const mc = moduleBadgeStyles[log.module] || badgeStyles.neutral.className;
             const isExpanded = expandedId === log.id;
 
             return (
@@ -412,13 +410,13 @@ const AuditLogTable = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge
                         variant="outline"
-                        className={`text-[9px] font-semibold ${sc.badge}`}
+                        className={cn(auditBadgeClass, sc.badge)}
                       >
                         {log.actionType}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={`text-[9px] ${mc}`}
+                        className={cn(auditBadgeClass, mc)}
                       >
                         {log.module}
                       </Badge>
@@ -509,9 +507,6 @@ const AuditLogTable = ({
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={totalEntries}
-          pageSize={pageSize}
-          itemLabel="events"
           onPageChange={onPageChange}
           variant="table"
         />

@@ -18,6 +18,8 @@
     --font-size-title: 1rem;
     --font-size-page: 1.5rem;
     --font-size-page-lg: 1.875rem;
+    --theme-transition-duration: 220ms;
+    --theme-transition-easing: ease-in-out;
 
     /* Modern Green: neutral surfaces, teal actions, restrained mint accents. */
     --background: 210 40% 98.039%; /* #F8FAFC */
@@ -314,6 +316,52 @@
   }
 }
 
+/* Theme changes use one page-wide fade instead of each component's hover timing. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+html.theme-switching::view-transition-group(root) {
+  animation-duration: var(--theme-transition-duration);
+  animation-timing-function: var(--theme-transition-easing);
+}
+
+html.theme-switching::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+html.theme-switching::view-transition-new(root) {
+  animation: gw-theme-fade-in var(--theme-transition-duration) var(--theme-transition-easing) both;
+  mix-blend-mode: normal;
+  z-index: 2;
+}
+
+@keyframes gw-theme-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gw-theme-icon {
+  transition: opacity var(--theme-transition-duration) var(--theme-transition-easing),
+    transform var(--theme-transition-duration) var(--theme-transition-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-theme-icon {
+    transition: none;
+  }
+
+  html.theme-switching::view-transition-group(root),
+  html.theme-switching::view-transition-new(root) {
+    animation-duration: 0s;
+  }
+}
+
 @layer components {
   /* Sizes stay responsive; these roles never change page structure or spacing. */
   .gw-page-title {
@@ -466,6 +514,136 @@
 
 .gw-button:not(:focus-visible) {
   box-shadow: none;
+}
+
+/* Both states share a grid cell, so loading copy and the truck never jump the layout. */
+.gw-button[data-loading] {
+  --action-loader-width: 1.875rem;
+  --action-loader-height: 1.375rem;
+  --action-loader-canvas-size: 2.875rem;
+  --action-loader-transition: 160ms;
+  display: inline-grid;
+  grid-template-columns: max-content;
+  justify-items: center;
+  position: relative;
+}
+
+.gw-button[data-loading="true"]:disabled {
+  opacity: 1;
+}
+
+.gw-button[data-loading]::after {
+  grid-area: 1 / 1;
+  content: attr(data-loading-label);
+  padding-inline-end: calc(var(--action-loader-width) + 0.375rem);
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gw-button-label {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+  opacity: 1;
+  transition: opacity var(--action-loader-transition) ease-out;
+}
+
+.gw-button[data-loading="true"] .gw-button-label {
+  opacity: 0;
+  transition-duration: 80ms;
+}
+
+.gw-button-loader {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The loader mounts only during real work. Animate its first paint as well as
+   later frames, letting the action label fade out before loading copy appears. */
+.gw-button[data-loading="true"] .gw-button-loader {
+  animation: gw-button-loading-enter var(--action-loader-transition) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes gw-button-loading-enter {
+  0%, 25% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gw-button-loader::before {
+  content: attr(data-loading-copy);
+  font-variant-numeric: tabular-nums;
+}
+
+.gw-button-loader-truck {
+  display: inline-flex;
+  width: var(--action-loader-width);
+  height: var(--action-loader-height);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.gw-action-loader {
+  position: relative;
+  display: inline-flex;
+  width: var(--action-loader-width, 2.75rem);
+  height: var(--action-loader-height, 1.75rem);
+  flex-shrink: 0;
+  overflow: hidden;
+  color: inherit;
+}
+
+.gw-button-loader .gw-action-loader {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.gw-action-loader .gw-action-loader-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.gw-action-loader-artwork {
+  position: absolute;
+  inset: 0;
+}
+
+.gw-action-loader-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--action-loader-canvas-size, 4rem);
+  height: var(--action-loader-canvas-size, 4rem);
+  transform: translate(-50%, -54%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-button-label,
+  .gw-button-loader {
+    transition: none;
+    transform: none;
+  }
+
+  .gw-button[data-loading="true"] .gw-button-loader {
+    animation: none;
+  }
 }
 
 /* Shared notification popover in the admin, resident, and collector topbars. */

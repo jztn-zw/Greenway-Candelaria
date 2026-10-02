@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2 } from "lucide-react";
 import { fetchBarangays } from "@/services/barangaysService";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 
 interface LocationSectionProps {
   barangayId: string;
@@ -12,6 +13,7 @@ interface LocationSectionProps {
   onBarangayChange: (id: string, name: string) => void;
   onStreetChange: (value: string) => void;
   showError?: boolean;
+  showStreetError?: boolean;
 }
 
 const LocationSection: React.FC<LocationSectionProps> = ({
@@ -20,6 +22,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
   onBarangayChange,
   onStreetChange,
   showError = false,
+  showStreetError = false,
 }) => {
   const query = useResidentQuery("barangays", ["locations"], fetchBarangays);
   const barangays = query.data ?? [];
@@ -41,7 +44,6 @@ const LocationSection: React.FC<LocationSectionProps> = ({
         </p>
       </div>
 
-      {query.isError && <p role="alert" className="text-xs text-destructive">Could not refresh barangays. Please try again.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3.5">
         <div>
           <label className="text-xs font-medium text-foreground mb-1.5 block">Barangay</label>
@@ -54,6 +56,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
             <SearchableSelect
               aria-invalid={showError}
               value={barangayId}
+              disabled={query.isError && query.data === undefined}
               onValueChange={handleSelect}
               options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
               placeholder="Select barangay"
@@ -66,23 +69,38 @@ const LocationSection: React.FC<LocationSectionProps> = ({
               contentClassName="rounded-xl"
             />
           )}
+          {query.isError && (
+            <DataRefreshNotice primary role={query.data === undefined ? "alert" : "status"} className="mt-2" message={query.data === undefined ? "Couldn't load barangays. Your report details are still here." : "Couldn't refresh barangays. Showing the last loaded list."} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+          )}
           {showError && !loadingBarangays && (
             <p className="mt-1.5 text-ui-caption font-medium text-destructive">Please select a barangay.</p>
           )}
         </div>
 
         <div>
-          <label className="text-xs font-medium text-foreground mb-1.5 flex items-center gap-1.5">
+          <label htmlFor="report-street-or-landmark" className="text-xs font-medium text-foreground mb-1.5 block">
             Street or Landmark
-            <span className="text-ui-caption text-muted-foreground font-normal">(optional)</span>
           </label>
           <Input
+            id="report-street-or-landmark"
+            aria-invalid={showStreetError}
+            aria-describedby={showStreetError ? "report-street-or-landmark-error" : undefined}
+            required
             value={streetOrLandmark}
             onChange={(e) => onStreetChange(e.target.value)}
             placeholder="e.g. Near the public market, beside chapel"
             maxLength={200}
-            className="h-10 rounded-xl border-border/80 text-xs lg:text-sm hover:border-border focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+            className={`h-10 rounded-xl text-xs lg:text-sm transition-all ${
+              showStreetError
+                ? "border-destructive/80 focus-visible:ring-destructive/25"
+                : "border-border/80 hover:border-border focus-visible:ring-primary/20 focus-visible:border-primary"
+            }`}
           />
+          {showStreetError && (
+            <p id="report-street-or-landmark-error" role="alert" className="mt-1.5 text-ui-caption font-medium text-destructive">
+              Please enter a street or nearby landmark.
+            </p>
+          )}
         </div>
       </div>
     </div>

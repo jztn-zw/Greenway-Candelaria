@@ -1,4 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { AlertTriangle, RefreshCw, Truck as TruckIcon } from "lucide-react";
@@ -599,6 +601,7 @@ const ResidentTruckTracking = () => {
     : null);
 
   if (isLoading || (planQuery.data && !hasInitialSnapshot)) return <ResidentTrackingSkeleton />;
+  if (planQuery.isError && planQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load your collection tracking information. Please try again." onRetry={() => { void refetchPlan(); void refetchLive(); }} retrying={planQuery.isFetching || liveQuery.isFetching} homeHref="/resident" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-2 md:px-4">
@@ -614,21 +617,7 @@ const ResidentTruckTracking = () => {
 
       <div className="space-y-3.5 md:space-y-4">
 
-      {displayedTrackingError && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-sm md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-foreground">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>{displayedTrackingError}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => { void refetchPlan(); void refetchLive(); }}
-            className="gw-action-warning-outline inline-flex items-center gap-1.5 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors md:self-auto"
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Retry
-          </button>
-        </div>
-      )}
+      {displayedTrackingError && <DataRefreshNotice message={displayedTrackingError} onRetry={() => { void refetchPlan(); void refetchLive(); }} retrying={planQuery.isFetching || liveQuery.isFetching} />}
 
       {!residentCoords && !displayedTrackingError && (
         <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground">

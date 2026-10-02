@@ -1,4 +1,6 @@
 import { badgeStyles } from "@/components/ui/badgeStyles";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { AdminMessenger } from "./components/AdminMessenger";
 import { useAdminQuery } from "@/lib/adminQuery";
 import useAdminNotifications from "@/features/admin/notifications/useAdminNotifications";
@@ -939,6 +941,7 @@ const AdminTruckTracking = () => {
   if (isPageLoading) {
     return <AdminTruckTrackingPageSkeleton title={pageTitle} description={pageDescription} />;
   }
+  if (overviewQuery.error && overviewQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load fleet tracking information. Please try again." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5">
@@ -959,6 +962,8 @@ const AdminTruckTracking = () => {
           </p>
         </div>
       </div>
+
+      {overviewQuery.error && <DataRefreshNotice message="Couldn't refresh fleet tracking. Last known locations and route information may be outdated." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} />}
 
       {/* -- Executive Metric KPI Strip -- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
@@ -1170,11 +1175,6 @@ const AdminTruckTracking = () => {
                         ? "The tracking service did not return the fleet list. Try again."
                         : "There are currently no trucks configured for live tracking."}
                     </p>
-                    {overviewFailed && (
-                      <Button variant="outline" size="sm" disabled={isRefreshing} onClick={() => void handleManualRefresh()}>
-                        {isRefreshing ? "Retrying..." : "Retry"}
-                      </Button>
-                    )}
                   </div>
                 ) : (
                   displayTrucks.map((truck) => (
@@ -1217,4 +1217,3 @@ const AdminTruckTracking = () => {
 };
 
 export default AdminTruckTracking;
-

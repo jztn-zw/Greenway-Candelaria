@@ -102,3 +102,26 @@ it("renders recent history as a keyboard-accessible link", async () => {
   const link = host.querySelector('a[href*="past-run"]');
   expect(link?.textContent).toContain("Yesterday's collection");
 });
+
+it("replaces a failed primary dashboard load and recovers with a real retry", async () => {
+  vi.mocked(fetchCollectorDashboardProfile).mockRejectedValueOnce(new Error("Network Error"));
+  vi.mocked(fetchMyRouteToday).mockRejectedValueOnce(new Error("Network Error"));
+  await render();
+  expect(host.querySelector("h1")).toHaveTextContent("This page couldn't load");
+  expect(host.textContent).not.toContain("Stops cleared");
+  expect(host.textContent).not.toContain("No finished collection routes yet");
+  const retry = [...host.querySelectorAll("button")].find((button) => button.textContent === "Try again")!;
+  await act(async () => retry.click());
+  expect(host.textContent).toContain("Morning collection");
+  expect(fetchMyRouteToday).toHaveBeenCalledTimes(2);
+  expect(fetchCollectorDashboardProfile).toHaveBeenCalledTimes(2);
+});
+
+it("keeps the loaded assignment visible after a failed background refresh", async () => {
+  await render();
+  vi.mocked(fetchMyRouteToday).mockRejectedValue(new Error("Network Error"));
+  await act(async () => { await client.refetchQueries({ predicate: ({ queryKey }) => queryKey[2] === "routes" }); });
+  expect(host.textContent).toContain("Morning collection");
+  expect(host.textContent).toContain("Showing the last loaded data");
+  expect(host.querySelector("h1")?.textContent).not.toBe("This page couldn't load");
+});

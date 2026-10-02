@@ -1,7 +1,6 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { CalendarDays, Clock, Info } from "lucide-react";
 import type { CollectionSchedule } from "./types";
-import { cn } from "@/lib/utils";
 import { formatManilaDateTime } from "@/utils/date";
 
 interface CountdownBannerProps {
@@ -41,10 +40,6 @@ const CountdownBanner = ({
     );
   }
 
-  const lowerWaste = schedule.wasteType?.toLowerCase() || "";
-  const isNonBio = lowerWaste.includes("non-bio") || lowerWaste.includes("recycl");
-  const isBio = !isNonBio && lowerWaste.includes("bio");
-
   const rawDay = schedule.nextCollectionDay?.trim() || "Upcoming";
   const dayLabel = rawDay.charAt(0).toUpperCase() + rawDay.slice(1);
 
@@ -70,14 +65,6 @@ const CountdownBanner = ({
             <span
               className={"inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shrink-0 " + getCategoryBadgeColors(schedule.wasteType).className}
             >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0",
-                  isBio && "bg-emerald-500",
-                  isNonBio && "bg-amber-500",
-                  !isBio && !isNonBio && "bg-muted-foreground"
-                )}
-              />
               {schedule.wasteType}
             </span>
           )}

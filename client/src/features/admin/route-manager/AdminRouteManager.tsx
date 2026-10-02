@@ -1,4 +1,6 @@
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import {
 FilterPillItem,
 FilterPillTabs,
@@ -50,13 +52,16 @@ const AdminRouteManager: React.FC = () => {
   const {
     routes,
     isLoading,
-    isSaving,
+    isSavingRoute,
+    isDuplicating,
     createNew,
     updateExisting,
     toggleActive,
     duplicate,
     remove,
     error,
+    isRefreshing,
+    hasLoadedData,
     loadRoutes,
   } = useRoutes();
 
@@ -293,32 +298,36 @@ const AdminRouteManager: React.FC = () => {
 
   const handleDuplicate = async () => {
     if (!duplicatingRoute) return;
-    setDuplicateDialogOpen(false);
     const result = await duplicate(duplicatingRoute, duplicateTargetDay);
     if (result) {
+      setDuplicateDialogOpen(false);
       startEdit(result);
     }
   };
 
   const handleDelete = async (route: RouteData) => {
+    if (deletingRouteId) return false;
     setDeletingRouteId(route.id);
     try {
-      await remove(route.id);
+      const ok = await remove(route.id);
+      if (!ok) return false;
       if (inspectingRouteId === route.id) {
         setIsDetailOpen(false);
       }
       if (selectedRouteId === route.id) {
         setIsEditorOpen(false);
       }
+      return true;
     } finally {
       setDeletingRouteId(null);
     }
   };
 
   const handleToggleActive = async (route: RouteData) => {
+    if (togglingRouteId) return false;
     setTogglingRouteId(route.id);
     try {
-      await toggleActive(route);
+      return await toggleActive(route);
     } finally {
       setTogglingRouteId(null);
     }
@@ -327,8 +336,9 @@ const AdminRouteManager: React.FC = () => {
   const confirmStatusChange = async () => {
     if (!statusTarget) return;
     const route = statusTarget;
-    setStatusTarget(null);
-    await handleToggleActive(route);
+    const ok = await handleToggleActive(route);
+    if (ok) setStatusTarget(null);
+    return ok;
   };
 
   // ── Status Filter Tabs (Option 1: Compact 3 tabs) ──
@@ -363,23 +373,8 @@ const AdminRouteManager: React.FC = () => {
     return <RouteManagerPageSkeleton viewMode={viewMode} />;
   }
 
-  if (error && routes.length === 0) {
-    return (
-      <div className="w-full max-w-[1600px] mx-auto min-h-[55vh] flex items-center justify-center">
-        <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-7 text-center shadow-2xs space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="gw-heading text-base text-foreground">Routes could not be loaded</h2>
-            <p className="text-xs text-muted-foreground leading-relaxed">{error}</p>
-          </div>
-          <Button onClick={() => void loadRoutes()} className="h-9 rounded-xl text-xs font-semibold">
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
+  if (error && !hasLoadedData && !isEditorOpen) {
+    return <PageErrorState kind="unavailable" description="We couldn't load collection routes. Please try again." onRetry={() => void loadRoutes()} retrying={isRefreshing} homeHref="/admin" />;
   }
 
   return (
@@ -403,6 +398,8 @@ const AdminRouteManager: React.FC = () => {
           <span>Create New Route</span>
         </Button>
       </div>
+
+      {error && <DataRefreshNotice message="Couldn't refresh routes. Showing the last loaded routes, which may be outdated." onRetry={() => void loadRoutes()} retrying={isRefreshing} />}
 
       {/* ── 4 Bento Metric Cards ── */}
       <RouteKPIs
@@ -515,7 +512,7 @@ const AdminRouteManager: React.FC = () => {
         selectedRoute={selectedRoute}
         form={form}
         setForm={setForm}
-        isSaving={isSaving}
+        isSaving={isSavingRoute}
         trucks={availableTrucks}
         drivers={drivers}
         isLoadingTrucks={isLoadingTrucks}
@@ -555,7 +552,7 @@ const AdminRouteManager: React.FC = () => {
         targetDay={duplicateTargetDay}
         sourceDay={duplicatingRoute?.day ?? null}
         setTargetDay={setDuplicateTargetDay}
-        isSaving={isSaving}
+        isSaving={isDuplicating}
         onDuplicate={handleDuplicate}
       />
 
@@ -567,12 +564,15 @@ const AdminRouteManager: React.FC = () => {
         variant="destructive"
         description="This removes the inactive route template. Completed daily route history will be preserved in the system."
         confirmLabel="Delete route"
+        pendingLabel="Deleting route…"
         confirmDisabled={!deleteTarget || deletingRouteId === deleteTarget.id}
         closeOnConfirm
-        onConfirm={() => {
+        onConfirm={async () => {
           const target = deleteTarget;
-          setDeleteTarget(null);
-          if (target) void handleDelete(target);
+          if (!target) return false;
+          const ok = await handleDelete(target);
+          if (ok) setDeleteTarget(null);
+          return ok;
         }}
       />
 
@@ -586,7 +586,8 @@ const AdminRouteManager: React.FC = () => {
           : "Enabling returns this route to active operations. GreenWay will check for same-day barangay conflicts before applying the change."}
         cancelLabel="Keep current status"
         confirmLabel={statusTarget?.active ? "Pause Route" : "Enable Route"}
-        onConfirm={() => void confirmStatusChange()}
+        pendingLabel={statusTarget?.active ? "Pausing route…" : "Enabling route…"}
+        onConfirm={confirmStatusChange}
         closeOnConfirm
       />
     </div>

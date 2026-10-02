@@ -175,8 +175,10 @@ const ReportDetailPanel = ({
       await onUpdateStatus(backendStatus, officialResponse.trim() || undefined);
       setSelectedStatus(newStatus);
       toast.success(`Status updated to ${newStatus}`);
+      return true;
     } catch {
       toast.error("Failed to update status");
+      return false;
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -539,8 +541,10 @@ const ReportDetailPanel = ({
               onClick={handleResponseSubmit}
               disabled={isSavingResponse || !officialResponse.trim() || (!!report.officialResponse && officialResponse.trim() === report.officialResponse)}
               className="h-8 text-xs px-3.5 rounded-xl font-semibold cursor-pointer shadow-xs disabled:opacity-40"
+              loading={isSavingResponse}
+              loadingLabel="Saving response…"
             >
-              {isSavingResponse && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+
               {report.officialResponse && officialResponse.trim() === report.officialResponse
                 ? "Saved"
                 : "Save Response"}
@@ -587,8 +591,10 @@ const ReportDetailPanel = ({
               onClick={handleNoteSubmit}
               disabled={isSavingNote || !internalNote.trim()}
               className="h-8 text-xs px-4 rounded-xl font-semibold cursor-pointer shadow-2xs disabled:opacity-40"
+              loading={isSavingNote}
+              loadingLabel="Adding note…"
             >
-              {isSavingNote && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+
               Add Note
             </Button>
           </div>
@@ -860,10 +866,10 @@ const ReportDetailPanel = ({
               disabled={isFlagging}
               variant={flagType === "false" ? "destructive" : "warning"}
               className={"rounded-xl h-9 text-xs px-4 font-semibold cursor-pointer"}
+              loading={isFlagging}
+              loadingLabel={flagType === "duplicate" ? "Flagging duplicate…" : "Flagging report…"}
             >
-              {isFlagging ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : flagType === "duplicate" ? (
+              {flagType === "duplicate" ? (
                 "Flag as Duplicate"
               ) : (
                 "Mark Invalid"
@@ -884,7 +890,11 @@ const ReportDetailPanel = ({
         confirmLabel="Yes, resolve report"
         isPending={isUpdatingStatus}
         pendingLabel="Resolving..."
-        onConfirm={() => { setShowResolveModal(false); void handleStatusSubmit("Resolved"); }}
+        onConfirm={async () => {
+          const ok = await handleStatusSubmit("Resolved");
+          if (ok) setShowResolveModal(false);
+          return ok;
+        }}
       >
         <p>Confirm only after the issue has been fully handled. To prevent incorrect records, resolved reports cannot be reopened or moved to another status.</p>
       </ConfirmationDialog>

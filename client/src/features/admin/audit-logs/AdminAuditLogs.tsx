@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AuditLogsSkeleton } from "@/components/PageLoadingSkeletons";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { toast } from "@/lib/toast";
 import auditService from "@/services/auditService";
 import { formatAuditEntry } from "./auditFormatter";
@@ -34,18 +35,16 @@ const AdminAuditLogs = () => {
   const isInitialLoading = !visibleData && !query.isError;
   const isTableLoading = query.isLoading;
   const logs = (visibleData?.logs ?? []).map(formatAuditEntry);
-  const totalEntries = visibleData?.total ?? 0;
   const totalPages = Math.max(1, visibleData?.totalPages ?? 1);
   const kpiData = visibleData?.kpis ?? { totalActions: 0, deletions: 0, criticalActions: 0, failedLogins: 0, modifications: 0 };
   useEffect(() => { if (query.data && currentPage > totalPages) setCurrentPage(totalPages); }, [query.data, currentPage, totalPages]);
-  useEffect(() => { if (query.error) toast.error(query.error.message); }, [query.error]);
 
   if (isInitialLoading) {
     return <AuditLogsSkeleton title={pageTitle} description={pageDescription} />;
   }
 
   if (!visibleData && query.error) {
-    return <PageErrorState kind="unavailable" title="Audit logs couldn't load" description="We couldn't load the audit records right now. Please try again." onRetry={() => void query.refetch()} homeHref="/admin" />;
+    return <PageErrorState kind="unavailable" description="We couldn't load the audit records right now. Please try again." onRetry={() => void query.refetch()} retrying={query.isFetching} homeHref="/admin" />;
   }
 
   return (
@@ -66,11 +65,7 @@ const AdminAuditLogs = () => {
 
       </div>
 
-      {query.error && !query.data && visibleData && (
-        <p role="alert" className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-xs text-destructive">
-          Could not update audit logs. Showing the previous results.
-        </p>
-      )}
+      {query.error && <DataRefreshNotice message="Couldn't update audit logs. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
 
       {/* ── Executive Security Metric Strip ── */}
       <AuditLogKPIs kpiData={kpiData} />
@@ -101,8 +96,6 @@ const AdminAuditLogs = () => {
           isLoading={isTableLoading}
           currentPage={currentPage}
           totalPages={totalPages}
-          totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
           onPageChange={setCurrentPage}
         />
       </div>

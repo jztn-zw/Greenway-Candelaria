@@ -1,4 +1,6 @@
 import { useCollectorQuery } from "@/lib/collectorQuery";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useEffect, useMemo, useState } from "react";
 import { CollectorScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
@@ -18,7 +20,6 @@ const CollectorSchedule = () => {
   useEffect(() => {
     if (schedule.isFetched) setHasSettledInitialLoad(true);
   }, [schedule.isFetched]);
-  const error = schedule.error && !schedule.data ? "Schedule unavailable. Please try opening this page again later." : null;
   const events = schedule.data ?? EMPTY_EVENTS;
 
   const scheduleColorById = useMemo(() => getEventColors(events), [events]);
@@ -35,6 +36,7 @@ const CollectorSchedule = () => {
   };
 
   if (isLoading && !hasSettledInitialLoad) return <CollectorScheduleSkeleton currentDate={currentDate} />;
+  if (schedule.error && schedule.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load this month's schedule. Please try again." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} homeHref="/collector" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5 pb-8">
@@ -45,7 +47,7 @@ const CollectorSchedule = () => {
         </div>
       </div>
 
-      {schedule.error && schedule.data && <p role="alert" className="text-sm text-destructive">Schedule could not be refreshed. Showing last known events.</p>}
+      {schedule.error && <DataRefreshNotice message="Couldn't refresh the schedule. Showing the last loaded events, which may be outdated." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
         <div className="lg:col-span-2">
           <CalendarGrid
@@ -67,7 +69,6 @@ const CollectorSchedule = () => {
         <aside className="lg:col-span-1">
           <SelectedDayPanel
             isLoading={isLoading}
-            error={error}
             className="min-h-[340px] max-h-[480px] lg:max-h-none lg:h-[620px]"
             selectedDateStr={selectedDateStr}
             events={selectedEvents}

@@ -27,9 +27,9 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
-import authService from "@/services/authService";
+import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import postsService from "@/services/postsService";
@@ -39,7 +39,7 @@ import { parseApiTimestamp } from "@/utils/date";
 const ResidentSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentUser = authService.getCurrentUser();
+  const currentUser = useAuthStore((state) => state.user);
   const fullName = currentUser?.full_name?.trim() || "Unknown User";
   const initials =
     fullName
@@ -239,8 +239,8 @@ const ResidentSidebar = () => {
   };
 
   const handleLogout = async () => {
-    setShowLogoutModal(false);
     await logout();
+    setShowLogoutModal(false);
     navigate("/", { replace: true });
   };
 
@@ -355,6 +355,7 @@ const ResidentSidebar = () => {
           <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
+                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "RESIDENT"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>
@@ -437,9 +438,7 @@ const ResidentSidebar = () => {
         <LogoutConfirmModal
           open={showLogoutModal}
           onOpenChange={setShowLogoutModal}
-          onConfirm={() => {
-            void handleLogout();
-          }}
+          onConfirm={handleLogout}
         />
       </SidebarFooter>
 

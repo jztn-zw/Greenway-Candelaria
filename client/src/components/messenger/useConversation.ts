@@ -101,6 +101,7 @@ export const useConversation = (driverId?: string, enabled = true) => {
     finally { reading.current.delete(id); }
   }, [driverId, readMessage, user?.id, token]);
   return { messages, loading: conversation.isLoading,
+    refreshing: conversation.isFetching || target.isFetching,
     error: error ?? (conversation.error ? "Messages could not be refreshed. Please retry." : target.error ? "The selected message could not be loaded. Latest messages are still available." : null),
     unreadCount: conversation.data?.pages[0]?.unreadCount ?? 0,
     nextCursor: conversation.hasNextPage ? conversation.data?.pages[conversation.data.pages.length - 1]?.nextCursor ?? null : null,

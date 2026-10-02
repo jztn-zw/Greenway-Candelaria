@@ -95,7 +95,7 @@ it("a missing old notification does not stop latest messages from loading", asyn
   expect(screen.getByRole("alert").textContent).toContain("selected message");
   await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
   expect(screen.getByText("Dispatch instruction")).toBeTruthy();
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Retry latest messages" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Try again" })); });
   expect(screen.queryByRole("alert")).toBeNull();
 });
 it("shows loading instead of an empty conversation and limits the accessible composer", async () => {

@@ -1,4 +1,5 @@
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import {
   Clock,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
@@ -21,6 +23,7 @@ interface DriverDetailViewProps {
   driver: Driver;
   trucks: TruckType[];
   isActivityLoading?: boolean;
+  isActivityRefreshing?: boolean;
   activityError?: string;
   onRetryActivity?: () => void;
   onEdit: (d: Driver) => void;
@@ -28,17 +31,11 @@ interface DriverDetailViewProps {
   onToggleStatus: (d: Driver) => void;
 }
 
-const getInitials = (name: string): string => {
-  if (!name) return "CL";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
-
 const DriverDetailView = ({
   driver,
   trucks,
   isActivityLoading = false,
+  isActivityRefreshing = false,
   activityError = "",
   onRetryActivity,
   onEdit,
@@ -62,8 +59,8 @@ const DriverDetailView = ({
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
-              {getInitials(driver.fullName)}
+            <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
+              <img src={profileAvatarSrc(profileAvatarForAccount(driver.userId, driver.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -213,10 +210,7 @@ const DriverDetailView = ({
             <p className="text-sm text-muted-foreground">Loading activity...</p>
           </div>
         ) : activityError ? (
-          <div className="bg-card border border-border/80 rounded-2xl p-8 text-center shadow-2xs">
-            <p role="alert" className="text-sm text-destructive">Could not load collection activity. {activityError}</p>
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onRetryActivity}>Retry</Button>
-          </div>
+          <DataRefreshNotice primary role="alert" message="Couldn't load collection activity. Please try again." onRetry={() => onRetryActivity?.()} retrying={isActivityRefreshing} />
         ) : driver.activityLog.length === 0 ? (
           <div className="bg-card border border-border/80 rounded-2xl p-12 text-center shadow-2xs">
             <p className="text-sm text-muted-foreground">

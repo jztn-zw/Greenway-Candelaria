@@ -57,11 +57,14 @@ it("keeps profile validation and failed-save recovery working", async () => {
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 
-it("stores the selected avatar color and closes the customization dialog", async () => {
-  await click("Customize"); await click("Ocean");
-  expect(localStorage.getItem("greenway:admin-avatar:admin")).toBe("ocean");
+it("stores one of the ten supplied avatars and closes the customization dialog", async () => {
+  await click("Customize avatar");
+  expect(document.querySelectorAll('[role="group"][aria-label="Profile avatars"] button')).toHaveLength(10);
+  await click("Select Woman with short hair on blue avatar");
+  expect(updateProfile).toHaveBeenCalledWith({ avatar_url: "/profile-avatars/avatar-2.png" });
+  expect(localStorage.getItem("greenway:admin-avatar:admin")).toBe("avatar-2");
   expect(document.querySelector('[role="dialog"]')).toBeNull();
-  await click("Customize"); expect(button("Ocean")).toHaveAttribute("aria-pressed", "true");
+  await click("Customize avatar"); expect(button("Select Woman with short hair on blue avatar")).toHaveAttribute("aria-pressed", "true");
   await click("Close"); expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 

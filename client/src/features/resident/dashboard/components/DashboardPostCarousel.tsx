@@ -1,4 +1,5 @@
 import { useResidentQuery } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +62,8 @@ const DashboardPostCarousel = () => {
       </Card>
     );
   }
+
+  if (loadFailed && postsQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Community updates couldn't load" description="We couldn't load published posts. Please try again." onRetry={() => void postsQuery.refetch()} retrying={postsQuery.isFetching} />;
 
   if (posts.length === 0) {
     return (

@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Send,
-  Loader2,
   MapPin,
   FileText,
   Camera,
@@ -36,14 +35,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   onSubmit,
   isSubmitting,
   submissionStage,
-  uploadProgress = 0,
 }) => {
   const violation = VIOLATION_OPTIONS.find((v) => v.value === form.violationType);
   const ViolationIcon = violation?.icon || Trash2;
   const submissionLabel = submissionStage === "compressing"
     ? "Optimizing photos…"
     : submissionStage === "uploading"
-      ? `Uploading photos… ${uploadProgress}%`
+      ? "Uploading photos…"
       : submissionStage === "creating"
         ? "Creating report…"
         : "Submitting…";
@@ -196,19 +194,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               type="button"
               onClick={onSubmit}
               disabled={isSubmitting}
+              loading={isSubmitting}
+              loadingLabel={submissionLabel}
               className={modalStyles.primaryButton}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{submissionLabel}</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>Confirm & Submit</span>
-                </>
-              )}
+              <Send className="w-4 h-4" />
+              <span>Confirm & Submit</span>
             </Button>
           </div>
         </div>

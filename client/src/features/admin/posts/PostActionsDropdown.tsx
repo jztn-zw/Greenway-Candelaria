@@ -115,7 +115,7 @@ const PostActionsDropdown = ({
         <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => onDelete(post)}
-          className="text-xs font-medium text-destructive focus:text-destructive cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
+          className="text-xs font-medium text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Delete

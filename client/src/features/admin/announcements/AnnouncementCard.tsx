@@ -155,28 +155,28 @@ const AnnouncementCard = ({
           <>
             <DropdownMenuItem
               onClick={() => onEdit(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Edit
+              <Edit2 className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Duplicate
+              <Copy className="size-3.5 shrink-0" /> Duplicate
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onSendNow(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Send Now
+              <Send className="size-3.5 shrink-0" /> Send Now
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
               onClick={() => onDelete(ann)}
             >
-              Archive
+              <Archive className="size-3.5 shrink-0" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -185,29 +185,29 @@ const AnnouncementCard = ({
           <>
             <DropdownMenuItem
               onClick={() => onEdit(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Edit
+              <Edit2 className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Duplicate
+              <Copy className="size-3.5 shrink-0" /> Duplicate
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
               onClick={() => onCancelSchedule(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Cancel Schedule
+              <RotateCcw className="size-3.5 shrink-0" /> Cancel Schedule
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
               onClick={() => onDelete(ann)}
             >
-              Archive
+              <Archive className="size-3.5 shrink-0" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -216,36 +216,36 @@ const AnnouncementCard = ({
           <>
             <DropdownMenuItem
               onClick={() => onReadReceipt(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Read Analytics
+              <BarChart3 className="size-3.5 shrink-0" /> Read Analytics
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onEdit(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Edit
+              <Edit2 className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Duplicate
+              <Copy className="size-3.5 shrink-0" /> Duplicate
             </DropdownMenuItem>
             {ann.readCount < ann.totalRecipients && (
               <DropdownMenuItem
                 onClick={() => onResend(ann)}
-                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
               >
-                Resend to Unread
+                <Send className="size-3.5 shrink-0" /> Resend to Unread
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
               onClick={() => onDelete(ann)}
             >
-              Archive
+              <Archive className="size-3.5 shrink-0" /> Archive
             </DropdownMenuItem>
           </>
         );
@@ -254,22 +254,23 @@ const AnnouncementCard = ({
           <>
             <DropdownMenuItem
               onClick={() => onReadReceipt(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              Read Analytics
+              <BarChart3 className="size-3.5 shrink-0" /> Read Analytics
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
+              {needsExpiryUpdateBeforeRestore ? <Edit2 className="size-3.5 shrink-0" /> : <ArchiveRestore className="size-3.5 shrink-0" />}
               {needsExpiryUpdateBeforeRestore ? "Edit & Restore" : "Restore Notice"}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5"
+              className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
               onClick={() => onDelete(ann)}
             >
-              Delete
+              <Trash2 className="size-3.5 shrink-0" /> Delete
             </DropdownMenuItem>
           </>
         );
@@ -394,7 +395,7 @@ const AnnouncementCard = ({
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 rounded-xl border border-border/80 p-1 shadow-md">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border/80 p-1 shadow-md">
               {renderMenuItems()}
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,4 +1,7 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useState, useEffect } from "react";
 import { Search, Plus, LayoutGrid, List, Megaphone, Trash2, Archive, ArrowUpDown, Send, X, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,6 +80,8 @@ const AdminAnnouncements = () => {
     isInitialLoading,
     isResultsLoading,
     pageError,
+    hasLoadedPage,
+    isRefreshing,
     retryPage,
     isSaving,
     createNew,
@@ -88,7 +93,6 @@ const AdminAnnouncements = () => {
     sendNow,
     cancelSchedule,
     resendToUnread,
-    totalItems,
     totalPages,
     metrics,
   } = useAnnouncements({
@@ -114,12 +118,12 @@ const AdminAnnouncements = () => {
   const [pendingSend, setPendingSend] = useState<Announcement | null>(null);
   const [resendTarget, setResendTarget] = useState<Announcement | null>(null);
 
-  const STATUS_TABS: { key: string; label: string }[] = [
-    { key: "all", label: "All Notices" },
-    { key: "Active", label: "Active" },
-    { key: "Scheduled", label: "Scheduled" },
-    { key: "Draft", label: "Drafts" },
-    { key: "Archived", label: "Archived" },
+  const STATUS_TABS: FilterPillItem<string>[] = [
+    { id: "all", label: "All Notices" },
+    { id: "Active", label: "Active" },
+    { id: "Scheduled", label: "Scheduled" },
+    { id: "Draft", label: "Drafts" },
+    { id: "Archived", label: "Archived" },
   ];
 
   useEffect(() => {
@@ -172,14 +176,16 @@ const AdminAnnouncements = () => {
 
   const handleSendConfirm = async () => {
     if (!pendingSend) return;
+    const ok = await sendNow(pendingSend);
+    if (!ok) return false;
     setConfirmSend(false);
-    await sendNow(pendingSend);
     setPendingSend(null);
   };
 
   const handleResendConfirm = async () => {
     if (!resendTarget) return;
-    await resendToUnread(resendTarget);
+    const ok = await resendToUnread(resendTarget);
+    if (!ok) return false;
     setResendTarget(null);
   };
 
@@ -197,6 +203,7 @@ const AdminAnnouncements = () => {
   };
 
   if (isInitialLoading) return <AnnouncementsPageSkeleton viewMode={viewMode} />;
+  if (pageError && !hasLoadedPage && !editorOpen) return <PageErrorState kind="unavailable" description="We couldn't load announcements. Please try again." onRetry={() => void retryPage()} retrying={isRefreshing} homeHref="/admin" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-300">
@@ -226,28 +233,15 @@ const AdminAnnouncements = () => {
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/70 shadow-xs backdrop-blur-md">
         {/* Tier 1: Search + Quick Status Tabs */}
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x">
-            {STATUS_TABS.map((tab) => {
-              const isActive = statusFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setStatusFilter(tab.key);
-                    setCurrentPage(1);
-                  }}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border cursor-pointer shrink-0 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs shadow-primary/25 font-semibold"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <FilterPillTabs
+            items={STATUS_TABS}
+            activeId={statusFilter}
+            onChange={(status) => {
+              setStatusFilter(status);
+              setCurrentPage(1);
+            }}
+            ariaLabel="Announcement status filters"
+          />
 
           {/* Search Input */}
           <div className="relative w-full xl:w-[330px] shrink-0">
@@ -371,13 +365,8 @@ const AdminAnnouncements = () => {
       </section>
 
       {/* ── Content View (Grid or Table) ── */}
-      {pageError ? (
-        <div role="alert" className="rounded-2xl border border-border/80 bg-card p-8 text-center space-y-3">
-          <p className="text-sm font-semibold text-foreground">Could not load announcements</p>
-          <p className="text-xs text-muted-foreground">{pageError}</p>
-          <Button variant="outline" onClick={() => void retryPage()} className="rounded-xl">Try again</Button>
-        </div>
-      ) : isResultsLoading ? (
+      {pageError && <DataRefreshNotice message="Couldn't update announcements. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void retryPage()} retrying={isRefreshing} />}
+      {isResultsLoading ? (
         <AnnouncementsContentSkeleton viewMode={viewMode} />
       ) : announcements.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-12 text-center space-y-4">
@@ -440,9 +429,6 @@ const AdminAnnouncements = () => {
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={itemsPerPage}
-          itemLabel="announcements"
           onPageChange={setCurrentPage}
           variant="floating"
         />
@@ -523,6 +509,7 @@ const AdminAnnouncements = () => {
         icon={<Send />}
         description={<>Are you sure you want to broadcast <strong className="font-semibold text-foreground">&ldquo;{pendingSend?.title}&rdquo;</strong> to all targeted residents immediately? A real-time notification will be sent.</>}
         confirmLabel="Confirm & Send Now"
+        pendingLabel="Sending announcement…"
         onConfirm={handleSendConfirm}
         closeOnConfirm
       />
@@ -536,12 +523,14 @@ const AdminAnnouncements = () => {
         variant={deleteTarget?.status === "Archived" ? "destructive" : "default"}
         description={<>{deleteTarget?.status === "Archived" ? "Permanently delete" : "Archive"} <strong className="font-semibold text-foreground">&ldquo;{deleteTarget?.title}&rdquo;</strong>? {deleteTarget?.status === "Archived" ? "This cannot be undone. The announcement and its linked notifications will be removed now." : "It will be hidden from resident feeds and notifications. You can restore it from Archive within 30 days."}</>}
         confirmLabel={deleteTarget?.status === "Archived" ? "Delete Permanently" : "Archive Notice"}
+        pendingLabel={deleteTarget?.status === "Archived" ? "Deleting announcement…" : "Archiving announcement…"}
         closeOnConfirm
         onConfirm={async () => {
           const ok = deleteTarget!.status === "Archived"
             ? await permanentlyDelete(deleteTarget!.id)
             : await remove(deleteTarget!.id);
           if (ok) setDeleteTarget(null);
+          return ok;
         }}
       />
 
@@ -553,6 +542,7 @@ const AdminAnnouncements = () => {
         icon={<RotateCcw />}
         description={<>This will re-issue a real-time notification for <strong className="font-semibold text-foreground">&ldquo;{resendTarget?.title}&rdquo;</strong> only to residents who have not yet read or opened this notice.</>}
         confirmLabel="Confirm & Resend"
+        pendingLabel="Resending announcement…"
         onConfirm={handleResendConfirm}
         closeOnConfirm
       />

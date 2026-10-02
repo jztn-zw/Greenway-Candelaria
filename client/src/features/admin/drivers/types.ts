@@ -15,6 +15,7 @@ export interface Driver {
   fullName: string;
   username: string;
   email: string;
+  avatarUrl: string | null;
   contactNumber: string;
   truckId: string | null;
   status: "Active" | "Deactivated";

@@ -5,7 +5,6 @@ export interface PostItem {
   id: string;
   title: string;
   body: string;
-  source?: string;
   category: "WASTE_TIP" | "EVENT" | string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED" | string;
   is_featured: boolean | number;

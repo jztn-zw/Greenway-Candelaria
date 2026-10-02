@@ -1,4 +1,5 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import type { Resident } from "./types";
+import { usePendingAction } from "@/hooks/usePendingAction";
 
 const reportStatusStyles: Record<string, string> = {
   Submitted:
@@ -44,17 +46,11 @@ const residentStatusStyles: Record<string, string> = {
 
 interface Props {
   resident: Resident;
-  onToggleStatus?: (resident: Resident) => void;
+  onToggleStatus?: (resident: Resident) => void | Promise<unknown>;
 }
 
 const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
-  const initials = resident.fullName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
+  const statusAction = usePendingAction();
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
       <div>
@@ -70,8 +66,8 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
       <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
-              {initials || "R"}
+            <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
+              <img src={profileAvatarSrc(profileAvatarForAccount(resident.id, resident.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -99,7 +95,9 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onToggleStatus(resident)}
+                onClick={() => void statusAction.run(() => onToggleStatus(resident))}
+                loading={statusAction.isPending}
+                loadingLabel="Updating account…"
                 className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
               >
                 {resident.status === "Active" ? (

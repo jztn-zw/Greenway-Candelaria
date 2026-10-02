@@ -9,7 +9,7 @@ import { getManilaNow } from "@/utils/date";
 
 const state = vi.hoisted(() => ({
   notifications: [] as NotificationRow[], recentNotifications: [] as NotificationRow[], unreadCount: 1,
-  total: 1, isLoading: false, isMutating: false, category: "all" as const, error: null, nextCursor: null,
+  total: 1, isLoading: false, isMutating: false, category: "all" as const, error: null as string | null, nextCursor: null,
   loadMore: vi.fn(), fetchNotifications: vi.fn(), markAsRead: vi.fn(), markAllAsRead: vi.fn(), clearAll: vi.fn(),
 }));
 vi.mock("@/hooks/useNotifications", () => ({ default: () => state }));
@@ -73,3 +73,19 @@ for (const surface of ["page", "bell"] as const) {
     if (surface === "bell") expect(document.querySelector('button[title="Notifications"]')).toHaveAttribute("aria-expanded", "false");
   });
 }
+
+it("keeps recent notifications visible and retries when the bell refresh fails", async () => {
+  state.error = "Network Error";
+  state.recentNotifications = [row];
+  await act(async () => root.render(
+    <MemoryRouter initialEntries={["/collector"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <CollectorTopbar />
+    </MemoryRouter>,
+  ));
+  await act(async () => document.querySelector<HTMLButtonElement>('button[title="Notifications"]')!.click());
+
+  expect(document.querySelector('[role="status"]')).toHaveTextContent("Couldn't refresh notifications");
+  expect([...document.querySelectorAll("button")].some(button => button.textContent?.includes(row.title))).toBe(true);
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Try again"))!.click());
+  expect(state.fetchNotifications).toHaveBeenCalledOnce();
+});

@@ -22,6 +22,9 @@ import {
 import { fetchMyRouteToday } from "@/services/routesService";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import useAuthStore from "@/store/authStore";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 
 const CollectorDashboard = () => {
   const navigate = useNavigate();
@@ -36,10 +39,11 @@ const CollectorDashboard = () => {
   const driverMe = profileQuery.data ?? null;
   const routeToday = routeQuery.data ?? null;
   const recentHistory = historyQuery.data ?? [];
-  const isLoading = profileQuery.isLoading || routeQuery.isLoading || historyQuery.isLoading || calendarQuery.isLoading;
+  const queries = [profileQuery, routeQuery, historyQuery, calendarQuery];
+  const isLoading = queries.some((query) => query.isLoading && !query.isFetched);
   const loadErrors = { profile: Boolean(profileQuery.error) && profileQuery.data === undefined,
     route: Boolean(routeQuery.error) && routeQuery.data === undefined, history: Boolean(historyQuery.error) && historyQuery.data === undefined };
-  const hasRefreshError = Boolean(profileQuery.error || routeQuery.error || historyQuery.error);
+  const retryDashboard = () => { queries.filter((query) => query.isError).forEach((query) => { void query.refetch(); }); };
   const [now, setNow] = useState(Date.now);
 
   const [issueModalOpen, setIssueModalOpen] = useState(false);
@@ -59,9 +63,13 @@ const CollectorDashboard = () => {
 
   const assignmentUnavailable = loadErrors.profile || loadErrors.route;
 
+  if (loadErrors.profile && loadErrors.route) {
+    return <PageErrorState kind="unavailable" description="We couldn't load your dashboard information. Check your connection and try again." onRetry={retryDashboard} retrying={profileQuery.isFetching || routeQuery.isFetching} />;
+  }
+
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-8">
-      {hasRefreshError && <p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm">Some dashboard data is unavailable. Please open this page again later to check the affected sections.</p>}
       {/* ── Municipal Command Header with Live Shift Status ── */}
       <CollectorDashboardGreeting
         driverName={driverMe?.full_name || authUser?.full_name || "Collector"}
@@ -69,6 +77,7 @@ const CollectorDashboard = () => {
         statusLabel={assignmentUnavailable ? "Status unavailable" : assignmentData.statusLabel}
         active={!assignmentUnavailable && assignmentData.routeState === "in-progress"}
       />
+      {queries.some((query) => query.isError) && <DataRefreshNotice primary message={queries.some((query) => query.isError && query.data === undefined) ? "Some dashboard information couldn't load. Available information is still shown; previously loaded data may be outdated." : "Couldn't refresh some dashboard information. Showing the last loaded data, which may be outdated."} onRetry={retryDashboard} retrying={queries.some((query) => query.isFetching)} />}
 
       {/* ── Operational Telemetry Row (Low Noise, Single Surface) ── */}
       {!assignmentUnavailable && <TodayStatsCards data={assignmentData} />}
@@ -76,7 +85,7 @@ const CollectorDashboard = () => {
       {/* ── Route workspace and monthly schedule ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
         <div className="flex min-h-[360px] flex-col sm:min-h-[380px] lg:min-h-[355px] lg:h-full">
-          {assignmentUnavailable ? <p className="rounded-xl border border-border bg-card p-5">Route assignment unavailable.</p> : <AssignmentCard
+          {assignmentUnavailable ? <PageErrorState kind="unavailable" variant="section" title="Route assignment unavailable" description="We couldn't load your assignment. Please try again." onRetry={() => { void profileQuery.refetch(); void routeQuery.refetch(); }} retrying={profileQuery.isFetching || routeQuery.isFetching} /> : <AssignmentCard
             className="h-full flex-1"
             data={assignmentData}
             onAction={() => navigate(getAssignmentDestination(assignmentData.routeState))}
@@ -90,7 +99,7 @@ const CollectorDashboard = () => {
       {/* ── Supporting route and vehicle details ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
         <div className="h-full">
-          {loadErrors.history ? <p className="rounded-xl border border-border bg-card p-5">Route history unavailable.</p> : recentHistory.length > 0 ? (
+          {loadErrors.history ? <PageErrorState kind="unavailable" variant="section" title="Route history unavailable" description="We couldn't load your recent routes. Please try again." onRetry={() => void historyQuery.refetch()} retrying={historyQuery.isFetching} /> : recentHistory.length > 0 ? (
             <div className="h-full min-h-0 rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs flex flex-col">
               <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60 bg-muted/20">
                 <div className="flex items-center gap-2">
@@ -176,7 +185,7 @@ const CollectorDashboard = () => {
           )}
         </div>
         <div className="h-full">
-          {loadErrors.profile ? <p className="rounded-xl border border-border bg-card p-5">Vehicle information unavailable.</p> : <TruckStatusCard
+          {loadErrors.profile ? <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" description="We couldn't load your vehicle information. Please try again." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} /> : <TruckStatusCard
             className="h-full"
             data={driverMe?.truck_id ? {
               name: driverMe?.truck_name || "Assigned Truck",
@@ -199,6 +208,7 @@ const CollectorDashboard = () => {
         onSubmit={(report) => runAction(() => reportTruckBreakdown(report))}
       />
     </div>
+    </PageRetryContext.Provider>
   );
 };
 

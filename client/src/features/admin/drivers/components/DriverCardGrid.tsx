@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,13 +34,6 @@ interface DriverCardGridProps {
 }
 
 const ITEMS_PER_PAGE = 6;
-
-const getInitials = (name: string): string => {
-  if (!name) return "CL";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
 
 const DriverCardGrid = ({
   drivers,
@@ -118,8 +112,8 @@ const DriverCardGrid = ({
                 {/* Header Row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-sm sm:text-base font-body shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
-                      {getInitials(d.fullName)}
+                    <div className="w-11 h-11 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-sm sm:text-base font-body shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
+                      <img src={profileAvatarSrc(profileAvatarForAccount(d.userId, d.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold font-body text-foreground text-sm sm:text-base truncate group-hover:text-primary transition-colors">
@@ -167,7 +161,7 @@ const DriverCardGrid = ({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(d)}
-                          className="text-xs cursor-pointer focus:bg-muted focus:text-foreground"
+                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
                         >
                           Delete Account
                         </DropdownMenuItem>
@@ -217,9 +211,6 @@ const DriverCardGrid = ({
         <PaginationControls
           currentPage={visiblePage}
           totalPages={totalPages}
-          totalItems={filtered.length}
-          pageSize={ITEMS_PER_PAGE}
-          itemLabel="collectors"
           onPageChange={setCurrentPage}
           variant="floating"
         />

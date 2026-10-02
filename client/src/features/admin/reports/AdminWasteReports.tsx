@@ -1,4 +1,6 @@
 import { WasteReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Button } from "@/components/ui/button";
 import {
 Sheet,
@@ -321,6 +323,7 @@ const AdminWasteReports = () => {
   if (isInitialLoading) {
     return <WasteReportsPageSkeleton title={pageTitle} description={pageDescription} />;
   }
+  if (error && !hasLoadedRef.current) return <PageErrorState kind="unavailable" description="We couldn't load waste reports. Please try again." onRetry={() => void loadReports()} retrying={listQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6 pb-10">
@@ -339,32 +342,7 @@ const AdminWasteReports = () => {
       </div>
 
       {/* ── Error State Banner ── */}
-      {error && (
-        <div className="border border-destructive/20 bg-destructive/5 rounded-2xl p-4 sm:p-5 shadow-2xs">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-destructive">
-                  Failed to load waste reports
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void loadReports()}
-              className="h-9 px-3 text-xs rounded-xl gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Retry
-            </Button>
-          </div>
-        </div>
-      )}
+      {error && <DataRefreshNotice message="Couldn't update waste reports. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void loadReports()} retrying={listQuery.isFetching} />}
 
       {/* ── Executive 4-Card KPI Strip ── */}
       <ReportKPIs kpis={kpis} reports={reports} />
@@ -412,7 +390,6 @@ const AdminWasteReports = () => {
           isLoading={isTableLoading}
           page={page}
           totalPages={totalPages}
-          total={total}
           onPageChange={setPage}
           onQuickStatusChange={handleQuickStatusChange}
           onFlagReport={handleQuickFlag}

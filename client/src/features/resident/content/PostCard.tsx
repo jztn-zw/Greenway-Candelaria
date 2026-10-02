@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Heart, Calendar, User } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
 import PostImageBackdrop from "@/components/common/PostImageBackdrop";
@@ -52,7 +52,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs transition-all duration-300 cursor-pointer select-none hover:border-primary/30 "
     >
       {/* ── Image Area ── */}
-      <div className="relative aspect-[16/10] overflow-hidden bg-muted/30 border-b border-border/60 flex items-center justify-center">
+      <div className={contentStyles.cardImage}>
         {currentImage && !imageFailed ? (
           <>
             <PostImageBackdrop src={currentImage} />
@@ -74,7 +74,6 @@ export const PostCard: React.FC<PostCardProps> = ({
           <span
             className={`inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shadow-2xs backdrop-blur-md ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`} />
             <span>{categoryLabel}</span>
           </span>
         </div>
@@ -95,7 +94,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       </div>
 
       {/* ── Content Area ── */}
-      <div className="p-4 lg:p-5 flex flex-col flex-1 justify-between gap-3">
+      <div className={contentStyles.cardContent}>
         <div className="space-y-1.5">
           <h3 className="gw-heading text-ui-title lg:text-base text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
             {post.title}
@@ -107,27 +106,29 @@ export const PostCard: React.FC<PostCardProps> = ({
         </div>
 
         {/* ── Card Footer: Reactions & Metadata ── */}
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-ui-caption text-muted-foreground">
+        <div className={contentStyles.cardFooter}>
+          <div className={contentStyles.cardMetadata}>
             <span className="flex shrink-0 items-center gap-1 font-medium">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               {dateInfo.formatted}
             </span>
-            <span className="shrink-0 text-border">•</span>
+            <span className="hidden shrink-0 text-border sm:inline">•</span>
             <span className="flex min-w-0 items-center gap-1 truncate">
               <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">{post.author_name || post.source || "MENRO"}</span>
+              <span className="truncate">{post.author_name || "MENRO"}</span>
             </span>
           </div>
 
           {onToggleLike ? (
             <button
               type="button"
+              aria-label={`${post.is_liked ? "Unlike" : "Like"} ${post.title}`}
+              aria-pressed={Boolean(post.is_liked)}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleLike(post);
               }}
-              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold transition-all duration-200 shrink-0 cursor-pointer ${
+              className={`inline-flex items-center justify-center gap-1.5 ${contentStyles.reactionSize} px-2.5 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer ${
                 post.is_liked
                   ? "text-destructive bg-destructive/10 border border-destructive/20 shadow-2xs"
                   : "gw-action-ghost border"
@@ -137,7 +138,7 @@ export const PostCard: React.FC<PostCardProps> = ({
               <span className="tabular-nums">{Number(post.like_count || 0)}</span>
             </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground shrink-0">
+            <span className={`inline-flex items-center justify-center gap-1.5 ${contentStyles.reactionSize} px-2.5 rounded-lg text-xs font-semibold text-muted-foreground`}>
               <Heart className={`w-3.5 h-3.5 ${post.is_liked ? "fill-destructive text-destructive" : ""}`} />
               <span className="tabular-nums">{Number(post.like_count || 0)}</span>
             </span>

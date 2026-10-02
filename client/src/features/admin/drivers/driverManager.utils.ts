@@ -75,6 +75,7 @@ export const mapDriverRow = (row: DriverApiRow): Driver => ({
   fullName: row.full_name,
   username: row.username,
   email: row.email,
+  avatarUrl: row.avatar_url ?? null,
   contactNumber: row.phone ?? "-",
   truckId: row.truck_id ?? null,
   status: toDriverStatus(row.account_status),

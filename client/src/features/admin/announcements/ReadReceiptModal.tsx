@@ -1,3 +1,5 @@
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import {
 Dialog,
 DialogContent,
@@ -84,6 +86,8 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
         {/* ── Scrollable Body ── */}
         <div className="overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
+          {loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read analytics couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
+          {loadError && <DataRefreshNotice message="Couldn't refresh read analytics. Showing the last loaded results, which may be outdated." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* ── Executive Summary Metrics ── */}
           <div className="rounded-2xl bg-muted/40 border border-border/80 p-4 space-y-3">
             <div className="grid grid-cols-3 gap-2.5 text-center">
@@ -162,8 +166,6 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                   <p className="text-xs text-muted-foreground text-center py-6">
                     Loading read analytics...
                   </p>
-                ) : loadError ? (
-                  <p className="text-xs text-destructive text-center py-6">{loadError}</p>
                 ) : filteredAndSortedStats.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-6">
                     No delivered recipients match your search.
@@ -225,6 +227,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
               </div>
             </ScrollArea>
           </div>
+          </>}
         </div>
       </DialogContent>
     </Dialog>

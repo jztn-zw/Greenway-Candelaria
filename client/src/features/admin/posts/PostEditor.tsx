@@ -40,7 +40,6 @@ import { Post, PostCategory, PostStatus } from "./types";
 interface EditorForm {
   title: string;
   body: string;
-  source: string;
   category: PostCategory;
   status: PostStatus;
   featured: boolean;
@@ -409,7 +408,6 @@ const PostEditor = ({
   const [form, setForm] = useState<EditorForm>(() => ({
     title: editingPost?.title || "",
     body: editingPost?.body || "",
-    source: editingPost?.source || "",
     category: editingPost?.category || "Waste Tip",
     status: editingPost?.status || "Published",
     featured: editingPost?.featured || false,
@@ -423,7 +421,7 @@ const PostEditor = ({
   );
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<
-    Partial<Record<"title" | "body" | "source" | "scheduledDate" | "form", string>>
+    Partial<Record<"title" | "body" | "scheduledDate" | "form", string>>
   >({});
 
   useEffect(() => {
@@ -431,7 +429,6 @@ const PostEditor = ({
       setForm({
         title: editingPost.title,
         body: editingPost.body,
-        source: editingPost.source,
         category: editingPost.category,
         status: editingPost.status,
         featured: editingPost.featured,
@@ -547,7 +544,6 @@ const PostEditor = ({
       return (
         form.title !== editingPost.title ||
         form.body !== editingPost.body ||
-        form.source !== (editingPost.source || "") ||
         form.category !== editingPost.category ||
         form.status !== editingPost.status ||
         form.featured !== editingPost.featured ||
@@ -559,7 +555,6 @@ const PostEditor = ({
     return (
       Boolean(form.title.trim()) ||
       Boolean(form.body.trim()) ||
-      Boolean(form.source.trim()) ||
       Boolean(form.tags.trim()) ||
       uploadedImages.length > 0
     );
@@ -579,11 +574,10 @@ const PostEditor = ({
   };
 
   const validateForm = (candidate: EditorForm) => {
-    const nextErrors: Partial<Record<"title" | "body" | "source" | "scheduledDate" | "form", string>> = {};
+    const nextErrors: Partial<Record<"title" | "body" | "scheduledDate" | "form", string>> = {};
     if (!candidate.title.trim()) nextErrors.title = "Enter a post title.";
     else if (candidate.title.trim().length > 255) nextErrors.title = "Keep the title to 255 characters or fewer.";
     if (!candidate.body.trim()) nextErrors.body = "Enter the post content.";
-    if (candidate.source.trim().length > 255) nextErrors.source = "Keep the attribution to 255 characters or fewer.";
     if (candidate.status === "Scheduled") {
       if (!candidate.scheduledDate) {
         nextErrors.scheduledDate = "Select a future publish date and time.";
@@ -606,6 +600,7 @@ const PostEditor = ({
   };
 
   const handleSave = async () => {
+    if (isSaving || isUploading) return;
     const validationErrors = validateForm(getFormWithImages());
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -651,7 +646,7 @@ const PostEditor = ({
   }, [editingPost, form.status]);
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto space-y-5 pb-20 animate-in fade-in duration-300">
+    <div className="w-full max-w-[1000px] mx-auto space-y-5 pb-20">
       {/* ── Section 1: Post Content & Details ── */}
       <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
@@ -682,26 +677,6 @@ const PostEditor = ({
               className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.title ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
             {errors.title && <p id="post-title-error" className="text-ui-caption font-medium text-destructive">{errors.title}</p>}
-          </div>
-
-          {/* Subtitle / Source */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">
-              Source or Attribution <span className="text-muted-foreground font-normal">(Optional)</span>
-            </Label>
-            <Input
-              value={form.source}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, source: e.target.value }));
-                setErrors((current) => ({ ...current, source: undefined, form: undefined }));
-              }}
-              maxLength={255}
-              placeholder="e.g., MENRO Candelaria · Office of the Municipal Environment"
-              aria-invalid={Boolean(errors.source)}
-              aria-describedby={errors.source ? "post-source-error" : undefined}
-              className={`h-10 rounded-xl bg-background text-sm shadow-2xs ${errors.source ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
-            />
-            {errors.source && <p id="post-source-error" className="text-ui-caption font-medium text-destructive">{errors.source}</p>}
           </div>
 
           {/* Body Content */}
@@ -813,6 +788,8 @@ const PostEditor = ({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading || uploadedImages.length >= MAX_POST_IMAGES}
+                loading={isUploading}
+                loadingLabel="Uploading photos…"
                 className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-2 cursor-pointer transition-all shadow-2xs"
               >
                 <UploadCloud className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1048,20 +1025,14 @@ const PostEditor = ({
               isSaving
             }
             className="h-10 px-5 rounded-xl text-xs sm:text-sm font-semibold gap-2 shadow-sm transition-all cursor-pointer"
+            loading={isSaving}
+            loadingLabel="Saving post…"
           >
-            {(isUploading || isSaving) && (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-            )}
-            {isUploading ? (
-              "Uploading..."
-            ) : isSaving ? (
-              "Saving..."
-            ) : (
-              <>
+
+            <>
                 <Send className="w-4 h-4" />
                 <span>{saveButtonLabel}</span>
               </>
-            )}
           </Button>
         </div>
       </div>

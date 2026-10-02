@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
   User,
-  MapPin,
   Eye,
   Heart,
   FileText,
@@ -194,7 +193,7 @@ const AdminPostDetail = ({
                       onClick={() => onEdit(post)}
                       className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                     >
-                      Edit Article
+                      Edit Post
                     </DropdownMenuItem>
                   )}
                   {onDuplicate && (
@@ -259,15 +258,6 @@ const AdminPostDetail = ({
               <User className="w-4 h-4 text-muted-foreground" />
               {post.author || "MENRO Candelaria"}
             </span>
-            {post.source && (
-              <>
-                <span>•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  {post.source}
-                </span>
-              </>
-            )}
             {!isPreview && (
               <>
                 <span>•</span>

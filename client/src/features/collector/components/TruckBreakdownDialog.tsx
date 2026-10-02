@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { Loader2, Truck, Wrench } from "lucide-react";
+import { Truck, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -169,8 +169,8 @@ const TruckBreakdownDialog = ({
 
           <div className={styles.footer}>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting} className={styles.cancelButton}>Cancel</Button>
-            <Button type="submit" variant="destructive" disabled={submitting} className={styles.primaryButton}>
-              {submitting ? <><Loader2 className="size-3.5 animate-spin" /> Sending...</> : "Send report"}
+            <Button type="submit" variant="destructive" disabled={submitting} className={styles.primaryButton} loading={submitting} loadingLabel="Sending report…">
+              Send report
             </Button>
           </div>
         </form>

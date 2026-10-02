@@ -1,4 +1,6 @@
 import { useResidentQuery } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -85,13 +87,11 @@ const CollectionCalendar = () => {
     );
   }
 
+  if (calendarError && calendarQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" description="We couldn't load calendar announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />;
+
   return (
     <section>
-      {calendarError && (
-        <p role="alert" className="mb-2 text-xs text-destructive">
-          Calendar announcements could not be loaded. Please try again later.
-        </p>
-      )}
+      {calendarError && <DataRefreshNotice message="Couldn't refresh the calendar. Showing the last loaded announcements, which may be outdated." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />}
       <CalendarGrid
         currentDate={currentDate}
         selectedDateStr={selectedDateStr}

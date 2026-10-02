@@ -1,6 +1,7 @@
 import { AnalyticsDashboardSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
@@ -78,7 +79,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
   }
 
   if (!visibleData) {
-    return <PageErrorState kind="unavailable" title="Analytics couldn't load" description="We couldn't load the analytics for this period. Try again in a moment." onRetry={() => void refetch()} homeHref="/admin" />;
+    return <PageErrorState kind="unavailable" description="We couldn't load the analytics for this period. Try again in a moment." onRetry={() => void refetch()} retrying={isFetching} homeHref="/admin" />;
   }
 
   const config = sectionComponents[activeSection] || sectionComponents.overview;
@@ -91,12 +92,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
           <div><h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">{pageTitle}</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{pageDescription}</p></div>
         </header>
 
-        {error && !data && (
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-xs text-destructive">
-            <span>Could not update analytics. Showing the previous results.</span>
-            <Button size="sm" variant="outline" onClick={() => void refetch()}>Try again</Button>
-          </div>
-        )}
+        {error && <DataRefreshNotice message="Couldn't update analytics. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void refetch()} retrying={isFetching} />}
 
         <section aria-label="Analytics filters" className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <p className="text-xs text-muted-foreground">Showing <span className="font-semibold text-foreground">{formatRange(visibleData.range.from, visibleData.range.to)}</span></p>

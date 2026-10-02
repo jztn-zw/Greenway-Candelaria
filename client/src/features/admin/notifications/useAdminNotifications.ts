@@ -2,6 +2,7 @@ import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import notificationsService from "@/services/notificationsService";
 import { useCallback } from "react";
+import { usePendingAction } from "@/hooks/usePendingAction";
 
 const fetchHistory = async () => {
   const first = await notificationsService.fetchMyNotifications({ limit: 100 });
@@ -17,6 +18,8 @@ const fetchHistory = async () => {
 
 const useAdminNotifications = () => {
   const query = useAdminQuery("notifications", ["history"], fetchHistory, { refetchInterval: 60_000 });
+  const markingAll = usePendingAction();
+  const clearing = usePendingAction();
   const markRead = useAdminMutation(notificationsService.markNotificationAsRead, "notifications");
   const markAll = useAdminMutation(notificationsService.markAllNotificationsAsRead, "notifications");
   const clear = useAdminMutation(notificationsService.clearAllNotifications, "notifications");
@@ -34,8 +37,12 @@ const useAdminNotifications = () => {
   const notifications = query.data ?? [];
   return {
     notifications, unreadCount: notifications.filter((item) => !item.is_read).length,
-    total: notifications.length, isLoading: query.isLoading, error: query.error,
-    fetchNotifications: query.refetch, markAsRead, markAllAsRead, clearAll,
+    total: notifications.length, isLoading: query.isLoading, isRefreshing: query.isFetching, hasLoadedData: query.data !== undefined, error: query.error,
+    fetchNotifications: query.refetch, markAsRead,
+    isMarkingAll: markingAll.isPending, isClearing: clearing.isPending,
+    isMutating: markingAll.isPending || clearing.isPending,
+    markAllAsRead: () => clearing.isPending ? undefined : markingAll.run(markAllAsRead),
+    clearAll: () => markingAll.isPending ? undefined : clearing.run(clearAll),
   };
 };
 export default useAdminNotifications;

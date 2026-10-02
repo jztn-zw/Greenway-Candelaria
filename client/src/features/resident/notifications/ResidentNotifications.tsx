@@ -1,6 +1,9 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { useResidentFetch } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
@@ -47,12 +50,12 @@ const PAGE_SIZE = 15;
 
 type NotificationCategory = "all" | "collection" | "reports" | "content" | "announcements";
 
-const tabs: { key: NotificationCategory; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "collection", label: "Collection" },
-  { key: "reports", label: "Reports" },
-  { key: "content", label: "Content" },
-  { key: "announcements", label: "Announcements" },
+const tabs: FilterPillItem<NotificationCategory>[] = [
+  { id: "all", label: "All" },
+  { id: "collection", label: "Collection" },
+  { id: "reports", label: "Reports" },
+  { id: "content", label: "Content" },
+  { id: "announcements", label: "Announcements" },
 ];
 
 const typeCategoryMap: Record<string, NotificationCategory> = {
@@ -225,10 +228,14 @@ const ResidentNotifications = () => {
     notifications,
     unreadCount,
     isLoading,
+    isRefreshing,
+    hasLoadedData,
     error: notificationsError,
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    isMarkingAll,
+    isMutating,
     clearAll,
   } = useNotifications();
 
@@ -290,43 +297,9 @@ const ResidentNotifications = () => {
     }
   };
 
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!tabsContainerRef.current) return;
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    startXRef.current = e.pageX - tabsContainerRef.current.offsetLeft;
-    scrollLeftRef.current = tabsContainerRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !tabsContainerRef.current) return;
-    const x = e.pageX - tabsContainerRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.3;
-    if (Math.abs(walk) > 4) {
-      hasDraggedRef.current = true;
-    }
-    tabsContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    isDraggingRef.current = false;
-  };
-
-  const handleTabClick = (tab: NotificationCategory, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (hasDraggedRef.current) return;
+  const handleTabChange = (tab: NotificationCategory) => {
     setActiveTab(tab);
     setCurrentPage(1);
-    e.currentTarget.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
   };
 
   const filtered = useMemo(() => {
@@ -403,10 +376,10 @@ const ResidentNotifications = () => {
   if (isLoading && notifications.length === 0) {
     return <NotificationsPageSkeleton role="resident" />;
   }
+  if (notificationsError && !hasLoadedData) return <PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications()} retrying={isRefreshing} homeHref="/resident" />;
 
   return (
     <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
-      {notificationsError && <p role="alert" className="text-destructive">Could not refresh notifications. <button onClick={() => void fetchNotifications()}>Retry</button></p>}
       {/* ── Page Header ── */}
       <div className="hidden items-center justify-between gap-4 lg:flex">
         <div>
@@ -433,6 +406,9 @@ const ResidentNotifications = () => {
                 variant="outline"
                 size="sm"
                 onClick={markAllAsRead}
+                disabled={isMutating}
+                loading={isMarkingAll}
+                loadingLabel="Marking all read…"
                 className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5 text-primary" />
@@ -454,34 +430,15 @@ const ResidentNotifications = () => {
         )}
       </div>
 
-      {/* ── Category Filter Tabs (Smooth native mobile scroll + slide drag) ── */}
+      {/* ── Category filters ── */}
       <div className="flex items-center gap-2">
-        <div
-          ref={tabsContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth lg:pr-4"
-        >
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={(e) => handleTabClick(tab.key, e)}
-              className={`group h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 border cursor-pointer ${
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-semibold"
-                  : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"
-              }`}
-            >
-              <span>{tab.label}</span>
-            </button>
-          );
-          })}
-        </div>
+        <FilterPillTabs<NotificationCategory>
+          items={tabs}
+          activeId={activeTab}
+          onChange={handleTabChange}
+          ariaLabel="Notification categories"
+          className="flex-1 pr-2 lg:pr-4"
+        />
 
         {(unreadCount > 0 || notifications.length > 0) && (
           <DropdownMenu>
@@ -513,6 +470,8 @@ const ResidentNotifications = () => {
           </DropdownMenu>
         )}
       </div>
+
+      {notificationsError && <DataRefreshNotice message="Couldn't refresh notifications. Showing the last loaded notifications, which may be outdated." onRetry={() => void fetchNotifications()} retrying={isRefreshing} />}
 
       {/* ── Notification List ── */}
       {paginated.length > 0 ? (
@@ -602,7 +561,7 @@ const ResidentNotifications = () => {
       )}
 
       {/* ── Pagination ── */}
-      <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} variant="inline" />
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
 
       {/* ── Modal for Announcements ── */}
       <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear} title="Clear all notification history?"

@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import {
   Mail, Phone, Lock, User, Award, Calendar,
   Heart, ChevronRight, Check,
-  ClipboardList, Loader2, Eye, EyeOff,
-  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Paintbrush,
+  ClipboardList, Eye, EyeOff,
+  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Users,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
@@ -20,6 +21,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
 import {
   fetchProfile,
@@ -88,13 +90,6 @@ const FieldRow = ({
   </div>
 );
 
-const AVATAR_STYLES = [
-  { id: "forest", label: "Forest", className: "bg-gradient-to-br from-primary to-emerald-700" },
-  { id: "ocean", label: "Ocean", className: "bg-gradient-to-br from-sky-500 to-blue-700" },
-  { id: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-rose-600" },
-  { id: "violet", label: "Violet", className: "bg-gradient-to-br from-violet-500 to-fuchsia-700" },
-] as const;
-
 // ─── Main component ───────────────────────────────────────────────────────────
 const ResidentProfile = () => {
   const navigate = useNavigate();
@@ -112,8 +107,9 @@ const ResidentProfile = () => {
   const isLoading = profileQuery.isLoading || statsQuery.isLoading;
   const saveProfile = useResidentMutation(updateProfile, "profile", "routes", "tracking", "schedule", "announcements");
   const savePassword = useResidentMutation(changePassword);
-  const [avatarStyle, setAvatarStyle] = useState<(typeof AVATAR_STYLES)[number]["id"]>("forest");
+  const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarModal, setAvatarModal] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
@@ -150,11 +146,17 @@ const ResidentProfile = () => {
 
   useEffect(() => {
     if (!profile?.id) return;
-    const savedStyle = localStorage.getItem(`greenway:resident-avatar:${profile.id}`);
-    if (AVATAR_STYLES.some((style) => style.id === savedStyle)) {
-      setAvatarStyle(savedStyle as (typeof AVATAR_STYLES)[number]["id"]);
+    const savedAvatar = localStorage.getItem(`greenway:resident-avatar:${profile.id}`);
+    const selected = profileAvatarIdFromUrl(profile.avatar_url);
+    setAvatarId(selected ?? (isProfileAvatarId(savedAvatar) ? savedAvatar : profileAvatarForAccount(profile.id, profile.avatar_url)));
+    if (!selected && !profile.avatar_url && isProfileAvatarId(savedAvatar)) {
+      void updateProfile({ avatar_url: profileAvatarSrc(savedAvatar) }).then((updated) => {
+        setProfile(updated);
+        const current = useAuthStore.getState().user;
+        if (current?.id === updated.id) setUser({ ...current, ...updated } as typeof current);
+      }).catch(() => {});
     }
-  }, [profile?.id]);
+  }, [profile?.id, profile?.avatar_url, setProfile, setUser]);
 
   // ── Edit field save ───────────────────────────────────────────────────────
   const openEdit = (field: string, value: string) =>
@@ -212,15 +214,15 @@ const ResidentProfile = () => {
       setEditModal((p) => ({ ...p, error: "This field cannot be empty." }));
       return;
     }
+    const fieldMap: Record<string, string> = {
+      "Full Name": "full_name",
+      "Username": "username",
+      "Phone Number": "phone",
+    };
+    const key = fieldMap[editModal.field];
+    if (!key) return;
     setEditModal((p) => ({ ...p, saving: true, error: "" }));
     try {
-      const fieldMap: Record<string, string> = {
-        "Full Name": "full_name",
-        "Username": "username",
-        "Phone Number": "phone",
-      };
-      const key = fieldMap[editModal.field];
-      if (!key) return;
       const updated = await saveProfile({ [key]: editModal.value.trim() });
       setProfile(updated);
       if (authUser) setUser({ ...authUser, ...updated } as typeof authUser);
@@ -266,8 +268,8 @@ const ResidentProfile = () => {
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
-    setLogoutModal(false);
     await logout();
+    setLogoutModal(false);
     navigate("/", { replace: true });
   };
 
@@ -295,10 +297,6 @@ const ResidentProfile = () => {
   };
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
-
   const joinDate = profile?.created_at
     ? formatManilaDateTime(profile.created_at, {
         year: "numeric",
@@ -313,13 +311,22 @@ const ResidentProfile = () => {
     totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0;
   const isActiveResident =
     profile?.role?.toUpperCase() === "RESIDENT" && profile.status?.toUpperCase() === "ACTIVE";
-  const selectedAvatarStyle = AVATAR_STYLES.find((style) => style.id === avatarStyle) ?? AVATAR_STYLES[0];
-
-  const saveAvatarStyle = (styleId: (typeof AVATAR_STYLES)[number]["id"]) => {
-    setAvatarStyle(styleId);
-    if (profile?.id) localStorage.setItem(`greenway:resident-avatar:${profile.id}`, styleId);
-    setAvatarModal(false);
-    toast.success("Avatar style updated");
+  const saveAvatar = async (selectedId: ProfileAvatarId) => {
+    if (!profile?.id || savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      const updated = await saveProfile({ avatar_url: profileAvatarSrc(selectedId) });
+      setProfile(updated);
+      if (authUser) setUser({ ...authUser, ...updated } as typeof authUser);
+      localStorage.setItem(`greenway:resident-avatar:${profile.id}`, selectedId);
+      setAvatarId(selectedId);
+      setAvatarModal(false);
+      toast.success("Avatar updated");
+    } catch {
+      toast.error("Could not update your avatar. Please try again.");
+    } finally {
+      setSavingAvatar(false);
+    }
   };
 
   const badges = [
@@ -379,7 +386,7 @@ const ResidentProfile = () => {
   }
 
   if (!profile) {
-    return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your profile right now. Please try again." onRetry={() => void profileQuery.refetch()} homeHref="/resident" />;
+    return <PageErrorState kind="unavailable" description="We couldn't load your profile right now. Please try again." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} homeHref="/resident" />;
   }
 
   return (
@@ -389,48 +396,12 @@ const ResidentProfile = () => {
         {/* Profile banner */}
         <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
           <ProfileBannerImage />
-          <div
-            className={`absolute top-3.5 right-3.5 lg:top-4 lg:right-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/90 backdrop-blur-md border text-xs font-semibold shadow-xs ${
-              isActiveResident
-                ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                : "border-amber-500/30 text-amber-600 dark:text-amber-400"
-            }`}
-          >
-            <span className="relative flex h-2 w-2">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  isActiveResident ? "bg-emerald-400" : "bg-amber-400"
-                }`}
-              />
-              <span
-                className={`relative inline-flex rounded-full h-2 w-2 ${
-                  isActiveResident ? "bg-emerald-500" : "bg-amber-500"
-                }`}
-              />
-            </span>
-            <span>{isActiveResident ? "Active Resident" : "Account Pending"}</span>
-          </div>
         </div>
 
         {/* Avatar & Core Identity */}
         <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
           <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28">
-                <AvatarFallback className={`${selectedAvatarStyle.className} rounded-full text-3xl font-body font-semibold text-primary-foreground`}>
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAvatarModal(true)}
-                className="h-8 gap-1.5 rounded-xl px-3 text-ui-caption font-semibold"
-              >
-                <Paintbrush className="size-3.5" />
-                Customize
-              </Button>
-            </div>
+            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarModal(true)} />
 
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
@@ -461,6 +432,8 @@ const ResidentProfile = () => {
           </div>
         </div>
       </div>
+
+      {profileQuery.error && <DataRefreshNotice message="Couldn't refresh your profile. Your edits are preserved; loaded information may be outdated." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} />}
 
       {/* ── Personal Information ─────────────────────────────────────────────── */}
       <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
@@ -536,7 +509,7 @@ const ResidentProfile = () => {
 
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-5 lg:p-6 space-y-5 shadow-xs">
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-border/50">
+        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-border/50">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <ClipboardList className="w-4 h-4" />
@@ -551,12 +524,14 @@ const ResidentProfile = () => {
             </div>
           </div>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => navigate("/resident/my-reports")}
-            className="h-8.5 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+            className="shrink-0 gap-2 px-4"
           >
-            My Reports History <ChevronRight className="w-3.5 h-3.5" />
+            <span>My Reports History</span>
+            <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Button>
         </div>
 
@@ -731,8 +706,8 @@ const ResidentProfile = () => {
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("address")} disabled={addressModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
           <Button type="button" onClick={() => void saveAddress()} className={modalStyles.primaryButton}
-            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0}>
-            {addressModal.saving && <Loader2 className="size-3.5 animate-spin" />}{addressModal.saving ? "Saving…" : "Save address"}
+            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0} loading={addressModal.saving} loadingLabel="Saving address…">
+            Save address
           </Button>
         </>}
       >
@@ -755,26 +730,18 @@ const ResidentProfile = () => {
         {addressModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{addressModal.error}</p>}
       </FormDialog>
 
-      <FormDialog open={avatarModal} onOpenChange={setAvatarModal} title="Customize Avatar" description="Choose a color for your initials." icon={<Paintbrush />}
+      <FormDialog open={avatarModal} onOpenChange={setAvatarModal} title="Choose Avatar" description="Select one of the ten profile avatars." icon={<Users />}
         footer={<Button type="button" variant="outline" onClick={() => setAvatarModal(false)} className={modalStyles.cancelButton}>Close</Button>}
       >
-        <div className="grid grid-cols-2 gap-3">
-          {AVATAR_STYLES.map((style) => (
-            <button key={style.id} type="button" onClick={() => saveAvatarStyle(style.id)} aria-label={style.label} aria-pressed={style.id === avatarStyle}
-              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${style.id === avatarStyle ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-[var(--button-neutral-hover)]"}`}>
-              <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
-              <span className="text-xs font-semibold text-foreground">{style.label}</span>
-            </button>
-          ))}
-        </div>
+        <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
       </FormDialog>
 
       <FormDialog open={editModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("profile"); }}
         title={`Edit ${editModal.field}`} description={`Update your ${editModal.field.toLowerCase()}.`} icon={<User />} pending={editModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("profile")} disabled={editModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
-          <Button type="button" onClick={() => void handleEditSave()} disabled={editModal.saving} className={modalStyles.primaryButton}>
-            {editModal.saving && <Loader2 className="size-3.5 animate-spin" />}{editModal.saving ? "Saving…" : "Save Changes"}
+          <Button type="button" onClick={() => void handleEditSave()} disabled={editModal.saving} className={modalStyles.primaryButton} loading={editModal.saving} loadingLabel="Saving changes…">
+            Save Changes
           </Button>
         </>}
       >
@@ -792,8 +759,8 @@ const ResidentProfile = () => {
         title="Change Password" description="You will be signed out after updating." icon={<Lock />} pending={pwModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("password")} disabled={pwModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
-          <Button type="button" onClick={() => void handlePasswordSave()} disabled={pwModal.saving} className={modalStyles.primaryButton}>
-            {pwModal.saving && <Loader2 className="size-3.5 animate-spin" />}{pwModal.saving ? "Saving…" : "Change Password"}
+          <Button type="button" onClick={() => void handlePasswordSave()} disabled={pwModal.saving} className={modalStyles.primaryButton} loading={pwModal.saving} loadingLabel="Changing password…">
+            Change Password
           </Button>
         </>}
       >
@@ -824,7 +791,7 @@ const ResidentProfile = () => {
         description={discardTarget === "password" ? "Your entered passwords will be cleared." : "Your unsaved changes will be lost."}
         discardLabel="Discard Changes" isSaving={discardTarget === "password" ? pwModal.saving : discardTarget === "address" ? addressModal.saving : editModal.saving} />
       <ConfirmationDialog kind="dialog" open={logoutModal} onOpenChange={setLogoutModal} title="Log Out of GreenWay?"
-        description="Sign out of your current resident session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={() => void handleLogout()} />
+        description="Sign out of your current resident session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={handleLogout} pendingLabel="Logging out…" />
     </div>
   );
 };

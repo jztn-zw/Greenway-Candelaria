@@ -14,7 +14,6 @@ import {
   Megaphone,
   Clock,
   Send,
-  Loader2,
   Search,
   AlertTriangle,
   FileText,
@@ -210,6 +209,7 @@ const AnnouncementEditor = ({
   };
 
   const handleSave = async (candidate: EditorForm = form) => {
+    if (isSaving) return;
     if (!validateForm(candidate)) return;
 
     try {
@@ -884,18 +884,13 @@ const AnnouncementEditor = ({
               onClick={() => void handleSave()}
               disabled={isSaving}
               className="h-9 px-5 rounded-xl font-semibold text-xs gap-1.5 shadow-sm cursor-pointer "
+              loading={isSaving}
+              loadingLabel={form.status === "Draft" ? "Saving draft…" : form.status === "Active" ? "Publishing…" : "Scheduling…"}
             >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
+              <>
                   <Send className="w-3.5 h-3.5" />
                   <span>{saveLabel}</span>
                 </>
-              )}
             </Button>
           </div>
         </DialogContent>

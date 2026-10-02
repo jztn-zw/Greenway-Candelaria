@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { CalendarSkeleton } from "@/components/PageLoadingSkeletons";
 import { getEventColor } from "@/components/calendar/calendar.utils";
 import { useAdminQuery } from "@/lib/adminQuery";
@@ -20,7 +22,8 @@ interface AdminCollectionCalendarProps {
 const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "", asOfDate }) => {
   const navigate = useNavigate();
   const currentDate = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
-  const { data: events = [], isLoading, isError: error } = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
+  const query = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
+  const { data: events = [], isLoading, isError: error } = query;
 
   const year = currentDate.getUTCFullYear();
   const month = currentDate.getUTCMonth();
@@ -95,6 +98,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
   if (isLoading) {
     return <CalendarSkeleton asOfDate={asOfDate} className={className} />;
   }
+  if (error && query.data === undefined) return <div className={className}><PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>;
 
   return (
     <div
@@ -123,8 +127,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
       </div>
 
       {/* Calendar Grid Container */}
-      {error && <p role="alert" className="text-sm text-destructive">Schedule data could not be refreshed. Please open Schedule Manager to retry.</p>}
-      {!error &&
+      {error && <DataRefreshNotice message="Couldn't refresh the calendar. Showing the last loaded events, which may be outdated." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
       <TooltipProvider delayDuration={100}>
         <div>
         {/* Day headers */}
@@ -365,7 +368,6 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         )}
         </div>
       </TooltipProvider>
-      }
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -103,9 +104,9 @@ const HeroCards = () => {
   const liveTrucks = liveQuery.data ?? [];
   const latestReport = reportsQuery.data?.reports[0] ?? null;
   const scheduleLoading = routesQuery.isLoading;
-  const trucksFailed = liveQuery.isError;
-  const reportsFailed = reportsQuery.isError;
-  const scheduleFailed = routesQuery.isError;
+  const trucksFailed = liveQuery.isError && liveQuery.data === undefined;
+  const reportsFailed = reportsQuery.isError && reportsQuery.data === undefined;
+  const scheduleFailed = routesQuery.isError && routesQuery.data === undefined;
   const today = getManilaNow().weekday.toUpperCase();
   const todayRoute = (routesQuery.data ?? [])
     .filter((route) => route.day_of_week?.toUpperCase() === today)
@@ -144,7 +145,7 @@ const HeroCards = () => {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
       {/* ─── Card 1: Today's Collection Schedule ─── */}
-      {scheduleLoading ? <HeroCardSkeleton /> : <Card
+      {scheduleLoading ? <HeroCardSkeleton /> : scheduleFailed ? <PageErrorState kind="unavailable" variant="section" title="Collection schedule couldn't load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /> : <Card
         onClick={() => navigate(scheduleDestination)}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
       >
@@ -188,7 +189,7 @@ const HeroCards = () => {
       </Card>}
 
       {/* ─── Card 2: Live Truck Status ─── */}
-      {liveQuery.isLoading ? <HeroCardSkeleton /> : <Card
+      {liveQuery.isLoading ? <HeroCardSkeleton /> : trucksFailed ? <PageErrorState kind="unavailable" variant="section" title="Truck status couldn't load" onRetry={() => void liveQuery.refetch()} retrying={liveQuery.isFetching} /> : <Card
         onClick={() => navigate("/resident/tracking")}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
       >
@@ -249,7 +250,7 @@ const HeroCards = () => {
       </Card>}
 
       {/* ─── Card 3: Latest Report ─── */}
-      {reportsQuery.isLoading ? <HeroCardSkeleton className="md:col-span-2 lg:col-span-1" /> : <Card
+      {reportsQuery.isLoading ? <HeroCardSkeleton className="md:col-span-2 lg:col-span-1" /> : reportsFailed ? <div className="md:col-span-2 lg:col-span-1"><PageErrorState kind="unavailable" variant="section" title="Latest report couldn't load" onRetry={() => void reportsQuery.refetch()} retrying={reportsQuery.isFetching} /></div> : <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
         className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
       >

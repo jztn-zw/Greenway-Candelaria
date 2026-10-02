@@ -30,7 +30,6 @@ import {
   CalendarCheck,
   ChevronDown,
   X,
-  Loader2,
 } from "lucide-react";
 import {
   CalendarEvent,
@@ -111,6 +110,7 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const nextErrors: FormErrors = {};
     if (title.trim().length < 3) {
       nextErrors.title = "Enter an event title with at least 3 characters.";
@@ -406,9 +406,11 @@ export const EventModal: React.FC<EventModalProps> = ({
               type="submit"
               disabled={isSubmitting}
               className="h-9 px-5 rounded-lg font-semibold text-xs cursor-pointer shadow-2xs gap-1.5"
+              loading={isSubmitting}
+              loadingLabel={isEditing ? "Saving schedule…" : "Creating schedule…"}
             >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isSubmitting ? "Saving..." : isEditing ? "Save Changes" : "Create Schedule"}
+
+              {isEditing ? "Save Changes" : "Create Schedule"}
             </Button>
           </div>
         </form>

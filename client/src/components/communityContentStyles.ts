@@ -1,0 +1,21 @@
+/** Shared geometry for the resident community feed and its loading placeholders. */
+export const communityContentStyles = {
+  page: "mx-auto w-full max-w-[1400px] pb-4 lg:pb-6",
+  stack: "space-y-4 md:space-y-6 lg:space-y-8",
+  featuredCard: "group/featured relative overflow-hidden rounded-2xl border border-border/80 bg-card",
+  featuredGrid: "grid grid-cols-1 items-stretch md:grid-cols-12",
+  featuredDetails: "order-2 flex min-w-0 flex-col justify-center gap-5 p-5 sm:p-6 md:order-1 md:col-span-7 md:p-7 md:pl-16 lg:p-8 lg:pl-16",
+  featuredMedia: "relative order-1 aspect-[16/9] max-h-[240px] min-w-0 border-b border-border/60 md:order-2 md:col-span-5 md:aspect-auto md:min-h-[320px] md:max-h-none md:border-b-0 md:border-l",
+  featuredImage: "absolute inset-0 flex h-full w-full items-center justify-center overflow-hidden bg-muted/30",
+  featuredFooter: "mt-auto flex min-w-0 flex-wrap items-center justify-between gap-3 pt-2",
+  featuredArrow: "absolute top-24 z-20 h-11 w-11 -translate-y-1/2 rounded-full bg-card/95 shadow-sm opacity-0 pointer-events-none transition-opacity duration-200 group-hover/featured:opacity-100 group-hover/featured:pointer-events-auto group-focus-within/featured:opacity-100 group-focus-within/featured:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto motion-reduce:transition-none sm:top-28 md:top-1/2",
+  featuredPagination: "absolute bottom-2 left-1/2 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center overflow-x-auto scrollbar-none",
+  carouselDotButton: "flex h-5 shrink-0 cursor-pointer items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+  sectionHeading: "flex flex-wrap items-center justify-between gap-x-3 gap-y-1",
+  grid: "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6",
+  cardImage: "relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-border/60 bg-muted/30",
+  cardContent: "flex flex-1 flex-col justify-between gap-3 p-4 lg:p-5",
+  cardFooter: "flex items-center justify-between gap-2 border-t border-border/60 pt-3",
+  cardMetadata: "flex min-w-0 flex-1 flex-col items-start gap-1 text-ui-caption text-muted-foreground sm:flex-row sm:items-center sm:gap-2",
+  reactionSize: "h-11 min-w-11 shrink-0 md:h-9 md:min-w-9",
+} as const;

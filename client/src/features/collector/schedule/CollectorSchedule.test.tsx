@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, notifyManager } from "@tanstack/react
 import useAuthStore from "@/store/authStore";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CollectorSchedule from "./CollectorSchedule";
 import { fetchCalendarEvents, type CalendarEvent } from "@/services/scheduleService";
@@ -29,7 +30,7 @@ beforeEach(() => {
   root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); notifyManager.setScheduler((callback) => setTimeout(callback, 0)); host.remove(); vi.useRealTimers(); });
-const render = async () => { await act(async () => root.render(<QueryClientProvider client={client}><CollectorSchedule /></QueryClientProvider>)); };
+const render = async () => { await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter><CollectorSchedule /></MemoryRouter></QueryClientProvider>)); };
 const dateButton = (day: number) => host.querySelector<HTMLButtonElement>(`button[aria-label*="September ${day}, 2026"]`)!;
 
 it("separates loading, empty, and failed requests without claiming there are no collection duties", async () => {
@@ -46,7 +47,7 @@ it("separates loading, empty, and failed requests without claiming there are no 
   expect(host.textContent).not.toContain("No collection duties");
   vi.mocked(fetchCalendarEvents).mockRejectedValue(new Error("Temporary outage"));
   await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Schedule unavailable");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This page couldn't load");
   expect(host.textContent).not.toContain("No internal events scheduled");
 });
 

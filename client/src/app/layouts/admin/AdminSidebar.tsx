@@ -33,10 +33,10 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import authService from "@/services/authService";
+import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import {
   Collapsible,
@@ -109,7 +109,7 @@ const navGroups: NavGroup[] = [
 
 const AdminSidebar = () => {
   const navigate = useNavigate();
-  const currentUser = authService.getCurrentUser();
+  const currentUser = useAuthStore((state) => state.user);
   const fullName = currentUser?.full_name?.trim() || "Unknown User";
   const initials = fullName
     .split(/\s+/)
@@ -155,8 +155,8 @@ const AdminSidebar = () => {
   const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
 
   const handleLogout = async () => {
-    setShowLogoutModal(false);
     await logout();
+    setShowLogoutModal(false);
     navigate("/", { replace: true });
   };
 
@@ -279,6 +279,7 @@ const AdminSidebar = () => {
           <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
             <div className="relative shrink-0">
               <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
+                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "ADMIN"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>
@@ -362,9 +363,8 @@ const AdminSidebar = () => {
           icon={<LogOut />}
           variant="destructive"
           confirmLabel="Log Out"
-          onConfirm={() => {
-            void handleLogout();
-          }}
+          onConfirm={handleLogout}
+          pendingLabel="Logging out…"
         />
       </SidebarFooter>
 

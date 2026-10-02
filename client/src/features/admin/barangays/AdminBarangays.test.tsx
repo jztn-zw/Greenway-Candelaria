@@ -6,13 +6,14 @@ import AdminBarangays from "./AdminBarangays";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(), update: vi.fn(),
+  overviewError: null as Error | null, streetsError: null as Error | null, retryOverview: vi.fn(), retryStreets: vi.fn(),
   road: vi.fn(), mapHandlers: new Map<string, (event: unknown) => void>(), markers: [] as Array<{ handlers: Map<string, () => void>; coordinate: [number, number] }>, lines: [] as unknown[],
   barangays: [{ id: "poblacion", name: "Poblacion", status: "ACTIVE", collection_service_available: true, street_count: 1, streets_with_path: 0, active_route_count: 0, live_run_count: 0, latitude: null, longitude: null }],
   streets: [{ id: "street-1", name: "Gonzales St", area: null, active_resident_count: 0, account_link_count: 0, route_plan_count: 0, route_run_record_count: 0 }],
 }));
 vi.mock("@/lib/adminQuery", () => ({
   useAdminMutation: (action: unknown) => action,
-  useAdminResource: (_resource: string, key: string[]) => ({ data: key[0] === "manager" ? mocks.barangays : mocks.streets, setData: vi.fn(), isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminResource: (_resource: string, key: string[]) => ({ data: key[0] === "manager" ? mocks.barangays : mocks.streets, setData: vi.fn(), dataUpdatedAt: 1, isLoading: false, isFetching: false, error: key[0] === "manager" ? mocks.overviewError : mocks.streetsError, refetch: key[0] === "manager" ? mocks.retryOverview : mocks.retryStreets }),
 }));
 vi.mock("@/services/barangaysService", () => ({ createBarangayStreet: mocks.create, updateBarangayStreet: mocks.update, deleteBarangayStreet: vi.fn(), updateBarangayCollectionService: vi.fn(), updateBarangayStreetCoverage: vi.fn(), fetchBarangaysManager: vi.fn(), fetchManagedStreets: vi.fn() }));
 vi.mock("./StreetCoverageEditor", () => ({ default: () => null }));
@@ -41,6 +42,7 @@ let root: Root;
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   mocks.create.mockReset().mockResolvedValue(undefined); mocks.update.mockReset().mockResolvedValue(undefined);
+  mocks.overviewError = null; mocks.streetsError = null; mocks.retryOverview.mockReset(); mocks.retryStreets.mockReset();
   mocks.road.mockReset(); mocks.mapHandlers.clear(); mocks.markers.length = 0; mocks.lines.length = 0;
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
@@ -53,6 +55,18 @@ async function openCreate() {
   return document.querySelector('[role="dialog"]')!;
 }
 const submit = async (editor: Element) => { await act(async () => Simulate.submit(editor.querySelector("form")!)); };
+
+it("uses one retry notice for failed barangay and street refreshes", async () => {
+  mocks.overviewError = new Error("offline"); mocks.streetsError = new Error("offline");
+  await act(async () => root.render(<AdminBarangays />));
+  expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
+  const retries = [...host.querySelectorAll("button")].filter((item) => item.textContent?.trim() === "Try again");
+  expect(retries).toHaveLength(1);
+  expect(host.textContent).toContain("Gonzales St");
+  await act(async () => retries[0].click());
+  expect(mocks.retryOverview).toHaveBeenCalledOnce();
+  expect(mocks.retryStreets).toHaveBeenCalledOnce();
+});
 
 describe("street editor unsaved changes", () => {
   it("shows required-field validation inline without opening another dialog", async () => {
@@ -253,7 +267,7 @@ describe("street coverage road matching", () => {
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
     const save = await openCoverage(); mark(points[0]); mark(points[1]);
     expect(document.body.textContent).toContain("Matching roads…");
-    expect(button("Matching roads…")).toBeDisabled();
+    expect(button("Save path")).toBeDisabled();
     await finishMatching();
     expect(mocks.lines).toContainEqual(road);
     await click("Save path");
@@ -286,8 +300,8 @@ describe("street coverage road matching", () => {
     expect(button("Save path")).toBeDisabled();
     expect(save).not.toHaveBeenCalled();
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
-    await click("Retry");
-    expect(button("Matching roads…")).toBeDisabled();
+    await click("Try again");
+    expect(button("Save path")).toBeDisabled();
     await finishMatching();
     expect(mocks.road.mock.calls[1][0]).toEqual(points);
     expect(document.querySelector('[role="alert"]')).toBeNull();

@@ -26,6 +26,7 @@ export interface UpdateProfilePayload {
   barangay_id?: string;
   street_id?: string | null;
   two_factor?: boolean;
+  avatar_url?: string;
 }
 
 export interface ChangePasswordPayload {

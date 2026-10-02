@@ -3,6 +3,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants, type ButtonProps } from "@/components/ui/button";
+import ActionButtonContent from "@/components/common/ActionButtonContent";
 import "./modal.css";
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -80,8 +81,8 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
 
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & Pick<ButtonProps, "variant">
->(({ className, variant = "default", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & Pick<ButtonProps, "variant" | "loading" | "loadingLabel">
+>(({ className, variant = "default", loading, loadingLabel, children, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
@@ -90,7 +91,15 @@ const AlertDialogAction = React.forwardRef<
       className
     )}
     {...props}
-  />
+    disabled={props.disabled || loading}
+    aria-busy={loading === undefined ? props["aria-busy"] : loading}
+    data-loading={loading === undefined ? undefined : loading}
+    data-loading-label={loading === undefined ? undefined : loadingLabel ?? "Working…"}
+  >
+    {loading !== undefined
+      ? <ActionButtonContent loading={loading} loadingLabel={loadingLabel}>{children}</ActionButtonContent>
+      : children}
+  </AlertDialogPrimitive.Action>
 ));
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 

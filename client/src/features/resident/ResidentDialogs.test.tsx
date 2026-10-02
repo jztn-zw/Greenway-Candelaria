@@ -58,7 +58,7 @@ it("shows announcement loading and failure honestly, then retries without markin
   mocks.announcementState = "error"; await render();
   expect(document.querySelector('[role="alert"]')).toHaveTextContent("could not be loaded");
   expect(document.body.textContent).not.toContain("No additional details");
-  await click("Retry"); expect(mocks.refetch).toHaveBeenCalledOnce();
+  await click("Try again"); expect(mocks.refetch).toHaveBeenCalledOnce();
   expect(mocks.markRead).not.toHaveBeenCalled();
   mocks.announcementState = "success"; await render();
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent(mocks.announcement.body);

@@ -12,6 +12,7 @@ export interface ResidentListRow {
   created_at: string;
   last_login_at: string | null;
   barangay_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface ResidentListPagination {

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { toggleThemeMode } from "@/lib/theme";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -13,6 +15,7 @@ import {
   FileText,
   Newspaper,
   CheckCheck,
+  Loader2,
   ChevronRight,
   Lightbulb,
   CalendarDays,
@@ -147,13 +150,13 @@ const ResidentTopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toggleSidebar } = useSidebar();
-  const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const dark = useThemeMode() === "dark";
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
   const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ResidentNotification | null>(null);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications();
   const pageTitle = getResidentPageTitle(location.pathname);
 
   const searchParams = new URLSearchParams(location.search);
@@ -163,13 +166,6 @@ const ResidentTopBar = () => {
 
   const isNestedReport = location.pathname.startsWith("/resident/my-reports") && Boolean(reportParam);
   const isNestedPost = location.pathname.startsWith("/resident/contents") && Boolean(postParam);
-
-  const toggleTheme = () => {
-    const nextDark = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    setDark(nextDark);
-  };
 
   const handleNotificationClick = async (n: NotificationRow) => {
     if (!n.is_read) {
@@ -270,12 +266,12 @@ const ResidentTopBar = () => {
         {/* Theme toggle with transition */}
         <button
           type="button"
-          onClick={toggleTheme}
+          onClick={toggleThemeMode}
           className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center overflow-hidden cursor-pointer border"
           title="Toggle Theme"
         >
-          <Sun className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
-          <Moon className={`w-4 h-4 absolute transition-all duration-500 ease-in-out ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
+          <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
+          <Moon className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
         </button>
 
         {/* Notifications Popover */}
@@ -322,10 +318,12 @@ const ResidentTopBar = () => {
                 <button
                   type="button"
                   onClick={markAllAsRead}
+                  disabled={isMutating}
+                  aria-busy={isMarkingAll}
                   className="gw-topbar-notification-action"
                 >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark all read</span>
+                  {isMarkingAll ? <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
+                  <span>{isMarkingAll ? "Marking all read…" : "Mark all read"}</span>
                 </button>
               )}
             </div>

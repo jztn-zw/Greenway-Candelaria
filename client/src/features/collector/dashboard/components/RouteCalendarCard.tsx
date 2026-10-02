@@ -7,6 +7,8 @@ import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { CollectorCalendarCardSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { getManilaNow } from "@/utils/date";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -42,10 +44,11 @@ const RouteCalendarCard = () => {
   };
 
   if (calendarLoading) return <CollectorCalendarCardSkeleton year={year} month={month} />;
+  if (calendarError && schedule.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Schedule couldn't load" description="We couldn't load this month's events. Please try again." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />;
 
   return (
     <section className="flex h-full min-h-0 sm:min-h-[380px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-3 shadow-xs sm:p-4 lg:min-h-0">
-      {calendarError ? <p role="alert" className="text-sm text-destructive">Schedule unavailable. Open the schedule page to check again later.</p> : null}
+      {calendarError && <DataRefreshNotice message="Couldn't refresh the schedule. Showing the last loaded events, which may be outdated." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />}
       <div className="min-h-0 flex-1">
         <CalendarGrid
           embedded

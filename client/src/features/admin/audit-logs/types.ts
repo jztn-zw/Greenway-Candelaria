@@ -93,8 +93,7 @@ export const severityStyles: Record<
   },
 };
 
-const neutralModuleBadge =
-  badgeStyles.neutral.className + " font-medium";
+const neutralModuleBadge = badgeStyles.neutral.className;
 
 export const moduleBadgeStyles: Record<string, string> = {
   Accounts: neutralModuleBadge,

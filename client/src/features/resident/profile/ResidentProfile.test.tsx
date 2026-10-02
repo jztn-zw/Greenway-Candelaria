@@ -43,6 +43,15 @@ const click = async (name: string) => { await act(async () => button(name).click
 const change = (id: string, value: string) => act(() => Simulate.change(document.getElementById(id)!, { target: { value } } as never));
 const openField = async (index: number) => { await act(async () => [...document.querySelectorAll("button")].filter(b => b.textContent?.trim() === "Edit")[index].click()); };
 
+it("offers only the ten supplied avatars and saves the selection", async () => {
+  await click("Customize avatar");
+  expect(document.querySelectorAll('[role="group"][aria-label="Profile avatars"] button')).toHaveLength(10);
+  await click("Select Man with styled hair on blue avatar");
+  expect(updateProfile).toHaveBeenCalledWith({ avatar_url: "/profile-avatars/avatar-7.png" });
+  expect(localStorage.getItem("greenway:resident-avatar:resident")).toBe("avatar-7");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
+
 it.each([0, 1, 2])("keeps resident profile field %i until discard is confirmed", async (index) => {
   await openField(index); change("resident-profile-field", "Changed value"); await click("Cancel");
   expect(document.body.textContent).toContain("Discard Profile Changes?"); await click("Keep Editing");

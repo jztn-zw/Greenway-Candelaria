@@ -1,3 +1,4 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Search, X, Calendar as CalendarIcon, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,12 @@ const MODULE_OPTIONS = [
   { value: "auth", label: "Authentication" },
   { value: "barangays", label: "Barangay Manager" },
   { value: "landing-content", label: "Landing Page" },
+];
+
+const DATE_PRESETS: FilterPillItem<"0" | "7" | "30">[] = [
+  { id: "0", label: "Today" },
+  { id: "7", label: "7 days" },
+  { id: "30", label: "30 days" },
 ];
 
 const AuditLogFilters = ({
@@ -123,31 +130,12 @@ const AuditLogFilters = ({
 
         {/* ── Right Controls: Quick Date Pill + Custom Calendar + Reset ── */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Quick date filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { label: "Today", days: 0 },
-              { label: "7 days", days: 7 },
-              { label: "30 days", days: 30 },
-            ].map((preset) => {
-              const active = isPresetActive(preset.days);
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handlePresetClick(preset.days)}
-                  className={`h-10 rounded-lg border px-3.5 font-body text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                    active
-                      ? "border-primary bg-primary text-primary-foreground shadow-xs shadow-primary/25"
-                      : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground "
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
+          <FilterPillTabs
+            items={DATE_PRESETS}
+            activeId={DATE_PRESETS.find(({ id }) => isPresetActive(Number(id)))?.id}
+            onChange={(id) => handlePresetClick(Number(id))}
+            ariaLabel="Audit log date presets"
+          />
 
           {/* Custom Date Range Popover Button */}
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>

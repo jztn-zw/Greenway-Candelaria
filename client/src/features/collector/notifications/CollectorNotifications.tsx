@@ -1,4 +1,7 @@
+import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { useState, useMemo, useRef, useEffect } from "react";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useNavigate } from "react-router-dom";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import {
@@ -33,11 +36,11 @@ const PAGE_SIZE = 15;
 
 type CollectorCategory = "all" | "routes" | "dispatch" | "announcements";
 
-const tabs: { key: CollectorCategory; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "routes", label: "Routes & Stops" },
-  { key: "dispatch", label: "Dispatch Alerts" },
-  { key: "announcements", label: "Announcements" },
+const tabs: FilterPillItem<CollectorCategory>[] = [
+  { id: "all", label: "All" },
+  { id: "routes", label: "Routes & Stops" },
+  { id: "dispatch", label: "Dispatch Alerts" },
+  { id: "announcements", label: "Announcements" },
 ];
 
 const CollectorNotifications = () => {
@@ -46,8 +49,11 @@ const CollectorNotifications = () => {
     notifications,
     unreadCount,
     isLoading,
+    isRefreshing,
+    hasLoadedData,
     markAsRead,
     markAllAsRead,
+    isMarkingAll,
     category, clearAll, error, isMutating, nextCursor, loadMore, fetchNotifications, total,
   } = useNotifications();
 
@@ -62,44 +68,10 @@ const CollectorNotifications = () => {
     if (!isLoading) hasShownFeed.current = true;
   }, [isLoading]);
 
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!tabsContainerRef.current) return;
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    startXRef.current = e.pageX - tabsContainerRef.current.offsetLeft;
-    scrollLeftRef.current = tabsContainerRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !tabsContainerRef.current) return;
-    const x = e.pageX - tabsContainerRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.3;
-    if (Math.abs(walk) > 4) {
-      hasDraggedRef.current = true;
-    }
-    tabsContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    isDraggingRef.current = false;
-  };
-
-  const handleTabClick = (tab: CollectorCategory, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (e.detail !== 0 && hasDraggedRef.current) { hasDraggedRef.current = false; return; }
+  const handleTabChange = (tab: CollectorCategory) => {
     setActiveTab(tab);
     void fetchNotifications({ category: tab });
     setCurrentPage(1);
-    e.currentTarget.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
   };
 
   const filtered = useMemo(() => {
@@ -125,6 +97,7 @@ const CollectorNotifications = () => {
   if (isLoading && notifications.length === 0 && !hasShownFeed.current) {
     return <NotificationsPageSkeleton role="collector" />;
   }
+  if (error && !hasLoadedData) return <PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications({ category: activeTab })} retrying={isRefreshing} homeHref="/collector" />;
 
   return (
     <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
@@ -139,37 +112,21 @@ const CollectorNotifications = () => {
         </div>
         {(unreadCount > 0 || notifications.length > 0) && (
           <div className="flex items-center gap-2 shrink-0">
-            {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} onClick={() => void markAllAsRead()} className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
+            {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} loading={isMarkingAll} loadingLabel="Marking all read…" onClick={() => void markAllAsRead()} className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
             {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className="gap-1.5 text-xs h-9 px-3 rounded-xl border font-semibold transition-all cursor-pointer"><Trash2 className="w-3.5 h-3.5" /><span>Clear all</span></Button>}
           </div>
         )}
       </div>
 
-      {/* ── Category Filter Tabs (Smooth native mobile scroll + slide drag) ── */}
+      {/* ── Category filters ── */}
       <div className="flex items-center gap-2">
-        <div
-          ref={tabsContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 pr-2 scrollbar-hide touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth lg:pr-4"
-        >
-          {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              aria-pressed={isActive}
-              onClick={(e) => handleTabClick(tab.key, e)}
-              className={`group h-9 px-3.5 rounded-lg text-xs whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 border cursor-pointer ${isActive ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-semibold" : "bg-card border-border/80 text-muted-foreground hover:bg-muted hover:text-foreground font-semibold"}`}
-            >
-              <span>{tab.label}</span>
-            </button>
-          );
-          })}
-        </div>
+        <FilterPillTabs<CollectorCategory>
+          items={tabs}
+          activeId={activeTab}
+          onChange={handleTabChange}
+          ariaLabel="Notification categories"
+          className="flex-1 pr-2 lg:pr-4"
+        />
         {(unreadCount > 0 || notifications.length > 0) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -183,7 +140,7 @@ const CollectorNotifications = () => {
         )}
       </div>
 
-      {error && <div role="alert" className="rounded-xl border border-destructive/30 p-4"><p>{error}</p><Button variant="outline" disabled={isLoading} onClick={() => void fetchNotifications({ category: activeTab })}>Retry</Button></div>}
+      {error && <DataRefreshNotice message="Couldn't update notifications. Showing the last loaded notifications, which may be outdated." onRetry={() => void fetchNotifications({ category: activeTab })} retrying={isRefreshing} />}
       {/* ── Notification List ── */}
       {isLoading && notifications.length === 0 ? (
         <NotificationsListSkeleton />
@@ -237,14 +194,14 @@ const CollectorNotifications = () => {
       ) : null}
 
       {/* ── Pagination ── */}
-      <PaginationControls currentPage={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} itemLabel="notifications" onPageChange={setCurrentPage} variant="inline" />
+      <PaginationControls currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
 
-      {nextCursor && <Button variant="outline" disabled={isLoading || isMutating} onClick={() => void loadMore()}>{isLoading ? "Loading…" : `Load older notifications (${notifications.length} of ${total} loaded)`}</Button>}
+      {nextCursor && <Button variant="outline" disabled={isRefreshing || isMutating} loading={isLoading} loadingLabel="Loading older notifications…" onClick={() => void loadMore()}>{`Load older notifications (${notifications.length} of ${total} loaded)`}</Button>}
       <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear}
         title="Clear all notification history?"
         description="This permanently deletes notifications in every category, including older notifications. This cannot be undone."
-        icon={<Trash2 />} variant="destructive" confirmLabel="Clear all" isPending={isMutating}
-        closeOnConfirm onConfirm={() => { setCurrentPage(1); void clearAll(); }} />
+        icon={<Trash2 />} variant="destructive" confirmLabel="Clear all" confirmDisabled={isMutating} pendingLabel="Clearing…"
+        closeOnConfirm onConfirm={async () => { await clearAll(); setCurrentPage(1); }} />
       {/* ── Details Modal ── */}
       {modalNotification && (
         <CollectorNotificationModal

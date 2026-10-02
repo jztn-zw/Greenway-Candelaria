@@ -13,6 +13,7 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_ANNOUNCEMENT: "Updated Announcement",
   DELETE_ANNOUNCEMENT: "Deleted Announcement",
   CREATE_REPORT: "Report Submitted",
+  REPORT_DELETED: "Report Deleted",
   UPDATE_REPORT_STATUS: "Status Changed",
   UPDATE_REPORT_PRIORITY: "Priority Changed",
   FLAG_REPORT: "Report Flagged",
@@ -82,8 +83,8 @@ const getCleanValueString = (val: any): string => {
 };
 
 export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
-  const action = row.action || "UNKNOWN";
-  const actionType = ACTION_LABELS[action] || action.replace(/_/g, " ");
+  const action = (row.action || "UNKNOWN").toUpperCase();
+  const actionType = ACTION_LABELS[action] || formatStatus(action);
 
   const isPositive =
     action === "UNBAN_USER" ||

@@ -5,7 +5,9 @@ import { formDialogStyles } from "@/components/formDialogStyles";
 import { AdminProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import PageErrorState from "@/components/PageErrorState";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,17 +17,10 @@ import { toast } from "@/lib/toast";
 import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import { formatManilaDateTime } from "@/utils/date";
-import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Loader2, Lock, LogOut, Mail, Paintbrush, Phone, ShieldCheck, User } from "lucide-react";
+import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, Mail, Phone, ShieldCheck, User, Users } from "lucide-react";
 import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-const avatarStyles = [
-  { id: "forest", label: "Forest", className: "bg-gradient-to-br from-primary to-emerald-700" },
-  { id: "ocean", label: "Ocean", className: "bg-gradient-to-br from-sky-500 to-blue-700" },
-  { id: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-rose-600" },
-  { id: "violet", label: "Violet", className: "bg-gradient-to-br from-violet-500 to-fuchsia-700" },
-] as const;
-type AvatarStyle = (typeof avatarStyles)[number]["id"];
 type EditableField = "full_name" | "username" | "phone";
 const fieldLabels: Record<EditableField, string> = { full_name: "Full Name", username: "Username", phone: "Phone Number" };
 const errorMessage = (error: unknown, fallback: string) =>
@@ -81,8 +76,9 @@ const AdminProfile = () => {
   const profileQuery = useAdminResource<UserProfile | null>("profile", [], fetchProfile, null);
   const { data: profile, setData: setProfile, isLoading: loading, isError: loadError, refetch: loadProfile } = profileQuery;
   const runAction = useAdminAction("profile");
-  const [avatarStyle, setAvatarStyle] = useState<AvatarStyle>("forest");
+  const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [edit, setEdit] = useState<{ field: EditableField; value: string; error: string; saving: boolean } | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [password, setPassword] = useState({ current: "", next: "", confirm: "" });
@@ -95,8 +91,33 @@ const AdminProfile = () => {
   useEffect(() => {
     if (!profile?.id) return;
     const saved = localStorage.getItem(`greenway:admin-avatar:${profile.id}`);
-    if (avatarStyles.some(({ id }) => id === saved)) setAvatarStyle(saved as AvatarStyle);
-  }, [profile?.id]);
+    const selected = profileAvatarIdFromUrl(profile.avatar_url);
+    setAvatarId(selected ?? (isProfileAvatarId(saved) ? saved : profileAvatarForAccount(profile.id, profile.avatar_url)));
+    if (!selected && !profile.avatar_url && isProfileAvatarId(saved)) {
+      void updateProfile({ avatar_url: profileAvatarSrc(saved) }).then((updated) => {
+        setProfile(updated);
+        const current = useAuthStore.getState().user;
+        if (current?.id === updated.id) setUser({ ...current, ...updated });
+      }).catch(() => {});
+    }
+  }, [profile?.id, profile?.avatar_url, setProfile, setUser]);
+
+  const saveAvatar = async (selectedId: ProfileAvatarId) => {
+    if (!profile || savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      const updated = await runAction(() => updateProfile({ avatar_url: profileAvatarSrc(selectedId) }));
+      setProfile(updated);
+      if (authUser) setUser({ ...authUser, ...updated });
+      localStorage.setItem(`greenway:admin-avatar:${profile.id}`, selectedId);
+      setAvatarId(selectedId);
+      setAvatarOpen(false);
+    } catch {
+      toast.error("Could not update your avatar. Please try again.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
 
   const saveEdit = async () => {
     if (!edit || !profile || edit.saving) return;
@@ -165,29 +186,22 @@ const AdminProfile = () => {
   };
 
   if (loading) return <AdminProfileSkeleton />;
-  if (loadError || !profile) return <PageErrorState kind="unavailable" title="Profile couldn't load" description="We couldn't load your profile right now. Please try again." onRetry={() => void loadProfile()} homeHref="/admin" />;
+  if (!profile) return <PageErrorState kind="unavailable" description="We couldn't load your profile right now. Please try again." onRetry={() => void loadProfile()} retrying={profileQuery.isFetching} homeHref="/admin" />;
 
-  const initials = profile.full_name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "A";
-  const selectedStyle = avatarStyles.find(({ id }) => id === avatarStyle) ?? avatarStyles[0];
   const joined = formatManilaDateTime(profile.created_at, { year: "numeric", month: "long" });
   const lastSignIn = profile.last_login_at
     ? formatManilaDateTime(profile.last_login_at, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
     : "Not recorded";
-  const isActive = profile.status === "ACTIVE";
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 md:space-y-6">
       <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
         <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
           <ProfileBannerImage />
-          <div className={`absolute right-3.5 top-3.5 inline-flex items-center gap-2 rounded-md border bg-background/90 px-3 py-1.5 text-xs font-semibold shadow-xs backdrop-blur-md lg:right-4 lg:top-4 ${isActive ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "border-amber-500/30 text-amber-600 dark:text-amber-400"}`}><span className={`size-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-amber-500"}`} />{isActive ? "Active Administrator" : profile.status.toLowerCase()}</div>
         </div>
         <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
           <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <Avatar className="size-20 rounded-full ring-4 ring-background shadow-lg lg:size-28"><AvatarFallback className={`${selectedStyle.className} rounded-full font-body text-3xl font-semibold text-primary-foreground`}>{initials}</AvatarFallback></Avatar>
-              <Button type="button" variant="outline" onClick={() => setAvatarOpen(true)} className="h-8 gap-1.5 rounded-xl px-3 text-ui-caption font-semibold"><Paintbrush className="size-3.5" /> Customize</Button>
-            </div>
+            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-col items-center gap-1.5 md:flex-row md:gap-3"><h1 className="gw-heading max-w-full truncate text-lg tracking-tight text-foreground lg:text-2xl">{profile.full_name}</h1><span className="w-fit rounded-md border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">@{profile.username}</span></div>
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground md:justify-start"><span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Administrator</span><span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span></div>
@@ -195,6 +209,8 @@ const AdminProfile = () => {
           </div>
         </div>
       </div>
+
+      {loadError && <DataRefreshNotice message="Couldn't refresh your profile. Your edits are preserved; loaded information may be outdated." onRetry={() => void loadProfile()} retrying={profileQuery.isFetching} />}
 
       <Section title="Personal Information" description="Your profile details and sign-in credentials" icon={User}>
         <div className="divide-y divide-border/50">
@@ -218,20 +234,10 @@ const AdminProfile = () => {
 
       <ProfileDialog
         open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize avatar"
-        description="Choose an initials color for this browser." icon={Paintbrush}
+        description="Select one of the ten profile avatars." icon={Users} pending={savingAvatar}
         footer={<Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} className={profileButtonClass}>Close</Button>}
       >
-        <div className="grid grid-cols-2 gap-3">
-          {avatarStyles.map((style) => (
-            <button key={style.id} type="button" aria-label={style.label} aria-pressed={avatarStyle === style.id}
-              onClick={() => { setAvatarStyle(style.id); localStorage.setItem(`greenway:admin-avatar:${profile.id}`, style.id); setAvatarOpen(false); }}
-              className={`flex items-center gap-3 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${avatarStyle === style.id ? "border-primary bg-primary/10" : "border-border/80 hover:border-primary/40 hover:bg-[var(--button-neutral-hover)]"}`}
-            >
-              <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${style.className}`}>{initials}</span>
-              <span className="text-xs font-semibold text-foreground">{style.label}</span>
-            </button>
-          ))}
-        </div>
+        <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
       </ProfileDialog>
 
       <ProfileDialog
@@ -240,9 +246,9 @@ const AdminProfile = () => {
         description={`Update your ${edit ? fieldLabels[edit.field].toLowerCase() : "profile"}.`} icon={User} pending={edit?.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={requestCloseEdit} disabled={edit?.saving} className={profileButtonClass}>Cancel</Button>
-          <Button type="button" onClick={() => void saveEdit()} disabled={edit?.saving} className={profileButtonClass}>
-            {edit?.saving && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
-            {edit?.saving ? "Saving..." : "Save Changes"}
+          <Button type="button" onClick={() => void saveEdit()} disabled={edit?.saving} className={profileButtonClass} loading={!!(edit?.saving)} loadingLabel="Saving changes…">
+
+            Save Changes
           </Button>
         </>}
       >
@@ -263,9 +269,9 @@ const AdminProfile = () => {
         title="Change Password" description="You will be signed out after updating." icon={Lock} pending={savingPassword}
         footer={<>
           <Button type="button" variant="outline" onClick={requestClosePassword} disabled={savingPassword} className={profileButtonClass}>Cancel</Button>
-          <Button type="button" onClick={() => void savePassword()} disabled={savingPassword} className={profileButtonClass}>
-            {savingPassword && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
-            {savingPassword ? "Updating..." : "Change Password"}
+          <Button type="button" onClick={() => void savePassword()} disabled={savingPassword} className={profileButtonClass} loading={savingPassword} loadingLabel="Changing password…">
+
+            Change Password
           </Button>
         </>}
       >
@@ -313,7 +319,7 @@ const AdminProfile = () => {
         discardLabel="Discard Changes"
         isSaving={discardTarget === "password" ? savingPassword : edit?.saving}
       />
-      <ConfirmationDialog kind="dialog" open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={() => void handleLogout()} title="Log Out of GreenWay?" description="Sign out of your current administrator session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" />
+      <ConfirmationDialog kind="dialog" open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={handleLogout} pendingLabel="Logging out…" title="Log Out of GreenWay?" description="Sign out of your current administrator session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" />
     </div>
   );
 };

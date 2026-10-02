@@ -11,7 +11,7 @@ import { fetchDriverMe } from "@/services/driverManagerService";
 import CollectorProfile from "./CollectorProfile";
 
 vi.mock("@/services/profileService", () => ({
-  fetchProfile: vi.fn(), updateProfile: vi.fn(), uploadAvatar: vi.fn(), changePassword: vi.fn(),
+  fetchProfile: vi.fn(), updateProfile: vi.fn(), changePassword: vi.fn(),
 }));
 vi.mock("@/services/driverManagerService", () => ({
   fetchDriverMe: vi.fn(), reportTruckBreakdown: vi.fn(),
@@ -106,17 +106,18 @@ it("shows an API failure instead of inventing an unassigned vehicle, then retrie
   expect(document.body.textContent).toContain("Vehicle information unavailable");
   expect(document.body.textContent).not.toContain("No vehicle currently assigned");
   expect(document.body.textContent).not.toContain("driver@menro.gov.ph");
-  const retry = [...document.querySelectorAll("button")].find((button) => button.textContent === "Retry");
-  await act(async () => { retry?.click(); });
+  const retry = [...document.querySelectorAll("button")].find((button) => button.textContent === "Try again")!;
+  expect(retry).toBeDefined();
+  await act(async () => { retry.click(); });
   expect(fetchDriverMe).toHaveBeenCalledTimes(2);
   expect(document.body.textContent).toContain("ABC-123");
 });
 
-it("shows stored account and vehicle status without a duplicate dispatch card", async () => {
+it("shows vehicle status without a status badge on the profile banner", async () => {
   vi.mocked(fetchProfile).mockResolvedValue({ ...profile, status: "DEACTIVATED" } as never);
   vi.mocked(fetchDriverMe).mockResolvedValue({ ...driver, truck_availability: "UNDER_MAINTENANCE" } as never);
   await renderProfile();
-  expect(document.body.textContent).toContain("Deactivated collector");
+  expect(document.body.textContent).not.toContain("Deactivated collector");
   expect(document.body.textContent).toContain("Under maintenance");
   expect(document.body.textContent).not.toContain("Operational / Ready");
   expect(document.querySelector('a[href^="tel:"]')).toBeNull();
@@ -128,7 +129,7 @@ it("shows a retry state when both profile requests fail", async () => {
   vi.mocked(fetchProfile).mockRejectedValueOnce(new Error("Network unavailable"));
   vi.mocked(fetchDriverMe).mockRejectedValueOnce(new Error("Network unavailable"));
   await renderProfile();
-  expect(document.body.textContent).toContain("Profile couldn't load");
+  expect(document.body.textContent).toContain("This page couldn't load");
   expect(document.body.textContent).not.toContain("Active collector");
   expect(document.body.textContent).not.toContain("No vehicle currently assigned");
   await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Try again")!.click());
@@ -138,17 +139,19 @@ it("shows a retry state when both profile requests fail", async () => {
   expect(fetchDriverMe).toHaveBeenCalledTimes(2);
 });
 
-it("uses the same customizable initials header pattern as the other profiles", async () => {
+it("offers only the ten supplied avatars and saves the selection", async () => {
   await renderProfile();
   expect(document.body.textContent).toContain("Joined");
   expect(document.body.textContent).toContain("Collector / Driver");
   expect(document.body.textContent).not.toContain("MENRO Candelaria · Solid Waste Management");
-  const customize = [...document.querySelectorAll("button")].find((button) => button.textContent?.includes("Customize"));
+  const customize = [...document.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === "Customize avatar");
   await act(async () => { customize?.click(); });
-  expect(document.body.textContent).toContain("Upload profile photo");
-  const ocean = [...document.querySelectorAll("button")].find((button) => button.textContent?.includes("Ocean"));
-  await act(async () => { ocean?.click(); });
-  expect(localStorage.getItem("greenway:collector-avatar:collector")).toBe("ocean");
+  expect(document.querySelectorAll('[role="group"][aria-label="Profile avatars"] button')).toHaveLength(10);
+  expect(document.querySelector('input[type="file"]')).toBeNull();
+  expect(document.body.textContent).not.toContain("Upload profile photo");
+  await click("Select Woman with short hair on blue avatar");
+  expect(localStorage.getItem("greenway:collector-avatar:collector")).toBe("avatar-2");
+  expect(updateProfile).toHaveBeenCalledWith({ avatar_url: "/profile-avatars/avatar-2.png" });
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 
@@ -241,6 +244,6 @@ it("keeps the last profile and vehicle visible when a background refresh fails",
   await act(async () => { await client.invalidateQueries({ queryKey: collectorKey("collector", "profile") }); });
   expect(document.body.textContent).toContain("Test Collector");
   expect(document.body.textContent).toContain("ABC-123");
-  expect(document.body.textContent).toContain("could not be refreshed");
+  expect(document.body.textContent).toContain("loaded data may be outdated");
   expect(document.body.textContent).not.toContain("Profile unavailable");
 });

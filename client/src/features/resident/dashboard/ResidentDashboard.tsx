@@ -1,4 +1,7 @@
 import { useResidentQuery } from "@/lib/residentQuery";
+import PageErrorState from "@/components/PageErrorState";
+import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { PageRetryContext } from "@/components/pageRetryContext";
 import { ResidentDashboardSkeleton } from "@/components/PageLoadingSkeletons";
 import { fetchLiveTrucks } from "@/services/trackingService";
 import { fetchMyReports } from "@/services/reportsService";
@@ -38,15 +41,22 @@ const ResidentDashboard = () => {
   const calendarQuery = useResidentQuery("schedule", ["calendar", today.year, monthIndex],
     () => fetchCalendarEvents({ month: `${today.year}-${String(today.month).padStart(2, "0")}` }));
 
-  if ([liveQuery, reportsQuery, routesQuery, postsQuery, announcementsQuery, calendarQuery]
-    .some((query) => query.isLoading)) {
+  const queries = [liveQuery, reportsQuery, ...(!addressMissing ? [routesQuery] : []), postsQuery, announcementsQuery, calendarQuery];
+  const retryDashboard = () => { queries.filter((query) => query.isError).forEach((query) => { void query.refetch(); }); };
+  // Sections share these queries. Keep them mounted after the first response,
+  // including a failed response, so retry-on-mount cannot restart a load loop.
+  if (queries
+    .some((query) => query.isLoading && !query.isFetched)) {
     return <ResidentDashboardSkeleton dayCount={dayCount} firstDayIndex={firstDayIndex} />;
   }
+  if (queries.every((query) => query.isError && query.data === undefined)) return <PageErrorState kind="unavailable" description="We couldn't load your dashboard information. Check your connection and try again." onRetry={retryDashboard} retrying={queries.some((query) => query.isFetching)} />;
 
   return (
+    <PageRetryContext.Provider value={true}>
     <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
       {/* 1. Header */}
       <DashboardGreeting />
+      {queries.some((query) => query.isError) && <DataRefreshNotice primary message={queries.some((query) => query.isError && query.data === undefined) ? "Some dashboard information couldn't load. Available information is still shown; previously loaded data may be outdated." : "Couldn't refresh some dashboard information. Showing the last loaded data, which may be outdated."} onRetry={retryDashboard} retrying={queries.some((query) => query.isFetching)} />}
 
       {/* 2. Hero Cards */}
       <HeroCards />
@@ -70,8 +80,8 @@ const ResidentDashboard = () => {
         </div>
       </div>
     </div>
+    </PageRetryContext.Provider>
   );
 };
 
 export default ResidentDashboard;
-

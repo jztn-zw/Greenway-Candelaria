@@ -34,7 +34,7 @@ it("allows selecting an empty report status without switching back to All", asyn
   resolved.scrollIntoView = vi.fn();
   await act(async () => resolved.click());
   expect(resolved).toHaveAttribute("aria-pressed", "true");
-  expect(resolved).toHaveTextContent("Resolved0");
+  expect(resolved).toHaveTextContent(/^Resolved$/);
   expect(filters.querySelector('button[aria-pressed="false"]')).toHaveTextContent(/^All$/);
   expect(filters.querySelectorAll("button")).toHaveLength(5);
 });
@@ -63,10 +63,10 @@ it("withdraws only the confirmed owned report and blocks duplicate actions while
   await click("Yes, Cancel Report");
   expect(deleteReport).toHaveBeenCalledExactlyOnceWith("owned-report");
   expect([...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent === "Keep Report")).toBeDisabled();
-  expect([...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent === "Cancelling...")).toBeDisabled();
+  expect(document.querySelector('[role="dialog"] button[aria-busy="true"]')).toBeDisabled();
   expect(document.querySelector('button[aria-label="Close confirmation"]')).toBeDisabled();
   await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Cancelling...");
+  expect(document.querySelector('[role="dialog"] button[aria-busy="true"]')).toBeDisabled();
   await act(async () => finish({ id: report.id, reference_number: report.reference_number }));
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(toast.success).toHaveBeenCalledWith("Report cancelled successfully");
