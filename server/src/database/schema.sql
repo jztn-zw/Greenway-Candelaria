@@ -338,7 +338,6 @@ CREATE TABLE `posts` (
   `id` varchar(36) NOT NULL,
   `title` varchar(255) NOT NULL,
   `body` longtext NOT NULL,
-  `source` varchar(255) DEFAULT NULL,
   `category` enum('WASTE_TIP','EVENT') NOT NULL,
   `status` enum('DRAFT','PUBLISHED','SCHEDULED','ARCHIVED') DEFAULT 'DRAFT',
   `is_featured` tinyint(1) DEFAULT '0',

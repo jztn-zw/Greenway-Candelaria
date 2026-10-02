@@ -34,7 +34,9 @@ const toUtcDatabaseDateTime = (value) => {
 const getById = async (id, userId = null, userRole = null, bypassStatusCheck = false) => {
   const [rows] = await pool.query(
     `SELECT
-       p.*,
+       p.id, p.title, p.body, p.category, p.status, p.is_featured,
+       p.view_count, p.scheduled_at, p.published_at, p.created_by,
+       p.created_at, p.updated_at, p.deleted_at,
        u.full_name   AS author_name,
        u.avatar_url  AS author_avatar,
        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count
@@ -140,7 +142,6 @@ const getAll = async (filters = {}, userId = null, userRole = null) => {
       p.id,
       p.title,
       p.body,
-      p.source,
       p.category,
       p.status,
       p.is_featured,
@@ -194,11 +195,11 @@ const getAll = async (filters = {}, userId = null, userRole = null) => {
 
   if (filters.search) {
     conditions.push(`(
-      p.title LIKE ? OR p.body LIKE ? OR p.source LIKE ? OR u.full_name LIKE ? OR
+      p.title LIKE ? OR p.body LIKE ? OR u.full_name LIKE ? OR
       EXISTS (SELECT 1 FROM post_tags search_tags WHERE search_tags.post_id = p.id AND search_tags.tag LIKE ?)
     )`);
     const s = `%${filters.search}%`;
-    whereParams.push(s, s, s, s, s);
+    whereParams.push(s, s, s, s);
   }
 
   const usePagination = filters.page !== undefined || filters.limit !== undefined;
@@ -311,7 +312,6 @@ const create = async (adminId, data) => {
   const {
     title,
     body,
-    source,
     category,
     status,
     is_featured,
@@ -334,14 +334,13 @@ const create = async (adminId, data) => {
 
     await connection.query(
       `INSERT INTO posts 
-        (id, title, body, source, category, status, is_featured, 
+        (id, title, body, category, status, is_featured,
          scheduled_at, published_at, created_by) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         postId,
         title,
         body,
-        source || null,
         category,
         status,
         is_featured,
@@ -408,7 +407,6 @@ const duplicate = async (postId, adminId) => {
   return create(adminId, {
     title,
     body: original.body,
-    source: original.source,
     category: original.category,
     status: "DRAFT",
     is_featured: false,
@@ -443,7 +441,6 @@ const update = async (id, data, adminId) => {
   const map = {
     title: "title",
     body: "body",
-    source: "source",
     category: "category",
     status: "status",
     is_featured: "is_featured",

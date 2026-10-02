@@ -14,6 +14,7 @@ const updateProfileSchema = z.object({
   phone: z.string().trim().max(20).regex(/^[0-9+()\-\s]*$/, "Invalid phone number").optional(),
   barangay_id: z.string().uuid().optional(),
   street_id: z.string().uuid().nullable().optional(),
+  avatar_url: z.string().regex(/^\/profile-avatars\/avatar-(?:[1-9]|10)\.png$/, "Choose one of the available avatars").optional(),
 }).strict();
 
 const changePasswordSchema = z.object({

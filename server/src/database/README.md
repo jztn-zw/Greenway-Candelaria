@@ -12,6 +12,20 @@
 
 Do not commit real passwords, session records, tokens, private resident information, or production tracking history to `seed.sql`.
 
+## Post attribution removal
+
+The optional `posts.source` column is retired. Apply this change to existing
+databases from the `server` directory:
+
+```powershell
+node scripts/apply-post-source-removal.js --check
+node scripts/apply-post-source-removal.js
+```
+
+The script exports existing attribution text to an ignored JSON file in
+`server/backups/` before dropping the column, preserves author records through
+`created_by`, verifies the remaining columns and post count, and can be rerun.
+
 ## Route deletion and historical records
 
 The API requires `route_runs.route_id` to be nullable with `fk_route_runs_template`

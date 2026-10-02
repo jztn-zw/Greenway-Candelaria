@@ -5,6 +5,7 @@ const { createReportSchema } = require("./reports.schema");
 const validReport = {
   barangay_id: "barangay-1",
   violation_type: "ILLEGAL_DUMPING",
+  landmark: "Near the public market",
   description: "Waste has been blocking the roadside since this morning.",
   photos: ["https://res.cloudinary.com/example/image/upload/greenway/reports/report.jpg"],
 };
@@ -16,6 +17,8 @@ test("report submissions require one to five photos", () => {
 });
 
 test("report submissions reject blank text and invalid coordinates", () => {
+  assert.equal(createReportSchema.safeParse({ ...validReport, landmark: undefined }).success, false);
+  assert.equal(createReportSchema.safeParse({ ...validReport, landmark: "   " }).success, false);
   assert.equal(createReportSchema.safeParse({ ...validReport, description: "          " }).success, false);
   assert.equal(createReportSchema.safeParse({ ...validReport, pin_lat: 91 }).success, false);
   assert.equal(createReportSchema.safeParse({ ...validReport, pin_lng: -181 }).success, false);

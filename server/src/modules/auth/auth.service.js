@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const queryWithRetry = require("../../utils/queryWithRetry");
 const generateId = require("../../utils/generateId");
+const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const SessionService = require("../sessions/sessions.service");
 const auditService = require("../audit/audit.service");
 
@@ -35,6 +36,7 @@ const register = async ({
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 12);
   const id = generateId();
+  const avatarUrl = avatarUrlForAccount(id);
 
   // Ensure submitted barangay exists.
   const [barangayRows] = await queryWithRetry(
@@ -58,8 +60,8 @@ const register = async ({
   // Insert user
   await queryWithRetry(
     `INSERT INTO users 
-     (id, full_name, username, email, password, phone, barangay_id, street_id, role)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'RESIDENT')`,
+     (id, full_name, username, email, password, phone, barangay_id, street_id, avatar_url, role)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'RESIDENT')`,
     [
       id,
       full_name,
@@ -69,10 +71,11 @@ const register = async ({
       phone || null,
       barangay_id,
       street_id || null,
+      avatarUrl,
     ],
   );
 
-  return { id, full_name, username, email, role: "RESIDENT" };
+  return { id, full_name, username, email, avatar_url: avatarUrl, role: "RESIDENT" };
 };
 
 const login = async ({ identifier, password }, req) => {

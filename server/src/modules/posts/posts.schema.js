@@ -3,7 +3,6 @@ const { z } = require("zod");
 const createPostSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(255),
   body: z.string().trim().min(1, "Body is required"),
-  source: z.string().trim().max(255).nullable().optional(),
   category: z.enum(["WASTE_TIP", "EVENT"]),
   status: z
     .enum(["DRAFT", "PUBLISHED", "SCHEDULED", "ARCHIVED"])
@@ -30,7 +29,6 @@ const createPostSchema = z.object({
 const updatePostSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
   body: z.string().trim().min(1).optional(),
-  source: z.string().trim().max(255).nullable().optional(),
   category: z.enum(["WASTE_TIP", "EVENT"]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "SCHEDULED", "ARCHIVED"]).optional(),
   is_featured: z.boolean().optional(),

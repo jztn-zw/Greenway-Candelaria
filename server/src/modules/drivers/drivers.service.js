@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const { pool } = require("../../config/db");
 const routeRunsService = require("../routes/routeRuns.service");
 const generateId = require("../../utils/generateId");
+const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const auditService = require("../audit/audit.service");
 const { sendToMany, emitStoredNotifications, notifyAdmins } = require("../notifications/notifications.service");
 
@@ -183,9 +184,9 @@ const create = async ({
     if (usernameCheck.length) throw { statusCode: 409, message: "Username already taken" };
 
     await connection.query(
-      `INSERT INTO users (id, full_name, username, email, phone, password, role)
-       VALUES (?, ?, ?, ?, ?, ?, 'DRIVER')`,
-      [userId, full_name, username, email, phone || null, hashed],
+      `INSERT INTO users (id, full_name, username, email, phone, password, avatar_url, role)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'DRIVER')`,
+      [userId, full_name, username, email, phone || null, hashed, avatarUrlForAccount(userId)],
     );
     await connection.query(
       "INSERT INTO drivers (id, user_id, truck_id) VALUES (?, ?, ?)",

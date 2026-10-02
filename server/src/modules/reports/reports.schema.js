@@ -33,7 +33,7 @@ const createReportSchema = z.object({
     "IMPROPER_SEGREGATION",
     "OTHER",
   ]),
-  landmark: z.string().trim().max(300, "Landmark must be 300 characters or less").optional(),
+  landmark: z.string().trim().min(1, "Street or landmark is required").max(200, "Street or landmark must be 200 characters or less"),
   description: z.string().trim().min(10, "Description must be at least 10 characters").max(2000, "Description must be 2000 characters or less"),
   pin_lat: z.number().finite().min(-90, "Invalid latitude").max(90, "Invalid latitude").optional(),
   pin_lng: z.number().finite().min(-180, "Invalid longitude").max(180, "Invalid longitude").optional(),
