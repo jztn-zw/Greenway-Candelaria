@@ -136,7 +136,6 @@ const ResidentTopBar = () => {
   const dark = useThemeMode() === "dark";
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
-  const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ResidentNotification | null>(null);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications();
@@ -150,9 +149,9 @@ const ResidentTopBar = () => {
   const isNestedReport = location.pathname.startsWith("/resident/my-reports") && Boolean(reportParam);
   const isNestedPost = location.pathname.startsWith("/resident/contents") && Boolean(postParam);
 
-  const handleNotificationClick = async (n: NotificationRow) => {
+  const handleNotificationClick = (n: NotificationRow) => {
     if (!n.is_read) {
-      await markAsRead(n.id);
+      void markAsRead(n.id);
     }
     setPopoverOpen(false);
 
@@ -187,12 +186,8 @@ const ResidentTopBar = () => {
   ).length;
 
   const loadMoreNotifications = () => {
-    if (!hasMoreNotifications || isLoadingMoreNotifications) return;
-    setIsLoadingMoreNotifications(true);
-    window.setTimeout(() => {
-      setVisibleNotificationCount((current) => Math.min(current + 6, notifications.length));
-      setIsLoadingMoreNotifications(false);
-    }, 260);
+    if (!hasMoreNotifications) return;
+    setVisibleNotificationCount((current) => Math.min(current + 6, notifications.length));
   };
 
   return (
@@ -265,7 +260,6 @@ const ResidentTopBar = () => {
             setPopoverOpen(open);
             if (open) {
               setVisibleNotificationCount(6);
-              setIsLoadingMoreNotifications(false);
             }
           }}
         >
@@ -383,21 +377,7 @@ const ResidentTopBar = () => {
                     <p className="text-ui-caption text-muted-foreground mt-0.5">You're all caught up!</p>
                   </div>
                 )}
-                {isLoadingMoreNotifications && (
-                  <div className="space-y-2 px-1 py-2.5 animate-pulse" aria-label="Loading older notifications">
-                    {[0, 1].map((index) => (
-                      <div key={index} className="flex items-start gap-3 rounded-xl p-2.5">
-                        <div className="h-9 w-9 shrink-0 rounded-xl bg-muted" />
-                        <div className="flex-1 space-y-2 pt-1">
-                          <div className="h-3 w-3/4 rounded bg-muted" />
-                          <div className="h-2.5 w-full rounded bg-muted/80" />
-                          <div className="h-2.5 w-1/4 rounded bg-muted/60" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {hasMoreNotifications && !isLoadingMoreNotifications && (
+                {hasMoreNotifications && (
                   <div className="py-3 text-center text-ui-caption font-medium text-muted-foreground">
                     Scroll for older notifications
                   </div>

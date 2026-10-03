@@ -1,5 +1,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ResidentSettings from "./settings/ResidentSettings";
 import NotificationModal from "./notifications/NotificationModal";
@@ -8,19 +9,22 @@ import ReviewModal from "./waste-reporting/ReviewModal";
 import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import type { ReportFormData } from "./waste-reporting/types";
 
-const mocks = vi.hoisted(() => ({ announcement: { id: "notice-1", title: "Collection update", body: "Collection starts at 7 AM.", type: "GENERAL", created_at: "2026-09-28 00:00:00" }, announcementState: "success" as "success" | "loading" | "error", refetch: vi.fn(), markRead: vi.fn().mockResolvedValue(undefined) }));
+const mocks = vi.hoisted(() => ({ announcement: { id: "notice-1", title: "Collection update", body: "Collection starts at 7 AM.", type: "GENERAL", created_at: "2026-09-28 00:00:00" }, announcementState: "success" as "success" | "loading" | "error", errorStatus: null as number | null, refetch: vi.fn(), markRead: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/residentQuery", () => ({
-  useResidentQuery: (domain: string) => ({ data: domain === "announcements" && mocks.announcementState === "success" ? mocks.announcement : undefined, isLoading: mocks.announcementState === "loading", isFetching: mocks.announcementState === "loading", isError: mocks.announcementState === "error", isSuccess: mocks.announcementState === "success", error: mocks.announcementState === "error" ? new Error("Offline") : null, refetch: mocks.refetch }),
+  useResidentQuery: (domain: string) => ({ data: domain === "announcements" && mocks.announcementState === "success" ? mocks.announcement : undefined, isLoading: mocks.announcementState === "loading", isFetching: mocks.announcementState === "loading", isError: mocks.announcementState === "error", isSuccess: mocks.announcementState === "success", error: mocks.announcementState === "error" ? (mocks.errorStatus ? { response: { status: mocks.errorStatus } } : new Error("Offline")) : null, refetch: mocks.refetch }),
   useResidentMutation: () => mocks.markRead,
 }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 let host: HTMLDivElement; let root: Root;
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); mocks.announcementState = "success"; host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
+  vi.clearAllMocks(); mocks.announcementState = "success"; mocks.errorStatus = null; host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); });
-const click = async (name: string) => { await act(async () => [...document.querySelectorAll("button")].find(b => b.textContent?.trim() === name || b.getAttribute("aria-label") === name)!.click()); };
+const click = async (name: string) => {
+  const scope = name === "Close" ? within(document.querySelector<HTMLElement>(".gw-modal-footer")!) : screen;
+  await act(async () => scope.getByRole("button", { name }).click());
+};
 
 it.each([
   ["Privacy Policy", "Privacy Policy", "Personal Information Collected"],
@@ -66,6 +70,31 @@ it("shows announcement loading and failure honestly, then retries without markin
   expect(mocks.markRead).toHaveBeenCalledWith("notice-1");
 });
 
+it("does not display an unverified announcement preview while details are pending, and marks its notification only once", async () => {
+  mocks.announcementState = "loading";
+  const onMarkRead = vi.fn().mockResolvedValue(undefined);
+  const onOpenChange = vi.fn();
+  await act(async () => root.render(<ResidentAnnouncementModal open onOpenChange={onOpenChange} announcementId="notice-1"
+    notification={{ id: "notification-1", user_id: "resident", type: "ANNOUNCEMENT", title: "Old preview", body: "Unverified body", is_read: false, ref_module: "announcements", ref_id: "notice-1", created_at: "2026-09-28 00:00:00" }} onMarkRead={onMarkRead} />));
+  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Loading announcement");
+  expect(document.querySelector('[role="dialog"]')).not.toHaveTextContent("Unverified body");
+  expect(onMarkRead).toHaveBeenCalledExactlyOnceWith("notification-1");
+  await click("Close");
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(onMarkRead).toHaveBeenCalledOnce();
+});
+
+it.each([403, 404])("closes an unavailable announcement (%s) and refreshes notification history", async (status) => {
+  mocks.announcementState = "error";
+  mocks.errorStatus = status;
+  const onOpenChange = vi.fn();
+  const onUnavailable = vi.fn();
+  await act(async () => root.render(<ResidentAnnouncementModal open onOpenChange={onOpenChange} announcementId="notice-1" onUnavailable={onUnavailable} />));
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(onUnavailable).toHaveBeenCalledOnce();
+  expect(mocks.markRead).not.toHaveBeenCalled();
+});
+
 it("keeps the admin announcement preview available without fetching or read tracking", async () => {
   mocks.announcementState = "loading";
   await act(async () => root.render(<ResidentAnnouncementModal open onOpenChange={() => {}} announcementId="notice-1" initialAnnouncement={mocks.announcement} disableReadTracking headerTitle="Resident Notice Preview" />));
@@ -80,14 +109,15 @@ it("returns to editing a report or submits it only through the selected action",
   const onOpenChange = vi.fn(); const onSubmit = vi.fn();
   await act(async () => root.render(<ReviewModal open onOpenChange={onOpenChange} onSubmit={onSubmit} form={report} />));
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Waste blocking road");
-  await click("Back & Edit"); expect(onOpenChange).toHaveBeenCalledWith(false); expect(onSubmit).not.toHaveBeenCalled();
-  await click("Confirm & Submit"); expect(onSubmit).toHaveBeenCalledOnce();
+  await click("Back"); expect(onOpenChange).toHaveBeenCalledWith(false); expect(onSubmit).not.toHaveBeenCalled();
+  await click("Submit report"); expect(onSubmit).toHaveBeenCalledOnce();
 });
 it("prevents report review dismissal or duplicate submission while uploading", async () => {
   const onOpenChange = vi.fn(); const onSubmit = vi.fn();
   await act(async () => root.render(<ReviewModal open onOpenChange={onOpenChange} onSubmit={onSubmit} form={report} isSubmitting submissionStage="uploading" uploadProgress={50} />));
   await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-  expect(onOpenChange).not.toHaveBeenCalled(); expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Uploading photos… 50%");
+  expect(onOpenChange).not.toHaveBeenCalled(); expect(screen.getByRole("button", { name: "Uploading photos…" })).toBeDisabled();
+  expect(document.querySelector('[role="dialog"]')).not.toHaveTextContent("50%");
   expect([...document.querySelectorAll('[role="dialog"] button')].every(b => (b as HTMLButtonElement).disabled || b.textContent === "Close")).toBe(true);
   expect(onSubmit).not.toHaveBeenCalled();
 });

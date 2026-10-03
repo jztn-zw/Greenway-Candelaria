@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import {
   Megaphone,
@@ -36,6 +37,7 @@ interface ResidentAnnouncementModalProps {
   initialAnnouncement?: AnnouncementDetail | null;
   notification?: NotificationRow | null;
   onMarkRead?: (id: string) => void;
+  onUnavailable?: () => void;
   disableReadTracking?: boolean;
   headerTitle?: string;
   headerDescription?: string;
@@ -171,6 +173,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   initialAnnouncement,
   notification,
   onMarkRead,
+  onUnavailable,
   disableReadTracking = false,
   headerTitle = "Announcement",
   headerDescription = "MENRO Candelaria Official Notice",
@@ -179,7 +182,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
 }) => {
   const targetId = announcementId || (notification?.ref_module === "announcements" ? notification.ref_id : null);
   const query = useResidentQuery("announcements", ["detail", targetId], () => fetchAnnouncementById(targetId!),
-    { enabled: open && !!targetId && !disableReadTracking });
+    { enabled: open && !!targetId && !disableReadTracking, staleTime: 0 });
   const displayAnnouncement = (query.data as unknown as AnnouncementDetail | undefined) ?? (initialAnnouncement?.id === targetId ? initialAnnouncement : null);
   const markRead = useResidentMutation(markAnnouncementAsRead);
   const readId = useRef<string | null>(null);
@@ -187,7 +190,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   useEffect(() => {
     if (!open) { readId.current = null; notificationReadId.current = null; return; }
     if (disableReadTracking) return;
-    if (targetId && query.isSuccess && readId.current !== targetId) {
+    if (targetId && query.isSuccess && !query.isFetching && readId.current !== targetId) {
       readId.current = targetId;
       void markRead(targetId).catch(() => { readId.current = null; });
     }
@@ -195,14 +198,15 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
       notificationReadId.current = notification.id;
       onMarkRead(notification.id);
     }
-  }, [open, targetId, disableReadTracking, markRead, notification, onMarkRead, query.isSuccess]);
+  }, [open, targetId, disableReadTracking, markRead, notification, onMarkRead, query.isSuccess, query.isFetching]);
   useEffect(() => {
     const status = (query.error as { response?: { status?: number } } | null)?.response?.status;
-    if (open && (status === 403 || status === 404)) {
+    if (open && !disableReadTracking && (status === 403 || status === 404)) {
       toast.info("This announcement is no longer available.");
       onOpenChange(false);
+      onUnavailable?.();
     }
-  }, [query.error, open, onOpenChange]);
+  }, [query.error, open, disableReadTracking, onOpenChange, onUnavailable]);
 
   if (!open) return null;
 
@@ -218,6 +222,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   const hasLoadedDetails = Boolean(displayAnnouncement && displayAnnouncement.id === targetId);
   const loadingDetails = !disableReadTracking && !hasLoadedDetails && query.isLoading;
   const detailsError = !disableReadTracking && query.isError;
+  const showContent = hasLoadedDetails || !targetId;
   const mappedType = hasLoadedDetails
     ? mapToAnnouncementType(displayAnnouncement?.type)
     : null;
@@ -228,9 +233,6 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   const iconText = activeCategory?.iconText || "text-primary";
 
   const handleClose = () => {
-    if (!disableReadTracking && notification && !notification.is_read && onMarkRead) {
-      onMarkRead(notification.id);
-    }
     onOpenChange(false);
   };
 
@@ -240,10 +242,19 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
         <FormDialogHeader title={headerTitle} description={headerDescription} icon={<CategoryIcon className={iconText} />} onClose={handleClose} />
         {/* Modal Body */}
         <div className={modalStyles.body}>
-          {loadingDetails && <p role="status" className="text-xs text-muted-foreground">Loading announcement…</p>}
+          {loadingDetails && <div role="status" aria-label="Loading announcement" aria-busy="true" className="space-y-3">
+            <span className="sr-only">Loading announcement…</span>
+            <div aria-hidden="true" className="space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-32" />
+              <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3.5">
+                <Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" />
+              </div>
+            </div>
+          </div>}
           {detailsError && <DataRefreshNotice primary role={hasLoadedDetails ? "status" : "alert"} message={hasLoadedDetails ? "Couldn't refresh this announcement. Showing the last loaded details, which may be outdated." : "Announcement details could not be loaded. Please try again."} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* Title, Category & Date Lockup (No container) */}
-          <div className="space-y-1">
+          {showContent && <><div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">
                 {title}
@@ -278,6 +289,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
           {(body || (!loadingDetails && !detailsError)) && <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">
             {body || "No additional details or instructions provided."}
           </div>}
+          </>}
         </div>
 
         {footerDetails && (

@@ -7,7 +7,7 @@ import { useResidentFetch } from "@/lib/residentQuery";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Clock,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,10 +43,7 @@ import { formatRelativeTime } from "@/utils/date";
 import NotificationModal from "./NotificationModal";
 import type { NotificationType, ResidentNotification } from "./types";
 import ResidentAnnouncementModal from "../announcements/ResidentAnnouncementModal";
-import type { AnnouncementDetail } from "../announcements/ResidentAnnouncementModal";
-import { fetchAnnouncementById } from "@/services/announcementsService";
 import { fetchLiveTrucks, fetchTodayRoutes } from "@/services/trackingService";
-import { toast } from "@/lib/toast";
 import {
   NotificationsPageSkeleton,
 } from "@/components/PageLoadingSkeletons";
@@ -236,9 +234,12 @@ const ResidentNotifications = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<{
     id?: string | null;
     notification?: NotificationRow | null;
-    detail?: AnnouncementDetail | null;
   } | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [checkingNotificationId, setCheckingNotificationId] = useState<string | null>(null);
+  const clickSequence = useRef(0);
+
+  useEffect(() => () => { clickSequence.current += 1; }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -248,27 +249,10 @@ const ResidentNotifications = () => {
       const match = notifications.find(
         (n) => n.ref_id === announcementParam || n.id === announcementParam
       );
-      let cancelled = false;
-      void (async () => {
-        try {
-          const detail = await fetchResident("announcements", ["detail", announcementParam], () => fetchAnnouncementById(announcementParam));
-          if (!cancelled) {
-            setSelectedAnnouncement({
-              id: announcementParam,
-              notification: match || null,
-              detail: detail as AnnouncementDetail,
-            });
-            setAnnouncementModalOpen(true);
-          }
-        } catch {
-          if (!cancelled) toast.info("This announcement is no longer available.");
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
+      setSelectedAnnouncement({ id: announcementParam, notification: match || null });
+      setAnnouncementModalOpen(true);
     }
-  }, [announcementParam, notifications, fetchResident]);
+  }, [announcementParam, notifications]);
 
   const handleAnnouncementModalChange = (open: boolean) => {
     setAnnouncementModalOpen(open);
@@ -299,8 +283,13 @@ const ResidentNotifications = () => {
   );
 
   const handleClick = async (n: NotificationRow) => {
-    if (!n.is_read) {
-      await markAsRead(n.id);
+    const sequence = ++clickSequence.current;
+    setCheckingNotificationId(null);
+    const isAnnouncement = n.type === "ANNOUNCEMENT" || n.ref_module === "announcements";
+    // Opening details does not depend on the background read receipt. The
+    // announcement modal owns its own notification read tracking.
+    if (!n.is_read && !isAnnouncement) {
+      void markAsRead(n.id);
     }
 
     const openNotificationDetails = () => {
@@ -321,48 +310,42 @@ const ResidentNotifications = () => {
     } else if (n.ref_module === "reports" && n.ref_id) {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
-      if (await isActiveTruckNearAlert(n, fetchResident)) {
+      setCheckingNotificationId(n.id);
+      const isActive = await isActiveTruckNearAlert(n, fetchResident);
+      // A slower check must not override a newer click or navigate after leaving.
+      if (sequence !== clickSequence.current) return;
+      setCheckingNotificationId(null);
+      if (isActive) {
         navigate("/resident/tracking");
       } else {
         openNotificationDetails();
       }
     } else if (n.type === "COLLECTION_REMINDER") {
       openNotificationDetails();
-    } else if (n.type === "ANNOUNCEMENT" || n.ref_module === "announcements") {
-      // Check availability before opening the modal. Expired announcements are
-      // intentionally unavailable to residents, so show only a clear message.
-      if (n.ref_id) {
-        try {
-          const detail = await fetchResident("announcements", ["detail", n.ref_id], () => fetchAnnouncementById(n.ref_id!));
-          setSelectedAnnouncement({
-            id: n.ref_id,
-            notification: n,
-            detail: detail as AnnouncementDetail,
-          });
-          setAnnouncementModalOpen(true);
-        } catch {
-          toast.info("This announcement is no longer available.");
-          void fetchNotifications();
-          return;
-        }
-        return;
-      }
-
+    } else if (isAnnouncement) {
       setSelectedAnnouncement({
-        id: n.ref_id || n.id,
+        id: n.ref_id,
         notification: n,
-        detail: null,
       });
       setAnnouncementModalOpen(true);
-    } else if (n.type === "SYSTEM" || n.type === "MISSED_COLLECTION") {
+    } else {
       openNotificationDetails();
     }
   };
 
+  const announcementModal = <ResidentAnnouncementModal
+    open={announcementModalOpen}
+    onOpenChange={handleAnnouncementModalChange}
+    announcementId={selectedAnnouncement?.id}
+    notification={selectedAnnouncement?.notification}
+    onMarkRead={markAsRead}
+    onUnavailable={() => void fetchNotifications()}
+  />;
+
   if (isLoading && notifications.length === 0) {
-    return <NotificationsPageSkeleton role="resident" />;
+    return <><NotificationsPageSkeleton role="resident" />{announcementModal}</>;
   }
-  if (notificationsError && !hasLoadedData) return <PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications()} retrying={isRefreshing} homeHref="/resident" />;
+  if (notificationsError && !hasLoadedData) return <><PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications()} retrying={isRefreshing} homeHref="/resident" />{announcementModal}</>;
 
   return (
     <div className={notificationStyles.page}>
@@ -464,6 +447,8 @@ const ResidentNotifications = () => {
                 key={n.id}
                 type="button"
                 onClick={() => handleClick(n)}
+                aria-busy={checkingNotificationId === n.id}
+                disabled={checkingNotificationId === n.id}
                 className={`${notificationStyles.row} ${
                   isUnread ? "border-l-primary bg-primary/[0.04]" : "border-l-transparent"
                 }`}
@@ -508,7 +493,10 @@ const ResidentNotifications = () => {
                 </div>
 
                 <div className={notificationStyles.trailing}>
-                  <ChevronRight className="size-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" aria-hidden="true" />
+                  {checkingNotificationId === n.id ? <>
+                    <Loader2 className="size-3.5 animate-spin text-primary" aria-hidden="true" />
+                    <span role="status" className="sr-only">Checking live truck status…</span>
+                  </> : <ChevronRight className="size-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" aria-hidden="true" />}
                 </div>
               </button>
             );
@@ -542,14 +530,7 @@ const ResidentNotifications = () => {
           try { await clearAll(); setCurrentPage(1); setConfirmClear(false); }
           finally { setIsClearing(false); }
         }} />
-      <ResidentAnnouncementModal
-        open={announcementModalOpen}
-        onOpenChange={handleAnnouncementModalChange}
-        announcementId={selectedAnnouncement?.id}
-        initialAnnouncement={selectedAnnouncement?.detail}
-        notification={selectedAnnouncement?.notification}
-        onMarkRead={markAsRead}
-      />
+      {announcementModal}
 
       {/* ── Modal for Generic & System Details ── */}
       {modalNotification && (
