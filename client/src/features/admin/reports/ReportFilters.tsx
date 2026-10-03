@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,7 +9,6 @@ DialogHeader,
 DialogTitle,
 DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { fetchBarangays } from "@/services/barangaysService";
 import type { AdminReportsKPIs } from "@/services/reportsService";
 import { format } from "date-fns";
-import { ArrowUpDown, Calendar as CalendarIcon, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, Calendar as CalendarIcon, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { ReportStatus, ViolationType } from "./types";
 
@@ -123,25 +123,12 @@ const ReportFilters = ({
 
         {/* Search Input + Mobile Filter Sheet Trigger */}
         <div className="flex items-center gap-2 w-full xl:w-auto">
-          <div className="relative flex-1 xl:w-[330px] shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search reference, resident, or description..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 pr-9 h-10 bg-background border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary w-full"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => onSearchChange("")}
-                className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            placeholder="Search reference, resident, or description..."
+            value={search}
+            onChange={onSearchChange}
+            containerClassName="flex-1 xl:w-[330px] shrink-0"
+          />
 
           {/* Filter Modal Trigger (Visible on screens below xl:) */}
           <div className="xl:hidden shrink-0">

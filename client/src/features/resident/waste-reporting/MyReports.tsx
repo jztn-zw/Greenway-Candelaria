@@ -1,8 +1,13 @@
+import { SearchInput } from "@/components/common/SearchInput";
+import { BackButton } from "@/components/common/BackButton";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { myReportsStyles } from "./myReportsStyles";
+import { reportDetailStyles } from "./reportDetailStyles";
 import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
 import {
   useState,
@@ -10,7 +15,6 @@ import {
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -20,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Search,
   ChevronRight,
   Clock,
   FileText,
@@ -33,7 +36,6 @@ import {
   SortAsc,
   Loader2,
   Trash2,
-  X,
   Plus,
   Copy,
   Check,
@@ -209,7 +211,7 @@ const MyReports = () => {
   };
 
   if (reportParam && isLoadingDetail) {
-    return <MyReportDetailSkeleton preview={reports.find((report) => report.id === reportParam)} />;
+    return <MyReportDetailSkeleton onBack={closeDetail} preview={reports.find((report) => report.id === reportParam)} />;
   }
 
   if (reportParam && detailError && !selectedReport) return (
@@ -224,6 +226,7 @@ const MyReports = () => {
       {detailError && <DataRefreshNotice message="Couldn't refresh this report. Showing the last loaded details, which may be outdated." onRetry={() => void detailQuery.refetch()} retrying={detailQuery.isFetching} />}
       <ReportDetail
         report={selectedReport}
+        onBack={closeDetail}
         isLoading={isLoadingDetail}
         onCancelReport={handleCancelReport}
         onResubmit={() => {
@@ -250,78 +253,59 @@ const MyReports = () => {
   // ─── Main list view ────────────────────────────────────────
 
   return (
-    <div className="space-y-4 md:space-y-5 lg:space-y-6">
+    <div className={myReportsStyles.page}>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
-        <div className="hidden md:block">
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            My Reports
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            View and track your submitted waste violation reports.
-          </p>
-        </div>
-
+      <ResidentPageHeader title="My reports" description="Track your waste reports and updates from MENRO."
+        actionsClassName={myReportsStyles.headerActions}
+        actions={
         <Button
           onClick={() => navigate("/resident/report")}
-          className="h-10 w-full shrink-0 rounded-xl text-xs font-semibold gap-1.5 shadow-xs transition-all cursor-pointer md:w-auto md:px-4 lg:text-sm"
+          className={myReportsStyles.createButton}
         >
           <Plus className="w-4 h-4" />
-          <span>Submit New Report</span>
+          <span className="min-w-0 truncate">Submit report</span>
         </Button>
-      </div>
+        }
+      />
+
+      <div className="space-y-4">
 
       {/* ── Search & Filter Toolbar ── */}
       <div className="space-y-3">
         {/* Full-width Search Bar */}
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by reference number or description…"
-            className="pl-10 h-10 bg-card border-border/80 rounded-xl text-xs lg:text-sm shadow-2xs focus-visible:ring-foreground/20"
-          />
-          {isListLoading && search !== "" ? (
-            <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
-          ) : search ? (
-            <button
-              type="button"
-              onClick={() => handleSearchChange("")}
-              className="gw-action-ghost absolute right-3.5 top-1/2 -translate-y-1/2 p-1 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          ) : null}
-        </div>
+        <SearchInput
+          aria-label="Search reports"
+          placeholder="Search by reference number or description…"
+          value={search}
+          onChange={handleSearchChange}
+          containerClassName="w-full"
+          loading={isListLoading && search !== ""}
+        />
 
         {/* Filter Chips on Left + Sort Dropdown on Right (Single Aligned Row) */}
-        <div className="flex items-center justify-between gap-2.5">
+        <div className={myReportsStyles.filterRow}>
           {/* Status filters */}
           <FilterPillTabs<ReportFilterTab>
             items={REPORT_FILTER_ITEMS}
             activeId={activeTab}
             onChange={handleTabChange}
             ariaLabel="Report status filters"
-            className="flex-1 pr-2"
+            className="w-full pb-0"
           />
 
           {/* Sort Select */}
-          <div className="shrink-0">
+          <div className={myReportsStyles.sort}>
             <Select
               value={sortBy}
               onValueChange={(v) => handleSortChange(v as ReportSortOption)}
             >
               <SelectTrigger
                 aria-label="Sort reports"
-                className="h-9 w-9 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden md:w-auto md:min-w-[125px] md:justify-between md:px-3.5 md:[&>svg]:block"
+                className={myReportsStyles.sortTrigger}
               >
-                <div className="flex md:hidden">
-                  <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-                <div className="hidden items-center gap-1 md:flex">
-                  <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium text-foreground">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <SortAsc className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="my-reports-sort-label font-medium text-foreground">
                     {sortBy === "newest" ? "Newest" : "Oldest"}
                   </span>
                 </div>
@@ -343,7 +327,7 @@ const MyReports = () => {
         <MyReportsListSkeleton />
       ) : reports.length === 0 ? (
         <Card className="border border-border">
-          <CardContent className="py-16 text-center">
+          <CardContent className="px-4 py-12 text-center">
             <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
               <FileText className="w-6 h-6 text-muted-foreground" />
             </div>
@@ -363,7 +347,7 @@ const MyReports = () => {
                     setActiveTab("all");
                     setPage(1);
                   }}
-                  className="mt-4 rounded-xl gap-2"
+                  className="mt-4 h-9 max-w-full gap-1.5 text-xs"
                 >
                   Clear Filters
                 </Button>
@@ -379,31 +363,33 @@ const MyReports = () => {
                 <Button
                   onClick={() => navigate("/resident/report")}
                   size="sm"
-                  className="mt-4 rounded-xl"
+                  className="mt-4 h-9 max-w-full text-xs"
                 >
-                  Submit Your First Report
+                  Submit report
                 </Button>
               </>
             )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className={myReportsStyles.list}>
           {reports.map((report) => {
             const statusConf = REPORT_STATUS_CONFIG[report.status];
             const vStyle = getViolationStyle(report.violationType);
             const previewText = cleanDescriptionPreview(report.description);
             return (
-              <div
+              <button
                 key={report.id}
+                type="button"
+                aria-label={`View report ${report.referenceNumber}`}
                 onClick={() => openDetail(report)}
-                className="group space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs transition-all duration-300 cursor-pointer select-none hover:border-primary/30 md:space-y-3 md:p-4.5 lg:p-5"
+                className={myReportsStyles.card}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5">
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors shadow-2xs",
+                        myReportsStyles.icon,
                         vStyle.bg,
                         vStyle.border,
                         vStyle.text,
@@ -411,19 +397,19 @@ const MyReports = () => {
                     >
                       {getViolationIcon(report.violationType)}
                     </div>
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm lg:text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                        <span className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           {getViolationLabel(report.violationType)}
                         </span>
-                        <span
+                        <Badge variant="outline"
                           className={cn(
-                            "text-ui-overline font-bold px-2 py-0.5 rounded-md border shadow-2xs inline-flex items-center shrink-0",
+                            "shrink-0 text-[10px] font-semibold leading-4",
                             statusConf.className,
                           )}
                         >
                           {statusConf.label}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <MapPin className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
@@ -436,13 +422,13 @@ const MyReports = () => {
                   </div>
 
                   <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors shrink-0 pt-0.5">
-                    <span className="hidden md:inline text-xs">View</span>
+                    <span className="my-reports-view-label text-xs">View</span>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
 
                 {previewText && (
-                  <p className="hidden break-words text-xs font-normal leading-relaxed text-muted-foreground line-clamp-2 lg:block">
+                  <p className={myReportsStyles.preview}>
                     {previewText}
                   </p>
                 )}
@@ -461,13 +447,13 @@ const MyReports = () => {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground lg:gap-2.5 lg:pt-1">
-                  <div className="flex flex-wrap items-center gap-2 lg:gap-2.5">
-                    <span className="tabular-nums font-semibold text-foreground/90 bg-muted/60 border border-border/70 px-2.5 py-0.5 rounded-lg text-ui-caption">
+                <div className={myReportsStyles.footer}>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="max-w-full break-words [overflow-wrap:anywhere] tabular-nums font-medium text-foreground/90">
                       {report.referenceNumber}
                     </span>
-                    <span className="flex items-center gap-1 font-medium text-xs">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
+                    <span className="flex items-center gap-1 whitespace-nowrap">
+                      <Clock className="size-3 shrink-0 text-muted-foreground/70" aria-hidden="true" />
                       {report.submittedAt.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -478,13 +464,13 @@ const MyReports = () => {
                   </div>
 
                   {report.photoCount > 0 && (
-                    <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground md:flex">
+                    <span className="my-reports-photo-count shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
                       <Camera className="w-3.5 h-3.5 text-muted-foreground/70" />
                       {report.photoCount} photo{report.photoCount !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -494,6 +480,7 @@ const MyReports = () => {
       {!isListLoading && totalPages > 1 && (
         <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={setPage} variant="floating" />
       )}
+      </div>
       </div>
     </div>
   );
@@ -558,11 +545,13 @@ const parseReportDescription = (rawDesc: string): DescriptionBlock[] => {
 
 const ReportDetail = ({
   report,
+  onBack,
   isLoading,
   onCancelReport,
   onResubmit,
 }: {
   report: SubmittedReport;
+  onBack: () => void;
   isLoading: boolean;
   onCancelReport?: (id: string) => Promise<void>;
   onResubmit: () => void;
@@ -600,7 +589,8 @@ const ReportDetail = ({
   const descriptionItems = parseReportDescription(report.description);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-0 pb-4 md:space-y-4 md:pb-6 lg:space-y-5 lg:pb-8">
+    <div className={reportDetailStyles.page}>
+      <div className="pb-3 md:pb-0"><BackButton onBack={onBack} label="Back to My Reports" className="mb-0" /></div>
       {isLoading && (
           <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -609,22 +599,22 @@ const ReportDetail = ({
       )}
 
       {/* Unified Main Card */}
-      <div className="divide-y divide-border/60 md:overflow-hidden md:rounded-2xl md:border md:border-border/80 md:bg-card md:shadow-2xs">
+      <div className={reportDetailStyles.card}>
         {/* Section 1: Header / Executive Overview */}
-        <div className="space-y-2.5 py-4 md:space-y-3 md:p-5 lg:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
+        <div className={reportDetailStyles.headerSection}>
+          <div className={reportDetailStyles.header}>
+            <div className={reportDetailStyles.referenceGroup}>
               <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Reference Number
               </span>
-              <div className="flex items-center gap-2">
-                <h2 className="gw-heading text-lg tabular-nums tracking-tight text-foreground lg:text-2xl">
+              <div className={reportDetailStyles.referenceRow}>
+                <h2 className={reportDetailStyles.reference}>
                   {report.referenceNumber}
                 </h2>
                 <button
                   type="button"
                   onClick={() => handleCopyReference(report.referenceNumber)}
-                  className="gw-action-ghost inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors cursor-pointer border"
+                  className={reportDetailStyles.copy}
                   title="Copy reference number"
                   aria-label="Copy reference number"
                 >
@@ -648,9 +638,10 @@ const ReportDetail = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-ui-caption text-muted-foreground lg:gap-4 lg:text-xs">
-            <span className="flex items-center gap-1.5 font-medium">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
+          <div className={reportDetailStyles.submitted}>
+            <span className="flex min-w-0 items-start gap-1.5 font-medium">
+              <Clock className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/80" aria-hidden="true" />
+              <span className="min-w-0 break-words">
               Submitted on{" "}
               {report.submittedAt.toLocaleDateString("en-US", {
                 month: "long",
@@ -664,22 +655,23 @@ const ReportDetail = ({
                 minute: "2-digit",
                 timeZone: "Asia/Manila",
               })}
+              </span>
             </span>
           </div>
         </div>
 
         {/* Section 2: Violation & Location Summary */}
-        <div className="space-y-3.5 py-4 md:space-y-4 md:p-5 lg:p-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+        <div className={reportDetailStyles.section}>
+          <div className={reportDetailStyles.summary}>
             {/* Violation Details */}
             <div className="space-y-1.5">
               <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Violation Type
               </span>
-              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
+              <div className={`${reportDetailStyles.summaryCard} transition-colors hover:border-border`}>
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs",
+                    reportDetailStyles.summaryIcon,
                     vStyle.bg,
                     vStyle.border,
                     vStyle.text,
@@ -692,7 +684,7 @@ const ReportDetail = ({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-foreground">
+                  <p className="break-words text-sm font-bold text-foreground [overflow-wrap:anywhere]">
                     {violation?.label ?? report.violationType}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
@@ -707,15 +699,15 @@ const ReportDetail = ({
               <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Reported Location
               </span>
-              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 transition-colors hover:border-border lg:gap-3.5 lg:p-4">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary shadow-2xs">
+              <div className={`${reportDetailStyles.summaryCard} transition-colors hover:border-border`}>
+                <div className={`${reportDetailStyles.summaryIcon} bg-primary/10 border-primary/20 text-primary`}>
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-foreground">
+                  <p className="break-words text-sm font-bold text-foreground [overflow-wrap:anywhere]">
                     {report.barangayName}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="break-words text-xs text-muted-foreground mt-0.5 [overflow-wrap:anywhere]">
                     {report.streetOrLandmark || "No specific street or landmark specified"}
                   </p>
                 </div>
@@ -728,7 +720,7 @@ const ReportDetail = ({
             <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
               Incident Description
             </span>
-            <div className="max-h-56 overflow-y-auto rounded-xl border border-border/70 bg-muted/30 p-3 text-xs leading-relaxed text-foreground/90 dark:bg-muted/20 md:p-4 md:text-sm">
+            <div className={reportDetailStyles.description}>
               {descriptionItems.map((item, idx) =>
                 item.question && item.answer ? (
                   <div
@@ -754,8 +746,8 @@ const ReportDetail = ({
 
         {/* Section 3: Photo Evidence (if any) */}
         {report.photos && report.photos.length > 0 && (
-          <div className="space-y-2.5 py-4 md:p-5 lg:p-6">
-            <div className="flex items-center justify-between">
+          <div className={reportDetailStyles.photosSection}>
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
               <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
                 Photo Evidence
               </span>
@@ -763,15 +755,16 @@ const ReportDetail = ({
                 {report.photos.length} photo{report.photos.length !== 1 ? "s" : ""} attached
               </span>
             </div>
-            <div className="flex items-start gap-3 overflow-x-auto pb-1">
+            <div className={reportDetailStyles.photos}>
               {report.photos.map((url, i) => (
                 <a
                   key={i}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs transition-all hover:border-primary/40 md:size-16 lg:size-20"
+                  className={`${reportDetailStyles.photo} group shadow-2xs transition-all hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset`}
                   title="View full image in new tab"
+                  aria-label={`View evidence photo ${i + 1} in a new tab`}
                 >
                   <img
                     src={url}
@@ -790,7 +783,7 @@ const ReportDetail = ({
         )}
 
         {/* Section 4: Resolution / Progress Stepper & Timeline */}
-        <div className="space-y-4 py-4 md:space-y-4 md:p-5 lg:space-y-5 lg:p-6">
+        <div className={reportDetailStyles.progressSection}>
           <div>
             <span className="text-ui-caption uppercase tracking-wider font-bold text-muted-foreground">
               Review & Dispatch Status
@@ -808,7 +801,7 @@ const ReportDetail = ({
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-4 text-center">
+              <div className={reportDetailStyles.progressLabels}>
                 {["Submitted", "Under Review", "Dispatched", "Resolved"].map((label, idx) => (
                   <span
                     key={label}
@@ -848,8 +841,8 @@ const ReportDetail = ({
                         <div className="w-px flex-1 bg-border/80 my-1" />
                       )}
                     </div>
-                    <div className="pb-3.5 min-w-0">
-                      <p className="text-xs font-semibold text-foreground">
+                    <div className={reportDetailStyles.milestone}>
+                      <p className="break-words text-xs font-semibold text-foreground [overflow-wrap:anywhere]">
                         {entry.label}
                       </p>
                       <p className="text-ui-overline text-muted-foreground mt-0.5">
@@ -876,14 +869,14 @@ const ReportDetail = ({
 
         {/* Section 5: Official MENRO Remarks (if present) */}
         {report.adminResponse && (
-          <div className="space-y-2 border-t border-border/60 bg-muted/20 py-4 md:p-5 lg:p-6">
+          <div className={reportDetailStyles.responseSection}>
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
               <span className="text-ui-caption uppercase tracking-wider font-bold text-foreground">
                 MENRO Official Response
               </span>
             </div>
-            <p className="text-sm text-foreground/90 leading-relaxed bg-card p-3.5 rounded-xl border border-border/70 shadow-2xs">
+            <p className={reportDetailStyles.response}>
               {report.adminResponse}
             </p>
           </div>
@@ -891,23 +884,23 @@ const ReportDetail = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-3 pt-3 lg:pt-2">
+      <div className={reportDetailStyles.actions}>
         {report.status === "submitted" && onCancelReport && (
           <button
             type="button"
             onClick={() => setShowCancelModal(true)}
             disabled={isCancelling}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-destructive/5 hover:border-destructive/25 transition-all duration-200 group cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${reportDetailStyles.action} hover:bg-destructive/5 hover:border-destructive/25 transition-all duration-200 group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-muted/70 border border-border/70 flex items-center justify-center text-muted-foreground group-hover:bg-destructive/10 group-hover:text-destructive group-hover:border-destructive/20 transition-colors shrink-0">
+              <div className={`${reportDetailStyles.actionIcon} group-hover:bg-destructive/10 group-hover:text-destructive group-hover:border-destructive/20 transition-colors`}>
                 <Trash2 className="w-4 h-4" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block font-bold text-foreground group-hover:text-destructive transition-colors text-sm">
+                <span className={`${reportDetailStyles.actionTitle} group-hover:text-destructive transition-colors`}>
                   Cancel & Withdraw Report
                 </span>
-                <span className="block text-xs text-muted-foreground font-normal">
+                <span className={reportDetailStyles.actionDescription}>
                   Remove this submission from MENRO's review queue
                 </span>
               </div>
@@ -920,17 +913,17 @@ const ReportDetail = ({
           <button
             type="button"
             onClick={onResubmit}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-[var(--button-neutral-hover)] hover:border-foreground/20 transition-all duration-200 group cursor-pointer shadow-2xs"
+            className={`${reportDetailStyles.action} hover:bg-[var(--button-neutral-hover)] hover:border-foreground/20 transition-all duration-200 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-muted/70 border border-border/70 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
+              <div className={`${reportDetailStyles.actionIcon} group-hover:text-foreground transition-colors`}>
                 <RefreshCw className="w-4 h-4" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block font-bold text-foreground group-hover:text-foreground transition-colors text-sm">
+                <span className={`${reportDetailStyles.actionTitle} group-hover:text-foreground transition-colors`}>
                   Report This Issue Again
                 </span>
-                <span className="block text-xs text-muted-foreground font-normal">
+                <span className={reportDetailStyles.actionDescription}>
                   File a new report with this location and issue category
                 </span>
               </div>

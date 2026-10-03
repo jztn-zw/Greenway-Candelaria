@@ -1,15 +1,15 @@
-import { Check, RotateCcw } from "lucide-react";
+import { Check } from "lucide-react";
 import { VIOLATION_OPTIONS, type ViolationType } from "./types";
 import { cn } from "@/lib/utils";
+import { reportStyles } from "./reportStyles";
 
 interface ViolationTypeSelectorProps {
   value: ViolationType | null;
   onChange: (value: ViolationType) => void;
   showError?: boolean;
-  onClearDraft?: () => void;
 }
 
-const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraft }: ViolationTypeSelectorProps) => {
+const ViolationTypeSelector = ({ value, onChange, showError = false }: ViolationTypeSelectorProps) => {
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -21,19 +21,9 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
             Select the category that best matches the observed issue.
           </p>
         </div>
-        {onClearDraft && (
-          <button
-            type="button"
-            onClick={onClearDraft}
-            className="gw-action-destructive-outline inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1 text-ui-caption font-semibold transition-colors md:hidden"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Clear
-          </button>
-        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+      <div className={reportStyles.categories} role="group" aria-label="Type of violation">
         {VIOLATION_OPTIONS.map((option) => {
           const isSelected = value === option.value;
           const Icon = option.icon;
@@ -42,9 +32,10 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
             <button
               key={option.value}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onChange(option.value)}
               className={cn(
-                "group relative flex flex-col items-center justify-center gap-2.5 p-3.5 lg:p-4 rounded-xl border text-center transition-all duration-150 cursor-pointer select-none touch-manipulation ",
+                reportStyles.category,
                 isSelected
                   ? "border-primary bg-primary/10 text-primary shadow-2xs ring-1 ring-primary/25"
                   : showError
@@ -53,25 +44,25 @@ const ViolationTypeSelector = ({ value, onChange, showError = false, onClearDraf
               )}
             >
               {isSelected && (
-                <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-2xs animate-in zoom-in-75">
+                <span className="absolute top-1 right-1 size-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center" aria-hidden="true">
                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                 </span>
               )}
 
               <div
                 className={cn(
-                  "w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150",
+                  "size-8 shrink-0 rounded-lg flex items-center justify-center transition-colors duration-150",
                   isSelected
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "bg-muted/60 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
                 )}
               >
-                <Icon className="w-4.5 h-4.5 shrink-0" />
+                <Icon className="size-4 shrink-0" aria-hidden="true" />
               </div>
 
               <span
                 className={cn(
-                  "text-xs leading-tight transition-colors",
+                  "min-w-0 break-words text-[11px] leading-snug transition-colors",
                   isSelected ? "font-bold text-foreground" : "font-medium text-muted-foreground group-hover:text-foreground"
                 )}
               >

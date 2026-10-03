@@ -1,3 +1,4 @@
+import { navigationStyles, navigationSectionTitle } from "../navigationStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -12,7 +13,6 @@ import {
   Settings,
   UserCircle,
   ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
 import {
@@ -245,7 +245,7 @@ const ResidentSidebar = () => {
   };
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="gw-navigation-panel">
       {/* ── Logo Header ── */}
       <button
         type="button"
@@ -254,38 +254,36 @@ const ResidentSidebar = () => {
           closeMobileSidebar();
         }}
         title="Go to Resident Dashboard"
-        className="h-14 px-4 flex items-center gap-3 border-b border-border/70 shrink-0 bg-sidebar/50 text-left cursor-pointer
- group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+        className={navigationStyles.brand}
       >
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20 shadow-2xs">
+        <div className={navigationStyles.brandIcon}>
           <img src="/greenway.svg" alt="GreenWay Logo" className="w-5 h-5 object-contain" />
         </div>
 
         <div
-          className="min-w-0 overflow-hidden transition-all duration-200
- group-data-[collapsible=icon]:hidden"
+          className={navigationStyles.brandText}
         >
           <div className="flex items-center gap-1.5">
-            <span className="font-display text-ui-title font-semibold text-foreground tracking-tight leading-none">
+            <span className={navigationStyles.brandName}>
               GreenWay
             </span>
           </div>
-          <p className="text-ui-caption font-medium text-muted-foreground truncate mt-1 leading-none">
+          <p className={navigationStyles.brandCaption}>
             MENRO Candelaria
           </p>
         </div>
       </button>
 
       {/* ── Nav Groups ── */}
-      <SidebarContent className="py-3 px-2.5 flex flex-col gap-2.5 group-data-[collapsible=icon]:px-1.5 overflow-y-auto">
+      <SidebarContent className={navigationStyles.content}>
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="p-0">
-            <SidebarGroupLabel className="text-ui-overline tracking-[0.08em] text-muted-foreground/60 font-bold uppercase mb-1 px-2.5 h-auto py-0.5 group-data-[collapsible=icon]:hidden select-none">
-              {group.label}
+            <SidebarGroupLabel className={navigationStyles.sectionLabel}>
+              {navigationSectionTitle(group.label)}
             </SidebarGroupLabel>
 
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
+              <SidebarMenu className="gap-1">
                 {group.items.map((item) => {
                   const active = isActive(item.url);
                   return (
@@ -295,18 +293,18 @@ const ResidentSidebar = () => {
                         isActive={active}
                         tooltip={item.title}
                         className={cn(
-                          "relative h-9 px-2.5 rounded-xl font-medium text-xs sm:text-ui-label transition-all duration-150 select-none group",
+                          navigationStyles.item,
                           active
-                            ? "bg-primary/10 text-primary font-bold shadow-2xs border border-primary/20 hover:bg-primary/15 hover:text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60 ",
-                          "group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:rounded-xl"
+                            ? navigationStyles.activeItem
+                            : navigationStyles.inactiveItem
                         )}
                       >
                         <NavLink
+                          aria-label={item.title}
                           to={item.url}
                           end={item.url === "/resident"}
                           onClick={closeMobileSidebar}
-                          className="flex w-full h-full items-center gap-2.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                          className={navigationStyles.link}
                           activeClassName=""
                         >
                           <div className="relative flex items-center justify-center shrink-0">
@@ -324,7 +322,7 @@ const ResidentSidebar = () => {
                             )}
                           </div>
 
-                          <span className="truncate flex-1 tracking-tight group-data-[collapsible=icon]:hidden">
+                          <span className={navigationStyles.itemLabel}>
                             {item.title}
                           </span>
 
@@ -346,15 +344,14 @@ const ResidentSidebar = () => {
       </SidebarContent>
 
       {/* ── Footer ── */}
-      <SidebarFooter className="p-2.5 border-t border-border/60 bg-sidebar/30">
+      <SidebarFooter className={navigationStyles.footer}>
         <div
-          className="rounded-xl border border-border/80 bg-card p-2.5
- group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
+          className={navigationStyles.account}
         >
           {/* Top user profile row */}
-          <div ref={gearMenuRef} className="flex items-center gap-2.5 relative">
+          <div ref={gearMenuRef} className={navigationStyles.accountRow}>
             <div className="relative shrink-0">
-              <Avatar className="w-9 h-9 rounded-xl border border-border/80 shadow-2xs">
+              <Avatar className={navigationStyles.avatar}>
                 <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "RESIDENT"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
@@ -363,11 +360,10 @@ const ResidentSidebar = () => {
             </div>
 
             <div
-              className="flex flex-1 items-center justify-between min-w-0 overflow-hidden
- transition-all duration-200 group-data-[collapsible=icon]:hidden"
+              className={navigationStyles.accountDetails}
             >
               <div className="min-w-0 flex-1 pr-1">
-                <p className="text-xs font-semibold font-body text-foreground truncate leading-tight">
+                <p className={navigationStyles.accountName}>
                   {fullName}
                 </p>
                 <p className="text-ui-caption text-muted-foreground truncate leading-none mt-1">
@@ -378,7 +374,7 @@ const ResidentSidebar = () => {
               <button
                 type="button"
                 onClick={handleSettingsClick}
-                className="gw-action-ghost h-7 w-7 rounded-lg transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                className={navigationStyles.settings}
                 aria-label="Settings"
               >
                 <Settings
@@ -394,7 +390,7 @@ const ResidentSidebar = () => {
               <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border/80 rounded-xl shadow-md py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2">
                 <button
                   type="button"
-                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-[var(--button-neutral-hover)] transition-colors cursor-pointer"
+                  className={navigationStyles.accountMenuItem}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowGearMenu(false);
@@ -406,7 +402,7 @@ const ResidentSidebar = () => {
                 </button>
                 <button
                   type="button"
-                  className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-[var(--button-neutral-hover)] transition-colors cursor-pointer"
+                  className={navigationStyles.accountMenuItem}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowGearMenu(false);
@@ -421,15 +417,16 @@ const ResidentSidebar = () => {
           </div>
 
           {/* Divider */}
-          <div className="my-2 border-t border-border/60 group-data-[collapsible=icon]:hidden" />
+          <div className={navigationStyles.divider} />
 
           {/* Logout button row */}
           <button
+            aria-label="Sign Out"
             onClick={() => setShowLogoutModal(true)}
-            className="gw-action-destructive-ghost flex items-center gap-2 w-full h-8 px-2.5 rounded-lg text-xs transition-colors duration-150 font-semibold border-none cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:mt-1.5"
+            className={navigationStyles.signOut}
           >
-            <LogOut className="w-3.5 h-3.5 shrink-0 text-destructive" />
-            <span className="group-data-[collapsible=icon]:hidden text-xs font-bold text-destructive truncate">
+            <LogOut className="size-4 shrink-0" />
+            <span className={navigationStyles.signOutLabel}>
               Sign Out
             </span>
           </button>
@@ -445,14 +442,13 @@ const ResidentSidebar = () => {
       {/* ── Collapse Toggle ── */}
       <button
         onClick={toggleSidebar}
-        className="gw-action-outline absolute z-50 top-[56px] -translate-y-1/2 -right-3 w-6 h-6 rounded-full shrink-0 border shadow-xs flex items-center justify-center transition-all cursor-pointer"
+        className={navigationStyles.collapse}
         aria-label="Toggle Sidebar"
       >
-        {collapsed ? (
-          <ChevronRight className="w-3.5 h-3.5" />
-        ) : (
-          <ChevronLeft className="w-3.5 h-3.5" />
-        )}
+        <ChevronLeft
+          aria-hidden="true"
+          className={cn("gw-navigation-collapse-icon size-3.5", collapsed && "rotate-180")}
+        />
       </button>
     </Sidebar>
   );

@@ -36,21 +36,21 @@ const EcoTipCard = () => {
   const activeTip = TIPS[index];
 
   return (
-    <Card className="h-full min-h-[210px] overflow-hidden border-0 bg-forest text-forest-foreground rounded-2xl">
-      <CardContent className="flex h-full min-h-[210px] flex-col justify-between gap-3 p-4 lg:p-5">
+    <Card className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-primary/15 bg-primary/[0.05] text-foreground">
+      <CardContent className="flex h-full min-h-[180px] flex-col justify-between gap-3 p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 shrink-0 opacity-80" />
-          <p className="text-ui-caption font-semibold uppercase tracking-widest opacity-70">
-            Did You Know?
+          <Lightbulb className="h-4 w-4 shrink-0 text-primary" />
+          <p className="text-xs font-medium text-muted-foreground">
+            Everyday waste tip
           </p>
         </div>
         <div className="min-h-[4.5rem]">
-          <p className="mb-1 text-sm font-semibold leading-snug">{activeTip.title}</p>
-          <p className="text-sm leading-relaxed opacity-90 line-clamp-3">
+          <p className="gw-heading mb-1 text-base leading-snug">{activeTip.title}</p>
+          <p className="break-words text-sm leading-relaxed text-muted-foreground">
             {activeTip.message}
           </p>
         </div>
-        <div className="flex min-h-1.5 items-center gap-1.5">
+        <div className="flex min-h-1 items-center gap-1">
           {TIPS.map((tip, i) => (
             <button
               key={tip.title}
@@ -58,10 +58,10 @@ const EcoTipCard = () => {
               onClick={() => setIndex(i)}
               aria-label={`Show tip: ${tip.title}`}
               aria-current={i === index ? "true" : undefined}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
+              className={`h-1 rounded-full transition-colors cursor-pointer ${
                 i === index
-                  ? "bg-forest-foreground w-5"
-                  : "bg-forest-foreground/30 hover:bg-forest-foreground/60 w-1.5"
+                  ? "bg-primary w-4"
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/60 w-1"
               }`}
             />
           ))}

@@ -2,17 +2,19 @@ import { Check, Pencil } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PROFILE_AVATARS, profileAvatarSrc, type ProfileAvatarId } from "./profileAvatars";
+import { cn } from "@/lib/utils";
 
 export const ProfileAvatarImage = ({ avatarId }: { avatarId: ProfileAvatarId }) => (
   <img src={profileAvatarSrc(avatarId)} alt="" aria-hidden="true" className="block h-full w-full object-cover object-center" />
 );
 
-export const ProfileAvatarControl = ({ avatarId, onCustomize }: {
+export const ProfileAvatarControl = ({ avatarId, onCustomize, avatarClassName }: {
   avatarId: ProfileAvatarId;
   onCustomize: () => void;
+  avatarClassName?: string;
 }) => (
   <div className="relative shrink-0">
-    <Avatar className="size-24 rounded-full border border-border/50 ring-[3px] ring-card shadow-md lg:size-28">
+    <Avatar className={cn("size-24 rounded-full border border-border/50 ring-[3px] ring-card shadow-md lg:size-28", avatarClassName)}>
       <ProfileAvatarImage avatarId={avatarId} />
     </Avatar>
     <Button
@@ -22,9 +24,9 @@ export const ProfileAvatarControl = ({ avatarId, onCustomize }: {
       aria-label="Customize avatar"
       title="Customize avatar"
       onClick={onCustomize}
-      className="absolute -bottom-1 -right-1 size-9 rounded-full border-border/80 bg-card text-foreground shadow-sm hover:bg-muted"
+      className="absolute -bottom-1 -right-1 size-7 rounded-full border-border/80 bg-card text-foreground shadow-sm hover:bg-muted [&_svg]:size-3.5"
     >
-      <Pencil className="size-4" />
+      <Pencil className="size-3.5" />
     </Button>
   </div>
 );

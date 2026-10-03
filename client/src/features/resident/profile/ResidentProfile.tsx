@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { profileStyles } from "./profileStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
@@ -49,16 +51,16 @@ const FieldRow = ({
   placeholder?: string;
   onEdit: () => void;
 }) => (
-  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
-    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs transition-colors group-hover:border-primary/30 group-hover:text-primary lg:size-10">
+  <div className={profileStyles.fieldInteractive}>
+    <div className="flex min-w-0 flex-1 items-start gap-2.5">
+      <div className={profileStyles.fieldIcon}>
         <Icon className="w-4.5 h-4.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
+        <p className={profileStyles.fieldLabel}>
           {label}
         </p>
-        <p className="mt-0.5 truncate text-ui-label font-medium text-foreground lg:text-sm">
+        <p className={profileStyles.fieldValue}>
           {masked ? (
             "••••••••"
           ) : value ? (
@@ -72,9 +74,10 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-muted/70 px-2.5 py-1.5 text-ui-caption font-medium text-muted-foreground">
-        <ShieldCheck className="size-3.5 text-primary" />
-        Registered email
+      <span className="inline-flex h-8 shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground" title="Registered email">
+        <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
+        <span className="resident-profile-email-label" aria-hidden="true">Registered</span>
+        <span className="sr-only">Registered email</span>
       </span>
     ) : (
       <Button
@@ -82,7 +85,8 @@ const FieldRow = ({
         variant="primary-outline"
         size="sm"
         onClick={onEdit}
-        className="h-8 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold shadow-none transition-all focus-visible:ring-primary/25"
+        aria-label={`${masked ? "Change" : "Edit"} ${label.toLowerCase()}`}
+        className={profileStyles.fieldButton}
       >
         {masked ? "Change" : "Edit"}
       </Button>
@@ -378,11 +382,7 @@ const ResidentProfile = () => {
 
   // ── Loading / error states ────────────────────────────────────────────────
   if (isLoading) {
-    return (
-      <div className="max-w-3xl mx-auto">
-        <ProfileSkeleton />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profile) {
@@ -390,40 +390,41 @@ const ResidentProfile = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 md:space-y-6">
+    <div className={profileStyles.page}>
+      <ResidentPageHeader title="Profile & account" description="Manage your personal details, collection address, and account security." />
+      <div className={profileStyles.stack}>
       {/* ── Profile Header Banner ─────────────────────────────────────────── */}
-      <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+      <div className={profileStyles.hero}>
         {/* Profile banner */}
-        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
+        <div className={profileStyles.cover}>
           <ProfileBannerImage />
         </div>
 
         {/* Avatar & Core Identity */}
-        <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
-          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarModal(true)} />
+        <div className={profileStyles.identity}>
+          <div className={profileStyles.identityRow}>
+            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarModal(true)} avatarClassName={profileStyles.avatar} />
 
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
-                <h1 className="gw-heading truncate text-lg tracking-tight text-foreground lg:text-2xl">
+            <div className={profileStyles.identityDetails}>
+              <div className={profileStyles.nameRow}>
+                <h2 className={profileStyles.name}>
                   {profile.full_name}
-                </h1>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground border border-border/60 w-fit mx-auto lg:mx-0">
+                </h2>
+                <span className="max-w-full break-words rounded-md border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground [overflow-wrap:anywhere]">
                   @{profile.username}
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground md:justify-start md:gap-x-4 md:gap-y-1.5">
-                <div className="flex items-center gap-1.5">
+              <div className={profileStyles.identityMeta}>
+                <div className="flex min-w-0 items-start gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="font-medium text-foreground/85">
+                  <span className="break-words font-medium text-foreground/85 [overflow-wrap:anywhere]">
                     {profile.barangay_name
                       ? `Brgy. ${profile.barangay_name}`
                       : "No barangay set"}
                   </span>
                 </div>
-                <span className="hidden md:inline text-border">•</span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex min-w-0 items-start gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
                   <span>Joined {joinDate}</span>
                 </div>
@@ -435,25 +436,23 @@ const ResidentProfile = () => {
 
       {profileQuery.error && <DataRefreshNotice message="Couldn't refresh your profile. Your edits are preserved; loaded information may be outdated." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} />}
 
+      <div className={profileStyles.body}>
       {/* ── Personal Information ─────────────────────────────────────────────── */}
-      <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
-        <div className="flex items-center justify-between pb-2 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+      <section className={profileStyles.personal} aria-labelledby="resident-profile-personal-title">
+        <div className={profileStyles.sectionHeader}>
+          <div className={profileStyles.sectionHeading}>
+            <div className={profileStyles.sectionIcon}>
               <User className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="gw-heading text-sm text-foreground tracking-tight">
-                Personal Information
+            <div className="min-w-0">
+              <h2 id="resident-profile-personal-title" className={profileStyles.sectionTitle}>
+                Personal information
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Manage your profile details and security credentials
+              <p className={profileStyles.sectionDescription}>
+                Update your details and account security.
               </p>
             </div>
           </div>
-          <span className="hidden md:inline-block text-ui-caption font-medium text-muted-foreground">
-            Tap edit to update
-          </span>
         </div>
 
         <div className="divide-y divide-border/50">
@@ -505,21 +504,21 @@ const ResidentProfile = () => {
             onEdit={() => setPwModal((p) => ({ ...p, open: true }))}
           />
         </div>
-      </div>
+      </section>
 
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-5 lg:p-6 space-y-5 shadow-xs">
-        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+      <section className={profileStyles.panel} aria-labelledby="resident-profile-impact-title">
+        <div className={profileStyles.sectionHeader}>
+          <div className={profileStyles.sectionHeading}>
+            <div className={profileStyles.sectionIcon}>
               <ClipboardList className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="gw-heading text-sm text-foreground tracking-tight">
-                Community Impact & Reports
+            <div className="min-w-0">
+              <h2 id="resident-profile-impact-title" className={profileStyles.sectionTitle}>
+                Community impact
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Your activity and contributions to clean Candelaria
+              <p className={profileStyles.sectionDescription}>
+                Your reports and contributions to Candelaria.
               </p>
             </div>
           </div>
@@ -528,21 +527,20 @@ const ResidentProfile = () => {
             variant="outline"
             size="sm"
             onClick={() => navigate("/resident/my-reports")}
-            className="shrink-0 gap-2 px-4"
+            className={profileStyles.actionButton}
           >
-            <span>My Reports History</span>
+            <span>My reports</span>
             <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Button>
         </div>
 
         {/* Resolution Progress Bar */}
-        <div className="p-4 lg:p-4.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
+        <div className={profileStyles.resolution}>
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="min-w-0">
               <span className="font-semibold text-foreground">
-                Action Resolution Rate
+                Report resolution
               </span>
-              <span className="text-muted-foreground">• MENRO Response</span>
             </div>
             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-body bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               {totalReports > 0
@@ -564,87 +562,87 @@ const ResidentProfile = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+        <div className={profileStyles.stats}>
+          <div className={profileStyles.stat}>
             <p className="gw-stat-value text-2xl lg:text-3xl text-primary tabular-nums">
               {stats?.total ?? 0}
             </p>
-            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Submitted
+            <p className={profileStyles.statLabel}>
+              Submitted
             </p>
           </div>
-          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+          <div className={profileStyles.stat}>
             <p className="gw-stat-value text-2xl lg:text-3xl text-emerald-600 dark:text-emerald-400 tabular-nums">
               {stats?.resolved ?? 0}
             </p>
-            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className={profileStyles.statLabel}>
               Resolved
             </p>
           </div>
-          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+          <div className={profileStyles.stat}>
             <p className="gw-stat-value text-2xl lg:text-3xl text-amber-600 dark:text-amber-400 tabular-nums">
               {stats?.pending ?? 0}
             </p>
-            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
-              Pending Review
+            <p className={profileStyles.statLabel}>
+              Pending
             </p>
           </div>
-          <div className="space-y-1 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4">
+          <div className={profileStyles.stat}>
             <p className="gw-stat-value text-2xl lg:text-3xl text-sky-600 dark:text-sky-400 tabular-nums">
               {(stats?.in_progress ?? 0) + (stats?.under_review ?? 0)}
             </p>
-            <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">
-              In Progress
+            <p className={profileStyles.statLabel}>
+              In progress
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Badges & Recognition ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 md:p-5 lg:p-6 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between pb-2 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+      <section className={profileStyles.panel} aria-labelledby="resident-profile-badges-title">
+        <div className={profileStyles.sectionHeader}>
+          <div className={profileStyles.sectionHeading}>
+            <div className={profileStyles.sectionIcon}>
               <Award className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="gw-heading text-sm text-foreground tracking-tight">
-                Badges & Recognition
+            <div className="min-w-0">
+              <h2 id="resident-profile-badges-title" className={profileStyles.sectionTitle}>
+                Badges & recognition
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Achievements earned through civic participation
+              <p className={profileStyles.sectionDescription}>
+                Recognition for your community activity.
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground border border-border/60">
+          <span className="shrink-0 rounded-md border border-border/60 bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {badges.filter((b) => b.earned).length} of {badges.length} unlocked
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className={profileStyles.badges}>
           {badges.map((badge) => {
             const BadgeIcon = badge.icon;
             return (
               <div
                 key={badge.id}
-                className={`p-3.5 lg:p-4 rounded-xl border flex items-start gap-3.5 transition-all ${
+                className={`${profileStyles.badge} ${
                   badge.earned
-                    ? "bg-card border-border/80 shadow-2xs hover:border-primary/40 "
+                    ? "bg-card border-border/80"
                     : "bg-muted/15 border-border/40 opacity-70"
                 }`}
               >
                 <div
-                  className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+                  className={`size-9 rounded-lg flex items-center justify-center shrink-0 border ${
                     badge.earned
                       ? `${badge.bg} ${badge.color} ${badge.border} shadow-2xs`
                       : "bg-muted text-muted-foreground border-border/50"
                   }`}
                 >
-                  <BadgeIcon className="w-5 h-5" />
+                  <BadgeIcon className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs lg:text-sm font-bold text-foreground truncate">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <p className="break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
                       {badge.label}
                     </p>
                     {badge.earned ? (
@@ -657,7 +655,7 @@ const ResidentProfile = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-ui-caption text-muted-foreground leading-tight">
+                  <p className="break-words text-xs text-muted-foreground leading-relaxed">
                     {badge.description}
                   </p>
                 </div>
@@ -665,18 +663,19 @@ const ResidentProfile = () => {
             );
           })}
         </div>
+      </section>
       </div>
 
       {/* ── Actions ──────────────────────────────────────────────────────────── */}
-      <div className="space-y-3 pb-8">
-        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+      <div className="space-y-3">
+        <div className={profileStyles.hero}>
           <button
             type="button"
             onClick={() => setLogoutModal(true)}
-            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] transition-all duration-150 group cursor-pointer text-left"
+            className={profileStyles.logout}
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
+              <div className={profileStyles.fieldIcon}>
                 <LogOut className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -695,18 +694,20 @@ const ResidentProfile = () => {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-ui-caption text-muted-foreground/70 pt-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/60" />
+        <div className={profileStyles.privacy}>
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60" />
           <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
         </div>
       </div>
 
+      </div>
       <FormDialog open={addressModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("address"); }}
+        className="resident-profile-dialog"
         title="Edit Collection Address" description="Choose your barangay and street." icon={<MapPin />} pending={addressModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("address")} disabled={addressModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
           <Button type="button" onClick={() => void saveAddress()} className={modalStyles.primaryButton}
-            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0} loading={addressModal.saving} loadingLabel="Saving address…">
+            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0} loading={addressModal.saving} loadingLabel="Saving…">
             Save address
           </Button>
         </>}
@@ -731,16 +732,18 @@ const ResidentProfile = () => {
       </FormDialog>
 
       <FormDialog open={avatarModal} onOpenChange={setAvatarModal} title="Choose Avatar" description="Select one of the ten profile avatars." icon={<Users />}
+        className="resident-profile-dialog"
         footer={<Button type="button" variant="outline" onClick={() => setAvatarModal(false)} className={modalStyles.cancelButton}>Close</Button>}
       >
         <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
       </FormDialog>
 
       <FormDialog open={editModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("profile"); }}
+        className="resident-profile-dialog"
         title={`Edit ${editModal.field}`} description={`Update your ${editModal.field.toLowerCase()}.`} icon={<User />} pending={editModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("profile")} disabled={editModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
-          <Button type="button" onClick={() => void handleEditSave()} disabled={editModal.saving} className={modalStyles.primaryButton} loading={editModal.saving} loadingLabel="Saving changes…">
+          <Button type="button" onClick={() => void handleEditSave()} disabled={editModal.saving} className={modalStyles.primaryButton} loading={editModal.saving} loadingLabel="Saving…">
             Save Changes
           </Button>
         </>}
@@ -756,10 +759,11 @@ const ResidentProfile = () => {
       </FormDialog>
 
       <FormDialog open={pwModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("password"); }}
+        className="resident-profile-dialog"
         title="Change Password" description="You will be signed out after updating." icon={<Lock />} pending={pwModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("password")} disabled={pwModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
-          <Button type="button" onClick={() => void handlePasswordSave()} disabled={pwModal.saving} className={modalStyles.primaryButton} loading={pwModal.saving} loadingLabel="Changing password…">
+          <Button type="button" onClick={() => void handlePasswordSave()} disabled={pwModal.saving} className={modalStyles.primaryButton} loading={pwModal.saving} loadingLabel="Updating…">
             Change Password
           </Button>
         </>}

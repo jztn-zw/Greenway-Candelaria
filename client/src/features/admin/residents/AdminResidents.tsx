@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
@@ -16,7 +17,6 @@ DropdownMenuItem,
 DropdownMenuSeparator,
 DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
 Table,
@@ -44,10 +44,8 @@ Mail,
 MapPin,
 MoreHorizontal,
 Phone,
-Search,
 Trash2,
-Users,
-X
+Users
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -306,31 +304,15 @@ const AdminResidents = () => {
           {/* Right: Search + Barangay Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 xl:justify-end min-w-0">
             {/* Search Input */}
-            <div className="relative w-full sm:w-64 lg:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search name, username, email..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-9 pl-9 pr-8 bg-background rounded-xl border-border/80 text-xs focus-visible:ring-primary/20"
-              />
-              {search.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setCurrentPage(1);
-                  }}
-                  className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer p-0.5 rounded-md"
-                  title="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              placeholder="Search name, username, email..."
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                setCurrentPage(1);
+              }}
+              containerClassName="w-full sm:w-64 lg:w-72"
+            />
 
             {/* Barangay Select */}
             <SearchableSelect

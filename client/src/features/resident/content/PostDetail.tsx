@@ -1,7 +1,8 @@
 import { useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
-import { Heart, Calendar, User, FileText, Share2, Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
+import { BackButton } from "@/components/common/BackButton";
+import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
@@ -13,14 +14,18 @@ interface PostDetailProps {
   post: PostItem;
   relatedPosts: PostItem[];
   onOpenPost: (post: PostItem) => void;
+  onBack: () => void;
   onPostUpdated?: (updated: PostItem) => void;
+  onToggleRelatedLike?: (post: PostItem) => void;
 }
 
 const PostDetail = ({
   post: initialPost,
   relatedPosts,
   onOpenPost,
+  onBack,
   onPostUpdated,
+  onToggleRelatedLike,
 }: PostDetailProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const detail = useResidentResource<PostItem>("posts", ["detail", initialPost.id], () => postsService.getById(initialPost.id), initialPost);
@@ -114,12 +119,13 @@ const PostDetail = ({
   return (
     <div
       ref={contentRef}
-      className="w-full max-w-[1000px] mx-auto pb-4 lg:pb-6 animate-in fade-in duration-300"
+      className={`${contentStyles.detailPage} animate-in fade-in duration-300`}
     >
+      <BackButton onBack={onBack} label="Back to updates" />
       <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
-        <article className="space-y-6">
-        <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-muted/20 border border-border/80 shadow-2xs flex items-center justify-center">
+        <article className={contentStyles.detailArticle}>
+        <div className={contentStyles.detailImage}>
           {currentImage && !imageFailed ? (
             <>
               <PostImageBackdrop src={currentImage} />
@@ -155,15 +161,17 @@ const PostDetail = ({
 
         {/* ── Horizontal Thumbnail Strip (If 2 or more images) ── */}
         {validImages.length > 1 && (
-          <div className="flex items-center gap-3 overflow-x-auto py-2.5 px-1.5 scrollbar-thin">
+          <div className={contentStyles.detailThumbnails}>
             {validImages.map((imgUrl, idx) => {
               const isActive = idx === activeImageIndex;
               return (
                 <button
                   key={idx}
                   type="button"
+                  aria-label={`Show image ${idx + 1}`}
+                  aria-pressed={isActive}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-14 lg:w-24 lg:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs ${
+                  className={`${contentStyles.detailThumbnail} ${
                     isActive
                       ? "border-primary ring-2 ring-primary/30 opacity-100 shadow-xs"
                       : "gw-action-ghost opacity-65 hover:opacity-100"
@@ -181,88 +189,49 @@ const PostDetail = ({
         )}
 
         {/* ── Post Header Info ── */}
-        <div className="space-y-3 pt-1">
-          <h1 className="gw-page-title break-words leading-tight tracking-tight text-foreground lg:text-ui-page-lg lg:text-4xl">
+        <div className={contentStyles.detailHeader}>
+          <h1 className={contentStyles.detailTitle}>
             {post.title}
           </h1>
 
-          <div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground md:flex-row md:flex-wrap md:items-center md:gap-3 md:text-sm">
-            <span className="flex max-w-full items-center gap-1.5 font-medium">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              {dateInfo.formatted}
-            </span>
-            <span className="hidden text-border lg:inline">•</span>
-            <span className="flex min-w-0 max-w-full items-center gap-1.5 font-medium">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="truncate">{post.author_name || "MENRO Candelaria"}</span>
-            </span>
-          </div>
+          <PostMetadata date={dateInfo.formatted} author={post.author_name} />
         </div>
 
         {/* ── Action Row ── */}
-        <div className="flex items-center gap-3 pt-1 flex-wrap">
-          <button
-            type="button"
-            onClick={handleToggleLike}
-            disabled={isLiking}
-            className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer shadow-2xs ${
-              post.is_liked
-                ? "bg-destructive/10 text-destructive border-destructive/30"
-                : "gw-action-ghost "
-            } disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            <Heart
-              className={`w-4 h-4 ${post.is_liked ? "fill-destructive text-destructive" : ""}`}
-            />
-            <span>{Number(post.like_count || 0)}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleShare}
-            className="gw-action-outline inline-flex items-center gap-2 h-9 px-3.5 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 border cursor-pointer shadow-2xs"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-primary" />
-                <span className="text-primary font-bold">Link Copied</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4" />
-                <span>Share Guide</span>
-              </>
-            )}
-          </button>
-        </div>
+        <PostActions
+          reactionCount={Number(post.like_count || 0)}
+          isLiked={Boolean(post.is_liked)}
+          reactionPending={isLiking}
+          linkCopied={copied}
+          onToggleReaction={handleToggleLike}
+          onShare={handleShare}
+        />
 
         <div className="border-t border-border/60" />
 
         {/* ── Post Body Content ── */}
-        <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-foreground/90 leading-relaxed space-y-4">
+        <div className={contentStyles.detailBody}>
           {post.body.split("\n\n").map((paragraph, idx) => (
-            <p key={idx} className="text-sm lg:text-base leading-relaxed text-foreground/85">
+            <p key={idx}>
               {paragraph}
             </p>
           ))}
         </div>
 
         {/* ── Tags / Badges ── */}
-        <div className="pt-2">
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+        {post.tags && post.tags.length > 0 && (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="text-xs text-muted-foreground font-medium mr-1">Tags:</span>
               {post.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-muted/60 text-muted-foreground border border-border/80 hover:border-primary/30 hover:text-foreground transition-colors"
+                  className="max-w-full break-words [overflow-wrap:anywhere] px-2.5 py-1 rounded-lg text-xs font-medium bg-muted/60 text-muted-foreground border border-border/80 hover:border-primary/30 hover:text-foreground transition-colors"
                 >
                   #{tag}
                 </span>
               ))}
             </div>
-          )}
-        </div>
+        )}
         </article>
 
         {/* ── Related Updates Section ── */}
@@ -274,11 +243,12 @@ const PostDetail = ({
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          <div className={contentStyles.grid}>
             {relatedPosts.map((rel) => (
               <PostCard
                 key={rel.id}
                 post={rel}
+                onToggleLike={onToggleRelatedLike}
                 onClick={() => onOpenPost(rel)}
               />
             ))}

@@ -20,6 +20,7 @@ import CollectionCalendar from "./components/CollectionCalendar";
 import QuickActionsAndContact from "./components/QuickActionsAndContact";
 import DashboardPostCarousel from "./components/DashboardPostCarousel";
 import EcoTipCard from "./components/EcoTipCard";
+import { dashboardStyles } from "./dashboardStyles";
 
 const ResidentDashboard = () => {
   const user = useAuthStore((state) => state.user);
@@ -53,7 +54,7 @@ const ResidentDashboard = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="w-full max-w-[1600px] mx-auto space-y-3 md:space-y-5 lg:space-y-6">
+    <div className={dashboardStyles.page}>
       {/* 1. Header */}
       <DashboardGreeting />
       {queries.some((query) => query.isError) && <DataRefreshNotice primary message={queries.some((query) => query.isError && query.data === undefined) ? "Some dashboard information couldn't load. Available information is still shown; previously loaded data may be outdated." : "Couldn't refresh some dashboard information. Showing the last loaded data, which may be outdated."} onRetry={retryDashboard} retrying={queries.some((query) => query.isFetching)} />}
@@ -62,20 +63,22 @@ const ResidentDashboard = () => {
       <HeroCards />
 
       {/* 3. Top row: Post Carousel (left) | Announcement (right) */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch xl:gap-4">
-        <div className="h-full">
+      <div className={dashboardStyles.updates}>
+        <div className="min-w-0 h-full">
           <DashboardPostCarousel />
         </div>
-        <div className="h-full">
+        <div className="min-w-0 h-full">
           <AnnouncementAndTip />
         </div>
       </div>
 
       {/* 4. Community calendar, followed by supporting resident information */}
-      <CollectionCalendar />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch xl:gap-4">
-        <EcoTipCard />
-        <div>
+      <div className={dashboardStyles.supporting}>
+        <div className={dashboardStyles.calendarColumn}>
+          <CollectionCalendar />
+        </div>
+        <div className={dashboardStyles.supportColumn}>
+          <EcoTipCard />
           <QuickActionsAndContact />
         </div>
       </div>

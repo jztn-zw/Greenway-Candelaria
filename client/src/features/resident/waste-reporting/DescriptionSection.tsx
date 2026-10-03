@@ -42,7 +42,7 @@ const DescriptionSection = ({ value, onChange, violationType, showError = false 
                 type="button"
                 onClick={() => handleChipClick(chip)}
                 disabled={isAdded}
-                className={`text-ui-caption px-2.5 py-1 rounded-lg border transition-all font-medium shadow-2xs ${
+                className={`max-w-full break-words text-left text-ui-caption px-2.5 py-1.5 rounded-lg border transition-colors font-medium ${
                   isAdded
                     ? "bg-primary/10 border-primary/30 text-primary font-semibold cursor-default opacity-85"
                     : "gw-action-ghost cursor-pointer"

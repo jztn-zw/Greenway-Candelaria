@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Bell, BellRing, Calendar, Shield, HelpCircle,
   Mail, ChevronRight,
-  Sun, Moon, FileText,
+  Sun, Moon, FileText, Truck, Megaphone,
   BookOpen, Lock
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -18,9 +18,10 @@ import { toast } from "@/lib/toast";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { setThemeMode } from "@/lib/theme";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
+import { settingsStyles } from "./settingsStyles";
 
 const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="space-y-1 rounded-md border border-border/70 bg-muted/20 p-4">
+  <section className="resident-settings-info space-y-1 rounded-md border border-border/70 bg-muted/20 p-4">
     <h3 className="gw-heading text-sm text-foreground">{title}</h3>
     <div className="text-xs leading-relaxed text-muted-foreground">{children}</div>
   </section>
@@ -36,21 +37,21 @@ interface SectionProps {
 }
 
 const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionProps) => (
-  <section className="space-y-3 rounded-xl border border-border/80 bg-card p-3.5 md:space-y-4 md:p-5 lg:p-6">
-    <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5 lg:gap-3 lg:pb-3">
+  <section className={settingsStyles.section}>
+    <div className={settingsStyles.sectionHeader}>
       <div
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${
+        className={`${settingsStyles.icon} ${
           iconStyle || "bg-primary/10 text-primary border-primary/20"
         }`}
       >
         <Icon className="w-4 h-4" />
       </div>
-      <div>
-        <h2 className="gw-heading text-sm lg:text-base text-foreground tracking-tight">
+      <div className="min-w-0 flex-1">
+        <h2 className={settingsStyles.sectionTitle}>
           {title}
         </h2>
         {subtitle && (
-          <p className="text-ui-caption lg:text-xs text-muted-foreground mt-0.5 leading-tight">
+          <p className={settingsStyles.sectionDescription}>
             {subtitle}
           </p>
         )}
@@ -64,6 +65,7 @@ const Section = ({ title, subtitle, icon: Icon, iconStyle, children }: SectionPr
 interface ToggleRowProps {
   label: string;
   description?: string;
+  icon: React.ElementType;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
 }
@@ -71,17 +73,23 @@ interface ToggleRowProps {
 const ToggleRow = ({
   label,
   description,
+  icon: Icon,
   checked,
   onCheckedChange,
 }: ToggleRowProps) => (
-  <div className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 transition-colors hover:bg-muted/30 last:border-b-0 lg:-mx-2.5 lg:px-2.5 lg:py-3">
-    <div className="min-w-0 flex-1">
-      <p className="text-xs lg:text-sm text-foreground font-semibold tracking-tight">{label}</p>
-      {description && (
-        <p className="text-ui-caption text-muted-foreground leading-relaxed mt-0.5">{description}</p>
-      )}
+  <div className={settingsStyles.toggleRow}>
+    <div className={settingsStyles.rowContent}>
+      <div className={`${settingsStyles.icon} bg-primary/10 text-primary border-primary/20`}>
+        <Icon className="size-4" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={settingsStyles.rowLabel}>{label}</p>
+        {description && (
+          <p className={settingsStyles.rowDescription}>{description}</p>
+        )}
+      </div>
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} className="shrink-0" />
+    <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={label} className="shrink-0" />
   </div>
 );
 
@@ -104,11 +112,11 @@ const ActionRow = ({
   <button
     type="button"
     onClick={onClick}
-    className="group -mx-2 flex w-[calc(100%+16px)] cursor-pointer items-center justify-between rounded-xl border-b border-border/40 px-2 py-2.5 text-left transition-all hover:bg-[var(--button-neutral-hover)] last:border-b-0 lg:-mx-2.5 lg:w-[calc(100%+20px)] lg:px-2.5 lg:py-3"
+    className={settingsStyles.actionRow}
   >
-    <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className={settingsStyles.rowContent}>
       <div
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs transition-transform duration-200 ${
+        className={`${settingsStyles.icon} transition-transform duration-200 ${
           iconStyle || "bg-muted/70 text-foreground/80 border-border/60"
         }`}
       >
@@ -119,7 +127,7 @@ const ActionRow = ({
           {label}
         </span>
         {description && (
-          <p className="text-ui-caption text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+          <p className={settingsStyles.rowDescription}>{description}</p>
         )}
       </div>
     </div>
@@ -205,14 +213,14 @@ const ResidentSettings = () => {
   if (settingsQuery.isError && settingsQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load your saved settings. Please try again." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} homeHref="/resident" />;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-300 md:space-y-5 lg:space-y-6">
+    <div className={settingsStyles.page}>
       {/* ── Page Header ── */}
-      <div className="hidden flex-col gap-2.5 md:flex md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight">
+      <div className={settingsStyles.header}>
+        <div className="min-w-0">
+          <h1 className={settingsStyles.title}>
             Settings
           </h1>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
+          <p className={settingsStyles.description}>
             Manage collection reminders, notification alerts, and display preferences
           </p>
         </div>
@@ -229,19 +237,20 @@ const ResidentSettings = () => {
       >
         <div className="space-y-1">
           {/* Collection Day Reminder Toggle */}
-          <div className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 transition-colors hover:bg-muted/30 lg:-mx-2.5 lg:px-2.5 lg:py-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-2xs">
+          <div className={settingsStyles.toggleRow}>
+            <div className={settingsStyles.rowContent}>
+              <div className={`${settingsStyles.icon} bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20`}>
                 <BellRing className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Collection Day Reminder</p>
-                <p className="text-ui-caption text-muted-foreground mt-0.5 leading-relaxed">
+                <p className={settingsStyles.rowLabel}>Collection Day Reminder</p>
+                <p className={settingsStyles.rowDescription}>
                   Receive an automated alert 3 hours before scheduled municipal waste pickups
                 </p>
               </div>
             </div>
             <Switch
+              aria-label="Collection Day Reminder"
               checked={collectionPrefs.reminderOn}
               onCheckedChange={(v) => {
                 setCollectionPrefs((p) => ({ ...p, reminderOn: v }));
@@ -265,18 +274,21 @@ const ResidentSettings = () => {
         <div className="space-y-1">
         <ToggleRow
             label="Live Truck Alerts"
+            icon={Truck}
             description="Real-time alerts when the truck is near, collection is done, or pickup was skipped"
             checked={notifs.collectionAlerts}
             onCheckedChange={(v) => toggleNotif("collectionAlerts", v)}
           />
           <ToggleRow
             label="Report Updates"
+            icon={FileText}
             description="Status changes whenever MENRO reviews or resolves your submitted reports"
             checked={notifs.reportUpdates}
             onCheckedChange={(v) => toggleNotif("reportUpdates", v)}
           />
           <ToggleRow
             label="News & Announcements"
+            icon={Megaphone}
             description="Eco tips, community posts, and official municipal advisories"
             checked={notifs.newsAnnouncements}
             onCheckedChange={(v) => toggleNotif("newsAnnouncements", v)}
@@ -295,35 +307,41 @@ const ResidentSettings = () => {
         <div className="space-y-4">
           {/* Theme Segmented Control */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className={settingsStyles.themeHeading}>
               <span className="text-xs lg:text-sm font-semibold text-foreground tracking-tight">Theme Mode</span>
               <span className="text-ui-caption text-muted-foreground">{dark ? "Dark Mode Active" : "Light Mode Active"}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 p-1 rounded-2xl bg-muted/40 border border-border/60">
+            <div className={settingsStyles.themeGrid} role="group" aria-label="Theme mode">
               <button
                 type="button"
                 onClick={() => toggleTheme(false)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs lg:text-sm font-semibold transition-all cursor-pointer ${
+                aria-label="Use light mode"
+                aria-pressed={!dark}
+                className={`${settingsStyles.themeButton} ${
                   !dark
                     ? "bg-card text-foreground shadow-2xs border border-border/80 font-semibold"
                     : "gw-action-ghost "
                 }`}
               >
                 <Sun className={`w-4 h-4 ${!dark ? "text-warning-foreground" : "text-muted-foreground"}`} />
-                <span>Light Mode</span>
+                <span className="resident-settings-theme-long">Light Mode</span>
+                <span className="resident-settings-theme-short" aria-hidden="true">Light</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => toggleTheme(true)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs lg:text-sm font-semibold transition-all cursor-pointer ${
+                aria-label="Use dark mode"
+                aria-pressed={dark}
+                className={`${settingsStyles.themeButton} ${
                   dark
                     ? "bg-card text-foreground shadow-2xs border border-border/80 font-semibold"
                     : "gw-action-ghost "
                 }`}
               >
                 <Moon className={`w-4 h-4 ${dark ? "text-primary" : "text-muted-foreground"}`} />
-                <span>Dark Mode</span>
+                <span className="resident-settings-theme-long">Dark Mode</span>
+                <span className="resident-settings-theme-short" aria-hidden="true">Dark</span>
               </button>
             </div>
           </div>
@@ -381,8 +399,8 @@ const ResidentSettings = () => {
         </div>
       </Section>
 
-      <div className="text-center py-2">
-        <p className="text-ui-caption text-muted-foreground/70 font-medium">
+      <div className={settingsStyles.footer}>
+        <p>
           GreenWay Candelaria · Version 2.0.0 · Municipality of Candelaria, Quezon
         </p>
       </div>
@@ -391,6 +409,7 @@ const ResidentSettings = () => {
 
       {/* Privacy Policy Modal */}
       <FormDialog open={privacyModal} onOpenChange={setPrivacyModal}
+        className="resident-settings-dialog"
         title="Privacy Policy" description="How GreenWay handles your data." icon={<Shield />}
         footer={<Button type="button" variant="outline" className={modalStyles.cancelButton} onClick={() => setPrivacyModal(false)}>Understood</Button>}
       >
@@ -410,6 +429,7 @@ const ResidentSettings = () => {
 
       {/* Terms of Service Modal */}
       <FormDialog open={termsModal} onOpenChange={setTermsModal}
+        className="resident-settings-dialog"
         title="Terms of Service" description="MENRO Candelaria guidelines." icon={<FileText />}
         footer={<Button type="button" variant="outline" className={modalStyles.cancelButton} onClick={() => setTermsModal(false)}>Close</Button>}
       >
@@ -426,12 +446,13 @@ const ResidentSettings = () => {
 
       {/* FAQ Modal */}
       <FormDialog open={faqModal} onOpenChange={setFaqModal}
+        className="resident-settings-dialog"
         title="Frequently Asked Questions" description="Waste collection in Candelaria." icon={<HelpCircle />}
         footer={<Button type="button" variant="outline" className={modalStyles.cancelButton} onClick={() => setFaqModal(false)}>Close</Button>}
       >
         <InfoSection title="What time does the collection truck arrive?">
           <p>
-            Trucks typically begin routes at 6:00 AM on scheduled collection days. You can track your assigned truck in real time on the Truck Tracking page.
+            Trucks typically begin routes at 6:00 AM on scheduled collection days. You can track your assigned truck in real time on the Collection Tracking page.
           </p>
         </InfoSection>
         <InfoSection title="Who can see my reported waste complaints?">
@@ -448,6 +469,7 @@ const ResidentSettings = () => {
 
       {/* Contact MENRO Modal */}
       <FormDialog open={contactModal} onOpenChange={setContactModal}
+        className="resident-settings-dialog"
         title="Contact MENRO Office" description="Office contact information." icon={<Mail />}
         footer={<Button type="button" variant="outline" className={modalStyles.cancelButton} onClick={() => setContactModal(false)}>Close</Button>}
       >

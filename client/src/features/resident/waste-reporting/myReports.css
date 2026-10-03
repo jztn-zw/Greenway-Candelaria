@@ -1,0 +1,76 @@
+.resident-my-reports {
+  container-name: my-reports;
+}
+
+.resident-my-reports .my-reports-header-actions {
+  margin-left: 0;
+  align-self: flex-start;
+}
+
+.my-reports-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.my-reports-sort {
+  width: 2.25rem;
+}
+
+.resident-my-reports .my-reports-sort-trigger {
+  width: 100%;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.my-reports-sort-trigger > svg,
+.my-reports-sort-label,
+.my-reports-view-label,
+.my-reports-photo-count {
+  display: none;
+}
+
+.resident-my-reports .my-reports-preview {
+  display: none;
+}
+
+@container my-reports (min-width: 37.5rem) {
+  .resident-my-reports .my-reports-header-actions {
+    margin-left: auto;
+    align-self: center;
+  }
+
+  .my-reports-sort {
+    width: 8rem;
+  }
+
+  .resident-my-reports .my-reports-sort-trigger {
+    justify-content: space-between;
+    padding-inline: 0.75rem;
+  }
+
+  .my-reports-sort-trigger > svg {
+    display: block;
+  }
+
+  .my-reports-sort-label,
+  .my-reports-view-label {
+    display: inline;
+  }
+
+  .my-reports-photo-count {
+    display: inline-flex;
+  }
+
+  .resident-my-reports .my-reports-preview {
+    display: -webkit-box;
+  }
+
+  .resident-my-reports .my-reports-card {
+    padding: 1rem;
+  }
+
+  .resident-my-reports .my-reports-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+

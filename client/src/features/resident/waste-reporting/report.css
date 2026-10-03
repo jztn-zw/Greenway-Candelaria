@@ -1,0 +1,65 @@
+.resident-report {
+  container-name: resident-report;
+}
+
+.resident-report-categories {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resident-report-category {
+  min-height: 4rem;
+}
+
+.resident-report-location {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.resident-report-photos {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.resident-report-submit {
+  width: 100%;
+}
+
+@container resident-report (min-width: 30rem) {
+  .resident-report-categories {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container resident-report (min-width: 37.5rem) {
+  .resident-report .resident-report-form {
+    padding: 1.5rem;
+  }
+
+  .resident-report-location {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .resident-report-photos {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .resident-report-submit {
+    width: auto;
+  }
+}
+
+@container resident-report (min-width: 45rem) {
+  .resident-report-categories {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.resident-report-review-dialog {
+  container: resident-report-review / inline-size;
+}
+
+@container resident-report-review (min-width: 25rem) {
+  .resident-report-review {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

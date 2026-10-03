@@ -4,6 +4,8 @@ import { communityContentStyles as contentStyles } from "@/components/communityC
 import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
 import PostImageBackdrop from "@/components/common/PostImageBackdrop";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface PostCardProps {
   post: PostItem;
@@ -49,7 +51,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <article
       onClick={onClick}
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs transition-all duration-300 cursor-pointer select-none hover:border-primary/30 "
+      className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card cursor-pointer transition-[border-color,box-shadow] duration-200 hover:border-primary/35 hover:shadow-sm focus-within:border-primary/40 motion-reduce:transition-none"
     >
       {/* ── Image Area ── */}
       <div className={contentStyles.cardImage}>
@@ -61,22 +63,14 @@ export const PostCard: React.FC<PostCardProps> = ({
               key={`img-${post.id}-${imageIndex}`}
               src={currentImage}
               alt={post.title}
-              className="relative z-10 max-w-full max-h-full object-contain object-center transition-all duration-500 ease-in-out"
+              decoding="async"
+              className="relative z-10 max-w-full max-h-full object-contain object-center motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
               onError={() => setImageFailed(true)}
             />
           </>
         ) : (
           <PostImagePlaceholder category={post.category} title={post.title} />
         )}
-
-        {/* Top-left category badge */}
-        <div className="absolute top-3 left-3 z-20">
-          <span
-            className={`inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shadow-2xs backdrop-blur-md ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
-          >
-            <span>{categoryLabel}</span>
-          </span>
-        </div>
 
         {/* Multi-image pagination dots indicator */}
         {validImages.length > 1 && (
@@ -95,12 +89,25 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* ── Content Area ── */}
       <div className={contentStyles.cardContent}>
-        <div className="space-y-1.5">
-          <h3 className="gw-heading text-ui-title lg:text-base text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors duration-200 line-clamp-2">
-            {post.title}
+        <div className="space-y-2.5">
+          <Badge className={`${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>
+            {categoryLabel}
+          </Badge>
+
+          <h3 className="gw-heading text-base leading-snug tracking-tight text-foreground">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onClick();
+              }}
+              className="line-clamp-2 w-full break-words cursor-pointer rounded-sm text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card [text-wrap:pretty]"
+            >
+              {post.title}
+            </button>
           </h3>
 
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 font-normal">
+          <p className="break-words text-sm text-muted-foreground leading-relaxed line-clamp-2">
             {post.body}
           </p>
         </div>
@@ -108,38 +115,34 @@ export const PostCard: React.FC<PostCardProps> = ({
         {/* ── Card Footer: Reactions & Metadata ── */}
         <div className={contentStyles.cardFooter}>
           <div className={contentStyles.cardMetadata}>
-            <span className="flex shrink-0 items-center gap-1 font-medium">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {dateInfo.formatted}
             </span>
-            <span className="hidden shrink-0 text-border sm:inline">•</span>
-            <span className="flex min-w-0 items-center gap-1 truncate">
-              <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">{post.author_name || "MENRO"}</span>
+            <span className="inline-flex min-w-0 max-w-full items-center gap-1.5" title={post.author_name || "MENRO Candelaria"}>
+              <User className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{post.author_name || "MENRO Candelaria"}</span>
             </span>
           </div>
 
           {onToggleLike ? (
-            <button
+            <Button
               type="button"
+              variant={post.is_liked ? "destructive-outline" : "outline"}
               aria-label={`${post.is_liked ? "Unlike" : "Like"} ${post.title}`}
               aria-pressed={Boolean(post.is_liked)}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleLike(post);
               }}
-              className={`inline-flex items-center justify-center gap-1.5 ${contentStyles.reactionSize} px-2.5 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer ${
-                post.is_liked
-                  ? "text-destructive bg-destructive/10 border border-destructive/20 shadow-2xs"
-                  : "gw-action-ghost border"
-              }`}
+              className={`${contentStyles.reactionSize} gap-1.5 px-2.5 text-xs [&_svg]:size-3.5`}
             >
-              <Heart className={`w-3.5 h-3.5 ${post.is_liked ? "fill-destructive" : ""}`} />
+              <Heart className={post.is_liked ? "fill-current" : undefined} aria-hidden="true" />
               <span className="tabular-nums">{Number(post.like_count || 0)}</span>
-            </button>
+            </Button>
           ) : (
-            <span className={`inline-flex items-center justify-center gap-1.5 ${contentStyles.reactionSize} px-2.5 rounded-lg text-xs font-semibold text-muted-foreground`}>
-              <Heart className={`w-3.5 h-3.5 ${post.is_liked ? "fill-destructive text-destructive" : ""}`} />
+            <span className={`inline-flex items-center justify-center gap-1.5 ${contentStyles.reactionSize} px-2.5 rounded-lg border border-border/80 text-xs font-semibold text-muted-foreground`} aria-label={`${Number(post.like_count || 0)} ${Number(post.like_count || 0) === 1 ? "reaction" : "reactions"}`}>
+              <Heart className={`w-3.5 h-3.5 ${post.is_liked ? "fill-destructive text-destructive" : ""}`} aria-hidden="true" />
               <span className="tabular-nums">{Number(post.like_count || 0)}</span>
             </span>
           )}

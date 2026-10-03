@@ -1,6 +1,6 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { Search, X, Calendar as CalendarIcon, RotateCcw } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Calendar as CalendarIcon, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -102,25 +102,12 @@ const AuditLogFilters = ({
         {/* ── Left Controls: Search Bar + All Modules Dropdown ── */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
           {/* Search Bar */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search action, user, target ID..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 pr-9 h-10 rounded-xl bg-background border-border/80 text-xs shadow-2xs focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500/40 transition-colors"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => onSearchChange("")}
-                className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full transition-colors cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            placeholder="Search action, user, target ID..."
+            value={search}
+            onChange={onSearchChange}
+            containerClassName="flex-1"
+          />
 
           {/* All Modules Dropdown */}
           <SearchableSelect value={moduleFilter} onValueChange={onModuleFilterChange}

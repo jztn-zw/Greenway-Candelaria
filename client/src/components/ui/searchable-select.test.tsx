@@ -61,6 +61,25 @@ it("supports keyboard selection when fewer than ten choices need no search field
   expect(document.querySelector("output")).toHaveTextContent("id-0");
 });
 
+it("uses the shared clear action without selecting an option or closing the dropdown", async () => {
+  await renderChoices(options(10)); await open();
+  await changeSearch("Choice 9");
+  expect(visibleOptions()).toHaveLength(1);
+  const clear = document.querySelector<HTMLButtonElement>('button[aria-label="Clear search"]')!;
+  expect(clear).not.toBeNull();
+  await keyDown(clear, "Enter");
+  expect(search()).toBeVisible();
+  expect(document.querySelector("output")).toBeEmptyDOMElement();
+  await act(async () => clear.click());
+  expect(search()).toHaveValue("");
+  expect(search()).toHaveFocus();
+  expect(visibleOptions()).toHaveLength(10);
+  expect(document.querySelector("output")).toBeEmptyDOMElement();
+  await keyDown(search()!, "ArrowDown");
+  await keyDown(search()!, "Enter");
+  expect(document.querySelector("output")).not.toBeEmptyDOMElement();
+});
+
 it("keeps choices with identical labels distinct and searches additional keywords", async () => {
   const choices = options(8).concat([{ value: "truck-a", label: "Collection truck", keywords: "ABC-123" }, { value: "truck-b", label: "Collection truck", keywords: "DEF-456" }]);
   await renderChoices(choices); await open();

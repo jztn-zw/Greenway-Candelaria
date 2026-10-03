@@ -95,7 +95,7 @@ export function FilterPillTabs<T extends string = string>({
       onMouseUp={stopDragging}
       onMouseLeave={stopDragging}
       className={cn(
-        "relative flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x select-none cursor-grab active:cursor-grabbing",
+        "relative flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide touch-pan-x select-none cursor-grab active:cursor-grabbing",
         className
       )}
     >

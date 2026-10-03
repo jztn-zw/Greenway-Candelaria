@@ -1,0 +1,149 @@
+/* Match the panel and page spacer; fade text before the rail becomes narrow. */
+.gw-navigation-panel {
+  --navigation-duration: 300ms;
+  --navigation-easing: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gw-navigation-panel.gw-navigation-panel,
+.group > .gw-navigation-spacer {
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gw-navigation-panel .gw-navigation-brand,
+.gw-navigation-panel .gw-navigation-content,
+.gw-navigation-panel .gw-navigation-footer,
+.gw-navigation-panel .gw-navigation-account,
+.gw-navigation-panel .gw-navigation-item,
+.gw-navigation-panel .gw-navigation-link,
+.gw-navigation-panel .gw-navigation-signout,
+.gw-navigation-panel .gw-navigation-account-row {
+  transition-property: padding, gap, background-color, color;
+  transition-duration: var(--navigation-duration);
+  transition-timing-function: var(--navigation-easing);
+}
+
+.gw-navigation-panel .gw-navigation-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 160ms ease-out 90ms, visibility 0s;
+}
+
+.gw-navigation-panel .gw-navigation-section {
+  max-height: 2.5rem;
+  margin-top: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  visibility: visible;
+  transition: max-height var(--navigation-duration) var(--navigation-easing),
+    padding var(--navigation-duration) var(--navigation-easing),
+    margin var(--navigation-duration) var(--navigation-easing), opacity 160ms ease-out,
+    visibility 0s;
+}
+
+.gw-navigation-panel .gw-navigation-divider {
+  height: 0;
+  transition: margin var(--navigation-duration) var(--navigation-easing), opacity 120ms ease-out;
+}
+
+.gw-navigation-collapse.gw-navigation-collapse {
+  --action-background: hsl(var(--sidebar-background));
+  --action-hover: hsl(var(--sidebar-accent));
+  --action-active: hsl(var(--sidebar-accent));
+  --action-border: hsl(var(--sidebar-border));
+  --action-border-hover: hsl(var(--primary) / 0.45);
+  scale: 1;
+  transition: background-color 180ms ease-out, border-color 180ms ease-out,
+    color 180ms ease-out, box-shadow 180ms ease-out, scale 120ms ease-out;
+}
+
+.gw-navigation-collapse:active {
+  scale: 0.94;
+}
+
+.gw-navigation-collapse-icon {
+  transform-origin: center;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-label {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 100ms ease-out, visibility 0s 100ms;
+}
+
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-section.gw-navigation-section {
+  max-height: 0;
+  min-height: 0;
+  margin: 0;
+  padding-block: 0;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: max-height var(--navigation-duration) var(--navigation-easing),
+    padding var(--navigation-duration) var(--navigation-easing),
+    margin var(--navigation-duration) var(--navigation-easing), opacity 100ms ease-out,
+    visibility 0s 100ms;
+}
+
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-link,
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-account-row,
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-signout,
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-brand {
+  gap: 0;
+}
+
+[data-collapsible="icon"] .gw-navigation-panel .gw-navigation-divider {
+  margin-block: 0;
+  opacity: 0;
+}
+
+/* Preserve group state and DOM identity through collapse/expand. */
+.gw-navigation-group-content {
+  display: grid;
+  grid-template-rows: 1fr;
+  visibility: visible;
+  opacity: 1;
+  transition: grid-template-rows 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 160ms ease-out, visibility 0s;
+}
+
+.gw-navigation-group-content > [data-sidebar="group-content"] {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.gw-navigation-group-content[data-state="closed"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: grid-template-rows 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 100ms ease-out, visibility 0s 300ms;
+}
+
+[data-collapsible="icon"] .gw-navigation-group-content[data-state="closed"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-navigation-collapse.gw-navigation-collapse {
+    scale: 1;
+    transition: none !important;
+  }
+
+  .gw-navigation-collapse-icon,
+  .gw-navigation-panel.gw-navigation-panel,
+  .group > .gw-navigation-spacer,
+  .gw-navigation-panel *,
+  .gw-navigation-panel *::before {
+    transition: none !important;
+  }
+}

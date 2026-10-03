@@ -1,3 +1,4 @@
+import { navigationStyles } from "../navigationStyles";
 import { useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { toggleThemeMode } from "@/lib/theme";
@@ -73,18 +74,18 @@ const CollectorTopBar = () => {
 
   return (
     <>
-    <header className="h-14 border-b border-border/80 bg-background flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
+    <header className={navigationStyles.topbar}>
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
         <button
           type="button"
           onClick={toggleSidebar}
-          className="gw-action-ghost md:hidden w-8 h-8 rounded-lg transition-colors flex items-center justify-center cursor-pointer shrink-0"
+          className={`${navigationStyles.menu} ${navigationStyles.mobileMenu}`}
           aria-label="Toggle Navigation Menu"
         >
           <Menu className="w-4 h-4 text-foreground" />
         </button>
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+        <nav aria-label="Breadcrumb" className={navigationStyles.breadcrumb}>
           {isRouteMap ? (
             <>
               <button
@@ -96,7 +97,7 @@ const CollectorTopBar = () => {
                 {isNotificationRouteMap ? "Notifications" : "Driver Dashboard"}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
-              <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
+              <span aria-current="page" className={navigationStyles.currentPage}>
                 {pageTitle}
               </span>
             </>
@@ -110,12 +111,12 @@ const CollectorTopBar = () => {
                 Route History
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-bold text-foreground truncate tracking-tight">
+              <span className={navigationStyles.currentPage}>
                 Route Detail
               </span>
             </>
           ) : (
-            <span className="font-bold text-foreground truncate tracking-tight">
+            <span className={navigationStyles.currentPage}>
               {pageTitle}
             </span>
           )}
@@ -123,12 +124,12 @@ const CollectorTopBar = () => {
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className={navigationStyles.topbarActions}>
         {/* Theme toggle */}
         <button
           type="button"
           onClick={toggleThemeMode}
-          className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center overflow-hidden cursor-pointer border"
+          className={`${navigationStyles.topbarButton} overflow-hidden`}
           title="Toggle Theme"
         >
           <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
@@ -140,12 +141,12 @@ const CollectorTopBar = () => {
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center cursor-pointer border"
+              className={navigationStyles.topbarButton}
               title="Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className={`absolute -top-0.5 -right-0.5 h-4 bg-destructive text-destructive-foreground text-ui-overline font-bold rounded-full flex items-center justify-center ring-2 ring-background leading-none ${unreadCount > 9 ? "min-w-4 px-1" : "w-4"}`}>
+                <span className={`${navigationStyles.unreadBadge} ${unreadCount > 9 ? "min-w-4 px-1" : "w-4"}`}>
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}

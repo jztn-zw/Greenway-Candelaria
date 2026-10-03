@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import PaginationControls from "@/components/common/PaginationControls";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
@@ -6,18 +7,7 @@ import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Search,
-  Heart,
-  FileText,
-  Star,
-  X,
-  Clock,
-  BookOpen,
-  ArrowDownUp,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { FileText, ArrowDownUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -182,9 +172,15 @@ const ResidentContents = () => {
     return (
       <PostDetail
         post={openPost}
+        onBack={() => setSearchParams((previous) => {
+          const next = new URLSearchParams(previous);
+          next.delete("post");
+          return next;
+        })}
         relatedPosts={related.length > 0 ? related : posts.filter((p) => p.id !== openPost.id).slice(0, 3)}
         onOpenPost={handleOpenPost}
         onPostUpdated={handlePostUpdated}
+        onToggleRelatedLike={handleToggleLike}
       />
     );
   }
@@ -196,12 +192,12 @@ const ResidentContents = () => {
   return (
     <div className={contentStyles.page}>
       {/* ── Top Header ── */}
-      <div className="hidden items-start justify-between gap-4 md:mb-6 md:flex md:items-center lg:mb-8">
+      <div className={contentStyles.header}>
         <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
+          <h1 className={contentStyles.headerTitle}>
             Community Updates
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          <p className={contentStyles.headerDescription}>
             Official MENRO guidelines, collection updates, and eco tips.
           </p>
         </div>
@@ -215,60 +211,44 @@ const ResidentContents = () => {
       {/* ── Search & Filter Toolbar ── */}
       <div className="space-y-3">
         {/* Search Bar */}
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            aria-label="Search community updates"
-            placeholder="Search community updates…"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-11 pl-10 pr-11 bg-card border-border/80 rounded-xl text-xs md:h-10 lg:text-sm shadow-2xs focus-visible:ring-primary/30"
-          />
-          {search && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={() => {
-                setSearch("");
-                setCurrentPage(1);
-              }}
-              className="gw-action-ghost absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg cursor-pointer md:h-10 md:w-10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          placeholder="Search community updates…"
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setCurrentPage(1);
+          }}
+          aria-label="Search community updates"
+          containerClassName="w-full"
+        />
 
         {/* Filter Chips + Sort Dropdown aligned side-by-side */}
-        <div className="flex items-center justify-between gap-2.5">
+        <div className={contentStyles.filterRow}>
           {/* Category filters */}
           <FilterPillTabs<ResidentContentCategory>
             items={CONTENT_FILTER_ITEMS}
             activeId={activeTab}
             onChange={handleTabChange}
             ariaLabel="Community update categories"
-            className="flex-1"
+            className="w-full pb-0"
           />
 
           {/* Sort Dropdown */}
-          <div className="shrink-0">
+          <div className={contentStyles.sort}>
             <Select value={sortBy} onValueChange={(val) => {
               setSortBy(val as ResidentContentSort);
               setCurrentPage(1);
             }}>
               <SelectTrigger
                 aria-label="Sort community updates"
-                className="h-11 w-11 justify-center rounded-xl border-border/80 bg-card px-0 text-xs shadow-2xs transition-colors hover:border-primary/30 [&>svg]:hidden md:h-9 md:w-auto md:min-w-[140px] md:justify-between md:px-3.5 md:[&>svg]:block"
+                className="community-content-sort-trigger h-9 gap-2 text-xs"
               >
-                <div className="flex md:hidden">
-                  <ArrowDownUp className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="hidden items-center md:inline-flex">
-                  <span className="mr-1 text-muted-foreground">Sort by:</span>
-                  <SelectValue />
+                <div className="flex min-w-0 items-center gap-2">
+                  <ArrowDownUp aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="community-content-sort-value min-w-0 items-center gap-1.5">
+                    <span className="shrink-0 text-muted-foreground">Sort:</span>
+                    <SelectValue />
+                  </span>
                 </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border-border/80 shadow-md">

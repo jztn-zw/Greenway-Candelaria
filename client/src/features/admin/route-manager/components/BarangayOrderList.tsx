@@ -1,8 +1,8 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   ChevronUp,
   ChevronDown,
@@ -10,7 +10,6 @@ import {
   Loader2,
   MapPin,
   Plus,
-  Search,
   Trash2,
   X,
   Layers,
@@ -179,15 +178,11 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
               ) : (
                 <div className="space-y-2">
                   {availableStopPoints.length > 4 && (
-                    <div className="relative">
-                      <Search className="w-3 h-3 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
-                      <Input
-                        value={streetFilter}
-                        onChange={(e) => setStreetFilter(e.target.value)}
-                        placeholder="Filter streets..."
-                        className="h-7 text-xs pl-7 rounded-lg bg-muted/30 border-border/70"
-                      />
-                    </div>
+                    <SearchInput
+                      placeholder="Filter streets..."
+                      value={streetFilter}
+                      onChange={setStreetFilter}
+                    />
                   )}
 
                   <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1 scrollbar-thin">

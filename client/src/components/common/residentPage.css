@@ -1,0 +1,29 @@
+.resident-page {
+  container-type: inline-size;
+}
+
+.resident-page-title {
+  font-size: 1.375rem;
+  overflow-wrap: anywhere;
+}
+
+.resident-page-description {
+  font-size: 0.75rem;
+}
+
+@container (min-width: 37.5rem) {
+  .resident-page .resident-page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .resident-page-title {
+    font-size: 1.75rem;
+  }
+
+  .resident-page-description {
+    font-size: 0.875rem;
+  }
+}

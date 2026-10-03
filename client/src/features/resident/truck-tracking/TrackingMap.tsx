@@ -1,3 +1,5 @@
+import { trackingStyles } from "./trackingStyles";
+import { scheduledTrackingContent } from "./trackingContent";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentFetch } from "@/lib/residentQuery";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -670,12 +672,12 @@ const TrackingMap = ({
         };
       case "scheduled-not-started":
         return {
-          badge: "Scheduled Today",
+          badge: scheduledTrackingContent.badge,
           badgeClass: getStatusBadgeStyle("Scheduled Today").className,
           icon: <CalendarClock className="w-6 h-6 text-primary" />,
           iconBg: "bg-primary/10 border-primary/25",
-          title: "Collection Scheduled Today",
-          desc: "Live tracking will appear when the assigned truck starts sending GPS updates.",
+          title: scheduledTrackingContent.title,
+          desc: scheduledTrackingContent.description,
           hint: "Map updates automatically when live",
           isLiveWaiting: true,
         };
@@ -732,36 +734,39 @@ const TrackingMap = ({
   const emptyState = emptyStateContent();
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-border/80 bg-card shadow-sm [&_.leaflet-control-attribution]:!hidden">
-      <div ref={mapElementRef} className="h-full w-full z-0" />
+    <div className={trackingStyles.mapShell}>
+      <div className={trackingStyles.mapCanvas}>
+        <div ref={mapElementRef} className="h-full w-full z-0" />
 
-      {/* Floating Zoom Controls (Top-Right) */}
-      <div className="absolute top-2.5 right-2.5 lg:top-3 lg:right-3 z-[500] flex flex-col bg-card/90 backdrop-blur-md rounded-xl border border-border/80 shadow-sm overflow-hidden p-0.5 pointer-events-auto">
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          className="gw-action-ghost w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
-          title="Zoom In"
-          aria-label="Zoom in"
-        >
-          <Plus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-        </button>
-        <div className="h-px bg-border/60 mx-1" />
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          className="gw-action-ghost w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
-          title="Zoom Out"
-          aria-label="Zoom out"
-        >
-          <Minus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-        </button>
+        {/* Floating Zoom Controls (Top-Right) */}
+        <div className={trackingStyles.zoom}>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className={trackingStyles.zoomButton}
+            title="Zoom In"
+            aria-label="Zoom in"
+          >
+            <Plus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+          </button>
+          <div className="h-px bg-border/60 mx-1" />
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className={trackingStyles.zoomButton}
+            title="Zoom Out"
+            aria-label="Zoom out"
+          >
+            <Minus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+          </button>
+        </div>
+
       </div>
 
       {/* Compact map context; the full collection outcome is shown above the map. */}
       {hasResidentCollectionOutcome ? (
-        <div className="absolute left-2.5 top-2.5 z-[450] max-w-[calc(100%-56px)] animate-in fade-in-50 duration-300 lg:left-3 lg:top-3">
-          <div className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border/80 bg-card/90 px-2.5 py-2 shadow-md backdrop-blur-md">
+        <div className={trackingStyles.mapStatus}>
+          <div className="resident-tracking-outcome flex min-w-0 flex-wrap items-center gap-2">
             <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
               isResidentMissed
                 ? "border-destructive/20 bg-destructive/10 text-destructive"
@@ -777,8 +782,8 @@ const TrackingMap = ({
           </div>
         </div>
       ) : pausedResidentTruck ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] animate-in fade-in-50 slide-in-from-top-1 duration-300">
-          <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-amber-500/30 shadow-md p-3.5 space-y-2.5">
+        <div className={trackingStyles.mapStatus}>
+          <div className={trackingStyles.statusCard}>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
@@ -797,19 +802,20 @@ const TrackingMap = ({
                 Paused
               </span>
             </div>
-            <p className="text-ui-caption text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
+            <p className={`${trackingStyles.statusDescription} resident-tracking-status-divider`}>
               Collection is temporarily paused. {pausedResidentTruck.coords ? "The pin shows the last known location." : "No GPS location is available yet."}
             </p>
           </div>
         </div>
       ) : targetTruck && routeData ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
+        <div className={trackingStyles.mapStatus}>
           {isCardCollapsed ? (
             /* Collapsed Compact Status Pill */
             <button
               type="button"
               onClick={() => setIsCardCollapsed(false)}
-              className="gw-action-outline flex items-center gap-2 backdrop-blur-md px-3.5 py-2 rounded-lg border shadow-2xs text-xs font-semibold cursor-pointer transition-all"
+              aria-label="Expand truck details" aria-expanded={false}
+              className="gw-action-outline flex min-h-11 w-full min-w-0 flex-wrap items-center gap-2 backdrop-blur-md px-3 py-2 rounded-lg border shadow-2xs text-xs font-semibold transition-colors"
             >
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -823,7 +829,7 @@ const TrackingMap = ({
             </button>
           ) : (
             /* Full Delivery Card */
-            <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2.5">
+            <div className={trackingStyles.statusCard}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
@@ -842,7 +848,8 @@ const TrackingMap = ({
                 <button
                   type="button"
                   onClick={() => setIsCardCollapsed(true)}
-                  className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer shrink-0 transition-colors"
+                  aria-label="Collapse truck details" aria-expanded={true}
+                  className={trackingStyles.zoomButton}
                   title="Collapse card"
                 >
                   <ChevronUp className="w-3.5 h-3.5" />
@@ -886,8 +893,8 @@ const TrackingMap = ({
           )}
         </div>
       ) : collectionDayStatus !== "paused" ? (
-        <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] lg:top-3 lg:left-3 lg:max-w-xs z-[450] animate-in fade-in-50 duration-300">
-          <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-md p-3.5 space-y-2">
+        <div className={trackingStyles.mapStatus}>
+          <div className={trackingStyles.statusCard}>
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${emptyState.iconBg}`}
@@ -895,7 +902,7 @@ const TrackingMap = ({
                 {emptyState.icon}
               </div>
               <div className="min-w-0">
-                <h4 className="gw-heading text-xs text-foreground tracking-tight leading-tight">
+                <h4 className={trackingStyles.statusHeading}>
                   {emptyState.title}
                 </h4>
                 <p className="text-ui-overline text-muted-foreground font-medium">
@@ -903,7 +910,7 @@ const TrackingMap = ({
                 </p>
               </div>
             </div>
-            <p className="text-ui-caption text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
+            <p className={`${trackingStyles.statusDescription} resident-tracking-status-divider`}>
               {emptyState.desc}
             </p>
             {collectionDayStatus === "gps-unavailable" && unavailableResidentTruck?.lastPing && (
@@ -916,53 +923,58 @@ const TrackingMap = ({
         </div>
       ) : null}
 
-      {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
-        <div className="absolute bottom-2.5 left-2.5 z-[450] flex items-center gap-2 rounded-lg border border-border/80 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-sm backdrop-blur-md lg:bottom-3 lg:left-3">
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-amber-500" /> Current
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-green-800" /> Done
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
-          </span>
-        </div>
-      )}
-
-      {/* Floating Map Action Controls (Bottom-Right) */}
-      <div className="absolute bottom-2.5 right-2.5 lg:bottom-3 lg:right-3 z-[500] flex items-center gap-1 lg:gap-1.5 bg-card/90 backdrop-blur-md p-1 rounded-lg border border-border/80 shadow-sm pointer-events-auto">
-        {mapTruck?.coords && (
-          <button
-            type="button"
-            onClick={handleRecenterTruck}
-            className="gw-action-ghost flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-            title={mapTruck.status === "on-the-way" ? "Recenter on Truck" : "Recenter on Last Known Truck Location"}
-          >
-            <TruckIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden lg:inline">Truck</span>
-          </button>
+      <div className={trackingStyles.mapFooter}>
+        {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
+          <div className={trackingStyles.legend}>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-amber-500" /> Current
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-800" /> Done
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+            </span>
+          </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleRecenterBarangay}
-          className="gw-action-ghost flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-          title="Zoom to My Collection Area"
-        >
-          <LocateFixed className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden lg:inline">My Area</span>
-        </button>
+        {/* Floating Map Action Controls (Bottom-Right) */}
+        <div className={trackingStyles.actions}>
+          {mapTruck?.coords && (
+            <button
+              type="button"
+              onClick={handleRecenterTruck}
+              className={trackingStyles.actionButton}
+              aria-label="Recenter on truck"
+              title={mapTruck.status === "on-the-way" ? "Recenter on Truck" : "Recenter on Last Known Truck Location"}
+            >
+              <TruckIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="resident-tracking-action-label">Truck</span>
+            </button>
+          )}
 
-        <button
-          type="button"
-          onClick={handleFitRouteBounds}
-          className="gw-action-ghost flex items-center gap-1 px-2.5 py-1.5 lg:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-          title="Fit Whole Route"
-        >
-          <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden lg:inline">Fit Route</span>
-        </button>
+          <button
+            type="button"
+            onClick={handleRecenterBarangay}
+            className={trackingStyles.actionButton}
+            aria-label="Zoom to my collection area"
+            title="Zoom to My Collection Area"
+          >
+            <LocateFixed className="w-3.5 h-3.5 shrink-0" />
+            <span className="resident-tracking-action-label">My Area</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFitRouteBounds}
+            className={trackingStyles.actionButton}
+            aria-label="Fit whole route"
+            title="Fit Whole Route"
+          >
+            <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="resident-tracking-action-label">Fit Route</span>
+          </button>
+        </div>
       </div>
     </div>
   );

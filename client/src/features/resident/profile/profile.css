@@ -1,0 +1,112 @@
+.resident-profile {
+  container-name: resident-profile;
+}
+
+.resident-profile .resident-profile-avatar {
+  width: 5rem;
+  height: 5rem;
+}
+
+.resident-profile .resident-profile-email-label {
+  display: none;
+}
+
+/* Dialogs render in a portal, outside the page's container. */
+@media (max-width: 30rem) {
+  .resident-profile-dialog .gw-modal-footer:has(> button + button) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .resident-profile-dialog .gw-modal-footer > button {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0.5rem;
+    font-size: 0.6875rem;
+  }
+}
+
+@container resident-profile (min-width: 30rem) {
+  .resident-profile .resident-profile-identity-row {
+    flex-direction: row;
+    gap: 1.25rem;
+  }
+
+  .resident-profile .resident-profile-identity-details {
+    padding-top: 3.5rem;
+  }
+}
+
+@container resident-profile (min-width: 37.5rem) {
+  .resident-profile .resident-profile-cover {
+    height: 9rem;
+  }
+
+  .resident-profile .resident-profile-identity,
+  .resident-profile .resident-profile-panel {
+    padding: 1.5rem;
+  }
+
+  .resident-profile .resident-profile-identity {
+    padding-top: 0;
+  }
+
+  .resident-profile .resident-profile-avatar {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .resident-profile .resident-profile-name {
+    font-size: 1.5rem;
+  }
+
+  .resident-profile .resident-profile-email-label {
+    display: inline;
+  }
+
+  .resident-profile .resident-profile-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .resident-profile .resident-profile-badges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Preserve the original monitor layout; responsive refinements apply below it. */
+@media (min-width: 64rem) {
+  .resident-profile .resident-page-header {
+    display: none;
+  }
+
+  .resident-profile .resident-profile-stack > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+  }
+
+  .resident-profile .resident-profile-body {
+    gap: 1.5rem;
+  }
+
+  .resident-profile .resident-profile-identity {
+    padding: 0 2rem 1.75rem;
+  }
+
+  .resident-profile .resident-profile-identity-row {
+    margin-top: -3.5rem;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 1.5rem;
+  }
+
+  .resident-profile .resident-profile-identity-details {
+    flex: 1;
+    width: auto;
+    padding-top: 0;
+  }
+
+  .resident-profile .resident-profile-avatar {
+    width: 7rem;
+    height: 7rem;
+  }
+}

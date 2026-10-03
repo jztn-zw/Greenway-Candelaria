@@ -130,6 +130,24 @@ it("restores the feed scroll position after using the breadcrumb from a related 
   }
 });
 
+it("returns from a related post to the feed using the post back button and restores its scroll", async () => {
+  const originalScrollY = window.scrollY;
+  try {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 420 });
+    await render();
+    await openPost(featuredPost);
+    await openPost(regularPost);
+    await clickButton("Back");
+    expect(host.querySelector("h1")).toHaveTextContent("Community Updates");
+    expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(/^\/resident\/contents$/);
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 420);
+    await openPost(regularPost);
+    expect(host.querySelector("h1")).toHaveTextContent(regularPost.title);
+  } finally {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: originalScrollY });
+  }
+});
+
 it("shows a page error for a failed feed, hides empty results, and retries the request", async () => {
   vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("Network Error"));
   await render();
@@ -209,4 +227,58 @@ it("keeps the page skeleton until both initial requests finish, then uses only c
   await act(async () => finishFeed({ posts: [regularPost], total: 1, totalPages: 1, page: 1, limit: 6 }));
   expect(host.querySelector('[aria-label="Loading community updates"]')).toBeNull();
   expect(host.textContent).toContain(regularPost.title);
+});
+
+const relatedReactionButton = (liked: boolean) => {
+  const button = host.querySelector<HTMLButtonElement>(`button[aria-label="${liked ? "Unlike" : "Like"} ${regularPost.title}"]`);
+  expect(button).not.toBeNull();
+  return button!;
+};
+
+it("reacts to a related post without navigating, prevents duplicate writes, and keeps the feed in sync", async () => {
+  let savedPost = regularPost;
+  vi.mocked(postsService.getPage).mockImplementation(async () => ({ posts: [savedPost, featuredPost], page: 1, total: 2, totalPages: 1, limit: 6 }));
+  let finishLike!: () => void;
+  vi.mocked(postsService.like).mockImplementationOnce(() => new Promise(resolve => {
+    finishLike = () => {
+      savedPost = { ...regularPost, is_liked: true, like_count: 1 };
+      resolve({});
+    };
+  }));
+  vi.mocked(postsService.unlike).mockImplementationOnce(async () => { savedPost = regularPost; return {}; });
+  await render();
+  await openPost(featuredPost);
+  await act(async () => relatedReactionButton(false).click());
+  expect(relatedReactionButton(true)).toHaveAttribute("aria-pressed", "true");
+  expect(relatedReactionButton(true)).toHaveTextContent("1");
+  expect(postsService.like).toHaveBeenCalledExactlyOnceWith(regularPost.id);
+  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(`?post=${featuredPost.id}`);
+  await act(async () => relatedReactionButton(true).click());
+  expect(postsService.unlike).not.toHaveBeenCalled();
+  await act(async () => finishLike());
+  await returnToFeed();
+  expect(relatedReactionButton(true)).toHaveTextContent("1");
+  await openPost(featuredPost);
+  await act(async () => relatedReactionButton(true).click());
+  expect(postsService.unlike).toHaveBeenCalledExactlyOnceWith(regularPost.id);
+  expect(relatedReactionButton(false)).toHaveTextContent("0");
+  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+});
+
+it.each([false, true])("restores a related post's reaction when a write fails (previously liked: %s)", async (liked) => {
+  const originalPost = { ...regularPost, is_liked: liked, like_count: liked ? 1 : 0 };
+  vi.mocked(postsService.getPage).mockResolvedValue({ posts: [originalPost, featuredPost], page: 1, total: 2, totalPages: 1, limit: 6 });
+  let failWrite!: () => void;
+  vi.mocked(liked ? postsService.unlike : postsService.like).mockImplementationOnce(() => new Promise((_, reject) => {
+    failWrite = () => reject(new Error("offline"));
+  }));
+  await render();
+  await openPost(featuredPost);
+  await act(async () => relatedReactionButton(liked).click());
+  expect(relatedReactionButton(!liked)).toHaveTextContent(liked ? "0" : "1");
+  await act(async () => failWrite());
+  expect(relatedReactionButton(liked)).toHaveAttribute("aria-pressed", String(liked));
+  expect(relatedReactionButton(liked)).toHaveTextContent(String(originalPost.like_count));
+  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
 });

@@ -3,7 +3,9 @@ import { useResidentQuery, useResidentFetch } from "@/lib/residentQuery";
 import PageErrorState from "@/components/PageErrorState";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { dashboardStyles } from "../dashboardStyles";
+import { ResidentDashboardUpdateSkeleton } from "@/components/PageLoadingSkeletons";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
@@ -67,31 +69,7 @@ const AnnouncementAndTip = () => {
 
   // Loading skeleton while fetching on initial load or reload
   if (loading) {
-    return (
-      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
-        <CardContent className="p-0 flex flex-col h-full">
-          <div className="h-1 bg-primary/40 shrink-0" />
-          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px] space-y-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="w-4 h-4 rounded" />
-                  <Skeleton className="w-28 h-3 rounded" />
-                </div>
-                <Skeleton className="w-16 h-4 rounded-full" />
-              </div>
-              <Skeleton className="w-3/4 h-5 rounded mt-1" />
-              <Skeleton className="w-full h-4 rounded" />
-              <Skeleton className="w-2/3 h-4 rounded" />
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-border/40">
-              <Skeleton className="w-24 h-4 rounded" />
-              <Skeleton className="w-20 h-4 rounded" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <ResidentDashboardUpdateSkeleton />;
   }
 
   if (loadFailed && announcementQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Announcements couldn't load" description="We couldn't load official notices. Please try again." onRetry={() => void announcementQuery.refetch()} retrying={announcementQuery.isFetching} />;
@@ -99,21 +77,21 @@ const AnnouncementAndTip = () => {
   // Clean empty state when no active announcements exist in database
   if (!announcement) {
     return (
-      <Card className="h-full border border-border overflow-hidden flex flex-col justify-between rounded-2xl">
+      <Card className="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/70">
         <CardContent className="p-0 flex flex-col h-full">
           <div className="h-1 bg-muted shrink-0" />
-          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
+          <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
-                <p className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider truncate">
-                  Latest Announcement
+                <p className="truncate text-xs font-medium text-muted-foreground">
+                  Latest announcement
                 </p>
               </div>
 
-              <p className="text-sm lg:text-base font-bold text-foreground">
-                {loadFailed ? "Announcements unavailable" : "No Active Announcements"}
+              <p className="gw-heading text-base text-foreground">
+                {loadFailed ? "Announcements unavailable" : "No active announcements"}
               </p>
-              <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 {loadFailed
                   ? "Official notices could not be loaded right now."
                   : "There are no active bulletins or notices from MENRO Candelaria right now."}
@@ -130,7 +108,7 @@ const AnnouncementAndTip = () => {
               </button>
               <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden lg:inline">MENRO Verified</span>
+                <span className="hidden lg:inline">MENRO verified</span>
               </div>
             </div>
           </div>
@@ -143,41 +121,26 @@ const AnnouncementAndTip = () => {
   return (
     <>
       <Card
-        className="group h-full border border-border overflow-hidden hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between rounded-2xl"
+        className="group flex h-full min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-border/70 transition-colors duration-200 hover:border-primary/35 motion-reduce:transition-none"
         onClick={openAnnouncement}
       >
         <CardContent className="p-0 flex flex-col h-full">
           {/* Top accent bar matching post carousel */}
-          <div className="h-1 bg-primary shrink-0" />
+          <div className="h-0.5 bg-primary/20 shrink-0" />
 
-          <div className="p-4 lg:p-5 flex flex-col justify-between flex-1 min-h-[165px]">
-            {/* Header row */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between mb-1.5 gap-2">
-                <p className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider truncate">
-                  Latest Announcement
-                </p>
-                <span className={"px-2 py-0.5 rounded-md border text-ui-overline font-bold shrink-0 " + getCategoryBadgeColors(announcement.type).className}>
-                  {announcement.type}
-                </span>
-              </div>
-
-              {/* Title with matching consistent height */}
-              <p className="text-sm lg:text-base font-bold text-foreground line-clamp-2 min-h-[2.5rem] lg:min-h-[2.75rem] group-hover:text-primary transition-colors leading-snug">
-                {announcement.title}
-              </p>
-
-              {/* Excerpt with matching consistent height */}
-              <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2 min-h-[2rem] lg:min-h-[2.25rem] leading-relaxed">
-                {announcement.body}
-              </p>
+          <div className={dashboardStyles.updateInner}>
+            <div className={dashboardStyles.updateHeader}>
+              <p className={dashboardStyles.label}>Latest announcement</p>
+              <Badge className={"shrink-0 " + getCategoryBadgeColors(announcement.type).className}>{announcement.type}</Badge>
             </div>
-
-            {/* Footer matching post carousel */}
-            <div className="mt-2 flex items-center justify-end border-t border-border/40 pt-2">
-              <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden lg:inline">MENRO Verified</span>
+            <div className={dashboardStyles.updateBody}>
+              <p className={dashboardStyles.updateTitle}>{announcement.title}</p>
+              <p className={dashboardStyles.updateExcerpt}>{announcement.body}</p>
+            </div>
+            <div className={dashboardStyles.updateFooter}>
+              <div className="flex items-center gap-1.5 text-ui-caption font-medium text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                <span className="hidden lg:inline">MENRO verified</span>
               </div>
             </div>
           </div>

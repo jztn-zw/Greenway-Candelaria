@@ -2,7 +2,8 @@ import { useResidentQuery } from "@/lib/residentQuery";
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { reportStyles } from "./reportStyles";
 import { fetchBarangays } from "@/services/barangaysService";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 
@@ -44,13 +45,12 @@ const LocationSection: React.FC<LocationSectionProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3.5">
-        <div>
+      <div className={reportStyles.location}>
+        <div className="min-w-0">
           <label className="text-xs font-medium text-foreground mb-1.5 block">Barangay</label>
           {loadingBarangays ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground h-10 px-3 border border-border/80 rounded-lg bg-muted/20">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-              Loading barangays…
+            <div role="status" aria-label="Loading barangays">
+              <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ) : (
             <SearchableSelect
@@ -77,7 +77,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label htmlFor="report-street-or-landmark" className="text-xs font-medium text-foreground mb-1.5 block">
             Street or Landmark
           </label>

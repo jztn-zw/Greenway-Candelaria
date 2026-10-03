@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import {
@@ -6,7 +7,6 @@ DialogContent,
 DialogDescription,
 DialogTitle
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAdminQuery } from "@/lib/adminQuery";
@@ -16,7 +16,6 @@ fetchReadReceipts
 import {
 BarChart3,
 Eye,
-Search,
 TrendingDown,
 Users,
 X,
@@ -149,15 +148,11 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
             </div>
 
             {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Filter by barangay name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 pl-8 text-xs rounded-xl bg-background border-border"
-              />
-            </div>
+            <SearchInput
+              placeholder="Filter by barangay name..."
+              value={search}
+              onChange={setSearch}
+            />
 
             {/* Barangay List */}
             <ScrollArea className="h-56 rounded-xl border border-border/70 p-2 bg-background/50">

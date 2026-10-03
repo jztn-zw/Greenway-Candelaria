@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
@@ -14,7 +15,6 @@ import {
   Megaphone,
   Clock,
   Send,
-  Search,
   AlertTriangle,
   FileText,
   Trash2,
@@ -497,24 +497,11 @@ const AnnouncementEditor = ({
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="p-2.5 border-b border-border">
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search barangays..."
-                          value={barangaySearch}
-                          onChange={(e) => setBarangaySearch(e.target.value)}
-                          className="h-8 pl-8 pr-7 text-xs rounded-lg bg-muted/30 border-border"
-                        />
-                        {barangaySearch && (
-                          <button
-                            type="button"
-                            onClick={() => setBarangaySearch("")}
-                            className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
+                      <SearchInput
+                        placeholder="Search barangays..."
+                        value={barangaySearch}
+                        onChange={setBarangaySearch}
+                      />
                     </div>
 
                     <ScrollArea

@@ -99,7 +99,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
               </Badge>
             </div>
 
-            <h2 className="gw-heading text-xl leading-tight tracking-tight text-foreground sm:text-2xl lg:text-3xl">
+            <h2 className={styles.featuredTitle}>
               <button
                 type="button"
                 onClick={() => onOpenPost(post)}
@@ -109,7 +109,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
               </button>
             </h2>
 
-            <p className="max-w-[56ch] text-sm leading-relaxed text-muted-foreground line-clamp-3">
+            <p className="max-w-[56ch] break-words text-sm leading-relaxed text-muted-foreground line-clamp-3">
               {post.body}
             </p>
 
@@ -126,7 +126,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
           </article>
 
           <div className={styles.featuredFooter}>
-            <Button onClick={() => onOpenPost(post)} className="h-11 gap-2 px-4 text-xs md:h-10">
+            <Button type="button" onClick={() => onOpenPost(post)} className={styles.readButton}>
               Read post <ArrowUpRight aria-hidden="true" />
             </Button>
 
@@ -153,7 +153,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
             </> : <PostImagePlaceholder category={post.category} title={post.title} isFeatured />}
           </button>
           {images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex max-w-[90%] -translate-x-1/2 overflow-x-auto rounded-lg border border-border/70 bg-card/95 p-0.5 scrollbar-none" role="group" aria-label="Featured post photos">
+            <div className="absolute bottom-3 left-1/2 z-20 flex max-w-[90%] -translate-x-1/2 items-center overflow-x-auto drop-shadow-sm scrollbar-none" role="group" aria-label="Featured post photos">
               {images.map((_, index) => (
                 <button
                   key={index}
@@ -161,9 +161,9 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
                   onClick={() => setPosition({ postId: post.id, photoIndex: index })}
                   aria-label={`Show photo ${index + 1}`}
                   aria-pressed={index === photoIndex}
-                  className="gw-action-ghost flex h-11 w-11 shrink-0 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:h-9 md:w-9"
+                  className={`${styles.carouselDotButton} ${index === photoIndex ? "w-5" : "w-2"}`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full transition-colors ${index === photoIndex ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <span aria-hidden="true" className={`h-1 rounded-full transition-colors duration-200 motion-reduce:transition-none ${index === photoIndex ? "w-4 bg-white" : "w-1 bg-white/60"}`} />
                 </button>
               ))}
             </div>

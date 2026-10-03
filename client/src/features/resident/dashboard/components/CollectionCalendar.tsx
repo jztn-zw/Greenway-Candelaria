@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ResidentDashboardCalendarSkeleton } from "@/components/PageLoadingSkeletons";
+import { dashboardStyles } from "../dashboardStyles";
+import { Button } from "@/components/ui/button";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
@@ -62,27 +64,8 @@ const CollectionCalendar = () => {
 
   if (calendarQuery.isLoading) {
     return (
-      <section>
-        <div role="status" aria-label="Loading calendar" className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-6">
-          <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-            <Skeleton className="h-6 w-44" />
-            <Skeleton className="h-8 w-28 rounded-xl" />
-          </div>
-          <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-1.5">
-            {Array.from({ length: 7 }).map((_, index) => <Skeleton key={index} className="mx-auto h-4 w-6" />)}
-          </div>
-          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-            {Array.from({ length: firstDayIndex + daysInMonth }).map((_, index) => (
-              <div key={index} className="aspect-square rounded-xl border border-border/60 p-1.5 sm:aspect-auto sm:min-h-[95px] sm:p-2">
-                {index >= firstDayIndex && <Skeleton className="h-5 w-5 rounded-full" />}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center gap-3 border-t border-border/60 pt-3">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-5 w-48 max-w-[50%]" />
-          </div>
-        </div>
+      <section className={dashboardStyles.calendarSection}>
+        <ResidentDashboardCalendarSkeleton dayCount={firstDayIndex + daysInMonth} firstDayIndex={firstDayIndex} />
       </section>
     );
   }
@@ -90,7 +73,7 @@ const CollectionCalendar = () => {
   if (calendarError && calendarQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" description="We couldn't load calendar announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />;
 
   return (
-    <section>
+    <section className={dashboardStyles.calendarSection}>
       {calendarError && <DataRefreshNotice message="Couldn't refresh the calendar. Showing the last loaded announcements, which may be outdated." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />}
       <CalendarGrid
         currentDate={currentDate}
@@ -101,22 +84,28 @@ const CollectionCalendar = () => {
         onPrevMonth={() => changeMonth(-1)}
         onNextMonth={() => changeMonth(1)}
         onGoToday={goToday}
-        headingLabel={formatDateOnly(selectedDateStr, { month: "long", day: "numeric", year: "numeric" })}
+        headingLabel={formatDateOnly(toDateString(year, month, 1), { month: "long", year: "numeric" })}
         showNavigation={false}
         hideTodayButtonWhenOtherDateSelected
         compactMobileCells
+        compact
+        fillHeight
+        className={dashboardStyles.calendarGrid}
         headerAction={
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
+            aria-label="View calendar"
             onClick={() => navigate("/resident/schedule")}
-            className="gw-action-primary-ghost group inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all active:scale-95"
+            className="group h-8 shrink-0 gap-1 px-2 text-xs"
           >
-            View Calendar <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </button>
+            <span className="resident-dashboard-calendar-action-label">View calendar</span> <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
         }
         footer={<TooltipProvider delayDuration={100}>
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-          <span className="mr-1 text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">ANNOUNCEMENTS</span>
+          <span className="mr-1 text-xs font-medium text-muted-foreground">Announcements · {formatDateOnly(selectedDateStr, { month: "short", day: "numeric" })}</span>
           {selectedDateEvents.length === 0 ? (
             <span className="text-xs text-muted-foreground">
               {calendarError ? "Announcements unavailable right now." : "No official announcements on this date."}

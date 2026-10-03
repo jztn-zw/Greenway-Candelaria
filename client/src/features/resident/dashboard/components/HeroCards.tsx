@@ -2,7 +2,10 @@ import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/bad
 import { useResidentQuery } from "@/lib/residentQuery";
 import PageErrorState from "@/components/PageErrorState";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { dashboardStyles } from "../dashboardStyles";
+import { ResidentDashboardCardSkeleton as HeroCardSkeleton } from "@/components/PageLoadingSkeletons";
 import {
   Package,
   Truck,
@@ -65,33 +68,6 @@ const formatViolationType = (type?: string) => {
     .join(" ");
 };
 
-const HeroCardSkeleton = ({ className = "" }: { className?: string }) => (
-  <Card
-    role="status"
-    aria-label="Loading dashboard card"
-    className={`flex flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs lg:space-y-4 lg:p-5 ${className}`}
-  >
-    <div className="space-y-3 lg:space-y-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-5 w-24 rounded-md" />
-      </div>
-      <div className="flex items-start gap-3">
-        <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-        </div>
-      </div>
-      <div className="flex items-center justify-between border-t border-border/50 pt-2.5 lg:pt-3">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-    </div>
-    <Skeleton className="h-3 w-28" />
-  </Card>
-);
-
 const HeroCards = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -143,86 +119,86 @@ const HeroCards = () => {
           : `No route covers your registered ${residentStreetId ? "street" : "barangay"} today.`;
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
+    <div className={dashboardStyles.overview}>
       {/* ─── Card 1: Today's Collection Schedule ─── */}
-      {scheduleLoading ? <HeroCardSkeleton /> : scheduleFailed ? <PageErrorState kind="unavailable" variant="section" title="Collection schedule couldn't load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /> : <Card
+      {scheduleLoading ? <HeroCardSkeleton className={dashboardStyles.collectionColumn} /> : scheduleFailed ? <div className={dashboardStyles.collectionColumn}><PageErrorState kind="unavailable" variant="section" title="Collection schedule couldn't load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /></div> : <Card
         onClick={() => navigate(scheduleDestination)}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
+        className={cn(dashboardStyles.hero, dashboardStyles.collectionColumn, "cursor-pointer border-primary/25 bg-primary/[0.04]")}
       >
-          <div className="space-y-3 lg:space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
-              Today's Schedule
+          <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+            <span className={dashboardStyles.label}>
+              Today's schedule
             </span>
-            <span className={`px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs ${todayRoute && todayWaste ? todayWaste.tagColor : "bg-muted/60 text-muted-foreground border-border/80"}`}>
+            <Badge variant="outline" className={todayRoute && todayWaste ? todayWaste.tagColor : undefined}>
               {scheduleBadge}
-            </span>
+            </Badge>
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
+            <div className={dashboardStyles.icon}>
               <Package className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+              <h3 className={dashboardStyles.heroTitle}>
                 {scheduleTitle}
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              <p className={dashboardStyles.heroDescription}>
                 {scheduleDescription}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
+          <div className={dashboardStyles.heroFooter}>
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
-              Collection Time
+              Collection time
             </span>
-            <span className="font-semibold text-foreground tabular-nums">{scheduleTime}</span>
+            <span className={cn("font-semibold text-foreground tabular-nums", todayRoute ? "text-xl" : "text-sm")}>{scheduleTime}</span>
           </div>
         </div>
 
-        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
+        <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <span>{addressMissing ? "Update collection address" : "View route details"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>}
 
       {/* ─── Card 2: Live Truck Status ─── */}
-      {liveQuery.isLoading ? <HeroCardSkeleton /> : trucksFailed ? <PageErrorState kind="unavailable" variant="section" title="Truck status couldn't load" onRetry={() => void liveQuery.refetch()} retrying={liveQuery.isFetching} /> : <Card
+      {liveQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.truckColumn} /> : trucksFailed ? <div className={dashboardStyles.truckColumn}><PageErrorState kind="unavailable" variant="section" title="Truck status couldn't load" onRetry={() => void liveQuery.refetch()} retrying={liveQuery.isFetching} /></div> : <Card
         onClick={() => navigate("/resident/tracking")}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 lg:space-y-4 lg:p-5"
+        className={cn(dashboardStyles.hero, dashboardStyles.truckColumn, "cursor-pointer border-primary/20")}
       >
-          <div className="space-y-3 lg:space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
-              Collection Truck
+          <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+            <span className={dashboardStyles.label}>
+              Collection truck
             </span>
             {trucksFailed ? (
-              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs " + getStatusBadgeStyle("Status unavailable").className}>
+              <Badge className={getStatusBadgeStyle("Status unavailable").className}>
                 Status unavailable
-              </span>
+              </Badge>
             ) : hasActive ? (
-              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border flex items-center gap-1.5 shadow-2xs " + getStatusBadgeStyle("Live On Route").className}>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live On Route
-              </span>
+              <Badge className={cn("gap-1.5", getStatusBadgeStyle("Live On Route").className)}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                Live on route
+              </Badge>
             ) : (
-              <span className={"px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs " + getStatusBadgeStyle("No active collection").className}>
+              <Badge className={getStatusBadgeStyle("No active collection").className}>
                 No active collection
-              </span>
+              </Badge>
             )}
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
+            <div className={dashboardStyles.icon}>
               <Truck className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+              <h3 className={dashboardStyles.heroTitle}>
                 {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              <p className={dashboardStyles.heroDescription}>
                 {trucksFailed
                   ? "Live truck information could not be loaded right now"
                   : hasActive
@@ -232,10 +208,10 @@ const HeroCards = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
+          <div className={dashboardStyles.heroFooter}>
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Radio className="w-3.5 h-3.5 text-muted-foreground/80" />
-              Live Trucks
+              Live trucks
             </span>
             <span className="font-semibold text-foreground tabular-nums">
               {trucksFailed ? "—" : `${activeTrucks.length} truck${activeTrucks.length !== 1 ? "s" : ""} on route`}
@@ -243,50 +219,48 @@ const HeroCards = () => {
           </div>
         </div>
 
-        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
+        <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <span>Open live GPS map</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>}
 
       {/* ─── Card 3: Latest Report ─── */}
-      {reportsQuery.isLoading ? <HeroCardSkeleton className="md:col-span-2 lg:col-span-1" /> : reportsFailed ? <div className="md:col-span-2 lg:col-span-1"><PageErrorState kind="unavailable" variant="section" title="Latest report couldn't load" onRetry={() => void reportsQuery.refetch()} retrying={reportsQuery.isFetching} /></div> : <Card
+      {reportsQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.reportColumn} /> : reportsFailed ? <div className={dashboardStyles.reportColumn}><PageErrorState kind="unavailable" variant="section" title="Latest report couldn't load" onRetry={() => void reportsQuery.refetch()} retrying={reportsQuery.isFetching} /></div> : <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
-        className="flex cursor-pointer flex-col justify-between space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/40 md:col-span-2 lg:col-span-1 lg:space-y-4 lg:p-5"
+        className={cn(dashboardStyles.hero, dashboardStyles.reportColumn, "cursor-pointer")}
       >
-          <div className="space-y-3 lg:space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
-              Latest Waste Report
+          <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+            <span className={dashboardStyles.label}>
+              Latest report
             </span>
             {latestReport && (
-              <span
-                className={`px-2.5 py-0.5 rounded-md text-ui-caption font-semibold border shadow-2xs ${
-                  statusBadgeConfig[latestReport.status]?.class || "bg-muted/60 text-muted-foreground border-border/80"
-                }`}
+              <Badge
+                className={statusBadgeConfig[latestReport.status]?.class || getStatusBadgeStyle(latestReport.status).className}
               >
-                {statusBadgeConfig[latestReport.status]?.label || latestReport.status}
-              </span>
+                {statusBadgeConfig[latestReport.status]?.label || formatViolationType(latestReport.status)}
+              </Badge>
             )}
           </div>
 
           {latestReport ? (
             <>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform">
+                <div className={dashboardStyles.icon}>
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="gw-heading truncate text-sm tracking-tight text-foreground transition-colors group-hover:text-primary lg:text-base">
+                  <h3 className={dashboardStyles.heroTitle}>
                     {formatViolationType(latestReport.violation_type)}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                  <p className={dashboardStyles.heroDescription}>
                     {latestReport.description || "Report submitted for inspection"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs lg:pt-3">
+              <div className={dashboardStyles.heroFooter}>
                 <span className="text-muted-foreground tabular-nums text-ui-caption flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5 text-muted-foreground/80" />
                   {latestReport.reference_number}
@@ -314,7 +288,7 @@ const HeroCards = () => {
           )}
         </div>
 
-        <div className="flex items-center pt-0.5 text-xs font-semibold text-primary lg:pt-1">
+        <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <span>{latestReport || reportsFailed ? "View report history" : "Submit new report"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>

@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
@@ -10,7 +11,6 @@ AdminPostsContentSkeleton,
 } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
 Select,
 SelectContent,
@@ -22,7 +22,7 @@ import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery
 import { toast } from "@/lib/toast";
 import postsService, { type AdminPostStats } from "@/services/postsService";
 import useAuthStore from "@/store/authStore";
-import { ArrowUpDown, LayoutGrid, List, Plus, RotateCcw, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { ArrowUpDown, LayoutGrid, List, Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminPostDetail from "./AdminPostDetail";
@@ -547,6 +547,7 @@ const AdminPosts = () => {
       <div className="w-full max-w-[1600px] mx-auto">
         <AdminPostDetail
           post={viewingPost}
+          onBack={handleBackFromDetail}
           onEdit={(post) => {
             handleBackFromDetail();
             openEditor(post);
@@ -590,6 +591,11 @@ const AdminPosts = () => {
             <AdminPostDetail
               post={previewPost}
               isPreview={true}
+              onBack={() => setSearchParams((previous) => {
+                const next = new URLSearchParams(previous);
+                next.delete("preview");
+                return next;
+              })}
             />
           </div>
         )}
@@ -638,31 +644,15 @@ const AdminPosts = () => {
           />
 
           {/* Search Input */}
-          <div className="relative w-full xl:w-[330px] shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search posts by title, tag, or author..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-9 h-10 bg-background border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setCurrentPage(1);
-                }}
-                className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            placeholder="Search posts by title, tag, or author..."
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setCurrentPage(1);
+            }}
+            containerClassName="w-full xl:w-[330px] shrink-0"
+          />
         </div>
 
         {/* Tier 2: Secondary Filter Strip */}

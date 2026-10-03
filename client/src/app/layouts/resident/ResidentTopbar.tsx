@@ -1,3 +1,4 @@
+import { navigationStyles } from "../navigationStyles";
 import { useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { toggleThemeMode } from "@/lib/theme";
@@ -23,6 +24,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
+import { getResidentNotificationPresentation } from "@/features/resident/notifications/notificationPresentation";
 import NotificationModal from "@/features/resident/notifications/NotificationModal";
 import type { ResidentNotification } from "@/features/resident/notifications/types";
 import { NotificationRow } from "@/services/notificationsService";
@@ -48,25 +50,6 @@ const isWithinLast24Hours = (value: string) => {
   return elapsed >= 0 && elapsed < 24 * 60 * 60 * 1000;
 };
 
-const getNotificationHeadline = (n: NotificationRow) => {
-  const cleanTitle = (n.title || "")
-    .replace(/🚨|⚠️|⚠/g, "")
-    .trim();
-
-  if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
-    return {
-      prefix: "MENRO Candelaria",
-      connector: "posted an announcement:",
-      highlight: cleanTitle || "Official Notice",
-    };
-  }
-
-  return {
-    prefix: cleanTitle || "System Notification",
-    connector: "",
-    highlight: "",
-  };
-};
 
 const getNotificationIconAndStyle = (n: NotificationRow) => {
   const metadata = getMetadata(n);
@@ -130,7 +113,7 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 const RESIDENT_PAGE_TITLES: Record<string, string> = {
   "/resident": "Dashboard",
   "/resident/schedule": "Collection Schedule",
-  "/resident/tracking": "Truck Tracking",
+  "/resident/tracking": "Collection Tracking",
   "/resident/my-reports": "My Reports",
   "/resident/report": "Submit Report",
   "/resident/contents": "Community Updates",
@@ -180,11 +163,12 @@ const ResidentTopBar = () => {
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
     } else if (n.type === "COLLECTION_REMINDER") {
+      const { headline, message } = getResidentNotificationPresentation(n);
       setSelectedReminder({
         id: n.id,
         type: "collection-reminder",
-        title: n.title,
-        message: n.body,
+        title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
+        message,
         time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
         read: true,
       });
@@ -213,18 +197,18 @@ const ResidentTopBar = () => {
 
   return (
     <>
-    <header className="h-14 border-b border-border/80 bg-background flex items-center justify-between px-3.5 sm:px-5 shrink-0 sticky top-0 z-20 transition-colors">
+    <header className={navigationStyles.topbar}>
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
         <button
           type="button"
           onClick={toggleSidebar}
-          className="gw-action-ghost lg:hidden w-8 h-8 rounded-lg transition-colors flex items-center justify-center cursor-pointer shrink-0"
+          className={`${navigationStyles.menu} ${navigationStyles.residentMobileMenu}`}
           aria-label="Toggle Navigation Menu"
         >
           <Menu className="w-4 h-4 text-foreground" />
         </button>
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 sm:gap-2 text-xs min-w-0">
+        <nav aria-label="Breadcrumb" className={navigationStyles.breadcrumb}>
           {isNestedReport ? (
             <>
               <Link
@@ -249,12 +233,12 @@ const ResidentTopBar = () => {
                 Community Updates
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-              <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
+              <span aria-current="page" className={navigationStyles.currentPage}>
                 Article
               </span>
             </>
           ) : (
-            <span aria-current="page" className="font-bold text-foreground truncate tracking-tight">
+            <span aria-current="page" className={navigationStyles.currentPage}>
               {pageTitle}
             </span>
           )}
@@ -262,12 +246,12 @@ const ResidentTopBar = () => {
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className={navigationStyles.topbarActions}>
         {/* Theme toggle with transition */}
         <button
           type="button"
           onClick={toggleThemeMode}
-          className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center overflow-hidden cursor-pointer border"
+          className={`${navigationStyles.topbarButton} overflow-hidden`}
           title="Toggle Theme"
         >
           <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
@@ -288,12 +272,12 @@ const ResidentTopBar = () => {
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="gw-action-ghost w-8 h-8 rounded-lg transition-all duration-200 relative flex items-center justify-center cursor-pointer border"
+              className={navigationStyles.topbarButton}
               title="Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className={`absolute -top-0.5 -right-0.5 h-4 bg-destructive text-destructive-foreground text-ui-overline font-bold rounded-full flex items-center justify-center ring-2 ring-background leading-none ${unreadCount > 9 ? "min-w-4 px-1" : "w-4"}`}>
+                <span className={`${navigationStyles.unreadBadge} ${unreadCount > 9 ? "min-w-4 px-1" : "w-4"}`}>
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -340,7 +324,7 @@ const ResidentTopBar = () => {
               <div>
                 {visibleNotifications.length > 0 ? (
                   visibleNotifications.map((n) => {
-                    const headline = getNotificationHeadline(n);
+                    const { headline, message } = getResidentNotificationPresentation(n);
                     const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
                     const isUnread = !n.is_read;
 
@@ -377,9 +361,9 @@ const ResidentTopBar = () => {
                             )}
                           </div>
 
-                          {n.body && (
+                          {message && (
                             <p className="text-ui-caption text-muted-foreground line-clamp-2 leading-relaxed break-words">
-                              {n.body}
+                              {message}
                             </p>
                           )}
 

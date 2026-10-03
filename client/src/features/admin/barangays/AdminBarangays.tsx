@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -25,7 +26,7 @@ fetchManagedStreets,
 type BarangayManagerRow,
 type ManagedStreet,
 } from "@/services/barangaysService";
-import { Loader2, MapPin, Pencil, Plus, Route, Search, Trash2, Truck } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, Route, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import StreetCoverageEditor, { type CoveragePoint } from "./StreetCoverageEditor";
 
@@ -346,16 +347,13 @@ const AdminBarangays = () => {
             Barangays
           </h2>
 
-          <div className="relative mt-3.5">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              aria-label="Search barangays"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search barangays..."
-              className="h-10 pl-9 rounded-xl bg-muted/20 border-border/70 text-sm focus-visible:ring-emerald-500"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search barangays..."
+            value={search}
+            onChange={setSearch}
+            aria-label="Search barangays"
+            containerClassName="mt-3.5"
+          />
 
           <div className="mt-4 space-y-2 max-h-[calc(100vh-27rem)] min-h-[26rem] overflow-y-auto pr-1">
             {isLoadingBarangays ? (
@@ -498,16 +496,13 @@ const AdminBarangays = () => {
                   </span>
                 </div>
 
-                <div className="relative mt-2.5">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    aria-label="Search streets and areas"
-                    value={streetSearch}
-                    onChange={(event) => setStreetSearch(event.target.value)}
-                    placeholder="Search streets or areas..."
-                    className="h-10 pl-10 rounded-xl bg-muted/20 border-border/70 text-sm focus-visible:ring-emerald-500"
-                  />
-                </div>
+                <SearchInput
+                  placeholder="Search streets or areas..."
+                  value={streetSearch}
+                  onChange={setStreetSearch}
+                  aria-label="Search streets and areas"
+                  containerClassName="mt-2.5"
+                />
 
                 {/* Streets Table with fixed header and scroll limited below header line */}
                 <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-card">

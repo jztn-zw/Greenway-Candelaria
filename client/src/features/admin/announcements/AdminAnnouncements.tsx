@@ -1,11 +1,11 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { useState, useEffect } from "react";
-import { Search, Plus, LayoutGrid, List, Megaphone, Trash2, Archive, ArrowUpDown, Send, X, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { Plus, LayoutGrid, List, Megaphone, Trash2, Archive, ArrowUpDown, Send, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -244,31 +244,15 @@ const AdminAnnouncements = () => {
           />
 
           {/* Search Input */}
-          <div className="relative w-full xl:w-[330px] shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search announcements by title or content..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-9 h-10 bg-background border-input/80 rounded-xl text-xs shadow-2xs hover:border-primary/50 focus-visible:border-primary"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setCurrentPage(1);
-                }}
-                className="gw-action-ghost absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            placeholder="Search announcements by title or content..."
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setCurrentPage(1);
+            }}
+            containerClassName="w-full xl:w-[330px] shrink-0"
+          />
         </div>
 
         {/* Tier 2: Secondary Filter Strip */}

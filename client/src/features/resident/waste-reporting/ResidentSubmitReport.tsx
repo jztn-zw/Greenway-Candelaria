@@ -6,6 +6,8 @@ import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/lib/toast";
 import { Send, RotateCcw } from "lucide-react";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { reportStyles } from "./reportStyles";
 import ViolationTypeSelector from "./ViolationTypeSelector";
 import LocationSection from "./LocationSection";
 import DescriptionSection from "./DescriptionSection";
@@ -266,42 +268,35 @@ const ResidentSubmitReport = () => {
   }
 
   return (
-    <div className="space-y-1">
+    <div className={reportStyles.page}>
       {/* ── Page Header ── */}
-      <div className="hidden max-w-3xl mx-auto mb-6 md:flex md:items-center md:justify-between md:gap-3">
-        <div>
-          <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight">
-            Submit a Waste Report
-          </h1>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
-            Report waste-related violations and hazards directly to MENRO Candelaria.
-          </p>
-        </div>
-
-        {hasDraft && (
-          <button
+      <ResidentPageHeader
+        title="Submit a waste report"
+        description="Report waste issues in your area to MENRO Candelaria."
+        actions={hasDraft && (
+          <Button
             type="button"
             onClick={resetForm}
-            className="gw-action-destructive-outline self-start lg:self-auto inline-flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 font-semibold transition-all cursor-pointer shadow-2xs"
+            variant="destructive-outline"
+            className="h-8 gap-1.5 px-2.5 text-xs [&_svg]:size-3"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Clear draft</span>
-          </button>
+          </Button>
         )}
-      </div>
+      />
 
       {/* Main Form Container */}
-      <div className="max-w-3xl mx-auto w-full space-y-5">
-        <div className="divide-y divide-border/60 md:rounded-2xl md:border md:border-border/80 md:bg-card md:p-6 md:shadow-2xs lg:p-7">
-          <div className="pb-6">
+      <div className="min-w-0 w-full">
+        <div className={reportStyles.form}>
+          <div className={reportStyles.section}>
             <ViolationTypeSelector
               value={form.violationType}
               onChange={(v) => update("violationType", v)}
               showError={showValidation && !form.violationType}
-              onClearDraft={hasDraft ? resetForm : undefined}
             />
           </div>
-          <div className="py-6">
+          <div className={reportStyles.section}>
             <LocationSection
               barangayId={form.barangayId}
               barangayName={form.barangayName}
@@ -313,12 +308,12 @@ const ResidentSubmitReport = () => {
             />
           </div>
           {hasSimilarReport && (
-            <div className="py-6">
+            <div className={reportStyles.section}>
               <DuplicateWarning barangay={form.barangayName} />
             </div>
           )}
           {similarQuery.isError && (
-            <div className="py-6">
+            <div className={reportStyles.section}>
               <DataRefreshNotice
                 message={similarQuery.data === undefined
                   ? "Couldn't check for similar reports. You can still submit, but a matching report may already exist."
@@ -328,7 +323,7 @@ const ResidentSubmitReport = () => {
               />
             </div>
           )}
-          <div className="py-6">
+          <div className={reportStyles.section}>
             <DescriptionSection
               value={form.description}
               onChange={(v) => update("description", v)}
@@ -336,7 +331,7 @@ const ResidentSubmitReport = () => {
               showError={showValidation && preparedDescription.length < 10}
             />
           </div>
-          <div className="pt-6">
+          <div className={reportStyles.section}>
             <PhotoUploadSection
               photos={form.photos}
               onPhotosChange={(v) => update("photos", v)}
@@ -345,15 +340,14 @@ const ResidentSubmitReport = () => {
           </div>
         </div>
 
-        <div className="pb-3 lg:pb-8">
+        <div className={reportStyles.footer}>
           <Button
             onClick={handleReview}
             disabled={isSubmitting}
-            className="w-full h-12 rounded-xl text-sm font-semibold gap-2 transition-all cursor-pointer shadow-sm disabled:cursor-not-allowed"
-            size="lg"
+            className={reportStyles.submit}
           >
             <Send className="w-4 h-4" />
-            <span>Review and Submit Report</span>
+            <span className="min-w-0 truncate">Review report</span>
           </Button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
 import type { Truck, CollectionDayStatus, CollectionSchedule } from "./types";
 import { ResidentTrackingSkeleton } from "@/components/PageLoadingSkeletons";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { fetchBarangays } from "@/services/barangaysService";
 import { fetchRoutes, type ApiRoute } from "@/services/routesService";
 import useAuthStore from "@/store/authStore";
@@ -29,6 +30,8 @@ import {
 } from "./truckTracking.utils";
 import type { RoadRouteResult } from "@/services/roadRoutingService";
 import { getManilaNow, parseApiTimestamp } from "@/utils/date";
+import { trackingStyles } from "./trackingStyles";
+import { trackingPageContent } from "./trackingContent";
 
 const REFRESH_MS = 30_000;
 const SOCKET_URL =
@@ -600,22 +603,15 @@ const ResidentTruckTracking = () => {
     ? "Tracking could not be refreshed. Last known information may be outdated."
     : null);
 
-  if (isLoading || (planQuery.data && !hasInitialSnapshot)) return <ResidentTrackingSkeleton />;
+  if (isLoading || (planQuery.data && !hasInitialSnapshot)) return <ResidentTrackingSkeleton residentArea={residentArea} />;
   if (planQuery.isError && planQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load your collection tracking information. Please try again." onRetry={() => { void refetchPlan(); void refetchLive(); }} retrying={planQuery.isFetching || liveQuery.isFetching} homeHref="/resident" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-2 md:px-4">
+    <div className={trackingStyles.page}>
       {/* ── Page Header ── */}
-      <div className="hidden pb-1 md:mb-4 md:block">
-        <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-          Truck Tracking
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-          Track your scheduled waste collection in real time.
-        </p>
-      </div>
+      <ResidentPageHeader title={trackingPageContent.title} description={trackingPageContent.description} />
 
-      <div className="space-y-3.5 md:space-y-4">
+      <div className={trackingStyles.stack}>
 
       {displayedTrackingError && <DataRefreshNotice message={displayedTrackingError} onRetry={() => { void refetchPlan(); void refetchLive(); }} retrying={planQuery.isFetching || liveQuery.isFetching} />}
 
@@ -635,7 +631,7 @@ const ResidentTruckTracking = () => {
         collectionFinishedToday={residentCollectionFinalized}
       />
 
-       <div className="h-[clamp(360px,calc(100dvh-12rem),520px)] md:h-[500px] lg:h-[580px]">
+       <div className={trackingStyles.mapHeight}>
         <TrackingMap
           trucks={residentTrucks}
           focusedTruckId={focusedTruckId}
@@ -655,4 +651,3 @@ const ResidentTruckTracking = () => {
 };
 
 export default ResidentTruckTracking;
-

@@ -66,8 +66,8 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
           <p className="text-ui-overline text-muted-foreground uppercase tracking-widest font-bold">
             Tracking Reference Number
           </p>
-          <div className="flex items-center justify-center gap-2">
-            <span className="gw-stat-value whitespace-nowrap text-xl font-sans tabular-nums tracking-tight text-foreground md:text-2xl">
+          <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
+            <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-lg font-semibold font-sans tabular-nums tracking-tight text-foreground md:text-2xl">
               {referenceNumber}
             </span>
             <button
@@ -75,6 +75,7 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
               onClick={copyRef}
               className="gw-action-outline flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold shadow-2xs transition-all md:w-auto md:gap-1.5 md:px-2.5"
               title="Copy reference number"
+              aria-label="Copy reference number"
             >
               {copied ? (
                 <>
@@ -108,7 +109,7 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
             {LIFECYCLE_STEPS.map((step, idx) => {
               const isCurrent = idx === 0;
               return (
-                <div key={step} className="relative z-10 flex min-w-0 flex-1 flex-col items-center gap-1.5 lg:max-w-20">
+                <div key={step} className="relative z-10 flex min-w-0 flex-1 flex-col items-center gap-1.5">
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       isCurrent
@@ -149,14 +150,14 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
           className="flex h-10 items-center justify-center gap-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer md:h-11 md:text-sm"
         >
           <PlusCircle className="w-4 h-4" />
-          <span>Submit Another</span>
+          <span className="min-w-0 truncate">Submit another</span>
         </Button>
         <Button
           type="button"
           onClick={() => navigate("/resident/my-reports")}
           className="flex h-10 items-center justify-center gap-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer md:h-11 md:text-sm"
         >
-          <span>View My Reports</span>
+          <span className="min-w-0 truncate">View my reports</span>
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

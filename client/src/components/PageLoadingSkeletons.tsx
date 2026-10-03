@@ -1,10 +1,20 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/common/BackButton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { getManilaNow } from "@/utils/date";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
+import { myReportsStyles } from "@/features/resident/waste-reporting/myReportsStyles";
+import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
+import { scheduledTrackingContent } from "@/features/resident/truck-tracking/trackingContent";
+import { trackingStyles } from "@/features/resident/truck-tracking/trackingStyles";
+import { dashboardStyles } from "@/features/resident/dashboard/dashboardStyles";
+import { profileStyles } from "@/features/resident/profile/profileStyles";
+import { settingsStyles } from "@/features/resident/settings/settingsStyles";
+import { reportDetailStyles } from "@/features/resident/waste-reporting/reportDetailStyles";
 
 /* ─── Admin Dashboard Skeletons ─── */
 
@@ -638,48 +648,114 @@ export const MapPanelSkeleton = () => (
 );
 
 /* ─── Profile Page Skeleton (Resident) ─── */
-export const ProfileSkeleton = () => (
-  <div role="status" aria-label="Loading resident profile" className="mx-auto max-w-3xl space-y-5 md:space-y-6">
-    <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
-      <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
-        <ProfileBannerImage />
-      </div>
-      <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
-        <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-          <div className="flex shrink-0 flex-col items-center gap-2">
-            <Skeleton className="size-20 rounded-full ring-4 ring-background lg:size-28" />
-            <Skeleton className="h-8 w-28 rounded-xl" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-col items-center gap-1.5 md:flex-row md:gap-3"><Skeleton className="h-7 w-48 max-w-full" /><Skeleton className="h-6 w-28 rounded-md" /></div>
-            <div className="flex flex-wrap items-center justify-center gap-4 md:justify-start"><Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-32" /></div>
-          </div>
-        </div>
+const ProfileSectionHeaderSkeleton = ({ action = false }: { action?: boolean }) => (
+  <div className={profileStyles.sectionHeader}>
+    <div className={profileStyles.sectionHeading}>
+      <Skeleton className="size-8 shrink-0 rounded-lg" />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <Skeleton className="h-4 w-40 max-w-full" />
+        <Skeleton className="h-3 w-56 max-w-full" />
       </div>
     </div>
+    {action && <Skeleton className="h-8 w-24 max-w-full rounded-lg" />}
+  </div>
+);
 
-    <section className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:p-5 lg:p-6">
-      <div className="flex items-center justify-between border-b border-border/50 pb-2">
-        <div className="flex items-center gap-2.5"><Skeleton className="size-8 rounded-lg" /><div className="space-y-1"><Skeleton className="h-4 w-40" /><Skeleton className="h-3.5 w-64 max-w-full" /></div></div>
-        <Skeleton className="hidden h-3 w-28 md:block" />
+export const ProfileSkeleton = () => (
+  <div role="status" aria-busy="true" aria-label="Loading resident profile" className={profileStyles.page}>
+    <div aria-hidden="true">
+      <div className={residentPageStyles.header}>
+        <div className="min-w-0 w-full space-y-1.5">
+          <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
+          <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
+        </div>
       </div>
-      <div className="divide-y divide-border/50">
-        {Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center justify-between gap-3 px-2 py-2.5 md:px-4 md:py-3"><div className="flex min-w-0 flex-1 items-center gap-3"><Skeleton className="size-9 shrink-0 rounded-xl lg:size-10" /><div className="space-y-1"><Skeleton className="h-3 w-24" /><Skeleton className="h-4 w-40 max-w-full" /></div></div><Skeleton className="h-8 w-16 shrink-0 rounded-xl" /></div>)}
+      <div className={profileStyles.stack}>
+        <div className={profileStyles.hero}>
+          <div className={profileStyles.cover}><Skeleton className="h-full w-full rounded-none" /></div>
+          <div className={profileStyles.identity}>
+            <div className={profileStyles.identityRow}>
+              <div className={`${profileStyles.avatar} relative shrink-0 rounded-full border border-border/50 bg-card ring-[3px] ring-card`}>
+                <Skeleton className="h-full w-full rounded-full" />
+                <div className="absolute -bottom-1 -right-1 size-7 overflow-hidden rounded-full border border-border/80 bg-card">
+                  <Skeleton className="h-full w-full rounded-full" />
+                </div>
+              </div>
+              <div className={profileStyles.identityDetails}>
+                <div className={profileStyles.nameRow}>
+                  <Skeleton className={`${profileStyles.name} h-[1.25em] w-48 max-w-full`} />
+                  <Skeleton className="h-6 w-28 max-w-full rounded-md" />
+                </div>
+                <div className={profileStyles.identityMeta}>
+                  <Skeleton className="h-4 w-28 max-w-full" /><Skeleton className="h-4 w-32 max-w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className={profileStyles.body}>
+          <section className={profileStyles.personal}>
+            <ProfileSectionHeaderSkeleton />
+            <div className="divide-y divide-border/50">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className={profileStyles.fieldRow}>
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                    <Skeleton className="size-8 shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Skeleton className="h-3 w-24 max-w-full" />
+                      <Skeleton className="h-5 w-40 max-w-full" />
+                    </div>
+                  </div>
+                  <Skeleton className={index === 2 ? "h-8 w-4 shrink-0" : "h-8 w-12 shrink-0 rounded-lg"} />
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className={profileStyles.panel}>
+            <ProfileSectionHeaderSkeleton action />
+            <div className={profileStyles.resolution}>
+              <div className="flex min-w-0 flex-wrap justify-between gap-2">
+                <Skeleton className="h-4 w-28 max-w-full" /><Skeleton className="h-5 w-24 rounded-md" />
+              </div>
+              <Skeleton className="h-2.5 w-full rounded-full" />
+              <Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" />
+            </div>
+            <div className={profileStyles.stats}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className={profileStyles.stat}>
+                  <Skeleton className="mx-auto h-8 w-12 max-w-full" />
+                  <Skeleton className="mx-auto h-3 w-16 max-w-full" />
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className={profileStyles.panel}>
+            <ProfileSectionHeaderSkeleton action />
+            <div className={profileStyles.badges}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className={`${profileStyles.badge} border-border/60`}>
+                  <Skeleton className="size-9 shrink-0 rounded-lg" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Skeleton className="h-4 w-24 max-w-full" /><Skeleton className="h-4 w-12 rounded-md" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+        <div className={profileStyles.hero}>
+          <div className="flex min-w-0 items-center justify-between gap-3 p-4">
+            <Skeleton className="size-8 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1 space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-3 w-52 max-w-full" /></div>
+            <Skeleton className="size-4 shrink-0 rounded-md" />
+          </div>
+        </div>
+        <Skeleton className="mx-auto h-3 w-80 max-w-full" />
       </div>
-    </section>
-
-    <section className="space-y-5 rounded-2xl border border-border/80 bg-card p-5 shadow-xs lg:p-6">
-      <div className="flex items-center justify-between border-b border-border/50 pb-2"><div className="flex items-center gap-2.5"><Skeleton className="size-8 rounded-lg" /><div className="space-y-1"><Skeleton className="h-4 w-48" /><Skeleton className="h-3.5 w-64 max-w-full" /></div></div><Skeleton className="h-8 w-32 rounded-xl" /></div>
-      <div className="space-y-3 rounded-xl border border-border/60 bg-muted/40 p-4"><div className="flex justify-between"><Skeleton className="h-4 w-44" /><Skeleton className="h-5 w-24 rounded-md" /></div><Skeleton className="h-2.5 w-full rounded-full" /><Skeleton className="h-3 w-3/4" /></div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="space-y-2 rounded-xl border border-border/80 bg-muted/20 p-3 text-center sm:p-4"><Skeleton className="mx-auto h-8 w-12" /><Skeleton className="mx-auto h-3 w-20 max-w-full" /></div>)}</div>
-    </section>
-
-    <section className="space-y-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs lg:p-6">
-      <div className="flex items-center justify-between border-b border-border/50 pb-2"><div className="flex items-center gap-2.5"><Skeleton className="size-8 rounded-lg" /><div className="space-y-1"><Skeleton className="h-4 w-40" /><Skeleton className="h-3.5 w-56" /></div></div><Skeleton className="h-6 w-24 rounded-md" /></div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="flex items-start gap-3.5 rounded-xl border border-border/80 bg-muted/15 p-3.5 lg:p-4"><Skeleton className="size-10 shrink-0 rounded-xl" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-32 max-w-full" /><Skeleton className="h-3 w-44 max-w-full" /></div></div>)}</div>
-    </section>
-
-    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-xs"><div className="flex items-center justify-between"><div className="flex items-center gap-3.5"><Skeleton className="size-10 rounded-xl" /><div className="space-y-1"><Skeleton className="h-4 w-20" /><Skeleton className="h-3 w-52 max-w-full" /></div></div><Skeleton className="size-4" /></div></div>
+    </div>
   </div>
 );
 
@@ -732,28 +808,47 @@ export const AdminProfileSkeleton = () => (
 
 /* ─── Resident Settings Page Skeleton (1:1 with ResidentSettings.tsx) ─── */
 export const SettingsSkeleton = () => (
-  <div role="status" aria-label="Loading resident settings" className="mx-auto max-w-3xl space-y-4 md:space-y-5 lg:space-y-6">
-    <div className="hidden space-y-2 md:block"><Skeleton className="h-8 w-36" /><Skeleton className="h-4 w-96 max-w-full" /></div>
-    {[1, 3, 1, 2, 2].map((rowCount, sectionIndex) => (
-      <section key={sectionIndex} className="space-y-3 rounded-xl border border-border/80 bg-card p-3.5 md:space-y-4 md:p-5 lg:p-6">
-        <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5 lg:gap-3 lg:pb-3">
-          <Skeleton className="size-9 shrink-0 rounded-xl" />
-          <div className="space-y-1.5"><Skeleton className="h-4 w-40 max-w-full" /><Skeleton className="h-3 w-64 max-w-full" /></div>
+  <div role="status" aria-busy="true" aria-label="Loading resident settings" className={settingsStyles.page}>
+    <div aria-hidden="true" className={settingsStyles.header}>
+      <div className="min-w-0 w-full space-y-1.5">
+        <Skeleton className={`${settingsStyles.title} h-[1.25em] w-36 max-w-full`} />
+        <Skeleton className={`${settingsStyles.description} h-[1.5em] w-96 max-w-full`} />
+      </div>
+    </div>
+    {[1, 3, 0, 2, 2].map((rowCount, sectionIndex) => (
+      <section key={sectionIndex} aria-hidden="true" className={settingsStyles.section}>
+        <div className={settingsStyles.sectionHeader}>
+          <Skeleton className={settingsStyles.icon} />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-40 max-w-full" />
+            <Skeleton className="h-3 w-64 max-w-full" />
+          </div>
         </div>
         {sectionIndex === 2 ? (
-          <div className="space-y-2"><div className="flex items-center justify-between"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-28" /></div><div className="grid grid-cols-2 gap-2.5 rounded-2xl border border-border/60 bg-muted/40 p-1"><Skeleton className="h-10 rounded-lg" /><Skeleton className="h-10 rounded-lg" /></div></div>
-        ) : Array.from({ length: rowCount }).map((_, rowIndex) => (
-          <div key={rowIndex} className="flex items-center justify-between gap-3 border-b border-border/40 px-2 py-2.5 last:border-b-0 lg:px-2.5 lg:py-3">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              {(sectionIndex === 0 || sectionIndex >= 3) && <Skeleton className="size-9 shrink-0 rounded-xl" />}
-              <div className="min-w-0 space-y-1.5"><Skeleton className="h-4 w-36 max-w-full" /><Skeleton className="h-3 w-64 max-w-full" /></div>
-            </div>
-            <Skeleton className={sectionIndex <= 1 ? "h-6 w-11 shrink-0 rounded-full" : "size-4 shrink-0"} />
+          <div className="space-y-2">
+            <div className={settingsStyles.themeHeading}><Skeleton className="h-4 w-24 max-w-full" /><Skeleton className="h-3 w-28 max-w-full" /></div>
+            <div className={settingsStyles.themeGrid}><Skeleton className={settingsStyles.themeSkeleton} /><Skeleton className={settingsStyles.themeSkeleton} /></div>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-1">
+            {Array.from({ length: rowCount }).map((_, rowIndex) => (
+              <div key={rowIndex} className={settingsStyles.row}>
+                <div className={settingsStyles.rowContent}>
+                  <Skeleton className={settingsStyles.icon} />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-36 max-w-full" />
+                    <Skeleton className="h-3 w-64 max-w-full" />
+                    <Skeleton className="resident-settings-skeleton-second-line h-3 w-4/5 max-w-full" />
+                  </div>
+                </div>
+                <Skeleton className={sectionIndex <= 1 ? "h-6 w-11 shrink-0 rounded-full" : "size-4 shrink-0 rounded-md"} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     ))}
-    <Skeleton className="mx-auto h-3 w-80 max-w-full" />
+    <div className={settingsStyles.footer} aria-hidden="true"><Skeleton className="mx-auto h-3 w-80 max-w-full" /></div>
   </div>
 );
 
@@ -861,6 +956,47 @@ export const AdminScheduleSkeleton = ({ currentDate }: { currentDate: Date }) =>
 };
 
 /* ─── Shared resident, collector, and admin notification feed ─── */
+const ResidentNotificationsSkeleton = () => (
+  <div role="status" aria-label="Loading Notifications" className={notificationStyles.page}>
+    <div className={residentPageStyles.header}>
+      <div className="min-w-0 w-full space-y-1.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
+          <Skeleton className="h-5 w-16 rounded-md" />
+        </div>
+        <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
+      </div>
+      <div className={`${notificationStyles.headerActions} shrink-0 gap-2`}>
+        <Skeleton className="h-9 w-32 rounded-lg" /><Skeleton className="h-9 w-20 rounded-lg" />
+      </div>
+    </div>
+    <div className="space-y-4">
+      <div className={notificationStyles.filterRow}>
+        <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
+          {[44, 88, 74, 78, 114].map((width) => <Skeleton key={width} className="h-9 shrink-0 rounded-lg" style={{ width }} />)}
+        </div>
+        <Skeleton className={notificationStyles.menuTrigger} />
+      </div>
+      <div className={notificationStyles.list}>
+        {/* Match the resident notification page's fifteen-row capacity. */}
+        {Array.from({ length: 15 }).map((_, index) => (
+          <div key={index} className={notificationStyles.skeletonRow}>
+            <Skeleton className={notificationStyles.icon} />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-2/3 max-w-full" />
+              <Skeleton className="h-3 w-4/5 max-w-full" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <div className={notificationStyles.trailing}>
+              <Skeleton className="size-3.5 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export const NotificationsListSkeleton = () => (
   <div role="status" aria-label="Loading notifications" className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs divide-y divide-border/60">
     {Array.from({ length: 5 }).map((_, i) => (
@@ -879,6 +1015,7 @@ export const NotificationsListSkeleton = () => (
 );
 
 export const NotificationsPageSkeleton = ({ role = "resident" }: { role?: "resident" | "collector" | "admin" }) => {
+  if (role === "resident") return <ResidentNotificationsSkeleton />;
   const tabWidths = role === "collector" ? [44, 110, 112, 114] : role === "admin" ? [44, 94, 76, 78, 114] : [44, 88, 74, 78, 114];
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-4 md:space-y-5 animate-in fade-in duration-300">
@@ -939,30 +1076,31 @@ export const ResidentScheduleSkeleton = () => (
 );
 
 /* ─── Resident My Reports skeletons ─── */
-export const MyReportsListSkeleton = ({ count = 4 }: { count?: number }) => (
-  <div role="status" aria-label="Loading reports" className="space-y-3">
+// Match the ten-report page size for both initial and filtered list loading.
+export const MyReportsListSkeleton = ({ count = 10 }: { count?: number }) => (
+  <div role="status" aria-label="Loading reports" className={myReportsStyles.list}>
     {Array.from({ length: count }).map((_, index) => (
-      <div key={index} className="space-y-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:space-y-3 md:p-4.5 lg:p-5">
+      <div key={index} className={myReportsStyles.skeletonCard}>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3.5">
-            <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
-            <div className="min-w-0 space-y-2">
+          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+            <Skeleton className={myReportsStyles.icon} />
+            <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Skeleton className="h-5 w-36" />
-                <Skeleton className="h-5 w-20 rounded-md" />
+                <Skeleton className="h-5 w-28 max-w-full" />
+                <Skeleton className="h-5 w-16 rounded-md" />
               </div>
               <Skeleton className="h-3 w-48 max-w-full" />
             </div>
           </div>
-          <Skeleton className="h-4 w-12 shrink-0" />
+          <Skeleton className="h-4 w-4 shrink-0" />
         </div>
-        <Skeleton className="hidden h-3 w-4/5 lg:block" />
-        <div className="flex items-center justify-between gap-3 pt-0.5 lg:pt-1">
+        <Skeleton className={cn(myReportsStyles.preview, "h-4 w-4/5")} />
+        <div className={myReportsStyles.footer}>
           <div className="flex flex-wrap items-center gap-2">
-            <Skeleton className="h-5 w-28 rounded-lg" />
+            <Skeleton className="h-3 w-28" />
             <Skeleton className="h-3 w-24" />
           </div>
-          <Skeleton className="hidden h-3 w-16 md:block" />
+          <Skeleton className="my-reports-photo-count h-3 w-16" />
         </div>
       </div>
     ))}
@@ -970,26 +1108,28 @@ export const MyReportsListSkeleton = ({ count = 4 }: { count?: number }) => (
 );
 
 export const MyReportsPageSkeleton = () => (
-  <div role="status" aria-label="Loading My Reports" className="space-y-4 md:space-y-5 lg:space-y-6">
-    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
-      <div className="hidden space-y-2 md:block">
-        <Skeleton className="h-8 w-44" />
-        <Skeleton className="h-4 w-80 max-w-full" />
+  <div role="status" aria-label="Loading My Reports" className={myReportsStyles.page}>
+    <div className={residentPageStyles.header}>
+      <div className="min-w-0 w-full space-y-1.5">
+        <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
+        <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
       </div>
-      <Skeleton className="h-10 w-full rounded-xl md:w-44" />
+      <Skeleton className={cn(myReportsStyles.headerActions, "h-9 w-32 shrink-0 rounded-lg")} />
     </div>
+    <div className="space-y-4">
     <div className="space-y-3">
-      <Skeleton className="h-10 w-full rounded-xl" />
-      <div className="flex items-center justify-between gap-2.5">
+      <Skeleton className="h-11 w-full rounded-lg md:h-10" />
+      <div className={myReportsStyles.filterRow}>
         <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
           {["w-16", "w-24", "w-32", "w-24", "w-20"].map((width, index) => (
             <Skeleton key={index} className={cn("h-9 shrink-0 rounded-xl", width)} />
           ))}
         </div>
-        <Skeleton className="h-9 w-9 shrink-0 rounded-xl md:w-32" />
+        <div className={myReportsStyles.sort}><Skeleton className="h-9 w-full rounded-lg" /></div>
       </div>
     </div>
     <MyReportsListSkeleton />
+    </div>
   </div>
 );
 
@@ -1001,115 +1141,113 @@ type MyReportDetailSkeletonPreview = {
   description?: string;
 };
 
-export const MyReportDetailSkeleton = ({ preview }: { preview?: MyReportDetailSkeletonPreview }) => {
-  // When the list has loaded, match this report's photo count. A direct link has
-  // no preview yet, so show the five available photo slots until detail arrives.
+export const MyReportDetailSkeleton = ({ preview, onBack }: { preview?: MyReportDetailSkeletonPreview; onBack?: () => void }) => {
   const photoCount = Math.min(Math.max(preview?.photoCount ?? 5, 0), 5);
-  const milestoneCount = Math.min(Math.max(preview?.statusHistory?.length ?? 1, 1), 4);
+  const milestoneCount = Math.min(Math.max(preview?.statusHistory?.length ?? 1, 0), 4);
   const descriptionLines = preview?.description
     ? Math.min(Math.max(Math.ceil(preview.description.length / 75), 1), 3)
     : 2;
   const showAction = !preview || preview.status === "submitted" || preview.status === "resolved";
 
   return (
-  <div role="status" aria-busy="true" aria-label="Loading report details" className="mx-auto max-w-3xl space-y-0 pb-4 md:space-y-4 md:pb-6 lg:space-y-5 lg:pb-8">
-    <div className="divide-y divide-border/60 md:overflow-hidden md:rounded-2xl md:border md:border-border/80 md:bg-card md:shadow-2xs">
-      <div className="space-y-2.5 py-4 md:space-y-3 md:p-5 lg:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">Reference Number</p>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-7 w-40 lg:h-8" />
-              <Skeleton className="h-8 w-8 rounded-lg" />
+    <div role="status" aria-busy="true" aria-label="Loading report details" className={reportDetailStyles.page}>
+      {onBack && <div className="pb-3 md:pb-0"><BackButton onBack={onBack} label="Back to My Reports" className="mb-0" /></div>}
+      <div aria-hidden="true" className={reportDetailStyles.card}>
+        <div className={reportDetailStyles.headerSection}>
+          <div className={reportDetailStyles.header}>
+            <div className={reportDetailStyles.referenceGroup}>
+              <div className="text-ui-caption"><Skeleton className="h-[1lh] w-32 max-w-full" /></div>
+              <div className={reportDetailStyles.referenceRow}>
+                <Skeleton className={`${reportDetailStyles.reference} h-[1.5em] w-40 max-w-full`} />
+                <Skeleton className="size-8 shrink-0 rounded-lg" />
+              </div>
             </div>
+            <Skeleton className="h-6 w-24 shrink-0 rounded-md lg:h-7" />
           </div>
-          <Skeleton className="h-6 w-24 shrink-0 rounded-md lg:h-7" />
+          <div className={reportDetailStyles.submitted}><Skeleton className="h-4 w-72 max-w-full" /></div>
         </div>
-        <Skeleton className="h-4 w-72 max-w-full" />
-      </div>
-
-      <div className="space-y-3.5 py-4 md:space-y-4 md:p-5 lg:p-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-          {["Violation Type", "Reported Location"].map((label) => (
-            <div key={label} className="space-y-1.5">
-              <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 lg:gap-3.5 lg:p-4">
-                <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-4 w-36 max-w-full" />
-                  <Skeleton className="h-3 w-48 max-w-full" />
+        <div className={reportDetailStyles.section}>
+          <div className={reportDetailStyles.summary}>
+            {["Violation Type", "Reported Location"].map((label) => (
+              <div key={label} className="min-w-0 space-y-1.5">
+                <div className="text-ui-caption"><Skeleton className={cn("h-[1lh] max-w-full", label === "Violation Type" ? "w-28" : "w-36")} /></div>
+                <div className={reportDetailStyles.summaryCard}>
+                  <Skeleton className={reportDetailStyles.summaryIcon} />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-36 max-w-full" />
+                    <Skeleton className="h-3 w-48 max-w-full" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1.5 pt-1.5 md:pt-2">
-          <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">Incident Description</p>
-          <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3 dark:bg-muted/20 md:p-4">
-            {Array.from({ length: descriptionLines }).map((_, index) => (
-              <Skeleton key={index} className={cn("h-4", index === descriptionLines - 1 ? "w-5/6" : "w-full")} />
             ))}
           </div>
-        </div>
-      </div>
-
-      {photoCount > 0 && (
-        <div className="space-y-2.5 py-4 md:p-5 lg:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">Photo Evidence</p>
-            <Skeleton className="h-3 w-20" />
-          </div>
-          <div className="flex items-start gap-3 overflow-hidden pb-1">
-            {Array.from({ length: photoCount }).map((_, index) => (
-              <Skeleton key={index} className="size-12 shrink-0 rounded-xl md:size-16 lg:size-20" />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4 py-4 md:p-5 lg:space-y-5 lg:p-6">
-        <div>
-          <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">Review &amp; Dispatch Status</p>
-          <div className="mt-3.5 space-y-2.5">
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-2 flex-1 rounded-full" />)}
-            </div>
-            <div className="grid grid-cols-4 text-center text-ui-overline text-muted-foreground md:text-xs">
-              {["Submitted", "Under Review", "Dispatched", "Resolved"].map((label) => <span key={label}>{label}</span>)}
+          <div className="min-w-0 space-y-1.5 pt-1.5 md:pt-2">
+            <div className="text-ui-caption"><Skeleton className="h-[1lh] w-40 max-w-full" /></div>
+            <div className={`${reportDetailStyles.description} space-y-2`}>
+              {Array.from({ length: descriptionLines }).map((_, index) => (
+                <Skeleton key={index} className={cn("h-4", index === descriptionLines - 1 ? "w-5/6" : "w-full")} />
+              ))}
             </div>
           </div>
         </div>
-          <div className="space-y-3 border-t border-border/60 pt-4">
-            <p className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground">Activity Milestones</p>
-            {Array.from({ length: milestoneCount }).map((_, index) => (
-              <div key={index} className="flex items-start gap-3 pl-1">
-                <Skeleton className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" />
-                <div className="space-y-1.5 pb-2"><Skeleton className="h-3 w-36" /><Skeleton className="h-3 w-24" /></div>
+        {photoCount > 0 && (
+          <div className={reportDetailStyles.photosSection}>
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 text-ui-caption"><Skeleton className="h-[1lh] w-28 max-w-full" /></div>
+              <Skeleton className="h-3 w-20 shrink-0" />
+            </div>
+            <div className={reportDetailStyles.photos}>
+              {Array.from({ length: photoCount }).map((_, index) => <Skeleton key={index} className={reportDetailStyles.photo} />)}
+            </div>
+          </div>
+        )}
+        <div className={reportDetailStyles.progressSection}>
+          <div>
+            <div className="text-ui-caption"><Skeleton className="h-[1lh] w-52 max-w-full" /></div>
+            <div className="mt-3.5 space-y-2.5">
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-2 min-w-0 flex-1 rounded-full" />)}
               </div>
-            ))}
+              <div className={`${reportDetailStyles.progressLabels} text-ui-overline text-muted-foreground md:text-xs`}>
+                {["w-14", "w-20", "w-16", "w-12"].map((width) => (
+                  <span key={width}><Skeleton className={cn("mx-auto h-[1lh] max-w-full", width)} /></span>
+                ))}
+              </div>
+            </div>
           </div>
+          {milestoneCount > 0 && (
+            <div className="space-y-3 border-t border-border/60 pt-4">
+              <div className="text-ui-caption"><Skeleton className="h-[1lh] w-36 max-w-full" /></div>
+              <div className="pl-1">
+                {Array.from({ length: milestoneCount }).map((_, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <Skeleton className="mt-1.5 size-2.5 shrink-0 rounded-full" />
+                    <div className={`${reportDetailStyles.milestone} flex-1 space-y-1.5`}>
+                      <Skeleton className="h-3 w-36 max-w-full" /><Skeleton className="h-3 w-24 max-w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {preview?.adminResponse && (
+          <div className={reportDetailStyles.responseSection}>
+            <div className="text-ui-caption"><Skeleton className="h-[1lh] w-48 max-w-full" /></div>
+            <div className={`${reportDetailStyles.response} space-y-2`}><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></div>
+          </div>
+        )}
       </div>
-
-      {preview?.adminResponse && (
-        <div className="space-y-2 border-t border-border/60 bg-muted/20 py-4 md:p-5 lg:p-6">
-          <p className="text-ui-caption font-bold uppercase tracking-wider text-foreground">MENRO Official Response</p>
-          <div className="space-y-2 rounded-xl border border-border/70 bg-card p-3.5">
-            <Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" />
+      {showAction && (
+        <div aria-hidden="true" className={reportDetailStyles.actions}>
+          <div className={reportDetailStyles.action}>
+            <Skeleton className={reportDetailStyles.actionIcon} />
+            <div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-4 w-44 max-w-full" /><Skeleton className="h-3 w-64 max-w-full" /></div>
+            <Skeleton className="size-4 shrink-0 rounded-md" />
           </div>
         </div>
       )}
     </div>
-
-    {showAction && (
-      <div className="pt-3 lg:pt-2">
-        <div className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-          <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
-          <div className="flex-1 space-y-2"><Skeleton className="h-4 w-44 max-w-full" /><Skeleton className="h-3 w-64 max-w-full" /></div>
-          <Skeleton className="h-4 w-4 shrink-0" />
-        </div>
-      </div>
-    )}
-  </div>
   );
 };
 
@@ -1219,29 +1357,31 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
 );
 
 export const AdminPostDetailSkeleton = () => (
-  <div role="status" aria-busy="true" className="w-full max-w-[1000px] mx-auto pb-12">
+  <div role="status" aria-busy="true" className={contentStyles.detailPage}>
     <span className="sr-only">Loading post details…</span>
+    <Skeleton aria-hidden="true" className="mb-3 h-8 w-32 rounded-lg" />
     <div aria-hidden="true" className="space-y-6 sm:space-y-8">
-      <div className="space-y-6">
-        <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden border border-border/40">
+      <div className={contentStyles.detailArticle}>
+        <div className={contentStyles.detailImage}>
           <Skeleton className="w-full h-full rounded-none" />
           <Skeleton className="absolute top-4 left-4 h-7 w-24 rounded-md bg-background/60" />
-          <Skeleton className="absolute top-4 right-4 h-7 w-24 rounded-md bg-background/60" />
         </div>
-        <div className="space-y-3 pt-1">
+        <div className={contentStyles.detailHeader}>
+          <div className="flex flex-wrap gap-2"><Skeleton className="h-6 w-20 rounded-md" /><Skeleton className="h-6 w-20 rounded-md" /></div>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-8 sm:h-9 md:h-12 w-full" />
-              <Skeleton className="h-8 sm:h-9 md:h-12 w-3/4" />
+              <Skeleton className="h-7 sm:h-9 w-full" />
+              <Skeleton className="h-7 sm:h-9 w-3/4" />
             </div>
-            <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
+            <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {["w-24", "w-32", "w-20", "w-20"].map((width, i) => <Skeleton key={i} className={cn("h-4 sm:h-5", width)} />)}
+          <div className="community-post-metadata-primary flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-40 max-w-full" />
           </div>
+          <div className="flex flex-wrap gap-2"><Skeleton className="h-8 w-20 rounded-lg" /><Skeleton className="h-8 w-24 rounded-lg" /></div>
         </div>
         <div className="border-t border-border/60" />
-        <div className="space-y-4">
+        <div className={contentStyles.detailBody}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Skeleton className="h-5 sm:h-6 w-full" />
@@ -1260,37 +1400,30 @@ export const AdminPostDetailSkeleton = () => (
 
 /* ─── Resident Post Detail Skeleton ─── */
 export const ResidentPostDetailSkeleton = () => (
-  <div className="max-w-3xl mx-auto space-y-0">
+  <div role="status" aria-label="Loading community post" className={contentStyles.detailPage}>
+    <Skeleton className="mb-3 h-8 w-32 rounded-lg" />
+    <div className="space-y-6 md:space-y-7 lg:space-y-8">
+    <div className={contentStyles.detailArticle}>
     {/* Hero image */}
-    <div className="rounded-2xl overflow-hidden">
-      <Skeleton className="w-full h-[280px] sm:h-[420px]" />
+    <div className={contentStyles.detailImage}>
+      <Skeleton className="absolute inset-0 rounded-none" />
     </div>
 
     {/* Title & description */}
-    <div className="pt-5 space-y-2">
+    <div className={contentStyles.detailHeader}>
       <Skeleton className="h-7 sm:h-8 w-3/4" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-2/3" />
-    </div>
-
-    {/* Meta bar */}
-    <div className="flex flex-wrap items-center gap-3 sm:gap-4 py-4 border-b border-border">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-4 w-28" />
-      <Skeleton className="h-4 w-20" />
+      <div className="community-post-metadata-primary flex flex-wrap items-center gap-x-4 gap-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-40 max-w-full" /></div>
     </div>
 
     {/* Action bar */}
-    <div className="flex items-center gap-2 py-3 border-b border-border">
-      <Skeleton className="h-9 w-16 rounded-md" />
-      <Skeleton className="h-9 w-16 rounded-md" />
-      <div className="flex-1" />
-      <Skeleton className="h-9 w-9 rounded-md" />
-      <Skeleton className="h-9 w-9 rounded-md" />
+    <div className="flex flex-wrap items-center gap-2">
+      <Skeleton className="h-8 w-24 rounded-lg md:h-9 md:w-28" />
+      <Skeleton className="h-8 w-24 rounded-lg md:h-9 md:w-28" />
     </div>
+    <div className="border-t border-border/60" />
 
     {/* Body */}
-    <div className="py-8 space-y-5">
+    <div className={contentStyles.detailBody}>
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="space-y-2">
           <Skeleton className="h-4 w-full" />
@@ -1301,24 +1434,18 @@ export const ResidentPostDetailSkeleton = () => (
     </div>
 
     {/* Tags */}
-    <div className="flex flex-wrap gap-2 pb-6 border-b border-border">
+    <div className="flex flex-wrap gap-2 pt-2">
       {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton key={i} className="h-7 w-20 rounded-md" />
       ))}
     </div>
+    </div>
 
     {/* Related Posts */}
-    <div className="py-8 space-y-4">
+    <div className="space-y-4 border-t border-border/60 pt-6">
       <Skeleton className="h-5 w-28" />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-2">
-            <Skeleton className="h-5 w-16 rounded-md" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-full" />
-          </div>
-        ))}
-      </div>
+      <ContentCardsSkeleton count={3} />
+    </div>
     </div>
   </div>
 );
@@ -2279,106 +2406,109 @@ export const AnnouncementsContentSkeleton = ({ viewMode = "grid" }: { viewMode?:
 );
 
 /* ─── Resident Dashboard Page Skeleton ─── */
-const DashboardCardSkeleton = () => (
-  <div className="space-y-4 rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xs lg:p-5">
-    <div className="flex items-center justify-between gap-3">
-      <Skeleton className="h-3 w-28" />
-      <Skeleton className="h-5 w-24 rounded-md" />
-    </div>
-    <div className="flex items-start gap-3">
-      <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-full" />
+export const ResidentDashboardCardSkeleton = ({ className }: { className?: string }) => (
+  <div role="status" aria-label="Loading dashboard card" className={cn(dashboardStyles.hero, "h-full", className)}>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-5 w-24 rounded-md" />
       </div>
-    </div>
-    <div className="flex items-center justify-between border-t border-border/50 pt-3">
-      <Skeleton className="h-3 w-24" />
-      <Skeleton className="h-3 w-20" />
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+        </div>
+      </div>
+      <div className={dashboardStyles.heroFooter}>
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-20" />
+      </div>
     </div>
     <Skeleton className="h-3 w-32" />
   </div>
 );
 
+export const ResidentDashboardUpdateSkeleton = ({ post = false }: { post?: boolean }) => (
+  <div role="status" aria-label={post ? "Loading community update" : "Loading announcement"} className={cn(dashboardStyles.card, "resident-dashboard-update flex h-full flex-col overflow-hidden")}>
+    <div className="h-0.5 shrink-0 bg-primary/20" />
+    <div className={dashboardStyles.updateInner}>
+      <div className={dashboardStyles.updateHeader}><Skeleton className="h-3 w-28" /><Skeleton className="h-5 w-20 rounded-md" /></div>
+      <div className={post ? dashboardStyles.postBody : dashboardStyles.updateBody}>
+        {post && <Skeleton className={dashboardStyles.postImage} />}
+        <div className={cn(dashboardStyles.updateBody, "w-full")}>
+          <Skeleton className="h-10 w-3/4" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+      <div className={dashboardStyles.updateFooter}><Skeleton className={post ? "h-7 w-28 rounded-lg" : "h-4 w-28"} /></div>
+    </div>
+  </div>
+);
+
+export const ResidentDashboardCalendarSkeleton = ({ dayCount, firstDayIndex }: { dayCount: number; firstDayIndex: number }) => (
+  <div role="status" aria-label="Loading calendar" className={cn(dashboardStyles.card, dashboardStyles.calendarGrid, "flex flex-col")}>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+      <div className="flex items-center gap-2"><Skeleton className="h-6 w-32" /><Skeleton className="h-7 w-12 rounded-lg" /></div>
+      <div className="flex h-8 items-center gap-1 px-2"><Skeleton className="resident-dashboard-calendar-action-label h-3 w-20" /><Skeleton className="h-3.5 w-3.5" /></div>
+    </div>
+    <div className="mb-2 grid grid-cols-7 gap-1">
+      {Array.from({ length: 7 }).map((_, index) => <div key={index} className="py-1"><Skeleton className="mx-auto h-4 w-6" /></div>)}
+    </div>
+    <div className={dashboardStyles.calendarDays}>
+      {Array.from({ length: dayCount }).map((_, index) => (
+        <div key={index} className="resident-dashboard-calendar-day aspect-square rounded-xl border border-border/60 p-1 sm:aspect-auto sm:p-2">
+          {index >= firstDayIndex && <Skeleton className="h-5 w-5 rounded-full" />}
+        </div>
+      ))}
+    </div>
+    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3"><Skeleton className="h-3 w-28" /><Skeleton className="h-5 w-36 max-w-[50%]" /></div>
+  </div>
+);
+
 export const ResidentDashboardSkeleton = ({ dayCount, firstDayIndex }: { dayCount: number; firstDayIndex: number }) => (
-  <div role="status" aria-label="Loading resident dashboard" className="mx-auto w-full max-w-[1600px] space-y-3 md:space-y-5 lg:space-y-6">
-    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-      <div className="space-y-2">
+  <div role="status" aria-label="Loading resident dashboard" className={dashboardStyles.page}>
+    <div className="py-1"><div className={dashboardStyles.greeting}>
+      <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2.5"><Skeleton className="h-8 w-64 max-w-full" /><Skeleton className="h-6 w-24 rounded-md" /></div>
         <Skeleton className="h-4 w-80 max-w-full" />
       </div>
-      <div className="flex w-full justify-between gap-2.5 md:w-auto md:justify-end">
-        <Skeleton className="h-9 w-36 rounded-lg" />
-        <Skeleton className="h-9 w-32 rounded-xl" />
+      <div className={dashboardStyles.greetingActions}>
+        <div className={dashboardStyles.dateBadge}>
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <Skeleton className="h-10 w-32 rounded-lg" />
       </div>
+    </div></div>
+
+    <div className={dashboardStyles.overview}>
+      {[dashboardStyles.collectionColumn, dashboardStyles.truckColumn, dashboardStyles.reportColumn].map((column, index) => (
+        <ResidentDashboardCardSkeleton key={index} className={column} />
+      ))}
     </div>
 
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
-      <DashboardCardSkeleton />
-      <DashboardCardSkeleton />
-      <div className="md:col-span-2 lg:col-span-1"><DashboardCardSkeleton /></div>
+    <div className={dashboardStyles.updates}>
+      <ResidentDashboardUpdateSkeleton post />
+      <ResidentDashboardUpdateSkeleton />
     </div>
 
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:gap-4">
-      <div className="min-h-[165px] rounded-2xl border border-border bg-card p-4 lg:p-5">
-        <div className="flex flex-col gap-3.5 md:flex-row md:items-center md:gap-4">
-          <Skeleton className="h-[130px] w-full shrink-0 rounded-xl md:w-[190px] lg:w-[200px]" />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-5 w-20 rounded-md" />
-            </div>
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+    <div className={dashboardStyles.supporting}>
+      <div className={dashboardStyles.calendarColumn}><ResidentDashboardCalendarSkeleton dayCount={dayCount} firstDayIndex={firstDayIndex} /></div>
+
+      <div className={dashboardStyles.supportColumn}>
+        <div className="flex h-full min-h-[180px] flex-col justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/[0.05] p-4 sm:p-5">
+          <Skeleton className="h-4 w-32" />
+          <div className="min-h-[4.5rem] space-y-2"><Skeleton className="h-5 w-1/2" /><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-2/3" /></div>
+          <Skeleton className="h-1 w-10" />
+        </div>
+        <div className={cn(dashboardStyles.card, "flex flex-col overflow-hidden")}>
+          <div className="space-y-2 p-4 pb-3 sm:p-5 sm:pb-3"><Skeleton className="h-5 w-40 max-w-full" /><Skeleton className="h-3 w-36 max-w-full" /></div>
+          <div className="grid grid-cols-1 gap-3 px-4 pb-4 sm:px-5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex min-w-0 items-start gap-2.5"><Skeleton className="size-4 shrink-0" /><div className="min-w-0 flex-1 space-y-1"><Skeleton className="h-3 w-16" /><Skeleton className={cn(index === 3 ? "h-8 w-5/6" : "h-4 w-3/4", "max-w-full")} /></div></div>
+            ))}
           </div>
+          <div className="mt-auto border-t border-border/50 px-4 py-3 sm:px-5"><Skeleton className="h-9 w-full rounded-lg" /></div>
         </div>
-      </div>
-      <div className="min-h-[165px] space-y-4 rounded-2xl border border-border bg-card p-4 lg:p-5">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-5 w-20 rounded-md" />
-        </div>
-        <Skeleton className="h-5 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-      </div>
-    </div>
-
-    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-6">
-      <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-4">
-        <Skeleton className="h-6 w-44" />
-        <Skeleton className="h-8 w-28 rounded-xl" />
-      </div>
-      <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-1.5">
-        {Array.from({ length: 7 }).map((_, index) => <Skeleton key={index} className="mx-auto h-4 w-6" />)}
-      </div>
-      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-        {Array.from({ length: dayCount }).map((_, index) => (
-          <div key={index} className="aspect-square rounded-xl border border-border/60 p-1.5 sm:aspect-auto sm:min-h-[95px] sm:p-2">
-            {index >= firstDayIndex && <Skeleton className="h-5 w-5 rounded-full" />}
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex items-center gap-3 border-t border-border/60 pt-3">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-5 w-48 max-w-[50%]" />
-      </div>
-    </div>
-
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:gap-4">
-      <div className="min-h-[210px] space-y-4 rounded-2xl bg-forest p-4 lg:p-5">
-        <Skeleton className="h-3 w-32 bg-forest-foreground/20" />
-        <Skeleton className="h-5 w-1/2 bg-forest-foreground/20" />
-        <Skeleton className="h-4 w-5/6 bg-forest-foreground/20" />
-        <Skeleton className="h-4 w-2/3 bg-forest-foreground/20" />
-      </div>
-      <div className="min-h-[210px] space-y-4 rounded-2xl border border-border/80 bg-card p-4 lg:p-5">
-        <div className="space-y-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-3 w-36" /></div>
-        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => <div key={index} className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-muted/40 p-2"><Skeleton className="size-4 shrink-0" /><div className="space-y-1.5"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-24 max-w-full" /></div></div>)}
-        </div>
-        <Skeleton className="h-9 w-full rounded-xl" />
       </div>
     </div>
   </div>
@@ -2392,10 +2522,10 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
       <div key={index} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className={contentStyles.cardImage}>
           <Skeleton className="absolute inset-0 rounded-none" />
-          <Skeleton className="absolute left-3 top-3 h-5 w-20 rounded-md" />
         </div>
         <div className={contentStyles.cardContent}>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
+            <Skeleton className="h-5 w-20 rounded-md" />
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-3.5 w-full" />
             <Skeleton className="h-3.5 w-2/3" />
@@ -2405,7 +2535,7 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
               <Skeleton className="h-3.5 w-24 max-w-full" />
               <Skeleton className="h-3.5 w-20 max-w-full" />
             </div>
-            <Skeleton className={cn(contentStyles.reactionSize, "w-14 rounded-lg")} />
+            <Skeleton className={cn(contentStyles.reactionSize, "w-10 rounded-lg")} />
           </div>
         </div>
       </div>
@@ -2415,18 +2545,18 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
 
 export const ResidentContentsSkeleton = () => (
   <div role="status" aria-label="Loading Community Updates" className={contentStyles.page}>
-    <div className="hidden space-y-2 md:mb-6 md:block lg:mb-8">
+    <div className={contentStyles.header}>
       <Skeleton className="h-8 w-56" />
       <Skeleton className="h-4 w-96 max-w-full" />
     </div>
     <div className={contentStyles.stack}>
     <div className="space-y-3">
-      <Skeleton className="h-11 w-full rounded-xl md:h-10" />
-      <div className="flex items-center justify-between gap-2.5">
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <div className={contentStyles.filterRow}>
         <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
-          {["w-11", "w-20", "w-16"].map((width, index) => <Skeleton key={index} className={`h-11 shrink-0 ${width} rounded-lg md:h-9`} />)}
+          {["w-11", "w-20", "w-16"].map((width, index) => <Skeleton key={index} className={`h-9 shrink-0 ${width} rounded-lg`} />)}
         </div>
-        <Skeleton className="h-11 w-11 shrink-0 rounded-xl md:h-9 md:w-36" />
+        <Skeleton className={cn(contentStyles.sort, "h-9 rounded-lg")} />
       </div>
     </div>
     <div className={contentStyles.featuredCard}>
@@ -2434,9 +2564,9 @@ export const ResidentContentsSkeleton = () => (
         <div className={contentStyles.featuredDetails}>
           <div className="space-y-4">
             <div className="flex gap-2"><Skeleton className="h-5 w-20 rounded-md" /><Skeleton className="h-5 w-24 rounded-md" /></div>
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-full md:h-6 lg:h-8" />
-              <Skeleton className="h-5 w-3/4 md:h-6 lg:h-8" />
+            <div className={cn(contentStyles.featuredTitle, "space-y-2")}>
+              <Skeleton className="w-full [height:1em]" />
+              <Skeleton className="w-3/4 [height:1em]" />
             </div>
             <div className="space-y-2">
               <Skeleton className="h-3 w-full" />
@@ -2449,7 +2579,7 @@ export const ResidentContentsSkeleton = () => (
             </div>
           </div>
           <div className={contentStyles.featuredFooter}>
-            <Skeleton className="h-11 w-28 shrink-0 rounded-lg md:h-10" />
+            <Skeleton className="community-content-read-placeholder h-11 shrink-0 rounded-lg" />
           </div>
         </div>
         <div className={contentStyles.featuredMedia}>
@@ -2463,7 +2593,6 @@ export const ResidentContentsSkeleton = () => (
     <section className="space-y-4">
       <div className={contentStyles.sectionHeading}>
         <Skeleton className="h-5 w-44 max-w-full sm:h-6" />
-        <Skeleton className="h-3.5 w-24" />
       </div>
       <ContentCardsSkeleton />
     </section>
@@ -2473,34 +2602,96 @@ export const ResidentContentsSkeleton = () => (
 
 
 /* ─── Resident Collection Tracking Skeleton ─── */
-export const ResidentTrackingSkeleton = () => (
-  <div role="status" aria-label="Loading collection tracking" className="mx-auto w-full max-w-[1600px] px-2 md:px-4">
-    <div className="hidden pb-1 md:mb-4 md:block">
-      <Skeleton className="h-8 w-52" />
-      <Skeleton className="mt-2 h-4 w-80 max-w-full" />
-    </div>
-    <div className="space-y-3.5 md:space-y-4">
-      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
-        <div className="space-y-2">
-          <Skeleton className="h-5 w-60 max-w-full" />
-          <Skeleton className="h-3 w-72 max-w-full" />
-        </div>
-        <Skeleton className="h-8 w-52 max-w-full rounded-xl" />
+const TrackingTextSkeleton = ({ className, children }: { className?: string; children: string }) => (
+  <Skeleton aria-hidden="true" className={cn("resident-tracking-skeleton-text", className)}>
+    <span className="invisible">{children}</span>
+  </Skeleton>
+);
+
+export const ResidentTrackingSkeleton = ({ residentArea }: { residentArea?: string } = {}) => (
+  <div role="status" aria-label="Loading collection tracking" className={trackingStyles.page}>
+    <div className={trackingStyles.header}>
+      <div className="min-w-0 w-full space-y-1.5">
+        <Skeleton className={`${trackingStyles.headerTitle} h-[1.25em] w-44 max-w-full`} />
+        <Skeleton className={`${trackingStyles.headerDescription} h-[1.5em] w-80 max-w-full`} />
       </div>
-      <div className="relative h-[clamp(360px,calc(100dvh-12rem),520px)] overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm md:h-[500px] lg:h-[580px]">
-        <Skeleton className="h-full w-full rounded-none" />
-        <div className="absolute left-2.5 top-2.5 w-64 max-w-[calc(100%-56px)] space-y-3 rounded-2xl border border-border/80 bg-card/90 p-3.5 shadow-md lg:left-3 lg:top-3">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-3 w-20" />
+    </div>
+    <div className={trackingStyles.stack}>
+      <div className={trackingStyles.schedule}>
+        <div className={trackingStyles.scheduleDetails}>
+          <div className={trackingStyles.scheduleHeading}>
+            <TrackingTextSkeleton className={trackingStyles.scheduleTitle}>
+              {`Collection for ${residentArea || "Your Location"}`}
+            </TrackingTextSkeleton>
+            <Skeleton aria-hidden="true" className={`${trackingStyles.scheduleBadge} border-transparent`}>
+              <span className="invisible">Non-biodegradable</span>
+            </Skeleton>
+          </div>
+          <div className={trackingStyles.scheduleMeta}>
+            <div className="flex min-w-0 items-start gap-2">
+              <Skeleton className="h-3.5 w-3.5 shrink-0" />
+              <Skeleton className="h-4 w-40 max-w-full" />
+            </div>
+            <div className="flex min-w-0 items-start gap-2">
+              <Skeleton className="h-3.5 w-3.5 shrink-0" />
+              <Skeleton className="h-4 w-28 max-w-full" />
             </div>
           </div>
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-3/4" />
         </div>
-        <Skeleton className="absolute bottom-3 right-3 h-9 w-28 rounded-xl" />
+        <div className={trackingStyles.reminder}>
+          <Skeleton className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <TrackingTextSkeleton>Please have segregated bins ready</TrackingTextSkeleton>
+        </div>
+      </div>
+      <div className={trackingStyles.mapHeight}>
+        <div className={trackingStyles.mapShell}>
+          <div className={trackingStyles.mapCanvas}>
+            <Skeleton className="h-full w-full rounded-none" />
+            <div className={trackingStyles.zoom}>
+              <div className={trackingStyles.zoomButton}><Skeleton className="h-3.5 w-3.5" /></div>
+              <div className="mx-1 h-px bg-border/60" />
+              <div className={trackingStyles.zoomButton}><Skeleton className="h-3.5 w-3.5" /></div>
+            </div>
+          </div>
+          <div className={trackingStyles.mapStatus}>
+            <div className={`${trackingStyles.statusCard} !shadow-none`}>
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-xl" />
+                <div className="min-w-0">
+                  <TrackingTextSkeleton className={trackingStyles.statusHeading}>
+                    {scheduledTrackingContent.title}
+                  </TrackingTextSkeleton>
+                  <TrackingTextSkeleton className="w-fit max-w-full text-ui-overline font-medium">
+                    {scheduledTrackingContent.badge}
+                  </TrackingTextSkeleton>
+                </div>
+              </div>
+              <div className="resident-tracking-status-divider">
+                <TrackingTextSkeleton className={trackingStyles.statusDescription}>
+                  {scheduledTrackingContent.description}
+                </TrackingTextSkeleton>
+              </div>
+            </div>
+          </div>
+          <div className={trackingStyles.mapFooter}>
+            <div className={trackingStyles.legend}>
+              {["Current", "Done", "Upcoming"].map((label) => (
+                <span key={label} className="flex items-center gap-1">
+                  <Skeleton className="h-2 w-2 rounded-full" />
+                  <TrackingTextSkeleton>{label}</TrackingTextSkeleton>
+                </span>
+              ))}
+            </div>
+            <div className={trackingStyles.actions}>
+              {["My Area", "Fit Route"].map((label) => (
+                <div key={label} className={trackingStyles.actionButton}>
+                  <Skeleton className="h-3.5 w-3.5 shrink-0" />
+                  <TrackingTextSkeleton className="resident-tracking-action-label">{label}</TrackingTextSkeleton>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

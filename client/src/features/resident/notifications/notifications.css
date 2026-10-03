@@ -1,0 +1,32 @@
+.resident-notifications {
+  container-name: resident-notifications;
+}
+
+.resident-notifications .resident-notification-header-actions {
+  display: none;
+}
+
+/* Horizontal separators must not override the unread row's left border. */
+.resident-notifications .resident-notification-row + .resident-notification-row {
+  border-top-color: hsl(var(--border) / 0.6);
+}
+
+@container resident-notifications (min-width: 37.5rem) {
+  .resident-notifications .resident-notification-header-actions {
+    display: flex;
+  }
+
+  .resident-notifications .resident-notification-menu-trigger {
+    display: none;
+  }
+
+  .resident-notifications .resident-notification-row {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .resident-notifications .resident-notification-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}

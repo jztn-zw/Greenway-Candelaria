@@ -1,13 +1,9 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
+import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
+import { BackButton } from "@/components/common/BackButton";
+import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import {
-  Calendar,
-  User,
-  Eye,
-  Heart,
-  FileText,
-  Share2,
-  Check,
   MoreVertical,
   Star,
 } from "lucide-react";
@@ -26,6 +22,7 @@ import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 
 interface AdminPostDetailProps {
   post: Post;
+  onBack: () => void;
   onEdit?: (post: Post) => void;
   onDuplicate?: (post: Post) => void;
   onArchive?: (post: Post) => void;
@@ -37,6 +34,7 @@ interface AdminPostDetailProps {
 
 const AdminPostDetail = ({
   post,
+  onBack,
   onEdit,
   onDuplicate,
   onArchive,
@@ -48,8 +46,6 @@ const AdminPostDetail = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
-  const [isPreviewLiked, setIsPreviewLiked] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const isArchived = post.status === "Archived";
   const isPublished = post.status === "Published";
@@ -77,11 +73,12 @@ const AdminPostDetail = ({
   return (
     <div
       ref={contentRef}
-      className="w-full max-w-[1000px] mx-auto space-y-6 sm:space-y-8 pb-12 animate-in fade-in duration-300"
+      className={`${contentStyles.detailPage} animate-in fade-in duration-300`}
     >
+      <BackButton onBack={onBack} label={isPreview ? "Back to editor" : "Back to posts"} />
       {/* ── Main Post Article ── */}
-      <article className="space-y-6">
-        <div className="relative w-full aspect-[1080/566] max-h-[566px] rounded-2xl overflow-hidden bg-muted/30 border border-border/40 flex items-center justify-center">
+      <article className={contentStyles.detailArticle}>
+        <div className={contentStyles.detailImage}>
           {currentImage && !imageFailed ? (
             <>
               <PostImageBackdrop src={currentImage} />
@@ -103,34 +100,13 @@ const AdminPostDetail = ({
           )}
 
           {/* Top-left Content Category Badge */}
-          <div className="absolute top-4 left-4 z-20 pointer-events-none">
+          <div className="absolute top-3 left-3 z-20 pointer-events-none">
             <span
               className={`inline-flex items-center text-ui-caption font-bold uppercase tracking-wider px-3 py-1 rounded-md border shadow-sm backdrop-blur-md ${categoryStyles[post.category] || "bg-background/95 text-foreground border-border"}`}
             >
               {post.category}
             </span>
           </div>
-
-          {/* Top-right Admin Status & Featured Badges */}
-          {!isPreview && (
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-none">
-              <Badge
-                variant="outline"
-                className={`text-xs font-semibold px-3 py-1 border shadow-xs rounded-md backdrop-blur-md pointer-events-none ${statusStyles[post.status] || "bg-background/95 text-foreground border-border"}`}
-              >
-                {post.status}
-              </Badge>
-
-              {post.featured && (
-                <Badge
-                  variant="outline"
-                  className={"text-xs font-semibold shadow-xs gap-1 px-2.5 py-1 rounded-md pointer-events-none " + getCategoryBadgeColors("Featured").className}
-                >
-                  <Star className="w-3.5 h-3.5 fill-white" /> Featured
-                </Badge>
-              )}
-            </div>
-          )}
 
           {/* Multi-image index indicator */}
           {validImages.length > 1 && (
@@ -142,15 +118,17 @@ const AdminPostDetail = ({
 
         {/* ── Horizontal Thumbnail Strip (If 2 or more images) ── */}
         {validImages.length > 1 && (
-          <div className="flex items-center gap-3 overflow-x-auto py-2.5 px-1.5 scrollbar-thin">
+          <div className={contentStyles.detailThumbnails}>
             {validImages.map((imgUrl, idx) => {
               const isActive = idx === activeImageIndex;
               return (
                 <button
                   key={idx}
                   type="button"
+                  aria-label={`Show image ${idx + 1}`}
+                  aria-pressed={isActive}
                   onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all duration-200 cursor-pointer shadow-2xs ${
+                  className={`${contentStyles.detailThumbnail} ${
                     isActive
                       ? "border-primary ring-2 ring-primary/40 opacity-100 shadow-sm"
                       : "gw-action-ghost opacity-60 hover:opacity-100"
@@ -168,9 +146,19 @@ const AdminPostDetail = ({
         )}
 
         {/* ── Post Header Info with 3-dots Action Dropdown ── */}
-        <div className="space-y-3 pt-1">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="gw-page-title sm:text-ui-page-lg md:text-4xl text-foreground tracking-tight leading-tight flex-1">
+        <div className={contentStyles.detailHeader}>
+          {!isPreview && (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <Badge variant="outline" className={statusStyles[post.status]}>{post.status}</Badge>
+              {post.featured && (
+                <Badge variant="outline" className={`gap-1 ${getCategoryBadgeColors("Featured").className}`}>
+                  <Star className="size-3" aria-hidden="true" /> Featured
+                </Badge>
+              )}
+            </div>
+          )}
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <h1 className={`${contentStyles.detailTitle} flex-1`}>
               {post.title}
             </h1>
 
@@ -181,10 +169,10 @@ const AdminPostDetail = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 rounded-xl cursor-pointer shrink-0 mt-1"
+                    className="h-8 w-8 p-0 rounded-lg cursor-pointer shrink-0"
                     aria-label="Post actions"
                   >
-                    <MoreVertical className="w-5 h-5" />
+                    <MoreVertical className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/80 p-1 shadow-md">
@@ -247,61 +235,26 @@ const AdminPostDetail = ({
             )}
           </div>
 
-          {/* Metadata Row: Date, Author, (Views & Reacts in Admin View) */}
-          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5 font-medium">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              {post.publishedDate || "Just now"}
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5 font-medium">
-              <User className="w-4 h-4 text-muted-foreground" />
-              {post.author || "MENRO Candelaria"}
-            </span>
-            {!isPreview && (
-              <>
-                <span>•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Eye className="w-4 h-4 text-muted-foreground" />
-                  {(post.views || 0).toLocaleString()} views
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Heart className="w-4 h-4 text-muted-foreground" />
-                  {(post.likes || 0).toLocaleString()} Reacts
-                </span>
-              </>
-            )}
-          </div>
+          {/* Post metadata and engagement totals */}
+          <PostMetadata
+            date={post.publishedDate}
+            author={post.author}
+            views={isPreview ? undefined : post.views || 0}
+            reactions={isPreview ? undefined : post.likes || 0}
+          />
         </div>
 
         {/* ── Action Buttons Row in Preview Only ── */}
         {isPreview && (
-          <div className="flex items-center gap-3 pt-1 flex-wrap select-none">
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border bg-background/80 text-muted-foreground border-border cursor-default opacity-85 pointer-events-none"
-              title="Preview mode: Likes disabled"
-            >
-              <Heart className="w-4 h-4 text-muted-foreground" />
-              <span>{(post.likes || 0).toLocaleString()} Likes</span>
-            </div>
-
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold border bg-background/80 text-muted-foreground border-border cursor-default opacity-85 pointer-events-none"
-              title="Preview mode: Sharing disabled"
-            >
-              <Share2 className="w-4 h-4 text-muted-foreground" />
-              <span>Share Guide</span>
-            </div>
-          </div>
+          <PostActions reactionCount={post.likes || 0} preview />
         )}
 
         <div className="border-t border-border/60" />
 
         {/* ── Post Body Content ── */}
-        <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-foreground/90 leading-relaxed space-y-4">
+        <div className={contentStyles.detailBody}>
           {post.body.split("\n\n").map((para, idx) => (
-            <p key={idx} className="text-sm sm:text-base leading-relaxed text-foreground/85">
+            <p key={idx}>
               {para}
             </p>
           ))}
@@ -315,7 +268,7 @@ const AdminPostDetail = ({
               {post.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-muted/80 text-muted-foreground border border-border"
+                  className="max-w-full break-words [overflow-wrap:anywhere] px-2.5 py-1 rounded-lg text-xs font-medium bg-muted/80 text-muted-foreground border border-border"
                 >
                   #{tag}
                 </span>

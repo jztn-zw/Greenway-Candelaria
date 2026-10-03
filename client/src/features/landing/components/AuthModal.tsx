@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { InputClearButton } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fetchBarangays, fetchBarangayStreets, type BarangayLocationRow, type BarangayStreetRow } from "@/services/barangaysService";
@@ -44,12 +45,11 @@ const ClearableInput = ({
         ref={inputRef}
         value={value}
         onChange={onChange}
-        className={`${className} ${hasValue && !rightElement ? "pr-9" : ""} ${hasValue && rightElement ? "pr-[4.5rem]" : !hasValue && rightElement ? "pr-10" : ""}`}
+        className={`${className} ${hasValue && !rightElement ? "pr-8" : ""} ${hasValue && rightElement ? "pr-[4.5rem]" : !hasValue && rightElement ? "pr-10" : ""}`}
         {...props}
       />
-      {hasValue && (
-        <button
-          type="button"
+      {hasValue && !props.disabled && !props.readOnly && (
+        <InputClearButton
           onClick={() => {
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
               window.HTMLInputElement.prototype, 'value'
@@ -59,12 +59,10 @@ const ClearableInput = ({
               inputRef.current.dispatchEvent(new Event('input', { bubbles: true }));
             }
             onChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+            inputRef.current?.focus();
           }}
-          className={`gw-action-destructive-ghost absolute top-1/2 -translate-y-1/2 p-0.5 transition-colors ${rightElement ? "right-10" : "right-3"}`}
-          tabIndex={-1}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+          className={rightElement ? "right-10" : undefined}
+        />
       )}
       {rightElement && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">

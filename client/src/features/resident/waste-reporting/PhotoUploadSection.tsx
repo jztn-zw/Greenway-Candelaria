@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { Plus, X, Camera } from "lucide-react";
 import type { ReportPhoto } from "./types";
 import { toast } from "@/lib/toast";
+import { reportStyles } from "./reportStyles";
 
 const MAX_REPORT_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -93,34 +94,35 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
   };
 
   const uploadDropzone = (
-    <div
+    <button
+      type="button"
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
-      className={`border-2 border-dashed rounded-2xl p-6 lg:p-8 text-center transition-all duration-200 cursor-pointer group flex flex-col items-center justify-center gap-3 select-none ${
+      className={`w-full border-2 border-dashed rounded-xl p-5 text-center transition-colors duration-200 cursor-pointer group flex flex-col items-center justify-center gap-3 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         showError
           ? "border-destructive/80 bg-destructive/5 hover:bg-destructive/10"
           : "border-border/80 hover:border-primary/50 hover:bg-primary/5 bg-muted/20"
       }`}
       onClick={openFilePicker}
     >
-      <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200 shadow-2xs">
+      <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
         <Camera className="w-5 h-5" />
       </div>
       <div className="space-y-1">
         <p className="text-xs lg:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-          Click to upload or drag & drop photos
+          Add evidence photos
         </p>
         <p className="text-ui-caption text-muted-foreground">
           JPG, PNG, or WebP · Max 5 photos (10MB each) · At least 1 photo required
         </p>
       </div>
-    </div>
+    </button>
   );
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 basis-48">
           <h3 className="gw-heading text-sm text-foreground tracking-tight">
             Evidence Photos
           </h3>
@@ -149,11 +151,11 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
       {photos.length === 0 ? (
         uploadDropzone
       ) : (
-        <div className="grid grid-cols-3 gap-2 pt-0.5 md:flex md:items-start md:gap-3 md:overflow-x-auto md:pb-1.5">
+        <div className={reportStyles.photos}>
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="group relative aspect-square min-w-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs md:size-32 md:shrink-0"
+              className="group relative aspect-square min-w-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20"
             >
               <img
                 src={photo.preview}
@@ -179,7 +181,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
             <button
               type="button"
               onClick={openFilePicker}
-              className="group flex aspect-square min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border/80 bg-muted/20 text-muted-foreground shadow-2xs transition-all cursor-pointer select-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary md:size-32 md:shrink-0"
+              className="group flex aspect-square min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border/80 bg-muted/20 text-muted-foreground transition-colors cursor-pointer select-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label={`Add more photos (${photos.length} of ${MAX_REPORT_PHOTOS})`}
             >
               <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-2xs">

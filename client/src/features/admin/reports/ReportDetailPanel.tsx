@@ -1,3 +1,4 @@
+import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +9,12 @@ DialogContent,
 DialogDescription,
 DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchAdminReports, type AdminReportItem } from "@/services/reportsService";
-import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Loader2, Search, Trash2, X } from "lucide-react";
+import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Loader2, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 ReportStatus,
@@ -731,23 +731,19 @@ const ReportDetailPanel = ({
                     </span>
                   )}
                 </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={duplicateReference}
-                    onChange={(e) => {
-                      setDuplicateReference(e.target.value);
-                      if (selectedDuplicateCandidate && e.target.value !== selectedDuplicateCandidate.reference_number) {
-                        setSelectedDuplicateCandidate(null);
-                      }
-                    }}
-                    placeholder="e.g. RPT-2026-00012"
-                    className="h-10 text-xs tabular-nums placeholder:font-sans rounded-xl pl-9 pr-8"
-                  />
-                  {isSearchingDuplicates && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
-                  )}
-                </div>
+                <SearchInput
+                  aria-label="Original report reference"
+                  placeholder="e.g. RPT-2026-00012"
+                  value={duplicateReference}
+                  onChange={(value) => {
+                    setDuplicateReference(value);
+                    if (selectedDuplicateCandidate && value !== selectedDuplicateCandidate.reference_number) {
+                      setSelectedDuplicateCandidate(null);
+                    }
+                  }}
+                  className="tabular-nums placeholder:font-sans"
+                  loading={isSearchingDuplicates}
+                />
 
                 {/* Dropdown Suggestions */}
                 {duplicateMatches.length > 0 && (

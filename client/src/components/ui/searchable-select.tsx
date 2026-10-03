@@ -2,6 +2,7 @@ import * as React from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "cmdk";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/common/SearchInput";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { fieldStyles, type FieldSize } from "./fieldStyles";
@@ -52,13 +53,14 @@ export function SearchableSelect({
   leadingIcon,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
   const searchRef = React.useRef<HTMLInputElement>(null);
   const commandRef = React.useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value);
   const searchable = options.length >= 10;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); setSearch(""); }}>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -74,6 +76,7 @@ export function SearchableSelect({
           onKeyDown={(event) => {
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
+              setSearch("");
               setOpen(true);
             }
           }}
@@ -111,16 +114,16 @@ export function SearchableSelect({
         <Command ref={commandRef} tabIndex={-1} defaultValue={value} label={ariaLabel ?? placeholder} className="flex max-h-[19rem] w-full flex-col bg-transparent">
           {searchable && (
             <div className="relative shrink-0 border-b border-border/70 bg-muted/20 px-2.5 py-2">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-              <CommandInput
+              <SearchInput
+                asChild
                 ref={searchRef}
+                value={search}
+                onChange={setSearch}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className={cn(fieldStyles.surface, fieldStyles.compact, fieldStyles.placeholder, "w-full pl-9 pr-3")}
-              />
+              >
+                <CommandInput onValueChange={setSearch} />
+              </SearchInput>
             </div>
           )}
           <CommandList className="min-h-0 max-h-60 overflow-y-auto overscroll-contain p-1.5 scrollbar-thin">

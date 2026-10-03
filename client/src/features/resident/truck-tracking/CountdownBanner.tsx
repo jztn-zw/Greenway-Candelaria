@@ -2,6 +2,7 @@ import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { CalendarDays, Clock, Info } from "lucide-react";
 import type { CollectionSchedule } from "./types";
 import { formatManilaDateTime } from "@/utils/date";
+import { trackingStyles } from "./trackingStyles";
 
 interface CountdownBannerProps {
   schedule: CollectionSchedule;
@@ -21,20 +22,20 @@ const CountdownBanner = ({
 
   if (!hasSchedule) {
     return (
-      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
+      <div className={trackingStyles.schedule}>
         <div className="min-w-0 space-y-0.5">
-          <h3 className="gw-heading text-xs lg:text-sm text-foreground tracking-tight">
+          <h3 className={trackingStyles.scheduleTitle}>
             {collectionFinishedToday ? "No Collection Scheduled Tomorrow" : "No Scheduled Collection"} • {residentArea || "Your Barangay"}
           </h3>
-          <p className="text-ui-caption lg:text-xs text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {collectionFinishedToday
               ? "Today's street collection has ended, and this street has no collection scheduled tomorrow."
               : "There is currently no upcoming collection schedule set for your location."}
           </p>
         </div>
-        <div className="flex max-w-full items-center gap-1.5 self-start rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-ui-caption text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
-          <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className="truncate">Check announcements for schedule updates</span>
+        <div className={trackingStyles.reminder}>
+          <Info className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+          <span>Check announcements for schedule updates</span>
         </div>
       </div>
     );
@@ -52,18 +53,18 @@ const CountdownBanner = ({
     : dayLabel;
 
   return (
-    <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-2xs md:flex-row md:items-center md:p-4">
+    <div className={trackingStyles.schedule}>
       {/* Schedule & Location Details */}
-      <div className="min-w-0 space-y-1">
+      <div className={trackingStyles.scheduleDetails}>
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="gw-heading text-xs lg:text-sm text-foreground tracking-tight">
+        <div className={trackingStyles.scheduleHeading}>
+          <h3 className={trackingStyles.scheduleTitle}>
             {collectionFinishedToday ? "Tomorrow's collection for" : "Collection for"} {residentArea || "Your Location"}
           </h3>
 
           {schedule.wasteType && (
             <span
-              className={"inline-flex items-center gap-1.5 text-ui-overline font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border shrink-0 " + getCategoryBadgeColors(schedule.wasteType).className}
+              className={trackingStyles.scheduleBadge + " " + getCategoryBadgeColors(schedule.wasteType).className}
             >
               {schedule.wasteType}
             </span>
@@ -71,15 +72,14 @@ const CountdownBanner = ({
         </div>
 
         {/* Sub-line: Date and Time of Start with neutral monochrome icons */}
-        <div className="flex items-center gap-2 lg:gap-3 text-ui-caption lg:text-xs text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1.5">
+        <div className={trackingStyles.scheduleMeta}>
+          <span className="flex min-w-0 items-start gap-2">
             <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span>
               Date: <strong className="font-semibold text-foreground">{formattedDate}</strong>
             </span>
           </span>
-          <span className="text-muted-foreground/40">•</span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex min-w-0 items-start gap-2">
             <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span>
               Start Time: <strong className="font-semibold text-foreground">{schedule.nextCollectionTime}</strong>
@@ -89,9 +89,9 @@ const CountdownBanner = ({
       </div>
 
       {/* Right: Reminder note with neutral monochrome icon */}
-      <div className="flex max-w-full items-center gap-1.5 self-start rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-ui-caption text-muted-foreground dark:bg-muted/20 lg:self-auto lg:text-xs">
-        <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span className="truncate">
+      <div className={trackingStyles.reminder}>
+        <Info className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+        <span>
           {collectionFinishedToday
             ? "Today's street collection has ended"
             : "Please have segregated bins ready"}

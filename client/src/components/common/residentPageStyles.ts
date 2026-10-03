@@ -1,0 +1,8 @@
+import "./residentPage.css";
+
+export const residentPageStyles = {
+  page: "resident-page mx-auto min-w-0 w-full pb-4",
+  header: "resident-page-header mb-4 flex min-w-0 flex-col items-start gap-3",
+  title: "resident-page-title font-bold leading-tight tracking-tight text-foreground",
+  description: "resident-page-description mt-1 max-w-prose text-muted-foreground leading-relaxed",
+} as const;

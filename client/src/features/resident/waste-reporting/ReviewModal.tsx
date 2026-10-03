@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { VIOLATION_OPTIONS, type ReportFormData } from "./types";
+import { reportStyles } from "./reportStyles";
 
 interface ReviewModalProps {
   open: boolean;
@@ -73,7 +74,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!isSubmitting) onOpenChange(nextOpen); }}>
-      <DialogContent className={`${modalStyles.content} sm:max-w-lg`}>
+      <DialogContent className={`${modalStyles.content} resident-report-review-dialog sm:max-w-lg`}>
         <FormDialogHeader title="Review Your Report" description="Check the details before submitting." icon={<ShieldCheck />} onClose={() => onOpenChange(false)} disabled={isSubmitting} />
         {/* Modal Body */}
         <div className={modalStyles.body}>
@@ -87,7 +88,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <p className="text-ui-caption font-medium text-muted-foreground">Violation Type</p>
-                  <p className="text-xs lg:text-sm font-bold text-foreground truncate">
+                  <p className="text-xs lg:text-sm font-bold text-foreground break-words">
                     {violation ? violation.label : "General Waste Issue"}
                   </p>
                 </div>
@@ -95,7 +96,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             </div>
 
             {/* Location */}
-            <div className="p-3.5 flex items-start justify-between gap-3">
+            <div className="p-3.5 flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-md bg-muted/60 border border-border/70 flex items-center justify-center text-muted-foreground shrink-0 shadow-2xs mt-0.5">
                   <MapPin className="w-4 h-4" />
@@ -149,7 +150,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-2 lg:gap-2.5">
+              <div className={reportStyles.review}>
                 {form.photos.map((photo, idx) => (
                   <div
                     key={photo.id}
@@ -179,16 +180,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
         {/* Modal Footer */}
         <div className={modalStyles.footer}>
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className={modalStyles.cancelButton}
+              className={`${modalStyles.cancelButton} min-w-0 gap-1.5 px-2 text-[11px] [&_svg]:size-3`}
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back & Edit</span>
+              <span className="truncate">Back</span>
             </Button>
             <Button
               type="button"
@@ -196,10 +197,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               disabled={isSubmitting}
               loading={isSubmitting}
               loadingLabel={submissionLabel}
-              className={modalStyles.primaryButton}
+              className={`${modalStyles.primaryButton} min-w-0 px-2 text-[11px] [&_svg]:size-3`}
             >
               <Send className="w-4 h-4" />
-              <span>Confirm & Submit</span>
+              <span className="truncate">Submit report</span>
             </Button>
           </div>
         </div>
