@@ -1,4 +1,5 @@
 import { SearchInput } from "@/components/common/SearchInput";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import PaginationControls from "@/components/common/PaginationControls";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
@@ -192,16 +193,10 @@ const ResidentContents = () => {
   return (
     <div className={contentStyles.page}>
       {/* ── Top Header ── */}
-      <div className={contentStyles.header}>
-        <div>
-          <h1 className={contentStyles.headerTitle}>
-            Community Updates
-          </h1>
-          <p className={contentStyles.headerDescription}>
-            Official MENRO guidelines, collection updates, and eco tips.
-          </p>
-        </div>
-      </div>
+      <ResidentPageHeader
+        title="Community Updates"
+        description="Official MENRO guidelines, collection updates, and eco tips."
+      />
 
       <div className={contentStyles.stack}>
 

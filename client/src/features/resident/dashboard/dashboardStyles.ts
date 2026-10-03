@@ -1,8 +1,9 @@
 import "./dashboard.css";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 
 /** Shared spacing and hierarchy for the resident dashboard and its loading state. */
 export const dashboardStyles = {
-  page: "resident-dashboard mx-auto min-w-0 w-full max-w-[1440px] space-y-4 sm:space-y-5",
+  page: `${residentPageStyles.page} resident-dashboard max-w-[1440px] space-y-4 sm:space-y-5`,
   greeting: "resident-dashboard-greeting min-w-0 justify-between gap-3",
   greetingActions: "resident-dashboard-greeting-actions shrink-0 items-center gap-2.5",
   dateBadge: "inline-flex h-10 max-w-full shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 text-xs font-medium text-foreground tabular-nums whitespace-nowrap",

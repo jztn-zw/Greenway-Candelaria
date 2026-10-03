@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import { dashboardStyles } from "../dashboardStyles";
 import { formatManilaDateTime, getManilaNow } from "@/utils/date";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 
 const getGreeting = () => {
   const hour = getManilaNow().hour;
@@ -23,45 +24,36 @@ const DashboardGreeting = () => {
   const barangay = user?.barangay_name;
 
   return (
-    <div className="py-1">
-      <div className={dashboardStyles.greeting}>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="gw-page-title max-w-full break-words text-foreground tracking-tight">
-              {greeting}, <span className="text-primary">{firstName}!</span>
-            </h1>
-            {barangay && (
-              <Badge className="max-w-full gap-1.5">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate">{barangay}</span>
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs lg:text-sm text-muted-foreground mt-1">
-            Here is your real-time waste collection & community activity summary.
-          </p>
-        </div>
-
-        <div className={dashboardStyles.greetingActions}>
-          <time className={dashboardStyles.dateBadge} dateTime={getManilaNow(now).dateKey}>
-            <span>{formatManilaDateTime(now, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}</span>
-          </time>
-          <Button
-            size="sm"
-            onClick={() => navigate("/resident/report")}
-            className="h-10 gap-1.5 px-3.5 text-xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Report waste</span>
-          </Button>
-        </div>
-      </div>
-    </div>
+    <ResidentPageHeader
+      className={dashboardStyles.greeting}
+      title={<>{greeting}, <span className="text-primary">{firstName}!</span></>}
+      description="Here is your real-time waste collection & community activity summary."
+      titleBadge={barangay && (
+        <Badge className="max-w-full gap-1.5">
+          <MapPin className="w-3 h-3" />
+          <span className="truncate">{barangay}</span>
+        </Badge>
+      )}
+      actionsClassName={dashboardStyles.greetingActions}
+      actions={<>
+        <time className={dashboardStyles.dateBadge} dateTime={getManilaNow(now).dateKey}>
+          <span>{formatManilaDateTime(now, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}</span>
+        </time>
+        <Button
+          size="sm"
+          onClick={() => navigate("/resident/report")}
+          className="h-10 gap-1.5 px-3.5 text-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Report waste</span>
+        </Button>
+      </>}
+    />
   );
 };
 

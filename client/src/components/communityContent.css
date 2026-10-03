@@ -12,8 +12,6 @@
 }
 
 .community-post-title {
-  font-size: 1.375rem;
-  line-height: 1.25;
   text-wrap: pretty;
 }
 
@@ -63,10 +61,6 @@
     border-radius: 1rem;
   }
 
-  .community-post-title {
-    font-size: 1.875rem;
-  }
-
   .community-post-body {
     font-size: 1rem;
     gap: 1.25rem;
@@ -84,9 +78,6 @@
     max-height: 35.375rem;
   }
 
-  .community-post-title {
-    font-size: 2.25rem;
-  }
 }
 
 .community-content-grid {

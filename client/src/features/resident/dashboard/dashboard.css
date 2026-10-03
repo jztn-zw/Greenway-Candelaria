@@ -10,7 +10,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .resident-dashboard-greeting {
+  .resident-dashboard .resident-page-header.resident-dashboard-greeting {
     display: flex;
     flex-direction: column;
   }
@@ -87,7 +87,7 @@
       grid-column: auto;
     }
 
-    .resident-dashboard-greeting {
+    .resident-dashboard .resident-page-header.resident-dashboard-greeting {
       flex-direction: row;
       align-items: center;
     }
@@ -95,10 +95,6 @@
     .resident-dashboard-greeting-actions {
       width: auto;
       justify-content: flex-end;
-    }
-
-    .resident-dashboard-greeting h1 {
-      font-size: var(--font-size-page-lg);
     }
 
     .resident-dashboard-supporting {

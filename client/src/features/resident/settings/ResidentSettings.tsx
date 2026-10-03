@@ -19,6 +19,7 @@ import { useThemeMode } from "@/hooks/useThemeMode";
 import { setThemeMode } from "@/lib/theme";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 import { settingsStyles } from "./settingsStyles";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 
 const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="resident-settings-info space-y-1 rounded-md border border-border/70 bg-muted/20 p-4">
@@ -215,16 +216,10 @@ const ResidentSettings = () => {
   return (
     <div className={settingsStyles.page}>
       {/* ── Page Header ── */}
-      <div className={settingsStyles.header}>
-        <div className="min-w-0">
-          <h1 className={settingsStyles.title}>
-            Settings
-          </h1>
-          <p className={settingsStyles.description}>
-            Manage collection reminders, notification alerts, and display preferences
-          </p>
-        </div>
-      </div>
+      <ResidentPageHeader
+        title="Settings"
+        description="Manage collection reminders, notification alerts, and display preferences"
+      />
 
       {settingsQuery.isError && <DataRefreshNotice message="Couldn't refresh settings. Showing your last loaded preferences." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} />}
 

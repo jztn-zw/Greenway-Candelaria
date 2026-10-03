@@ -5,6 +5,8 @@ import { useResidentQuery } from "@/lib/residentQuery";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { PageRetryContext } from "@/components/pageRetryContext";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 import React, { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -272,22 +274,16 @@ const ResidentSchedule = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="mx-auto w-full max-w-[1400px] space-y-4 pb-8 animate-in fade-in duration-300 md:space-y-5 md:pb-10 lg:pb-12">
+    <div className={`${residentPageStyles.page} max-w-[1400px] space-y-4 pb-8 animate-in fade-in duration-300 md:space-y-5 md:pb-10 lg:pb-12`}>
       {/* ─── Page Header ─── */}
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
-        <div className="hidden md:block">
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Resident Calendar
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            View collection days and official announcements.
-          </p>
-        </div>
-
-        {/* View Toggle Tabs */}
-        <div className="w-full shrink-0 lg:w-auto">
+      <ResidentPageHeader
+        className="resident-page-header-wide"
+        title="Resident Calendar"
+        description="View collection days and official announcements."
+        actionsClassName="resident-page-header-wide-actions"
+        actions={
           <SegmentedControl<ViewTab>
-            className="flex w-full lg:inline-flex lg:w-auto [&>button]:flex-1 [&>button]:justify-center lg:[&>button]:flex-none"
+            className="resident-page-header-tabs [&>button]:justify-center"
             value={activeTab}
             onChange={setActiveTab}
             options={[
@@ -295,8 +291,8 @@ const ResidentSchedule = () => {
               { value: "WEEKLY_GUIDE", label: "Weekly Guide", icon: Truck },
             ]}
           />
-        </div>
-      </div>
+        }
+      />
 
       {(calendarQuery.isError || scheduleQuery.isError) && <DataRefreshNotice primary message="Some schedule information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={retrySchedule} retrying={calendarQuery.isFetching || scheduleQuery.isFetching} />}
 

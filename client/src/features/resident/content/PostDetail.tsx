@@ -2,6 +2,7 @@ import { useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect, useRef } from "react";
 import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
+import { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
@@ -190,9 +191,9 @@ const PostDetail = ({
 
         {/* ── Post Header Info ── */}
         <div className={contentStyles.detailHeader}>
-          <h1 className={contentStyles.detailTitle}>
+          <ResidentPageTitle className={contentStyles.detailTitle}>
             {post.title}
-          </h1>
+          </ResidentPageTitle>
 
           <PostMetadata date={dateInfo.formatted} author={post.author_name} />
         </div>

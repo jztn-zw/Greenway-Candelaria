@@ -7,6 +7,7 @@ import { getManilaNow } from "@/utils/date";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import { residentPageStyles } from "@/components/common/residentPageStyles";
+import { ResidentPageHeaderSkeleton } from "@/components/common/ResidentPageHeader";
 import { myReportsStyles } from "@/features/resident/waste-reporting/myReportsStyles";
 import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
 import { scheduledTrackingContent } from "@/features/resident/truck-tracking/trackingContent";
@@ -664,12 +665,7 @@ const ProfileSectionHeaderSkeleton = ({ action = false }: { action?: boolean }) 
 export const ProfileSkeleton = () => (
   <div role="status" aria-busy="true" aria-label="Loading resident profile" className={profileStyles.page}>
     <div aria-hidden="true">
-      <div className={residentPageStyles.header}>
-        <div className="min-w-0 w-full space-y-1.5">
-          <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
-          <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
-        </div>
-      </div>
+      <ResidentPageHeaderSkeleton />
       <div className={profileStyles.stack}>
         <div className={profileStyles.hero}>
           <div className={profileStyles.cover}><Skeleton className="h-full w-full rounded-none" /></div>
@@ -809,12 +805,7 @@ export const AdminProfileSkeleton = () => (
 /* ─── Resident Settings Page Skeleton (1:1 with ResidentSettings.tsx) ─── */
 export const SettingsSkeleton = () => (
   <div role="status" aria-busy="true" aria-label="Loading resident settings" className={settingsStyles.page}>
-    <div aria-hidden="true" className={settingsStyles.header}>
-      <div className="min-w-0 w-full space-y-1.5">
-        <Skeleton className={`${settingsStyles.title} h-[1.25em] w-36 max-w-full`} />
-        <Skeleton className={`${settingsStyles.description} h-[1.5em] w-96 max-w-full`} />
-      </div>
-    </div>
+    <ResidentPageHeaderSkeleton titleClassName="w-36" descriptionClassName="w-96" />
     {[1, 3, 0, 2, 2].map((rowCount, sectionIndex) => (
       <section key={sectionIndex} aria-hidden="true" className={settingsStyles.section}>
         <div className={settingsStyles.sectionHeader}>
@@ -958,18 +949,13 @@ export const AdminScheduleSkeleton = ({ currentDate }: { currentDate: Date }) =>
 /* ─── Shared resident, collector, and admin notification feed ─── */
 const ResidentNotificationsSkeleton = () => (
   <div role="status" aria-label="Loading Notifications" className={notificationStyles.page}>
-    <div className={residentPageStyles.header}>
-      <div className="min-w-0 w-full space-y-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
-          <Skeleton className="h-5 w-16 rounded-md" />
-        </div>
-        <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
-      </div>
-      <div className={`${notificationStyles.headerActions} shrink-0 gap-2`}>
+    <ResidentPageHeaderSkeleton
+      titleBadge={<Skeleton className="h-5 w-16 rounded-md" />}
+      actionsClassName={notificationStyles.headerActions}
+      actions={<>
         <Skeleton className="h-9 w-32 rounded-lg" /><Skeleton className="h-9 w-20 rounded-lg" />
-      </div>
-    </div>
+      </>}
+    />
     <div className="space-y-4">
       <div className={notificationStyles.filterRow}>
         <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
@@ -1045,14 +1031,16 @@ export const NotificationsPageSkeleton = ({ role = "resident" }: { role?: "resid
 
 /* ─── Resident Schedule Page Skeleton (1:1 with ResidentSchedule.tsx) ─── */
 export const ResidentScheduleSkeleton = () => (
-  <div role="status" aria-label="Loading resident calendar" className="mx-auto w-full max-w-[1400px] space-y-4 pb-8 md:space-y-5 md:pb-10 lg:pb-12">
-    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
-      <div className="hidden space-y-2 md:block"><Skeleton className="h-8 w-60" /><Skeleton className="h-4 w-80 max-w-full" /></div>
-      <div className="flex w-full gap-1 rounded-xl border border-border/80 bg-card p-1 lg:w-auto">
-        <Skeleton className="h-9 min-w-0 flex-1 rounded-lg lg:w-40" />
-        <Skeleton className="h-9 min-w-0 flex-1 rounded-lg lg:w-32" />
-      </div>
-    </div>
+  <div role="status" aria-label="Loading resident calendar" className={`${residentPageStyles.page} max-w-[1400px] space-y-4 pb-8 md:space-y-5 md:pb-10 lg:pb-12`}>
+    <ResidentPageHeaderSkeleton
+      className="resident-page-header-wide"
+      titleClassName="w-60"
+      actionsClassName="resident-page-header-wide-actions"
+      actions={<div className="resident-page-header-tabs gap-0.5 rounded-xl border border-border/80 bg-muted/60 p-1">
+        <Skeleton className="h-8 w-40 rounded-lg" />
+        <Skeleton className="h-8 w-32 rounded-lg" />
+      </div>}
+    />
 
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
@@ -1109,13 +1097,10 @@ export const MyReportsListSkeleton = ({ count = 10 }: { count?: number }) => (
 
 export const MyReportsPageSkeleton = () => (
   <div role="status" aria-label="Loading My Reports" className={myReportsStyles.page}>
-    <div className={residentPageStyles.header}>
-      <div className="min-w-0 w-full space-y-1.5">
-        <Skeleton className={`${residentPageStyles.title} h-[1.25em] w-44 max-w-full`} />
-        <Skeleton className={`${residentPageStyles.description} h-[1.5em] w-80 max-w-full`} />
-      </div>
-      <Skeleton className={cn(myReportsStyles.headerActions, "h-9 w-32 shrink-0 rounded-lg")} />
-    </div>
+    <ResidentPageHeaderSkeleton
+      actionsClassName={myReportsStyles.headerActions}
+      actions={<Skeleton className="h-9 w-32 rounded-lg" />}
+    />
     <div className="space-y-4">
     <div className="space-y-3">
       <Skeleton className="h-11 w-full rounded-lg md:h-10" />
@@ -1411,7 +1396,7 @@ export const ResidentPostDetailSkeleton = () => (
 
     {/* Title & description */}
     <div className={contentStyles.detailHeader}>
-      <Skeleton className="h-7 sm:h-8 w-3/4" />
+      <Skeleton className={`${contentStyles.detailTitle} h-[1.25em] w-3/4`} />
       <div className="community-post-metadata-primary flex flex-wrap items-center gap-x-4 gap-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-40 max-w-full" /></div>
     </div>
 
@@ -2467,18 +2452,18 @@ export const ResidentDashboardCalendarSkeleton = ({ dayCount, firstDayIndex }: {
 
 export const ResidentDashboardSkeleton = ({ dayCount, firstDayIndex }: { dayCount: number; firstDayIndex: number }) => (
   <div role="status" aria-label="Loading resident dashboard" className={dashboardStyles.page}>
-    <div className="py-1"><div className={dashboardStyles.greeting}>
-      <div className="min-w-0 space-y-2">
-        <div className="flex flex-wrap items-center gap-2.5"><Skeleton className="h-8 w-64 max-w-full" /><Skeleton className="h-6 w-24 rounded-md" /></div>
-        <Skeleton className="h-4 w-80 max-w-full" />
-      </div>
-      <div className={dashboardStyles.greetingActions}>
+    <ResidentPageHeaderSkeleton
+      className={dashboardStyles.greeting}
+      titleClassName="w-64"
+      titleBadge={<Skeleton className="h-6 w-24 rounded-md" />}
+      actionsClassName={dashboardStyles.greetingActions}
+      actions={<>
         <div className={dashboardStyles.dateBadge}>
           <Skeleton className="h-3 w-28" />
         </div>
         <Skeleton className="h-10 w-32 rounded-lg" />
-      </div>
-    </div></div>
+      </>}
+    />
 
     <div className={dashboardStyles.overview}>
       {[dashboardStyles.collectionColumn, dashboardStyles.truckColumn, dashboardStyles.reportColumn].map((column, index) => (
@@ -2545,10 +2530,7 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
 
 export const ResidentContentsSkeleton = () => (
   <div role="status" aria-label="Loading Community Updates" className={contentStyles.page}>
-    <div className={contentStyles.header}>
-      <Skeleton className="h-8 w-56" />
-      <Skeleton className="h-4 w-96 max-w-full" />
-    </div>
+    <ResidentPageHeaderSkeleton titleClassName="w-56" descriptionClassName="w-96" />
     <div className={contentStyles.stack}>
     <div className="space-y-3">
       <Skeleton className="h-10 w-full rounded-lg" />
@@ -2610,12 +2592,7 @@ const TrackingTextSkeleton = ({ className, children }: { className?: string; chi
 
 export const ResidentTrackingSkeleton = ({ residentArea }: { residentArea?: string } = {}) => (
   <div role="status" aria-label="Loading collection tracking" className={trackingStyles.page}>
-    <div className={trackingStyles.header}>
-      <div className="min-w-0 w-full space-y-1.5">
-        <Skeleton className={`${trackingStyles.headerTitle} h-[1.25em] w-44 max-w-full`} />
-        <Skeleton className={`${trackingStyles.headerDescription} h-[1.5em] w-80 max-w-full`} />
-      </div>
-    </div>
+    <ResidentPageHeaderSkeleton />
     <div className={trackingStyles.stack}>
       <div className={trackingStyles.schedule}>
         <div className={trackingStyles.scheduleDetails}>

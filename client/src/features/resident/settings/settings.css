@@ -17,21 +17,6 @@
 
 /* Keep the monitor layout; refine spacing only on phones and tablets. */
 @media (max-width: 63.999rem) {
-  .resident-settings .resident-settings-header {
-    display: flex;
-  }
-
-  .resident-settings .resident-settings-title {
-    font-size: 1.375rem;
-    line-height: 1.25;
-  }
-
-  .resident-settings .resident-settings-description {
-    max-width: 65ch;
-    font-size: 0.75rem;
-    line-height: 1.5;
-  }
-
   .resident-settings .resident-settings-section {
     padding: 1rem;
   }
@@ -70,14 +55,6 @@
   }
 
   @container resident-settings (min-width: 37.5rem) {
-    .resident-settings .resident-settings-title {
-      font-size: 1.75rem;
-    }
-
-    .resident-settings .resident-settings-description {
-      font-size: 0.875rem;
-    }
-
     .resident-settings .resident-settings-section {
       padding: 1.25rem;
     }

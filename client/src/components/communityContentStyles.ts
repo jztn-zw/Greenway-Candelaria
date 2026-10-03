@@ -1,19 +1,17 @@
 import "./communityContent.css";
+import { residentPageStyles } from "./common/residentPageStyles";
 
 /** Shared geometry for the resident community feed and its loading placeholders. */
 export const communityContentStyles = {
-  page: "community-content mx-auto min-w-0 w-full max-w-[1400px] pb-4 lg:pb-6",
-  detailPage: "community-content mx-auto min-w-0 w-full max-w-[1000px] pb-4 lg:pb-6",
+  page: `${residentPageStyles.page} community-content max-w-[1400px] lg:pb-6`,
+  detailPage: `${residentPageStyles.page} community-content max-w-[1000px] lg:pb-6`,
   detailArticle: "community-post-article grid min-w-0",
   detailHeader: "community-post-header grid min-w-0 gap-3 text-left",
-  detailTitle: "community-post-title min-w-0 break-words font-bold tracking-tight text-foreground [overflow-wrap:anywhere]",
+  detailTitle: `${residentPageStyles.title} community-post-title min-w-0 break-words`,
   detailBody: "community-post-body min-w-0 text-foreground/85",
   detailImage: "community-post-image relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-muted/20",
   detailThumbnails: "flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1 scrollbar-thin",
   detailThumbnail: "community-post-thumbnail relative shrink-0 overflow-hidden rounded-lg border-2 transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-  header: "mb-4 min-w-0 space-y-1 sm:mb-5",
-  headerTitle: "gw-page-title sm:text-ui-page-lg text-foreground tracking-tight",
-  headerDescription: "text-xs sm:text-sm text-muted-foreground mt-0.5",
   stack: "space-y-4 sm:space-y-5",
   filterRow: "community-content-filter-row min-w-0 items-center gap-2",
   sort: "community-content-sort min-w-0 shrink-0",

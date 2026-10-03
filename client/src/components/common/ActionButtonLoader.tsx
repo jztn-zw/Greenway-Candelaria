@@ -15,7 +15,7 @@ const ActionButtonLoader = memo(({ className }: { className?: string }) => {
             {/* Small canvas strokes lose opacity when scaled down. Strengthen
                 their coverage while keeping empty pixels transparent. */}
             <feComponentTransfer in="SourceAlpha" result="truckMask">
-              <feFuncA type="linear" slope="2" />
+              <feFuncA type="linear" slope="4" />
             </feComponentTransfer>
             <feFlood floodColor="currentColor" floodOpacity="1" result="truckColor" />
             <feComposite in="truckColor" in2="truckMask" operator="in" />

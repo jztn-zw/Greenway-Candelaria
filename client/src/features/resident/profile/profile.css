@@ -76,10 +76,6 @@
 
 /* Preserve the original monitor layout; responsive refinements apply below it. */
 @media (min-width: 64rem) {
-  .resident-profile .resident-page-header {
-    display: none;
-  }
-
   .resident-profile .resident-profile-stack > :not([hidden]) ~ :not([hidden]) {
     margin-top: 1.5rem;
   }

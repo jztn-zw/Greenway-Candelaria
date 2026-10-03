@@ -1,13 +1,11 @@
 import "./settings.css";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 
 const row = "resident-settings-row -mx-2 flex min-w-0 items-center justify-between gap-3 rounded-xl border-b border-border/40 px-2 py-2.5 last:border-b-0 lg:-mx-2.5 lg:px-2.5 lg:py-3";
 const themeOption = "resident-settings-theme-button flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs lg:text-sm font-semibold";
 
 export const settingsStyles = {
-  page: "resident-settings mx-auto min-w-0 w-full max-w-3xl space-y-4 animate-in fade-in duration-300 md:space-y-5 lg:space-y-6",
-  header: "resident-settings-header hidden flex-col gap-2.5 md:flex md:flex-row md:items-center md:justify-between",
-  title: "resident-settings-title gw-page-title lg:text-ui-page-lg text-foreground tracking-tight",
-  description: "resident-settings-description mt-0.5 text-xs lg:text-sm text-muted-foreground",
+  page: `${residentPageStyles.page} resident-settings max-w-3xl space-y-4 animate-in fade-in duration-300 md:space-y-5 lg:space-y-6`,
   section: "resident-settings-section min-w-0 space-y-3 rounded-xl border border-border/80 bg-card p-3.5 md:space-y-4 md:p-5 lg:p-6",
   sectionHeader: "flex min-w-0 items-start gap-2.5 border-b border-border/60 pb-2.5 lg:items-center lg:gap-3 lg:pb-3",
   icon: "resident-settings-icon flex size-9 shrink-0 items-center justify-center rounded-xl border shadow-2xs [&_svg]:size-4",

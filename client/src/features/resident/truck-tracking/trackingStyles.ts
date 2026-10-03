@@ -4,9 +4,6 @@ import "./tracking.css";
 // Keep the tracking screen and its loading state on the same responsive layout.
 export const trackingStyles = {
   page: `${residentPageStyles.page} resident-tracking max-w-[1440px]`,
-  header: residentPageStyles.header,
-  headerTitle: residentPageStyles.title,
-  headerDescription: residentPageStyles.description,
   stack: "space-y-4",
   schedule: "resident-tracking-schedule flex min-w-0 flex-col items-start justify-between gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs",
   scheduleDetails: "resident-tracking-schedule-details min-w-0 w-full space-y-3",
