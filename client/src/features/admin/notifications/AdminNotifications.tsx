@@ -273,7 +273,7 @@ const AdminNotifications: React.FC = () => {
       )}
 
       {/* ── Pagination ── */}
-      <PaginationControls currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
+      <PaginationControls mobileLayout="summary" currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
       </div>
 
       {/* ── Modal for Announcements & System Details ── */}

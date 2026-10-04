@@ -291,7 +291,7 @@ const ReportListTable = ({
 
       {/* ── Table Pagination Bar ── */}
       {totalPages > 1 && onPageChange && (
-        <PaginationControls
+        <PaginationControls mobileLayout="summary"
           currentPage={page}
           totalPages={totalPages}
           onPageChange={onPageChange}

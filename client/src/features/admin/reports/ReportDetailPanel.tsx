@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { WasteReportDetailBodySkeleton } from "@/components/PageLoadingSkeletons";
 import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
@@ -16,7 +17,7 @@ import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchAdminReports, type AdminReportItem } from "@/services/reportsService";
-import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Loader2, Trash2, X } from "lucide-react";
+import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 ReportStatus,
@@ -302,7 +303,7 @@ const ReportDetailPanel = ({
                 <Copy className="w-3.5 h-3.5" />
               </button>
               {isLoading && (
-                <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                <ActionButtonLoader className="gw-action-loader--compact text-muted-foreground" />
               )}
             </div>
 

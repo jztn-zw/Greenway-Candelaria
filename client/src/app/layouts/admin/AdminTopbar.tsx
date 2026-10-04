@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { navigationStyles } from "../navigationStyles";
 import { useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
@@ -10,8 +11,7 @@ import {
   Sun,
   Moon,
   CheckCheck,
-  Loader2,
-} from "lucide-react";
+  } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   Popover,
@@ -307,7 +307,7 @@ const AdminTopBar = () => {
                   aria-busy={isMarkingAll}
                   className="gw-topbar-notification-action"
                 >
-                  {isMarkingAll ? <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
+                  {isMarkingAll ? <ActionButtonLoader className="gw-action-loader--compact" /> : <CheckCheck className="w-3.5 h-3.5" />}
                   <span>{isMarkingAll ? "Marking all read…" : "Mark all read"}</span>
                 </button>
               )}

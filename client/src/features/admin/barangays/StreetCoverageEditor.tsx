@@ -1,8 +1,9 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isAxiosError } from "axios";
-import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, Loader2, MapPin, Minus, MousePointer2, Plus, Save, Trash2, Undo2 } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, MapPin, Minus, MousePointer2, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
@@ -340,7 +341,7 @@ const StreetCoverageEditor = ({
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-border/80 bg-card p-3 shadow-2xs sm:px-3.5">
             <div className="min-w-0" role="status" aria-live="polite">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                {routing ? <Loader2 className="size-4 animate-spin text-primary" /> : routeError ? <AlertTriangle className="size-4 text-destructive" /> : geometry.length > 1 ? <CheckCircle2 className="size-4 text-primary" /> : <span className="mx-1 size-2 rounded-full bg-muted-foreground/60" />}
+                {routing ? <ActionButtonLoader className="gw-action-loader--compact text-primary" /> : routeError ? <AlertTriangle className="size-4 text-destructive" /> : geometry.length > 1 ? <CheckCircle2 className="size-4 text-primary" /> : <span className="mx-1 size-2 rounded-full bg-muted-foreground/60" />}
                 <span>{statusLabel}</span>
                 {points.length > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5 text-ui-overline font-medium tabular-nums text-muted-foreground">{points.length} / {MAX_MARKED_POINTS} points</span>}
               </div>
@@ -363,7 +364,7 @@ const StreetCoverageEditor = ({
             <div ref={setMapContainer} className="h-full w-full" aria-label={`Map for ${streetName} street coverage`} />
             {!mapReady && (
               <div className="absolute inset-0 z-[500] flex items-center justify-center bg-background/70 text-xs text-muted-foreground backdrop-blur-[1px]">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading map…
+                <ActionButtonLoader className="gw-action-loader--compact mr-2" /> Loading map…
               </div>
             )}
             <div className="pointer-events-none absolute left-2.5 top-2.5 z-[400] flex max-w-[calc(100%-4.5rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-background/95 px-2.5 py-2 text-ui-overline font-medium leading-4 text-foreground shadow-sm sm:left-3 sm:top-3 sm:text-ui-caption">

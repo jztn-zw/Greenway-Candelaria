@@ -608,6 +608,31 @@ html.theme-switching::view-transition-new(root) {
   color: inherit;
 }
 
+.gw-action-loader--compact {
+  --action-loader-width: 1.5rem;
+  --action-loader-height: 1.25rem;
+  --action-loader-canvas-size: 2.5rem;
+}
+
+/* Admin pagination follows its available width, including tablet layouts with a sidebar. */
+.gw-pagination {
+  container: pagination / inline-size;
+}
+
+.gw-pagination-mobile {
+  display: none;
+}
+
+@container pagination (max-width: 37.4375rem) {
+  .gw-pagination-mobile {
+    display: flex;
+  }
+
+  .gw-pagination-desktop {
+    display: none;
+  }
+}
+
 .gw-button-loader .gw-action-loader {
   max-width: 100%;
   max-height: 100%;

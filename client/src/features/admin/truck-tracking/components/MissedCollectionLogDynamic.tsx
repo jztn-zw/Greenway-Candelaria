@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -10,7 +11,6 @@ fetchMissedCollections
 } from "@/services/trackingService";
 import {
 AlertTriangle,
-Loader2,
 RotateCw,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -100,7 +100,7 @@ const MissedCollectionLogDynamic = ({ trucks }: MissedCollectionLogProps) => {
         {error && query.data !== undefined && <DataRefreshNotice message="Couldn't refresh missed collection records. Showing the last loaded results, which may be outdated." onRetry={() => void refreshEntries()} retrying={query.isFetching} />}
         {error && query.data === undefined ? <PageErrorState kind="unavailable" variant="section" title="Missed collection records couldn't load" onRetry={() => void refreshEntries()} retrying={query.isFetching} /> : isLoading && filtered.length === 0 ? (
           <div className="text-center py-10 text-xs text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
+            <div className="mb-2 flex justify-center text-primary"><ActionButtonLoader /></div>
             Loading missed collection logs...
           </div>
         ) : filtered.length === 0 ? (

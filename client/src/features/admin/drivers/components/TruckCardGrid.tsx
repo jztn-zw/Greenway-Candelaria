@@ -206,7 +206,7 @@ const TruckCardGrid = ({
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <PaginationControls
+        <PaginationControls mobileLayout="summary"
           currentPage={visiblePage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

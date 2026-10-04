@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface PaginationControlsProps {
@@ -7,6 +8,7 @@ export interface PaginationControlsProps {
   onPageChange: (page: number) => void;
   className?: string;
   variant?: "table" | "floating" | "inline";
+  mobileLayout?: "pages" | "summary";
 }
 
 const getPageItems = (currentPage: number, totalPages: number): Array<number | "ellipsis"> => {
@@ -23,7 +25,7 @@ const getPageItems = (currentPage: number, totalPages: number): Array<number | "
 };
 
 /** One pagination design for table, card, and notification footers. */
-export const PaginationControls = ({ currentPage, totalPages, onPageChange, className, variant = "floating" }: PaginationControlsProps) => {
+export const PaginationControls = ({ currentPage, totalPages, onPageChange, className, variant = "floating", mobileLayout = "pages" }: PaginationControlsProps) => {
   if (totalPages <= 1) return null;
 
   const page = Math.min(Math.max(1, currentPage), totalPages);
@@ -31,8 +33,21 @@ export const PaginationControls = ({ currentPage, totalPages, onPageChange, clas
   const buttonClass = "flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
   return (
-    <nav aria-label="Pagination" className={cn("flex w-full items-center justify-end pt-3", variant === "table" && "bg-card px-4 pb-3", className)}>
-      <div className="flex items-center gap-1.5">
+    <nav aria-label="Pagination" className={cn("flex w-full items-center justify-end pt-3", mobileLayout === "summary" && "gw-pagination", variant === "table" && "bg-card px-4 pb-3", className)}>
+      {mobileLayout === "summary" && (
+        <div className="gw-pagination-mobile w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-border/80 bg-card p-2">
+          <Button type="button" variant="outline" className="size-11 shrink-0 rounded-lg p-0" aria-label="Previous page" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
+            <ChevronLeft aria-hidden="true" />
+          </Button>
+          <p className="min-w-0 text-center text-xs text-muted-foreground tabular-nums" aria-live="polite" aria-atomic="true">
+            Page <span className="font-semibold text-foreground">{page}</span> of <span className="font-medium text-foreground">{totalPages}</span>
+          </p>
+          <Button type="button" variant="outline" className="size-11 shrink-0 rounded-lg p-0" aria-label="Next page" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </div>
+      )}
+      <div className={cn("flex items-center gap-1.5", mobileLayout === "summary" && "gw-pagination-desktop")}>
         <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => onPageChange(page - 1)}
           className={cn(buttonClass, "gw-action-ghost text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-35")}>
           <ChevronLeft aria-hidden="true" className="size-4" />

@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   Clock,
   MapPin,
   MoreVertical,
-  Loader2,
   Pencil,
   Power,
   Trash2,
@@ -102,7 +102,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
               <span className="text-ui-overline tabular-nums font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
                 {isLoadingTruck ? (
                   <span className="inline-flex items-center gap-1">
-                    <Loader2 className="w-2.5 h-2.5 animate-spin" /> ...
+                    <ActionButtonLoader className="gw-action-loader--compact" /> ...
                   </span>
                 ) : (
                   truck?.plate_number ?? route.truckPlate

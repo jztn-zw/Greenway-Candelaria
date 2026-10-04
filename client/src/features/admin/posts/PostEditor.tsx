@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { Button } from "@/components/ui/button";
 import { BackButton } from "@/components/common/BackButton";
 import "@/components/communityContent.css";
@@ -816,7 +817,7 @@ const PostEditor = ({
           >
             {isUploading ? (
               <>
-                <div className="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                <ActionButtonLoader className="text-primary" />
                 <span className="text-xs font-semibold text-muted-foreground">
                   Uploading photo to server...
                 </span>

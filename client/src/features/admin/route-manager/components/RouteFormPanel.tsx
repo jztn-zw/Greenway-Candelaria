@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { useState } from "react";
@@ -23,7 +24,6 @@ import {
   Copy,
   Pause,
   Play,
-  Loader2,
   Clock,
   CalendarDays,
   MapPin,
@@ -309,7 +309,7 @@ const RouteFormPanel = ({
               disabled={isLoadingTrucks}
               options={trucks.map((t) => ({ value: t.id, label: `${t.name} · ${t.plate_number}` }))}
               placeholder={isLoadingTrucks ? "Loading..." : "Select truck"}
-              leadingIcon={isLoadingTrucks ? <Loader2 className="w-3 h-3 animate-spin" /> : undefined}
+              leadingIcon={isLoadingTrucks ? <ActionButtonLoader className="gw-action-loader--compact" /> : undefined}
               aria-label="Truck" searchPlaceholder="Search trucks..." className={fieldClass}
             />
           </div>

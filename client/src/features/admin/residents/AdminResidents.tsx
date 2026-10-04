@@ -539,7 +539,7 @@ const AdminResidents = () => {
 
         {/* ── Table Pagination Bar ── */}
         {!isResultsLoading && !listError && totalPages > 1 && (
-          <PaginationControls
+          <PaginationControls mobileLayout="summary"
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}

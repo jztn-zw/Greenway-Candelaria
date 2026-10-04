@@ -862,7 +862,7 @@ const AdminPosts = () => {
 
       {/* ── Pagination ── */}
       {!listQuery.isLoading && totalPages > 1 && (
-        <PaginationControls
+        <PaginationControls mobileLayout="summary"
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

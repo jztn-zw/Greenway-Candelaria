@@ -1,5 +1,6 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { useThemeMode } from "@/hooks/useThemeMode";
-import { AlertTriangle, Check, Info, LoaderCircle, X } from "lucide-react";
+import { AlertTriangle, Check, Info, X } from "lucide-react";
 import { Toaster as Sonner } from "sonner";
 import "./sonner.css";
 
@@ -25,7 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <X aria-hidden="true" />,
         warning: <AlertTriangle aria-hidden="true" />,
         info: <Info aria-hidden="true" />,
-        loading: <LoaderCircle aria-hidden="true" />,
+        loading: <ActionButtonLoader className="gw-action-loader--compact" />,
         close: <X aria-hidden="true" />,
       }}
       toastOptions={{

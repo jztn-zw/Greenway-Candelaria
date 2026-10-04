@@ -490,7 +490,7 @@ const AuditLogTable = ({
 
       {/* ── Table Pagination Bar ── */}
       {totalPages > 1 && onPageChange && currentPage && (
-        <PaginationControls
+        <PaginationControls mobileLayout="summary"
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={onPageChange}

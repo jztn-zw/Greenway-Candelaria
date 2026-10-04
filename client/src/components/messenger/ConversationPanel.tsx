@@ -1,5 +1,6 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Input } from "@/components/ui/input";
@@ -81,7 +82,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
       })}<div ref={endRef} />
     </div>
     <footer className={cn("border-t border-border/70 p-3", admin && "bg-card/80")}>
-      <div className="flex gap-2"><Input aria-label={admin ? "Message collector" : "Message MENRO"} maxLength={255} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSend(); } }} placeholder={admin ? "Message collector…" : "Message MENRO…"} disabled={sending} className="h-10 rounded-xl border-border/80 bg-background text-xs" /><Button aria-label={sending ? "Sending message…" : "Send message"} aria-busy={sending} type="button" onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="size-10 shrink-0 rounded-xl">{sending ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></div>
+      <div className="flex gap-2"><Input aria-label={admin ? "Message collector" : "Message MENRO"} maxLength={255} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSend(); } }} placeholder={admin ? "Message collector…" : "Message MENRO…"} disabled={sending} className="h-10 rounded-xl border-border/80 bg-background text-xs" /><Button aria-label={sending ? "Sending message…" : "Send message"} aria-busy={sending} type="button" onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="size-10 shrink-0 rounded-xl">{sending ? <ActionButtonLoader className="gw-action-loader--compact" /> : <Send className="size-4" />}</Button></div>
       <p className="mt-1.5 text-right text-ui-overline tabular-nums text-muted-foreground">{draft.length}/255</p>
     </footer>
   </>;

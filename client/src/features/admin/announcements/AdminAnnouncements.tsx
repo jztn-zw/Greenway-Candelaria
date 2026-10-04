@@ -492,7 +492,7 @@ const AdminAnnouncements = () => {
 
       {/* ── Pagination ── */}
       {!isResultsLoading && !pageError && totalPages > 1 && (
-        <PaginationControls
+        <PaginationControls mobileLayout="summary"
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

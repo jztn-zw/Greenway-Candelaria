@@ -1,3 +1,4 @@
+import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { SearchInput } from "@/components/common/SearchInput";
 import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import {
   ChevronUp,
   ChevronDown,
   GripVertical,
-  Loader2,
   MapPin,
   Plus,
   Trash2,
@@ -159,7 +159,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                 </p>
               ) : isLoadingStopPoints ? (
                 <p className="flex min-w-0 items-center gap-2 truncate text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading streets…
+                  <ActionButtonLoader className="gw-action-loader--compact text-primary" /> Loading streets…
                 </p>
               ) : !isCollectionAvailable ? (
                 <p

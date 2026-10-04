@@ -142,14 +142,14 @@
   color: hsl(var(--foreground));
 }
 
-.greenway-toaster [data-sonner-toast][data-type='loading'] [data-icon] svg {
-  background: transparent;
+.greenway-toaster [data-sonner-toast][data-type='loading'] [data-icon] {
   color: hsl(var(--primary));
-  animation: greenway-toast-spin 900ms linear infinite;
 }
 
-@keyframes greenway-toast-spin {
-  to { transform: rotate(360deg); }
+.greenway-toaster [data-sonner-toast] [data-icon] .gw-action-loader-filter {
+  width: 0;
+  height: 0;
+  padding: 0;
 }
 
 @media (max-width: 600px) {
