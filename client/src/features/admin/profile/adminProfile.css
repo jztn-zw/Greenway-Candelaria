@@ -1,0 +1,145 @@
+.admin-profile {
+  container: admin-profile / inline-size;
+}
+
+.admin-profile .admin-profile-avatar {
+  width: 6rem;
+  height: 6rem;
+}
+
+.admin-profile .admin-profile-identity-row {
+  margin-top: -3.5rem;
+}
+
+@container admin-profile (max-width: 25rem) {
+  .admin-profile .admin-profile-field {
+    flex-wrap: wrap;
+  }
+
+  .admin-profile .admin-profile-field-content {
+    flex-basis: 100%;
+  }
+
+  .admin-profile .admin-profile-field > button,
+  .admin-profile .admin-profile-field-action,
+  .admin-profile .admin-profile-registered-email {
+    margin-left: 3rem;
+  }
+}
+
+@container admin-profile (min-width: 37.5rem) {
+  .admin-profile .admin-profile-stack > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+  }
+
+  .admin-profile .admin-profile-cover {
+    height: 9rem;
+  }
+
+  .admin-profile .admin-profile-identity {
+    padding-inline: 2rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .admin-profile .admin-profile-identity-row {
+    margin-top: -3.5rem;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 1.5rem;
+    text-align: left;
+  }
+
+  .admin-profile .admin-profile-avatar {
+    width: 7rem;
+    height: 7rem;
+  }
+
+  .admin-profile .admin-profile-name-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .admin-profile .admin-profile-name {
+    font-size: 1.5rem;
+  }
+
+  .admin-profile .admin-profile-metadata {
+    justify-content: flex-start;
+  }
+
+  .admin-profile .admin-profile-section {
+    padding: 1.5rem;
+  }
+
+  .admin-profile .admin-profile-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-profile .admin-profile-field {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    padding-block: 0.75rem;
+  }
+
+  .admin-profile .admin-profile-field-content {
+    gap: 0.875rem;
+  }
+
+  .admin-profile .admin-profile-field-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .admin-profile .admin-profile-field-label {
+    font-size: var(--font-size-caption);
+  }
+
+  .admin-profile .admin-profile-field-value {
+    font-size: var(--font-size-body);
+  }
+}
+
+/* Match the resident profile's compact layout without changing the desktop view. */
+@container admin-profile (max-width: 37.4375rem) {
+  .admin-profile .admin-profile-stack > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
+  .admin-profile .admin-profile-hero, .admin-profile .admin-profile-section,
+  .admin-profile .admin-profile-logout { box-shadow: none; }
+  .admin-profile .admin-profile-avatar { width: 5rem; height: 5rem; }
+  .admin-profile .admin-profile-identity { padding: 0 1rem 1rem; }
+  .admin-profile .admin-profile-identity-row { margin-top: -2.5rem; align-items: flex-start; gap: 0.75rem; text-align: left; }
+  .admin-profile .admin-profile-name-row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+  .admin-profile .admin-profile-name { font-size: 1.25rem; line-height: 1.25; font-weight: 700; }
+  .admin-profile .admin-profile-metadata { justify-content: flex-start; gap: 0.5rem 1rem; overflow-wrap: anywhere; }
+  .admin-profile .admin-profile-metadata > span { min-width: 0; }
+  .admin-profile .admin-profile-metadata svg { flex-shrink: 0; }
+  .admin-profile .admin-profile-section-header { padding-bottom: 0.75rem; }
+  .admin-profile .admin-profile-section-header p { margin-top: 0.125rem; line-height: 1.5; }
+  .admin-profile .admin-profile-field { flex-wrap: nowrap; align-items: flex-start; margin-inline: 0; padding: 0.75rem 0; border-radius: 0; }
+  .admin-profile .admin-profile-field:hover { background: transparent; }
+  .admin-profile .admin-profile-field-content { flex-basis: auto; align-items: flex-start; gap: 0.625rem; }
+  .admin-profile .admin-profile-field-icon { width: 2rem; height: 2rem; border-radius: 0.5rem; background: hsl(var(--muted) / 0.4); box-shadow: none; }
+  .admin-profile .admin-profile-field-label { font-size: 0.75rem; line-height: 1rem; font-weight: 500; text-transform: none; letter-spacing: normal; }
+  .admin-profile .admin-profile-field-label.animate-pulse { height: 1rem; }
+  .admin-profile .admin-profile-field-value { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.5; }
+  .admin-profile .admin-profile-field > button, .admin-profile .admin-profile-field-action,
+  .admin-profile .admin-profile-registered-email { margin-left: 0; }
+  .admin-profile .admin-profile-field-action { padding-inline: 0.625rem; border-radius: 0.5rem; }
+  .admin-profile .admin-profile-registered-email { height: 2rem; padding: 0; border: 0; background: transparent; }
+  .admin-profile .admin-profile-email-label { display: none; }
+  .admin-profile .admin-profile-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .admin-profile .admin-profile-overview-card { padding: 0.75rem; }
+  .admin-profile .admin-profile-overview-card:last-child { grid-column: 1 / -1; }
+}
+
+@container admin-profile (min-width: 30rem) and (max-width: 37.4375rem) {
+  .admin-profile .admin-profile-identity-row { flex-direction: row; gap: 1.25rem; }
+  .admin-profile .admin-profile-identity-details { padding-top: 3.5rem; }
+}
+
+/* Profile dialogs render outside the page container. */
+@media (max-width: 30rem) {
+  .admin-profile-dialog .gw-modal-footer:has(> button + button) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .admin-profile-dialog .gw-modal-footer > button { min-width: 0; max-width: 100%; padding-inline: 0.5rem; font-size: 0.6875rem; }
+}

@@ -11,6 +11,15 @@
   font-size: 0.75rem;
 }
 
+/* Admin page stacks already provide the space after each module header. */
+.resident-page .resident-page-header.admin-module-header {
+  margin-bottom: 0;
+}
+
+.admin-module-header-actions {
+  align-self: flex-end;
+}
+
 .resident-page-header-wide-actions {
   width: 100%;
 }
@@ -26,6 +35,10 @@
 }
 
 @container (min-width: 37.5rem) {
+  .admin-module-header-actions {
+    align-self: center;
+  }
+
   .resident-page .resident-page-header {
     flex-direction: row;
     align-items: center;

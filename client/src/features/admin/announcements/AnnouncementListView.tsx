@@ -1,4 +1,6 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import { adminCommunityStyles as noticeStyles } from "@/components/communityContentStyles";
+import AnnouncementCard from "./AnnouncementCard";
 import {
   MoreHorizontal,
   Edit2,
@@ -89,9 +91,15 @@ const AnnouncementListView = ({
   onReadReceipt,
 }: AnnouncementListViewProps) => {
   return (
-    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
+    <>
+    <div className={noticeStyles.compactList}>
+      {announcements.map((ann) => <AnnouncementCard key={ann.id} compact ann={ann} onPreview={onPreview}
+        onEdit={onEdit} onDuplicate={onDuplicate} onResend={onResend} onSendNow={onSendNow} onArchive={onArchive}
+        onDelete={onDelete} onCancelSchedule={onCancelSchedule} onReadReceipt={onReadReceipt} />)}
+    </div>
+    <div className={noticeStyles.table}>
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[850px]">
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
               <TableHead className="w-[34%] text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -365,6 +373,7 @@ const AnnouncementListView = ({
         </Table>
       </div>
     </div>
+    </>
   );
 };
 

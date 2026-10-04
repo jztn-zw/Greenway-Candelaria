@@ -194,11 +194,11 @@ export const EventModal: React.FC<EventModalProps> = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-[490px] p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-[490px] p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
         >
-          <form noValidate onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+          <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-col max-h-[90dvh] overflow-hidden">
             {/* Header (Pinned / Non-scrollable) */}
-            <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
+            <div className="gw-modal-header px-3 py-3 sm:px-5 sm:py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3">
               <div className="flex flex-1 items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
                   {isEditing ? (
@@ -229,7 +229,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             </div>
 
           {/* Form Fields (Scrollable Body) */}
-          <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+          <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">
@@ -393,19 +393,19 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* Footer (Pinned / Sticky) */}
-          <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 bg-card flex items-center justify-end gap-2.5">
+          <div className="gw-modal-footer px-3 py-3 sm:px-5 sm:py-3.5 border-t border-border/60 shrink-0 bg-card flex flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={handleRequestClose}
-              className="h-9 px-4 rounded-lg text-xs font-medium cursor-pointer"
+              className="h-8 max-w-full px-3 sm:h-9 rounded-lg text-xs font-medium"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-9 px-5 rounded-lg font-semibold text-xs cursor-pointer shadow-2xs gap-1.5"
+              className="h-8 max-w-full px-3 sm:h-9 sm:px-4 rounded-lg font-semibold text-xs gap-1.5"
               loading={isSubmitting}
               loadingLabel={isEditing ? "Saving schedule…" : "Creating schedule…"}
             >

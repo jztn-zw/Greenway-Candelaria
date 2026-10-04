@@ -8,6 +8,7 @@ DialogDescription,
 DialogTitle
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAdminQuery } from "@/lib/adminQuery";
 import {
@@ -28,6 +29,40 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const ReadAnalyticsSkeleton = () => (
+  <div role="status" aria-busy="true" className="space-y-4">
+    <div aria-hidden="true" className="space-y-4">
+      <div className="rounded-2xl bg-muted/40 border border-border/80 p-3 sm:p-4 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={`min-w-0 rounded-xl border border-border/60 bg-background p-3 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>
+              <Skeleton className="mx-auto h-7 w-12 max-w-full" /><Skeleton className="mx-auto mt-1 h-4 w-16 max-w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1 pt-1">
+          <div className="flex justify-between gap-2"><Skeleton className="h-4 w-32 max-w-[60%]" /><Skeleton className="h-4 w-16" /></div>
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap justify-between gap-2"><Skeleton className="h-4 w-44 max-w-full" /><Skeleton className="h-3 w-24" /></div>
+        <Skeleton className="h-11 md:h-9 w-full rounded-xl" />
+        <div className="h-56 space-y-2 overflow-hidden rounded-xl border border-border/70 bg-background/50 p-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2 rounded-xl border border-border/80 bg-card p-3">
+              <div className="flex justify-between gap-2"><Skeleton className="h-4 w-28 max-w-[70%]" /><Skeleton className="h-5 w-10 rounded-md" /></div>
+              <Skeleton className="h-1.5 w-full rounded-full" />
+              <div className="flex justify-between gap-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-12" /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <span className="sr-only">Loading read analytics…</span>
+  </div>
+);
 
 const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
   const [search, setSearch] = useState("");
@@ -57,7 +92,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background flex flex-col max-h-[85vh] [&>button:last-child]:hidden">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background flex flex-col max-h-[90dvh] sm:max-h-[85dvh] [&>button:last-child]:hidden">
         {/* ── Fixed Pinned Header (Non-Scrollable) ── */}
         <div className="gw-modal-header p-4 sm:p-5 pb-3.5 border-b border-border/60 flex items-center justify-between gap-3 text-left shrink-0 bg-background z-10 bg-card">
           <div className="flex items-center gap-3 min-w-0">
@@ -65,7 +100,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
               <BarChart3 className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="gw-heading text-base sm:text-lg text-foreground tracking-tight truncate">
+              <DialogTitle className="gw-heading break-words text-base sm:text-lg text-foreground tracking-tight">
                 Broadcast & Read Analytics
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
@@ -84,13 +119,13 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
         </div>
 
         {/* ── Scrollable Body ── */}
-        <div className="overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
-          {loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read analytics couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
+        <div className="min-h-0 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
+          {isLoading && !analytics ? <ReadAnalyticsSkeleton /> : loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read analytics couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
           {loadError && <DataRefreshNotice message="Couldn't refresh read analytics. Showing the last loaded results, which may be outdated." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* ── Executive Summary Metrics ── */}
-          <div className="rounded-2xl bg-muted/40 border border-border/80 p-4 space-y-3">
-            <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
+          <div className="rounded-2xl bg-muted/40 border border-border/80 p-3 sm:p-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
                 <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
                   {recipientCount.toLocaleString()}
                 </p>
@@ -99,7 +134,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
+              <div className="min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
                 <p className="gw-stat-value text-xl sm:text-2xl text-primary tabular-nums">
                   {readCount.toLocaleString()}
                 </p>
@@ -108,7 +143,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
+              <div className="col-span-2 sm:col-span-1 min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
                 <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
                   {readPct}%
                 </p>
@@ -120,7 +155,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
             {/* Overall Progress Bar */}
             <div className="space-y-1 pt-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground font-medium">
                 <span>Overall Read Progress</span>
                 <span className="tabular-nums font-semibold text-foreground">
                   {unreadCount.toLocaleString()} unread
@@ -132,7 +167,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
           {/* ── Barangay Breakdown ── */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <h4 className="gw-heading text-xs text-foreground uppercase tracking-wider">
                   Barangay Engagement Breakdown
@@ -157,11 +192,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
             {/* Barangay List */}
             <ScrollArea className="h-56 rounded-xl border border-border/70 p-2 bg-background/50">
               <div className="space-y-2">
-                {isLoading ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">
-                    Loading read analytics...
-                  </p>
-                ) : filteredAndSortedStats.length === 0 ? (
+                {filteredAndSortedStats.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-6">
                     No delivered recipients match your search.
                   </p>

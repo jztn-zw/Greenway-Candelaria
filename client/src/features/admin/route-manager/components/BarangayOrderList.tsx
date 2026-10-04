@@ -90,7 +90,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
     <div className="space-y-4" aria-label="Street collection stops">
       {/* ── Street Selector Box ── */}
       <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 space-y-3 shadow-2xs">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-primary" />
             Pick Barangay & Add Streets
@@ -201,13 +201,13 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                             variant="outline"
                             size="sm"
                             onClick={() => onAdd(point)}
-                            className="h-7 gap-1 rounded-lg px-2.5 text-ui-caption font-medium transition-all cursor-pointer"
+                            className="min-h-7 h-auto max-w-full gap-1 rounded-lg px-2.5 py-1 text-ui-caption font-medium"
                             title={hasCoveragePath
                               ? `Add ${label} to route`
                               : `${label} needs a coverage path in Barangay Manager`}
                           >
                             <Plus className="h-3 w-3 text-success-foreground" />
-                            <span>{label}</span>
+                            <span className="min-w-0 whitespace-normal break-words text-left">{label}</span>
                             {!hasCoveragePath && (
                               <AlertTriangle className="h-3 w-3 text-warning-foreground" aria-label="Coverage path missing" />
                             )}
@@ -225,8 +225,8 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
 
       {/* ── Ordered Stops Sequence ── */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
               <Layers className="w-3.5 h-3.5 text-primary" />
               Route Stop Sequence
@@ -288,7 +288,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                   onDrop={(event) => handleDrop(event, index)}
                   onDragEnd={() => setDragIndex(null)}
                   className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 transition-colors",
+                    "flex flex-wrap items-center gap-2 px-3 py-2 transition-colors",
                     dragIndex === index
                       ? "bg-muted/60 opacity-40"
                       : "hover:bg-muted/30"
@@ -307,8 +307,8 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                   </div>
 
                   {/* Street Name & Barangay Badge */}
-                  <div className="min-w-0 flex-1 flex items-center gap-2">
-                    <span className="truncate text-xs font-bold text-foreground">
+                  <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+                    <span className="break-words [overflow-wrap:anywhere] text-xs font-bold text-foreground">
                       {stop.name}
                     </span>
                     {barangayName && (
@@ -331,7 +331,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                   )}
 
                   {/* Ordering & Delete Controls */}
-                  <div className="flex items-center gap-0.5 shrink-0">
+                  <div className="ml-auto flex w-full sm:w-auto items-center justify-end gap-0.5 shrink-0">
                     <Button
                       type="button"
                       variant="ghost"

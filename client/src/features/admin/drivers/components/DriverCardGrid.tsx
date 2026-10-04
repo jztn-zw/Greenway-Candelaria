@@ -6,6 +6,12 @@ import {
   MoreHorizontal,
   Mail,
   Users,
+  Eye,
+  Pencil,
+  KeyRound,
+  UserX,
+  UserCheck,
+  Trash2,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
 import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
@@ -19,6 +25,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { cn } from "@/lib/utils";
 
 interface DriverCardGridProps {
   drivers: Driver[];
@@ -100,18 +108,18 @@ const DriverCardGrid = ({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        <div className={styles.grid}>
           {paginated.map((d) => {
             const truck = getTruck(d.truckId);
             return (
               <div
                 key={d.id}
                 onClick={() => onView(d)}
-                className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 hover:border-primary/40 transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                className={cn(styles.card, "hover:border-primary/40 transition-all duration-200 cursor-pointer group")}
               >
                 {/* Header Row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3.5 min-w-0">
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardIdentity}>
                     <div className="w-11 h-11 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-sm sm:text-base font-body shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
                       <img src={profileAvatarSrc(profileAvatarForAccount(d.userId, d.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                     </div>
@@ -125,7 +133,7 @@ const DriverCardGrid = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div className={styles.cardControls} onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant="outline"
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
@@ -140,29 +148,39 @@ const DriverCardGrid = ({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Actions for ${d.fullName}`}
                           className="h-8 w-8 rounded-lg cursor-pointer"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg border border-border/80 p-1">
-                        <DropdownMenuItem onClick={() => onView(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onView(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onEdit(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Edit Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onResetPassword(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onResetPassword(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <KeyRound className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Reset Password
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onToggleStatus(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onToggleStatus(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          {d.status === "Active" ? (
+                            <UserX className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          ) : (
+                            <UserCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          )}
                           {d.status === "Active" ? "Deactivate" : "Reactivate"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(d)}
-                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive gap-2"
                         >
+                          <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
                           Delete Account
                         </DropdownMenuItem>
                       </DropdownMenuContent>

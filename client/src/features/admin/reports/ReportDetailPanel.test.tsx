@@ -20,8 +20,8 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
-const render = (value: WasteReport) => act(async () => root.render(
-  <QueryClientProvider client={client}><ReportDetailPanel report={value} onAddNote={vi.fn()} onUpdateStatus={vi.fn()} /></QueryClientProvider>,
+const render = (value: WasteReport, isLoading = false) => act(async () => root.render(
+  <QueryClientProvider client={client}><ReportDetailPanel report={value} isLoading={isLoading} onAddNote={vi.fn()} onUpdateStatus={vi.fn()} /></QueryClientProvider>,
 ));
 const textarea = (placeholder: string) => host.querySelector<HTMLTextAreaElement>(`textarea[placeholder="${placeholder}"]`)!;
 const edit = (input: HTMLTextAreaElement, value: string) => act(() => {
@@ -44,4 +44,23 @@ it("updates an untouched response when fresh server data arrives", async () => {
   await render(report);
   await render({ ...report, officialResponse: "New saved response" });
   expect(textarea("Type official notification message to be sent to the resident...").value).toBe("New saved response");
+});
+
+it("shows a passive loading state, blocks flag actions, and preserves drafts", async () => {
+  await render(report);
+  edit(textarea("Type official notification message to be sent to the resident..."), "Draft response");
+  edit(textarea("Add internal investigation note..."), "Draft note");
+
+  await render(report, true);
+  const loading = host.querySelector('[role="status"]');
+  expect(loading?.textContent).toContain("Loading report details");
+  expect(loading?.querySelector("button, input, textarea")).toBeNull();
+  expect(host.querySelector("textarea")).toBeNull();
+  const flagButtons = Array.from(host.querySelectorAll("button")).filter((button) => button.textContent?.startsWith("Flag"));
+  expect(flagButtons).toHaveLength(2);
+  expect(flagButtons.every((button) => button.disabled)).toBe(true);
+
+  await render(report);
+  expect(textarea("Type official notification message to be sent to the resident...").value).toBe("Draft response");
+  expect(textarea("Add internal investigation note...").value).toBe("Draft note");
 });

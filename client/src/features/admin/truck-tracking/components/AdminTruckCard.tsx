@@ -20,6 +20,7 @@ import AnimatedList from "@/components/AnimatedList";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { AdminTruck, TruckStatus } from "../types";
 import { cn } from "@/lib/utils";
+import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
 
 /** Convert time strings like "6:05 AM", "7:45 PM", or "18:30" -> "6:05am" / "7:45pm" */
 const formatTime12h = (raw: string): string => {
@@ -94,7 +95,7 @@ const AdminTruckCard = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 border rounded-2xl overflow-hidden shadow-2xs",
+        styles.truckCard,
         isSelected
           ? "border-primary ring-2 ring-primary/20 bg-primary/[0.02]"
           : "border-border/70 hover:border-primary/40 bg-card"
@@ -103,8 +104,8 @@ const AdminTruckCard = ({
       <CardContent className="p-0">
         <div className="p-3.5 sm:p-4 cursor-pointer" onClick={onClick}>
           {/* Card Header: Vehicle Identity + Status & Controls */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
+          <div className={styles.truckHeader}>
+            <div className={styles.truckIdentity}>
               <div className={cn(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-colors border",
                 truck.status === "on-the-way"
@@ -116,8 +117,8 @@ const AdminTruckCard = ({
                 <Truck className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h4 className="gw-heading text-xs sm:text-sm text-foreground leading-tight truncate">
+                <div className={styles.truckName}>
+                  <h4 className="gw-heading min-w-0 break-words text-xs sm:text-sm text-foreground leading-tight">
                     {truck.name}
                   </h4>
                   <span className="text-ui-overline text-muted-foreground/80 tabular-nums font-medium px-1.5 py-0.5 rounded-md bg-muted/60">
@@ -128,7 +129,7 @@ const AdminTruckCard = ({
             </div>
 
             {/* Status Badge + Quick Override in Header */}
-            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className={styles.truckBadges} onClick={(e) => e.stopPropagation()}>
               {skippedStops.length > 0 && (
                 <Badge
                   variant="outline"
@@ -140,7 +141,7 @@ const AdminTruckCard = ({
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-ui-overline px-2 py-0.5 font-semibold rounded-lg tracking-wide uppercase",
+                  "max-w-full whitespace-normal text-ui-overline px-2 py-0.5 font-semibold rounded-lg tracking-wide uppercase",
                   status.className
                 )}
               >
@@ -226,7 +227,7 @@ const AdminTruckCard = ({
           {/* Progress Bar */}
           {truck.totalBarangays > 0 && (
             <div className="mt-3 pt-2.5 border-t border-border/50 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
                 <span className="text-muted-foreground text-ui-caption font-medium">Route Progress</span>
                 <span className="font-semibold text-foreground text-ui-caption tabular-nums">
                   {truck.completedBarangays}/{truck.totalBarangays} stops ({progressPct}%)
@@ -253,7 +254,7 @@ const AdminTruckCard = ({
           {/* Missed / Skipped Stops Priority Alert */}
           {skippedStops.length > 0 && (
             <div className="mt-2.5 rounded-lg border border-destructive/25 bg-destructive/10 p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   <span>
@@ -354,10 +355,10 @@ const AdminTruckCard = ({
 
                         {/* Stop Details */}
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span
                               className={cn(
-                                "text-xs font-semibold truncate",
+                                "min-w-0 break-words text-xs font-semibold",
                                 isDone && "text-muted-foreground line-through decoration-primary/40",
                                 isInProgress && "text-primary font-bold",
                                 isSkipped && "text-destructive font-bold",

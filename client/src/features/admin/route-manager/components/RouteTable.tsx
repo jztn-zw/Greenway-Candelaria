@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 import { WASTE_MAP, formatTime12h } from "../constants";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
+import { RouteCard } from "./RouteCard";
+import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
 
 interface RouteTableProps {
   routes: RouteData[];
@@ -58,7 +60,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
 
   if (routes.length === 0) {
     return (
-      <div className="bg-card border border-border/80 rounded-2xl p-12 text-center space-y-3 shadow-2xs">
+      <div className="bg-card border border-border/80 rounded-2xl px-4 py-10 sm:p-12 text-center space-y-3 shadow-2xs">
         <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
           <RouteIcon className="w-6 h-6" />
         </div>
@@ -73,9 +75,20 @@ export const RouteTable: React.FC<RouteTableProps> = ({
   }
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
+    <>
+      <div className={routeStyles.compactList}>
+        <div className={routeStyles.grid}>
+          {routes.map((route) => (
+            <RouteCard key={route.id} route={route} truck={getTruck(route.truckId)} showDay
+              isLoadingTruck={isLoadingTrucks && !getTruck(route.truckId)}
+              onView={onView} onEdit={onEdit} onDuplicate={onDuplicate} onToggleActive={onToggleActive} onDelete={onDelete}
+              isToggling={isTogglingId === route.id} isDeleting={isDeletingId === route.id} />
+          ))}
+        </div>
+      </div>
+    <div className={`${routeStyles.table} bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs`}>
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow className="border-b border-border/80 bg-muted/30 hover:bg-muted/30">
               <TableHead className="text-ui-caption font-bold text-muted-foreground uppercase tracking-wider py-3.5 pl-5">
@@ -253,6 +266,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
         </Table>
       </div>
     </div>
+    </>
   );
 };
 

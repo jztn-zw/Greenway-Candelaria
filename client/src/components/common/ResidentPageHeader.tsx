@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type ResidentPageHeaderProps = {
   title: ReactNode;
-  description: string;
+  description: ReactNode;
   titleBadge?: ReactNode;
   actions?: ReactNode;
   actionsClassName?: string;
@@ -32,7 +32,9 @@ export default function ResidentPageHeader({ title, description, titleBadge, act
 }
 
 /** Uses the same responsive typography and action layout as the loaded header. */
-export function ResidentPageHeaderSkeleton({ titleClassName = "w-44", descriptionClassName = "w-80", titleBadge, actions, actionsClassName, className }: {
+export function ResidentPageHeaderSkeleton({ title, description, titleClassName = "w-44", descriptionClassName = "w-80", titleBadge, actions, actionsClassName, className }: {
+  title?: ReactNode;
+  description?: ReactNode;
   titleClassName?: string;
   descriptionClassName?: string;
   titleBadge?: ReactNode;
@@ -44,10 +46,14 @@ export function ResidentPageHeaderSkeleton({ titleClassName = "w-44", descriptio
     <header aria-hidden="true" className={cn(residentPageStyles.header, className)}>
       <div className={residentPageStyles.heading}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Skeleton className={cn(residentPageStyles.title, "h-[1.25em] max-w-full", titleClassName)} />
+          <Skeleton className={cn(residentPageStyles.title, "max-w-full", title ? "w-fit" : ["h-[1.25em]", titleClassName])}>
+            {title && <span className="invisible">{title}</span>}
+          </Skeleton>
           {titleBadge}
         </div>
-        <Skeleton className={cn(residentPageStyles.description, "h-[1.625em] max-w-full", descriptionClassName)} />
+        <Skeleton className={cn(residentPageStyles.description, description ? "w-fit" : ["h-[1.625em] max-w-full", descriptionClassName])}>
+          {description && <span className="invisible">{description}</span>}
+        </Skeleton>
       </div>
       {actions && <div className={cn(residentPageStyles.actions, actionsClassName)}>{actions}</div>}
     </header>

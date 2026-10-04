@@ -1,10 +1,13 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Bell, CheckCheck, Trash2, ChevronRight, Clock, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import PaginationControls from "@/components/common/PaginationControls";
 import useNotifications from "@/features/admin/notifications/useAdminNotifications";
@@ -20,7 +23,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-import { getAdminCategory, getAdminNotificationDestination, getNotificationHeadline, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
+import { getAdminCategory, getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
 
 const tabs: FilterPillItem<AdminCategory>[] = [
   { id: "all", label: "All" },
@@ -80,10 +83,11 @@ const AdminNotifications: React.FC = () => {
     if (destination) {
       navigate(destination);
     } else {
+      const { headline, message } = getAdminNotificationPresentation(n);
       setModalNotification({
         id: n.id,
-        title: getNotificationHeadline(n).prefix,
-        message: n.body,
+        title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
+        message,
         time: formatRelativeTime(n.created_at, {
           dateOptions: { month: "short", day: "numeric", year: "numeric" },
         }),
@@ -101,28 +105,15 @@ const AdminNotifications: React.FC = () => {
   if (error && !hasLoadedData) return <PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications()} retrying={isRefreshing} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
+    <div className={notificationStyles.page}>
       {/* ── Page Header ── */}
-      <div className="hidden items-center justify-between gap-4 lg:flex">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-              Notifications
-            </h1>
-            {unreadCount > 0 && (
-              <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-md border border-primary/20 shadow-2xs">
-                {unreadCount} unread
-              </span>
-            )}
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Stay updated on resident reports, collection operations, and driver messages
-          </p>
-        </div>
-
-        {/* Action Buttons in Header */}
-        {(unreadCount > 0 || notifications.length > 0) && (
-          <div className="flex items-center gap-2 shrink-0">
+      <ResidentPageHeader
+        title="Notifications"
+        description="Resident reports, collection updates, and driver messages."
+        titleBadge={unreadCount > 0 ? <Badge className="shrink-0 text-[11px] tabular-nums">{unreadCount.toLocaleString()} unread</Badge> : undefined}
+        actionsClassName={notificationStyles.headerActions}
+        actions={(unreadCount > 0 || notifications.length > 0) && (
+          <>
             {unreadCount > 0 && (
               <Button
                 variant="outline"
@@ -130,11 +121,11 @@ const AdminNotifications: React.FC = () => {
                 onClick={markAllAsRead}
                 disabled={isMutating}
                 loading={isMarkingAll}
-                loadingLabel="Marking all read…"
-                className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"
+                loadingLabel="Marking…"
+                className={notificationStyles.actionButton}
               >
                 <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                <span>Mark all read</span>
+                <span className="min-w-0 truncate">Mark all read</span>
               </Button>
             )}
             {notifications.length > 0 && (
@@ -144,25 +135,26 @@ const AdminNotifications: React.FC = () => {
                 onClick={clearAll}
                 disabled={isMutating}
                 loading={isClearing}
-                loadingLabel="Clearing notifications…"
-                className="gap-1.5 text-xs h-9 px-3 rounded-xl border font-semibold transition-all cursor-pointer"
+                loadingLabel="Clearing…"
+                className={notificationStyles.actionButton}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear all</span>
+                <span className="min-w-0 truncate">Clear all</span>
               </Button>
             )}
-          </div>
+          </>
         )}
-      </div>
+      />
 
+      <div className="space-y-4">
       {/* ── Category filters ── */}
-      <div className="flex items-center gap-2">
+      <div className={notificationStyles.filterRow}>
         <FilterPillTabs<AdminCategory>
           items={tabs}
           activeId={activeTab}
           onChange={handleTabChange}
           ariaLabel="Notification categories"
-          className="flex-1 pr-2 lg:pr-4"
+          className="flex-1 pb-0"
         />
 
         {(unreadCount > 0 || notifications.length > 0) && (
@@ -171,22 +163,23 @@ const AdminNotifications: React.FC = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="size-9 shrink-0 rounded-xl shadow-2xs lg:hidden"
+                className={notificationStyles.menuTrigger}
+                disabled={isMutating}
                 title="Notification actions"
                 aria-label="Notification actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-44 lg:hidden">
+            <DropdownMenuContent align="end" className="min-w-44">
               {unreadCount > 0 && (
-                <DropdownMenuItem onSelect={markAllAsRead} className="gap-2">
+                <DropdownMenuItem onSelect={markAllAsRead} disabled={isMutating} className="gap-2">
                   <CheckCheck className="h-3.5 w-3.5 text-primary" />
                   Mark all as read
                 </DropdownMenuItem>
               )}
               {notifications.length > 0 && (
-                <DropdownMenuItem onSelect={clearAll} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <DropdownMenuItem onSelect={clearAll} disabled={isMutating} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                   Clear all notifications
                 </DropdownMenuItem>
@@ -200,9 +193,9 @@ const AdminNotifications: React.FC = () => {
 
       {/* ── Notification List ── */}
       {paginated.length > 0 ? (
-        <div className="rounded-2xl border border-border/80 overflow-hidden divide-y divide-border/60 bg-card shadow-2xs">
+        <div className={notificationStyles.list}>
           {paginated.map((n) => {
-            const headline = getNotificationHeadline(n);
+            const { headline, message } = getAdminNotificationPresentation(n);
             const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
             const isUnread = !n.is_read;
             const timeAgo = formatRelativeTime(n.created_at, {
@@ -214,21 +207,22 @@ const AdminNotifications: React.FC = () => {
                 type="button"
                 key={n.id}
                 onClick={() => handleClick(n)}
-                className={`group w-full text-left flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] dark:hover:bg-[var(--button-neutral-hover)] md:gap-4 md:p-4 lg:p-5 ${
-                  isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
+                className={`${notificationStyles.row} ${
+                  isUnread ? "border-l-primary bg-primary/[0.04]" : "border-l-transparent"
                 }`}
               >
                 {/* Left Thematic Avatar Icon */}
                 <div
-                  className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 ${avatarStyle}`}
+                  className={`${notificationStyles.icon} ${avatarStyle}`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon aria-hidden="true" />
                 </div>
 
                 {/* Main Content Area */}
                 <div className="min-w-0 flex-1 space-y-1">
+                  {isUnread && <span className="sr-only">Unread notification</span>}
                   {/* Primary text with bold focal points */}
-                  <p className="text-sm font-semibold text-foreground/90 leading-snug break-words group-hover:text-primary transition-colors">
+                  <p className="text-sm font-semibold text-foreground/90 leading-snug break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                     <span className="font-bold text-foreground">
                       {headline.prefix}
                     </span>
@@ -243,36 +237,29 @@ const AdminNotifications: React.FC = () => {
                   </p>
 
                   {/* Secondary Subtext (preview snippet) */}
-                  {n.body && (
-                    <p className="break-words pt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-1 lg:line-clamp-2">
-                      {n.body}
+                  {message && (
+                    <p className={notificationStyles.message}>
+                      {message}
                     </p>
                   )}
 
                   {/* Relative Timestamp */}
-                  <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground/80 font-medium pt-1">
-                    <Clock className="w-3 h-3 text-muted-foreground/70" />
+                  <div className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-muted-foreground/80 pt-1">
+                    <Clock className="size-3 shrink-0 text-muted-foreground/70" aria-hidden="true" />
                     <span>{timeAgo}</span>
                   </div>
                 </div>
 
-                {/* Unread indicator dot */}
-                {isUnread && (
-                  <div className="flex items-center self-center shrink-0 pl-1" title="Unread notification">
-                    <span className="w-2.5 h-2.5 bg-primary rounded-full ring-4 ring-primary/15 shadow-xs" />
-                  </div>
-                )}
-
                 {/* Chevron Right Indicator */}
-                <div className="flex items-center self-center shrink-0 pl-1">
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                <div className={notificationStyles.trailing}>
+                  <ChevronRight className="size-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" aria-hidden="true" />
                 </div>
               </button>
             );
           })}
         </div>
       ) : (
-        <div className="p-16 text-center border border-dashed border-border/80 rounded-2xl bg-card/50 shadow-2xs">
+        <div className="px-4 py-12 text-center border border-dashed border-border/80 rounded-2xl bg-card/50">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary">
             <Bell className="w-6 h-6" />
           </div>
@@ -287,6 +274,7 @@ const AdminNotifications: React.FC = () => {
 
       {/* ── Pagination ── */}
       <PaginationControls currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
+      </div>
 
       {/* ── Modal for Announcements & System Details ── */}
       {modalNotification && (

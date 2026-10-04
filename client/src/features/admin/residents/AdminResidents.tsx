@@ -1,14 +1,18 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { adminResidentManagerStyles as styles } from "@/components/communityContentStyles";
 
 import {
 DropdownMenu,
@@ -43,9 +47,13 @@ Filter,
 Mail,
 MapPin,
 MoreHorizontal,
+Eye,
 Phone,
 Trash2,
-Users
+Users,
+UserCheck,
+UserX,
+Ban
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -214,149 +222,152 @@ const AdminResidents = () => {
   ];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6">
+    <div className={styles.page}>
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Resident Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            View and manage all registered resident accounts across Candelaria.
-          </p>
-        </div>
-
-      </div>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Resident Manager"
+        description="View and manage all registered resident accounts across Candelaria."
+      />
 
       {listQuery.error && <DataRefreshNotice message="Couldn't refresh residents. Showing the last loaded results, which may be outdated." onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      <AdminKpiGrid>
         {[
           {
             label: "Total Residents",
             value: kpiError || kpiLoading ? "—" : totalResidentsCount,
-            tag: "bg-muted/70 text-muted-foreground border-border/80",
+            tone: "neutral" as const,
+            icon: Users,
             subtitle: "Registered municipal users",
           },
           {
             label: "Active Accounts",
             value: kpiError || kpiLoading ? "—" : activeCount,
-            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tone: "success" as const,
+            icon: UserCheck,
             subtitle: "Accounts marked active",
           },
           {
             label: "Deactivated Accounts",
             value: kpiError || kpiLoading ? "—" : deactivatedCount,
-            tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+            tone: "warning" as const,
+            icon: UserX,
             subtitle: "Accounts marked deactivated",
           },
           {
             label: "Banned Accounts",
             value: kpiError || kpiLoading ? "—" : bannedCount,
-            tag: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+            tone: "danger" as const,
+            icon: Ban,
             subtitle: "Accounts marked banned",
           },
-        ].map((kpi, idx) => (
-          <div
-            key={kpi.label}
-            className={cn(
-              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-              idx % 2 === 0 ? "sm:border-r border-border/70 xl:border-r-0" : "",
-              idx < 3 ? "xl:border-r xl:border-border/70" : "xl:border-r-0",
-              idx < 2 ? "border-b xl:border-b-0 border-border/70" : ""
-            )}
-          >
-            <div className="flex items-center min-h-[22px]">
-              <span
-                className={cn(
-                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                  kpi.tag
-                )}
-              >
-                {kpi.label}
-              </span>
-            </div>
-
-            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-              {kpi.value.toLocaleString()}
-            </div>
-
-            <div className="text-ui-caption text-muted-foreground font-medium truncate">
-              {kpi.subtitle}
-            </div>
-          </div>
+        ].map((kpi) => (
+          <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value} description={kpi.subtitle} icon={kpi.icon} tone={kpi.tone} />
         ))}
-      </div>
+      </AdminKpiGrid>
 
       {/* ── Resident Directory Table ── */}
-      <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
-        {/* ── Integrated Single-Row Toolbar ── */}
-        <div className="p-4 sm:p-5 border-b border-border/80 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3.5 bg-card">
-          {/* Left: Status Pill Tabs */}
-          <FilterPillTabs
-            items={STATUS_TABS}
-            activeId={statusFilter}
-            onChange={(id) => { setStatusFilter(id); setCurrentPage(1); }}
-            className="shrink-0 xl:pb-0"
-          />
-
-          {/* Right: Search + Barangay Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 xl:justify-end min-w-0">
-            {/* Search Input */}
-            <SearchInput
-              placeholder="Search name, username, email..."
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
-                setCurrentPage(1);
-              }}
-              containerClassName="w-full sm:w-64 lg:w-72"
-            />
-
-            {/* Barangay Select */}
-            <SearchableSelect
-              value={barangayFilter}
-              onValueChange={(v) => {
-                setBarangayFilter(v);
-                setCurrentPage(1);
-              }}
-              options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
-              placeholder="Barangay"
-              searchPlaceholder="Search barangays..."
-              aria-label="Barangay"
-              leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-              fieldSize="compact"
-              className="h-9 w-full sm:w-[170px] bg-background border-border/80 rounded-xl text-xs font-semibold"
+      <div className={styles.directory}>
+        <div className="admin-toolbar admin-toolbar-resident-controls">
+          <div className={styles.toolbar}>
+            <div className="min-w-0 admin-toolbar-heading">
+              <h2 className="gw-heading text-base text-foreground">Resident directory</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Find accounts by name, contact details, or barangay.</p>
+            </div>
+            <div className={`${styles.fields} admin-toolbar-search-row`}>
+              <SearchInput
+                placeholder="Search name, username, email..."
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  setCurrentPage(1);
+                }}
+                containerClassName={cn(styles.search, "w-full sm:w-64 lg:w-72")}
+              />
+              <div className="admin-toolbar-desktop-only">
+                <SearchableSelect
+                  value={barangayFilter}
+                  onValueChange={(v) => {
+                    setBarangayFilter(v);
+                    setCurrentPage(1);
+                  }}
+                  options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
+                  placeholder="Barangay"
+                  searchPlaceholder="Search barangays..."
+                  aria-label="Barangay"
+                  leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                  fieldSize="compact"
+                  className="h-9 w-full sm:w-[170px] rounded-xl text-xs"
+                />
+              </div>
+              <AdminFilterDialog title="Filter Residents" activeCount={Number(barangayFilter !== "all")}
+                values={{ barangayFilter }}
+                onApply={(next) => {
+                  setBarangayFilter(next.barangayFilter);
+                  setCurrentPage(1);
+                }}
+                resetValues={{ barangayFilter: "all" }}
+              >
+                {(draft, setDraft) => (
+                  <>
+                    <AdminFilterField label="Barangay">
+                      <SearchableSelect
+                        value={draft.barangayFilter}
+                        onValueChange={(v) => {
+                          setDraft({ ...draft, barangayFilter: v });
+                        }}
+                        options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
+                        placeholder="Barangay"
+                        searchPlaceholder="Search barangays..."
+                        aria-label="Barangay"
+                        leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                        fieldSize="compact"
+                        className="h-9 w-full rounded-xl text-xs"
+                      />
+                    </AdminFilterField>
+                  </>
+                )}
+              </AdminFilterDialog>
+            </div>
+          </div>
+          <div className={`${styles.filterRow} admin-toolbar-resident-chips`}>
+            <FilterPillTabs
+              items={STATUS_TABS}
+              activeId={statusFilter}
+              onChange={(id) => { setStatusFilter(id); setCurrentPage(1); }}
+              className={`${styles.filters} admin-toolbar-chips`}
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/40 border-b border-border/80">
+
+        <div className={styles.list}>
+          <Table className={styles.table}>
+            <TableHeader className="bg-muted/20 border-b border-border/80">
               <TableRow>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5 pl-5">
+                <TableHead className="text-xs font-medium text-muted-foreground py-3 pl-5">
                   Resident
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5 hidden md:table-cell">
+                <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden md:table-cell">
                   Username
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5 hidden lg:table-cell">
-                  Email & Phone
+                <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden lg:table-cell">
+                  Email & phone
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5">
+                <TableHead className="text-xs font-medium text-muted-foreground py-3">
                   Barangay
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5 hidden xl:table-cell">
+                <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden xl:table-cell">
                   Registered
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5 hidden xl:table-cell">
-                  Last Login
+                <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden xl:table-cell">
+                  Last login
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3.5">
+                <TableHead className="text-xs font-medium text-muted-foreground py-3">
                   Status
                 </TableHead>
-                <TableHead className="w-12 py-3.5 pr-5 text-right"></TableHead>
+                <TableHead className="w-12 py-3 pr-5 text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -388,22 +399,31 @@ const AdminResidents = () => {
                     <TableRow
                       key={r.id}
                       onClick={() => openResidentProfile(r)}
-                      className="group hover:bg-muted/40 transition-colors cursor-pointer"
+                      className="resident-manager-row group hover:bg-muted/40 transition-colors cursor-pointer"
                     >
                       {/* Resident name and avatar */}
                       <TableCell className="pl-5 py-3">
-                        <div className="flex items-center gap-3">
+                        <div className="resident-manager-identity flex items-center gap-3">
                           <div className="w-9 h-9 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs font-body shrink-0 shadow-2xs">
                             <img src={profileAvatarSrc(profileAvatarForAccount(r.id, r.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                           </div>
                           <div className="min-w-0">
-                            <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
+                            <span className="resident-manager-resident-name font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
                               {r.fullName}
                             </span>
-                            <span className="text-ui-caption text-muted-foreground md:hidden truncate block mt-0.5">
+                            <span className="resident-manager-inline-username text-ui-caption text-muted-foreground md:hidden truncate block mt-0.5">
                               @{r.username}
                             </span>
                           </div>
+                        </div>
+                        <div className={styles.mobileFooter}>
+                          <span className="resident-manager-inline-barangay flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                            <MapPin className="size-3.5 shrink-0" />
+                            <span className="min-w-0">{r.barangay}</span>
+                          </span>
+                          <Badge variant="outline" className={`resident-manager-account-badge shrink-0 text-ui-caption font-semibold rounded-md px-2.5 py-0.5 ${residentStatusStyles[r.status] || residentStatusStyles.Active}`}>
+                            {r.status}
+                          </Badge>
                         </div>
                       </TableCell>
 
@@ -430,7 +450,7 @@ const AdminResidents = () => {
 
                       {/* Barangay */}
                       <TableCell className="text-xs">
-                        <div className="inline-flex items-center gap-1 text-muted-foreground font-medium bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
+                        <div className="inline-flex max-w-full items-center gap-1.5 text-muted-foreground">
                           <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
                           <span className="truncate max-w-[120px]">
                             {r.barangay}
@@ -452,7 +472,7 @@ const AdminResidents = () => {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`text-ui-caption font-semibold rounded-md px-2.5 py-0.5 ${
+                          className={`resident-manager-account-badge text-ui-caption font-semibold rounded-md px-2.5 py-0.5 ${
                             residentStatusStyles[r.status] ||
                             residentStatusStyles.Active
                           }`}
@@ -471,7 +491,8 @@ const AdminResidents = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg opacity-70 group-hover:opacity-100 cursor-pointer transition-opacity"
+                              aria-label={`Actions for ${r.fullName}`}
+                              className="resident-manager-menu h-8 w-8 rounded-lg opacity-70 group-hover:opacity-100 cursor-pointer transition-opacity"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
@@ -482,21 +503,28 @@ const AdminResidents = () => {
                           >
                             <DropdownMenuItem
                               onClick={() => openResidentProfile(r)}
-                              className="text-xs cursor-pointer"
+                              className="text-xs cursor-pointer gap-2"
                             >
+                              <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                               View Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => void toggleStatus(r)}
-                              className="text-xs cursor-pointer"
+                              className="text-xs cursor-pointer gap-2"
                             >
+                              {r.status === "Active" ? (
+                                <UserX className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                              ) : (
+                                <UserCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                              )}
                               {r.status === "Active" ? "Deactivate" : r.status === "Banned" ? "Unban" : "Reactivate"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(r)}
-                              className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                              className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive gap-2"
                             >
+                              <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
                               Delete Account
                             </DropdownMenuItem>
                           </DropdownMenuContent>

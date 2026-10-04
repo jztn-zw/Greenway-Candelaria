@@ -59,7 +59,7 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
       if (!value && linkedDriver) { const next = new URLSearchParams(params); next.delete("messageDriver"); next.delete("message"); setParams(next, { replace: true }); }
     }}>
       <DialogContent className="flex w-[calc(100%-2rem)] max-w-xl max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-2xl border-border/80 bg-card p-0 shadow-2xl">
-        <DialogHeader className="gw-modal-header shrink-0 border-b border-border/70 px-5 py-4 pr-12 text-left bg-card">
+        <DialogHeader className="gw-modal-header shrink-0 border-b border-border/70 px-3 py-4 pr-12 sm:px-5 sm:pr-12 text-left bg-card">
           <div className="flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-2xs">
               <MessagesSquare className="size-5" />
@@ -71,7 +71,7 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
           </div>
         </DialogHeader>
 
-        <div className="space-y-1.5 px-5 py-4">
+        <div className="shrink-0 space-y-1.5 px-3 py-4 sm:px-5">
           <label className="text-xs font-medium text-foreground" htmlFor="messenger-collector">Collector</label>
           <SearchableSelect id="messenger-collector" aria-label="Collector" value={driverId || "none"}
             onValueChange={(value) => { setDriverId(value === "none" ? "" : value); setTargetId(undefined); }}
@@ -84,7 +84,7 @@ export const AdminMessenger = ({ drivers, unreadMessageNotifications, markNotifi
             className="h-10 w-full rounded-xl border-border/80 bg-background px-3 text-xs font-semibold shadow-2xs" />
         </div>
 
-        <section aria-label="Collector conversation" className="mx-5 mb-5 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-muted/15">
+        <section aria-label="Collector conversation" className="mx-3 mb-3 sm:mx-5 sm:mb-5 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-muted/15">
           {driverId ? <AdminConversation key={driverId} driverId={driverId} targetId={targetId} onConversationViewed={onConversationViewed} /> : (
             <div className="flex h-[min(380px,48dvh)] flex-col items-center justify-center px-6 text-center">
               <span className="mb-3 flex size-11 items-center justify-center rounded-xl border border-border/70 bg-card text-muted-foreground"><MessagesSquare className="size-5" /></span>

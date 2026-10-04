@@ -1,3 +1,7 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { Truck, MapPin, Activity, CircleCheck, PanelRightClose, RotateCcw } from "lucide-react";
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -18,6 +22,7 @@ import useAuthStore from "@/store/authStore";
  */
 
 import { AdminTruckTrackingPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
@@ -37,15 +42,11 @@ type LiveRow,
 type TruckRouteRow,
 type TruckRow,
 } from "@/services/trackingService";
-import {
-Navigation,
-PanelRightClose,
-RotateCcw,
-Truck
-} from "lucide-react";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import AdminTrackingMap from "./components/AdminTrackingMap";
+import AdminTrackingWorkspace from "./components/AdminTrackingWorkspace";
 import AdminTruckCard from "./components/AdminTruckCard";
 import RouteReplay from "./components/RouteReplay";
 import type { ReplayTargetLocation } from "./utils/replayTrip";
@@ -944,131 +945,67 @@ const AdminTruckTracking = () => {
   if (overviewQuery.error && overviewQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load fleet tracking information. Please try again." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-5">
+    <div className={styles.page}>
       <AdminMessenger drivers={overviewQuery.data?.overview.drivers ?? []} unreadMessageNotifications={unreadMessageNotifications} markNotificationAsRead={markNotificationAsRead} onConversationViewed={markConversationViewed} />
       {/* -- Page Header -- */}
-      <div className="flex items-center justify-between gap-4 pb-1">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-              {pageTitle}
-            </h1>
-            <Badge variant="outline" className={"hidden sm:inline-flex text-ui-caption font-semibold " + badgeStyles.primary.className}>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title={pageTitle}
+        description={pageDescription}
+        titleBadge={<Badge variant="outline" className={"hidden sm:inline-flex text-ui-caption font-semibold " + badgeStyles.primary.className}>
               Candelaria
-            </Badge>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {pageDescription}
-          </p>
-        </div>
-      </div>
+            </Badge>}
+      />
 
       {overviewQuery.error && <DataRefreshNotice message="Couldn't refresh fleet tracking. Last known locations and route information may be outdated." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} />}
 
       {/* -- Executive Metric KPI Strip -- */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      <AdminKpiGrid>
         {[
           {
+            icon: Truck,
             title: "Trucks En Route",
             value: `${animatedActive}/${displayTrucks.length}`,
             description: `${activeTrucks} trucks reporting live GPS`,
-            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tone: "success" as const,
           },
           {
+            icon: MapPin,
             title: "Stops Completed",
             value: `${animatedCompleted}/${totalStops}`,
             description: `${Math.max(0, totalStops - totalCompleted)} remaining stops`,
-            tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+            tone: "info" as const,
           },
           {
+            icon: Activity,
             title: "Fleet Progress",
             value: `${animatedCompletion}%`,
             description: "Today's scheduled stop progress",
-            tag: "bg-muted/70 text-muted-foreground border-border/80",
+            tone: "neutral" as const,
           },
           {
+            icon: CircleCheck,
             title: "Routes Closed",
             value: `${animatedDone}/${countedRoutes.length}`,
             description: `${doneRoutes} completed or partial runs`,
-            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tone: "success" as const,
           },
-        ].map((kpi, idx) => (
-          <div
-            key={kpi.title}
-            className={cn(
-              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-              idx % 2 === 0 ? "border-r border-border/70" : "",
-              idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-              idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-            )}
-          >
-            <div className="flex items-center min-h-[22px]">
-              <span
-                className={cn(
-                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                  kpi.tag
-                )}
-              >
-                {kpi.title}
-              </span>
-            </div>
-
-            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-              {kpi.value}
-            </div>
-
-            <div className="text-ui-caption text-muted-foreground font-medium truncate">
-              {kpi.description}
-            </div>
-          </div>
+        ].map((kpi) => (
+          <AdminKpiCard key={kpi.title} label={kpi.title} value={kpi.value}
+            description={kpi.description} icon={kpi.icon} tone={kpi.tone} />
         ))}
-      </div>
-
-      {/* -- Single-view switcher for tablet and mobile -- */}
-      <div className="flex xl:hidden justify-center pt-0.5 pb-1">
-        <div className="bg-muted/70 p-1 rounded-xl border border-border/80 flex items-center gap-1 w-full max-w-xs shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setMobileView("MAP")}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
-              mobileView === "MAP"
-                ? "bg-card text-foreground shadow-2xs border border-border/60"
-                : "gw-action-ghost "
-            )}
-          >
-            <Navigation className="w-3.5 h-3.5 text-primary" />
-            <span>Map View</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileView("LIST")}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
-              mobileView === "LIST"
-                ? "bg-card text-foreground shadow-2xs border border-border/60"
-                : "gw-action-ghost "
-            )}
-          >
-            <Truck className="w-3.5 h-3.5 text-primary" />
-            <span>Fleet Controls</span>
-          </button>
-        </div>
-      </div>
+      </AdminKpiGrid>
 
       {/* -- Main Workspace: Map + Control Sidebar -- */}
-      <div className={cn(
-        "relative grid gap-4 grid-cols-1 items-start",
-        isFleetPanelMinimized ? "xl:grid-cols-1" : "xl:grid-cols-3",
-      )}>
-        {/* Left 2 Cols: Map View */}
-        <div
-          className={cn(
-            "h-[430px] sm:h-[560px] xl:h-[700px]",
-            isFleetPanelMinimized ? "xl:col-span-full" : "xl:col-span-2",
-            mobileView === "LIST" ? "hidden xl:block" : "block",
-          )}
-        >
+      <AdminTrackingWorkspace
+        fleetOpen={mobileView === "LIST"}
+        onFleetOpenChange={(open) => {
+          if (open) setIsFleetPanelMinimized(false);
+          setMobileView(open ? "LIST" : "MAP");
+        }}
+        fleetMinimized={isFleetPanelMinimized}
+        fleetCount={displayTrucks.length}
+        map={
           <AdminTrackingMap
             trucks={displayTrucks}
             focusedTruckId={focusedTruckId}
@@ -1084,20 +1021,10 @@ const AdminTruckTracking = () => {
             replayTargetLocation={replayTargetLocation}
             replayCompletedTargets={replayCompletedTargets}
             replaySkippedTargets={replaySkippedTargets}
-            fleetControlCollapsed={isFleetPanelMinimized}
             theme={mapTheme}
           />
-        </div>
-
-        {/* Right 1 Col: Tabbed Control Center */}
-        <div
-          className={cn(
-            isFleetPanelMinimized
-              ? "hidden xl:flex absolute top-3 right-3 z-20"
-              : "rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 shadow-2xs h-auto max-h-[600px] sm:max-h-[680px] xl:max-h-[700px] xl:self-start flex flex-col overflow-hidden",
-            mobileView === "MAP" ? "hidden xl:flex" : "flex",
-          )}
-        >
+        }
+      >
           {isFleetPanelMinimized ? (
             <button
               type="button"
@@ -1112,8 +1039,8 @@ const AdminTruckTracking = () => {
           ) : (
             <>
           {/* Top Tab Switcher & Panel Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex-1 grid grid-cols-2 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/70 h-10 items-center">
+          <div className={styles.fleetHeader}>
+            <div className="min-w-0 flex-1 grid grid-cols-2 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/70 h-[54px] items-center">
               {[
                 { id: "FLEET" as const, label: "Fleet", icon: Truck },
                 { id: "REPLAY" as const, label: "Replay", icon: RotateCcw },
@@ -1135,7 +1062,7 @@ const AdminTruckTracking = () => {
                       setSidebarTab(tab.id);
                     }}
                     className={cn(
-                      "h-8 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
+                      "h-11 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
                       isActive
                         ? "bg-card text-foreground font-semibold shadow-xs border border-border/80"
                         : "gw-action-ghost "
@@ -1150,8 +1077,11 @@ const AdminTruckTracking = () => {
 
             <button
               type="button"
-              onClick={() => setIsFleetPanelMinimized(true)}
-              className="gw-action-outline hidden xl:flex h-10 w-10 rounded-lg border items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+              onClick={() => {
+                setIsFleetPanelMinimized(true);
+                setMobileView("MAP");
+              }}
+              className={styles.minimize}
               title="Minimize Fleet panel"
               aria-label="Minimize Fleet panel"
             >
@@ -1160,7 +1090,7 @@ const AdminTruckTracking = () => {
           </div>
 
           {/* Scrollable Body Content */}
-          <div className="flex-1 overflow-y-auto pt-3 pr-1 space-y-3">
+          <div className={styles.fleetBody}>
             {sidebarTab === "FLEET" && (
               <>
                 {/* List of Fleet Trucks */}
@@ -1204,8 +1134,7 @@ const AdminTruckTracking = () => {
           </div>
             </>
           )}
-        </div>
-      </div>
+      </AdminTrackingWorkspace>
 
       {/* Footer */}
       <p className="text-ui-caption text-muted-foreground text-center pt-1">

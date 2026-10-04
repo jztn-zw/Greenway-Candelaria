@@ -57,11 +57,11 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden gap-0">
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-lg p-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] flex flex-col overflow-hidden gap-0">
           {/* Modal Header (Pinned / Non-scrollable) */}
-          <div className="gw-modal-header px-5 py-3.5 border-b border-border/60 shrink-0 flex items-center justify-between bg-card">
+          <div className="gw-modal-header px-3 sm:px-5 py-3.5 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
                   {route.day} Collection Route
                 </DialogTitle>
@@ -86,15 +86,15 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Body Content (Scrollable Body) */}
-          <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+          <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Overview Bento Grid */}
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {/* Waste Type */}
-              <div className="p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
+              <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-muted/20 border border-border/60 space-y-1">
                 <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                   Waste Type
                 </p>
-                <p className="text-xs font-bold text-foreground truncate">{waste.label}</p>
+                <p className="text-xs font-bold text-foreground break-words">{waste.label}</p>
                 <p className="text-ui-overline text-muted-foreground italic">({waste.local})</p>
               </div>
 
@@ -123,7 +123,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 
             {/* Vehicle & Collector Details */}
             <div className="p-3.5 rounded-xl bg-muted/20 border border-border/70 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-foreground">
                   Assigned Vehicle & Collector
                 </span>
@@ -149,7 +149,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <span className="text-xs font-semibold text-foreground">
                   Route Preview
                 </span>
@@ -206,7 +206,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Modal Footer Controls (Pinned / Sticky) */}
-          <div className="gw-modal-footer px-5 py-3 border-t border-border/60 shrink-0 flex items-center justify-between gap-2 bg-card">
+          <div className="gw-modal-footer px-3 sm:px-5 py-3 border-t border-border/60 shrink-0 flex flex-wrap items-center justify-between gap-2 bg-card">
             {/* Destructive Delete Button */}
             <Button
               variant="destructive-ghost"
@@ -221,7 +221,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             </Button>
 
             {/* Right Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"

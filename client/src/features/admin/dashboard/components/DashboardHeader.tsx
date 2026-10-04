@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Megaphone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 const getGreeting = () => {
   const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", hour: "numeric", hourCycle: "h23" }).format(new Date()));
@@ -37,38 +38,33 @@ const DashboardHeader = () => {
   }, []);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs">
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-        {/* Left: Greeting & Clock */}
+    <div className={styles.header}>
+      <div className={styles.headerRow}>
         <div className="min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="gw-page-title lg:text-ui-page-lg text-foreground tracking-tight leading-tight">
-              {getGreeting()}, <span className="text-primary">{adminName}</span>
-            </h1>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{formatDate(time)}</span>
-              <span className="text-muted-foreground/40 font-semibold">·</span>
-              <span className="inline-flex items-center rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 tabular-nums font-medium text-foreground tabular-nums">
-                {time.toLocaleTimeString("en-US", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
-            </div>
+          <h1 className={styles.title}>
+            {getGreeting()}, <span className="text-primary">{adminName}</span>
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{formatDate(time)}</span>
+            <span className="text-muted-foreground/40 font-semibold">·</span>
+            <span className="inline-flex items-center rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 tabular-nums font-medium text-foreground">
+              {time.toLocaleTimeString("en-US", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
           </div>
-
-        {/* Right: Quick Operational Actions */}
-        <div className="flex w-full flex-wrap items-center gap-2 border-t border-border/60 pt-3 lg:w-auto lg:shrink-0 lg:border-t-0 lg:pt-0">
+        </div>
+        <div className={styles.headerActions}>
           <Button
             size="sm"
             variant="outline"
-            className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-semibold text-xs gap-1.5 cursor-pointer transition-all"
+            className={styles.headerAction}
             onClick={() => navigate("/admin/announcements")}
           >
-            <Megaphone className="w-4 h-4 text-primary" />
+            <Megaphone className="w-4 h-4" />
             <span>New Announcement</span>
           </Button>
           <Button
             size="sm"
-            className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl font-semibold shadow-2xs text-xs gap-1.5 cursor-pointer transition-all"
+            className={styles.headerAction}
             onClick={() => navigate("/admin/truck-tracking")}
           >
             <MapPin className="w-4 h-4" />

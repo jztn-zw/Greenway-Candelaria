@@ -6,6 +6,7 @@ import { ArrowRight, ShieldCheck, User, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardAuditLog } from "./useAdminDashboard";
 import { formatRelativeTime } from "@/utils/date";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 const ACTION_TITLES: Record<string, string> = {
   CREATE_REPORT: "Report Submitted",
@@ -112,19 +113,19 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
 
   return (
     <div
-      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col min-w-0 h-full ${className}`}
+      className={`${styles.activity} ${className}`}
     >
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Header */}
-        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
+        <div className={`${styles.sectionHeader} shrink-0`}>
+          <h3 className={styles.sectionTitle}>
             Activity Stream
           </h3>
 
           <Button
             variant="primary-ghost"
             size="sm"
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all cursor-pointer"
+            className={styles.sectionAction}
             onClick={() => navigate("/admin/audit-logs")}
           >
             <span>Audit Logs</span>
@@ -133,7 +134,7 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
         </div>
 
         {/* Stream List */}
-        <ScrollArea className="h-[275px] sm:h-[315px] pr-3">
+        <ScrollArea className={styles.activityList}>
           <div className="space-y-3">
             {activities.length === 0 ? (
               <div className="h-[250px] flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 sm:px-5">
@@ -148,12 +149,12 @@ const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
                 className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/60 hover:border-border hover:bg-muted/40 transition-colors cursor-pointer space-y-2 group"
               >
                 {/* Top Row: Event Title + Module Tag */}
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.tone.dot}`}
                     />
-                    <span className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                    <span className="break-words text-xs font-semibold text-foreground group-hover:text-primary transition-colors [overflow-wrap:anywhere]">
                       {a.actionText}
                     </span>
                   </div>

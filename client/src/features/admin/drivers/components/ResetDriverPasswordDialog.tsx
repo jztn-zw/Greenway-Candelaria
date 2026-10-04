@@ -53,7 +53,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open && !isSaving) onClose(); }}>
-      <DialogContent className="w-[92vw] sm:max-w-md rounded-2xl border border-border/80 bg-background p-5 sm:p-6">
+      <DialogContent className="w-[92vw] max-h-[90dvh] overflow-y-auto sm:max-w-md rounded-2xl border border-border/80 bg-background p-4 sm:p-6">
         <DialogHeader className="gw-modal-header border-b border-border/60 pb-4 pr-8 text-left bg-card">
           <DialogTitle className="gw-heading flex items-center gap-2.5 text-base ">
             <KeyRound className="h-5 w-5 text-primary" /> Reset Collector Password
@@ -106,7 +106,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
           {error ? <p role="alert" className="text-xs text-destructive">{error}</p> : null}
 
-          <div className="flex justify-end gap-2.5 border-t border-border/60 pt-4">
+          <div className="flex flex-wrap justify-end gap-2.5 border-t border-border/60 pt-4">
             <Button type="button" variant="outline" disabled={isSaving} onClick={onClose} className="h-9 rounded-lg px-4 text-xs font-medium">Cancel</Button>
             <Button type="submit" disabled={isSaving} className="h-9 gap-1.5 rounded-lg px-5 text-xs font-semibold" loading={isSaving} loadingLabel="Saving password…">
 

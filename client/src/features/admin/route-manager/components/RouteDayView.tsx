@@ -6,6 +6,7 @@ import { Leaf, Trash2, Route as RouteIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RouteData, Day } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
+import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
 
 interface RouteDayViewProps {
   routesByDay: Record<Day, RouteData[]>;
@@ -38,14 +39,14 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
 
   if (filteredRoutes.length === 0) {
     return (
-      <div className="bg-card border border-border/80 rounded-2xl p-12 text-center space-y-3 shadow-2xs">
+      <div className="bg-card border border-border/80 rounded-2xl px-4 py-10 sm:p-12 text-center space-y-3 shadow-2xs">
         <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
           <RouteIcon className="w-6 h-6" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-bold text-foreground">No routes match current filters</p>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Try adjusting your search query, selecting another day pill, or creating a new collection route.
+            Try adjusting your search, selecting another day, or creating a collection route.
           </p>
         </div>
       </div>
@@ -53,7 +54,7 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-5">
       {DAYS.map((day) => {
         const dayRoutes = routesByDay[day] || [];
         if (dayRoutes.length === 0) return null;
@@ -62,13 +63,13 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
         const isBio = waste.type === "biodegradable";
 
         return (
-          <div key={day} className="space-y-3.5">
+          <section key={day} className={routeStyles.day} aria-label={`${day} collection routes`}>
             {/* Day Header Section */}
-            <div className="flex items-center justify-between gap-3 px-1">
-              <div className="flex items-center gap-2.5">
+            <div className={routeStyles.dayHeader}>
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div
                   className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center border shadow-2xs",
+                    "w-8 h-8 shrink-0 rounded-xl flex items-center justify-center border shadow-2xs",
                     isBio
                       ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                       : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
@@ -76,12 +77,12 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
                 >
                   {isBio ? <Leaf className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex min-w-0 flex-col items-start gap-1">
                   <h3 className="gw-heading text-base text-foreground tracking-tight ">
                     {day}
                   </h3>
                   <span
-                    className={"text-xs font-semibold px-2.5 py-0.5 rounded-md border " + getCategoryBadgeColors(waste.label).className}
+                    className={"max-w-full break-words text-ui-overline font-medium px-2 py-0.5 rounded-md border " + getCategoryBadgeColors(waste.label).className}
                   >
                     {waste.label} <span className="opacity-75 font-normal">({waste.local})</span>
                   </span>
@@ -94,7 +95,7 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
             </div>
 
             {/* Grid of Route Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className={routeStyles.dayGrid}>
               {dayRoutes.map((route) => (
                 <RouteCard
                   key={route.id}
@@ -111,7 +112,7 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
                 />
               ))}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>

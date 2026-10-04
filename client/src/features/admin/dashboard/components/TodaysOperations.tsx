@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardTruck, DashboardBarangay } from "./useAdminDashboard";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 interface TruckRow {
   id: string;
@@ -87,18 +88,18 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
     : 0;
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col justify-between min-w-0 h-full">
+    <div className={`${styles.panel} flex h-full flex-col justify-between`}>
       <div>
         {/* Header */}
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>
             Today's Fleet Operations
           </h3>
 
           <Button
             variant="primary-ghost"
             size="sm"
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all cursor-pointer"
+            className={styles.sectionAction}
             onClick={() => navigate("/admin/routes")}
           >
             <span>Route Manager</span>

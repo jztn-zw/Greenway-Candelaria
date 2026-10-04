@@ -232,7 +232,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
   };
 
   return (
-    <section aria-label="Route replay" className="space-y-4 rounded-lg border border-border/80 bg-card p-4">
+    <section aria-label="Route replay" className="admin-tracking-replay min-w-0 space-y-4 rounded-lg border border-border/80 bg-card p-3 sm:p-4">
       <header className="space-y-1">
         <h3 className="gw-heading text-sm text-foreground">Route replay</h3>
         <p className="text-xs text-muted-foreground">Review the full recorded trip.</p>
@@ -300,7 +300,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
               </div>
               <div className="space-y-1.5">
                 <span id="replay-speed-label" className="text-xs text-muted-foreground">Playback speed</span>
-                <div role="group" aria-labelledby="replay-speed-label" className="grid grid-cols-6 gap-1 rounded-md bg-muted/40 p-1">
+                <div role="group" aria-labelledby="replay-speed-label" className="admin-tracking-replay-speeds grid grid-cols-6 gap-1 rounded-md bg-muted/40 p-1">
                   {SPEED_OPTIONS.map((value) => (
                     <button key={value} type="button" aria-pressed={speed === value} onClick={() => { syncClock(); setSpeed(value); }} className={cn("min-h-8 min-w-0 rounded-md px-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", speed === value ? "bg-primary text-primary-foreground" : "gw-action-ghost ")}>{value}×</button>
                   ))}

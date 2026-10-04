@@ -60,7 +60,7 @@ const PostCard = ({
 
   return (
     <div
-      className="bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:border-primary/40 transition-all duration-300 cursor-pointer shadow-2xs"
+      className="min-w-0 bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:border-primary/40 transition-all duration-300 cursor-pointer shadow-2xs"
       onClick={() => onView(post)}
     >
       {/* Card header image */}
@@ -133,10 +133,10 @@ const PostCard = ({
 
       {/* Card body */}
       <div className="p-4 sm:p-5 flex flex-col flex-1 space-y-2.5">
-        <h3 className="gw-heading text-sm sm:text-base text-foreground leading-snug line-clamp-2">
+        <h3 className="gw-heading break-words [overflow-wrap:anywhere] text-sm sm:text-base text-foreground leading-snug line-clamp-2">
           {post.title}
         </h3>
-        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1">
+        <p className="break-words [overflow-wrap:anywhere] text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1">
           {post.body}
         </p>
 
@@ -146,7 +146,7 @@ const PostCard = ({
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-ui-overline bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
+                className="max-w-full truncate text-ui-overline bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md border border-primary/20"
               >
                 #{tag.replace(/^#+/, "")}
               </span>
@@ -160,10 +160,10 @@ const PostCard = ({
         )}
 
         {/* Meta row - Views and React count */}
-        <div className="flex items-center gap-3 text-ui-caption text-muted-foreground pt-2 border-t border-border">
-          <span className="font-medium text-foreground">{post.author}</span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-ui-caption text-muted-foreground pt-2 border-t border-border">
+          <span className="min-w-0 break-words [overflow-wrap:anywhere] font-medium text-foreground">{post.author}</span>
           {post.publishedDate && <span>{post.publishedDate}</span>}
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex shrink-0 items-center gap-3 ml-auto">
             <span className="flex items-center gap-1 font-medium text-muted-foreground">
               <Eye className="w-3.5 h-3.5" /> {post.views}
             </span>

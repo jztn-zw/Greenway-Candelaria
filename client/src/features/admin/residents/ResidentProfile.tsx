@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import type { Resident } from "./types";
 import { usePendingAction } from "@/hooks/usePendingAction";
+import { adminResidentManagerStyles as styles } from "@/components/communityContentStyles";
+import { cn } from "@/lib/utils";
 
 const reportStatusStyles: Record<string, string> = {
   Submitted:
@@ -52,7 +54,7 @@ interface Props {
 const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
   const statusAction = usePendingAction();
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6">
+    <div className={styles.page}>
       <div>
         <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Resident Profile
@@ -63,14 +65,14 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
       </div>
 
       {/* ── Resident Profile Overview Card ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
+      <div className={cn(styles.profileCard, "bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6")}>
+        <div className={cn(styles.profileHeader, "flex flex-col sm:flex-row sm:items-center justify-between gap-5")}>
+          <div className={cn(styles.profileIdentity, "flex items-center gap-4")}>
             <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
               <img src={profileAvatarSrc(profileAvatarForAccount(resident.id, resident.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className={cn(styles.profileName, "flex items-center gap-2.5")}>
                 <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {resident.fullName}
                 </h2>
@@ -117,7 +119,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
         </div>
 
         {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
+        <div className={cn(styles.profileDetails, "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60")}>
           {/* Layer 1: Contact & Location */}
           <div className="space-y-1.5">
             <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -187,7 +189,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
 
       {/* ── Waste Report History ── */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className={cn(styles.historyHeader, "flex flex-col sm:flex-row sm:items-center justify-between gap-2")}>
           <div>
             <h3 className="gw-heading text-lg text-foreground tracking-tight">
               Waste Report History
@@ -214,7 +216,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
         ) : (
           <div className="bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className={styles.historyTable}>
                 <TableHeader className="bg-muted/40 border-b border-border/80">
                   <TableRow>
                     <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3">
@@ -236,6 +238,8 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
                     <TableRow key={r.referenceNumber} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="text-xs font-sans tabular-nums font-semibold text-foreground">
                         {r.referenceNumber}
+                        <span className="resident-manager-inline-report mt-1 text-xs font-medium text-muted-foreground">{r.violationType}</span>
+                        <span className="resident-manager-inline-report mt-1 text-ui-caption font-normal text-muted-foreground">{r.dateSubmitted}</span>
                       </TableCell>
                       <TableCell className="text-xs font-medium text-foreground">
                         {r.violationType}

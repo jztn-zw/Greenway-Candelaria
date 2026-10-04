@@ -1,5 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Route, CircleCheck, PauseCircle, MapPin } from "lucide-react";
+import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
 
 interface RouteKPIsProps {
   totalRoutes: number;
@@ -24,8 +26,9 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
     {
       title: "Total Routes",
       value: totalRoutes,
-      description: "Collection sector paths",
-      tag: "bg-muted/70 text-muted-foreground border-border/80",
+      description: "Saved collection routes",
+      icon: Route,
+      tone: "bg-muted/70 text-muted-foreground",
     },
     {
       title: "Enabled Routes",
@@ -34,7 +37,8 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
         totalRoutes > 0
           ? `${Math.round((activeRoutes / totalRoutes) * 100)}% active operations`
           : "0 active",
-      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      icon: CircleCheck,
+      tone: "bg-success/10 text-success-foreground",
     },
     {
       title: "Paused Routes",
@@ -43,7 +47,8 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
         totalRoutes > 0
           ? `${Math.round((inactiveRoutes / totalRoutes) * 100)}% inactive`
           : "0 paused",
-      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      icon: PauseCircle,
+      tone: "bg-warning/10 text-warning-foreground",
     },
     {
       title: "Barangays Covered",
@@ -52,41 +57,25 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
           ? `${coveredBarangays}/${totalBarangays}`
           : `${coveredBarangays}`,
       description: `${coveragePct}% municipal coverage`,
-      tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      icon: MapPin,
+      tone: "bg-info/10 text-info-foreground",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
-      {kpis.map((kpi, idx) => (
-        <div
-          key={kpi.title}
-          className={cn(
-            "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-            // Mobile (2 columns): right border on even index (0, 2)
-            idx % 2 === 0 ? "border-r border-border/70" : "",
-            // Desktop (4 columns): right border on 0, 1, 2, none on 3
-            idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-            // Mobile (2 columns): bottom border on top row (0, 1)
-            idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-          )}
-        >
-          <div className="flex items-center min-h-[22px]">
-            <span
-              className={cn(
-                "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                kpi.tag
-              )}
-            >
-              {kpi.title}
+    <div className={routeStyles.stats}>
+      {kpis.map((kpi) => (
+        <div key={kpi.title} className={routeStyles.stat}>
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <span className="text-ui-caption font-medium text-muted-foreground break-words">{kpi.title}</span>
+            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", kpi.tone)}>
+              <kpi.icon className="size-4" aria-hidden="true" />
             </span>
           </div>
-
           <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
             {kpi.value}
           </div>
-
-          <div className="text-ui-caption text-muted-foreground font-medium truncate">
+          <div className="text-ui-caption text-muted-foreground font-medium break-words">
             {kpi.description}
           </div>
         </div>

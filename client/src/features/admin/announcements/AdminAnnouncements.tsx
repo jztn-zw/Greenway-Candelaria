@@ -1,4 +1,8 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
+import { adminCommunityStyles as noticeStyles } from "@/components/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
@@ -206,33 +210,29 @@ const AdminAnnouncements = () => {
   if (pageError && !hasLoadedPage && !editorOpen) return <PageErrorState kind="unavailable" description="We couldn't load announcements. Please try again." onRetry={() => void retryPage()} retrying={isRefreshing} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className={`${noticeStyles.page} animate-in fade-in duration-300`}>
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Announcements
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Broadcast official MENRO advisories, schedule changes, and alerts to residents.
-          </p>
-        </div>
-        <Button
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Announcements"
+        description="Broadcast official MENRO advisories, schedule changes, and alerts to residents."
+        actionsClassName="admin-module-header-actions"
+        actions={<Button
           onClick={() => openEditor()}
-          className="h-11 px-5 rounded-xl font-semibold text-xs gap-2 shadow-xs cursor-pointer shrink-0"
+          className={`${noticeStyles.action} shrink-0`}
         >
           <Plus className="w-4 h-4" />
           <span>Create Announcement</span>
-        </Button>
-      </div>
+        </Button>}
+      />
 
       {/* ── KPIs Overview Cards ── */}
       <AnnouncementKPIs metrics={metrics} />
 
       {/* ── Filter Bar & Actions ── */}
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/70 shadow-xs backdrop-blur-md">
+      <section className={`${noticeStyles.toolbar} admin-toolbar`}>
         {/* Tier 1: Search + Quick Status Tabs */}
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className={`${noticeStyles.primary} admin-toolbar-primary`}>
           <FilterPillTabs
             items={STATUS_TABS}
             activeId={statusFilter}
@@ -241,64 +241,140 @@ const AdminAnnouncements = () => {
               setCurrentPage(1);
             }}
             ariaLabel="Announcement status filters"
+            className={`${noticeStyles.tabs} admin-toolbar-chips`}
           />
 
           {/* Search Input */}
-          <SearchInput
-            placeholder="Search announcements by title or content..."
-            value={search}
-            onChange={(value) => {
-              setSearch(value);
-              setCurrentPage(1);
-            }}
-            containerClassName="w-full xl:w-[330px] shrink-0"
-          />
+          <div className={`${noticeStyles.search} admin-toolbar-search-row`}>
+            <SearchInput
+              placeholder="Search announcements by title or content..."
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                setCurrentPage(1);
+              }}
+              containerClassName="min-w-0 flex-1"
+            />
+            <AdminFilterDialog title="Filter Announcements" activeCount={Number(typeFilter !== "all") + Number(sortBy !== "newest")}
+              values={{ typeFilter, sortBy, viewMode }}
+              onApply={(next) => {
+                setTypeFilter(next.typeFilter);
+                setSortBy(next.sortBy);
+                setViewMode(next.viewMode);
+                setCurrentPage(1);
+              }}
+              resetValues={{ typeFilter: "all", sortBy: "newest", viewMode }}
+            >
+              {(draft, setDraft) => (
+                <>
+                  <AdminFilterField label="Type">
+                    <Select
+                      value={draft.typeFilter}
+                      onValueChange={(v) => {
+                        setDraft({ ...draft, typeFilter: v });
+                      }}
+                    >
+                      <SelectTrigger aria-label="Type" className="h-9 w-full rounded-xl text-xs">
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent align="start" className="rounded-xl border border-border">
+                        <SelectItem value="all" className="text-xs">All Types</SelectItem>
+                        <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
+                        <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
+                        <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
+                        <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
+                        <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
+                        <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Sort order">
+                    <Select
+                      value={draft.sortBy}
+                      onValueChange={(v) => {
+                        setDraft({ ...draft, sortBy: v });
+                      }}
+                    >
+                      <SelectTrigger aria-label="Sort order" className="h-9 w-full rounded-xl text-xs">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="admin-community-sort-value">
+                            <SelectValue placeholder="Sort by" />
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent align="end" className="rounded-xl border border-border">
+                        <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
+                        <SelectItem value="oldest" className="text-xs">Oldest First</SelectItem>
+                        <SelectItem value="most-read" className="text-xs">Most Read</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Layout">
+                    <SegmentedControl<"grid" | "list">
+                      options={[
+                        { value: "grid", label: "Grid view", icon: LayoutGrid },
+                        { value: "list", label: "List view", icon: List },
+                      ]}
+                      value={draft.viewMode}
+                      onChange={(value) => setDraft({ ...draft, viewMode: value })}
+                      ariaLabel="Announcement layout"
+                      className="admin-filter-layout"
+                    />
+                  </AdminFilterField>
+                </>
+              )}
+            </AdminFilterDialog>
+          </div>
         </div>
 
         {/* Tier 2: Secondary Filter Strip */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="mr-1 inline-flex items-center gap-1.5 text-ui-caption font-semibold uppercase tracking-wider text-muted-foreground">
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
+        <div className={`${noticeStyles.secondary} admin-toolbar-secondary`}>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className={noticeStyles.filterLabel}>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
+            </div>
+
+            {/* Type Filter */}
+            <Select
+              value={typeFilter}
+              onValueChange={(v) => {
+                setTypeFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger aria-label="Filter announcements by type" className={noticeStyles.category}>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent align="start" className="rounded-xl border border-border">
+                <SelectItem value="all" className="text-xs">All Types</SelectItem>
+                <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
+                <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
+                <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
+                <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
+                <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
+                <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters button */}
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllFilters}
+                aria-label="Clear all announcement filters"
+                className="h-8 shrink-0 rounded-xl gap-1 px-2 text-xs [&_svg]:size-3.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="admin-community-clear-label">Clear all</span>
+              </Button>
+            )}
           </div>
 
-          {/* Type Filter */}
-          <Select
-            value={typeFilter}
-            onValueChange={(v) => {
-              setTypeFilter(v);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="h-9 text-xs w-auto min-w-[135px] bg-card border-border/80 rounded-xl">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent align="start" className="rounded-xl border border-border">
-              <SelectItem value="all" className="text-xs">All Types</SelectItem>
-              <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
-              <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
-              <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
-              <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
-              <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
-              <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Clear Filters button */}
-          {activeFilterCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAllFilters}
-              className="h-9 px-2.5 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear all</span>
-            </Button>
-          )}
-
           {/* Right side: Sort By + View Mode Toggle */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Select
               value={sortBy}
               onValueChange={(v) => {
@@ -306,9 +382,13 @@ const AdminAnnouncements = () => {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl">
-                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Sort by" />
+              <SelectTrigger aria-label={`Sort announcements: ${sortBy === "newest" ? "Newest first" : sortBy === "oldest" ? "Oldest first" : "Most read"}`} className={noticeStyles.sort}>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="admin-community-sort-value">
+                    <SelectValue placeholder="Sort by" />
+                  </span>
+                </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border border-border">
                 <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
@@ -318,15 +398,16 @@ const AdminAnnouncements = () => {
             </Select>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center p-0.5 rounded-xl bg-muted/60 border border-border/80 gap-0.5 shrink-0 shadow-2xs">
+            <div className="flex h-8 items-center p-0.5 rounded-xl bg-muted/60 border border-border/80 gap-0.5 shrink-0 shadow-2xs" role="group" aria-label="Announcement layout">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
-                  viewMode === "grid"
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
+                className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring ${viewMode === "grid"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
                     : "gw-action-ghost "
-                }`}
+                  }`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -334,11 +415,12 @@ const AdminAnnouncements = () => {
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
-                  viewMode === "list"
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
+                className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring ${viewMode === "list"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
                     : "gw-action-ghost "
-                }`}
+                  }`}
                 title="Table View"
               >
                 <List className="w-4 h-4" />
@@ -353,7 +435,7 @@ const AdminAnnouncements = () => {
       {isResultsLoading ? (
         <AnnouncementsContentSkeleton viewMode={viewMode} />
       ) : announcements.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 p-12 text-center space-y-4">
+        <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 px-4 py-8 sm:p-12 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground border border-border flex items-center justify-center mx-auto">
             <Megaphone className="w-7 h-7" />
           </div>
@@ -369,14 +451,14 @@ const AdminAnnouncements = () => {
           </div>
           <Button
             onClick={() => openEditor()}
-            className="h-10 px-4 rounded-xl text-xs font-semibold gap-2 shadow-xs cursor-pointer "
+            className={noticeStyles.action}
           >
             <Plus className="w-4 h-4" />
             <span>Create Announcement</span>
           </Button>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={noticeStyles.grid}>
           {paginated.map((ann) => (
             <AnnouncementCard
               key={ann.id}

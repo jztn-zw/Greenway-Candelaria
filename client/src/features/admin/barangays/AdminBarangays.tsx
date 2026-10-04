@@ -1,3 +1,5 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { SearchInput } from "@/components/common/SearchInput";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
@@ -9,6 +11,8 @@ import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/compo
 
 import { Button } from "@/components/ui/button";
 import { formDialogStyles } from "@/components/formDialogStyles";
+import { adminBarangayStyles as styles, adminCommunityStyles } from "@/components/communityContentStyles";
+import { badgeStyles } from "@/components/ui/badgeStyles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -26,7 +30,7 @@ fetchManagedStreets,
 type BarangayManagerRow,
 type ManagedStreet,
 } from "@/services/barangaysService";
-import { Loader2, MapPin, Pencil, Plus, Route, Trash2, Truck } from "lucide-react";
+import { MapPin, Pencil, Plus, Route, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import StreetCoverageEditor, { type CoveragePoint } from "./StreetCoverageEditor";
 
@@ -38,7 +42,6 @@ const AdminBarangays = () => {
   const updateBarangayCollectionService = useAdminMutation(apiupdateBarangayCollectionService, "barangays", "routes", "tracking", "schedule");
   const updateBarangayStreet = useAdminMutation(apiupdateBarangayStreet, "barangays", "routes", "tracking", "schedule");
   const updateBarangayStreetCoverage = useAdminMutation(apiupdateBarangayStreetCoverage, "barangays", "routes", "tracking", "schedule");
-  const streetTableGridClass = "grid grid-cols-[minmax(8rem,1fr)_6.5rem_6.5rem_7.5rem]";
   const [selectedId, setSelectedId] = useState("");
   const selectedIdRef = useRef("");
   const [search, setSearch] = useState("");
@@ -91,7 +94,8 @@ const AdminBarangays = () => {
       label: "Total Barangays",
       value: barangayMetricsAvailable ? totalBarangays : "—",
       subtitle: barangayMetricsAvailable ? "Candelaria municipality" : unavailableMetricSubtitle,
-      tag: "bg-muted/70 text-muted-foreground border-border/80",
+      tone: "neutral" as const,
+      icon: MapPin,
     },
     {
       label: "Service Available",
@@ -101,7 +105,8 @@ const AdminBarangays = () => {
           ? `${serviceAvailabilityRate}% of barangays (${serviceCount} of ${totalBarangays})`
           : "No barangays to measure"
         : unavailableMetricSubtitle,
-      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      tone: "success" as const,
+      icon: Truck,
     },
     {
       label: "Service Unavailable",
@@ -109,7 +114,8 @@ const AdminBarangays = () => {
       subtitle: barangayMetricsAvailable
         ? totalBarangays > 0 ? "Collection service marked unavailable" : "No barangays to measure"
         : unavailableMetricSubtitle,
-      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      tone: "warning" as const,
+      icon: Truck,
     },
     {
       label: "Street Records",
@@ -119,7 +125,8 @@ const AdminBarangays = () => {
           ? `${streetsWithPath} of ${totalStreets} have a saved coverage path`
           : "No street records"
         : unavailableMetricSubtitle,
-      tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      tone: "info" as const,
+      icon: Route,
     },
   ];
   const visibleStreets = useMemo(() => {
@@ -290,77 +297,43 @@ const AdminBarangays = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-8">
+    <div className={styles.page}>
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Barangay Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Manage municipal barangays, street records, and collection service availability.
-          </p>
-        </div>
-      </div>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Barangay Manager"
+        description="Manage municipal barangays, street records, and collection service availability."
+      />
 
       {(overviewQuery.error || streetsQuery.error) && <DataRefreshNotice primary message="Some barangay or street information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (overviewQuery.error) void retryOverview(); if (streetsQuery.error) void retryStreets(); }} retrying={overviewQuery.isFetching || streetsQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
-        {kpis.map((kpi, idx) => (
-          <div
-            key={kpi.label}
-            className={cn(
-              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-              idx % 2 === 0 ? "border-r border-border/70" : "",
-              idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-              idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-            )}
-          >
-            <div className="flex items-center min-h-[22px]">
-              <span
-                className={cn(
-                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                  kpi.tag
-                )}
-              >
-                {kpi.label}
-              </span>
-            </div>
-
-            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-              {kpi.value.toLocaleString()}
-            </div>
-
-            <div className="text-ui-caption text-muted-foreground font-medium truncate">
-              {kpi.subtitle}
-            </div>
-          </div>
+      <AdminKpiGrid>
+        {kpis.map((kpi) => (
+          <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value}
+            description={kpi.subtitle} icon={kpi.icon} tone={kpi.tone} />
         ))}
-      </div>
+      </AdminKpiGrid>
 
       {/* ── Main Two-Column Layout matching Reference Mockup ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] xl:grid-cols-[380px_1fr] gap-5 items-start">
+      <div className={styles.layout}>
         {/* ── Left Column: Barangays Card ── */}
-        <aside className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col">
-          <h2 className="gw-heading text-xl tracking-tight text-foreground">
+        <aside className={styles.panel}>
+          <h2 className="gw-heading text-base tracking-tight text-foreground">
             Barangays
           </h2>
+          <p className="mt-1 text-xs text-muted-foreground">Select a barangay to manage its streets.</p>
 
           <SearchInput
             placeholder="Search barangays..."
             value={search}
             onChange={setSearch}
             aria-label="Search barangays"
-            containerClassName="mt-3.5"
+            containerClassName="mt-3"
           />
 
-          <div className="mt-4 space-y-2 max-h-[calc(100vh-27rem)] min-h-[26rem] overflow-y-auto pr-1">
-            {isLoadingBarangays ? (
-              <p className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading barangays…
-              </p>
-            ) : visibleBarangays.length === 0 ? (
+          <div className={styles.list}>
+            {visibleBarangays.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted-foreground">
                 No barangays found.
               </p>
@@ -371,12 +344,14 @@ const AdminBarangays = () => {
                   <button
                     key={barangay.id}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => selectBarangay(barangay.id)}
                     disabled={isSavingStreet || isDeletingStreet || isSavingAvailability || isSavingCoverage}
                     className={cn(
-                      "w-full rounded-xl p-3 flex items-center gap-3 text-left transition-all border cursor-pointer",
+                      styles.choice,
+                      "w-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-60",
                       isSelected
-                        ? "border-emerald-500/70 bg-emerald-950/20 ring-1 ring-emerald-500/40 shadow-xs"
+                        ? "border-primary/60 bg-primary/10"
                         : "border-border/50 bg-muted/10 hover:bg-[var(--button-neutral-hover)] hover:border-border/80"
                     )}
                   >
@@ -392,14 +367,16 @@ const AdminBarangays = () => {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground leading-snug">
+                      <p className="break-words text-sm font-semibold text-foreground leading-snug">
                         {barangay.name}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground mt-0.5">
-                        {barangay.street_count} {barangay.street_count === 1 ? "street" : "streets"} •{" "}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {barangay.street_count} {barangay.street_count === 1 ? "street" : "streets"}
+                      </p>
+                      <p className={cn("mt-1 text-ui-caption", barangay.collection_service_available ? "text-success-foreground" : "text-muted-foreground")}>
                         {barangay.collection_service_available
-                              ? "Service marked available"
-                              : "Service marked unavailable"}
+                              ? "Collection available"
+                              : "Collection unavailable"}
                       </p>
                     </div>
 
@@ -423,39 +400,40 @@ const AdminBarangays = () => {
         </aside>
 
         {/* ── Right Column: Selected Barangay Details & Streets Card ── */}
-        <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col">
+        <section className={cn(styles.panel, styles.detail)}>
           {!selectedBarangay ? (
-            <div className="p-16 text-center text-sm text-muted-foreground">
+            <div className="px-3 py-12 text-center text-sm text-muted-foreground">
               Select a barangay to view its streets.
             </div>
           ) : (
             <>
               {/* Header row */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="gw-heading text-2xl tracking-tight text-foreground">
+              <div className={styles.header}>
+                <div className="min-w-0 flex-1 basis-40">
+                  <p className="mb-1 text-xs text-muted-foreground">Selected barangay</p>
+                  <h2 className="gw-heading break-words text-xl tracking-tight text-foreground">
                     Barangay {selectedBarangay.name}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {selectedBarangay.street_count} {selectedBarangay.street_count === 1 ? "street" : "streets"} on record
                   </p>
                 </div>
 
                 <Button
                   onClick={openCreate}
-                  className="h-10 rounded-xl font-medium px-4 gap-1.5 shadow-sm transition-all cursor-pointer"
+                  className={cn(styles.action, "ml-auto")}
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" /> Add street
                 </Button>
               </div>
 
               {/* Truck Collection Service Banner */}
-              <div className="mt-5 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:p-4.5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-success-foreground shrink-0">
-                    <Truck className="w-6 h-6 text-success-foreground" />
+              <div className={styles.service}>
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                    <Truck className="size-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Label
                       htmlFor="collection-service"
                       className="text-sm font-medium text-foreground cursor-pointer"
@@ -480,14 +458,14 @@ const AdminBarangays = () => {
                   checked={selectedBarangay.collection_service_available}
                   onCheckedChange={(checked) => void setAvailability(checked)}
                   disabled={isSavingAvailability || Boolean(serviceRestriction)}
-                  className="data-[state=checked]:bg-emerald-500"
+                  className="mt-1 shrink-0"
                   aria-label={`Collection service for ${selectedBarangay.name}`}
                 />
               </div>
 
               {/* Streets and areas section */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between gap-2">
+              <div className="mt-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="gw-heading text-base text-foreground">
                     Streets and areas
                   </h3>
@@ -504,20 +482,16 @@ const AdminBarangays = () => {
                   containerClassName="mt-2.5"
                 />
 
-                {/* Streets Table with fixed header and scroll limited below header line */}
-                <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-card">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[485px]">
-                      {/* Fixed Header Row (outside scroll) */}
-                      <div className={cn(streetTableGridClass, "items-center border-b border-border/70 bg-card pl-3 pr-[17px] py-3 text-ui-caption font-bold uppercase tracking-wider text-muted-foreground")}>
-                        <div className="text-left">STREET / AREA</div>
-                        <div className="flex w-full items-center justify-center text-center leading-tight">ACTIVE RESIDENTS</div>
-                        <div className="flex w-full items-center justify-center text-center leading-tight">ROUTE PLANS</div>
-                        <div className="flex w-full items-center justify-center text-center leading-tight">ACTIONS</div>
+                {/* Rows share the same layout as the loading state. */}
+                <div className={styles.streets}>
+                      <div className={styles.streetHeader}>
+                        <div>Street / area</div>
+                        <div className="text-center">Active residents</div>
+                        <div className="text-center">Route plans</div>
+                        <div className="text-right">Actions</div>
                       </div>
 
-                      {/* Scrollable Rows Container (scroll limited below the header line, max ~10 rows) */}
-                      <div className="max-h-[30rem] overflow-y-auto [scrollbar-gutter:stable] divide-y divide-border/40 scrollbar-thin">
+                      <div className="divide-y divide-border/40">
                         {isLoadingStreets ? (
                           <BarangayStreetRowsSkeleton />
                         ) : streetsError ? (
@@ -535,33 +509,30 @@ const AdminBarangays = () => {
                             return (
                               <div
                                 key={street.id}
-                                className={cn(streetTableGridClass, "items-center py-2.5 px-3 transition-colors hover:bg-muted/15")}
+                                className={cn(styles.streetRow, "transition-colors hover:bg-muted/15")}
                               >
-                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                  <span className="text-sm font-medium text-foreground truncate" title={displayName}>
+                                <div className={styles.streetName}>
+                                  <span className="min-w-0 break-words text-sm font-medium text-foreground" title={displayName}>
                                     {displayName}
                                   </span>
                                   <span
                                     className={cn(
                                       "shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold",
                                       street.coverage_path?.length
-                                        ? "border-primary/20 bg-primary/10 text-primary"
-                                        : "border-border/70 bg-muted/30 text-muted-foreground",
+                                        ? badgeStyles.primary.className
+                                        : badgeStyles.neutral.className,
                                     )}
                                   >
                                     {street.coverage_path?.length ? "Path saved" : "Needs path"}
                                   </span>
                                 </div>
 
-                                <div className="flex w-full items-center justify-center text-center text-sm font-medium tabular-nums text-foreground/90">
-                                  {street.active_resident_count}
+                                <div className={styles.counts}>
+                                  <div className={styles.count}><span className="font-medium text-foreground">{street.active_resident_count}</span><span className={styles.countLabel}>active residents</span></div>
+                                  <div className={styles.count}><span className="font-medium text-foreground">{street.route_plan_count}</span><span className={styles.countLabel}>route plans</span></div>
                                 </div>
 
-                                <div className="flex w-full items-center justify-center text-center text-sm font-medium tabular-nums text-foreground/90">
-                                  {street.route_plan_count}
-                                </div>
-
-                                <div className="flex w-full items-center justify-center gap-1">
+                                <div className={styles.actions}>
                                   <Button
                                     variant={street.coverage_path?.length ? "primary-ghost" : "ghost"}
                                     size="icon"
@@ -605,8 +576,6 @@ const AdminBarangays = () => {
                           })
                         )}
                       </div>
-                    </div>
-                  </div>
                 </div>
 
                 <p className="mt-3 text-xs text-muted-foreground">

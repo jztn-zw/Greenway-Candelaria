@@ -117,7 +117,7 @@ const AdminSidebar = () => {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || "")
     .join("") || "AD";
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const [showGearMenu, setShowGearMenu] = useState(false);
@@ -154,6 +154,10 @@ const AdminSidebar = () => {
 
   const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
 
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
   const handleLogout = async () => {
     await logout();
     setShowLogoutModal(false);
@@ -181,6 +185,7 @@ const AdminSidebar = () => {
                 aria-label={item.title}
                 to={item.url}
                 end={item.url === "/admin"}
+                onClick={closeMobileSidebar}
                 className={navigationStyles.link}
                 activeClassName=""
               >
@@ -209,7 +214,10 @@ const AdminSidebar = () => {
       {/* ── Logo Header ── */}
       <button
         type="button"
-        onClick={() => navigate("/admin")}
+        onClick={() => {
+          navigate("/admin");
+          closeMobileSidebar();
+        }}
         title="Go to Admin Dashboard"
         className={navigationStyles.brand}
       >
@@ -318,6 +326,7 @@ const AdminSidebar = () => {
                     event.stopPropagation();
                     setShowGearMenu(false);
                     navigate("/admin/profile");
+                    closeMobileSidebar();
                   }}
                 >
                   <UserCircle className="w-4 h-4 text-muted-foreground" /> Profile
@@ -329,6 +338,7 @@ const AdminSidebar = () => {
                     event.stopPropagation();
                     setShowGearMenu(false);
                     navigate("/admin/settings");
+                    closeMobileSidebar();
                   }}
                 >
                   <Settings className="w-4 h-4 text-muted-foreground" /> Settings

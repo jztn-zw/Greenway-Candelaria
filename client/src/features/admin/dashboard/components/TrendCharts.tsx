@@ -16,6 +16,7 @@ import {
   Bar,
 } from "recharts";
 import { ReportsAnalytics, UsersAnalytics } from "./useAdminDashboard";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 const lineConfig = {
   reports: { label: "Reports", color: "hsl(var(--chart-1))" },
@@ -107,11 +108,11 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
   const resolutionRateText = reportsAnalytics?.resolution_rate || "0%";
 
   return (
-    <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-3">
+    <div className={styles.charts}>
       {/* ── 1. Report Volume Trend (Continuous Area Chart) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
+      <div className={styles.chart}>
         <div>
-          <div className="flex items-center justify-between pb-3">
+          <div className={styles.chartHeader}>
             <div>
               <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Report Volume Trend
@@ -127,7 +128,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
 
           <ChartContainer
             config={lineConfig}
-            className="h-[185px] w-full aspect-auto pt-2"
+            className={styles.chartCanvas}
           >
             <AreaChart data={reportTrendData}>
               <defs>
@@ -170,9 +171,9 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
       </div>
 
       {/* ── 2. Reports by Status (Donut Chart + Symmetrical 2x2 Grid) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
+      <div className={styles.chart}>
         <div>
-          <div className="flex items-center justify-between pb-2">
+          <div className={`${styles.chartHeader} pb-2`}>
             <div>
               <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Reports by Status
@@ -239,7 +240,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
                     className="w-2 h-2 rounded-full shrink-0 shadow-2xs"
                     style={{ background: d.fill }}
                   />
-                  <span className="text-muted-foreground truncate">{d.name}</span>
+                  <span className="break-words text-muted-foreground leading-snug">{d.name}</span>
                 </div>
                 <span className="font-semibold text-foreground tabular-nums ml-1">
                   {d.value}
@@ -251,9 +252,9 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
       </div>
 
       {/* ── 3. Resident Community (Continuous Bar Chart with Clean Hover) ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs transition-all flex flex-col justify-between">
+      <div className={styles.chart}>
         <div>
-          <div className="flex items-center justify-between pb-3">
+          <div className={styles.chartHeader}>
             <div>
               <h3 className="gw-heading text-sm xl:text-ui-title text-foreground">
                 Resident Community
@@ -269,7 +270,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
 
           <ChartContainer
             config={barConfig}
-            className="h-[185px] w-full aspect-auto pt-2"
+            className={styles.chartCanvas}
           >
             <BarChart data={growthData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />

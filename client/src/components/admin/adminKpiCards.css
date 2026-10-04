@@ -1,0 +1,76 @@
+.admin-kpi {
+  container: admin-kpi / inline-size;
+}
+
+.admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: hsl(var(--border) / 0.7);
+}
+
+.admin-kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-kpi-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.admin-kpi-symbol {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-kpi-label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.admin-kpi-description {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.admin-kpi .admin-kpi-value {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  letter-spacing: -0.025em;
+}
+
+@container admin-kpi (min-width: 37.5rem) {
+  .admin-kpi-card {
+    padding: 1.25rem;
+  }
+}
+
+@container admin-kpi (min-width: 25rem) {
+  .admin-kpi-skeleton-line {
+    display: none;
+  }
+}
+
+@container admin-kpi (min-width: 56.25rem) {
+  .admin-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .admin-kpi .admin-kpi-value {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-kpi .animate-pulse {
+    animation: none;
+  }
+}

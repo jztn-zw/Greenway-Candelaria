@@ -15,8 +15,8 @@ const SectionMissedCollections: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-        <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
+      <div className="analytics-grid grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+        <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
@@ -40,7 +40,7 @@ const SectionMissedCollections: React.FC = () => {
           </ChartContainer>
         </section>
 
-        <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
+        <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
           <div className="mb-5 flex items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <MapPin className="h-4 w-4" />
@@ -50,6 +50,7 @@ const SectionMissedCollections: React.FC = () => {
               <p className="text-xs text-muted-foreground">Stops missed within the selected period.</p>
             </div>
           </div>
+          <div className="analytics-scroll analytics-area-chart overflow-x-auto" tabIndex={0} role="region" aria-label="Missed stops by area chart">
           <ChartContainer config={areaConfig} className="h-[230px] w-full aspect-auto">
             <BarChart data={missedByArea} layout="vertical" margin={{ left: 92, right: 12 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
@@ -59,11 +60,13 @@ const SectionMissedCollections: React.FC = () => {
               <Bar dataKey="missed" fill="var(--color-missed)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ChartContainer>
+          </div>
+          <p className="analytics-scroll-hint text-ui-caption text-muted-foreground">Scroll horizontally to view all chart details.</p>
           <p className="mt-3 text-xs text-muted-foreground">{topArea ? <><span className="font-semibold text-foreground">{topArea.name}</span> has the most missed stops in this period.</> : "No missed stops were recorded in this period."}</p>
         </section>
       </div>
 
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
+      <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <MessageSquareWarning className="h-4 w-4" />

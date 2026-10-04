@@ -1,4 +1,5 @@
-import { Star } from "lucide-react";
+import { Star, Eye, Heart, ChevronRight } from "lucide-react";
+import { adminCommunityStyles as postStyles } from "@/components/communityContentStyles";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -34,9 +35,39 @@ const PostListView = ({
   onDelete,
 }: PostListViewProps) => {
   return (
-    <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs">
+    <>
+    <div className={postStyles.compactList}>
+      {posts.map((post) => (
+        <article key={post.id} className={postStyles.listRow}>
+          <div className="flex min-w-0 items-start gap-2">
+            <button type="button" onClick={() => onView(post)} aria-label={`View post: ${post.title}`}
+              className="min-w-0 flex-1 text-left rounded-lg cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+              <span className="flex min-w-0 items-start justify-between gap-2">
+                <span className="gw-heading min-w-0 break-words [overflow-wrap:anywhere] text-sm text-foreground line-clamp-2">{post.title}</span>
+                <ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              </span>
+              <span className="mt-1 block truncate text-xs text-muted-foreground">{post.author}</span>
+            </button>
+            <PostActionsDropdown post={post} onView={onView} onEdit={onEdit} onDuplicate={onDuplicate}
+              onArchive={onArchive} onTogglePublish={onTogglePublish} onToggleFeatured={onToggleFeatured} onDelete={onDelete} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant="outline" className={`text-ui-overline pointer-events-none ${categoryStyles[post.category]}`}>{post.category}</Badge>
+            <Badge variant="outline" className={`text-ui-overline pointer-events-none ${statusStyles[post.status]}`}>{post.status}</Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border/60 pt-2 text-ui-caption text-muted-foreground">
+            <span className="min-w-0 break-words">{post.status === "Scheduled" && post.scheduledDate
+              ? new Date(post.scheduledDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : post.publishedDate || "Not published"}</span>
+            <span className="ml-auto inline-flex items-center gap-1" aria-label={`${post.views} views`}><Eye aria-hidden="true" className="size-3.5" />{post.views.toLocaleString()}</span>
+            <span className="inline-flex items-center gap-1" aria-label={`${post.likes || 0} reactions`}><Heart aria-hidden="true" className="size-3.5" />{(post.likes || 0).toLocaleString()}</span>
+          </div>
+        </article>
+      ))}
+    </div>
+    <div className={postStyles.table}>
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[850px]">
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
               <TableHead className="w-[42%] text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-4">
@@ -208,6 +239,7 @@ const PostListView = ({
         </Table>
       </div>
     </div>
+    </>
   );
 };
 

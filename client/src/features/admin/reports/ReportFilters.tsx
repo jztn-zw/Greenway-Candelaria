@@ -1,14 +1,10 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import { SearchInput } from "@/components/common/SearchInput";
+import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-Dialog,
-DialogContent,
-DialogHeader,
-DialogTitle,
-DialogTrigger,
-} from "@/components/ui/dialog";
+
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -71,8 +67,6 @@ const ReportFilters = ({
   onDateRangeChange,
 }: ReportFiltersProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [modalCalendarOpen, setModalCalendarOpen] = useState(false);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const { data: barangays = [] } = useAdminQuery("barangays", ["locations"], fetchBarangays);
 
   const STATUS_TABS: FilterPillItem<string>[] = [
@@ -108,123 +102,86 @@ const ReportFilters = ({
   };
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
+    <section className="admin-toolbar min-w-0 rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
+      <div className={`${styles.primary} admin-toolbar-primary`}>
         {/* Status filters */}
-        <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden">
+        <div className="min-w-0 overflow-hidden">
           <FilterPillTabs
             items={STATUS_TABS}
             activeId={statusFilter}
             onChange={onStatusFilterChange}
             ariaLabel="Report status filters"
-            className="overscroll-x-contain"
+            className="admin-toolbar-chips overscroll-x-contain"
           />
         </div>
 
         {/* Search Input + Mobile Filter Sheet Trigger */}
-        <div className="flex items-center gap-2 w-full xl:w-auto">
+        <div className={`${styles.search} admin-toolbar-search-row`}>
           <SearchInput
             placeholder="Search reference, resident, or description..."
             value={search}
             onChange={onSearchChange}
-            containerClassName="flex-1 xl:w-[330px] shrink-0"
+            containerClassName="min-w-0 flex-1"
           />
 
           {/* Filter Modal Trigger (Visible on screens below xl:) */}
-          <div className="xl:hidden shrink-0">
-            <Dialog open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant={secondaryFilterCount > 0 ? "primary-outline" : "outline"}
-                  className={"h-10 px-3 rounded-xl gap-2 text-xs font-semibold transition-all shadow-2xs"}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  <span>Filters</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-2xl border border-border/80 p-5 bg-card shadow-2xl gap-0">
-                <DialogHeader className="gw-modal-header text-left pb-3 border-b border-border/60 bg-card">
-                  <div className="flex items-center justify-between pr-6">
-                    <div>
-                      <DialogTitle className="gw-heading text-sm text-foreground flex items-center gap-2">
-                        <SlidersHorizontal className="w-4 h-4 text-primary" />
-                        Filter Reports
-                      </DialogTitle>
-                      <p className="text-ui-caption text-muted-foreground mt-0.5">Refine and narrow table records</p>
-                    </div>
-                    {secondaryFilterCount > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearSecondary}
-                        className="h-7 px-2 text-ui-caption rounded-lg gap-1 cursor-pointer"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Reset</span>
-                      </Button>
-                    )}
-                  </div>
-                </DialogHeader>
-
-                {/* Filter Controls: Balanced 2-Column Grid */}
-                <div className="py-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {/* Violation Type */}
-                    <div className="space-y-1">
-                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Violation</label>
-                      <Select value={violationFilter} onValueChange={onViolationFilterChange}>
-                        <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
-                          <SelectValue placeholder="All Violations" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="all">All Violations</SelectItem>
-                          {violationTypes.map((v) => (
-                            <SelectItem key={v} value={v}>{v}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Barangay */}
-                    <div className="space-y-1">
-                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Barangay</label>
-                      <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
-                        options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
-                        placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
-                        className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {/* Sort Order */}
-                    <div className="space-y-1">
-                      <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Sort Order</label>
-                      <Select value={sortBy} onValueChange={onSortByChange}>
-                        <SelectTrigger className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs">
-                          <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="date-desc">Newest First</SelectItem>
-                          <SelectItem value="date-asc">Oldest First</SelectItem>
-                          <SelectItem value="status">By Status</SelectItem>
-                          <SelectItem value="violation">By Violation</SelectItem>
-                        </SelectContent>
-                      </Select>
-                  </div>
-
-                  {/* Date Range (Full Width) */}
-                  <div className="space-y-1">
-                    <label className="text-ui-caption font-medium text-muted-foreground uppercase tracking-wider">Date Range</label>
-                    <Popover open={modalCalendarOpen} onOpenChange={setModalCalendarOpen}>
+          <div className={styles.mobileFilters}>
+            <AdminFilterDialog title="Filter Reports" className="" activeCount={secondaryFilterCount}
+              values={{ violationFilter, barangayFilter, sortBy, dateRange }}
+              onApply={(next) => {
+                onViolationFilterChange(next.violationFilter);
+                onBarangayFilterChange(next.barangayFilter);
+                onSortByChange(next.sortBy);
+                onDateRangeChange(next.dateRange);
+              }}
+              resetValues={{ violationFilter: "all", barangayFilter: "all", sortBy: "date-desc", dateRange: {} }}
+            >
+              {(draft, setDraft) => (
+                <>
+                  <AdminFilterField label="Violation">
+                    <Select value={draft.violationFilter} onValueChange={(value) => setDraft({ ...draft, violationFilter: value })}>
+                      <SelectTrigger aria-label="Violation" className="h-9 w-full rounded-xl text-xs">
+                        <SelectValue placeholder="All Violations" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="all">All Violations</SelectItem>
+                        {violationTypes.map((v) => (
+                          <SelectItem key={v} value={v}>{v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Barangay">
+                    <SearchableSelect value={draft.barangayFilter} onValueChange={(value) => setDraft({ ...draft, barangayFilter: value })}
+                      options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
+                      placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+                      className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs" />
+                  </AdminFilterField>
+                  <AdminFilterField label="Sort order">
+                    <Select value={draft.sortBy} onValueChange={(value) => setDraft({ ...draft, sortBy: value })}>
+                      <SelectTrigger aria-label="Sort order" className="h-9 w-full rounded-xl text-xs">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="date-desc">Newest First</SelectItem>
+                        <SelectItem value="date-asc">Oldest First</SelectItem>
+                        <SelectItem value="status">By Status</SelectItem>
+                        <SelectItem value="violation">By Violation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Date range">
+                    <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant={dateRange.from ? "default" : "outline"}
+                          variant={draft.dateRange.from ? "default" : "outline"}
                           className={"h-9 w-full justify-start gap-2 rounded-xl font-body text-xs font-semibold transition-colors"}
                         >
                           <CalendarIcon className="w-3.5 h-3.5" />
                           <span>
-                            {dateRange.from
-                              ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
+                            {draft.dateRange.from
+                              ? `${format(draft.dateRange.from, "MMM d")}${draft.dateRange.to ? ` – ${format(draft.dateRange.to, "MMM d")}` : ""}`
                               : "Pick a date range"}
                           </span>
                         </Button>
@@ -232,36 +189,25 @@ const ReportFilters = ({
                       <PopoverContent className="w-auto p-0 rounded-2xl shadow-md border-border/80 z-[60]" align="center" side="top">
                         <Calendar
                           mode="range"
-                          selected={dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined}
+                          selected={draft.dateRange.from ? { from: draft.dateRange.from, to: draft.dateRange.to } : undefined}
                           onSelect={(range) => {
-                            onDateRangeChange({ from: range?.from, to: range?.to });
+                            setDraft({ ...draft, dateRange: { from: range?.from, to: range?.to } });
                           }}
                           numberOfMonths={1}
                           className="rounded-2xl"
                         />
                       </PopoverContent>
                     </Popover>
-                  </div>
-                </div>
-                </div>
-
-                {/* Apply Button */}
-                <div className="pt-3 border-t border-border/60">
-                  <Button
-                    onClick={() => setMobileSheetOpen(false)}
-                    className="w-full h-9 rounded-xl text-xs font-semibold shadow-xs cursor-pointer"
-                  >
-                    Apply Filters
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                  </AdminFilterField>
+                </>
+              )}
+            </AdminFilterDialog>
           </div>
         </div>
       </div>
 
       {/* ── Secondary Filter Strip (Visible only on XL desktop where all fit in 1 single line) ── */}
-      <div className="hidden xl:flex items-center gap-2 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className={styles.secondary}>
         <div className="mr-1 inline-flex items-center gap-1.5 text-ui-caption font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filters
@@ -282,44 +228,43 @@ const ReportFilters = ({
           </SelectContent>
         </Select>
 
-          {/* Barangay */}
-          <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
-            options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
-            placeholder="Barangay" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
-            className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl" />
+        {/* Barangay */}
+        <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
+          options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
+          placeholder="Barangay" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+          className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl" />
 
-          {/* Date Range Popover */}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={dateRange.from ? "default" : "outline"}
-                size="sm"
-                className={`h-9 rounded-xl gap-1.5 cursor-pointer font-body text-xs font-semibold transition-colors ${dateRange.from ? "shadow-xs" : ""}`}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>
-                  {dateRange.from
-                    ? `${format(dateRange.from, "MMM d")}${
-                        dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""
-                      }`
-                    : "Date Range"}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl shadow-md border-border/80" align="start">
-              <Calendar
-                mode="range"
-                selected={
-                  dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined
-                }
-                onSelect={(range) => {
-                  onDateRangeChange({ from: range?.from, to: range?.to });
-                }}
-                numberOfMonths={1}
-                className="rounded-2xl"
-              />
-            </PopoverContent>
-          </Popover>
+        {/* Date Range Popover */}
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={dateRange.from ? "default" : "outline"}
+              size="sm"
+              className={`h-9 rounded-xl gap-1.5 cursor-pointer font-body text-xs font-semibold transition-colors ${dateRange.from ? "shadow-xs" : ""}`}
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>
+                {dateRange.from
+                  ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""
+                  }`
+                  : "Date Range"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 rounded-2xl shadow-md border-border/80" align="start">
+            <Calendar
+              mode="range"
+              selected={
+                dateRange.from ? { from: dateRange.from, to: dateRange.to } : undefined
+              }
+              onSelect={(range) => {
+                onDateRangeChange({ from: range?.from, to: range?.to });
+              }}
+              numberOfMonths={1}
+              className="rounded-2xl"
+            />
+          </PopoverContent>
+        </Popover>
 
         {/* Clear Filters button */}
         {activeFilterCount > 0 && (

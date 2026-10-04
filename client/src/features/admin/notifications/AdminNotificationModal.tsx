@@ -1,4 +1,5 @@
 import React from "react";
+import { getAdminNotificationMetadata } from "./notificationPresentation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -96,12 +97,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
   };
 
   const Icon = config.icon;
-  let report: Record<string, unknown> = {};
-  if (notification.ref_module === "truck-breakdowns") {
-    try {
-      report = typeof notification.metadata === "string" ? JSON.parse(notification.metadata) : notification.metadata || {};
-    } catch { /* The notification body remains available for older records. */ }
-  }
+  const report = notification.ref_module === "truck-breakdowns" ? getAdminNotificationMetadata(notification) : {};
   const reportText = (key: string) => typeof report[key] === "string" ? report[key] as string : "";
 
   return (

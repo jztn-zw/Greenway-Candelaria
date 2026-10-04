@@ -1,3 +1,5 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -11,6 +13,7 @@ SegmentedControlOption,
 import { RouteManagerPageSkeleton } from "@/components/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
+import { adminCommunityStyles as managerStyles, adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
 import {
 Select,
 SelectContent,
@@ -352,8 +355,8 @@ const AdminRouteManager: React.FC = () => {
 
   const viewOptions = useMemo<SegmentedControlOption<ViewMode>[]>(() => {
     return [
-      { id: "DAY_VIEW", label: "Day Schedule", icon: LayoutGrid },
-      { id: "TABLE_VIEW", label: "Master Table", icon: TableProperties },
+      { id: "DAY_VIEW", label: "By day", icon: LayoutGrid },
+      { id: "TABLE_VIEW", label: "List", icon: TableProperties },
     ];
   }, []);
 
@@ -378,30 +381,25 @@ const AdminRouteManager: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
+    <div className={routeStyles.page}>
       {/* ── Page Header (Unboxed Canvas) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Route Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Plan collection days, assign fleet resources, and verify every barangay stop.
-          </p>
-        </div>
-
-        <Button
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Route Manager"
+        description="Plan collection days, assign fleet resources, and verify every barangay stop."
+        actionsClassName="admin-module-header-actions"
+        actions={<Button
           onClick={startCreate}
-          className="gap-2 h-10 px-5 rounded-xl font-semibold shadow-sm self-start sm:self-auto cursor-pointer"
+          className={`${managerStyles.action} shrink-0`}
         >
           <Plus className="w-4 h-4" />
-          <span>Create New Route</span>
-        </Button>
-      </div>
+          <span>Create route</span>
+        </Button>}
+      />
 
       {error && <DataRefreshNotice message="Couldn't refresh routes. Showing the last loaded routes, which may be outdated." onRetry={() => void loadRoutes()} retrying={isRefreshing} />}
 
-      {/* ── 4 Bento Metric Cards ── */}
+      {/* Route summary */}
       <RouteKPIs
         totalRoutes={totalRoutes}
         activeRoutes={activeRoutes}
@@ -410,40 +408,87 @@ const AdminRouteManager: React.FC = () => {
       />
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
-      <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
+      <section className={`${routeStyles.toolbar} admin-toolbar`} aria-label="Route filters and display">
         {/* Tier 1: Primary Status Filter Tabs + View Switcher */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
+        <div className={`${routeStyles.primary} admin-toolbar-primary`}>
           <FilterPillTabs<StatusFilter>
             items={statusTabs}
             activeId={statusFilter}
             onChange={(id) => setStatusFilter(id)}
+            className={`${routeStyles.filters} admin-toolbar-chips`}
           />
 
-          <SegmentedControl<ViewMode>
-            options={viewOptions}
-            value={viewMode}
-            onChange={(mode) => setViewMode(mode)}
-            ariaLabel="Route display mode"
-            className="self-stretch sm:self-auto shrink-0 justify-center"
-          />
+          <div className="admin-toolbar-desktop-only">
+            <SegmentedControl<ViewMode>
+              options={viewOptions}
+              value={viewMode}
+              onChange={(mode) => setViewMode(mode)}
+              ariaLabel="Route display mode"
+              size="sm"
+              className={routeStyles.view}
+            />
+          </div>
         </div>
 
-        {/* Tier 2: Search Input + Day of Week Filter + Live Count & Reset */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+        {/* Tier 2: Search Input + Day of Week Filter + Reset */}
+        <div className={`${routeStyles.secondary} admin-toolbar-search-section`}>
+          <div className={`${routeStyles.search} admin-toolbar-search-row`}>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Search truck, plate, driver, barangay..."
-              containerClassName="w-full sm:max-w-xs md:max-w-sm"
+              containerClassName="min-w-0 flex-1"
             />
+            <AdminFilterDialog title="Filter Routes" activeCount={Number(filterDay !== "all")}
+              values={{ filterDay, viewMode }}
+              onApply={(next) => {
+                setFilterDay(next.filterDay);
+                setViewMode(next.viewMode);
+              }}
+              resetValues={{ filterDay: "all", viewMode }}
+            >
+              {(draft, setDraft) => (
+                <>
+                  <AdminFilterField label="Collection day">
+                    <Select
+                      value={draft.filterDay}
+                      onValueChange={(val: "all" | Day) => setDraft({ ...draft, filterDay: val })}
+                    >
+                      <SelectTrigger aria-label="Collection day" className="h-9 w-full rounded-xl text-xs">
+                        <SelectValue placeholder="All Days" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="all" className="text-xs">All Days</SelectItem>
+                        {DAYS.map((d) => (
+                          <SelectItem key={d} value={d} className="text-xs">
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Layout">
+                    <SegmentedControl<ViewMode>
+                      options={viewOptions}
+                      value={draft.viewMode}
+                      onChange={(mode) => setDraft({ ...draft, viewMode: mode })}
+                      ariaLabel="Route display mode"
+                      size="sm"
+                      className={routeStyles.view}
+                    />
+                  </AdminFilterField>
+                </>
+              )}
+            </AdminFilterDialog>
+          </div>
 
-            {/* Day of Week Filter Dropdown */}
+          {/* Day of Week Filter Dropdown */}
+          <div className="admin-toolbar-desktop-only">
             <Select
               value={filterDay}
               onValueChange={(val: "all" | Day) => setFilterDay(val)}
             >
-              <SelectTrigger className="w-36 h-9 text-xs rounded-xl bg-card border-border/80 shrink-0">
+              <SelectTrigger className={routeStyles.daySelect} aria-label="Filter routes by collection day">
                 <SelectValue placeholder="All Days" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -457,19 +502,21 @@ const AdminRouteManager: React.FC = () => {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {hasActiveFilters && (
+          <div className="admin-toolbar-desktop-only">{hasActiveFilters && (
+            <div className="flex min-w-0 items-center justify-end gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
+                className="h-8 px-2 text-xs rounded-xl shrink-0 gap-1.5 [&_svg]:size-3.5"
                 title="Reset active filters"
+                aria-label="Reset active filters"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span className={routeStyles.resetLabel}>Reset</span>
               </Button>
-            )}
+            </div>
+          )}
           </div>
         </div>
       </section>

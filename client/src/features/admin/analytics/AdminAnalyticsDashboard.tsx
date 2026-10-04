@@ -1,5 +1,7 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { AnalyticsDashboardSkeleton } from "@/components/PageLoadingSkeletons";
-import { Button } from "@/components/ui/button";
+import { adminAnalyticsStyles as styles } from "@/components/communityContentStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -87,17 +89,30 @@ const AdminAnalyticsDashboard: React.FC = () => {
 
   return (
     <AnalyticsDataProvider value={visibleData}>
-      <main className="mx-auto w-full max-w-[1600px] space-y-5 pb-12 sm:space-y-6">
-        <header className="pb-1">
-          <div><h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">{pageTitle}</h1><p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{pageDescription}</p></div>
-        </header>
+      <main className={styles.page}>
+        <ResidentPageHeader
+        className="admin-module-header"
+        title={pageTitle}
+        description={pageDescription}
+      />
 
         {error && <DataRefreshNotice message="Couldn't update analytics. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void refetch()} retrying={isFetching} />}
 
-        <section aria-label="Analytics filters" className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <p className="text-xs text-muted-foreground">Showing <span className="font-semibold text-foreground">{formatRange(visibleData.range.from, visibleData.range.to)}</span></p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={datePreset} onValueChange={(value) => setDatePreset(value as DatePreset)}><SelectTrigger className="min-w-[168px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="this-month">This month</SelectItem><SelectItem value="last-8-weeks">Last 8 weeks</SelectItem><SelectItem value="last-3-months">Last 3 months</SelectItem></SelectContent></Select>
+        <section aria-label="Analytics filters" className={`${styles.filters} admin-toolbar admin-toolbar-analytics`}>
+          <p className="text-xs text-muted-foreground">Showing <span className="font-semibold text-foreground">{formatRange(visibleData.range.from, visibleData.range.to)}
+          </span>
+          </p>
+          <div className={`${styles.fields} admin-toolbar-secondary`}>
+            <Select value={datePreset} onValueChange={(value) => setDatePreset(value as DatePreset)}>
+              <SelectTrigger className={styles.period} aria-label="Analytics period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this-month">This month</SelectItem>
+                <SelectItem value="last-8-weeks">Last 8 weeks</SelectItem>
+                <SelectItem value="last-3-months">Last 3 months</SelectItem>
+              </SelectContent>
+            </Select>
             <SearchableSelect
               value={barangayId}
               onValueChange={setBarangayId}
@@ -105,15 +120,53 @@ const AdminAnalyticsDashboard: React.FC = () => {
               placeholder="All barangays"
               searchPlaceholder="Search barangays..."
               emptyMessage="No barangays found."
-              className="min-w-[190px] sm:w-[190px]"
+              className={styles.barangay}
+              aria-label="Analytics barangay"
               leadingIcon={<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
             />
           </div>
+          <AdminFilterDialog title="Filter Analytics" activeCount={Number(datePreset !== "last-8-weeks") + Number(barangayId !== "all")}
+            values={{ datePreset, barangayId }}
+            onApply={(next) => {
+              setDatePreset(next.datePreset);
+              setBarangayId(next.barangayId);
+            }}
+          >
+            {(draft, setDraft) => (
+              <>
+                <AdminFilterField label="Period">
+                  <Select value={draft.datePreset} onValueChange={(value) => setDraft({ ...draft, datePreset: value as DatePreset })}>
+                    <SelectTrigger aria-label="Analytics period" className="h-9 w-full rounded-xl text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="this-month">This month</SelectItem>
+                      <SelectItem value="last-8-weeks">Last 8 weeks</SelectItem>
+                      <SelectItem value="last-3-months">Last 3 months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </AdminFilterField>
+                <AdminFilterField label="Barangay">
+                  <SearchableSelect
+                    value={draft.barangayId}
+                    onValueChange={(value) => setDraft({ ...draft, barangayId: value })}
+                    options={barangayOptions}
+                    placeholder="All barangays"
+                    searchPlaceholder="Search barangays..."
+                    emptyMessage="No barangays found."
+                    className={styles.barangay}
+                    aria-label="Analytics barangay"
+                    leadingIcon={<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                  />
+                </AdminFilterField>
+              </>
+            )}
+          </AdminFilterDialog>
         </section>
 
         <AnalyticsSummaryKPIs />
-        <nav aria-label="Analytics sections" className="rounded-2xl border border-border/80 bg-card/60 p-4 shadow-2xs sm:p-5"><AnalyticsSectionNav activeSection={activeSection} onSectionChange={setActiveSection} /></nav>
-        <section className="space-y-4" aria-live="polite">
+        <nav aria-label="Analytics sections" className={styles.nav}><AnalyticsSectionNav activeSection={activeSection} onSectionChange={setActiveSection} /></nav>
+        <section className={styles.content} aria-live="polite">
           <div className="flex flex-col gap-1 pb-1 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="gw-heading text-base tracking-tight text-foreground sm:text-lg">{config.title}</h2><p className="text-xs text-muted-foreground">{config.subtitle}</p></div>{isFetching && <span className="text-xs text-muted-foreground">Updating…</span>}</div>
           <SectionComp />
         </section>

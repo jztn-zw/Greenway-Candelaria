@@ -1,3 +1,37 @@
+/* Keep mobile breadcrumbs beside the controls and prioritize the current page. */
+@media (max-width: 639px) {
+  .gw-navigation-topbar {
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .gw-navigation-topbar > div:first-child {
+    flex: 1;
+  }
+
+  .gw-navigation-breadcrumb {
+    flex: 1;
+  }
+
+  .gw-navigation-breadcrumb:has(> :nth-child(2)) > :first-child {
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .gw-navigation-breadcrumb:has(> :nth-child(2)) > :last-child {
+    flex: 0 0 auto;
+    max-width: calc(100% - 2rem);
+  }
+
+  /* Preview keeps the module link and current page; the editor has its own Back action. */
+  .gw-navigation-breadcrumb > :nth-child(n + 3):not(:last-child) {
+    display: none;
+  }
+}
+
 /* Match the panel and page spacer; fade text before the rail becomes narrow. */
 .gw-navigation-panel {
   --navigation-duration: 300ms;

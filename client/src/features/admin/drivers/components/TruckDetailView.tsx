@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Driver, truckStatusStyles } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
 
 interface TruckDetailViewProps {
   truck: Truck;
@@ -28,7 +29,7 @@ const TruckDetailView = ({
   const driver = drivers.find((d) => d.id === truck.assignedDriverId);
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6">
+    <div className={styles.detailPage}>
       <div>
         <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Truck Details
@@ -39,14 +40,14 @@ const TruckDetailView = ({
       </div>
 
       {/* ── Truck Profile Overview Card ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
+      <div className={styles.profileCard}>
+        <div className={styles.profileHeader}>
+          <div className={styles.profileIdentity}>
             <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
               <TruckIcon className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className={styles.profileName}>
                 <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {truck.name}
                 </h2>
@@ -65,7 +66,7 @@ const TruckDetailView = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.profileActions}>
             <Button
               variant="outline"
               size="sm"
@@ -97,7 +98,7 @@ const TruckDetailView = ({
         </div>
 
         {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
+        <div className={styles.profileDetails}>
           {/* Layer 1: Vehicle Identification & Driver */}
           <div className="space-y-1.5">
             <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">

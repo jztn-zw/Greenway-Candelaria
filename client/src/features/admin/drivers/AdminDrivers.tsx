@@ -1,3 +1,8 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { Users, UserCheck, Truck, Link2, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -7,6 +12,7 @@ import { SearchInput } from "@/components/common/SearchInput";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
 import { CollectorManagerPageSkeleton, CollectorManagerProfileSkeleton } from "@/components/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
 
 import {
 Select,
@@ -30,7 +36,7 @@ fetchDriverActivity,
 fetchDrivers,
 fetchTrucks,
 } from "@/services/driverManagerService";
-import { Plus, RotateCcw, Trash2, Truck, Users } from "lucide-react";
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -441,188 +447,222 @@ const AdminDrivers = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
+    <div className={styles.page}>
       {/* ── Executive Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Collector Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Manage municipal waste collector personnel, truck assignments, and fleet statuses.
-          </p>
-        </div>
-
-        <Button
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Collector Manager"
+        description="Manage municipal waste collector personnel, truck assignments, and fleet statuses."
+        actionsClassName="admin-module-header-actions"
+        actions={<Button
           onClick={() =>
             activeTab === "drivers" ? openDriverEditor() : openTruckEditor()
           }
-          className="h-10 px-4 rounded-xl font-semibold shadow-xs gap-2 cursor-pointer shrink-0"
+          className={styles.action}
         >
           <Plus className="w-4 h-4" />
           {activeTab === "drivers" ? "Add Collector" : "Add Truck"}
-        </Button>
-      </div>
+        </Button>}
+      />
 
       {(driversQuery.error || trucksQuery.error) && <DataRefreshNotice primary message="Some collector or fleet information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (driversQuery.error) void driversQuery.refetch(); if (trucksQuery.error) void trucksQuery.refetch(); }} retrying={driversQuery.isFetching || trucksQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
+      <AdminKpiGrid>
         {[
           {
+            icon: Users,
             title: "Total Collectors",
             value: driversError ? "—" : totalCollectors,
             subtext: driversError ? "Collector data unavailable" : `${activeCollectors} active · ${deactivatedCollectors} deactivated`,
-            tag: "bg-muted/70 text-muted-foreground border-border/80",
+            tone: "neutral" as const,
           },
           {
+            icon: UserCheck,
             title: "Active Personnel",
             value: driversError ? "—" : activeCollectors,
             subtext: driversError ? "Collector data unavailable" : "Accounts marked active",
-            tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            tone: "success" as const,
           },
           {
+            icon: Truck,
             title: "Fleet Trucks",
             value: trucksError ? "—" : totalTrucks,
             subtext: trucksError ? "Fleet data unavailable" : `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
-            tag: "bg-muted/70 text-muted-foreground border-border/80",
+            tone: "neutral" as const,
           },
           {
+            icon: Link2,
             title: "Assigned Fleet",
             value: trucksError ? "—" : assignedTrucks,
             subtext:
               trucksError ? "Fleet data unavailable" : totalTrucks > 0
                 ? `${Math.round((assignedTrucks / totalTrucks) * 100)}% vehicles paired`
                 : "No vehicles in fleet",
-            tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+            tone: "info" as const,
           },
-        ].map((kpi, idx) => (
-          <div
-            key={kpi.title}
-            className={cn(
-              "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-              idx % 2 === 0 ? "border-r border-border/70" : "",
-              idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-              idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-            )}
-          >
-            <div className="flex items-center min-h-[22px]">
-              <span
-                className={cn(
-                  "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                  kpi.tag
-                )}
-              >
-                {kpi.title}
-              </span>
-            </div>
-
-            <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-              {kpi.value}
-            </div>
-
-            <div className="text-ui-caption text-muted-foreground font-medium truncate">
-              {kpi.subtext}
-            </div>
-          </div>
+        ].map((kpi) => (
+          <AdminKpiCard key={kpi.title} label={kpi.title} value={kpi.value}
+            description={kpi.subtext} icon={kpi.icon} tone={kpi.tone} />
         ))}
-      </div>
+      </AdminKpiGrid>
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
-      <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
-        {/* Tier 1: Primary Status Filter Tabs + Entity View Switcher */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
-          {activeTab === "drivers" ? (
-            <FilterPillTabs
-              items={driverStatusTabs}
-              activeId={driverStatusFilter}
-              onChange={setDriverStatusFilter}
-            />
-          ) : (
-            <FilterPillTabs
-              items={truckStatusTabs}
-              activeId={truckStatusFilter}
-              onChange={setTruckStatusFilter}
-            />
-          )}
-
-          <SegmentedControl<Tab>
-            options={entityOptions}
-            value={activeTab}
-            onChange={(tab) => setActiveTab(tab)}
-            ariaLabel="Personnel & fleet entity switcher"
-            className="self-start sm:self-auto shrink-0"
-          />
-        </div>
-
-        {/* Tier 2: Search Input + Assignment Filter Dropdown + Reset */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+        <section className="admin-toolbar min-w-0 rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
+          {/* Tier 1: Primary Status Filter Tabs + Entity View Switcher */}
+          <div className={`${styles.primary} admin-toolbar-primary`}>
             {activeTab === "drivers" ? (
+              <FilterPillTabs
+                items={driverStatusTabs}
+                activeId={driverStatusFilter}
+                onChange={setDriverStatusFilter}
+                className={`${styles.filters} admin-toolbar-chips`}
+              />
+            ) : (
+              <FilterPillTabs
+                items={truckStatusTabs}
+                activeId={truckStatusFilter}
+                onChange={setTruckStatusFilter}
+                className={`${styles.filters} admin-toolbar-chips`}
+              />
+            )}
+
+            <div className="admin-toolbar-desktop-only">
+              <SegmentedControl<Tab>
+                options={entityOptions}
+                value={activeTab}
+                onChange={(tab) => setActiveTab(tab)}
+                ariaLabel="Personnel & fleet entity switcher"
+                className={styles.view}
+              />
+            </div>
+          </div>
+
+          {/* Tier 2: Search Input + Assignment Filter Dropdown + Reset */}
+          <div className={`${styles.secondary} admin-toolbar-search-section`}>
+            <div className={`${styles.fields} admin-toolbar-search-row`}>{activeTab === "drivers" ? (
               <SearchInput
                 value={driverSearch}
                 onChange={setDriverSearch}
                 placeholder="Search collector name, username, phone..."
-                containerClassName="w-full sm:max-w-xs md:max-w-sm"
+                containerClassName={styles.search}
               />
             ) : (
               <SearchInput
                 value={truckSearch}
                 onChange={setTruckSearch}
                 placeholder="Search truck name, model, plate..."
-                containerClassName="w-full sm:max-w-xs md:max-w-sm"
+                containerClassName={styles.search}
               />
             )}
+              <div className="admin-toolbar-desktop-only">{activeTab === "drivers" ? (
+                <Select
+                  value={driverAssignmentFilter}
+                  onValueChange={(val: "all" | "assigned" | "unassigned") =>
+                    setDriverAssignmentFilter(val)
+                  }
+                >
+                  <SelectTrigger className={cn(styles.assignment, "bg-background border-border/80")}>
+                    <SelectValue placeholder="All Personnel" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all" className="text-xs">All Personnel</SelectItem>
+                    <SelectItem value="assigned" className="text-xs">With Truck</SelectItem>
+                    <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select
+                  value={truckDriverFilter}
+                  onValueChange={(val: "all" | "assigned" | "unassigned") =>
+                    setTruckDriverFilter(val)
+                  }
+                >
+                  <SelectTrigger className={cn(styles.assignment, "bg-background border-border/80")}>
+                    <SelectValue placeholder="All Vehicles" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all" className="text-xs">All Vehicles</SelectItem>
+                    <SelectItem value="assigned" className="text-xs">Paired with Driver</SelectItem>
+                    <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              </div>
+              <AdminFilterDialog title={activeTab === "drivers" ? "Filter Collectors" : "Filter Trucks"} activeCount={Number((activeTab === "drivers" ? driverAssignmentFilter : truckDriverFilter) !== "all")}
+                values={{ activeTab, driverAssignmentFilter, truckDriverFilter }}
+                onApply={(next) => {
+                  setDriverAssignmentFilter(next.driverAssignmentFilter);
+                  setTruckDriverFilter(next.truckDriverFilter);
+                  setActiveTab(next.activeTab);
+                }}
+                resetValues={{ activeTab, driverAssignmentFilter: "all", truckDriverFilter: "all" }}
+              >
+                {(draft, setDraft) => (
+                  <>
+                    <AdminFilterField label="Assignment">{draft.activeTab === "drivers" ? (
+                      <Select
+                        value={draft.driverAssignmentFilter}
+                        onValueChange={(val: "all" | "assigned" | "unassigned") =>
+                          setDraft({ ...draft, driverAssignmentFilter: val })
+                        }
+                      >
+                        <SelectTrigger aria-label="Assignment" className="h-9 w-full rounded-xl text-xs">
+                          <SelectValue placeholder="All Personnel" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="all" className="text-xs">All Personnel</SelectItem>
+                          <SelectItem value="assigned" className="text-xs">With Truck</SelectItem>
+                          <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={draft.truckDriverFilter}
+                        onValueChange={(val: "all" | "assigned" | "unassigned") =>
+                          setDraft({ ...draft, truckDriverFilter: val })
+                        }
+                      >
+                        <SelectTrigger aria-label="Assignment" className="h-9 w-full rounded-xl text-xs">
+                          <SelectValue placeholder="All Vehicles" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="all" className="text-xs">All Vehicles</SelectItem>
+                          <SelectItem value="assigned" className="text-xs">Paired with Driver</SelectItem>
+                          <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    </AdminFilterField>
+                    <AdminFilterField label="View">
+                      <SegmentedControl<Tab>
+                        options={entityOptions}
+                        value={draft.activeTab}
+                        onChange={(tab) => setDraft({ ...draft, activeTab: tab })}
+                        ariaLabel="Personnel & fleet entity switcher"
+                        className={styles.view}
+                      />
+                    </AdminFilterField>
+                  </>
+                )}
+              </AdminFilterDialog>
+            </div>
 
-            {activeTab === "drivers" ? (
-              <Select
-                value={driverAssignmentFilter}
-                onValueChange={(val: "all" | "assigned" | "unassigned") =>
-                  setDriverAssignmentFilter(val)
-                }
+            <div className="admin-toolbar-desktop-only">{hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className={styles.reset}
+                title="Reset active filters"
               >
-                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-background border-border/80 shrink-0">
-                  <SelectValue placeholder="All Personnel" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all" className="text-xs">All Personnel</SelectItem>
-                  <SelectItem value="assigned" className="text-xs">With Truck</SelectItem>
-                  <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select
-                value={truckDriverFilter}
-                onValueChange={(val: "all" | "assigned" | "unassigned") =>
-                  setTruckDriverFilter(val)
-                }
-              >
-                <SelectTrigger className="w-40 h-9 text-xs rounded-xl bg-background border-border/80 shrink-0">
-                  <SelectValue placeholder="All Vehicles" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all" className="text-xs">All Vehicles</SelectItem>
-                  <SelectItem value="assigned" className="text-xs">Paired with Driver</SelectItem>
-                  <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
-                </SelectContent>
-              </Select>
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </Button>
             )}
+            </div>
           </div>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
-              title="Reset active filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </Button>
-          )}
-        </div>
-      </section>
+        </section>
 
       {/* ── Main Content Grid ── */}
       {activeTab === "drivers" && driversError ? (

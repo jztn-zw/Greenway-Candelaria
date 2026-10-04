@@ -9,6 +9,7 @@ import { fetchCalendarEvents } from "@/services/scheduleService";
 import { ArrowRight } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -102,12 +103,12 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
 
   return (
     <div
-      className={cn("bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs", className)}
+      className={cn(styles.calendar, className)}
     >
       {/* Header with Title, Month & Manager Link */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+      <div className={styles.sectionHeader}>
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
+          <h3 className={styles.sectionTitle}>
             MENRO Schedule
           </h3>
           <span className="text-xs font-medium text-muted-foreground">
@@ -118,7 +119,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         <Button
           variant="primary-ghost"
           size="sm"
-          className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+          className={styles.sectionAction}
           onClick={() => navigate("/admin/schedule")}
         >
           <span>Schedule Manager</span>
@@ -143,12 +144,12 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
         </div>
 
         {/* Calendar Day Cells */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 min-h-0">
+        <div className={styles.calendarDays}>
           {/* Empty offset slots */}
           {Array.from({ length: firstDayIndex }).map((_, i) => (
             <div
               key={`empty-${i}`}
-              className="aspect-square min-h-0 sm:aspect-auto sm:min-h-[95px] rounded-xl bg-muted/20 border border-transparent opacity-30"
+              className={`${styles.calendarDay} admin-dashboard-calendar-day-empty`}
             />
           ))}
 
@@ -170,7 +171,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
                 key={dateStr}
                 onClick={() => setSelectedDateStr(dateStr)}
                 className={cn(
-                  "relative aspect-square min-h-0 p-1 sm:aspect-auto sm:p-2 sm:min-h-[95px] rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left",
+                  `${styles.calendarDay} transition-colors duration-150 cursor-pointer group`,
                   isSelected
                     ? "border-primary bg-primary/[0.07] dark:bg-primary/10 shadow-2xs ring-1 ring-primary/50"
                     : isToday

@@ -1,6 +1,7 @@
+import { FileText, ClipboardList, Truck, CircleCheck } from "lucide-react";
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import type { AdminReportsKPIs } from "@/services/reportsService";
 import type { WasteReport } from "./types";
-import { cn } from "@/lib/utils";
 
 interface ReportKPIsProps {
   reports?: WasteReport[];
@@ -23,67 +24,42 @@ const ReportKPIs = ({ reports = [], kpis }: ReportKPIsProps) => {
 
   const items = [
     {
+      icon: FileText,
       label: "Total Reports",
       value: total,
       subtext: `${resolutionRate}% overall resolution`,
-      tag: "bg-muted/70 text-muted-foreground border-border/80",
+      tone: "neutral" as const,
     },
     {
+      icon: ClipboardList,
       label: "Pending Review",
       value: pending,
       subtext: "Submitted or under review",
-      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      tone: "warning" as const,
     },
     {
+      icon: Truck,
       label: "In Dispatch",
       value: dispatched,
       subtext: "Reports marked dispatched",
-      tag: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+      tone: "info" as const,
     },
     {
+      icon: CircleCheck,
       label: "Resolved Cases",
       value: resolved,
       subtext: "Reports marked resolved",
-      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      tone: "success" as const,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
-      {items.map((item, idx) => (
-        <div
-          key={item.label}
-          className={cn(
-            "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-            // Mobile (2 columns): right border on even index (0, 2)
-            idx % 2 === 0 ? "border-r border-border/70" : "",
-            // Desktop (4 columns): right border on 0, 1, 2, none on 3
-            idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-            // Mobile (2 columns): bottom border on top row (0, 1)
-            idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-          )}
-        >
-          <div className="flex items-center min-h-[22px]">
-            <span
-              className={cn(
-                "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                item.tag
-              )}
-            >
-              {item.label}
-            </span>
-          </div>
-
-          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-            {item.value}
-          </div>
-
-          <div className="text-ui-caption text-muted-foreground font-medium truncate">
-            {item.subtext}
-          </div>
-        </div>
+    <AdminKpiGrid>
+      {items.map((kpi) => (
+        <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value}
+          description={kpi.subtext} icon={kpi.icon} tone={kpi.tone} />
       ))}
-    </div>
+    </AdminKpiGrid>
   );
 };
 

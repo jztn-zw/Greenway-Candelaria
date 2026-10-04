@@ -1,4 +1,6 @@
 import { SearchInput } from "@/components/common/SearchInput";
+import { WasteReportDetailBodySkeleton } from "@/components/PageLoadingSkeletons";
+import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
@@ -278,14 +280,14 @@ const ReportDetailPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-card overflow-hidden">
+    <div className={styles.drawer} aria-busy={isLoading}>
       {/* ── Inspector Header ── */}
-      <div className="px-5 py-3.5 border-b border-border/60 bg-muted/15 shrink-0">
-        <div className="flex items-start justify-between gap-3">
+      <div className="px-3 sm:px-5 py-3.5 border-b border-border/60 bg-muted/15 shrink-0">
+        <div className="waste-report-detail-header flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {/* Reference Number & Copy */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight text-foreground">
+              <span className="min-w-0 break-all text-sm font-semibold tracking-tight text-foreground">
                 {report.referenceNumber}
               </span>
               <button
@@ -294,7 +296,7 @@ const ReportDetailPanel = ({
                   navigator.clipboard.writeText(report.referenceNumber);
                   toast.success("Reference copied");
                 }}
-                className="gw-action-ghost p-1 rounded transition-colors cursor-pointer"
+                className="gw-action-ghost shrink-0 p-1 rounded transition-colors cursor-pointer"
                 title="Copy reference number"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -372,7 +374,8 @@ const ReportDetailPanel = ({
       </div>
 
       {/* ── Scrollable Inspector Body ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 scrollbar-thin">
+      <div className={styles.detailBody}>
+        {isLoading ? <WasteReportDetailBodySkeleton /> : <>
         {/* ── Review Reason ── */}
         {(report.duplicateReason || report.falseReason) && (
           <div className="space-y-1.5">
@@ -412,7 +415,7 @@ const ReportDetailPanel = ({
                   onClick={() => isFuture && handleStatusChange(st)}
                   disabled={isUpdatingStatus || isCurrent || isPast}
                   className={cn(
-                    "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg text-center transition-all border",
+                    "flex min-h-8 flex-col items-center justify-center py-1.5 px-1 rounded-lg text-center transition-all border",
                     isCurrent && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs cursor-default",
                     isPast && wasRecorded && "bg-primary/10 border-primary/20 text-primary font-medium cursor-not-allowed opacity-85",
                     isPast && !wasRecorded && "bg-muted/30 border-border/70 text-muted-foreground cursor-not-allowed",
@@ -420,7 +423,7 @@ const ReportDetailPanel = ({
                   )}
                   title={isPast ? (wasRecorded ? "Recorded status" : "Stage skipped") : isCurrent ? "Current status" : `Move to ${st}`}
                 >
-                  <span className="text-ui-overline font-medium leading-tight truncate w-full px-0.5">
+                  <span className="text-ui-overline font-medium leading-tight whitespace-normal w-full px-0.5">
                     {st}
                   </span>
                 </button>
@@ -431,7 +434,7 @@ const ReportDetailPanel = ({
 
         {/* ── Unified Incident Details Card ── */}
         <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs">
-          <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20 flex flex-wrap items-center justify-between gap-1.5">
             <span className="text-xs font-semibold text-foreground">
               Incident Details
             </span>
@@ -566,7 +569,7 @@ const ReportDetailPanel = ({
               {report.internalNotes.map((note, idx) => (
                 <div
                   key={note.id || idx}
-                  className="bg-muted/30 rounded-xl p-3 border border-border/60 space-y-1"
+                  className="bg-muted/30 rounded-xl p-3 border border-border/60 space-y-1 break-words"
                 >
                   <p className="text-xs text-foreground leading-relaxed">{note.text}</p>
                   <p className="text-ui-overline text-muted-foreground font-medium">
@@ -599,16 +602,17 @@ const ReportDetailPanel = ({
             </Button>
           </div>
         </div>
+        </>}
       </div>
 
       {/* ── Pinned Bottom Action Bar ── */}
-      <div className="px-5 py-3 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className={styles.footer}>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {!report.isFalseReport && (
             <Button
               variant={report.isDuplicate ? "warning-outline" : "outline"}
               size="sm"
-              disabled={isFlagging}
+              disabled={isLoading || isFlagging}
               onClick={() => openFlagDialog("duplicate")}
               className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
@@ -620,7 +624,7 @@ const ReportDetailPanel = ({
             <Button
               variant={report.isFalseReport ? "destructive-outline" : "outline"}
               size="sm"
-              disabled={isFlagging}
+              disabled={isLoading || isFlagging}
               onClick={() => openFlagDialog("false")}
               className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
@@ -633,7 +637,7 @@ const ReportDetailPanel = ({
             <Button
               variant="outline"
               size="sm"
-              disabled={isFlagging}
+              disabled={isLoading || isFlagging}
               onClick={() => handleFlag(report.isDuplicate ? { is_duplicate: false } : { is_false: false })}
               className="h-8 text-xs px-3 rounded-xl font-semibold cursor-pointer"
             >
@@ -646,7 +650,7 @@ const ReportDetailPanel = ({
           <Button
             variant="destructive-ghost"
             size="sm"
-            disabled={isDeleting}
+            disabled={isLoading || isDeleting}
             onClick={() => setShowDeleteModal(true)}
             className="h-8 text-xs px-3 rounded-xl font-semibold border cursor-pointer ml-auto transition-colors"
           >
@@ -694,7 +698,7 @@ const ReportDetailPanel = ({
           onFlagDialogOpenChange?.(open);
         }}
       >
-        <DialogContent className="z-[200] w-[92vw] sm:max-w-md rounded-2xl p-5 sm:p-6 bg-background border border-border/80 shadow-2xl [&>button:last-child]:hidden">
+        <DialogContent className="z-[200] w-[calc(100%-1.5rem)] max-h-[90dvh] overflow-y-auto sm:max-w-md rounded-2xl p-4 sm:p-6 bg-background border border-border/80 shadow-2xl [&>button:last-child]:hidden">
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
             <div>

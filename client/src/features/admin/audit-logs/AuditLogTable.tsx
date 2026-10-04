@@ -30,6 +30,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import PaginationControls from "@/components/common/PaginationControls";
+import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
+import { AuditLogCardsSkeleton, AuditLogRowsSkeleton } from "@/components/PageLoadingSkeletons";
 
 const auditBadgeClass = "min-h-6 rounded-md px-2.5 py-0.5 text-[11px] font-semibold leading-4 shadow-none";
 
@@ -72,10 +74,10 @@ const AuditLogTable = ({
   };
 
   return (
-    <div aria-busy={isLoading} className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-2xs flex flex-col">
+    <div aria-busy={isLoading} className={styles.list}>
       {isLoading && <span role="status" className="sr-only">Loading audit logs…</span>}
       {/* ── Desktop Table ── */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className={styles.desktop}>
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border/80 bg-muted/30">
@@ -102,17 +104,7 @@ const AuditLogTable = ({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i} className="border-b border-border/60">
-                  <TableCell className="py-4 text-center"><div className="h-4 w-4 mx-auto bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-4"><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-4"><div className="h-4 w-28 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-4"><div className="h-5 w-24 bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-4"><div className="h-5 w-20 bg-muted animate-pulse rounded-full" /></TableCell>
-                  <TableCell className="py-4"><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
-                  <TableCell className="py-4"><div className="h-4 w-64 bg-muted animate-pulse rounded" /></TableCell>
-                </TableRow>
-              ))
+              <AuditLogRowsSkeleton />
             ) : logs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-16 text-center">
@@ -371,15 +363,9 @@ const AuditLogTable = ({
       </div>
 
       {/* ── Mobile Card View ── */}
-      <div className="md:hidden divide-y divide-border/60">
+      <div className={styles.cards}>
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-4 space-y-3">
-              <div className="h-4 w-28 bg-muted animate-pulse rounded" />
-              <div className="h-5 w-40 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-full bg-muted animate-pulse rounded" />
-            </div>
-          ))
+          <AuditLogCardsSkeleton />
         ) : logs.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
@@ -401,13 +387,13 @@ const AuditLogTable = ({
                 key={log.id}
                 onClick={() => toggleExpand(log.id)}
                 className={cn(
-                  "p-4 transition-colors cursor-pointer",
-                  isExpanded ? "bg-primary/[0.04] border-l-4 border-l-primary" : "hover:bg-muted/40",
+                  styles.card,
+                  isExpanded ? "audit-log-card-expanded" : "hover:bg-muted/40",
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardIdentity}>
+                    <div className={styles.cardBadges}>
                       <Badge
                         variant="outline"
                         className={cn(auditBadgeClass, sc.badge)}
@@ -421,30 +407,30 @@ const AuditLogTable = ({
                         {log.module}
                       </Badge>
                     </div>
-                    <p className="text-xs font-bold text-foreground">
+                    <p className={styles.actor}>
                       {log.adminName}
                     </p>
-                    <p className="text-ui-overline text-muted-foreground tabular-nums">
+                    <p className={styles.timestamp}>
                       {safeFormatDate(log.timestamp, "MMM d, yyyy · h:mm a")}
                     </p>
                   </div>
-                  <div className="w-6 h-6 rounded-lg bg-muted/40 flex items-center justify-center shrink-0 mt-1">
+                  <button type="button" className={styles.expand} aria-expanded={isExpanded} aria-label={`${isExpanded ? "Collapse" : "Expand"} audit event by ${log.adminName}`}>
                     {isExpanded ? (
                       <ChevronDown className="w-3.5 h-3.5 text-primary" />
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                     )}
-                  </div>
+                  </button>
                 </div>
 
                 {!isExpanded && (
-                  <p className="text-xs text-muted-foreground line-clamp-1 mt-2">
+                  <p className={styles.summary}>
                     {log.summary}
                   </p>
                 )}
 
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-border/60 space-y-3 text-xs animate-in fade-in">
+                  <div className={styles.details}>
                     <div>
                       <p className="text-ui-overline text-muted-foreground uppercase tracking-wider font-bold mb-1">
                         Target Record
@@ -490,7 +476,7 @@ const AuditLogTable = ({
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-ui-caption pt-2 border-t border-border/50 text-muted-foreground">
+                    <div className="audit-log-origin flex items-center justify-between text-ui-caption pt-2 border-t border-border/50 text-muted-foreground">
                       <span>IP: {log.ipAddress || "Internal Server"}</span>
                       <span>Role: {log.adminRole}</span>
                     </div>

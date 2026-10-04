@@ -3,7 +3,9 @@ import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { FormDialogHeader } from "@/components/FormDialog";
 import { formDialogStyles } from "@/components/formDialogStyles";
 import { AdminProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { adminProfileStyles as styles } from "./adminProfileStyles";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
@@ -34,7 +36,7 @@ const ProfileDialog = ({ open, onOpenChange, title, description, icon: Icon, pen
   icon: ElementType; pending?: boolean; children: ReactNode; footer: ReactNode;
 }) => (
   <Dialog open={open} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}>
-    <DialogContent className={formDialogStyles.content}>
+    <DialogContent className={`${formDialogStyles.content} ${styles.dialog}`}>
       <FormDialogHeader title={title} description={description} icon={<Icon />} onClose={() => onOpenChange(false)} disabled={pending} closeLabel={`Close ${title.toLowerCase()}`} />
       <div className={formDialogStyles.body}>{children}</div>
       <div className={formDialogStyles.footer}>{footer}</div>
@@ -45,10 +47,10 @@ const ProfileDialog = ({ open, onOpenChange, title, description, icon: Icon, pen
 const Section = ({ title, description, icon: Icon, children }: {
   title: string; description: string; icon: ElementType; children: React.ReactNode;
 }) => (
-  <section className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:p-5 lg:p-6">
-    <div className="flex items-center gap-2.5 border-b border-border/50 pb-2">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></div>
-      <div><h2 className="gw-heading text-sm text-foreground">{title}</h2><p className="text-xs text-muted-foreground">{description}</p></div>
+  <section className={styles.section}>
+    <div className={styles.sectionHeader}>
+      <div className={styles.sectionIcon}><Icon className="size-4" /></div>
+      <div className="min-w-0 [overflow-wrap:anywhere]"><h2 className="gw-heading text-sm text-foreground">{title}</h2><p className="text-xs text-muted-foreground">{description}</p></div>
     </div>
     {children}
   </section>
@@ -57,13 +59,13 @@ const Section = ({ title, description, icon: Icon, children }: {
 const ProfileField = ({ label, value, icon: Icon, onEdit, action = "Edit" }: {
   label: string; value: string | null | undefined; icon: ElementType; onEdit?: () => void; action?: string;
 }) => (
-  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
-    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs group-hover:border-primary/30 group-hover:text-primary lg:size-10"><Icon className="size-4" /></div>
-      <div className="min-w-0 flex-1"><p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">{label}</p><p className="mt-0.5 truncate text-ui-label font-medium text-foreground lg:text-sm">{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
+  <div className={styles.row}>
+    <div className={styles.rowContent}>
+      <div className={styles.rowIcon}><Icon className="size-4" /></div>
+      <div className="min-w-0 flex-1"><p className={styles.label}>{label}</p><p className={styles.value}>{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
     </div>
-    {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} className="h-8 shrink-0 rounded-xl px-3 text-xs font-semibold shadow-none">{action}</Button>
-      : <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-muted/70 px-2.5 py-1.5 text-ui-caption font-medium text-muted-foreground"><ShieldCheck className="size-3.5 text-primary" /> Registered email</span>}
+    {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action}</Button>
+      : <span className={styles.registeredEmail} title="Registered email"><ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /><span className="admin-profile-email-label" aria-hidden="true">Registered email</span><span className="sr-only">Registered email</span></span>}
   </div>
 );
 
@@ -194,43 +196,47 @@ const AdminProfile = () => {
     : "Not recorded";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 md:space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
-        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
-          <ProfileBannerImage />
-        </div>
-        <div className="relative px-4 pb-5 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
-          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex flex-col items-center gap-1.5 md:flex-row md:gap-3"><h1 className="gw-heading max-w-full truncate text-lg tracking-tight text-foreground lg:text-2xl">{profile.full_name}</h1><span className="w-fit rounded-md border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">@{profile.username}</span></div>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground md:justify-start"><span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Administrator</span><span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span></div>
+    <div className={styles.page}>
+      <ResidentPageHeader title="Profile & account" description="Manage your personal details and account security." />
+      <div className={styles.stack}>
+        <div className={styles.hero}>
+          <div className={styles.cover}>
+            <ProfileBannerImage />
+          </div>
+          <div className={styles.identity}>
+            <div className={styles.identityRow}>
+              <ProfileAvatarControl avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
+              <div className={styles.identityDetails}>
+                <div className={styles.nameRow}><h2 className={styles.name}>{profile.full_name}</h2><span className={styles.username}>@{profile.username}</span></div>
+                <div className={styles.metadata}><span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Administrator</span><span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span></div>
+              </div>
             </div>
           </div>
         </div>
+
+        {loadError && <DataRefreshNotice message="Couldn't refresh your profile. Your edits are preserved; loaded information may be outdated." onRetry={() => void loadProfile()} retrying={profileQuery.isFetching} />}
+
+        <Section title="Personal Information" description="Your profile details and sign-in credentials" icon={User}>
+          <div className="divide-y divide-border/50">
+            <ProfileField label="Full Name" value={profile.full_name} icon={User} onEdit={() => setEdit({ field: "full_name", value: profile.full_name, error: "", saving: false })} />
+            <ProfileField label="Username" value={profile.username} icon={AtSign} onEdit={() => setEdit({ field: "username", value: profile.username, error: "", saving: false })} />
+            <ProfileField label="Email Address" value={profile.email} icon={Mail} />
+            <ProfileField label="Phone Number" value={profile.phone} icon={Phone} onEdit={() => setEdit({ field: "phone", value: profile.phone ?? "", error: "", saving: false })} />
+            <ProfileField label="Security Password" value="••••••••" icon={Lock} action="Change" onEdit={() => setPasswordOpen(true)} />
+          </div>
+        </Section>
+
+        <Section title="Account Overview" description="Current account details from GreenWay" icon={ShieldCheck}>
+          <div className={styles.overview}>
+            {[{ label: "Role", value: "Administrator", icon: ShieldCheck }, { label: "Status", value: profile.status.charAt(0) + profile.status.slice(1).toLowerCase(), icon: User }, { label: "Last sign-in", value: lastSignIn, icon: Clock3 }].map(({ label, value, icon: Icon }) => (
+              <div key={label} className={styles.overviewCard}><Icon className="mb-2 size-4 text-primary" /><p className={styles.overviewLabel}>{label}</p><p className="mt-1 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">{value}</p></div>
+            ))}
+          </div>
+        </Section>
+
+        <button type="button" onClick={() => setLogoutOpen(true)} className={styles.logout}><span className="flex min-w-0 items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground"><LogOut className="size-4" /></span><span><span className="block text-sm font-semibold text-foreground">Log Out</span><span className="block text-xs text-muted-foreground">Sign out of this device</span></span></span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>
+
       </div>
-
-      {loadError && <DataRefreshNotice message="Couldn't refresh your profile. Your edits are preserved; loaded information may be outdated." onRetry={() => void loadProfile()} retrying={profileQuery.isFetching} />}
-
-      <Section title="Personal Information" description="Your profile details and sign-in credentials" icon={User}>
-        <div className="divide-y divide-border/50">
-          <ProfileField label="Full Name" value={profile.full_name} icon={User} onEdit={() => setEdit({ field: "full_name", value: profile.full_name, error: "", saving: false })} />
-          <ProfileField label="Username" value={profile.username} icon={AtSign} onEdit={() => setEdit({ field: "username", value: profile.username, error: "", saving: false })} />
-          <ProfileField label="Email Address" value={profile.email} icon={Mail} />
-          <ProfileField label="Phone Number" value={profile.phone} icon={Phone} onEdit={() => setEdit({ field: "phone", value: profile.phone ?? "", error: "", saving: false })} />
-          <ProfileField label="Security Password" value="••••••••" icon={Lock} action="Change" onEdit={() => setPasswordOpen(true)} />
-        </div>
-      </Section>
-
-      <Section title="Account Overview" description="Current account details from GreenWay" icon={ShieldCheck}>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[{ label: "Role", value: "Administrator", icon: ShieldCheck }, { label: "Status", value: profile.status.charAt(0) + profile.status.slice(1).toLowerCase(), icon: User }, { label: "Last sign-in", value: lastSignIn, icon: Clock3 }].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-xl border border-border/80 bg-muted/20 p-3.5"><Icon className="mb-2 size-4 text-primary" /><p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>
-          ))}
-        </div>
-      </Section>
-
-      <button type="button" onClick={() => setLogoutOpen(true)} className="flex w-full items-center justify-between rounded-2xl border border-border/80 bg-card p-4 text-left shadow-xs transition-colors hover:bg-[var(--button-neutral-hover)]"><span className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground"><LogOut className="size-4" /></span><span><span className="block text-sm font-semibold text-foreground">Log Out</span><span className="block text-xs text-muted-foreground">Sign out of this device</span></span></span><ChevronRight className="size-4 text-muted-foreground" /></button>
 
       <ProfileDialog
         open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize avatar"

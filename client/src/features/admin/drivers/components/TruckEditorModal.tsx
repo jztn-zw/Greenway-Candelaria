@@ -19,6 +19,7 @@ import { X, Truck as TruckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Truck, TruckOperationalStatus, Driver } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
 
 interface TruckEditorModalProps {
   open: boolean;
@@ -123,7 +124,7 @@ const TruckEditorModal = ({
   return (
     <>
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleRequestClose(); }}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className={cn(styles.modal, "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-md p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] flex flex-col overflow-hidden")}>
         {/* Header */}
         <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
           <div className="flex items-center gap-3 min-w-0">
@@ -131,10 +132,10 @@ const TruckEditorModal = ({
               <TruckIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="gw-heading text-base text-foreground tracking-tight truncate">
+              <DialogTitle className="gw-heading text-base text-foreground tracking-tight break-words">
                 {isEditing ? "Edit Truck Record" : "Add New Truck"}
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 {isEditing
                   ? "Update vehicle specifications and availability status."
                   : "Register a new municipal waste collection vehicle."}
@@ -154,9 +155,9 @@ const TruckEditorModal = ({
         </div>
 
         {/* Form Body - Balanced 2-Column Grid */}
-        <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+        <div className="collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
           {/* Row 1: Name & Model */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
                <Label htmlFor="truck-name" className="text-xs font-medium text-foreground">
                 Truck Identifier
@@ -187,7 +188,7 @@ const TruckEditorModal = ({
           </div>
 
           {/* Row 2: Plate Number & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
                <Label htmlFor="truck-plate" className="text-xs font-medium text-foreground">
                 Plate Number
@@ -223,8 +224,8 @@ const TruckEditorModal = ({
         </div>
 
         {/* Footer */}
-        <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
-          {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
+        <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex flex-wrap items-center justify-end gap-2.5 bg-card">
+          {errors.form && <p role="alert" className="w-full break-words text-ui-caption font-medium text-destructive">{errors.form}</p>}
           <Button
             type="button"
             variant="outline"

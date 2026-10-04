@@ -1,3 +1,4 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Calendar as CalendarIcon, RotateCcw } from "lucide-react";
@@ -11,6 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfToday, subDays } from "date-fns";
 import { useState } from "react";
+import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
 
 interface AuditLogFiltersProps {
   search: string;
@@ -97,80 +99,139 @@ const AuditLogFilters = ({
     !isPresetActive(30);
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs">
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+    <div className={`${styles.toolbar} admin-toolbar admin-toolbar-audit`}>
+      <div className={styles.controls}>
         {/* ── Left Controls: Search Bar + All Modules Dropdown ── */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+        <div className={`${styles.fields} admin-toolbar-search-row`}>
           {/* Search Bar */}
           <SearchInput
             placeholder="Search action, user, target ID..."
             value={search}
             onChange={onSearchChange}
-            containerClassName="flex-1"
+            containerClassName={styles.search}
           />
+          <AdminFilterDialog title="Filter Audit Logs" activeCount={Number(moduleFilter !== "all") + Number(Boolean(dateRange.from || dateRange.to))}
+            values={{ moduleFilter, dateRange }}
+            onApply={(next) => {
+              onModuleFilterChange(next.moduleFilter);
+              onDateRangeChange(next.dateRange);
+            }}
+            resetValues={{ moduleFilter: "all", dateRange: {} }}
+          >
+            {(draft, setDraft) => (
+              <>
+                <AdminFilterField label="Module">
+                  <SearchableSelect value={draft.moduleFilter} onValueChange={(value) => setDraft({ ...draft, moduleFilter: value })}
+                    options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
+                    className={styles.module} />
+                </AdminFilterField>
+                <AdminFilterField label="Date range">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={draft.dateRange.from ? "default" : "outline"}
+                        size="sm"
+                        className="h-9 w-full justify-start gap-2 rounded-xl text-xs"
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5" />
+                        <span>
+                          {draft.dateRange.from
+                            ? `${format(draft.dateRange.from, "MMM d")}${draft.dateRange.to ? ` – ${format(draft.dateRange.to, "MMM d")}` : ""}`
+                            : "Date range"}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="audit-log-calendar w-auto max-w-[calc(100vw-1.5rem)] p-0 rounded-2xl shadow-md border-border/80"
+                      align="end"
+                    >
+                      <Calendar
+                        mode="range"
+                        selected={
+                          draft.dateRange.from
+                            ? { from: draft.dateRange.from, to: draft.dateRange.to }
+                            : undefined
+                        }
+                        onSelect={(range) => {
+                          setDraft({ ...draft, dateRange: { from: range?.from, to: range?.to } });
+                        }}
+                        numberOfMonths={1}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </AdminFilterField>
+              </>
+            )}
+          </AdminFilterDialog>
 
           {/* All Modules Dropdown */}
-          <SearchableSelect value={moduleFilter} onValueChange={onModuleFilterChange}
-            options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
-            className="h-10 min-w-[160px] w-auto rounded-xl border-border/80 bg-background text-xs shadow-2xs font-medium shrink-0 hover:border-border transition-colors" />
+          <div className="admin-toolbar-desktop-only">
+            <SearchableSelect value={moduleFilter} onValueChange={onModuleFilterChange}
+              options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
+              className={styles.module} />
+          </div>
         </div>
 
         {/* ── Right Controls: Quick Date Pill + Custom Calendar + Reset ── */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className={styles.actions}>
           <FilterPillTabs
             items={DATE_PRESETS}
             activeId={DATE_PRESETS.find(({ id }) => isPresetActive(Number(id)))?.id}
             onChange={(id) => handlePresetClick(Number(id))}
             ariaLabel="Audit log date presets"
+            className={`${styles.presets} admin-toolbar-chips`}
           />
 
           {/* Custom Date Range Popover Button */}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={isCustomDateSelected ? "default" : "outline"}
-                size="sm"
-                className={`h-10 rounded-xl px-3.5 font-body text-xs font-semibold transition-colors gap-2 cursor-pointer ${isCustomDateSelected ? "shadow-xs" : ""}`}
+          <div className="admin-toolbar-desktop-only">
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={isCustomDateSelected ? "default" : "outline"}
+                  size="sm"
+                  className={`${styles.date} ${isCustomDateSelected ? "shadow-xs" : ""}`}
+                >
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  <span>
+                    {isCustomDateSelected && dateRange.from
+                      ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
+                      : "Date range"}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="audit-log-calendar w-auto max-w-[calc(100vw-1.5rem)] p-0 rounded-2xl shadow-md border-border/80"
+                align="end"
               >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span>
-                  {isCustomDateSelected && dateRange.from
-                    ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
-                    : "Date range"}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto p-0 rounded-2xl shadow-md border-border/80"
-              align="end"
-            >
-              <Calendar
-                mode="range"
-                selected={
-                  dateRange.from
-                    ? { from: dateRange.from, to: dateRange.to }
-                    : undefined
-                }
-                onSelect={(range) => {
-                  onDateRangeChange({ from: range?.from, to: range?.to });
-                }}
-                numberOfMonths={1}
-              />
-            </PopoverContent>
-          </Popover>
+                <Calendar
+                  mode="range"
+                  selected={
+                    dateRange.from
+                      ? { from: dateRange.from, to: dateRange.to }
+                      : undefined
+                  }
+                  onSelect={(range) => {
+                    onDateRangeChange({ from: range?.from, to: range?.to });
+                  }}
+                  numberOfMonths={1}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
           {/* 1-Click Reset */}
-          {hasActiveFilters && (
+          <div className="admin-toolbar-desktop-only">{hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
               onClick={clearAll}
-              className="h-10 px-3 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
+              className={styles.reset}
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
             </Button>
           )}
+          </div>
         </div>
       </div>
     </div>

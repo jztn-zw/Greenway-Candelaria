@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/common/BackButton";
+import "@/components/communityContent.css";
 import { FieldButton } from "@/components/ui/field-button";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -646,9 +648,10 @@ const PostEditor = ({
   }, [editingPost, form.status]);
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto space-y-5 pb-20">
+    <div className="admin-community-editor min-w-0 w-full max-w-[1000px] mx-auto space-y-5 pb-10">
+      <BackButton onBack={handleAttemptBack} label="Back to posts" disabled={isSaving || isUploading} className="mb-0" />
       {/* ── Section 1: Post Content & Details ── */}
-      <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
+      <section className="admin-community-editor-panel min-w-0 bg-card border border-border/80 rounded-2xl space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
           <h1 className="gw-heading text-lg sm:text-xl text-foreground tracking-tight leading-tight">
             {editingPost ? "Edit Post" : "Create Post"}
@@ -702,7 +705,7 @@ const PostEditor = ({
       </section>
 
       {/* ── Section 2: Media & Cover Photo ── */}
-      <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
+      <section className="admin-community-editor-panel min-w-0 bg-card border border-border/80 rounded-2xl space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
           <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight">
             Media & Cover Photo
@@ -848,7 +851,7 @@ const PostEditor = ({
       </section>
 
       {/* ── Section 3: Publishing & Visibility Settings ── */}
-      <section className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
+      <section className="admin-community-editor-panel min-w-0 bg-card border border-border/80 rounded-2xl space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
           <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight">
             Publishing Settings
@@ -992,49 +995,40 @@ const PostEditor = ({
       </section>
 
       {/* ── Section 4: Footer Action Controls ── */}
-      <div className="pt-4 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          {onPreview && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onPreview(getFormWithImages())}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold gap-2 transition-all cursor-pointer shadow-2xs"
-            >
-              <Eye className="w-4 h-4 text-muted-foreground" />
-              <span>Preview as Resident</span>
-            </Button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap justify-end">
+      <div className={`admin-community-editor-actions rounded-xl border border-border/80 bg-card p-3 shadow-2xs ${!onPreview ? "admin-community-editor-actions--without-preview" : ""}`}>
+        {onPreview && (
           <Button
             type="button"
             variant="outline"
-            onClick={handleAttemptBack}
-            className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs"
+            onClick={() => onPreview(getFormWithImages())}
+            disabled={isSaving || isUploading}
+            className="admin-community-editor-preview min-w-0 h-11 px-3 rounded-lg text-xs font-semibold gap-2"
           >
-            Cancel
+            <Eye className="w-4 h-4 text-muted-foreground" />
+            <span>Preview<span className="admin-community-preview-label"> as Resident</span></span>
           </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleAttemptBack}
+          disabled={isSaving || isUploading}
+          className="min-w-0 h-11 px-3 rounded-lg text-xs font-semibold"
+        >
+          Cancel
+        </Button>
 
-          <Button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={
-              isUploading ||
-              isSaving
-            }
-            className="h-10 px-5 rounded-xl text-xs sm:text-sm font-semibold gap-2 shadow-sm transition-all cursor-pointer"
-            loading={isSaving}
-            loadingLabel="Saving post…"
-          >
-
-            <>
-                <Send className="w-4 h-4" />
-                <span>{saveButtonLabel}</span>
-              </>
-          </Button>
-        </div>
+        <Button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={isUploading || isSaving}
+          className="admin-community-editor-submit min-w-0 h-11 px-4 rounded-lg text-xs font-semibold gap-2"
+          loading={isSaving}
+          loadingLabel="Saving post…"
+        >
+          <Send className="w-4 h-4" />
+          <span>{saveButtonLabel}</span>
+        </Button>
       </div>
 
       {/* ── Unsaved Changes / Save As Draft Dialog ── */}

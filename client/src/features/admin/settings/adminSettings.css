@@ -1,0 +1,52 @@
+.admin-settings {
+  container: admin-settings / inline-size;
+  overflow-wrap: anywhere;
+}
+
+.admin-settings-theme-short {
+  display: none;
+}
+
+/* Keep every wrapped text line in the same place during loading. */
+.admin-settings .admin-settings-skeleton-text {
+  background-color: transparent;
+  background-image: linear-gradient(to bottom, transparent 0.18em, hsl(var(--muted)) 0.18em, hsl(var(--muted)) 1em, transparent 1em);
+  background-size: 100% 1lh;
+}
+
+@container admin-settings (max-width: 22.5rem) {
+  .admin-settings-theme-long {
+    display: none;
+  }
+
+  .admin-settings-theme-short {
+    display: inline;
+  }
+}
+
+@container admin-settings (min-width: 37.5rem) {
+  .admin-settings .admin-settings-label,
+  .admin-settings .admin-settings-theme-button {
+    font-size: 0.875rem;
+  }
+
+  .admin-settings .admin-settings-section {
+    padding: 1.5rem;
+  }
+
+  .admin-settings .admin-settings-section-title {
+    font-size: 1rem;
+  }
+
+  .admin-settings .admin-settings-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-settings,
+  .admin-settings .animate-pulse {
+    animation: none;
+  }
+}

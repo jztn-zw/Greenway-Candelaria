@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import AdminNotificationModal, { type AdminNotificationDetail } from "@/features/admin/notifications/AdminNotificationModal";
-import { getAdminNotificationDestination, getNotificationHeadline, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
+import { getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
 import useNotifications from "@/features/admin/notifications/useAdminNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
@@ -96,9 +96,12 @@ const AdminTopBar = () => {
     setPopoverOpen(false);
     const destination = getAdminNotificationDestination(n);
     if (destination) navigate(destination);
-    else setModalNotification({ id: n.id, title: getNotificationHeadline(n).prefix,
-      message: n.body, type: n.type, time: formatRelativeTime(n.created_at),
-      ref_module: n.ref_module, metadata: n.metadata });
+    else {
+      const { headline, message } = getAdminNotificationPresentation(n);
+      setModalNotification({ id: n.id, title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
+        message, type: n.type, time: formatRelativeTime(n.created_at),
+        ref_module: n.ref_module, metadata: n.metadata });
+    }
   };
 
   const visibleNotifications = notifications.slice(0, visibleNotificationCount);
@@ -322,7 +325,7 @@ const AdminTopBar = () => {
               <div>
                 {visibleNotifications.length > 0 ? (
                   visibleNotifications.map((n) => {
-                    const headline = getNotificationHeadline(n);
+                    const { headline, message } = getAdminNotificationPresentation(n);
                     const { Icon, style: avatarStyle } = getNotificationIconAndStyle(n);
                     const isUnread = !n.is_read;
 
@@ -359,9 +362,9 @@ const AdminTopBar = () => {
                             )}
                           </div>
 
-                          {n.body && (
+                          {message && (
                             <p className="text-ui-caption text-muted-foreground line-clamp-2 leading-relaxed break-words">
-                              {n.body}
+                              {message}
                             </p>
                           )}
 

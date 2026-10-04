@@ -4,8 +4,16 @@ import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
 import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
 import {
+  Archive,
+  ArchiveRestore,
+  Copy,
+  Eye,
+  EyeOff,
   MoreVertical,
+  Pencil,
   Star,
+  StarOff,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -179,32 +187,44 @@ const AdminPostDetail = ({
                   {onEdit && (
                     <DropdownMenuItem
                       onClick={() => onEdit(post)}
-                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                     >
+                      <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                       Edit Post
                     </DropdownMenuItem>
                   )}
                   {onDuplicate && (
                     <DropdownMenuItem
                       onClick={() => onDuplicate(post)}
-                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                     >
+                      <Copy className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                       Duplicate
                     </DropdownMenuItem>
                   )}
                   {!isArchived && onTogglePublish && (
                     <DropdownMenuItem
                       onClick={() => onTogglePublish(post)}
-                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                     >
+                      {isPublished ? (
+                        <EyeOff className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      ) : (
+                        <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      )}
                       {isPublished ? "Unpublish" : "Publish"}
                     </DropdownMenuItem>
                   )}
                   {!isArchived && onToggleFeatured && (
                     <DropdownMenuItem
                       onClick={() => onToggleFeatured(post)}
-                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                      className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                     >
+                      {post.featured ? (
+                        <StarOff className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      ) : (
+                        <Star className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      )}
                       {post.featured ? "Unfeature" : "Feature Post"}
                     </DropdownMenuItem>
                   )}
@@ -213,8 +233,13 @@ const AdminPostDetail = ({
                       <DropdownMenuSeparator className="my-1" />
                       <DropdownMenuItem
                         onClick={() => onArchive(post)}
-                        className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                        className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                       >
+                        {isArchived ? (
+                          <ArchiveRestore className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        ) : (
+                          <Archive className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        )}
                         {isArchived ? "Restore" : "Archive"}
                       </DropdownMenuItem>
                     </>
@@ -224,8 +249,9 @@ const AdminPostDetail = ({
                       <DropdownMenuSeparator className="my-1" />
                       <DropdownMenuItem
                         onClick={() => onDelete(post)}
-                        className="text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg px-2.5 py-2"
+                        className="text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                       >
+                        <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
                         Delete
                       </DropdownMenuItem>
                     </>

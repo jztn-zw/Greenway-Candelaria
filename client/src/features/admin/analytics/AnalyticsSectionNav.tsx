@@ -62,7 +62,7 @@ const AnalyticsSectionNav: React.FC<Props> = ({ activeSection, onSectionChange }
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
+      className="analytics-tabs flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none touch-pan-x select-none cursor-grab active:cursor-grabbing scroll-smooth"
     >
       {sections.map((s) => {
         const active = activeSection === s.id;

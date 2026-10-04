@@ -4,6 +4,7 @@ import { Clock, FileText, Truck, CheckCircle2, ArrowRight, Wrench } from "lucide
 import { useNavigate } from "react-router-dom";
 import { DashboardAttention } from "./useAdminDashboard";
 import { formatRelativeTime } from "@/utils/date";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 interface NeedsAttentionProps {
   attention?: DashboardAttention | null;
@@ -18,11 +19,10 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
     - items.filter((item) => item.kind === "report").length);
 
   return (
-    <section aria-labelledby="needs-attention-heading" className="relative min-h-[380px] min-w-0 rounded-2xl border border-border/80 bg-card shadow-2xs">
-      {/* Keep list contents from expanding the dashboard grid row. */}
-      <div className="absolute inset-4 sm:inset-6 flex min-h-0 flex-col">
-        <div className="mb-3 flex min-h-8 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 id="needs-attention-heading" className="gw-heading flex min-h-8 items-center text-base sm:text-lg text-foreground tracking-tight">Needs Attention</h3>
+    <section aria-labelledby="needs-attention-heading" className={styles.attention}>
+      <div className={styles.attentionInner}>
+        <div className={`${styles.sectionHeader} min-h-8 shrink-0`}>
+          <h3 id="needs-attention-heading" className={`${styles.sectionTitle} flex min-h-8 items-center`}>Needs Attention</h3>
           <Badge variant="outline" className={attentionCount > 0
             ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-ui-caption font-semibold px-2.5 py-0.5 rounded-md tabular-nums"
             : "bg-muted/40 text-muted-foreground border-border/60 text-ui-caption font-semibold px-2.5 py-0.5 rounded-md tabular-nums"}>
@@ -30,7 +30,7 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
           </Badge>
         </div>
         <div role="region" aria-label="Items needing attention" tabIndex={0}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
+          className={`${styles.attentionList} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]`}>
           {items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 sm:p-5 text-center">
               <CheckCircle2 className="w-9 h-9 text-success-foreground mb-2" />

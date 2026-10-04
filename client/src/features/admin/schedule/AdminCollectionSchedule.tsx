@@ -1,3 +1,4 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -5,6 +6,7 @@ import { getEventColors, getManilaCalendarDate, calendarDateKey, eventOccursOnDa
 import { AdminScheduleSkeleton } from "@/components/PageLoadingSkeletons";
 import { SearchInput } from "@/components/common";
 import { Button } from "@/components/ui/button";
+import { adminCommunityStyles as managerStyles, adminScheduleStyles as scheduleStyles } from "@/components/communityContentStyles";
 
 import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
@@ -16,7 +18,7 @@ CalendarEvent,
 CreateEventPayload,
 fetchCalendarEvents,
 } from "@/services/scheduleService";
-import { AlertCircle, Plus, RotateCcw } from "lucide-react";
+import { AlertCircle, CalendarDays, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { EventDetailModal } from "./EventDetailModal";
@@ -71,12 +73,6 @@ const AdminCollectionSchedule: React.FC = () => {
       });
   }, [filteredEvents, selectedDateStr]);
 
-  const hasActiveFilters = searchQuery.trim() !== "";
-
-  const handleResetFilters = () => {
-    setSearchQuery("");
-  };
-
   const handleOpenCreate = () => {
     setEditingEvent(null);
     setIsModalOpen(true);
@@ -120,65 +116,54 @@ const AdminCollectionSchedule: React.FC = () => {
   if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the internal schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
+    <div className={scheduleStyles.page}>
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            Schedule Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Plan internal MENRO activities. Resident collection days are managed in Route Manager.
-          </p>
-        </div>
-
-        <Button
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Schedule Manager"
+        description="Plan MENRO activities. Manage resident collection days in Route Manager."
+        actionsClassName="admin-module-header-actions"
+        actions={<Button
           onClick={handleOpenCreate}
-          className="h-10 px-4 rounded-xl font-semibold shadow-xs cursor-pointer text-xs shrink-0 self-start sm:self-auto gap-2"
+          className={`${managerStyles.action} shrink-0`}
         >
           <Plus className="w-4 h-4" />
           <span>New Internal Schedule</span>
-        </Button>
-      </div>
+        </Button>}
+      />
 
       {eventsQuery.error && <DataRefreshNotice message="Couldn't refresh the schedule. Your current work is preserved; loaded events may be outdated." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} />}
 
-      {/* ── 4 Bento Metric Cards ── */}
+      {/* Schedule summary */}
       <ScheduleKPIs events={events} />
 
-      {/* ── Search Toolbar ── */}
-      <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+      <section className={scheduleStyles.workspace} aria-labelledby="internal-calendar-title">
+        <div className={scheduleStyles.workspaceHeader}>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CalendarDays className="size-4" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal calendar</h2>
+              <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
+            </div>
+          </div>
+          <div className={scheduleStyles.toolbar}>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-               placeholder="Search internal schedule title or venue..."
-              containerClassName="w-full sm:max-w-xs md:max-w-sm"
+              placeholder="Search internal schedule title or venue..."
+              containerClassName={scheduleStyles.search}
             />
-
           </div>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-9 px-2.5 text-xs rounded-xl shrink-0 gap-1.5 cursor-pointer transition-all"
-              title="Reset active filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </Button>
-          )}
         </div>
-      </section>
 
-      {/* ── Calendar ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2">
+        {/* Calendar and selected-day activities */}
+        <div className={`${scheduleStyles.layout} p-3 sm:p-5`}>
+          <div className="min-w-0">
             <CalendarGrid
-              className="lg:h-[620px]"
+              className={scheduleStyles.calendar}
+              headingLabel={currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               fillHeight
               compactMobileCells
               currentDate={currentDate}
@@ -206,8 +191,10 @@ const AdminCollectionSchedule: React.FC = () => {
             />
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="min-w-0">
             <SelectedDayPanel
+              className={scheduleStyles.dayPanel}
+              variant="admin"
               selectedDateStr={selectedDateStr}
               events={selectedDayEvents}
               scheduleColorById={scheduleColorById}
@@ -216,6 +203,7 @@ const AdminCollectionSchedule: React.FC = () => {
             />
           </div>
         </div>
+      </section>
       {/* ── Create / Edit Event Modal ── */}
       <EventModal
         isOpen={isModalOpen}

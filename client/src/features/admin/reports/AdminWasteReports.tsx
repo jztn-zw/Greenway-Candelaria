@@ -1,3 +1,4 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { WasteReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -27,6 +28,7 @@ import { useSearchParams } from "react-router-dom";
 import ReportDetailPanel from "./ReportDetailPanel";
 import ReportFilters from "./ReportFilters";
 import ReportKPIs from "./ReportKPIs";
+import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
 import ReportListTable from "./ReportListTable";
 import {
 STATUS_LABEL_TO_BACKEND,
@@ -74,7 +76,7 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
 });
 
 const pageTitle = "Waste Reports";
-const pageDescription = "Monitor, manage, and dispatch waste collection and incident reports across Candelaria.";
+const pageDescription = "Manage and dispatch waste reports across Candelaria.";
 
 const AdminWasteReports = () => {
   const updateAdminReportStatus = useAdminMutation(apiupdateAdminReportStatus, "reports", "residents", "notifications");
@@ -326,20 +328,13 @@ const AdminWasteReports = () => {
   if (error && !hasLoadedRef.current) return <PageErrorState kind="unavailable" description="We couldn't load waste reports. Please try again." onRetry={() => void loadReports()} retrying={listQuery.isFetching} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6 pb-10">
+    <div className={styles.page}>
       {/* ── Executive Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-            {pageTitle}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {pageDescription}
-          </p>
-        </div>
-
-
-      </div>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title={pageTitle}
+        description={pageDescription}
+      />
 
       {/* ── Error State Banner ── */}
       {error && <DataRefreshNotice message="Couldn't update waste reports. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void loadReports()} retrying={listQuery.isFetching} />}
@@ -405,7 +400,7 @@ const AdminWasteReports = () => {
       >
         <SheetContent
           side="right"
-          className={`w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col h-full bg-card border-l border-border/80 shadow-2xl z-[100] focus:outline-none [&>button:last-child]:hidden transition-transform duration-300 ${isFlagDialogOpen ? "translate-x-full pointer-events-none" : ""}`}
+          className={`w-full sm:max-w-xl md:max-w-2xl p-0 flex min-h-0 flex-col h-dvh bg-card border-l border-border/80 shadow-2xl z-[100] focus:outline-none [&>button:last-child]:hidden transition-transform duration-300 ${isFlagDialogOpen ? "translate-x-full pointer-events-none" : ""}`}
         >
           <SheetTitle className="sr-only">Waste Report Details</SheetTitle>
           <SheetDescription className="sr-only">

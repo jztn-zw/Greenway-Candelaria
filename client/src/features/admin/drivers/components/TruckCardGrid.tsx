@@ -2,6 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Truck as TruckIcon,
   MoreHorizontal,
+  Eye,
+  Pencil,
+  Wrench,
+  CheckCircle2,
+  Trash2,
   User,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
@@ -15,6 +20,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Truck, Driver, truckStatusStyles } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { cn } from "@/lib/utils";
 
 interface TruckCardGridProps {
   trucks: Truck[];
@@ -93,18 +100,18 @@ const TruckCardGrid = ({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        <div className={styles.grid}>
           {paginated.map((t) => {
             const driver = getDriver(t.assignedDriverId);
             return (
               <div
                 key={t.id}
                 onClick={() => onView(t)}
-                className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 hover:border-primary/40 transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                className={cn(styles.card, "hover:border-primary/40 transition-all duration-200 cursor-pointer group")}
               >
                 {/* Header Row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3.5 min-w-0">
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardIdentity}>
                     <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
                       <TruckIcon className="w-5 h-5 text-primary" />
                     </div>
@@ -118,7 +125,7 @@ const TruckCardGrid = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div className={styles.cardControls} onClick={(e) => e.stopPropagation()}>
                     <Badge
                       variant="outline"
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border shadow-2xs ${
@@ -133,26 +140,35 @@ const TruckCardGrid = ({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Actions for ${t.name}`}
                           className="h-8 w-8 rounded-lg cursor-pointer"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-lg border border-border/80 p-1">
-                        <DropdownMenuItem onClick={() => onView(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onView(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground">
+                        <DropdownMenuItem onClick={() => onEdit(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Edit Truck
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onToggleStatus(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground whitespace-nowrap">
+                        <DropdownMenuItem onClick={() => onToggleStatus(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground whitespace-nowrap gap-2">
+                          {t.status === "Active" ? (
+                            <Wrench className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          ) : (
+                            <CheckCircle2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          )}
                           {t.status === "Active" ? "Mark Under Maintenance" : "Mark as Active"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(t)}
-                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive gap-2"
                         >
+                          <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
                           Delete Truck
                         </DropdownMenuItem>
                       </DropdownMenuContent>

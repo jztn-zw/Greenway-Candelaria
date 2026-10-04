@@ -1,9 +1,11 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 
 
 import { AuditLogsSkeleton } from "@/components/PageLoadingSkeletons";
+import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { toast } from "@/lib/toast";
@@ -15,7 +17,7 @@ import AuditLogTable from "./AuditLogTable";
 
 const PAGE_SIZE = 10;
 const pageTitle = "Audit Logs";
-const pageDescription = "Track, investigate, and audit all administrative actions, system modifications, and security events across GreenWay.";
+const pageDescription = "Audit admin actions, system changes, and security events.";
 
 const AdminAuditLogs = () => {
   const [search, setSearch] = useState("");
@@ -48,22 +50,13 @@ const AdminAuditLogs = () => {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
+    <div className={styles.page}>
       {/* ── Executive Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-              {pageTitle}
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {pageDescription}
-          </p>
-        </div>
-
-
-      </div>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title={pageTitle}
+        description={pageDescription}
+      />
 
       {query.error && <DataRefreshNotice message="Couldn't update audit logs. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
 

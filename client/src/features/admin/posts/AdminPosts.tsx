@@ -1,4 +1,8 @@
+import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
+import { adminCommunityStyles as postStyles } from "@/components/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
@@ -538,7 +542,7 @@ const AdminPosts = () => {
   if (isDetailLoading)
     return (
       <div className="w-full max-w-[1600px] mx-auto">
-        <AdminPostDetailSkeleton />
+        <AdminPostDetailSkeleton onBack={handleBackFromDetail} />
       </div>
     );
 
@@ -606,32 +610,26 @@ const AdminPosts = () => {
   if (loadError && !hasLoadedListRef.current) return <PageErrorState kind="unavailable" description="We couldn't load community posts. Please try again." onRetry={() => void loadPosts()} retrying={listQuery.isFetching} homeHref="/admin" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 sm:space-y-7 pb-10">
+    <div className={postStyles.page}>
       {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">
-              Community Posts
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Publish and manage community waste tips, guidelines, and event updates.
-          </p>
-        </div>
-        <Button onClick={() => openEditor()} className="gap-2 rounded-xl shadow-sm cursor-pointer shrink-0">
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="Community Posts"
+        description="Publish and manage community waste tips, guidelines, and event updates."
+        actionsClassName="admin-module-header-actions"
+        actions={<Button onClick={() => openEditor()} className={`${postStyles.action} shrink-0`}>
           <Plus className="w-4 h-4" /> Create Post
-        </Button>
-      </div>
+        </Button>}
+      />
 
       <PostStats posts={posts} stats={postStats || undefined} />
 
       {loadError && <DataRefreshNotice message="Couldn't update community posts. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void loadPosts()} retrying={listQuery.isFetching} />}
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
-      <section className="rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
+      <section className={`${postStyles.toolbar} admin-toolbar`}>
         {/* Tier 1: Status Navigation & Search */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 p-4 sm:p-5">
+        <div className={`${postStyles.primary} admin-toolbar-primary`}>
           {/* Status filters */}
           <FilterPillTabs
             items={STATUS_TABS}
@@ -641,60 +639,132 @@ const AdminPosts = () => {
               setCurrentPage(1);
             }}
             ariaLabel="Post status filters"
+            className={`${postStyles.tabs} admin-toolbar-chips`}
           />
 
           {/* Search Input */}
-          <SearchInput
-            placeholder="Search posts by title, tag, or author..."
-            value={search}
-            onChange={(value) => {
-              setSearch(value);
-              setCurrentPage(1);
-            }}
-            containerClassName="w-full xl:w-[330px] shrink-0"
-          />
+          <div className={`${postStyles.search} admin-toolbar-search-row`}>
+            <SearchInput
+              placeholder="Search posts by title, tag, or author..."
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                setCurrentPage(1);
+              }}
+              containerClassName="min-w-0 flex-1"
+            />
+            <AdminFilterDialog title="Filter Posts" activeCount={Number(categoryFilter !== "all") + Number(sortBy !== "newest")}
+              values={{ categoryFilter, sortBy, viewMode }}
+              onApply={(next) => {
+                setCategoryFilter(next.categoryFilter);
+                setSortBy(next.sortBy);
+                setViewMode(next.viewMode);
+                setCurrentPage(1);
+              }}
+              resetValues={{ categoryFilter: "all", sortBy: "newest", viewMode }}
+            >
+              {(draft, setDraft) => (
+                <>
+                  <AdminFilterField label="Category">
+                    <Select
+                      value={draft.categoryFilter}
+                      onValueChange={(v) => {
+                        setDraft({ ...draft, categoryFilter: v });
+                      }}
+                    >
+                      <SelectTrigger aria-label="Category" className="h-9 w-full rounded-xl text-xs">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent align="start" className="rounded-xl border border-border">
+                        <SelectItem value="all" className="text-xs">All Categories</SelectItem>
+                        <SelectItem value="Waste Tip" className="text-xs">Waste Tip</SelectItem>
+                        <SelectItem value="Event" className="text-xs">Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Sort order">
+                    <Select
+                      value={draft.sortBy}
+                      onValueChange={(v) => {
+                        setDraft({ ...draft, sortBy: v });
+                      }}
+                    >
+                      <SelectTrigger aria-label="Sort order" className="h-9 w-full rounded-xl text-xs">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="admin-community-sort-value">
+                            <SelectValue placeholder="Sort by" />
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent align="end" className="rounded-xl border border-border">
+                        <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
+                        <SelectItem value="oldest" className="text-xs">Oldest First</SelectItem>
+                        <SelectItem value="views" className="text-xs">Most Views</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminFilterField>
+                  <AdminFilterField label="Layout">
+                    <SegmentedControl<"grid" | "list">
+                      options={[
+                        { value: "grid", label: "Grid view", icon: LayoutGrid },
+                        { value: "list", label: "List view", icon: List },
+                      ]}
+                      value={draft.viewMode}
+                      onChange={(value) => setDraft({ ...draft, viewMode: value })}
+                      ariaLabel="Post layout"
+                      className="admin-filter-layout"
+                    />
+                  </AdminFilterField>
+                </>
+              )}
+            </AdminFilterDialog>
+          </div>
         </div>
 
         {/* Tier 2: Secondary Filter Strip */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="mr-1 inline-flex items-center gap-1.5 text-ui-caption font-semibold uppercase tracking-wider text-muted-foreground">
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
+        <div className={`${postStyles.secondary} admin-toolbar-secondary`}>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className={postStyles.filterLabel}>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
+            </div>
+
+            {/* Category Filter */}
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => {
+                setCategoryFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger aria-label="Filter posts by category" className={postStyles.category}>
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent align="start" className="rounded-xl border border-border">
+                <SelectItem value="all" className="text-xs">All Categories</SelectItem>
+                <SelectItem value="Waste Tip" className="text-xs">Waste Tip</SelectItem>
+                <SelectItem value="Event" className="text-xs">Event</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters button */}
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllFilters}
+                aria-label="Clear all post filters"
+                className="h-8 shrink-0 rounded-xl gap-1 px-2 text-xs [&_svg]:size-3.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="admin-community-clear-label">Clear all</span>
+              </Button>
+            )}
           </div>
 
-          {/* Category Filter */}
-          <Select
-            value={categoryFilter}
-            onValueChange={(v) => {
-              setCategoryFilter(v);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent align="start" className="rounded-xl border border-border">
-              <SelectItem value="all" className="text-xs">All Categories</SelectItem>
-              <SelectItem value="Waste Tip" className="text-xs">Waste Tip</SelectItem>
-              <SelectItem value="Event" className="text-xs">Event</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Clear Filters button */}
-          {activeFilterCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAllFilters}
-              className="h-9 px-2.5 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear all</span>
-            </Button>
-          )}
-
           {/* Right side: Sort By + View Mode Toggle */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Select
               value={sortBy}
               onValueChange={(v) => {
@@ -702,9 +772,13 @@ const AdminPosts = () => {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl">
-                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Sort by" />
+              <SelectTrigger aria-label={`Sort posts: ${sortBy === "newest" ? "Newest first" : sortBy === "oldest" ? "Oldest first" : "Most views"}`} className={postStyles.sort}>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="admin-community-sort-value">
+                    <SelectValue placeholder="Sort by" />
+                  </span>
+                </div>
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl border border-border">
                 <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
@@ -714,15 +788,16 @@ const AdminPosts = () => {
             </Select>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center p-0.5 rounded-xl bg-muted/60 border border-border/80 gap-0.5 shrink-0 shadow-2xs">
+            <div className="flex h-8 items-center p-0.5 rounded-xl bg-muted/60 border border-border/80 gap-0.5 shrink-0 shadow-2xs" role="group" aria-label="Post layout">
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
-                  viewMode === "grid"
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
+                className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring ${viewMode === "grid"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
                     : "gw-action-ghost "
-                }`}
+                  }`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -730,11 +805,12 @@ const AdminPosts = () => {
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer select-none border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${
-                  viewMode === "list"
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
+                className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring ${viewMode === "list"
                     ? "bg-card text-foreground shadow-2xs font-semibold"
                     : "gw-action-ghost "
-                }`}
+                  }`}
                 title="List View"
               >
                 <List className="w-4 h-4" />
@@ -755,7 +831,7 @@ const AdminPosts = () => {
           </p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className={postStyles.grid}>
           {posts.map((post) => (
             <PostCard
               key={post.id}

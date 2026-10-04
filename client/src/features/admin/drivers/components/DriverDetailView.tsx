@@ -18,6 +18,9 @@ import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { CollectorManagerActivitySkeleton } from "@/components/PageLoadingSkeletons";
+import { cn } from "@/lib/utils";
 
 interface DriverDetailViewProps {
   driver: Driver;
@@ -45,7 +48,7 @@ const DriverDetailView = ({
   const truck = trucks.find((t) => t.id === driver.truckId);
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6">
+    <div className={styles.detailPage}>
       <div>
         <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
           Collector Profile
@@ -56,14 +59,14 @@ const DriverDetailView = ({
       </div>
 
       {/* ── Collector Profile Overview Card ── */}
-      <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
+      <div className={styles.profileCard}>
+        <div className={styles.profileHeader}>
+          <div className={styles.profileIdentity}>
             <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
               <img src={profileAvatarSrc(profileAvatarForAccount(driver.userId, driver.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className={styles.profileName}>
                 <h2 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
                   {driver.fullName}
                 </h2>
@@ -82,7 +85,7 @@ const DriverDetailView = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={styles.profileActions}>
             <Button
               variant="outline"
               size="sm"
@@ -123,7 +126,7 @@ const DriverDetailView = ({
         </div>
 
         {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-x-6 pt-6 border-t border-border/60">
+        <div className={styles.profileDetails}>
           {/* Layer 1: Primary Contact & Assigned Vehicle */}
           <div className="space-y-1.5">
             <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -206,9 +209,7 @@ const DriverDetailView = ({
         </div>
 
         {isActivityLoading ? (
-          <div className="bg-card border border-border/80 rounded-2xl p-12 text-center shadow-2xs">
-            <p className="text-sm text-muted-foreground">Loading activity...</p>
-          </div>
+          <CollectorManagerActivitySkeleton />
         ) : activityError ? (
           <DataRefreshNotice primary role="alert" message="Couldn't load collection activity. Please try again." onRetry={() => onRetryActivity?.()} retrying={isActivityRefreshing} />
         ) : driver.activityLog.length === 0 ? (
@@ -222,16 +223,16 @@ const DriverDetailView = ({
             {driver.activityLog.map((a, i) => (
               <div
                 key={i}
-                className="bg-card border border-border/80 rounded-2xl p-5 space-y-3 shadow-2xs hover:border-primary/30 transition-all duration-200"
+                className={cn(styles.activity, "hover:border-primary/30 transition-all duration-200")}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
+                <div className={styles.activityHeader}>
+                  <div className={styles.activityBadges}>
                     <span className="text-sm font-semibold font-body tabular-nums text-foreground">
                       {a.date}
                     </span>
                     <Badge
                       variant="outline"
-                      className={"text-xs font-semibold px-2.5 py-0.5 rounded-md " + badgeStyles.neutral.className}
+                      className={"max-w-full whitespace-normal break-words text-xs font-semibold px-2.5 py-0.5 rounded-md " + badgeStyles.neutral.className}
                     >
                       {a.route}
                     </Badge>

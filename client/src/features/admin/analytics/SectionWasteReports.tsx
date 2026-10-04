@@ -22,9 +22,9 @@ const SectionWasteReports: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Reports Volume & Status Breakdown */}
-      <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
+      <div className="analytics-grid grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
         {/* Weekly Report Volume */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="analytics-card bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center shrink-0">
               <TrendingUp className="w-4 h-4" />
@@ -54,7 +54,7 @@ const SectionWasteReports: React.FC = () => {
         </div>
 
         {/* Report Status Distribution */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="analytics-card bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
               <PieIcon className="w-4 h-4" />
@@ -99,9 +99,9 @@ const SectionWasteReports: React.FC = () => {
       </div>
 
       {/* Resolution Time & Common Violations */}
-      <div className="grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
+      <div className="analytics-grid grid gap-4 sm:gap-5 grid-cols-1 lg:grid-cols-2">
         {/* Monthly Turnaround Time */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="analytics-card bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4" />
@@ -124,7 +124,7 @@ const SectionWasteReports: React.FC = () => {
         </div>
 
         {/* Most Common Violations */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="analytics-card bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-4 h-4" />
@@ -142,7 +142,7 @@ const SectionWasteReports: React.FC = () => {
                   #{i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="analytics-category-heading flex justify-between items-center mb-1">
                     <span className="text-xs font-semibold text-foreground truncate">{v.type}</span>
                     <span className="text-xs font-semibold text-destructive tabular-nums">{v.count} reports</span>
                   </div>
@@ -161,7 +161,7 @@ const SectionWasteReports: React.FC = () => {
       </div>
 
       {/* Reports by Barangay */}
-      <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+      <div className="analytics-card bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
             <MapPin className="w-4 h-4" />
@@ -172,6 +172,7 @@ const SectionWasteReports: React.FC = () => {
           </div>
         </div>
 
+        <div className="analytics-scroll analytics-area-chart overflow-x-auto" tabIndex={0} role="region" aria-label="Reports by barangay chart">
         <ChartContainer config={brgyConfig} className="h-[300px] w-full aspect-auto">
           <BarChart data={reportsByBarangay} layout="vertical" margin={{ left: 90, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
@@ -181,6 +182,8 @@ const SectionWasteReports: React.FC = () => {
             <Bar dataKey="reports" fill="var(--color-reports)" radius={[0, 6, 6, 0]} barSize={16} />
           </BarChart>
         </ChartContainer>
+        </div>
+        <p className="analytics-scroll-hint text-ui-caption text-muted-foreground">Scroll horizontally to view all chart details.</p>
       </div>
     </div>
   );

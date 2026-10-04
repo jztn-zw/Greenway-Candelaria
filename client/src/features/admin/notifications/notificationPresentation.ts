@@ -1,5 +1,6 @@
 import { AlertTriangle, Bell, CalendarDays, CheckCircle2, FileText, Megaphone, MessageSquare, Newspaper, Truck } from "lucide-react";
 import type { NotificationRow } from "@/services/notificationsService";
+import { getResidentNotificationPresentation } from "@/features/resident/notifications/notificationPresentation";
 
 export type AdminCategory = "all" | "operations" | "reports" | "content" | "announcements";
 
@@ -13,10 +14,63 @@ export const getAdminCategory = (notification: NotificationRow): AdminCategory =
   return "all";
 };
 
-export const getNotificationHeadline = (notification: NotificationRow) => {
-  const title = (notification.title || "Notification").replace(/🚨|⚠️|⚠/g, "").trim();
-  const repeatedTitle = title.match(/^(.+?):\s*\1$/i);
-  return { prefix: repeatedTitle ? repeatedTitle[1] : title, connector: "", highlight: "" };
+export const getAdminNotificationMetadata = (notification: Pick<NotificationRow, "metadata">): Record<string, unknown> => {
+  try {
+    const metadata = typeof notification.metadata === "string" ? JSON.parse(notification.metadata) : notification.metadata;
+    return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+  } catch {
+    return {};
+  }
+};
+
+/** One headline/message contract for the admin feed, bell menu, and detail dialog. */
+export const getAdminNotificationPresentation = (notification: NotificationRow) => {
+  const cleanedTitle = (notification.title || "").replace(/🚨|⚠️|⚠/g, "").trim();
+  const repeatedTitle = cleanedTitle.match(/^(.+?):\s*\1$/i);
+  const normalizedTitle = repeatedTitle ? repeatedTitle[1] : cleanedTitle;
+  const title = normalizedTitle || "System Notification";
+  const message = notification.body?.trim() || "";
+  const category = getAdminCategory(notification);
+
+  if (category === "content" || category === "announcements") {
+    const presentation = getResidentNotificationPresentation({ ...notification, title: normalizedTitle });
+    // Generated post previews use the module name shown in the admin portal.
+    return { ...presentation, message: category === "content" && presentation.message !== message
+      ? presentation.message.replace("in Community Updates.", "in Community Posts.") : presentation.message };
+  }
+
+  const newReport = title.match(/^New Report:\s*(.+)$/i);
+  if (category === "reports" && newReport) {
+    return { headline: { prefix: "A resident", connector: "submitted a waste report:", highlight: newReport[1] }, message };
+  }
+
+  const collectorMessage = title.match(/^New Collector Message:\s*(.+)$/i);
+  if (collectorMessage) {
+    return { headline: { prefix: collectorMessage[1], connector: "sent a message", highlight: "" }, message };
+  }
+
+  const breakdown = title.match(/^Truck breakdown(?::\s*(.+))?$/i);
+  if (notification.ref_module === "truck-breakdowns" && breakdown) {
+    const metadata = getAdminNotificationMetadata(notification);
+    const driver = typeof metadata.driver_name === "string" ? metadata.driver_name.trim() : "";
+    const truckName = typeof metadata.truck_name === "string" ? metadata.truck_name.trim() : "";
+    const truckPlate = typeof metadata.truck_plate === "string" ? metadata.truck_plate.trim() : "";
+    const truck = truckName || truckPlate || breakdown[1] || "";
+    return { headline: { prefix: driver || "A collector", connector: truck ? "reported a truck breakdown:" : "reported a truck breakdown", highlight: truck }, message };
+  }
+
+  const routeOutcome = title.match(/^Route (Completed|Ended):\s*(.+)$/i);
+  if (routeOutcome) {
+    return { headline: { prefix: routeOutcome[2], connector: routeOutcome[1].toLowerCase() === "completed" ? "completed its route" : "ended its route", highlight: "" }, message };
+  }
+
+  const gpsLost = title.match(/^GPS Signal Lost:\s*(.+)$/i);
+  if (gpsLost) {
+    return { headline: { prefix: gpsLost[1], connector: "lost its GPS signal", highlight: "" }, message };
+  }
+
+  // Preserve custom and historical alert details instead of inventing an actor or outcome.
+  return { headline: { prefix: title, connector: "", highlight: "" }, message };
 };
 
 export const getNotificationIconAndStyle = (notification: NotificationRow) => {
@@ -38,8 +92,7 @@ export const getAdminNotificationDestination = (notification: NotificationRow): 
   const category = getAdminCategory(notification);
   const id = notification.ref_id ? encodeURIComponent(notification.ref_id) : null;
   if (notification.ref_module === "driver-messages") {
-    let metadata: Record<string, unknown> = {};
-    try { metadata = typeof notification.metadata === "string" ? JSON.parse(notification.metadata) : notification.metadata || {}; } catch { /* Legacy malformed metadata has a safe general destination. */ }
+    const metadata = getAdminNotificationMetadata(notification);
     if (typeof metadata.driver_id === "string" && typeof metadata.message_id === "string") {
       return `/admin/tracking?messageDriver=${encodeURIComponent(metadata.driver_id)}&message=${encodeURIComponent(metadata.message_id)}`;
     }

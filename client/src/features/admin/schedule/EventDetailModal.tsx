@@ -90,7 +90,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-5 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] overflow-y-auto">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-lg p-3 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -163,7 +163,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               <span className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
                 Notes & Agenda
               </span>
-              <p className="text-xs text-foreground/90 leading-relaxed p-3 rounded-xl bg-background border border-border/80 whitespace-pre-wrap">
+              <p className="text-xs text-foreground/90 leading-relaxed p-3 rounded-xl bg-background border border-border/80 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {event.description}
               </p>
             </div>
@@ -184,23 +184,23 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3.5 border-t border-border/60 gap-2">
+        <div className="flex flex-wrap items-center justify-between pt-3.5 border-t border-border/60 gap-2">
           <Button
             type="button"
             variant="destructive-outline"
             onClick={() => onDelete(event)}
-            className="h-10 px-4 text-xs"
+            className="h-8 max-w-full px-2 sm:h-9 sm:px-3 text-xs gap-1 [&_svg]:size-3.5"
           >
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            <Trash2 className="w-3.5 h-3.5" />
             <span>Delete</span>
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-10 px-4 rounded-xl text-xs font-semibold cursor-pointer"
+              className="h-8 max-w-full px-2 sm:h-9 sm:px-3 rounded-xl text-xs font-semibold"
             >
               Close
             </Button>
@@ -210,7 +210,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                 onClose();
                 onEdit(event);
               }}
-              className="h-10 px-5 rounded-xl text-xs font-semibold cursor-pointer gap-1.5 shadow-xs"
+              className="h-8 max-w-full px-2 sm:h-9 sm:px-3 rounded-xl text-xs font-semibold gap-1 [&_svg]:size-3.5"
             >
               <Edit2 className="w-3.5 h-3.5" />
               <span>Edit Schedule</span>

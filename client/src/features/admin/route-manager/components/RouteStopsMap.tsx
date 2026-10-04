@@ -153,15 +153,17 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
           <Minus className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="absolute bottom-2 left-2 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/95 px-2 py-1 text-ui-overline text-muted-foreground shadow-sm">
+      <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[400] flex flex-wrap items-end justify-between gap-1.5">
+      <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/95 px-2 py-1 text-ui-overline text-muted-foreground shadow-sm">
         <span className="h-1 w-5 rounded-full bg-green-600" />
         Street coverage
       </div>
       {missingCount > 0 && (
-        <div className="absolute bottom-2 right-2 z-[400] rounded-lg border border-amber-500/30 bg-amber-50/95 px-2 py-1 text-ui-overline font-medium text-amber-800 shadow-sm dark:bg-amber-950/90 dark:text-amber-300">
+        <div className="ml-auto rounded-lg border border-amber-500/30 bg-amber-50/95 px-2 py-1 text-ui-overline font-medium text-amber-800 shadow-sm dark:bg-amber-950/90 dark:text-amber-300">
           {missingCount} path{missingCount === 1 ? "" : "s"} missing
         </div>
       )}
+      </div>
     </div>
   );
 };

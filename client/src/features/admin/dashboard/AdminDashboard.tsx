@@ -23,6 +23,7 @@ import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { PageRetryContext } from "@/components/pageRetryContext";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { fetchCalendarEvents } from "@/services/scheduleService";
+import { adminDashboardStyles as styles } from "./dashboardStyles";
 
 const AdminDashboard = () => {
   const {
@@ -44,19 +45,19 @@ const AdminDashboard = () => {
 
   if (isLoading || (!overview && !error)) {
     return (
-      <div role="status" aria-busy="true" className="w-full max-w-[1600px] mx-auto pb-12">
-        <span className="sr-only">Loading dashboard data…</span>
-        <div aria-hidden="true" className="space-y-6">
+      <div role="status" aria-busy="true" className={styles.page}>
+        <div aria-hidden="true" className="admin-dashboard-loading space-y-4">
           <DashboardHeaderSkeleton />
           <KPICardsSkeleton />
           <TrendChartsSkeleton />
           <OperationsAndAttentionSkeleton />
           <CalendarSkeleton />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+          <div className={styles.recent}>
             <ReportsTableSkeleton />
             <ActivityFeedSkeleton />
           </div>
         </div>
+        <span className="sr-only">Loading dashboard data…</span>
       </div>
     );
   }
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div aria-busy={isRefreshing} className="w-full max-w-[1600px] mx-auto space-y-6 pb-12">
+    <div aria-busy={isRefreshing} className={styles.page}>
       {/* ── 1. Executive Hero Header ── */}
       <DashboardHeader />
 
@@ -84,7 +85,7 @@ const AdminDashboard = () => {
       />
 
       {/* ── 4. Live Operations & Actionable Triage ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-stretch">
+      <div className={styles.operations}>
         <TodaysOperations trucks={trucks} barangays={barangays} />
         <NeedsAttention
           attention={attention}
@@ -95,14 +96,12 @@ const AdminDashboard = () => {
       <AdminCollectionCalendar asOfDate={overview?.as_of_date} />
 
       {/* ── 6. Recent Reports & Live Activity Stream ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+      <div className={styles.recent}>
         <RecentReportsTable
           reports={recentReports}
-          className="lg:col-span-2"
         />
         <ActivityFeed
           activityLogs={activityLogs}
-          className="lg:col-span-1"
         />
       </div>
     </div>

@@ -254,11 +254,11 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[96vw] max-w-5xl xl:max-w-6xl p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[92vh] flex flex-col overflow-hidden"
+          className="admin-route-editor fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] max-w-5xl xl:max-w-6xl p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[92dvh] flex flex-col overflow-hidden"
         >
-          <form noValidate onSubmit={handleSubmit} className="flex flex-col h-full max-h-[92vh] overflow-hidden">
+          <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-col max-h-[92dvh] overflow-hidden">
             {/* ── Modal Header (Pinned) ── */}
-            <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between bg-card">
+            <div className="gw-modal-header px-3 py-3 sm:px-5 sm:py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                   {isCreating ? (
@@ -271,7 +271,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
                     {isCreating ? "Create Collection Route" : "Edit Collection Route"}
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <DialogDescription className="text-ui-caption text-muted-foreground mt-0.5">
                     {isCreating
                       ? "Configure schedule, truck, and ordered street stops; driver is resolved automatically."
                       : `Update collection parameters and stops for ${selectedRoute?.day ?? form.day} route.`}
@@ -293,13 +293,13 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             </div>
 
             {/* ── Modal Content (Scrollable Split Body) ── */}
-            <div className="px-5 py-4 overflow-y-auto flex-1 scrollbar-thin">
-              <div className="grid grid-cols-1 lg:grid-cols-[1.18fr_0.82fr] gap-5 items-start">
+            <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 scrollbar-thin">
+              <div className="admin-route-editor-grid grid min-w-0 grid-cols-1 gap-4 items-start">
                 {/* ── LEFT COLUMN: Input Configuration ── */}
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                   {/* Step 1: Schedule & Assignment Card */}
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-4 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                       <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
                         Step 1: Schedule & Assignment
@@ -310,7 +310,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     </div>
 
                     {/* Schedule Row: Day, Waste Category & Start Time */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Day of Week */}
                       <div className="space-y-1.5">
                         <Label className="text-xs font-medium text-foreground">
@@ -341,7 +341,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       </div>
 
                       {/* Waste Category Auto Display */}
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 sm:col-span-2 sm:order-3">
                         <Label className="text-xs font-medium text-foreground">
                           Waste Type <span className="text-ui-caption font-normal text-muted-foreground">(Auto)</span>
                         </Label>
@@ -383,7 +383,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     {/* Truck & Driver Assignment Row */}
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
                           <Label className="text-xs font-medium text-foreground">
                             Assigned Collection Truck
                           </Label>
@@ -435,7 +435,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       {/* Unified Driver & Truck Status Card */}
                       {form.truckId ? (
                         assignedDriver ? (
-                          <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5">
+                          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                 <User className="w-4 h-4" />
@@ -478,7 +478,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
                   {/* Step 2: Stop Configuration (BarangayOrderList) */}
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                       <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-primary" />
                         Step 2: Stop Configuration
@@ -516,7 +516,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 </div>
 
                 {/* ── RIGHT COLUMN: Live Route Overview & Map Preview ── */}
-                <div className="space-y-4 lg:sticky lg:top-0">
+                <div className="min-w-0 space-y-4">
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-2xs">
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
@@ -667,9 +667,9 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             </div>
 
             {/* ── Modal Footer (Pinned / Sticky) ── */}
-            <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
+            <div className="gw-modal-footer px-3 py-3 sm:px-5 sm:py-3.5 border-t border-border/60 shrink-0 flex flex-wrap items-center justify-between gap-3 bg-card">
               {/* Readiness status */}
-              <div className="min-w-0 hidden sm:flex items-center gap-2 text-xs">
+              <div className="min-w-0 hidden md:flex items-center gap-2 text-xs">
                 {!form.truckId ? (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
@@ -708,20 +708,20 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 ml-auto">
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-2 ml-auto">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleRequestClose}
                   disabled={isSaving}
-                  className="h-9 text-xs rounded-xl px-4 cursor-pointer"
+                  className="h-8 sm:h-9 max-w-full text-xs rounded-xl px-3"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={isSaving || isLoadingTrucks}
-                  className="h-9 text-xs rounded-xl px-5 font-semibold shadow-sm gap-1.5 cursor-pointer"
+                  className="h-8 sm:h-9 max-w-full text-xs rounded-xl px-3 sm:px-4 font-semibold gap-1.5 [&_svg]:size-3.5"
                   loading={isSaving}
                   loadingLabel={isCreating ? "Creating route…" : "Saving route…"}
                 >

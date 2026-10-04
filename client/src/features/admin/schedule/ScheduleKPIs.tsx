@@ -1,6 +1,7 @@
+import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import React from "react";
 import { CalendarEvent } from "@/services/scheduleService";
-import { cn } from "@/lib/utils";
+import { CalendarDays, CalendarClock, Clock3, CircleCheck } from "lucide-react";
 
 interface ScheduleKPIsProps {
   events: CalendarEvent[];
@@ -16,8 +17,9 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
     {
       title: "Total Schedules",
       value: total,
-      description: "Department master roster",
-      tag: "bg-muted/70 text-muted-foreground border-border/80",
+      description: "All internal activities",
+      icon: CalendarDays,
+      tone: "neutral" as const,
     },
     {
       title: "Upcoming",
@@ -26,7 +28,8 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
         total > 0
           ? `${Math.round((upcomingCount / total) * 100)}% queued next`
           : "None queued",
-      tag: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      icon: CalendarClock,
+      tone: "warning" as const,
     },
     {
       title: "In Progress",
@@ -35,7 +38,8 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
         total > 0
           ? `${Math.round((ongoingCount / total) * 100)}% active operations`
           : "No active tasks",
-      tag: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      icon: Clock3,
+      tone: "info" as const,
     },
     {
       title: "Completed",
@@ -44,46 +48,18 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
         total > 0
           ? `${Math.round((completedCount / total) * 100)}% concluded`
           : "0 completed",
-      tag: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      icon: CircleCheck,
+      tone: "success" as const,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 bg-card border border-border/80 rounded-2xl shadow-2xs overflow-hidden">
-      {kpis.map((kpi, idx) => (
-        <div
-          key={kpi.title}
-          className={cn(
-            "p-4 sm:p-5 flex flex-col justify-between space-y-2.5 transition-colors hover:bg-muted/15",
-            // Mobile (2 columns): right border on even index (0, 2)
-            idx % 2 === 0 ? "border-r border-border/70" : "",
-            // Desktop (4 columns): right border on 0, 1, 2, none on 3
-            idx < 3 ? "lg:border-r lg:border-border/70" : "lg:border-r-0",
-            // Mobile (2 columns): bottom border on top row (0, 1)
-            idx < 2 ? "border-b lg:border-b-0 border-border/70" : ""
-          )}
-        >
-          <div className="flex items-center min-h-[22px]">
-            <span
-              className={cn(
-                "text-ui-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                kpi.tag
-              )}
-            >
-              {kpi.title}
-            </span>
-          </div>
-
-          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-            {kpi.value}
-          </div>
-
-          <div className="text-ui-caption text-muted-foreground font-medium truncate">
-            {kpi.description}
-          </div>
-        </div>
+    <AdminKpiGrid>
+      {kpis.map((kpi) => (
+        <AdminKpiCard key={kpi.title} label={kpi.title} value={kpi.value}
+          description={kpi.description} icon={kpi.icon} tone={kpi.tone} />
       ))}
-    </div>
+    </AdminKpiGrid>
   );
 };
 

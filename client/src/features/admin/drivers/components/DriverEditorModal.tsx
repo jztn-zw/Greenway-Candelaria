@@ -13,6 +13,7 @@ import { X, UserPlus, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import type { Driver, Truck } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
 
 interface DriverEditorModalProps {
   open: boolean;
@@ -168,14 +169,14 @@ const DriverEditorModal = ({
               setShowDiscardConfirm(true);
             }
           }}
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90vh] flex flex-col overflow-hidden"
+          className={cn(styles.modal, "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[94vw] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] flex flex-col overflow-hidden")}
         >
           <form noValidate
             onSubmit={(e) => {
               e.preventDefault();
               void handleSave();
             }}
-            className="flex flex-col h-full max-h-[90vh] overflow-hidden"
+            className="flex min-h-0 flex-col max-h-[90dvh] overflow-hidden"
           >
             {/* Modal Header (Pinned / Non-scrollable) */}
             <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-3 bg-card">
@@ -188,10 +189,10 @@ const DriverEditorModal = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="gw-heading text-base text-foreground tracking-tight truncate">
+                  <DialogTitle className="gw-heading text-base text-foreground tracking-tight break-words">
                     {isEditing ? "Edit Collector Account" : "Add New Collector"}
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground truncate mt-0.5">
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                     {isEditing
                       ? "Update collector profile and truck assignment."
                       : "Register a new municipal collector personnel."}
@@ -209,9 +210,9 @@ const DriverEditorModal = ({
             </div>
 
             {/* Scrollable Form Body */}
-            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+            <div className="collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
               {/* Row 1: Full Name & Contact */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                    <Label htmlFor="driver-name" className="text-xs font-medium text-foreground">
                     Full Name
@@ -271,7 +272,7 @@ const DriverEditorModal = ({
 
               {/* Row 3: Username & Password (Create Mode only) */}
               {!isEditing && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="driver-username" className="text-xs font-medium text-foreground">
                       Username
@@ -320,8 +321,8 @@ const DriverEditorModal = ({
             </div>
 
             {/* Modal Footer (Pinned / Sticky) */}
-            <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex items-center justify-end gap-2.5 bg-card">
-              {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
+            <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 flex flex-wrap items-center justify-end gap-2.5 bg-card">
+              {errors.form && <p role="alert" className="w-full break-words text-ui-caption font-medium text-destructive">{errors.form}</p>}
               <Button
                 type="button"
                 variant="outline"

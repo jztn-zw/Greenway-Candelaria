@@ -81,7 +81,6 @@ interface AdminTrackingMapProps {
   replayTargetLocation?: ReplayTargetLocation | null;
   replayCompletedTargets?: ReplayTargetLocation[];
   replaySkippedTargets?: ReplayTargetLocation[];
-  fleetControlCollapsed?: boolean;
   theme?: "light" | "dark";
 }
 
@@ -231,7 +230,6 @@ const AdminTrackingMap = ({
   replayCompletedTargets = EMPTY_REPLAY_TARGETS,
   replaySkippedTargets = EMPTY_REPLAY_TARGETS,
   theme,
-  fleetControlCollapsed = false,
 }: Omit<AdminTrackingMapProps, "theme"> & { theme?: string }) => {
   const fetchAdmin = useAdminFetch();
   const mapElRef = useRef<HTMLDivElement | null>(null);
@@ -793,51 +791,17 @@ const AdminTrackingMap = ({
   };
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-border bg-card shadow-sm [&_.leaflet-control-attribution]:!hidden">
-      {/* Map container */}
-      <div
-        ref={mapElRef}
-        className="w-full h-full z-0"
-        role="application"
-        aria-label="Live municipal truck tracking map"
-      />
-
-      {/* Floating Zoom Controls (Top-Right) */}
-      <div className={cn(
-        "absolute right-2.5 sm:right-3 z-[500] flex flex-col bg-card/75 backdrop-blur-md rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto",
-        fleetControlCollapsed ? "top-[3.75rem]" : "top-2.5 sm:top-3",
-      )}>
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
-          title="Zoom In"
-          aria-label="Zoom in"
-        >
-          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        </button>
-        <div className="h-px bg-border/60 mx-1" />
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
-          title="Zoom Out"
-          aria-label="Zoom out"
-        >
-          <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        </button>
-      </div>
-
-      {/* Floating Status / Info Card in Top-Left */}
+    <div className="admin-tracking-map relative isolate flex min-w-0 w-full h-full flex-col rounded-2xl overflow-hidden border border-border bg-card shadow-sm [&_.leaflet-control-attribution]:!hidden">
+      {/* Status stays outside the map so routes remain visible. */}
       {(!replayPath || replayPath.length === 0) && (
         activeTruck ? (
-          <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 sm:max-w-xs z-[450] transition-all animate-in fade-in-50 duration-300">
+          <div className="admin-tracking-map-info shrink-0 border-b border-border/70 bg-card transition-all animate-in fade-in-50 duration-300">
             {isCardCollapsed ? (
               /* Collapsed Compact Status Pill */
               <button
                 type="button"
                 onClick={() => setIsCardCollapsed(false)}
-                className="gw-action-outline flex items-center gap-2 backdrop-blur-md px-3.5 py-2 rounded-lg border shadow-2xs text-xs font-semibold cursor-pointer transition-all pointer-events-auto"
+                className="gw-action-ghost flex min-h-14 w-full items-center gap-2 px-3.5 py-3 text-xs font-semibold cursor-pointer transition-all pointer-events-auto"
               >
                 <TruckIcon className={cn(
                   "w-3.5 h-3.5 shrink-0",
@@ -859,7 +823,7 @@ const AdminTrackingMap = ({
               </button>
             ) : (
               /* Full Route Metric Card */
-              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-md p-3.5 space-y-2.5 pointer-events-auto">
+              <div className="admin-tracking-map-info-card p-3.5 space-y-2.5 pointer-events-auto">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className={cn(
@@ -880,7 +844,7 @@ const AdminTrackingMap = ({
                       <h4 className="gw-heading text-xs text-foreground truncate">
                         {activeTruck.name}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-ui-caption leading-none">
+                      <div className="flex flex-wrap items-center gap-1.5 text-ui-caption leading-none">
                         <span className="text-muted-foreground truncate">{activeTruck.plateNumber}</span>
                         {activeTruck.status === "offline" || activeTruck.status === "done" ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
@@ -903,8 +867,9 @@ const AdminTrackingMap = ({
                     <button
                       type="button"
                       onClick={() => setIsCardCollapsed(true)}
-                      className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                      className="gw-action-ghost w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
                       title="Collapse card"
+                      aria-label="Collapse truck details"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
                     </button>
@@ -918,8 +883,9 @@ const AdminTrackingMap = ({
                             onMarkerClick(activeTruck.id);
                           }
                         }}
-                        className="gw-action-ghost w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                        className="gw-action-ghost w-11 h-11 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
                         title="Deselect truck"
+                        aria-label="Deselect truck"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -928,7 +894,7 @@ const AdminTrackingMap = ({
                 </div>
 
                 {activeTruck.status === "offline" || activeTruck.status === "done" ? (
-                  <div className="text-ui-caption text-muted-foreground border-t border-border/60 pt-2.5 flex items-center justify-between">
+                  <div className="admin-tracking-map-info-summary text-ui-caption text-muted-foreground border-t border-border/60 pt-2.5 flex items-center justify-between">
                     <span>
                       {scheduledStops.length > 0 && scheduledStops.every((s) => s.status === "done")
                         ? "Collection completed"
@@ -945,7 +911,7 @@ const AdminTrackingMap = ({
                 ) : (
                   <>
                     {routeData && (
-                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
+                      <div className="admin-tracking-map-distance grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
                         <div className="bg-muted/40 rounded-xl p-2 flex flex-col">
                           <span className="text-ui-overline text-muted-foreground font-medium flex items-center gap-1">
                             <MapPin className="w-3 h-3 text-primary" />
@@ -982,10 +948,10 @@ const AdminTrackingMap = ({
             )}
           </div>
         ) : (
-          /* Sleek Top-Left Status Pill when No Truck is Selected */
-          <div className="absolute top-2.5 left-2.5 max-w-[calc(100%-56px)] sm:top-3 sm:left-3 z-[450] pointer-events-auto animate-in fade-in-50 duration-300">
+          /* Fleet summary when no truck is selected. */
+          <div className="admin-tracking-map-info shrink-0 border-b border-border/70 bg-card pointer-events-auto animate-in fade-in-50 duration-300">
             {isAllCompleted ? (
-              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-xs px-3.5 py-2.5 flex items-center gap-2.5">
+              <div className="min-h-16 px-3.5 py-3 flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-xl bg-muted/80 text-muted-foreground border border-border/80 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
@@ -993,13 +959,13 @@ const AdminTrackingMap = ({
                   <span className="text-xs font-bold text-foreground leading-tight truncate">
                     Collection Completed · Offline
                   </span>
-                  <span className="text-ui-caption text-muted-foreground leading-tight truncate">
-                    Click a truck card to view barangay pins
+                  <span className="text-ui-caption text-muted-foreground leading-relaxed">
+                    Select a truck to view barangay pins.
                   </span>
                 </div>
               </div>
             ) : visibleTrucks.length === 0 ? (
-              <div className="bg-card/85 backdrop-blur-md rounded-2xl border border-border/70 shadow-xs px-3.5 py-2.5 flex items-center gap-2.5">
+              <div className="min-h-16 px-3.5 py-3 flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-xl bg-muted/80 text-muted-foreground border border-border/80 flex items-center justify-center shrink-0">
                   <TruckIcon className="w-4 h-4" />
                 </div>
@@ -1007,13 +973,13 @@ const AdminTrackingMap = ({
                   <span className="text-xs font-bold text-foreground leading-tight truncate">
                     Fleet Standby · Offline
                   </span>
-                  <span className="text-ui-caption text-muted-foreground leading-tight truncate">
-                    Click a truck card to view route pins
+                  <span className="text-ui-caption text-muted-foreground leading-relaxed">
+                    Select a truck to view its route.
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="bg-card/85 backdrop-blur-md rounded-lg border border-border/70 shadow-xs px-3 py-1.5 flex items-center gap-2">
+              <div className="min-h-16 px-3.5 py-3 flex items-center gap-2">
                 <span className="relative flex h-2 w-2 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -1028,58 +994,97 @@ const AdminTrackingMap = ({
         )
       )}
 
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[500] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-lg border border-border/70 shadow-2xs pointer-events-auto">
-        {activeTruck?.coords && activeTruck.status !== "offline" && activeTruck.status !== "done" && (
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* Map container */}
+        <div
+          ref={mapElRef}
+          className="absolute inset-0 w-full h-full z-0"
+          role="application"
+          aria-label="Live municipal truck tracking map"
+        />
+
+        {/* Floating Zoom Controls (Top-Right) */}
+        <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3 z-[500] flex flex-col bg-card rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">
           <button
             type="button"
-            onClick={handleRecenterFocusedTruck}
-            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-            title="Recenter on Focused Truck"
+            onClick={handleZoomIn}
+            className="gw-action-ghost w-11 h-11 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
+            title="Zoom In"
+            aria-label="Zoom in"
           >
-            <TruckIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">Truck</span>
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
-        )}
-
-        {activeTruck && (
+          <div className="h-px bg-border/60 mx-1" />
           <button
             type="button"
-            onClick={handleFitFocusedRoute}
-            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-            title="Fit Focused Truck Route"
+            onClick={handleZoomOut}
+            className="gw-action-ghost w-11 h-11 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
+            title="Zoom Out"
+            aria-label="Zoom out"
           >
-            <RouteIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">Fit Route</span>
+            <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
-        )}
+        </div>
 
-        <button
-          type="button"
-          onClick={handleResetBounds}
-          className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-          title="Fit Whole Municipal Fleet"
-        >
-          <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline">Fit Fleet</span>
-        </button>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/75 px-3 py-1.5 text-ui-caption font-semibold text-foreground shadow-2xs backdrop-blur-md">
-        {isLiveTruckOnline && activeTruck && scheduledStops.some((stop) => (stop.coveragePath?.length ?? 0) >= 2) ? (
-          <>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-600" /> Current
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-900" /> Done
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
-            </span>
-          </>
-        ) : (
-          <span>Candelaria, Quezon</span>
-        )}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/70 bg-card px-3 py-2">
+        <div className="admin-tracking-map-actions ml-auto flex shrink-0 items-center gap-1 rounded-xl border border-border/70 p-0.5">
+          {activeTruck?.coords && activeTruck.status !== "offline" && activeTruck.status !== "done" && (
+            <button
+              type="button"
+              onClick={handleRecenterFocusedTruck}
+              className="gw-action-ghost flex h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
+              title="Recenter on Focused Truck"
+              aria-label="Recenter on focused truck"
+            >
+              <TruckIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="admin-tracking-map-label hidden sm:inline">Truck</span>
+            </button>
+          )}
+
+          {activeTruck && (
+            <button
+              type="button"
+              onClick={handleFitFocusedRoute}
+              className="gw-action-ghost flex h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
+              title="Fit Focused Truck Route"
+              aria-label="Fit focused truck route"
+            >
+              <RouteIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="admin-tracking-map-label hidden sm:inline">Fit Route</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleResetBounds}
+            className="gw-action-ghost flex h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
+            title="Fit Whole Municipal Fleet"
+            aria-label="Fit whole municipal fleet"
+          >
+            <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="admin-tracking-map-label hidden sm:inline">Fit Fleet</span>
+          </button>
+        </div>
+
+        <div className="admin-tracking-map-legend order-first flex min-w-0 flex-wrap items-center gap-2 text-ui-caption font-medium text-muted-foreground">
+          {isLiveTruckOnline && activeTruck && scheduledStops.some((stop) => (stop.coveragePath?.length ?? 0) >= 2) ? (
+            <>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-green-600" /> Current
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-green-900" /> Done
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+              </span>
+            </>
+          ) : (
+            <span>Candelaria, Quezon</span>
+          )}
+        </div>
       </div>
     </div>
   );

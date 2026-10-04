@@ -1,0 +1,33 @@
+import "./adminProfile.css";
+
+/** Shared geometry for the administrator profile and its loading state. */
+export const adminProfileStyles = {
+  page: "resident-page admin-profile mx-auto min-w-0 w-full max-w-3xl pb-4",
+  stack: "admin-profile-stack min-w-0 space-y-5",
+  hero: "admin-profile-hero min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs",
+  cover: "admin-profile-cover relative h-28 overflow-hidden border-b border-border/50 bg-muted/50",
+  identity: "admin-profile-identity relative px-4 pb-5",
+  identityRow: "admin-profile-identity-row flex min-w-0 flex-col items-center gap-3.5 text-center",
+  avatar: "admin-profile-avatar rounded-full border border-border/50 ring-[3px] ring-card shadow-md",
+  avatarAction: "admin-profile-avatar-action absolute -bottom-1 -right-1 size-7 rounded-full border border-border/80 bg-card shadow-sm",
+  identityDetails: "admin-profile-identity-details min-w-0 w-full flex-1 space-y-2",
+  nameRow: "admin-profile-name-row flex min-w-0 flex-col items-center gap-1.5",
+  name: "admin-profile-name gw-heading max-w-full break-words text-lg tracking-tight text-foreground [overflow-wrap:anywhere]",
+  username: "w-fit max-w-full break-words rounded-md border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground [overflow-wrap:anywhere]",
+  metadata: "admin-profile-metadata flex min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground",
+  section: "admin-profile-section min-w-0 space-y-4 rounded-2xl border border-border/80 bg-card p-4 shadow-xs",
+  sectionHeader: "admin-profile-section-header flex min-w-0 items-start gap-2.5 border-b border-border/50 pb-2",
+  sectionIcon: "flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary",
+  row: "admin-profile-field group -mx-2 flex min-w-0 items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40",
+  rowContent: "admin-profile-field-content flex min-w-0 flex-1 items-center gap-3",
+  rowIcon: "admin-profile-field-icon flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs group-hover:border-primary/30 group-hover:text-primary",
+  fieldAction: "admin-profile-field-action h-8 shrink-0 rounded-xl px-3 text-xs font-semibold shadow-none",
+  label: "admin-profile-field-label text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground",
+  value: "admin-profile-field-value mt-0.5 break-words text-ui-label font-medium text-foreground [overflow-wrap:anywhere]",
+  registeredEmail: "admin-profile-registered-email inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-muted/70 px-2.5 py-1.5 text-ui-caption font-medium text-muted-foreground",
+  overview: "admin-profile-overview grid min-w-0 gap-3",
+  overviewCard: "admin-profile-overview-card min-w-0 rounded-xl border border-border/80 bg-muted/20 p-3.5",
+  overviewLabel: "text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground",
+  logout: "admin-profile-logout flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-4 text-left shadow-xs transition-colors hover:bg-[var(--button-neutral-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  dialog: "admin-profile-dialog",
+} as const;

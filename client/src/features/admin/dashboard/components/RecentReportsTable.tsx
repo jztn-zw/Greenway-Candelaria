@@ -9,10 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Inbox } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowRight, ChevronRight, Clock, Inbox, MapPin } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { DashboardReport } from "./useAdminDashboard";
 import { formatRelativeTime } from "@/utils/date";
+import { adminDashboardStyles as styles } from "../dashboardStyles";
 
 const statusStyles: Record<string, { badge: string; dot: string }> = {
   Pending: {
@@ -89,19 +90,19 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
 
   return (
     <div
-      className={`bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col min-w-0 h-full ${className}`}
+      className={`${styles.reports} ${className}`}
     >
       <div className="min-w-0">
         {/* Header */}
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
-          <h3 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>
             Recent Incident Reports
           </h3>
 
           <Button
             variant="primary-ghost"
             size="sm"
-            className="group inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all cursor-pointer"
+            className={styles.sectionAction}
             onClick={() => navigate("/admin/reports")}
           >
             <span>View All</span>
@@ -109,8 +110,44 @@ const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentRepo
           </Button>
         </div>
 
-        {/* Table Container */}
-        <div className="border border-border/60 rounded-xl overflow-hidden bg-muted/20">
+
+
+
+        <div className={styles.reportCards}>
+          {displayReports.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-3 py-8 text-center">
+              <Inbox className="mx-auto mb-2 size-7 text-muted-foreground/60" aria-hidden="true" />
+              <p className="text-sm font-semibold text-foreground">No recent reports submitted</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">New community waste reports appear after the next refresh.</p>
+            </div>
+          ) : displayReports.map((report) => (
+            <Link
+              key={report.id}
+              to={`/admin/reports?report=${encodeURIComponent(report.id)}`}
+              aria-label={`View report ${report.ref}`}
+              className={`${styles.reportCard} transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <span className="min-w-0 break-words text-xs font-semibold text-foreground [overflow-wrap:anywhere]">{report.type}</span>
+                <Badge variant="outline" className={`shrink-0 px-2 py-0.5 text-ui-overline ${(statusStyles[report.status] || statusStyles.Pending).badge}`}>{report.status}</Badge>
+              </div>
+              <div className="flex min-w-0 items-start gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+                <span className="break-words [overflow-wrap:anywhere]">{report.barangay}</span>
+              </div>
+              <div className="flex min-w-0 items-center justify-between gap-2 border-t border-border/50 pt-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-ui-caption">
+                  <span className="break-words font-medium tabular-nums text-foreground [overflow-wrap:anywhere]">{report.ref}</span>
+                  <span className="inline-flex items-center gap-1 text-muted-foreground"><Clock className="size-3" aria-hidden="true" />{report.date}</span>
+                </div>
+                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Keep the report table on panels with room for its columns. */}
+        <div className={styles.reportTable}>
           <div className="overflow-x-auto">
             <Table className="min-w-[560px]">
               <TableHeader className="bg-muted/30 border-b border-border/60">

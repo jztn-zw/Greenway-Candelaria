@@ -33,7 +33,7 @@ const SectionTruckDriver: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
+      <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
           <div><h3 className="gw-heading text-sm text-foreground">Route outcomes by driver</h3><p className="text-xs text-muted-foreground">Completed, incomplete, missed, and cancelled runs in the selected period.</p></div>
@@ -41,7 +41,7 @@ const SectionTruckDriver: React.FC = () => {
         {outcomeCount === 0 ? (
           <EmptyState>No completed, incomplete, missed, or cancelled routes in this period.</EmptyState>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Route outcomes by driver chart">
             <ChartContainer config={routesConfig} className="h-[250px] min-w-[520px] w-full aspect-auto" style={{ minWidth: Math.max(520, chartDrivers.length * 110) }}>
               <BarChart data={chartDrivers}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -59,7 +59,7 @@ const SectionTruckDriver: React.FC = () => {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
+      <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
           <div><h3 className="gw-heading text-sm text-foreground">Driver operations</h3><p className="text-xs text-muted-foreground">Current truck assignment and route-run outcomes.</p></div>
@@ -67,8 +67,8 @@ const SectionTruckDriver: React.FC = () => {
         {driverOperations.length === 0 ? (
           <EmptyState>No driver routes match this period and barangay.</EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[920px]">
+          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Driver operations details">
+            <Table className="analytics-detail-table min-w-[920px]">
               <TableHeader className="bg-muted/40"><TableRow className="border-border/80">
                 <TableHead>Driver</TableHead><TableHead>Current truck</TableHead>
                 <TableHead className="text-right">Route runs</TableHead><TableHead className="text-right">Completed</TableHead>
@@ -79,15 +79,15 @@ const SectionTruckDriver: React.FC = () => {
               <TableBody className="divide-y divide-border/60">
                 {driverOperations.map((driver) => (
                   <TableRow key={driver.id} className="hover:bg-muted/35">
-                    <TableCell className="py-3.5 text-xs font-semibold text-foreground">{driver.name}</TableCell>
-                    <TableCell className="py-3.5 text-xs text-muted-foreground">{driver.truck}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.assigned}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.completed}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.incomplete}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.missedRoutes}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.cancelled}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{driver.missedStops}</TableCell>
-                    <TableCell className="py-3.5 text-right"><Badge variant="outline" className={"text-xs font-bold " + badgeStyles.success.className}>{driver.rate}%</Badge></TableCell>
+                    <TableCell data-label="Driver" className="py-3.5 text-xs font-semibold text-foreground">{driver.name}</TableCell>
+                    <TableCell data-label="Current truck" className="py-3.5 text-xs text-muted-foreground">{driver.truck}</TableCell>
+                    <TableCell data-label="Route runs" className="py-3.5 text-right text-xs tabular-nums">{driver.assigned}</TableCell>
+                    <TableCell data-label="Completed" className="py-3.5 text-right text-xs tabular-nums">{driver.completed}</TableCell>
+                    <TableCell data-label="Incomplete" className="py-3.5 text-right text-xs tabular-nums">{driver.incomplete}</TableCell>
+                    <TableCell data-label="Missed routes" className="py-3.5 text-right text-xs tabular-nums">{driver.missedRoutes}</TableCell>
+                    <TableCell data-label="Cancelled" className="py-3.5 text-right text-xs tabular-nums">{driver.cancelled}</TableCell>
+                    <TableCell data-label="Missed stops" className="py-3.5 text-right text-xs tabular-nums">{driver.missedStops}</TableCell>
+                    <TableCell data-label="Stop completion" className="py-3.5 text-right"><Badge variant="outline" className={"text-xs font-bold " + badgeStyles.success.className}>{driver.rate}%</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -97,7 +97,7 @@ const SectionTruckDriver: React.FC = () => {
         <p className="border-t border-border/60 px-4 py-3 text-ui-caption text-muted-foreground sm:px-5">Incomplete means a partial or overdue run with some completed stops. Missed means a partial or overdue run with no completed stops. Cancelled plans are separate. Stop completion includes ongoing routes.</p>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
+      <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Truck className="h-4 w-4" /></div>
           <div><h3 className="gw-heading text-sm text-foreground">Fleet status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
@@ -105,8 +105,8 @@ const SectionTruckDriver: React.FC = () => {
         {fleetStatus.length === 0 ? (
           <EmptyState>No trucks served this barangay during the selected period.</EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[780px]">
+          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Fleet status details">
+            <Table className="analytics-detail-table min-w-[780px]">
               <TableHeader className="bg-muted/40"><TableRow className="border-border/80">
                 <TableHead>Truck</TableHead><TableHead>Status now</TableHead>
                 <TableHead className="text-right">Route runs</TableHead><TableHead className="text-right">Completed</TableHead>
@@ -116,14 +116,14 @@ const SectionTruckDriver: React.FC = () => {
               <TableBody className="divide-y divide-border/60">
                 {fleetStatus.map((truck) => (
                   <TableRow key={truck.id} className="hover:bg-muted/35">
-                    <TableCell className="py-3.5 text-xs font-semibold text-foreground"><div>{truck.truck}</div><div className="mt-0.5 text-ui-caption font-normal text-muted-foreground">{truck.plate}</div></TableCell>
-                    <TableCell className="py-3.5"><Badge variant="outline" className={availabilityClass(truck.availability)}>{truck.availability}</Badge></TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.assigned}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.completed}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.incomplete}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.missedRoutes}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.cancelled}</TableCell>
-                    <TableCell className="py-3.5 text-right text-xs tabular-nums">{truck.missedStops}</TableCell>
+                    <TableCell data-label="Truck" className="py-3.5 text-xs font-semibold text-foreground"><div>{truck.truck}</div><div className="mt-0.5 text-ui-caption font-normal text-muted-foreground">{truck.plate}</div></TableCell>
+                    <TableCell data-label="Status now" className="py-3.5"><Badge variant="outline" className={availabilityClass(truck.availability)}>{truck.availability}</Badge></TableCell>
+                    <TableCell data-label="Route runs" className="py-3.5 text-right text-xs tabular-nums">{truck.assigned}</TableCell>
+                    <TableCell data-label="Completed" className="py-3.5 text-right text-xs tabular-nums">{truck.completed}</TableCell>
+                    <TableCell data-label="Incomplete" className="py-3.5 text-right text-xs tabular-nums">{truck.incomplete}</TableCell>
+                    <TableCell data-label="Missed routes" className="py-3.5 text-right text-xs tabular-nums">{truck.missedRoutes}</TableCell>
+                    <TableCell data-label="Cancelled" className="py-3.5 text-right text-xs tabular-nums">{truck.cancelled}</TableCell>
+                    <TableCell data-label="Missed stops" className="py-3.5 text-right text-xs tabular-nums">{truck.missedStops}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

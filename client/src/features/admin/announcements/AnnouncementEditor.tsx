@@ -152,6 +152,7 @@ const AnnouncementEditor = ({
   }, [form, editingAnnouncement]);
 
   const handleAttemptClose = () => {
+    if (isSaving) return;
     if (isDirty && !isSaving) {
       setShowDiscardConfirm(true);
     } else {
@@ -291,7 +292,7 @@ const AnnouncementEditor = ({
         }}
       >
         <DialogContent
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] bg-background text-left [&>button:last-child]:hidden"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-lg p-0 gap-0 rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[85dvh] bg-background text-left [&>button:last-child]:hidden"
           onPointerDownOutside={(e) => {
             if (isDirty && !isSaving) {
               e.preventDefault();
@@ -306,7 +307,7 @@ const AnnouncementEditor = ({
           }}
         >
           {/* ── Fixed Pinned Header (Non-Scrollable) with Top-Right X ── */}
-          <div className="gw-modal-header px-5 py-4 border-b border-border/60 shrink-0 bg-background z-20 flex items-center justify-between gap-3 text-left bg-card">
+          <div className="gw-modal-header px-3 py-3 sm:px-5 sm:py-4 border-b border-border/60 shrink-0 z-20 flex items-center justify-between gap-2 text-left bg-card">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                 <Megaphone className="w-5 h-5" />
@@ -323,18 +324,20 @@ const AnnouncementEditor = ({
               </div>
             </div>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              disabled={isSaving}
               onClick={handleAttemptClose}
-              className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
+              className="w-8 h-8 rounded-lg p-0 shrink-0"
+              aria-label="Close announcement editor"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
 
           {/* ── Scrollable Form Body ── */}
-          <div className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
+          <div className="min-h-0 min-w-0 overflow-y-auto px-3 py-4 sm:px-5 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
             {/* Notice Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">
@@ -354,7 +357,7 @@ const AnnouncementEditor = ({
             </div>
 
             {/* Target Audience & Notice Type (50/50 split) */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
                   Target Audience
@@ -442,7 +445,7 @@ const AnnouncementEditor = ({
             {/* Specific Barangays Picker */}
             {form.targetAudience === "Specific Barangays" && (
               <div className={cn("space-y-2 p-3 rounded-xl bg-muted/40 border", errors.targetBarangays ? "border-destructive/80" : "border-border/70")}>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Label className="text-xs font-medium text-foreground/90 shrink-0">
                       Target Barangays
@@ -491,7 +494,7 @@ const AnnouncementEditor = ({
                     </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-[320px] p-0 rounded-xl border border-border shadow-md z-[70]"
+                    className="w-[320px] max-w-[calc(100vw-2rem)] p-0 rounded-xl border border-border shadow-md z-[70]"
                     align="start"
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
@@ -687,9 +690,9 @@ const AnnouncementEditor = ({
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {form.scheduledDate
+                        <span className="min-w-0 truncate">{form.scheduledDate
                           ? format(parseStoredDate(form.scheduledDate), "PPP p")
-                          : "Pick broadcast date..."}
+                          : "Pick broadcast date..."}</span>
                       </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
@@ -746,9 +749,9 @@ const AnnouncementEditor = ({
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {form.expiryDate
+                        <span className="min-w-0 truncate">{form.expiryDate
                           ? format(parseStoredDate(form.expiryDate), "PPP p")
-                          : "Never expires"}
+                          : "Never expires"}</span>
                       </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
@@ -809,9 +812,9 @@ const AnnouncementEditor = ({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {form.expiryDate
+                      <span className="min-w-0 truncate">{form.expiryDate
                         ? format(parseStoredDate(form.expiryDate), "PPP p")
-                        : "Never expires (stays visible until manually archived)"}
+                        : "Never expires (stays visible until manually archived)"}</span>
                     </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent
@@ -855,22 +858,17 @@ const AnnouncementEditor = ({
           </div>
 
           {/* ── Fixed Pinned Footer (Non-Scrollable) ── */}
-          <div className="gw-modal-footer px-5 py-3.5 border-t border-border/60 shrink-0 z-10 flex items-center justify-end gap-2.5 bg-card">
-            {errors.form && <p role="alert" className="mr-auto max-w-[55%] text-ui-caption font-medium text-destructive">{errors.form}</p>}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAttemptClose}
-              disabled={isSaving}
-              className="h-9 text-xs rounded-xl px-4 cursor-pointer"
-            >
+          <div className="gw-modal-footer px-3 py-3 sm:px-5 sm:py-3.5 border-t border-border/60 shrink-0 z-10 flex flex-wrap items-center justify-between gap-2 bg-card">
+            {errors.form && <p role="alert" className="basis-full min-w-0 break-words text-ui-caption font-medium text-destructive">{errors.form}</p>}
+            <Button type="button" variant="outline" onClick={handleAttemptClose} disabled={isSaving}
+              className="h-8 max-w-full px-3 sm:h-9 sm:px-4 rounded-xl text-xs">
               Cancel
             </Button>
             <Button
               type="button"
               onClick={() => void handleSave()}
               disabled={isSaving}
-              className="h-9 px-5 rounded-xl font-semibold text-xs gap-1.5 shadow-sm cursor-pointer "
+              className="h-8 max-w-full px-3 sm:h-9 sm:px-4 rounded-xl font-semibold text-xs gap-1.5 [&_svg]:size-3.5"
               loading={isSaving}
               loadingLabel={form.status === "Draft" ? "Saving draft…" : form.status === "Active" ? "Publishing…" : "Scheduling…"}
             >

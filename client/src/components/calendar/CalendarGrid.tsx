@@ -246,9 +246,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <TooltipProvider delayDuration={100}>
       <div className={embedded ? cn("h-full flex flex-col", className) : cn("bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xs", fillHeight && "flex flex-col", className)}>
         {/* Month Header & Controls */}
-        <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            <h2 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
+        <div className="calendar-grid-header mb-3 flex items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4 shrink-0">
+          <div className="calendar-grid-heading flex items-center gap-2 sm:gap-2.5">
+            <h2 className="calendar-grid-heading-label gw-heading text-base sm:text-lg text-foreground tracking-tight">
               {headingLabel || headingDate}
             </h2>
             {showTodayButton && (!hideTodayButtonWhenOtherDateSelected || selectedDateStr === todayStr) && (
@@ -264,7 +264,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           </div>
 
           {headerAction || (showNavigation && (
-            <div className="flex items-center gap-1">
+            <div className="calendar-grid-navigation flex shrink-0 items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -299,7 +299,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         {/* 7-Column Month Grid */}
         {isLoading ? <CalendarMonthGridSkeleton currentDate={currentDate} /> : <div
           className={cn(
-            "grid grid-cols-7",
+            "calendar-grid-cells grid grid-cols-7",
             compact ? "gap-1" : "gap-1 sm:gap-1.5",
             fillHeight && "min-h-0 sm:flex-1 sm:auto-rows-fr",
             embedded && !compact && "min-h-0 flex-1 auto-rows-fr",
@@ -311,7 +311,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             <div
               key={`empty-${i}`}
               className={cn(
-                "rounded-xl bg-muted/20 border border-transparent opacity-30",
+                "calendar-grid-day rounded-xl bg-muted/20 border border-transparent opacity-30",
                 fillHeight
                   ? compactMobileCells
                     ? "aspect-square min-h-0 sm:aspect-auto sm:min-h-0 sm:h-full"
@@ -347,7 +347,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 aria-pressed={isSelected}
                 aria-current={isToday ? "date" : undefined}
                 className={cn(
-                  "relative rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  "calendar-grid-day relative rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   fillHeight
                     ? compactMobileCells
                       ? "aspect-square min-h-0 p-1 sm:aspect-auto sm:p-2 sm:min-h-0 sm:h-full"
@@ -394,14 +394,14 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                   ) : (
                     <>
                       {/* Mobile View */}
-                      <span className="flex sm:hidden items-center justify-center gap-1 w-full">
+                      <span className="calendar-grid-indicators-compact flex sm:hidden items-center justify-center gap-1 w-full">
                         {dayEvents.length > 3
                           ? renderMultiEventsPill(dayEvents, dayEvents.length, dayNum, undefined, true)
                           : dayEvents.map((evt) => renderEventDot(evt, true))}
                       </span>
 
                       {/* Desktop / Big Screen View */}
-                      <span className="hidden sm:flex flex-wrap items-center justify-center gap-1 w-full max-w-full px-0.5 py-0.5">
+                      <span className="calendar-grid-indicators-expanded hidden sm:flex flex-wrap items-center justify-center gap-1 w-full max-w-full px-0.5 py-0.5">
                         {dayEvents.length <= 12
                           ? dayEvents.map((evt) => renderEventDot(evt, false))
                           : (
