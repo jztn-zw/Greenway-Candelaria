@@ -662,9 +662,10 @@
   .admin-truck-tracking .admin-tracking-mobile-panel-header { display: none; }
   .admin-truck-tracking .admin-tracking-workspace { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); }
   .admin-truck-tracking .admin-tracking-workspace-minimized { grid-template-columns: minmax(0, 1fr); }
+  .admin-truck-tracking .admin-tracking-workspace-minimized .admin-tracking-map-pane { grid-row: 2; }
   .admin-truck-tracking .admin-tracking-map-pane { display: block; height: 700px; }
   .admin-truck-tracking .admin-tracking-fleet { display: flex; position: static; height: 700px; max-height: 700px; }
-  .admin-truck-tracking .admin-tracking-fleet-minimized { position: absolute; inset: auto 0.75rem 5.5rem auto; height: auto; z-index: 20; }
+  .admin-truck-tracking .admin-tracking-fleet-minimized { position: static; grid-row: 1; justify-self: end; height: auto; max-height: none; }
   .admin-truck-tracking .admin-tracking-minimize { display: flex; }
 }
 

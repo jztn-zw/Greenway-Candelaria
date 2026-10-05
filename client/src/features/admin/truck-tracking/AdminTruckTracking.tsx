@@ -990,12 +990,12 @@ const AdminTruckTracking = () => {
             <button
               type="button"
               onClick={() => setIsFleetPanelMinimized(false)}
-              className="gw-action-outline h-9 px-2.5 rounded-lg border backdrop-blur-md shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="gw-action-outline h-11 px-4 rounded-xl border shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
               title="Open Truck controls"
               aria-label="Open Truck controls"
             >
-              <Truck className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-ui-caption font-semibold">Trucks</span>
+              <Truck className="size-4" aria-hidden="true" />
+              <span className="text-sm font-semibold">Trucks</span>
             </button>
           ) : (
             <>
