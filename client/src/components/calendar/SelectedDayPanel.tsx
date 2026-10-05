@@ -4,7 +4,7 @@ import {
   Clock3,
   MapPin,
   MoreHorizontal,
-  Pencil,
+  SquarePen,
   Trash2,
 } from "lucide-react";
 import {
@@ -128,7 +128,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-28">
                         <DropdownMenuItem onClick={() => onEditEvent(evt)} className="gap-2">
-                          <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <SquarePen className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onDeleteEvent(evt)} className="text-destructive focus:bg-destructive/10 focus:text-destructive gap-2">

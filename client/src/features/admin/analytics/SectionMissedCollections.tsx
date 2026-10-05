@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -27,7 +28,7 @@ const SectionMissedCollections: React.FC = () => {
                 <p className="text-xs text-muted-foreground">A stop marked missed after a route ends or is skipped.</p>
               </div>
             </div>
-            <span className="gw-stat-value shrink-0 text-2xl tabular-nums text-destructive">{totalMissed}</span>
+            <span className="gw-stat-value shrink-0 text-2xl tabular-nums text-destructive"><KpiValue value={totalMissed} /></span>
           </div>
           <ChartContainer config={weeklyConfig} className="h-[230px] w-full aspect-auto">
             <BarChart data={missedCollectionsWeekly}>
@@ -80,7 +81,7 @@ const SectionMissedCollections: React.FC = () => {
           {missedReasons.map((item, index) => (
             <article key={item.reason} className="rounded-xl bg-muted/45 p-4">
               <div className="mb-5 h-1.5 w-12 rounded-full" style={{ background: reasonColors[index] }} />
-              <p className="gw-stat-value text-2xl tabular-nums text-foreground">{item.count}</p>
+              <p className="gw-stat-value text-2xl tabular-nums text-foreground"><KpiValue value={item.count} /></p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.reason}</p>
             </article>
           ))}

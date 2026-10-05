@@ -1,4 +1,4 @@
-import { ClipboardList, Trash2, Pencil, ShieldAlert } from "lucide-react";
+import { ClipboardList, Trash2, SquarePen, ShieldAlert } from "lucide-react";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import React from "react";
 import { AuditLogKPIsData } from "@/services/auditService";
@@ -26,7 +26,7 @@ const AuditLogKPIs: React.FC<AuditLogKPIsProps> = ({ kpiData }) => {
       tone: "danger" as const,
     },
     {
-      icon: Pencil,
+      icon: SquarePen,
       label: "System Modifications",
       value: modifications,
       description: "State & record updates",

@@ -59,6 +59,13 @@
   box-shadow: none;
 }
 
+/* Keep the autofill surface above focus/error shadow resets and browser colors. */
+input.gw-field:is(:autofill, :-webkit-autofill) {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  caret-color: hsl(var(--foreground));
+  box-shadow: inset 0 0 0 1000px var(--field-background) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gw-field { transition: none; }
 }

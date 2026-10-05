@@ -22,7 +22,6 @@ import { AdminTruckTrackingPageSkeleton } from "@/components/PageLoadingSkeleton
 import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
 import { useScheduledRouteOrder } from "@/features/collector/route-map/hooks/useAutoRoute";
 import type { RouteStop } from "@/features/collector/route-map/types";
 import { useThemeMode } from "@/hooks/useThemeMode";
@@ -895,11 +894,6 @@ const AdminTruckTracking = () => {
     ["COMPLETED", "PARTIAL"].includes(String(route.route_status || "").toUpperCase()),
   ).length;
 
-  const animatedActive = useCountUp(activeTrucks);
-  const animatedCompletion = useCountUp(completionPct);
-  const animatedCompleted = useCountUp(totalCompleted);
-  const animatedDone = useCountUp(doneRoutes);
-
   //  Render
   if (isPageLoading) {
     return <AdminTruckTrackingPageSkeleton title={pageTitle} description={pageDescription} />;
@@ -926,28 +920,28 @@ const AdminTruckTracking = () => {
           {
             icon: Truck,
             title: "Trucks En Route",
-            value: `${animatedActive}/${displayTrucks.length}`,
+            value: `${activeTrucks}/${displayTrucks.length}`,
             description: `${activeTrucks} trucks reporting live GPS`,
             tone: "success" as const,
           },
           {
             icon: MapPin,
             title: "Stops Completed",
-            value: `${animatedCompleted}/${totalStops}`,
+            value: `${totalCompleted}/${totalStops}`,
             description: `${Math.max(0, totalStops - totalCompleted)} remaining stops`,
             tone: "info" as const,
           },
           {
             icon: Activity,
             title: "Truck Progress",
-            value: `${animatedCompletion}%`,
+            value: `${completionPct}%`,
             description: "Today's scheduled stop progress",
             tone: "neutral" as const,
           },
           {
             icon: CircleCheck,
             title: "Routes Closed",
-            value: `${animatedDone}/${countedRoutes.length}`,
+            value: `${doneRoutes}/${countedRoutes.length}`,
             description: `${doneRoutes} completed or partial runs`,
             tone: "success" as const,
           },

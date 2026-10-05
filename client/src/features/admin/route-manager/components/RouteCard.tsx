@@ -16,7 +16,7 @@ import {
   Clock,
   MapPin,
   MoreVertical,
-  Pencil,
+  SquarePen,
   Power,
   Trash2,
 } from "lucide-react";
@@ -134,7 +134,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
                 onClick={() => onEdit(route)}
                 className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
               >
-                <Pencil aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <SquarePen aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem

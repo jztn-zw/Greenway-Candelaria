@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { InputClearButton } from "@/components/common/InputClearButton";
+import { InputClearButton, inputIconButtonClassName } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fetchBarangays, fetchBarangayStreets, type BarangayLocationRow, type BarangayStreetRow } from "@/services/barangaysService";
@@ -88,6 +88,7 @@ const AuthModal = ({
     if (tab !== defaultTab) setTab(defaultTab);
   }
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [barangayOptions, setBarangayOptions] = useState<BarangayLocationRow[]>([]);
   const [streetOptions, setStreetOptions] = useState<BarangayStreetRow[]>([]);
   const [streetsLoading, setStreetsLoading] = useState(false);
@@ -101,10 +102,12 @@ const AuthModal = ({
   const [street, setStreet] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Login fields
   const [identifier, setIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -118,6 +121,8 @@ const AuthModal = ({
     setStreet("");
     setTermsAccepted(false);
     setPassword("");
+    setConfirmPassword("");
+    setShowConfirmPassword(false);
   };
 
   useEffect(() => {
@@ -190,6 +195,8 @@ const AuthModal = ({
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Enter a valid email address";
     if (!password) errs.password = "Password is required";
     else if (password.length < 8) errs.password = "Password must be at least 8 characters";
+    if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
+    else if (confirmPassword !== password) errs.confirmPassword = "Passwords do not match";
     if (phone && phone.length !== 10) errs.phone = "Enter a valid 10-digit PH number starting with 9";
     if (!barangay) errs.barangay = "Please select your barangay";
     if (streetOptions.length > 0 && !street) errs.street = "Please select your street";
@@ -242,7 +249,7 @@ const AuthModal = ({
     if (Object.keys(errs).length > 0) return;
     setLoading(true);
     try {
-      await login(identifier, loginPassword);
+      await login(identifier, loginPassword, rememberMe);
       const user = useAuthStore.getState().user;
       setErrors({});
       onOpenChange(false);
@@ -258,23 +265,28 @@ const AuthModal = ({
   };
 
   const PasswordToggle = (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
+      title={showPassword ? "Hide password" : "Show password"}
+      aria-label={showPassword ? "Hide password" : "Show password"}
+      aria-pressed={showPassword}
       onClick={() => setShowPassword(!showPassword)}
-      className="gw-action-ghost transition-colors"
-      tabIndex={-1}
+      className={inputIconButtonClassName}
     >
-      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-    </button>
+      {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+    </Button>
   );
 
-  const fieldClass = "";
+  // Keep Edge's native reveal icon from overlapping our visibility button.
+  const fieldClass = "[&::-ms-reveal]:hidden";
   const fieldLabelClass = "text-ui-label font-medium text-foreground";
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!loading) onOpenChange(nextOpen); }}>
-      <DialogContent className="max-h-[94dvh] gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card p-0 shadow-2xl sm:max-w-[960px] md:max-w-[960px] [&>button]:hidden">
-        <div className="relative flex min-h-0 max-h-[94dvh] flex-col md:flex-row">
+      <DialogContent className="max-h-[92dvh] gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card p-0 shadow-2xl sm:max-w-[600px] md:max-w-[960px] [&>button]:hidden">
+        <div className="relative grid min-h-0 max-h-[92dvh] grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
@@ -285,13 +297,13 @@ const AuthModal = ({
             <X className="h-4 w-4" />
           </button>
           {/* Left side - Form */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card text-card-foreground">
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-card text-card-foreground">
             {/* Header - fixed */}
-            <div className="shrink-0 px-6 pb-2 pt-6 sm:px-8 sm:pb-3 sm:pt-7">
-              <div className="mb-4 flex items-center gap-2.5 sm:mb-5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
+            <div className="shrink-0 px-6 pb-5 pt-6 sm:px-10 sm:pb-6 sm:pt-8">
+              <div className="mb-5 flex items-center gap-2.5 sm:mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
                   <img src="/greenway.svg" alt="GreenWay Logo" className="h-8 w-8" />
-                  </div>
+                </div>
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
               <DialogTitle className="gw-heading gw-auth-title text-foreground">
@@ -306,9 +318,9 @@ const AuthModal = ({
             </div>
 
             {/* Scrollable form area */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-3 sm:px-8 sm:pb-7 sm:pt-3">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 sm:px-10 sm:pb-8">
               {tab === "login" ? (
-                <form onSubmit={handleLogin} noValidate className="space-y-3.5">
+                <form onSubmit={handleLogin} noValidate className="space-y-5">
                   {errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
                       {errors.form}
@@ -340,6 +352,7 @@ const AuthModal = ({
                       <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="login-password"
+                        autoComplete="current-password"
                         aria-invalid={Boolean(errors.loginPassword)}
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
@@ -347,16 +360,19 @@ const AuthModal = ({
                         onChange={(e) => { setLoginPassword(e.target.value); setErrors((prev) => { const { loginPassword, ...rest } = prev; return rest; }); }}
                         className={`pl-10 pr-10 ${fieldClass} ${errors.loginPassword ? "border-destructive" : ""}`}
                       />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {PasswordToggle}
-                      </div>
+                      {PasswordToggle}
                     </div>
                     {errors.loginPassword && <p className="text-xs text-destructive mt-0.5">{errors.loginPassword}</p>}
-                    <div className="text-right">
-                      <button type="button" className="gw-action-link text-xs font-medium transition-colors hover:underline">
-                        Forgot password?
-                      </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="remember-me" checked={rememberMe} disabled={loading} onCheckedChange={(checked) => setRememberMe(checked === true)} />
+                      <Label htmlFor="remember-me" className="cursor-pointer text-xs font-normal text-muted-foreground">Remember me</Label>
                     </div>
+                    <button type="button" className="gw-action-link text-xs font-medium transition-colors hover:underline">
+                      Forgot password?
+                    </button>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Signing in…">
@@ -382,7 +398,7 @@ const AuthModal = ({
                     Continue with Google
                   </Button>
 
-                  <p className="pt-1 text-center text-sm text-muted-foreground">
+                  <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <button type="button" disabled={loading} onClick={() => { setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Sign Up
@@ -390,135 +406,172 @@ const AuthModal = ({
                   </p>
                 </form>
               ) : (
-                <form onSubmit={handleRegister} noValidate className="space-y-3">
+                <form onSubmit={handleRegister} noValidate className="space-y-4">
                   {errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
                   )}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="fullName" className={fieldLabelClass}>Full Name</Label>
-                      <div className="relative">
-                        <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <ClearableInput
-                          id="fullName"
-                          aria-invalid={Boolean(errors.fullName)}
-                          placeholder="Juan Dela Cruz"
-                          value={fullName}
-                          onChange={(e) => { setFullName(e.target.value); setErrors((prev) => { const { fullName, ...rest } = prev; return rest; }); }}
-                          className={`pl-10 ${fieldClass} ${errors.fullName ? "border-destructive" : ""}`}
+                  <fieldset className="min-w-0">
+                    <legend className="mb-3 text-ui-label font-semibold text-foreground">Account details</legend>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="fullName" className={fieldLabelClass}>Full Name</Label>
+                        <div className="relative">
+                          <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <ClearableInput
+                            id="fullName"
+                            aria-invalid={Boolean(errors.fullName)}
+                            placeholder="Juan Dela Cruz"
+                            value={fullName}
+                            onChange={(e) => { setFullName(e.target.value); setErrors((prev) => { const { fullName, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 ${fieldClass} ${errors.fullName ? "border-destructive" : ""}`}
+                          />
+                        </div>
+                        {errors.fullName && <p className="text-xs text-destructive mt-0.5">{errors.fullName}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="username" className={fieldLabelClass}>Username</Label>
+                        <div className="relative">
+                          <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <ClearableInput
+                            id="username"
+                            aria-invalid={Boolean(errors.username)}
+                            placeholder="juandc"
+                            value={username}
+                            onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 ${fieldClass} ${errors.username ? "border-destructive" : ""}`}
+                          />
+                        </div>
+                        {errors.username && <p className="text-xs text-destructive mt-0.5">{errors.username}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className={fieldLabelClass}>Email address</Label>
+                        <div className="relative">
+                          <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <ClearableInput
+                            id="email"
+                            aria-invalid={Boolean(errors.email)}
+                            type="email"
+                            placeholder="juan@email.com"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setErrors((prev) => { const { email, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 ${fieldClass} ${errors.email ? "border-destructive" : ""}`}
+                          />
+                        </div>
+                        {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="phone" className={fieldLabelClass}>
+                          Phone number <span className="font-normal text-muted-foreground">(optional)</span>
+                        </Label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none z-10">
+                            <span className="text-xs font-semibold text-muted-foreground">+63</span>
+                            <span className="mx-0.5 text-border">|</span>
+                          </div>
+                          <ClearableInput
+                            id="phone"
+                            aria-invalid={Boolean(errors.phone)}
+                            type="tel"
+                            placeholder="9XX XXX XXXX"
+                            value={formatPhone(phone)}
+                            onChange={handlePhoneChange}
+                            className={`pl-[4rem] ${fieldClass} ${errors.phone ? "border-destructive" : ""}`}
+                            maxLength={14}
+                          />
+                        </div>
+                        {errors.phone && <p className="text-xs text-destructive mt-0.5">{errors.phone}</p>}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="reg-password" className={fieldLabelClass}>Password</Label>
+                        <div className="relative">
+                          <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            id="reg-password"
+                            autoComplete="new-password"
+                            aria-invalid={Boolean(errors.password)}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Minimum 8 characters"
+                            value={password}
+                            onChange={(e) => { setPassword(e.target.value); setErrors((prev) => { const { password, confirmPassword, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 pr-10 ${fieldClass} ${errors.password ? "border-destructive" : ""}`}
+                          />
+                          {PasswordToggle}
+                        </div>
+                        {errors.password && <p className="text-xs text-destructive mt-0.5">{errors.password}</p>}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="confirm-password" className={fieldLabelClass}>Confirm password</Label>
+                        <div className="relative">
+                          <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            id="confirm-password"
+                            autoComplete="new-password"
+                            aria-invalid={Boolean(errors.confirmPassword)}
+                            aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Re-enter your password"
+                            value={confirmPassword}
+                            onChange={(e) => { setConfirmPassword(e.target.value); setErrors((prev) => { const { confirmPassword, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 pr-10 ${fieldClass} ${errors.confirmPassword ? "border-destructive" : ""}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-pressed={showConfirmPassword}
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className={inputIconButtonClassName}
+                          >
+                            {showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                          </Button>
+                        </div>
+                        {errors.confirmPassword && <p id="confirm-password-error" className="mt-0.5 text-xs text-destructive">{errors.confirmPassword}</p>}
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset className="min-w-0 border-t border-border/70 pt-4">
+                    <legend className="px-2 text-ui-label font-semibold text-foreground">Collection area</legend>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="barangay" className={fieldLabelClass}>Barangay</Label>
+                        <SearchableSelect
+                          aria-invalid={Boolean(errors.barangay)}
+                          value={barangay}
+                          onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}
+                          options={barangayOptions.map((b) => ({ value: b.id, label: b.name }))}
+                          placeholder={barangayOptions.length ? "Select your barangay" : "Loading barangays..."}
+                          searchPlaceholder="Search barangays..."
+                          leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                          className={`h-10 rounded-lg ${errors.barangay ? "border-destructive" : ""}`}
                         />
+                        {errors.barangay && <p className="text-xs text-destructive mt-0.5">{errors.barangay}</p>}
                       </div>
-                      {errors.fullName && <p className="text-xs text-destructive mt-0.5">{errors.fullName}</p>}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="username" className={fieldLabelClass}>Username</Label>
-                      <div className="relative">
-                        <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <ClearableInput
-                          id="username"
-                          aria-invalid={Boolean(errors.username)}
-                          placeholder="juandc"
-                          value={username}
-                          onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
-                          className={`pl-10 ${fieldClass} ${errors.username ? "border-destructive" : ""}`}
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="street" className={fieldLabelClass}>Select street</Label>
+                        <SearchableSelect
+                          aria-invalid={Boolean(errors.street)}
+                          value={street}
+                          onValueChange={(value) => { setStreet(value); setErrors((prev) => { const { street, ...rest } = prev; return rest; }); }}
+                          options={streetOptions.map((option) => ({ value: option.id, label: `${option.name}${option.area ? ` (${option.area})` : ""}` }))}
+                          placeholder={!barangay ? "Select your barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select your street" : "No streets available yet"}
+                          searchPlaceholder="Search streets..."
+                          disabled={!barangay || streetsLoading || streetOptions.length === 0}
+                          leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                          className={`h-10 rounded-lg ${errors.street ? "border-destructive" : ""}`}
                         />
+                        {errors.street && <p className="text-xs text-destructive mt-0.5">{errors.street}</p>}
                       </div>
-                      {errors.username && <p className="text-xs text-destructive mt-0.5">{errors.username}</p>}
+
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email" className={fieldLabelClass}>Email address</Label>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <ClearableInput
-                        id="email"
-                        aria-invalid={Boolean(errors.email)}
-                        type="email"
-                        placeholder="juan@email.com"
-                        value={email}
-                        onChange={(e) => { setEmail(e.target.value); setErrors((prev) => { const { email, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 ${fieldClass} ${errors.email ? "border-destructive" : ""}`}
-                      />
-                    </div>
-                    {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className={fieldLabelClass}>
-                      Phone number <span className="font-normal text-muted-foreground">(optional)</span>
-                    </Label>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none z-10">
-                        <span className="text-xs font-semibold text-muted-foreground">+63</span>
-                        <span className="mx-0.5 text-border">|</span>
-                      </div>
-                      <ClearableInput
-                        id="phone"
-                        aria-invalid={Boolean(errors.phone)}
-                        type="tel"
-                        placeholder="9XX XXX XXXX"
-                        value={formatPhone(phone)}
-                        onChange={handlePhoneChange}
-                        className={`pl-[4rem] ${fieldClass} ${errors.phone ? "border-destructive" : ""}`}
-                        maxLength={14}
-                      />
-                    </div>
-                    {errors.phone && <p className="text-xs text-destructive mt-0.5">{errors.phone}</p>}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="barangay" className={fieldLabelClass}>Barangay</Label>
-                    <SearchableSelect
-                      aria-invalid={Boolean(errors.barangay)}
-                      value={barangay}
-                      onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}
-                      options={barangayOptions.map((b) => ({ value: b.id, label: b.name }))}
-                      placeholder={barangayOptions.length ? "Select your barangay" : "Loading barangays..."}
-                      searchPlaceholder="Search barangays..."
-                      leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                      className={`h-10 rounded-xl ${errors.barangay ? "border-destructive" : ""}`}
-                    />
-                    {errors.barangay && <p className="text-xs text-destructive mt-0.5">{errors.barangay}</p>}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="street" className={fieldLabelClass}>Select street</Label>
-                    <SearchableSelect
-                      aria-invalid={Boolean(errors.street)}
-                      value={street}
-                      onValueChange={(value) => { setStreet(value); setErrors((prev) => { const { street, ...rest } = prev; return rest; }); }}
-                      options={streetOptions.map((option) => ({ value: option.id, label: `${option.name}${option.area ? ` (${option.area})` : ""}` }))}
-                      placeholder={!barangay ? "Select your barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select your street" : "No streets available yet"}
-                      searchPlaceholder="Search streets..."
-                      disabled={!barangay || streetsLoading || streetOptions.length === 0}
-                      leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                      className={`h-10 rounded-xl ${errors.street ? "border-destructive" : ""}`}
-                    />
-                    {errors.street && <p className="text-xs text-destructive mt-0.5">{errors.street}</p>}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-password" className={fieldLabelClass}>Password</Label>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="reg-password"
-                        aria-invalid={Boolean(errors.password)}
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Minimum 8 characters"
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setErrors((prev) => { const { password, ...rest } = prev; return rest; }); }}
-                        className={`pl-10 pr-10 ${fieldClass} ${errors.password ? "border-destructive" : ""}`}
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {PasswordToggle}
-                      </div>
-                    </div>
-                    {errors.password && <p className="text-xs text-destructive mt-0.5">{errors.password}</p>}
-                  </div>
+                  </fieldset>
 
                   <div className="flex items-start gap-2.5">
                     <Checkbox
@@ -557,7 +610,7 @@ const AuthModal = ({
                     Continue with Google
                   </Button>
 
-                  <p className="text-center text-sm text-muted-foreground">
+                  <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Already a member?{" "}
                     <button type="button" disabled={loading} onClick={() => { setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Log In
@@ -569,49 +622,48 @@ const AuthModal = ({
           </div>
 
           {/* Right side - Visual panel (hidden on mobile) */}
-          <aside className="relative hidden w-[360px] shrink-0 overflow-hidden bg-forest text-forest-foreground md:flex">
+          <aside className="relative hidden min-w-0 overflow-hidden border-l border-forest-foreground/10 bg-forest text-forest-foreground md:flex">
 
-            <div className="relative z-10 flex w-full flex-col justify-between p-8">
+            <div className="relative z-10 flex w-full flex-col justify-between gap-8 p-8">
               <div>
-                <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-forest-foreground/15 ring-1 ring-forest-foreground/15">
+                <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-forest-foreground/10 ring-1 ring-forest-foreground/15">
                   <Leaf className="h-5 w-5" />
                 </div>
-                <h3 className="gw-heading text-[1.55rem] leading-[1.08] tracking-[-0.035em]">
-                  Join the green<br />movement today.
+                <h3 className="gw-heading text-2xl leading-tight tracking-tight text-balance">
+                  Join the green movement today.
                 </h3>
-                <p className="mt-3 max-w-[27ch] text-sm leading-relaxed text-forest-foreground/80">
+                <p className="mt-3 text-sm leading-relaxed text-forest-foreground/75">
                   Track waste collection, report issues, and help keep your community clean and green.
                 </p>
 
-                <ul className="mt-7 space-y-4" aria-label="GreenWay community benefits">
+                <ul className="mt-7 space-y-4 border-t border-forest-foreground/15 pt-5" aria-label="GreenWay community benefits">
                   <li className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Users className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-tight">Cleaner<br />communities</span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Users className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-snug">Cleaner communities</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Leaf className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-tight">A greener<br />tomorrow</span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Leaf className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-snug">A greener tomorrow</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy/45"><Heart className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-tight">Stronger<br />together</span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Heart className="h-4 w-4" /></span>
+                    <span className="text-sm font-medium leading-snug">Stronger together</span>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <div className="flex items-end gap-5 border-t border-forest-foreground/20 pt-5">
+                <div className="grid grid-cols-2 gap-4 border-t border-forest-foreground/15 pt-5">
                   <div>
                     <p className="gw-stat-value text-2xl tracking-[-0.04em]">12k+</p>
                     <p className="text-ui-caption text-forest-foreground/70">Active residents</p>
                   </div>
-                  <div className="h-8 w-px bg-forest-foreground/25" />
-                  <div>
+                  <div className="border-l border-forest-foreground/15 pl-4">
                     <p className="gw-stat-value text-2xl tracking-[-0.04em]">98%</p>
                     <p className="text-ui-caption text-forest-foreground/70">Collection rate</p>
                   </div>
                 </div>
-                <p className="mt-6 text-center text-ui-caption text-forest-foreground/55">© {new Date().getFullYear()} GreenWay</p>
+                <p className="mt-6 text-ui-caption text-forest-foreground/65">© {new Date().getFullYear()} GreenWay</p>
               </div>
             </div>
           </aside>

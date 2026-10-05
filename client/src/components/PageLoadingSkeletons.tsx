@@ -354,12 +354,9 @@ export const CollectorRouteHistoryRowsSkeleton = ({ count = 4 }: { count?: numbe
 );
 
 export const CollectorRouteHistorySkeleton = () => (
-  <div role="status" aria-busy="true" className="collector-history-page mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
+  <div role="status" aria-busy="true" className="resident-page collector-history-page mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
     <span className="sr-only">Loading route history…</span>
-    <div aria-hidden="true" className="pb-1">
-      <Skeleton className="gw-page-title w-fit max-w-full tracking-tight sm:text-ui-page-lg"><span className="invisible">Route history</span></Skeleton>
-      <Skeleton className="mt-0.5 w-fit max-w-full text-ui-caption sm:text-ui-body"><span className="invisible">Review previous collection shifts, stops, and route results.</span></Skeleton>
-    </div>
+    <ResidentPageHeaderSkeleton className="admin-module-header" title="Route History" description="Review previous collection shifts, stops, and route results." />
     <div aria-hidden="true" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 gap-1.5 overflow-hidden">{[92, 100, 70, 118].map((width) => <Skeleton key={width} className="h-9 shrink-0 rounded-lg" style={{ width }} />)}</div>
       <Skeleton className="h-9 w-full shrink-0 rounded-lg sm:w-[190px]" />
@@ -369,7 +366,7 @@ export const CollectorRouteHistorySkeleton = () => (
 );
 
 export const CollectorRouteHistoryDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
-  <div role="status" aria-busy="true" className="collector-history-page collector-history-detail mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
+  <div role="status" aria-busy="true" className="resident-page collector-history-page collector-history-detail mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
     <span className="sr-only">Loading route details…</span>
     {onBack ? <BackButton onBack={onBack} label="Back to route history" className="mb-0 h-11 w-fit sm:h-9" /> : <Skeleton aria-hidden="true" className="h-11 w-20 sm:h-9" />}
     <div aria-hidden="true" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
@@ -405,7 +402,7 @@ export const CollectorRouteHistoryDetailSkeleton = ({ onBack }: { onBack?: () =>
 export const CollectorProfileSkeleton = () => (
   <div role="status" aria-busy="true" className={collectorProfile.page}>
     <span className="sr-only">Loading collector profile…</span>
-    <ResidentPageHeaderSkeleton title="Profile & account" description="Manage your personal details and account security." />
+    <ResidentPageHeaderSkeleton title="Profile & Account" description="Manage your personal details and account security." />
     <div aria-hidden="true" className={cn(collectorProfile.stack, "pointer-events-none")}>
       <div className={collectorProfile.hero}>
         <div className={collectorProfile.cover}><Skeleton className="absolute inset-0 h-full w-full rounded-none" /></div>
@@ -477,12 +474,9 @@ export const CollectorProfileSkeleton = () => (
 
 /* ─── Collector Route Map Skeleton ─── */
 export const CollectorRouteMapSkeleton = () => (
-  <div role="status" aria-busy="true" className="collector-route-page mx-auto min-w-0 w-full max-w-[1600px] space-y-4 pb-6 sm:space-y-5">
+  <div role="status" aria-busy="true" className="resident-page collector-route-page mx-auto min-w-0 w-full max-w-[1600px] space-y-4 pb-6 sm:space-y-5">
     <span className="sr-only">Loading collection route…</span>
-    <div aria-hidden="true" className="pb-1">
-      <Skeleton className="h-8 w-64 max-w-full sm:h-9" />
-      <Skeleton className="mt-1 h-4 w-80 max-w-full" />
-    </div>
+    <ResidentPageHeaderSkeleton className="admin-module-header" titleClassName="w-64" descriptionClassName="w-80" />
 
     <div aria-hidden="true" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs sm:px-5">
       <div className="flex min-w-0 flex-wrap items-center gap-2"><Skeleton className="h-5 w-36" /><Skeleton className="h-6 w-28 rounded-lg" /><Skeleton className="h-6 w-20 rounded-lg" /></div>
@@ -767,7 +761,7 @@ export const ProfileSkeleton = () => (
 export const AdminProfileSkeleton = () => (
   <div role="status" aria-busy="true" aria-label="Loading administrator profile" className={adminProfile.page}>
     <span className="sr-only">Loading administrator profile…</span>
-    <ResidentPageHeaderSkeleton title="Profile & account" description="Manage your personal details and account security." />
+    <ResidentPageHeaderSkeleton title="Profile & Account" description="Manage your personal details and account security." />
     <div aria-hidden="true" className={cn(adminProfile.stack, "pointer-events-none")}>
       <div className={adminProfile.hero}>
         <div className={adminProfile.cover}><Skeleton className="absolute inset-0 h-full w-full rounded-none" /></div>

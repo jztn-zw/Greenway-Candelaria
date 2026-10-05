@@ -23,7 +23,7 @@ import SectionWasteReports from "./SectionWasteReports";
 import { useAnalyticsDashboard } from "./useAnalyticsDashboard";
 
 type DatePreset = "this-month" | "last-8-weeks" | "last-3-months";
-const pageTitle = "Analytics dashboard";
+const pageTitle = "Analytics Dashboard";
 const pageDescription = "A single view of collection operations, resident reports, and truck activity.";
 
 const sectionComponents: Record<string, { component: React.FC; title: string; subtitle: string }> = {

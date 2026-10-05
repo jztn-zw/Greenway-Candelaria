@@ -1,6 +1,5 @@
 import { CircleCheck, FileText, Truck, Users } from "lucide-react";
 import { AdminKpiCard, AdminKpiGrid, type AdminKpiTone } from "@/components/admin/AdminKpiCards";
-import { useCountUp } from "./useCountUp";
 import type { AnalyticsOverview, ReportsAnalytics } from "./useAdminDashboard";
 
 interface KPISegmentProps {
@@ -13,8 +12,7 @@ interface KPISegmentProps {
 }
 
 const KPISegment = ({ label, value, suffix = "", subtitle, icon, tone }: KPISegmentProps) => {
-  const animated = useCountUp(value);
-  return <AdminKpiCard label={label} value={`${animated.toLocaleString()}${suffix}`} description={subtitle} icon={icon} tone={tone} />;
+  return <AdminKpiCard label={label} value={`${value.toLocaleString()}${suffix}`} description={subtitle} icon={icon} tone={tone} />;
 };
 
 interface KPICardsProps {

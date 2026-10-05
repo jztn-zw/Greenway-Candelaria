@@ -27,7 +27,7 @@ import {
   Clock,
   CalendarDays,
   MapPin,
-  Pencil,
+  SquarePen,
   Truck as TruckIcon,
   X,
 } from "lucide-react";
@@ -145,7 +145,7 @@ const RouteFormPanel = ({
                   className="gap-2 shadow-sm"
                   onClick={onBeginEdit}
                 >
-                  <Pencil className="w-3.5 h-3.5" /> Edit Route
+                  <SquarePen className="w-3.5 h-3.5" /> Edit Route
                 </Button>
                 <Button
                   variant={selectedRoute.active ? "destructive-outline" : "primary-outline"}

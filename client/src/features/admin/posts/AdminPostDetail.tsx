@@ -10,7 +10,7 @@ import {
   Eye,
   EyeOff,
   MoreVertical,
-  Pencil,
+  SquarePen,
   Star,
   StarOff,
   Trash2,
@@ -189,7 +189,7 @@ const AdminPostDetail = ({
                       onClick={() => onEdit(post)}
                       className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 gap-2"
                     >
-                      <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <SquarePen className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                       Edit Post
                     </DropdownMenuItem>
                   )}

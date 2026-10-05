@@ -31,7 +31,7 @@ fetchManagedStreets,
 type BarangayManagerRow,
 type ManagedStreet,
 } from "@/services/barangaysService";
-import { MapPin, MapPinned, Pencil, Plus, Route, Search, Trash2, Truck } from "lucide-react";
+import { MapPin, MapPinned, SquarePen, Plus, Route, Search, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import StreetCoverageEditor, { type CoveragePoint } from "./StreetCoverageEditor";
 
@@ -575,7 +575,7 @@ const AdminBarangays = () => {
                                     aria-label={`Edit ${street.name}`}
                                     onClick={() => openEdit(street)}
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    <SquarePen className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button
                                     variant="destructive-ghost"

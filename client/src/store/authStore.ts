@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import authService, { User } from "../services/authService";
+import { authStateStorage, clearAuthStorage, getAuthStorage } from "@/lib/authStorage";
 
 interface AuthState {
   user: User | null;
@@ -8,19 +9,13 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   hasHydrated: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   ensureSession: (force?: boolean) => Promise<boolean>;
   setUser: (user: User) => void;
   setHasHydrated: (value: boolean) => void;
   clearAuth: () => void;
 }
-
-const clearPersistedAuth = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("auth-storage");
-};
 
 const SESSION_VERIFY_TTL_MS = 60_000;
 let lastSessionVerifiedAt = 0;
@@ -36,7 +31,7 @@ const useAuthStore = create<AuthState>()(
       isLoading: false,
       hasHydrated: false,
 
-      login: async (identifier, password) => {
+      login: async (identifier, password, rememberMe = true) => {
         const generation = ++authGeneration;
         inFlightSessionCheck = null;
         set({ isLoading: true });
@@ -46,8 +41,10 @@ const useAuthStore = create<AuthState>()(
             password,
           });
           if (generation !== authGeneration) throw new Error("Your session changed");
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify(user));
+          clearAuthStorage();
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem("token", token);
+          storage.setItem("user", JSON.stringify(user));
           set({
             user,
             token,
@@ -100,7 +97,7 @@ const useAuthStore = create<AuthState>()(
           .getMe()
           .then((user) => {
             if (!isCurrent()) return false;
-            localStorage.setItem("user", JSON.stringify(user));
+            getAuthStorage().setItem("user", JSON.stringify(user));
             set({
               user,
               token,
@@ -122,7 +119,7 @@ const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user) => {
-        localStorage.setItem("user", JSON.stringify(user));
+        getAuthStorage().setItem("user", JSON.stringify(user));
         set({ user });
       },
 
@@ -131,7 +128,7 @@ const useAuthStore = create<AuthState>()(
       clearAuth: () => {
         authGeneration++;
         inFlightSessionCheck = null;
-        clearPersistedAuth();
+        clearAuthStorage();
         lastSessionVerifiedAt = 0;
         set({
           user: null,
@@ -143,6 +140,7 @@ const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      storage: createJSONStorage(() => authStateStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

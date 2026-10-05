@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Route, Plus, Play, MapPin } from "lucide-react";
@@ -54,7 +55,7 @@ const RouteHeader = ({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className="gw-stat-value text-xl leading-tight text-foreground">{kpi.value}</p>
+                <p className="gw-stat-value text-xl leading-tight text-foreground"><KpiValue value={kpi.value} /></p>
               </div>
             </CardContent>
           </Card>

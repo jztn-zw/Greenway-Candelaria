@@ -2,6 +2,7 @@ import { create } from "zustand";
 import notificationsService, { type NotificationRow, type NotificationFilters } from "@/services/notificationsService";
 import useAuthStore from "@/store/authStore";
 import { getSocket } from "@/lib/socket";
+import { getAuthStorage } from "@/lib/authStorage";
 import { toast } from "@/lib/toast";
 import { getCollectorNotificationCategory } from "@/features/collector/notifications/notificationRouting";
 
@@ -153,7 +154,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => {
     initSocket: (user) => {
       if (get().userId !== user.id) { get().resetSession(); set({ userId: user.id }); }
       const socket = getSocket();
-      const token = localStorage.getItem("token");
+      const token = getAuthStorage().getItem("token");
       const previousToken = (socket.auth as { token?: string }).token;
       socket.auth = { token };
       if (joinRooms) socket.off("connect", joinRooms);

@@ -1,4 +1,5 @@
 import { io, Socket } from "socket.io-client";
+import { getAuthStorage } from "./authStorage";
 
 let socket: Socket | null = null;
 
@@ -16,7 +17,7 @@ export const getSocket = (): Socket => {
     socket = io(serverUrl, {
       transports: ["websocket", "polling"],
       withCredentials: true,
-      auth: { token: localStorage.getItem("token") },
+      auth: { token: getAuthStorage().getItem("token") },
       autoConnect: true,
     });
   }

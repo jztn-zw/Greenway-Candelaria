@@ -7,7 +7,7 @@ import {
   AlertTriangle,
   Megaphone,
   Shield,
-  Edit2,
+  SquarePen,
   Trash2,
   Copy,
   Archive,
@@ -159,7 +159,7 @@ const AnnouncementCard = ({
               onClick={() => onEdit(ann)}
               className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              <Edit2 className="size-3.5 shrink-0" /> Edit
+              <SquarePen className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
@@ -189,7 +189,7 @@ const AnnouncementCard = ({
               onClick={() => onEdit(ann)}
               className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              <Edit2 className="size-3.5 shrink-0" /> Edit
+              <SquarePen className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
@@ -226,7 +226,7 @@ const AnnouncementCard = ({
               onClick={() => onEdit(ann)}
               className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              <Edit2 className="size-3.5 shrink-0" /> Edit
+              <SquarePen className="size-3.5 shrink-0" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDuplicate(ann)}
@@ -264,7 +264,7 @@ const AnnouncementCard = ({
               onClick={() => needsExpiryUpdateBeforeRestore ? onEdit(ann) : onArchive(ann)}
               className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
             >
-              {needsExpiryUpdateBeforeRestore ? <Edit2 className="size-3.5 shrink-0" /> : <ArchiveRestore className="size-3.5 shrink-0" />}
+              {needsExpiryUpdateBeforeRestore ? <SquarePen className="size-3.5 shrink-0" /> : <ArchiveRestore className="size-3.5 shrink-0" />}
               {needsExpiryUpdateBeforeRestore ? "Edit & Restore" : "Restore Notice"}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />

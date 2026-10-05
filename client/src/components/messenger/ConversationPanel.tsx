@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { parseApiTimestamp } from "@/utils/date";
 import { useConversation } from "./useConversation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 
 type Conversation = ReturnType<typeof useConversation>;
 const resizeComposer = (element: HTMLTextAreaElement) => {
@@ -123,7 +124,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
       {messages.map((message) => {
         const own = admin ? message.sender_role === "ADMIN" : message.sender_role === "DRIVER";
         return <div key={message.id} data-message-id={message.id} data-unread={!own && !message.is_read} className={cn("flex min-w-0 items-end gap-2", message.id === targetId && "rounded-xl ring-2 ring-primary", own ? "justify-end" : "justify-start")}>
-              {!own && <Avatar aria-hidden="true" className="mb-6 size-6"><AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">{message.sender_name.trim().split(/\s+/).slice(0, 2).map((name) => Array.from(name)[0] ?? "").join("").toUpperCase() || "M"}</AvatarFallback></Avatar>}
+              {!own && <Avatar aria-hidden="true" className="mb-6 size-6"><AvatarImage src={profileAvatarSrc(profileAvatarForAccount(message.sender_id, message.sender_avatar_url))} alt="" className="object-cover object-center" /><AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">{message.sender_name.trim().split(/\s+/).slice(0, 2).map((name) => Array.from(name)[0] ?? "").join("").toUpperCase() || "M"}</AvatarFallback></Avatar>}
               <div className={cn("min-w-0", own ? "max-w-[88%]" : "max-w-[calc(100%-2rem)]")}>
                 {own ? <span className="sr-only">You</span> : <p className="mb-1 px-3 break-words text-[11px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{message.sender_name}</p>}
                 <p className={cn("w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed [overflow-wrap:anywhere]", own ? "ml-auto bg-primary text-primary-foreground" : "bg-muted/70 text-foreground")}>{message.message}</p>

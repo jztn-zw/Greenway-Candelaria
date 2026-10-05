@@ -30,6 +30,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { CollectorRouteMapSkeleton } from "@/components/PageLoadingSkeletons";
@@ -75,7 +76,7 @@ const NoScheduledRouteView = ({
   retrying = false,
   message = "No route has been assigned to your truck for today. Check back later or review past route runs.",
 }: NoScheduledRouteViewProps) => (
-  <div className="collector-route-standby w-full min-w-0 max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
+  <div className="resident-page collector-route-standby w-full min-w-0 max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
     <div className="w-full max-w-lg rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-6">
       {/* Municipal Indicator Icon */}
       <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-2xs">
@@ -83,14 +84,7 @@ const NoScheduledRouteView = ({
       </div>
 
       {/* Copy */}
-      <div className="space-y-2">
-        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight">
-          No collection scheduled today
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-          {message}
-        </p>
-      </div>
+      <ResidentPageHeader className="items-center text-center" title="No Collection Scheduled Today" description={message} />
 
       {refreshError && <DataRefreshNotice message="Couldn't refresh your assignment. The last loaded information may be outdated." onRetry={onRetry} retrying={retrying} className="text-left sm:flex-col sm:items-start" />}
 
@@ -566,20 +560,11 @@ const CollectorRouteMap = () => {
   };
 
   return (
-    <div className="collector-route-page w-full min-w-0 max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-6">
+    <div className="resident-page collector-route-page w-full min-w-0 max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-6">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight break-words">
-              {hasStartedRoute ? "Live route navigation" : "Today's collection route"}
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
-            {hasStartedRoute ? "Checkpoint navigation and stop collection management" : "Review the route and stops before starting collection"}
-          </p>
-        </div>
-      </div>
+      <ResidentPageHeader className="admin-module-header"
+        title="Live Route Tracking"
+        description={hasStartedRoute ? "Checkpoint navigation and stop collection management" : "Review the route and stops before starting collection"} />
       {error && <DataRefreshNotice message="Couldn't refresh the route. Showing the last loaded stops, which may be outdated." onRetry={refresh} retrying={isRefreshing} />}
 
       {/* Route Command Header & Integrated Progress Bar (Req 1) */}

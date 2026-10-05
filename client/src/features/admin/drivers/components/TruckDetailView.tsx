@@ -4,7 +4,7 @@ import {
   CalendarDays,
   ShieldCheck,
   Hash,
-  Edit2,
+  SquarePen,
   Wrench,
   CheckCircle2,
 } from "lucide-react";
@@ -73,7 +73,7 @@ const TruckDetailView = ({
               onClick={() => onEdit(truck)}
               className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
-              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+              <SquarePen className="w-3.5 h-3.5 text-muted-foreground" />
               Edit Truck
             </Button>
             <Button

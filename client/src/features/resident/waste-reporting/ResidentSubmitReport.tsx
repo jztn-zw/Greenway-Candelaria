@@ -271,7 +271,7 @@ const ResidentSubmitReport = () => {
     <div className={reportStyles.page}>
       {/* ── Page Header ── */}
       <ResidentPageHeader
-        title="Submit a waste report"
+        title="Submit a Waste Report"
         description="Report waste issues in your area to MENRO Candelaria."
         actions={hasDraft && (
           <Button

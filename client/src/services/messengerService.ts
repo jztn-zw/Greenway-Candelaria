@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 export interface WebMessage {
   id: string; route_id?: string | null; sender_role: string; sender_name: string;
+  sender_id?: string; sender_avatar_url?: string | null;
   message: string; is_read: boolean; created_at: string;
 }
 export interface ConversationPage {

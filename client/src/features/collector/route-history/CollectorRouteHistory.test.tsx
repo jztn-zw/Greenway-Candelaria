@@ -40,7 +40,7 @@ it("keeps filters available while a new status loads and restores cached results
   let resolve!: (page: Awaited<ReturnType<typeof fetchCollectorHistoryPage>>) => void;
   vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
   await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Completed")!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector("h1")?.textContent).toBe("Route History");
   expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route history");
   expect(host.textContent).not.toContain("Route run-A");
   expect(host.textContent).not.toContain("No route logs found");
@@ -98,7 +98,7 @@ it("loads older pages on demand and filters across the full backend history", as
   vi.mocked(fetchCollectorHistoryPage).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
   await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Load older routes"))!.click());
   expect(host.textContent).toContain("Route run-A");
-  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector("h1")?.textContent).toBe("Route History");
   expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading route history");
   expect(fetchCollectorHistoryPage).toHaveBeenLastCalledWith({ status: "all", waste_type: "all", cursor: "next" });
   await act(async () => resolve({ items: [run("older")], total: 80, nextCursor: null }));
@@ -125,7 +125,7 @@ it("returns from route details to the cached list with the selected filter intac
   const back = host.querySelector<HTMLButtonElement>('button[aria-label="Back to route history"]');
   expect(back).not.toBeNull();
   await act(async () => back!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector("h1")?.textContent).toBe("Route History");
   expect([...host.querySelectorAll('button[aria-pressed="true"]')].map((button) => button.textContent)).toContain("No collection");
   expect(fetchCollectorHistoryPage).toHaveBeenCalledTimes(pageCalls);
 });
@@ -136,7 +136,7 @@ it("lets a directly linked route return to history while its details are still l
   const back = host.querySelector<HTMLButtonElement>('button[aria-label="Back to route history"]');
   expect(back).not.toBeNull();
   await act(async () => back!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect(host.querySelector("h1")?.textContent).toBe("Route History");
   await act(async () => resolve(run()));
   expect(host.textContent).not.toContain("Checkpoint breakdown");
   expect(fetchCollectorHistoryPage).toHaveBeenCalledWith({ status: "all", waste_type: "all", cursor: undefined });

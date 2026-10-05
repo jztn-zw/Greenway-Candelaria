@@ -256,7 +256,7 @@ const MyReports = () => {
   return (
     <div className={myReportsStyles.page}>
       {/* Header */}
-      <ResidentPageHeader title="My reports" description="Track your waste reports and updates from MENRO."
+      <ResidentPageHeader title="My Reports" description="Track your waste reports and updates from MENRO."
         actionsClassName={myReportsStyles.headerActions}
         actions={
         <Button

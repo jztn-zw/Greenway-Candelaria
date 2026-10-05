@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import { SearchInput } from "@/components/common/SearchInput";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -126,27 +127,21 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
           <div className="rounded-2xl bg-muted/40 border border-border/80 p-3 sm:p-4 space-y-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
               <div className="min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
-                  {recipientCount.toLocaleString()}
-                </p>
+                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums"><KpiValue value={recipientCount.toLocaleString()} /></p>
                 <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Delivered
                 </p>
               </div>
 
               <div className="min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="gw-stat-value text-xl sm:text-2xl text-primary tabular-nums">
-                  {readCount.toLocaleString()}
-                </p>
+                <p className="gw-stat-value text-xl sm:text-2xl text-primary tabular-nums"><KpiValue value={readCount.toLocaleString()} /></p>
                 <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Confirmed Read
                 </p>
               </div>
 
               <div className="col-span-2 sm:col-span-1 min-w-0 p-3 rounded-xl bg-background border border-border/60 shadow-2xs">
-                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums">
-                  {readPct}%
-                </p>
+                <p className="gw-stat-value text-xl sm:text-2xl text-foreground tabular-nums"><KpiValue value={String(readPct) + "%"} /></p>
                 <p className="text-ui-overline sm:text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
                   Read Rate
                 </p>

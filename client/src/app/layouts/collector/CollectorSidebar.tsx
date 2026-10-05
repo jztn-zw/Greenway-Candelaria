@@ -49,12 +49,12 @@ import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 const navGroups = [
   {
     label: "OVERVIEW",
-    items: [{ title: "Collector dashboard", url: "/collector", icon: LayoutDashboard }],
+    items: [{ title: "Dashboard", url: "/collector", icon: LayoutDashboard }],
   },
   {
     label: "OPERATIONS",
     items: [
-      { title: "Live route tracking", url: "/collector/route-map", icon: Map },
+      { title: "Live Route Tracking", url: "/collector/route-map", icon: Map },
       { title: "MENRO Calendar", url: "/collector/schedule", icon: CalendarDays },
       { title: "Route History", url: "/collector/route-history", icon: History },
     ],

@@ -3,12 +3,13 @@ import { Megaphone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { adminDashboardStyles as styles } from "../dashboardStyles";
+import authService from "@/services/authService";
 
 const getGreeting = () => {
   const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", hour: "numeric", hourCycle: "h23" }).format(new Date()));
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return "Good Morning";
+  if (h < 18) return "Good Afternoon";
+  return "Good Evening";
 };
 
 const formatDate = (d: Date) =>
@@ -18,19 +19,7 @@ const DashboardHeader = () => {
   const [time, setTime] = useState(new Date());
   const navigate = useNavigate();
 
-  // Read admin name from localStorage
-  const adminName = (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const u = JSON.parse(stored);
-        if (u?.full_name) return u.full_name.split(" ")[0];
-      }
-    } catch {
-      // fallback
-    }
-    return "Admin";
-  })();
+  const adminName = authService.getCurrentUser()?.full_name?.split(" ")[0] || "Admin";
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);

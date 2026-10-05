@@ -1,5 +1,6 @@
 import "./collectorRouteHistory.css";
 import ListEmptyState from "@/components/common/ListEmptyState";
+import ResidentPageHeader, { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
 import { BackButton } from "@/components/common/BackButton";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
@@ -185,15 +186,15 @@ const CollectorRouteHistory = () => {
     const DetailStatusIcon = detailBadge.icon;
 
     return (
-      <div className="collector-history-page collector-history-detail w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
+      <div className="resident-page collector-history-page collector-history-detail w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
         <BackButton onBack={backToHistory} label="Back to route history" className="mb-0 h-11 w-fit sm:h-9" />
         {/* Route Run Header Card */}
         <section aria-label="Route summary" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route aria-hidden="true" className="size-5" /></div>
-            <h1 className="gw-page-title min-w-0 flex-1 text-foreground sm:text-ui-page-lg">
+            <ResidentPageTitle className="min-w-0 flex-1">
               {r.routeName}
-            </h1>
+            </ResidentPageTitle>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className={collectorBadgeClassName + " " + detailBadge.cls}>
@@ -300,14 +301,9 @@ const CollectorRouteHistory = () => {
   /* ────── Main List View ────── */
   if (history.error && history.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load route history. Please try again." onRetry={retry} retrying={history.isFetching} homeHref="/collector" />;
   return (
-    <div className="collector-history-page w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
+    <div className="resident-page collector-history-page w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div className="min-w-0">
-          <h1 className="gw-page-title tracking-tight text-foreground sm:text-ui-page-lg">Route history</h1>
-          <p className="mt-0.5 text-ui-caption text-muted-foreground sm:text-ui-body">Review previous collection shifts, stops, and route results.</p>
-        </div>
-      </div>
+      <ResidentPageHeader className="admin-module-header" title="Route History" description="Review previous collection shifts, stops, and route results." />
 
       {/* ── Filter Toolbar ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

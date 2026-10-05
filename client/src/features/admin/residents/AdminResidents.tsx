@@ -7,7 +7,7 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
-import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+import { AdminKpiCard, AdminKpiGrid, AdminKpiSkeleton } from "@/components/admin/AdminKpiCards";
 import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
@@ -234,7 +234,7 @@ const AdminResidents = () => {
       {listQuery.error && <DataRefreshNotice message="Couldn't refresh residents. Showing the last loaded results, which may be outdated." onRetry={() => void listQuery.refetch()} retrying={listQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
-      <AdminKpiGrid>
+      {kpiLoading ? <AdminKpiSkeleton /> : <AdminKpiGrid>
         {[
           {
             label: "Total Residents",
@@ -267,7 +267,7 @@ const AdminResidents = () => {
         ].map((kpi) => (
           <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value} description={kpi.subtitle} icon={kpi.icon} tone={kpi.tone} />
         ))}
-      </AdminKpiGrid>
+      </AdminKpiGrid>}
 
       {/* ── Resident Directory Table ── */}
       <div className={styles.directory}>

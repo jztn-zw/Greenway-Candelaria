@@ -30,7 +30,7 @@ import { getCollectorNotificationPresentation } from "@/features/collector/notif
 
 const COLLECTOR_PAGE_TITLES: Record<string, string> = {
   "/collector": "Driver Dashboard",
-  "/collector/route-map": "Live Route Map",
+  "/collector/route-map": "Live Route Tracking",
   "/collector/schedule": "MENRO Calendar",
   "/collector/route-history": "Route History",
   "/collector/notifications": "Notifications",

@@ -32,7 +32,7 @@ const openConfirmation = async () => { await act(async () => [...host.querySelec
 it("opens the owned report from its focusable card without withdrawing it", async () => {
   listState.showReport = true;
   await act(async () => host.querySelector<HTMLAnchorElement>('a[aria-label="Back to My Reports"]')!.click());
-  expect(host.querySelector("h1")).toHaveTextContent("My reports");
+  expect(host.querySelector("h1")).toHaveTextContent("My Reports");
   const card = host.querySelector<HTMLButtonElement>('button[aria-label="View report GW-123"]')!;
   expect(card).not.toBeNull();
   card.focus();
@@ -80,7 +80,7 @@ it("returns with the shared Back button and preserves the report list filter", a
   await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="View report GW-123"]')!.click());
   expect(host.querySelector('nav [aria-current="page"]')).toHaveTextContent("GW-123");
   await act(async () => backButton().click());
-  expect(host.querySelector("h1")).toHaveTextContent("My reports");
+  expect(host.querySelector("h1")).toHaveTextContent("My Reports");
   expect(host.querySelector('[aria-label="Report status filters"] button[aria-pressed="true"]')).toHaveTextContent(/^Pending$/);
   expect(host.querySelector('button[aria-label="Back to My Reports"]')).toBeNull();
   expect(deleteReport).not.toHaveBeenCalled();

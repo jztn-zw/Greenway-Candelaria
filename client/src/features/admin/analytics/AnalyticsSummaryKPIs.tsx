@@ -1,12 +1,10 @@
 import type { ComponentProps } from "react";
 import { CircleCheck, CircleX, ClipboardList, MapPin } from "lucide-react";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
-import { useCountUp } from "@/features/admin/dashboard/components/useCountUp";
 import { useAnalyticsData } from "./AnalyticsDataContext";
 
 const Kpi = ({ value, suffix = "", ...props }: Omit<ComponentProps<typeof AdminKpiCard>, "value"> & { value: number; suffix?: string }) => {
-  const animated = useCountUp(value);
-  return <AdminKpiCard {...props} value={`${animated.toLocaleString()}${suffix}`} />;
+  return <AdminKpiCard {...props} value={`${value.toLocaleString()}${suffix}`} />;
 };
 
 const AnalyticsSummaryKPIs = () => {

@@ -1,4 +1,4 @@
-import { Check, Pencil } from "lucide-react";
+import { Check, SquarePen } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PROFILE_AVATARS, profileAvatarSrc, type ProfileAvatarId } from "./profileAvatars";
@@ -26,7 +26,7 @@ export const ProfileAvatarControl = ({ avatarId, onCustomize, avatarClassName }:
       onClick={onCustomize}
       className="absolute -bottom-1 -right-1 size-7 rounded-full border-border/80 bg-card text-foreground shadow-sm hover:bg-muted [&_svg]:size-3.5"
     >
-      <Pencil className="size-3.5" />
+      <SquarePen className="size-3.5" />
     </Button>
   </div>
 );

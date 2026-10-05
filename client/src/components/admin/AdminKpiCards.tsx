@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import "./adminKpiCards.css";
+import KpiValue from "@/components/common/KpiValue";
 
 export type AdminKpiTone = "neutral" | "success" | "warning" | "info" | "danger";
 
@@ -34,7 +35,7 @@ export const AdminKpiCard = ({ label, value, description, icon: Icon, tone = "ne
       </span>
       <h2 className="admin-kpi-label min-w-0 font-medium text-muted-foreground">{label}</h2>
     </div>
-    <p className="admin-kpi-value gw-stat-value min-w-0 text-foreground">{typeof value === "number" ? value.toLocaleString() : value}</p>
+    <p className="admin-kpi-value gw-stat-value min-w-0 text-foreground"><KpiValue value={value} /></p>
     <div className="admin-kpi-description min-w-0 text-muted-foreground">{description}</div>
   </article>
 );

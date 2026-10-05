@@ -7,6 +7,8 @@ type InputClearButtonProps = Omit<ComponentProps<typeof Button>, "children" | "v
   label?: string;
 };
 
+export const inputIconButtonClassName = "absolute right-1.5 top-1/2 h-6 w-6 -translate-y-1/2 rounded p-0 text-muted-foreground [--action-hover:hsl(var(--foreground)/0.04)] [--action-active:hsl(var(--foreground)/0.06)] hover:text-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/50 focus-visible:ring-offset-0 motion-reduce:transition-none [&_svg]:size-3";
+
 /** Shared clear control for search fields and other text inputs. */
 export const InputClearButton = forwardRef<HTMLButtonElement, InputClearButtonProps>(({
   label = "Clear input", className, onKeyDown, ...props
@@ -24,7 +26,7 @@ export const InputClearButton = forwardRef<HTMLButtonElement, InputClearButtonPr
       if (event.key === "Enter" || event.key === " ") event.stopPropagation();
     }}
     className={cn(
-      "absolute right-1.5 top-1/2 h-6 w-6 -translate-y-1/2 rounded p-0 text-muted-foreground [--action-hover:hsl(var(--foreground)/0.04)] [--action-active:hsl(var(--foreground)/0.06)] hover:text-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/50 focus-visible:ring-offset-0 motion-reduce:transition-none [&_svg]:size-3",
+      inputIconButtonClassName,
       className,
     )}
     {...props}

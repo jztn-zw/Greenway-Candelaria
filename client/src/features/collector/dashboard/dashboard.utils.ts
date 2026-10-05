@@ -63,7 +63,7 @@ export const buildAssignment = (
     .map((stop) => ({ id: stop.id, name: stop.stop_name || stop.barangay_name, order: stop.order_index }));
   const currentStop = stops.find((stop) => stop.status === "IN_PROGRESS") ?? stops.find((stop) => stop.status === "NOT_STARTED");
   return {
-    routeState, statusLabel: routeStatusLabels[routeState], routeName: route?.route_name || "Today's collection route",
+    routeState, statusLabel: routeStatusLabels[routeState], routeName: route?.route_name || "Today's Collection Route",
     wasteType: route?.waste_type || "Unspecified", plateNumber, totalStops, completedStops, skippedStops,
     remainingStops: Math.max(0, totalStops - completedStops - skippedStops),
     completionPct: totalStops ? Math.round(completedStops / totalStops * 100) : 0,

@@ -19,7 +19,7 @@ import { toast } from "@/lib/toast";
 import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import { formatManilaDateTime } from "@/utils/date";
-import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, Mail, Phone, ShieldCheck, User, Users } from "lucide-react";
+import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, Mail, Phone, ShieldCheck, SquarePen, User, Users } from "lucide-react";
 import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -64,7 +64,7 @@ const ProfileField = ({ label, value, icon: Icon, onEdit, action = "Edit" }: {
       <div className={styles.rowIcon}><Icon className="size-4" /></div>
       <div className="min-w-0 flex-1"><p className={styles.label}>{label}</p><p className={styles.value}>{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
     </div>
-    {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action}</Button>
+    {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action === "Edit" && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}{action}</Button>
       : <span className={styles.registeredEmail} title="Registered email"><ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /><span className="admin-profile-email-label" aria-hidden="true">Registered email</span><span className="sr-only">Registered email</span></span>}
   </div>
 );
@@ -197,7 +197,7 @@ const AdminProfile = () => {
 
   return (
     <div className={styles.page}>
-      <ResidentPageHeader title="Profile & account" description="Manage your personal details and account security." />
+      <ResidentPageHeader title="Profile & Account" description="Manage your personal details and account security." />
       <div className={styles.stack}>
         <div className={styles.hero}>
           <div className={styles.cover}>

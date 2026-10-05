@@ -5,7 +5,7 @@ import {
   Eye,
   EyeOff,
   MoreHorizontal,
-  Pencil,
+  SquarePen,
   Star,
   StarOff,
   Trash2,
@@ -68,7 +68,7 @@ const PostActionsDropdown = ({
           onClick={() => onEdit(post)}
           className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2"
         >
-          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+          <SquarePen className="w-3.5 h-3.5 text-muted-foreground" />
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem

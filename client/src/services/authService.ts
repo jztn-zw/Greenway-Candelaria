@@ -1,5 +1,6 @@
 // src/services/authService.ts
 import api from "@/lib/api";
+import { getAuthStorage } from "@/lib/authStorage";
 
 export interface RegisterData {
   full_name: string;
@@ -58,24 +59,24 @@ const authService = {
     return response.data.data;
   },
 
-  // ✅ Fixed: wrapped in try/catch — guards against corrupted or tampered localStorage
+  // Ignore corrupted or tampered browser storage.
   getCurrentUser: (): User | null => {
     try {
-      const user = localStorage.getItem("user");
+      const user = getAuthStorage().getItem("user");
       return user ? (JSON.parse(user) as User) : null;
     } catch {
       // If JSON.parse fails (corrupted data), clear and return null
-      localStorage.removeItem("user");
+      getAuthStorage().removeItem("user");
       return null;
     }
   },
 
   getToken: (): string | null => {
-    return localStorage.getItem("token");
+    return getAuthStorage().getItem("token");
   },
 
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem("token");
+    return !!getAuthStorage().getItem("token");
   },
 };
 

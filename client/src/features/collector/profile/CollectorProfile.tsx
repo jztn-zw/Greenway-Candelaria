@@ -19,6 +19,7 @@ import {
   LogOut,
   ShieldCheck,
   AtSign,
+  SquarePen,
 } from "lucide-react";
 import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
 import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
@@ -107,6 +108,7 @@ const FieldRow = ({
         aria-label={`${masked ? "Change" : "Edit"} ${label.toLowerCase()}`}
         className={styles.fieldAction}
       >
+        {!masked && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}
         <span>{masked ? "Change" : "Edit"}</span>
       </Button>
     ) : null}
@@ -346,7 +348,7 @@ const CollectorProfile = () => {
   return (
     <PageRetryContext.Provider value={true}>
     <div className={styles.page}>
-      <ResidentPageHeader title="Profile & account" description="Manage your personal details and account security." />
+      <ResidentPageHeader title="Profile & Account" description="Manage your personal details and account security." />
       <div className={styles.stack}>
         {/* ── 1. Profile Header Banner (Resident-style) ── */}
         <div className={styles.hero}>

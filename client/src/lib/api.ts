@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import { clearAuthStorage, getAuthStorage } from "./authStorage";
 
 const api = axios.create({
   timeout: 15000,
@@ -10,7 +11,7 @@ const api = axios.create({
 
 // ─── Request: Attach Token ─────────────────────────────────────────────────────
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = getAuthStorage().getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -33,15 +34,14 @@ api.interceptors.response.use(
 
     // Session expired → clear storage and redirect to login
     if (status === 401 && !isAuthRoute) {
-      const currentToken = localStorage.getItem("token");
+      const currentToken = getAuthStorage().getItem("token");
       const requestToken = error.config?.headers?.Authorization;
       // A revoked request from the previous account must not sign out the
       // account that has since logged in on this browser.
       if (requestToken !== (currentToken ? `Bearer ${currentToken}` : undefined)) {
         return Promise.reject(error);
       }
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      clearAuthStorage();
       window.location.href = "/";
       return Promise.reject(error);
     }

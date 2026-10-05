@@ -8,7 +8,7 @@ import {
   Mail,
   Users,
   Eye,
-  Pencil,
+  SquarePen,
   KeyRound,
   UserX,
   UserCheck,
@@ -150,7 +150,7 @@ const DriverCardGrid = ({
                           View Profile
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
-                          <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <SquarePen className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Edit Profile
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onResetPassword(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">

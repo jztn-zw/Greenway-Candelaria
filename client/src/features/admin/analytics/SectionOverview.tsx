@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -49,7 +50,7 @@ const SectionOverview: React.FC = () => {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300"><ClipboardList className="h-4 w-4" /></div>
               <div><h3 className="gw-heading text-sm text-foreground">Incident report status</h3><p className="text-xs text-muted-foreground">Current status of reports submitted in the selected period.</p></div>
             </div>
-            <span className="gw-stat-value text-2xl tabular-nums text-foreground">{reportTotal.toLocaleString()}</span>
+            <span className="gw-stat-value text-2xl tabular-nums text-foreground"><KpiValue value={reportTotal.toLocaleString()} /></span>
           </div>
           <ChartContainer config={reportConfig} className="h-[200px] w-full aspect-auto">
             <PieChart>

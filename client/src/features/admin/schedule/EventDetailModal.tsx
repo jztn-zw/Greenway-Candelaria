@@ -13,7 +13,7 @@ import {
   Lock,
   Users,
   Truck,
-  Edit2,
+  SquarePen,
   Trash2,
   User,
   Info,
@@ -212,7 +212,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               }}
               className="h-8 max-w-full px-2 sm:h-9 sm:px-3 rounded-xl text-xs font-semibold gap-1 [&_svg]:size-3.5"
             >
-              <Edit2 className="w-3.5 h-3.5" />
+              <SquarePen className="w-3.5 h-3.5" />
               <span>Edit Schedule</span>
             </Button>
           </div>

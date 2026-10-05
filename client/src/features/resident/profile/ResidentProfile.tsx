@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
 import { useState, useEffect } from "react";
@@ -6,7 +7,7 @@ import {
   Mail, Phone, Lock, User, Award, Calendar,
   Heart, ChevronRight, Check,
   ClipboardList, Eye, EyeOff,
-  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Users,
+  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Users, SquarePen,
 } from "lucide-react";
 import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
 import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
@@ -88,6 +89,7 @@ const FieldRow = ({
         aria-label={`${masked ? "Change" : "Edit"} ${label.toLowerCase()}`}
         className={profileStyles.fieldButton}
       >
+        {!masked && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}
         {masked ? "Change" : "Edit"}
       </Button>
     )}
@@ -391,7 +393,7 @@ const ResidentProfile = () => {
 
   return (
     <div className={profileStyles.page}>
-      <ResidentPageHeader title="Profile & account" description="Manage your personal details, collection address, and account security." />
+      <ResidentPageHeader title="Profile & Account" description="Manage your personal details, collection address, and account security." />
       <div className={profileStyles.stack}>
       {/* ── Profile Header Banner ─────────────────────────────────────────── */}
       <div className={profileStyles.hero}>
@@ -529,7 +531,7 @@ const ResidentProfile = () => {
             onClick={() => navigate("/resident/my-reports")}
             className={profileStyles.actionButton}
           >
-            <span>My reports</span>
+            <span>My Reports</span>
             <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Button>
         </div>
@@ -564,33 +566,25 @@ const ResidentProfile = () => {
         {/* Stats Grid */}
         <div className={profileStyles.stats}>
           <div className={profileStyles.stat}>
-            <p className="gw-stat-value text-2xl lg:text-3xl text-primary tabular-nums">
-              {stats?.total ?? 0}
-            </p>
+            <p className="gw-stat-value text-2xl lg:text-3xl text-primary tabular-nums"><KpiValue value={stats?.total ?? 0} /></p>
             <p className={profileStyles.statLabel}>
               Submitted
             </p>
           </div>
           <div className={profileStyles.stat}>
-            <p className="gw-stat-value text-2xl lg:text-3xl text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {stats?.resolved ?? 0}
-            </p>
+            <p className="gw-stat-value text-2xl lg:text-3xl text-emerald-600 dark:text-emerald-400 tabular-nums"><KpiValue value={stats?.resolved ?? 0} /></p>
             <p className={profileStyles.statLabel}>
               Resolved
             </p>
           </div>
           <div className={profileStyles.stat}>
-            <p className="gw-stat-value text-2xl lg:text-3xl text-amber-600 dark:text-amber-400 tabular-nums">
-              {stats?.pending ?? 0}
-            </p>
+            <p className="gw-stat-value text-2xl lg:text-3xl text-amber-600 dark:text-amber-400 tabular-nums"><KpiValue value={stats?.pending ?? 0} /></p>
             <p className={profileStyles.statLabel}>
               Pending
             </p>
           </div>
           <div className={profileStyles.stat}>
-            <p className="gw-stat-value text-2xl lg:text-3xl text-sky-600 dark:text-sky-400 tabular-nums">
-              {(stats?.in_progress ?? 0) + (stats?.under_review ?? 0)}
-            </p>
+            <p className="gw-stat-value text-2xl lg:text-3xl text-sky-600 dark:text-sky-400 tabular-nums"><KpiValue value={(stats?.in_progress ?? 0) + (stats?.under_review ?? 0)} /></p>
             <p className={profileStyles.statLabel}>
               In progress
             </p>

@@ -77,7 +77,7 @@ it("keeps an old or finished route alert from opening today's map", async () => 
   state.routeInfo = null;
   await mount(`?date=${getManilaNow().dateKey}&template=current-template`);
   expect(host.textContent).toContain("Route alert unavailable");
-  expect(host.textContent).not.toContain("No collection scheduled today");
+  expect(host.textContent).not.toContain("No Collection Scheduled Today");
 });
 
 it.each(["start", "pause", "resume", "done", "skip", "end"] as const)("%s preserves the route request and refreshes only this collector's related caches", async (action) => {

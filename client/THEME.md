@@ -9,6 +9,7 @@ Edit the color variables in `src/index.css` to change the website palette.
 - `--accent` is the subtle selection background; `--highlight` is the bright green accent.
 - `--background`, `--card`, `--popover`, `--border`, and `--input` control surfaces.
 - `--field-background` and `--field-placeholder` control all shared inputs, text areas, and selects. Light fields use white card-colored surfaces, neutral-gray borders, and readable muted placeholders. Dark fields blend the page background with the card surface and use muted placeholder text at 95% opacity.
+  Autofilled inputs use the same field surface and foreground colors while preserving browser autofill and keyboard focus rings.
 - `--success`, `--warning`, `--info`, and `--destructive` identify statuses. Their foreground tokens are for readable status text.
 - `--badge-*-background`, `--badge-*-foreground`, and `--badge-*-border` control badge colors in both themes. `--badge-tint` and `--badge-border-tint` set the shared tint strength. Use `getStatusBadgeStyle` or `getCategoryBadgeColors` from `src/components/ui/badgeStyles.ts` for labels, and `badgeStyles` for explicit color roles. The same status or category must use the same recipe across admin, collector, resident, cards, tables, and dialogs. Keep badges passive; preserve their existing size and layout.
 - `--chart-1` through `--chart-6` supply chart and calendar categories.

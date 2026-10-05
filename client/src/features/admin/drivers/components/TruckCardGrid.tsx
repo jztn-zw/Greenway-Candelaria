@@ -4,7 +4,7 @@ import {
   Truck as TruckIcon,
   MoreHorizontal,
   Eye,
-  Pencil,
+  SquarePen,
   Wrench,
   CheckCircle2,
   Trash2,
@@ -142,7 +142,7 @@ const TruckCardGrid = ({
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
-                          <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <SquarePen className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Edit Truck
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onToggleStatus(t)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground whitespace-nowrap gap-2">

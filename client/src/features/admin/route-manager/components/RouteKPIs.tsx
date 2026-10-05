@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Route, CircleCheck, PauseCircle, MapPin } from "lucide-react";
@@ -72,9 +73,7 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
               <kpi.icon className="size-4" aria-hidden="true" />
             </span>
           </div>
-          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums">
-            {kpi.value}
-          </div>
+          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums"><KpiValue value={kpi.value} /></div>
           <div className="text-ui-caption text-muted-foreground font-medium break-words">
             {kpi.description}
           </div>

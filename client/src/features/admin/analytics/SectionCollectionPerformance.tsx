@@ -1,3 +1,4 @@
+import KpiValue from "@/components/common/KpiValue";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -25,9 +26,9 @@ const SectionCollectionPerformance: React.FC = () => {
       <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Scheduled stop outcomes</h3><p className="text-xs text-muted-foreground">This period’s route-stop results.</p></div></div>
         <div className="analytics-metrics grid grid-cols-3 gap-3">
-          <div className="rounded-xl bg-muted/45 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground">Scheduled</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-foreground">{overview.scheduledStops}</p><p className="mt-1 text-xs text-muted-foreground">Route stops</p></div>
-          <div className="rounded-xl bg-emerald-500/10 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Completed</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-emerald-700 dark:text-emerald-300">{overview.completedStops}</p><p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">Route stops</p></div>
-          <div className="rounded-xl bg-destructive/10 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-destructive">Missed</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-destructive">{overview.missedStops}</p><p className="mt-1 text-xs text-destructive/80">Route stops</p></div>
+          <div className="rounded-xl bg-muted/45 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground">Scheduled</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-foreground"><KpiValue value={overview.scheduledStops} /></p><p className="mt-1 text-xs text-muted-foreground">Route stops</p></div>
+          <div className="rounded-xl bg-emerald-500/10 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Completed</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-emerald-700 dark:text-emerald-300"><KpiValue value={overview.completedStops} /></p><p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">Route stops</p></div>
+          <div className="rounded-xl bg-destructive/10 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-destructive">Missed</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-destructive"><KpiValue value={overview.missedStops} /></p><p className="mt-1 text-xs text-destructive/80">Route stops</p></div>
         </div>
         <p className="mt-5 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">A missed stop is recorded when a route stop is skipped or remains unfinished when the driver ends the route.</p>
       </section>

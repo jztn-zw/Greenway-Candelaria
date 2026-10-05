@@ -4,7 +4,7 @@ import useAuthStore from "./authStore";
 
 vi.mock("@/services/authService", () => ({ default: {
   login: vi.fn(), logout: vi.fn(), getMe: vi.fn(),
-  getToken: () => localStorage.getItem("token"), getCurrentUser: () => null,
+  getToken: () => sessionStorage.getItem("token") ?? localStorage.getItem("token"), getCurrentUser: () => null,
 } }));
 const user = (id: string): User => ({ id, full_name: id, username: id, email: `${id}@example.test`, role: "RESIDENT", status: "ACTIVE", avatar_url: null, barangay_id: null });
 const deferred = <T,>() => {
@@ -16,7 +16,66 @@ const signIn = async (id: string) => {
   vi.mocked(authService.login).mockResolvedValueOnce({ user: user(id), token: `session-${id}` });
   await useAuthStore.getState().login(id, "password");
 };
-beforeEach(() => { vi.clearAllMocks(); useAuthStore.getState().clearAuth(); vi.mocked(authService.logout).mockResolvedValue(undefined); });
+beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); useAuthStore.getState().clearAuth(); vi.mocked(authService.logout).mockResolvedValue(undefined); });
+
+it.each([true, false])("stores login only in the selected storage when remember me is %s", async (rememberMe) => {
+  vi.mocked(authService.login).mockResolvedValueOnce({ user: user("a"), token: "session-a" });
+  await useAuthStore.getState().login("a", "password", rememberMe);
+  const selected = rememberMe ? localStorage : sessionStorage;
+  const other = rememberMe ? sessionStorage : localStorage;
+  expect(selected.getItem("token")).toBe("session-a");
+  expect(JSON.parse(selected.getItem("user")!).id).toBe("a");
+  expect(JSON.parse(selected.getItem("auth-storage")!).state.token).toBe("session-a");
+  expect(other.getItem("token")).toBeNull();
+  expect(other.getItem("user")).toBeNull();
+  expect(other.getItem("auth-storage")).toBeNull();
+});
+
+it("keeps temporary sessions temporary through verification and profile updates", async () => {
+  vi.mocked(authService.login).mockResolvedValueOnce({ user: user("a"), token: "session-a" });
+  await useAuthStore.getState().login("a", "password", false);
+  vi.mocked(authService.getMe).mockResolvedValueOnce(user("a"));
+  expect(await useAuthStore.getState().ensureSession(true)).toBe(true);
+  useAuthStore.getState().setUser({ ...user("a"), full_name: "Updated resident" });
+  expect(JSON.parse(sessionStorage.getItem("user")!).full_name).toBe("Updated resident");
+  expect(localStorage.getItem("token")).toBeNull();
+  expect(localStorage.getItem("user")).toBeNull();
+  await useAuthStore.getState().logout();
+  expect(sessionStorage.getItem("token")).toBeNull();
+  expect(sessionStorage.getItem("user")).toBeNull();
+  expect(useAuthStore.getState().isAuthenticated).toBe(false);
+});
+
+it("removes the remembered account when switching to a temporary session", async () => {
+  await signIn("a");
+  vi.mocked(authService.login).mockResolvedValueOnce({ user: user("b"), token: "session-b" });
+  await useAuthStore.getState().login("b", "password", false);
+  expect(localStorage.getItem("token")).toBeNull();
+  expect(localStorage.getItem("user")).toBeNull();
+  expect(localStorage.getItem("auth-storage")).toBeNull();
+  expect(sessionStorage.getItem("token")).toBe("session-b");
+});
+
+it.each([true, false])("restores the selected session after a page reload (%s)", async (rememberMe) => {
+  vi.mocked(authService.login).mockResolvedValueOnce({ user: user("a"), token: "session-a" });
+  await useAuthStore.getState().login("a", "password", rememberMe);
+  vi.resetModules();
+  const { default: reloaded } = await import("./authStore");
+  expect(reloaded.getState().hasHydrated).toBe(true);
+  expect(reloaded.getState().user?.id).toBe("a");
+  expect(reloaded.getState().token).toBe("session-a");
+  expect(reloaded.getState().isAuthenticated).toBe(true);
+});
+
+it("does not restore a temporary session once tab storage is gone", async () => {
+  vi.mocked(authService.login).mockResolvedValueOnce({ user: user("a"), token: "session-a" });
+  await useAuthStore.getState().login("a", "password", false);
+  sessionStorage.clear();
+  vi.resetModules();
+  const { default: reloaded } = await import("./authStore");
+  expect(reloaded.getState().token).toBeNull();
+  expect(reloaded.getState().isAuthenticated).toBe(false);
+});
 
 it.each(["success", "failure"])("ignores a previous account's late session %s", async (result) => {
   await signIn("a");

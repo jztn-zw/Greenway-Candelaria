@@ -9,7 +9,7 @@ import {
   Lock,
   Users,
   Truck,
-  Edit2,
+  SquarePen,
   Trash2,
   Eye,
 } from "lucide-react";
@@ -169,7 +169,7 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
                   onClick={() => onEditEvent(evt)}
                   className="h-8 px-2.5 text-xs rounded-xl cursor-pointer gap-1"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <SquarePen className="w-3.5 h-3.5" />
                   <span>Edit</span>
                 </Button>
                 <Button

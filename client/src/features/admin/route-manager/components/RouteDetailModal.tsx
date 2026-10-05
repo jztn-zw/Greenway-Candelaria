@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   X,
   Trash2,
+  SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WASTE_MAP, formatTime12h } from "../constants";
@@ -255,7 +256,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 }}
                 className="h-8 text-xs font-semibold rounded-xl px-3.5 transition-colors cursor-pointer shadow-2xs"
               >
-                Edit Route
+                <SquarePen aria-hidden="true" className="size-3.5 shrink-0" /> Edit Route
               </Button>
             </div>
           </div>
