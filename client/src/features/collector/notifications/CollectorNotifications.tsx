@@ -1,3 +1,8 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { Badge } from "@/components/ui/badge";
+import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
+import { getCollectorNotificationPresentation } from "./notificationPresentation";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { useState, useMemo, useRef, useEffect } from "react";
 import PageErrorState from "@/components/PageErrorState";
@@ -28,7 +33,6 @@ import { NotificationsListSkeleton, NotificationsPageSkeleton } from "@/componen
 import {
   getCollectorNotificationCategory,
   openCollectorNotification,
-  getCollectorNotificationTitle,
   getCollectorNotificationVisual,
 } from "./notificationRouting";
 
@@ -100,103 +104,92 @@ const CollectorNotifications = () => {
   if (error && !hasLoadedData) return <PageErrorState kind="unavailable" description="We couldn't load notifications. Please try again." onRetry={() => void fetchNotifications({ category: activeTab })} retrying={isRefreshing} homeHref="/collector" />;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto space-y-4 md:space-y-5 animate-in fade-in duration-300">
+    <div className={notificationStyles.page}>
       {/* ── Page Header ── */}
-      <div className="hidden items-center justify-between gap-4 lg:flex">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight">Notifications</h1>
-            {unreadCount > 0 && <span className="bg-primary/15 text-primary text-xs font-bold px-2.5 py-0.5 rounded-md border border-primary/20 shadow-2xs">{unreadCount} unread</span>}
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Live route alerts, dispatch updates, and municipal announcements</p>
+      <ResidentPageHeader title="Notifications" description="Route alerts, dispatch messages, and announcements."
+        titleBadge={unreadCount > 0 ? <Badge className="shrink-0 text-[11px] tabular-nums">{unreadCount.toLocaleString()} unread</Badge> : undefined}
+        actionsClassName={notificationStyles.headerActions}
+        actions={(unreadCount > 0 || notifications.length > 0) && <>
+          {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} loading={isMarkingAll} loadingLabel="Marking…" onClick={() => void markAllAsRead()} className={notificationStyles.actionButton}><CheckCheck className="size-3.5 text-primary" /><span className="min-w-0 truncate">Mark all read</span></Button>}
+          {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className={notificationStyles.actionButton}><Trash2 className="size-3.5" /><span className="min-w-0 truncate">Clear all</span></Button>}
+        </>} />
+
+      <div className="space-y-4">
+        {/* ── Category filters ── */}
+        <div className={notificationStyles.filterRow}>
+          <FilterPillTabs<CollectorCategory>
+            items={tabs}
+            activeId={activeTab}
+            onChange={handleTabChange}
+            ariaLabel="Notification categories"
+            className="flex-1 pb-0"
+          />
+          {(unreadCount > 0 || notifications.length > 0) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className={notificationStyles.menuTrigger} title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-44">
+                {unreadCount > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => void markAllAsRead()} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark all as read</DropdownMenuItem>}
+                {notifications.length > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => setConfirmClear(true)} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="h-3.5 w-3.5" />Clear all notifications</DropdownMenuItem>}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-        {(unreadCount > 0 || notifications.length > 0) && (
-          <div className="flex items-center gap-2 shrink-0">
-            {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} loading={isMarkingAll} loadingLabel="Marking all read…" onClick={() => void markAllAsRead()} className="gap-1.5 text-xs h-9 px-3 rounded-xl font-semibold shadow-2xs transition-all cursor-pointer"><CheckCheck className="w-3.5 h-3.5 text-primary" /><span>Mark all read</span></Button>}
-            {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className="gap-1.5 text-xs h-9 px-3 rounded-xl border font-semibold transition-all cursor-pointer"><Trash2 className="w-3.5 h-3.5" /><span>Clear all</span></Button>}
-          </div>
-        )}
-      </div>
 
-      {/* ── Category filters ── */}
-      <div className="flex items-center gap-2">
-        <FilterPillTabs<CollectorCategory>
-          items={tabs}
-          activeId={activeTab}
-          onChange={handleTabChange}
-          ariaLabel="Notification categories"
-          className="flex-1 pr-2 lg:pr-4"
-        />
-        {(unreadCount > 0 || notifications.length > 0) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="size-9 shrink-0 rounded-xl shadow-2xs lg:hidden" title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-44 lg:hidden">
-              {unreadCount > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => void markAllAsRead()} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark all as read</DropdownMenuItem>}
-              {notifications.length > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => setConfirmClear(true)} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="h-3.5 w-3.5" />Clear all notifications</DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      {error && <DataRefreshNotice message="Couldn't update notifications. Showing the last loaded notifications, which may be outdated." onRetry={() => void fetchNotifications({ category: activeTab })} retrying={isRefreshing} />}
-      {/* ── Notification List ── */}
-      {isLoading && notifications.length === 0 ? (
-        <NotificationsListSkeleton />
-      ) : paginated.length > 0 ? (
-        <div className="rounded-2xl border border-border/80 overflow-hidden divide-y divide-border/60 bg-card shadow-2xs">
-          {paginated.map((n) => {
-            const { Icon, style: iconStyle } = getCollectorNotificationVisual(n);
-            const title = getCollectorNotificationTitle(n);
-            const isUnread = !n.is_read;
-            return (
-              <button
-                type="button"
-                key={n.id}
-                disabled={isMutating}
-                onClick={() => handleClick(n)}
-                className={`group w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary flex items-start gap-3 p-3.5 transition-all duration-200 cursor-pointer select-none hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] dark:hover:bg-[var(--button-neutral-hover)] md:gap-4 md:p-4 lg:p-5 ${
-                  isUnread ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
-                }`}
-              >
-                <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border shadow-2xs transition-transform duration-200 ${iconStyle}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className={`text-sm leading-snug break-words group-hover:text-primary transition-colors ${isUnread ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}>{title}</p>
-                  {n.body && <p className="break-words pt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-1 lg:line-clamp-2">{n.body}</p>}
-                  <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground/80 font-medium pt-1">
-                    <Clock className="w-3 h-3 text-muted-foreground/70" />
-                    <span>{formatRelativeTime(n.created_at)}</span>
+        {error && <DataRefreshNotice message="Couldn't update notifications. Showing the last loaded notifications, which may be outdated." onRetry={() => void fetchNotifications({ category: activeTab })} retrying={isRefreshing} />}
+        {/* ── Notification List ── */}
+        {isLoading && notifications.length === 0 ? (
+          <NotificationsListSkeleton />
+        ) : paginated.length > 0 ? (
+          <div className={notificationStyles.list}>
+            {paginated.map((n) => {
+              const { Icon, style: iconStyle } = getCollectorNotificationVisual(n);
+              const { headline, message } = getCollectorNotificationPresentation(n);
+              const isUnread = !n.is_read;
+              return (
+                <button
+                  type="button"
+                  key={n.id}
+                  disabled={isMutating}
+                  onClick={() => handleClick(n)}
+                  className={`${notificationStyles.row} ${
+                    isUnread ? "border-l-primary bg-primary/[0.04]" : "border-l-transparent"
+                  }`}
+                >
+                  <div className={`${notificationStyles.icon} ${iconStyle}`}>
+                    <Icon aria-hidden="true" />
                   </div>
-                </div>
 
-                {isUnread && (
-                  <div className="flex items-center self-center shrink-0 pl-1" title="Unread notification"><span className="w-2.5 h-2.5 bg-primary rounded-full ring-4 ring-primary/15 shadow-xs" /></div>
-                )}
-                <div className="flex items-center self-center shrink-0 pl-1"><ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" /></div>
-              </button>
-            );
-          })}
-        </div>
-      ) : !error && !isLoading ? (
-        <div className="p-16 text-center border border-dashed border-border/80 rounded-2xl bg-card/50 shadow-2xs">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary"><Bell className="w-6 h-6" /></div>
-          <h3 className="gw-heading text-base text-foreground">
-            No driver alerts found
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            Route dispatches, messages, and system updates will appear here in real-time.
-          </p>
-        </div>
-      ) : null}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {isUnread && <span className="sr-only">Unread notification</span>}
+                    <p className="text-sm font-semibold text-foreground/90 leading-snug break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
+                      <span className="font-bold text-foreground">{headline.prefix}</span>
+                      {headline.connector && <span className="text-foreground/80"> {headline.connector} </span>}
+                      {headline.highlight && <span className="font-bold text-foreground">{headline.highlight}</span>}
+                    </p>
+                    {message && <p className={notificationStyles.message}>{message}</p>}
+                    <div className="flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-muted-foreground/80 pt-1">
+                      <Clock aria-hidden="true" className="size-3 shrink-0 text-muted-foreground/70" />
+                      <span>{formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } })}</span>
+                    </div>
+                  </div>
 
-      {/* ── Pagination ── */}
-      <PaginationControls currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
+                  <div className={notificationStyles.trailing}><ChevronRight aria-hidden="true" className="size-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" /></div>
+                </button>
+              );
+            })}
+          </div>
+        ) : !error && !isLoading ? (
+          <ListEmptyState icon={Bell} title="No notifications found"
+            description="You're all caught up! New alerts will appear here in real-time." />
+        ) : null}
 
-      {nextCursor && <Button variant="outline" disabled={isRefreshing || isMutating} loading={isLoading} loadingLabel="Loading older notifications…" onClick={() => void loadMore()}>{`Load older notifications (${notifications.length} of ${total} loaded)`}</Button>}
+        {/* ── Pagination ── */}
+        <PaginationControls mobileLayout="summary" currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
+
+        {nextCursor && <Button className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9" variant="outline" disabled={isRefreshing || isMutating} loading={isLoading} loadingLabel="Loading older notifications…" onClick={() => void loadMore()}>{`Load older notifications (${notifications.length} of ${total} loaded)`}</Button>}
+      </div>
       <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear}
         title="Clear all notification history?"
         description="This permanently deletes notifications in every category, including older notifications. This cannot be undone."

@@ -57,7 +57,7 @@ const ResidentSidebar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
-  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { unreadContentCount, unreadCount, markContentAsRead } = useNotifications();
   const [hasNewPost, setHasNewPost] = useState(false);
   const latestPosts = useResidentQuery("posts", ["latest-badge"],
     () => postsService.getPage<{ id: string; created_at?: string }>({ status: "PUBLISHED", page: 1, limit: 1 }));
@@ -78,13 +78,9 @@ const ResidentSidebar = () => {
       if (location.pathname.startsWith("/resident/contents")) {
         if (isMounted) setHasNewPost(false);
 
-        // Mark any unread post notifications as read
-        const unreadPostNotifs = notifications.filter(
-          (n) => !n.is_read && (n.type === "NEW_POST" || n.ref_module === "posts")
-        );
-        if (unreadPostNotifs.length > 0) {
-          unreadPostNotifs.forEach((n) => void markAsRead(n.id));
-        }
+        // Preserve content acknowledgement across the entire history without
+        // downloading older notification pages.
+        if (unreadContentCount > 0) void markContentAsRead();
 
         try {
           const posts = latestPosts.data?.posts ?? [];
@@ -100,9 +96,7 @@ const ResidentSidebar = () => {
       }
 
       // 1. Check if there is an unread NEW_POST notification in the notifications store
-      const hasUnreadPostNotif = notifications.some(
-        (n) => !n.is_read && (n.type === "NEW_POST" || n.ref_module === "posts")
-      );
+      const hasUnreadPostNotif = unreadContentCount > 0;
       if (hasUnreadPostNotif) {
         if (isMounted) setHasNewPost(true);
         return;
@@ -155,11 +149,11 @@ const ResidentSidebar = () => {
   }, [
     location.pathname,
     latestPosts.data,
-    notifications,
+    unreadContentCount,
     currentUser?.id,
     lastSeenKey,
     lastSeenTimeKey,
-    markAsRead,
+    markContentAsRead,
   ]);
 
   const hasUnreadNotifications = unreadCount > 0;

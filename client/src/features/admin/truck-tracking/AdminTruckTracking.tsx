@@ -5,10 +5,7 @@ import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { AdminMessenger } from "./components/AdminMessenger";
 import { useAdminQuery } from "@/lib/adminQuery";
-import useAdminNotifications from "@/features/admin/notifications/useAdminNotifications";
-import useAuthStore from "@/store/authStore";
 /**
  * AdminTruckTracking.tsx
  *
@@ -51,7 +48,6 @@ import AdminTruckCard from "./components/AdminTruckCard";
 import RouteReplay from "./components/RouteReplay";
 import type { ReplayTargetLocation } from "./utils/replayTrip";
 import type { AdminTruck, TruckStatus } from "./types";
-import { isNewerMessage, loadSeenMessages, messagePosition, saveSeenMessages, unreadDriverMessageCount } from "./messageUnread";
 
 // Config
 const SOCKET_URL =
@@ -617,7 +613,7 @@ const mergeLiveIntoTrucks = (
 
 type TrackingSidebarTab = "FLEET" | "REPLAY";
 type TrackingStatusFilter = "ALL" | TruckStatus;
-const pageTitle = "Live Fleet Tracking";
+const pageTitle = "Live Truck Tracking";
 const pageDescription = "Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.";
 
 const AdminTruckTracking = () => {
@@ -640,40 +636,6 @@ const AdminTruckTracking = () => {
   const [isFleetPanelMinimized, setIsFleetPanelMinimized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const mapTheme = useThemeMode();
-  const adminId = useAuthStore((state) => state.user?.id);
-  const [seenMessages, setSeenMessages] = useState(() => loadSeenMessages(adminId));
-  useEffect(() => { setSeenMessages(loadSeenMessages(adminId)); }, [adminId]);
-  const markConversationViewed = useCallback((driverId: string, message: { id: string; created_at: string }) => {
-    if (!adminId) return;
-    const position = messagePosition(message.id, message.created_at);
-    if (!position) return;
-    setSeenMessages((previous) => {
-      if (!isNewerMessage(position, previous[driverId])) return previous;
-      const next = { ...previous, [driverId]: position };
-      saveSeenMessages(adminId, next);
-      return next;
-    });
-  }, [adminId]);
-  const { notifications, markAsRead: markNotificationAsRead } = useAdminNotifications();
-  const unreadMessageNotifications = useMemo(() => {
-    const byDriver = new Map<string, string[]>();
-    for (const notification of notifications) {
-      if (notification.is_read || notification.ref_module !== "driver-messages") continue;
-      let driverId = notification.ref_id;
-      if (!driverId) {
-        try {
-          const metadata = typeof notification.metadata === "string" ? JSON.parse(notification.metadata) : notification.metadata;
-          if (metadata && typeof metadata.driver_id === "string") driverId = metadata.driver_id;
-        } catch { /* Older notifications can have malformed metadata. */ }
-      }
-      if (!driverId) continue;
-      const ids = byDriver.get(driverId) ?? [];
-      ids.push(notification.id);
-      byDriver.set(driverId, ids);
-    }
-    return byDriver;
-  }, [notifications]);
-
   // The compact Fleet shortcut belongs only to the wide, side-by-side workspace.
   // Reset it when crossing into the single-view tablet/mobile layout so no
   // hidden panel state or duplicate control carries across breakpoints.
@@ -942,11 +904,10 @@ const AdminTruckTracking = () => {
   if (isPageLoading) {
     return <AdminTruckTrackingPageSkeleton title={pageTitle} description={pageDescription} />;
   }
-  if (overviewQuery.error && overviewQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load fleet tracking information. Please try again." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} homeHref="/admin" />;
+  if (overviewQuery.error && overviewQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load truck tracking information. Please try again." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className={styles.page}>
-      <AdminMessenger drivers={overviewQuery.data?.overview.drivers ?? []} unreadMessageNotifications={unreadMessageNotifications} markNotificationAsRead={markNotificationAsRead} onConversationViewed={markConversationViewed} />
       {/* -- Page Header -- */}
       <ResidentPageHeader
         className="admin-module-header"
@@ -957,7 +918,7 @@ const AdminTruckTracking = () => {
             </Badge>}
       />
 
-      {overviewQuery.error && <DataRefreshNotice message="Couldn't refresh fleet tracking. Last known locations and route information may be outdated." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} />}
+      {overviewQuery.error && <DataRefreshNotice message="Couldn't refresh truck tracking. Last known locations and route information may be outdated." onRetry={() => void refetchOverview()} retrying={overviewQuery.isFetching} />}
 
       {/* -- Executive Metric KPI Strip -- */}
       <AdminKpiGrid>
@@ -978,7 +939,7 @@ const AdminTruckTracking = () => {
           },
           {
             icon: Activity,
-            title: "Fleet Progress",
+            title: "Truck Progress",
             value: `${animatedCompletion}%`,
             description: "Today's scheduled stop progress",
             tone: "neutral" as const,
@@ -1030,19 +991,19 @@ const AdminTruckTracking = () => {
               type="button"
               onClick={() => setIsFleetPanelMinimized(false)}
               className="gw-action-outline h-9 px-2.5 rounded-lg border backdrop-blur-md shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Open Fleet controls"
-              aria-label="Open Fleet controls"
+              title="Open Truck controls"
+              aria-label="Open Truck controls"
             >
               <Truck className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-ui-caption font-semibold">Fleet</span>
+              <span className="text-ui-caption font-semibold">Trucks</span>
             </button>
           ) : (
             <>
           {/* Top Tab Switcher & Panel Controls */}
           <div className={styles.fleetHeader}>
-            <div className="min-w-0 flex-1 grid grid-cols-2 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/70 h-[54px] items-center">
+            <div className={styles.fleetTabs} role="group" aria-label="Truck panel view">
               {[
-                { id: "FLEET" as const, label: "Fleet", icon: Truck },
+                { id: "FLEET" as const, label: "Trucks", icon: Truck },
                 { id: "REPLAY" as const, label: "Replay", icon: RotateCcw },
               ].map((tab) => {
                 const isActive = sidebarTab === tab.id;
@@ -1062,7 +1023,7 @@ const AdminTruckTracking = () => {
                       setSidebarTab(tab.id);
                     }}
                     className={cn(
-                      "h-11 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
+                      "h-full min-w-0 flex items-center justify-center gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer select-none",
                       isActive
                         ? "bg-card text-foreground font-semibold shadow-xs border border-border/80"
                         : "gw-action-ghost "
@@ -1082,8 +1043,8 @@ const AdminTruckTracking = () => {
                 setMobileView("MAP");
               }}
               className={styles.minimize}
-              title="Minimize Fleet panel"
-              aria-label="Minimize Fleet panel"
+              title="Minimize Truck panel"
+              aria-label="Minimize Truck panel"
             >
               <PanelRightClose className="w-4 h-4" />
             </button>
@@ -1098,11 +1059,11 @@ const AdminTruckTracking = () => {
                   <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border/80 bg-muted/10 space-y-2">
                     <Truck className="w-8 h-8 text-muted-foreground/40 mx-auto" />
                     <p className="text-xs font-semibold text-foreground">
-                      {overviewFailed ? "Could not load fleet vehicles" : "No fleet vehicles found"}
+                      {overviewFailed ? "Could not load trucks" : "No trucks found"}
                     </p>
                     <p className="text-ui-caption text-muted-foreground max-w-xs mx-auto">
                       {overviewFailed
-                        ? "The tracking service did not return the fleet list. Try again."
+                        ? "The tracking service did not return the truck list. Try again."
                         : "There are currently no trucks configured for live tracking."}
                     </p>
                   </div>
@@ -1111,7 +1072,6 @@ const AdminTruckTracking = () => {
                     <AdminTruckCard
                       key={truck.id}
                       truck={truck}
-                      unreadMessageCount={unreadDriverMessageCount(truck.driverMessages, truck.driverId ? seenMessages[truck.driverId] : undefined)}
                       isSelected={focusedTruckId === truck.id}
                       onClick={() => handleTruckClick(truck.id)}
                       onRouteChange={(routeId) => handleRouteChange(truck.id, routeId)}

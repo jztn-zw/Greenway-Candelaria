@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,7 @@ import { useResidentFetch } from "@/lib/residentQuery";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
@@ -59,17 +60,6 @@ const tabs: FilterPillItem<NotificationCategory>[] = [
   { id: "content", label: "Content" },
   { id: "announcements", label: "Announcements" },
 ];
-
-const typeCategoryMap: Record<string, NotificationCategory> = {
-  COLLECTION_REMINDER: "collection",
-  TRUCK_IS_NEAR: "collection",
-  COLLECTION_DONE: "collection",
-  MISSED_COLLECTION: "collection",
-  REPORT_UPDATE: "reports",
-  NEW_POST: "content",
-  ANNOUNCEMENT: "announcements",
-  SYSTEM: "all",
-};
 
 const typeIcons: Record<string, React.ElementType> = {
   COLLECTION_REMINDER: CalendarClock,
@@ -207,8 +197,13 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 const ResidentNotifications = () => {
   const fetchResident = useResidentFetch();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<NotificationCategory>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const {
     notifications,
+    total,
+    historyTotal,
+    offset,
     unreadCount,
     isLoading,
     isRefreshing,
@@ -220,12 +215,11 @@ const ResidentNotifications = () => {
     isMarkingAll,
     isMutating,
     clearAll,
-  } = useNotifications();
+  } = useNotifications({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, web_category: activeTab === "all" ? "all" : `resident:${activeTab}` });
 
   const [searchParams, setSearchParams] = useSearchParams();
   const announcementParam = searchParams.get("announcement");
 
-  const [activeTab, setActiveTab] = useState<NotificationCategory>("all");
   const [modalNotification, setModalNotification] = useState<ResidentNotification | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -241,7 +235,6 @@ const ResidentNotifications = () => {
 
   useEffect(() => () => { clickSequence.current += 1; }, []);
 
-  const [currentPage, setCurrentPage] = useState(1);
 
   // Sync ?announcement=<id> query parameter from URL
   useEffect(() => {
@@ -271,16 +264,9 @@ const ResidentNotifications = () => {
     setCurrentPage(1);
   };
 
-  const filtered = useMemo(() => {
-    if (activeTab === "all") return notifications;
-    return notifications.filter((n) => typeCategoryMap[n.type] === activeTab);
-  }, [notifications, activeTab]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(Math.floor(offset / PAGE_SIZE) + 1, totalPages);
+  const paginated = notifications;
 
   const handleClick = async (n: NotificationRow) => {
     const sequence = ++clickSequence.current;
@@ -353,7 +339,7 @@ const ResidentNotifications = () => {
       <ResidentPageHeader title="Notifications" description="Collection alerts, report updates, and community notices."
         titleBadge={unreadCount > 0 ? <Badge className="shrink-0 text-[11px] tabular-nums">{unreadCount.toLocaleString()} unread</Badge> : undefined}
         actionsClassName={notificationStyles.headerActions}
-        actions={(unreadCount > 0 || notifications.length > 0) && (
+        actions={(unreadCount > 0 || historyTotal > 0) && (
           <>
             {unreadCount > 0 && (
               <Button
@@ -369,7 +355,7 @@ const ResidentNotifications = () => {
                 <span className="min-w-0 truncate">Mark all read</span>
               </Button>
             )}
-            {notifications.length > 0 && (
+            {historyTotal > 0 && (
               <Button
                 variant="destructive-outline"
                 size="sm"
@@ -397,7 +383,7 @@ const ResidentNotifications = () => {
           className="flex-1 pb-0"
         />
 
-        {(unreadCount > 0 || notifications.length > 0) && (
+        {(unreadCount > 0 || historyTotal > 0) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -418,7 +404,7 @@ const ResidentNotifications = () => {
                   Mark all as read
                 </DropdownMenuItem>
               )}
-              {notifications.length > 0 && (
+              {historyTotal > 0 && (
                 <DropdownMenuItem onSelect={() => setConfirmClear(true)} disabled={isMutating} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                   Clear all notifications
@@ -503,21 +489,12 @@ const ResidentNotifications = () => {
           })}
         </div>
       ) : (
-        <div className="px-4 py-12 text-center border border-dashed border-border/80 rounded-2xl bg-card/50">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary">
-            <Bell className="w-6 h-6" />
-          </div>
-          <h3 className="gw-heading text-base text-foreground">
-            No notifications found
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            You're all caught up! New alerts will appear here in real-time.
-          </p>
-        </div>
+        <ListEmptyState icon={Bell} title="No notifications found"
+          description="You're all caught up! New alerts will appear here in real-time." />
       )}
 
       {/* ── Pagination ── */}
-      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
+      <PaginationControls currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} variant="inline" />
       </div>
 
       {/* ── Modal for Announcements ── */}

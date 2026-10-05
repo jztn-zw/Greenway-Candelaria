@@ -176,7 +176,7 @@ const AdminDrivers = () => {
   const entityOptions: SegmentedControlOption<Tab>[] = useMemo(
     () => [
       { id: "drivers", label: "Collectors", icon: Users },
-      { id: "trucks", label: "Fleet Trucks", icon: Truck },
+      { id: "trucks", label: "Trucks", icon: Truck },
     ],
     []
   );
@@ -452,7 +452,7 @@ const AdminDrivers = () => {
       <ResidentPageHeader
         className="admin-module-header"
         title="Collector Manager"
-        description="Manage municipal waste collector personnel, truck assignments, and fleet statuses."
+        description="Manage municipal waste collector personnel, truck assignments, and truck statuses."
         actionsClassName="admin-module-header-actions"
         actions={<Button
           onClick={() =>
@@ -465,7 +465,7 @@ const AdminDrivers = () => {
         </Button>}
       />
 
-      {(driversQuery.error || trucksQuery.error) && <DataRefreshNotice primary message="Some collector or fleet information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (driversQuery.error) void driversQuery.refetch(); if (trucksQuery.error) void trucksQuery.refetch(); }} retrying={driversQuery.isFetching || trucksQuery.isFetching} />}
+      {(driversQuery.error || trucksQuery.error) && <DataRefreshNotice primary message="Some collector or truck information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={() => { if (driversQuery.error) void driversQuery.refetch(); if (trucksQuery.error) void trucksQuery.refetch(); }} retrying={driversQuery.isFetching || trucksQuery.isFetching} />}
 
       {/* ── Executive Metric KPI Strip ── */}
       <AdminKpiGrid>
@@ -486,19 +486,19 @@ const AdminDrivers = () => {
           },
           {
             icon: Truck,
-            title: "Fleet Trucks",
+            title: "Trucks",
             value: trucksError ? "—" : totalTrucks,
-            subtext: trucksError ? "Fleet data unavailable" : `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
+            subtext: trucksError ? "Truck data unavailable" : `${activeTrucks} operational${maintTrucks > 0 ? ` · ${maintTrucks} maint.` : ""}`,
             tone: "neutral" as const,
           },
           {
             icon: Link2,
-            title: "Assigned Fleet",
+            title: "Assigned Trucks",
             value: trucksError ? "—" : assignedTrucks,
             subtext:
-              trucksError ? "Fleet data unavailable" : totalTrucks > 0
+              trucksError ? "Truck data unavailable" : totalTrucks > 0
                 ? `${Math.round((assignedTrucks / totalTrucks) * 100)}% vehicles paired`
-                : "No vehicles in fleet",
+                : "No trucks registered",
             tone: "info" as const,
           },
         ].map((kpi) => (
@@ -532,7 +532,7 @@ const AdminDrivers = () => {
                 options={entityOptions}
                 value={activeTab}
                 onChange={(tab) => setActiveTab(tab)}
-                ariaLabel="Personnel & fleet entity switcher"
+                ariaLabel="Personnel & trucks entity switcher"
                 className={styles.view}
               />
             </div>
@@ -639,7 +639,7 @@ const AdminDrivers = () => {
                         options={entityOptions}
                         value={draft.activeTab}
                         onChange={(tab) => setDraft({ ...draft, activeTab: tab })}
-                        ariaLabel="Personnel & fleet entity switcher"
+                        ariaLabel="Personnel & trucks entity switcher"
                         className={styles.view}
                       />
                     </AdminFilterField>
@@ -755,7 +755,7 @@ const AdminDrivers = () => {
         title="Delete Truck Record?"
         icon={<Trash2 />}
         variant="destructive"
-        description={<>Are you sure you want to permanently delete <strong className="font-semibold text-foreground">{deleteTruckTarget?.name}</strong> ({deleteTruckTarget?.plateNumber}) from the municipal fleet? This action cannot be undone.</>}
+        description={<>Are you sure you want to permanently delete <strong className="font-semibold text-foreground">{deleteTruckTarget?.name}</strong> ({deleteTruckTarget?.plateNumber}) from the municipal truck list? This action cannot be undone.</>}
         confirmLabel="Delete Permanently"
         isPending={isDeletingTruck}
         pendingLabel="Deleting..."

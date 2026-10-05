@@ -1,5 +1,6 @@
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { navigationStyles } from "../navigationStyles";
+import AdminMessagesButton from "./AdminMessagesButton";
 import { useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { toggleThemeMode } from "@/lib/theme";
@@ -34,7 +35,7 @@ const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/barangays": "Barangay Manager",
   "/admin/residents": "Resident Accounts",
   "/admin/drivers": "Collector Manager",
-  "/admin/tracking": "Live Truck Fleet",
+  "/admin/tracking": "Live Trucks",
   "/admin/analytics": "Analytics & Reports",
   "/admin/audit-logs": "Audit Logs",
   "/admin/notifications": "Notifications",
@@ -89,7 +90,7 @@ const AdminTopBar = () => {
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
   const [modalNotification, setModalNotification] = useState<AdminNotificationDetail | null>(null);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications();
+  const { notifications, total = notifications.length, recentCount, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications({ limit: Math.max(30, visibleNotificationCount) });
 
   const handleNotificationClick = async (n: NotificationRow) => {
     if (!n.is_read) await markAsRead(n.id);
@@ -105,15 +106,15 @@ const AdminTopBar = () => {
   };
 
   const visibleNotifications = notifications.slice(0, visibleNotificationCount);
-  const hasMoreNotifications = visibleNotificationCount < notifications.length;
-  const recentNotificationCount = notifications.filter((notification) => {
+  const hasMoreNotifications = visibleNotificationCount < total;
+  const recentNotificationCount = recentCount ?? notifications.filter((notification) => {
     const timestamp = parseApiTimestamp(notification.created_at)?.getTime();
     if (timestamp === undefined) return false;
     const elapsed = Date.now() - timestamp;
     return elapsed >= 0 && elapsed < 86_400_000;
   }).length;
   const loadMoreNotifications = () => {
-    if (hasMoreNotifications) setVisibleNotificationCount((count) => Math.min(count + 6, notifications.length));
+    if (hasMoreNotifications) setVisibleNotificationCount((count) => Math.min(count + 6, total));
   };
   return (
     <header className={navigationStyles.topbar}>
@@ -258,6 +259,8 @@ const AdminTopBar = () => {
           <Sun className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
           <Moon className={`gw-theme-icon w-4 h-4 absolute ${dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
         </button>
+
+        <AdminMessagesButton />
 
         {/* Notifications Popover */}
         <Popover

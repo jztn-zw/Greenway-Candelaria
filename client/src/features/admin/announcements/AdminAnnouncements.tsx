@@ -1,5 +1,6 @@
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
 import { adminCommunityStyles as noticeStyles } from "@/components/communityContentStyles";
@@ -435,20 +436,10 @@ const AdminAnnouncements = () => {
       {isResultsLoading ? (
         <AnnouncementsContentSkeleton viewMode={viewMode} />
       ) : announcements.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/80 bg-card/60 px-4 py-8 sm:p-12 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-muted/60 text-muted-foreground border border-border flex items-center justify-center mx-auto">
-            <Megaphone className="w-7 h-7" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="gw-heading text-base text-foreground">
-              No announcements found
-            </h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {search || typeFilter !== "all"
+        <ListEmptyState icon={Megaphone} title="No announcements found"
+          description={search || typeFilter !== "all"
                 ? "Try adjusting your filters or search keywords to find what you're looking for."
-                : "Get started by broadcasting your first community announcement to residents."}
-            </p>
-          </div>
+                : "Get started by broadcasting your first community announcement to residents."}>
           <Button
             onClick={() => openEditor()}
             className={noticeStyles.action}
@@ -456,7 +447,7 @@ const AdminAnnouncements = () => {
             <Plus className="w-4 h-4" />
             <span>Create Announcement</span>
           </Button>
-        </div>
+        </ListEmptyState>
       ) : viewMode === "grid" ? (
         <div className={noticeStyles.grid}>
           {paginated.map((ann) => (

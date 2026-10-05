@@ -26,6 +26,8 @@ import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
 import { PageRetryContext } from "@/components/pageRetryContext";
 
+import "./collectorDashboard.css";
+
 const CollectorDashboard = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore((s) => s.user);
@@ -69,7 +71,7 @@ const CollectorDashboard = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-8">
+    <div className="collector-dashboard w-full min-w-0 max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-8">
       {/* ── Municipal Command Header with Live Shift Status ── */}
       <CollectorDashboardGreeting
         driverName={driverMe?.full_name || authUser?.full_name || "Collector"}
@@ -83,7 +85,7 @@ const CollectorDashboard = () => {
       {!assignmentUnavailable && <TodayStatsCards data={assignmentData} />}
 
       {/* ── Route workspace and monthly schedule ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+      <div className="collector-dashboard-workspace">
         <div className="flex min-h-[360px] flex-col sm:min-h-[380px] lg:min-h-[355px] lg:h-full">
           {assignmentUnavailable ? <PageErrorState kind="unavailable" variant="section" title="Route assignment unavailable" description="We couldn't load your assignment. Please try again." onRetry={() => { void profileQuery.refetch(); void routeQuery.refetch(); }} retrying={profileQuery.isFetching || routeQuery.isFetching} /> : <AssignmentCard
             className="h-full flex-1"
@@ -97,11 +99,11 @@ const CollectorDashboard = () => {
       </div>
 
       {/* ── Supporting route and vehicle details ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+      <div className="collector-dashboard-support">
         <div className="h-full">
           {loadErrors.history ? <PageErrorState kind="unavailable" variant="section" title="Route history unavailable" description="We couldn't load your recent routes. Please try again." onRetry={() => void historyQuery.refetch()} retrying={historyQuery.isFetching} /> : recentHistory.length > 0 ? (
             <div className="h-full min-h-0 rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs flex flex-col">
-              <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border/60 bg-muted/20">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-border/60 bg-muted/20">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-primary" />
                   <span className="text-xs font-semibold text-foreground font-body tracking-tight">
@@ -111,7 +113,7 @@ const CollectorDashboard = () => {
                 <button
                   type="button"
                   onClick={() => navigate("/collector/route-history")}
-                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                  className="gw-action-primary-ghost inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold cursor-pointer"
                 >
                   View all <ChevronRight className="w-3 h-3" />
                 </button>
@@ -130,7 +132,7 @@ const CollectorDashboard = () => {
                       className="px-4 sm:px-5 py-2.5 hover:bg-muted/25 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs sm:text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
                             {displayTitle}
                           </p>

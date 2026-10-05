@@ -39,7 +39,7 @@ const BreadcrumbItem = React.forwardRef<
 BreadcrumbItem.displayName = "BreadcrumbItem";
 
 export interface BreadcrumbLinkProps
-  extends Omit<React.ComponentPropsWithoutRef<"a">, "type"> {
+  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement | HTMLButtonElement>, "type"> {
   asChild?: boolean;
   type?: "button" | "submit" | "reset";
 }
@@ -48,19 +48,16 @@ const BreadcrumbLink = React.forwardRef<
   HTMLAnchorElement | HTMLButtonElement,
   BreadcrumbLinkProps
 >(({ asChild, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : props.href ? "a" : "button";
-
-  return (
-    <Comp
-      ref={ref as any}
-      type={(!asChild && !props.href ? "button" : undefined) as any}
-      className={cn(
+  const sharedProps = {
+    ...props,
+    className: cn(
         "transition-colors hover:text-foreground text-muted-foreground cursor-pointer font-medium text-xs inline-flex items-center",
         className
-      )}
-      {...(props as any)}
-    />
-  );
+    ),
+  };
+  if (asChild) return <Slot ref={ref as React.Ref<HTMLAnchorElement>} {...sharedProps} />;
+  if (props.href) return <a ref={ref as React.Ref<HTMLAnchorElement>} {...sharedProps} />;
+  return <button ref={ref as React.Ref<HTMLButtonElement>} type="button" {...sharedProps} />;
 });
 BreadcrumbLink.displayName = "BreadcrumbLink";
 

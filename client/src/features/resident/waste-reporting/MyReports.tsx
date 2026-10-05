@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import { BackButton } from "@/components/common/BackButton";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
@@ -326,19 +327,10 @@ const MyReports = () => {
       {isListLoading ? (
         <MyReportsListSkeleton />
       ) : reports.length === 0 ? (
-        <Card className="border border-border">
-          <CardContent className="px-4 py-12 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-              <FileText className="w-6 h-6 text-muted-foreground" />
-            </div>
+        <ListEmptyState icon={FileText}
+          title={search || activeTab !== "all" ? "No reports found" : "No reports yet"}
+          description={search || activeTab !== "all" ? "Try adjusting your search or filters." : "You haven't submitted any reports yet."}>
             {search || activeTab !== "all" ? (
-              <>
-                <p className="text-sm font-medium text-foreground">
-                  No reports found
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Try adjusting your search or filters.
-                </p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -347,30 +339,20 @@ const MyReports = () => {
                     setActiveTab("all");
                     setPage(1);
                   }}
-                  className="mt-4 h-9 max-w-full gap-1.5 text-xs"
+                  className="h-9 max-w-full gap-1.5 text-xs"
                 >
                   Clear Filters
                 </Button>
-              </>
             ) : (
-              <>
-                <p className="text-sm font-medium text-foreground">
-                  No reports yet
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You haven't submitted any reports yet.
-                </p>
                 <Button
                   onClick={() => navigate("/resident/report")}
                   size="sm"
-                  className="mt-4 h-9 max-w-full text-xs"
+                  className="h-9 max-w-full text-xs"
                 >
                   Submit report
                 </Button>
-              </>
             )}
-          </CardContent>
-        </Card>
+        </ListEmptyState>
       ) : (
         <div className={myReportsStyles.list}>
           {reports.map((report) => {

@@ -111,9 +111,33 @@ it("keeps the list when the already-selected status tab is clicked", async () =>
   await render(); await act(async () => [...host.querySelectorAll("button")].find((button) => button.querySelector("span")?.textContent === "All routes")!.click());
   expect(host.textContent).toContain("Route run-A"); expect(fetchCollectorHistoryPage).toHaveBeenCalledTimes(1);
 });
-it("uses accessible route buttons and honest duration without unsupported counts", async () => {
+it("uses accessible route buttons without unsupported counts", async () => {
   await render(); const button = [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("Route run-A"))!;
   await act(async () => button.click());
-  expect(host.textContent).toContain("Active collection time"); expect(host.textContent).toContain("Unavailable");
+  expect(host.textContent).toContain("Checkpoint breakdown");
   expect(host.textContent).not.toContain("residents notified"); expect(host.textContent).not.toContain("Shift duration");
+});
+it("returns from route details to the cached list with the selected filter intact", async () => {
+  await render();
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "No collection")!.click());
+  const pageCalls = vi.mocked(fetchCollectorHistoryPage).mock.calls.length;
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Route run-A"))!.click());
+  const back = host.querySelector<HTMLButtonElement>('button[aria-label="Back to route history"]');
+  expect(back).not.toBeNull();
+  await act(async () => back!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  expect([...host.querySelectorAll('button[aria-pressed="true"]')].map((button) => button.textContent)).toContain("No collection");
+  expect(fetchCollectorHistoryPage).toHaveBeenCalledTimes(pageCalls);
+});
+it("lets a directly linked route return to history while its details are still loading", async () => {
+  let resolve!: (route: RouteHistoryItem) => void;
+  vi.mocked(fetchCollectorHistoryRun).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  await render("/collector/route-history?route=run-A");
+  const back = host.querySelector<HTMLButtonElement>('button[aria-label="Back to route history"]');
+  expect(back).not.toBeNull();
+  await act(async () => back!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("Route history");
+  await act(async () => resolve(run()));
+  expect(host.textContent).not.toContain("Checkpoint breakdown");
+  expect(fetchCollectorHistoryPage).toHaveBeenCalledWith({ status: "all", waste_type: "all", cursor: undefined });
 });

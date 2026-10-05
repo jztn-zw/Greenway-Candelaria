@@ -22,4 +22,8 @@ Breadcrumbs use a subtle text-color change on hover, without an underline or fil
 
 Route history uses the system's global typography sizes: page titles stay 24px/30px responsively, route row titles use 14px body text, and metadata uses 12px caption text. Its filters and secondary actions match the existing compact controls at 36px high with 12px text. Keep other collector pages' existing sizing and layouts.
 
+Use global radius tokens through named utilities such as `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-modal`, and `rounded-full`. Match each component's existing radius recipe, including loading skeletons. Do not introduce custom radius values or arbitrary pixel-radius classes for individual pages or components.
+
+Toast titles and text descriptions must not contain emojis. Preserve existing message wording and punctuation, and use the shared `@/lib/toast` helper across web roles.
+
 DOM and SVG colors can use `hsl(var(--primary))`. Canvas renderers must use `readThemeColor` from `src/lib/themeColors.ts` to resolve the current CSS color before drawing. Keep third-party logo colors and external basemap artwork intact.

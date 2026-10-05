@@ -386,7 +386,7 @@ const AdminRouteManager: React.FC = () => {
       <ResidentPageHeader
         className="admin-module-header"
         title="Route Manager"
-        description="Plan collection days, assign fleet resources, and verify every barangay stop."
+        description="Plan collection days, assign trucks, and verify every barangay stop."
         actionsClassName="admin-module-header-actions"
         actions={<Button
           onClick={startCreate}

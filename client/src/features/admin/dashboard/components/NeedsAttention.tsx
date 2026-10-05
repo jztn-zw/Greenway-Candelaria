@@ -71,7 +71,7 @@ const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
           </Button>}
         </div>
         <p className="mt-4 shrink-0 border-t border-border/60 pt-3 text-ui-caption leading-relaxed text-muted-foreground">
-          Missed stops first, then oldest reports and fleet maintenance.
+          Missed stops first, then oldest reports and truck maintenance.
         </p>
       </div>
     </section>

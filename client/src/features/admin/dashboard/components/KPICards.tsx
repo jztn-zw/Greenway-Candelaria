@@ -35,7 +35,7 @@ const KPICards = ({ overview, reportsAnalytics }: KPICardsProps) => {
   const kpis: KPISegmentProps[] = [
     { label: "Total Reports", value: totalReports, subtitle: "Incidents logged", icon: FileText, tone: "neutral" },
     { label: "Resolution Rate", value: Math.round(rawResolutionRate), suffix: "%", subtitle: `${resolvedReports} resolved cases`, icon: CircleCheck, tone: "success" },
-    { label: "Available Fleet", value: activeTrucks, subtitle: `${totalTrucks} registered trucks · not under maintenance`, icon: Truck, tone: "success" },
+    { label: "Available Trucks", value: activeTrucks, subtitle: `${totalTrucks} registered trucks · not under maintenance`, icon: Truck, tone: "success" },
     { label: "Registered Residents", value: totalResidents, subtitle: "Resident accounts, including inactive", icon: Users, tone: "neutral" },
   ];
 

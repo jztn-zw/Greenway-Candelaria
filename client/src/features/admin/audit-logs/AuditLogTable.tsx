@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -107,14 +108,9 @@ const AuditLogTable = ({
               <AuditLogRowsSkeleton />
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-16 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
-                    <ScrollText className="w-6 h-6" />
-                  </div>
-                  <p className="text-sm font-bold text-foreground">No Audit Logs Found</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    No system audit entries match your current filters or date range. Try clearing your filters.
-                  </p>
+                <TableCell colSpan={7} className="!p-0">
+                  <ListEmptyState variant="inline" icon={ScrollText} title="No Audit Logs Found"
+                    description="No system audit entries match your current filters or date range. Try clearing your filters." />
                 </TableCell>
               </TableRow>
             ) : (
@@ -367,15 +363,8 @@ const AuditLogTable = ({
         {isLoading ? (
           <AuditLogCardsSkeleton />
         ) : logs.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
-              <ScrollText className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-bold text-foreground">No Audit Logs Found</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Adjust your filters or date range to view logs.
-            </p>
-          </div>
+          <ListEmptyState variant="inline" icon={ScrollText} title="No Audit Logs Found"
+            description="Adjust your filters or date range to view logs." />
         ) : (
           logs.map((log) => {
             const sc = severityStyles[log.severity] || severityStyles.routine;

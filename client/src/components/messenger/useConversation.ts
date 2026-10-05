@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useInfiniteQuery, useIsMutating, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { fetchConversation, sendConversationMessage, type ConversationPage, type WebMessage } from "@/services/messengerService";
+import { fetchConversation, sendConversationMessage, markAdminMessagesAsRead, type ConversationPage, type WebMessage } from "@/services/messengerService";
 import { markMyDriverMessagesAsRead } from "@/services/trackingService";
 import useAuthStore from "@/store/authStore";
 
@@ -28,6 +28,7 @@ export const useConversation = (driverId?: string, enabled = true) => {
   const sendLock = useRef(false);
   const reading = useRef(new Set<string>());
   const readIds = useRef(new Set<string>());
+  const failedReadIds = useRef(new Set<string>());
   const assertSession = (expectedUser = user?.id, expectedToken = token) => {
     const session = useAuthStore.getState();
     if (session.user?.id !== expectedUser || session.token !== expectedToken || session.user?.role !== role) throw new Error("Your session changed");
@@ -54,8 +55,15 @@ export const useConversation = (driverId?: string, enabled = true) => {
   const readMutation = useMutation({
     mutationKey: [...key, "read"], retry: false, gcTime: 0,
     meta: { [`${scope}UserId`]: user?.id, [`${scope}Domains`]: ["messenger"] },
-    mutationFn: async (request: { id: string; userId: string | undefined; token: string | null }) => { assertSession(request.userId, request.token); await markMyDriverMessagesAsRead(undefined, [request.id]); },
-    onMutate: () => client.cancelQueries({ queryKey: key }),
+    mutationFn: async (request: { id: string; userId: string | undefined; token: string | null }) => {
+      assertSession(request.userId, request.token);
+      if (driverId) await markAdminMessagesAsRead(driverId, [request.id]);
+      else await markMyDriverMessagesAsRead(undefined, [request.id]);
+    },
+    onMutate: async () => {
+      await client.cancelQueries({ queryKey: key });
+      if (driverId) await client.cancelQueries({ queryKey: ["admin", user?.id, "tracking", "messenger-unread"] });
+    },
     onSuccess: (_, request) => {
       const id = request.id;
       assertSession(); readIds.current.add(id);
@@ -63,6 +71,10 @@ export const useConversation = (driverId?: string, enabled = true) => {
         unreadCount: Math.max(0, page.unreadCount - 1), items: page.items.map((message) => message.id === id ? { ...message, is_read: true } : message),
       })) }) : current);
       client.setQueryData<WebMessage>([...key, "target", id], (current) => current ? { ...current, is_read: true } : current);
+      if (driverId) {
+        void client.invalidateQueries({ queryKey: ["admin", user?.id, "tracking", "messenger-unread"] });
+        void client.invalidateQueries({ queryKey: ["admin", user?.id, "notifications"] });
+      }
     },
   });
   const writing = useIsMutating({ mutationKey: key });
@@ -79,14 +91,14 @@ export const useConversation = (driverId?: string, enabled = true) => {
   const messages = target.data ? unique([...loaded, target.data]) : loaded;
   const { refetch } = conversation;
   const refresh = useCallback(async (selectedId?: string) => {
-    setTargetId(selectedId); setError(null);
+    setTargetId(selectedId); failedReadIds.current.clear(); setError(null);
     if (client.isMutating({ mutationKey: [scope, user?.id ?? "signed-out", "messenger", driverId ?? "me"] })) return;
     await refetch();
   }, [client, scope, user?.id, driverId, refetch]);
   const loadOlder = async () => { if (conversation.hasNextPage && !conversation.isFetchingNextPage) await conversation.fetchNextPage(); };
   const send = async (value: string) => {
     const text = value.trim();
-    if (!text || text.length > 255 || sendLock.current) return false;
+    if (!text || text.length > 1000 || sendLock.current) return false;
     sendLock.current = true;
     try { await sendMutation.mutateAsync({ text, userId: user?.id, token }); return true; }
     catch { setError("Message could not be sent. Retry to safely resend the same message."); return false; }
@@ -94,12 +106,12 @@ export const useConversation = (driverId?: string, enabled = true) => {
   };
   const readMessage = readMutation.mutateAsync;
   const markVisibleRead = useCallback(async (id: string) => {
-    if (driverId || reading.current.has(id) || readIds.current.has(id)) return;
+    if (reading.current.has(id) || readIds.current.has(id) || failedReadIds.current.has(id)) return;
     reading.current.add(id);
     try { await readMessage({ id, userId: user?.id, token }); }
-    catch { setError("Read status could not be saved. Please retry."); }
+    catch { failedReadIds.current.add(id); setError("Read status could not be saved. Please retry."); }
     finally { reading.current.delete(id); }
-  }, [driverId, readMessage, user?.id, token]);
+  }, [readMessage, user?.id, token]);
   return { messages, loading: conversation.isLoading,
     refreshing: conversation.isFetching || target.isFetching,
     error: error ?? (conversation.error ? "Messages could not be refreshed. Please retry." : target.error ? "The selected message could not be loaded. Latest messages are still available." : null),

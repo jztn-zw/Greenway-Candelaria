@@ -26,7 +26,7 @@ const Index = () => {
         const posts = await postsService.getAll({ status: "PUBLISHED" });
         if (!isMounted) return;
         setBlogPosts(
-          (posts ?? []).slice(0, 3).map((post: any) => ({
+          (posts ?? []).slice(0, 3).map((post: LandingBlogPost) => ({
             id: post.id,
             category: post.category,
             created_at: post.created_at,

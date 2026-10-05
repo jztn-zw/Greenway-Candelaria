@@ -55,7 +55,7 @@ const navGroups = [
     label: "OPERATIONS",
     items: [
       { title: "Live route tracking", url: "/collector/route-map", icon: Map },
-      { title: "Schedule", url: "/collector/schedule", icon: CalendarDays },
+      { title: "MENRO Calendar", url: "/collector/schedule", icon: CalendarDays },
       { title: "Route History", url: "/collector/route-history", icon: History },
     ],
   },

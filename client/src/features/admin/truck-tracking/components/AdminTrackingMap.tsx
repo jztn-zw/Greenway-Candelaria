@@ -971,7 +971,7 @@ const AdminTrackingMap = ({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-bold text-foreground leading-tight truncate">
-                    Fleet Standby · Offline
+                    Trucks on Standby · Offline
                   </span>
                   <span className="text-ui-caption text-muted-foreground leading-relaxed">
                     Select a truck to view its route.
@@ -1060,11 +1060,11 @@ const AdminTrackingMap = ({
             type="button"
             onClick={handleResetBounds}
             className="gw-action-ghost flex h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
-            title="Fit Whole Municipal Fleet"
-            aria-label="Fit whole municipal fleet"
+            title="Fit All Municipal Trucks"
+            aria-label="Fit all municipal trucks"
           >
             <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-            <span className="admin-tracking-map-label hidden sm:inline">Fit Fleet</span>
+            <span className="admin-tracking-map-label hidden sm:inline">Fit Trucks</span>
           </button>
         </div>
 

@@ -52,6 +52,7 @@ import {
   setMyRoutePaused,
 } from "@/services/trackingService";
 import type { SkipReason } from "./types";
+import "./collectorRouteMap.css";
 import { matchesCollectorRouteAlert } from "../notifications/notificationRouting";
 
 const getErrorMessage = (err: unknown) =>
@@ -74,7 +75,7 @@ const NoScheduledRouteView = ({
   retrying = false,
   message = "No route has been assigned to your truck for today. Check back later or review past route runs.",
 }: NoScheduledRouteViewProps) => (
-  <div className="w-full max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
+  <div className="collector-route-standby w-full min-w-0 max-w-[1600px] mx-auto min-h-[75vh] flex flex-col justify-center items-center px-4 py-8">
     <div className="w-full max-w-lg rounded-2xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs text-center space-y-6">
       {/* Municipal Indicator Icon */}
       <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-2xs">
@@ -413,7 +414,7 @@ const CollectorRouteMap = () => {
   const renderActiveStopCard = () => {
     if (!hasStartedRoute && isScheduledRoute) {
       return (
-        <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="collector-route-start-card flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-4 min-w-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Clock className="h-5 w-5" />
@@ -428,7 +429,7 @@ const CollectorRouteMap = () => {
           </div>
           <div className="min-w-0 rounded-xl border border-border/70 bg-muted/25 px-4 py-3 sm:min-w-56">
             <p className="text-ui-caption font-semibold uppercase tracking-wide text-muted-foreground">First stop</p>
-            <p className="mt-0.5 truncate font-body text-sm font-semibold text-foreground">{autoRoutedStops[0]?.barangay ?? "Not assigned"}</p>
+            <p className="mt-0.5 break-words font-body text-sm font-semibold text-foreground">{autoRoutedStops[0]?.barangay ?? "Not assigned"}</p>
           </div>
         </div>
       );
@@ -436,7 +437,7 @@ const CollectorRouteMap = () => {
 
     if (!hasStartedRoute) {
       return (
-        <div className="grid gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-8">
+        <div className="collector-route-start-card grid gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-8">
           <div className="flex min-w-0 items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <Navigation className="h-5 w-5" />
@@ -480,7 +481,7 @@ const CollectorRouteMap = () => {
           {isWithinGeofence && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/15 border border-primary/30 text-primary text-xs font-bold">
               <Radio className="w-4 h-4 shrink-0 animate-pulse" />
-              <span className="truncate">Arrived at destination zone (within 150m)</span>
+              <span className="break-words">Arrived at destination zone (within 150m)</span>
             </div>
           )}
 
@@ -494,7 +495,7 @@ const CollectorRouteMap = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                   <span className="truncate">{isWithinGeofence ? "Arrived at zone" : "Current target checkpoint"}</span>
                 </div>
-                <p className="text-base sm:text-lg font-body font-semibold text-foreground leading-tight truncate mt-0.5">
+                <p className="text-base sm:text-lg font-body font-semibold text-foreground leading-tight break-words [overflow-wrap:anywhere] mt-0.5">
                   {activeStop.barangay}
                 </p>
               </div>
@@ -509,7 +510,7 @@ const CollectorRouteMap = () => {
           </div>
 
           {/* Action Buttons: Mark as Done is dominant primary, Skip is secondary */}
-          <div className="space-y-1.5 pt-1">
+          <div className="collector-route-stop-actions space-y-1.5 pt-1">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -520,14 +521,14 @@ const CollectorRouteMap = () => {
                 loadingLabel="Clearing stop…"
               >
                 {isWithinGeofence ? (
-                  <span className="flex items-center gap-1.5 truncate">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate">Complete stop (Arrived)</span>
+                    <span className="break-words whitespace-normal">Complete stop (Arrived)</span>
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 truncate">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate">Mark stop as cleared</span>
+                    <span className="break-words whitespace-normal">Mark stop as cleared</span>
                   </span>
                 )}
               </Button>
@@ -565,16 +566,16 @@ const CollectorRouteMap = () => {
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-3 sm:space-y-4 pb-4 px-1 sm:px-0">
+    <div className="collector-route-page w-full min-w-0 max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-6">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight truncate">
+            <h1 className="gw-page-title sm:text-ui-page-lg text-foreground tracking-tight break-words">
               {hasStartedRoute ? "Live route navigation" : "Today's collection route"}
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
             {hasStartedRoute ? "Checkpoint navigation and stop collection management" : "Review the route and stops before starting collection"}
           </p>
         </div>
@@ -619,11 +620,11 @@ const CollectorRouteMap = () => {
         </div>
       )}
       {isOffline && (
-        <div className="flex items-center gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-medium shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-medium shadow-2xs">
           <WifiOff className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <span className="truncate">You are offline</span>
+          <span>You are offline</span>
           {pendingSync > 0 && (
-            <span className="ml-1 text-muted-foreground truncate">
+            <span className="text-muted-foreground break-words">
               — {pendingSync} GPS ping{pendingSync > 1 ? "s" : ""} queued, will sync when reconnected
             </span>
           )}
@@ -633,7 +634,7 @@ const CollectorRouteMap = () => {
       {!hasStartedRoute ? (
         <div className="space-y-4">
           {renderActiveStopCard()}
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,1fr)]">
+          <div className="collector-route-workspace">
             <section aria-label="Planned route map" className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3 sm:px-5">
                 <div>
@@ -642,7 +643,7 @@ const CollectorRouteMap = () => {
                 </div>
                 <span className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1 text-ui-caption font-semibold text-muted-foreground">Preview</span>
               </div>
-              <div className="h-[320px] sm:h-[420px] lg:h-[520px]">
+              <div className="collector-route-map-height">
                 {previewStops.some((stop) => stop.hasCoordinates !== false) ? (
                   <RouteMapView preview stops={previewStops} truckCoords={null} activeStopCoords={null} />
                 ) : (
@@ -668,7 +669,7 @@ const CollectorRouteMap = () => {
                     <li key={stop.id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
                       <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg tabular-nums text-xs font-semibold", index === 0 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{stop.stopNumber}</span>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">{stop.barangay}</p>
+                        <p className="break-words text-sm font-semibold text-foreground">{stop.barangay}</p>
                         {index === 0 && <p className="text-xs font-medium text-primary">First stop</p>}
                       </div>
                     </li>
@@ -683,14 +684,14 @@ const CollectorRouteMap = () => {
       ) : (
         <>
           {/* Mobile Active Stop Card — highlights current task right at top for instant one-tap actions (Req 10) */}
-          <div className="lg:hidden">
+          <div className="collector-route-mobile-task">
             {renderActiveStopCard()}
           </div>
 
           {/* Main Layout — stacked on mobile, side-by-side on desktop */}
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5 items-start">
+          <div className="collector-route-workspace">
         {/* Map Viewport — dynamically responsive height from mobile to ultra-wide */}
-        <div className="lg:col-span-3 h-[320px] xs:h-[360px] sm:h-[420px] md:h-[480px] lg:h-[620px] xl:h-[680px] w-full">
+        <div className="collector-route-map-height min-w-0 w-full">
           <RouteMapView
             stops={autoRoutedStops}
             truckCoords={resolvedTruckCoords}
@@ -699,14 +700,14 @@ const CollectorRouteMap = () => {
         </div>
 
         {/* Right Panel */}
-        <div className="lg:col-span-2 flex flex-col gap-3 lg:h-[620px] xl:h-[680px] min-w-0">
+        <div className="collector-route-sidebar flex flex-col gap-4 min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs">
           {/* Active Stop Card on desktop (Req 2 & 3) */}
-          <div className="hidden lg:block shrink-0">
+          <div className="collector-route-desktop-task shrink-0">
             {renderActiveStopCard()}
           </div>
 
           {/* Stop List Header */}
-          <div className="flex items-center justify-between px-1 shrink-0 pt-0.5 gap-2">
+          <div className="flex flex-wrap items-center justify-between shrink-0 gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <h2 className="gw-heading text-xs sm:text-sm text-foreground tracking-tight truncate">
                 Collection checkpoints
@@ -732,7 +733,7 @@ const CollectorRouteMap = () => {
           </div>
 
           {/* Scrollable Stop List (Strictly scheduled order, Req 8) */}
-          <div className="flex-1 min-h-[160px] overflow-y-auto pr-1">
+          <div className="collector-route-stop-list min-h-[160px] overflow-y-auto pr-1">
             <div className="space-y-1.5">
               {autoRoutedStops.map((stop) => (
                 <StopListItem key={stop.id} stop={stop} />

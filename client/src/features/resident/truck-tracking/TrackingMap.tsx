@@ -15,6 +15,7 @@ import {
   Navigation,
   Route as RouteIcon,
   MapPin,
+  Home,
   Clock,
   LocateFixed,
   Maximize2,
@@ -924,16 +925,27 @@ const TrackingMap = ({
       ) : null}
 
       <div className={trackingStyles.mapFooter}>
+        {residentBarangayCoords && (
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <Home aria-hidden="true" className={`size-3.5 ${isResidentMissed ? "text-destructive" : "text-primary"}`} />
+            Your area
+            {isResidentCompleted && <CheckCircle2 aria-label="Collection completed" className="size-3.5 text-[hsl(var(--success-600))]" />}
+          </span>
+        )}
         {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
-          <div className={trackingStyles.legend}>
+          <div className={trackingStyles.legend} aria-label="Street collection status">
+            <span>Street coverage:</span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-500" /> Current
+              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-warning" /> Collecting
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-800" /> Done
+              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-[hsl(var(--success-700))]" /> Completed
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
+              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-[hsl(var(--neutral-400))]" /> Pending
+            </span>
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-destructive" /> Skipped
             </span>
           </div>
         )}

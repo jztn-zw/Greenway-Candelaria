@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fetchBarangays, fetchBarangayStreets, type BarangayLocationRow, type BarangayStreetRow } from "@/services/barangaysService";
 import { ArrowRight, Eye, EyeOff, Heart, Leaf, Lock, Mail, MapPin, User, Users, X } from "lucide-react";
-import { toast } from "@/lib/toast";
 
 interface AuthModalProps {
   open: boolean;
@@ -222,7 +221,6 @@ const AuthModal = ({
         barangay_id: barangay,
         street_id: street || undefined,
       });
-      toast.success("Account created successfully!", { description: "You can now log in to GreenWay." });
       resetRegisterForm();
       setErrors({});
       setTab("login");
@@ -248,7 +246,6 @@ const AuthModal = ({
       const user = useAuthStore.getState().user;
       setErrors({});
       onOpenChange(false);
-      toast.success(`Welcome back, ${user?.full_name}! 👋`);
       if (user?.role === "ADMIN") navigate("/admin");
       else if (user?.role === "DRIVER") navigate("/collector");
       else navigate("/resident");

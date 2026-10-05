@@ -216,7 +216,7 @@ it("asks for confirmation before logging out from the profile", async () => {
   const logout = vi.spyOn(useAuthStore.getState(), "logout").mockResolvedValue(undefined);
   try {
     await renderProfile();
-    const signOut = [...document.querySelectorAll("button")].find(b => b.textContent?.includes("Sign Out"))!;
+    const signOut = document.querySelector<HTMLButtonElement>('button[aria-label="Log out"]')!;
     await act(async () => signOut.click()); expect(logout).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Log Out of GreenWay?"); await click("Cancel"); expect(logout).not.toHaveBeenCalled();
     await act(async () => signOut.click()); await click("Log Out"); expect(logout).toHaveBeenCalledOnce();

@@ -39,9 +39,9 @@ export const AdminKpiCard = ({ label, value, description, icon: Icon, tone = "ne
   </article>
 );
 
-export const AdminKpiSkeleton = () => (
+export const AdminKpiSkeleton = ({ count = 4 }: { count?: number }) => (
   <AdminKpiGrid>
-    {Array.from({ length: 4 }, (_, index) => (
+    {Array.from({ length: count }, (_, index) => (
       <div key={index} className="admin-kpi-card min-w-0 bg-card" aria-hidden="true">
         <div className="admin-kpi-header flex min-w-0 items-center gap-2">
           <Skeleton className="admin-kpi-icon shrink-0 rounded-lg" />

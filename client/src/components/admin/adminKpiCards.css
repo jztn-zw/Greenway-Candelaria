@@ -74,3 +74,16 @@
     animation: none;
   }
 }
+
+/* Three metrics share the same card recipe without leaving an empty column. */
+.admin-kpi-grid:has(> :last-child:nth-child(3)) > :last-child {
+  grid-column: 1 / -1;
+}
+@container admin-kpi (min-width: 37.5rem) {
+  .admin-kpi-grid:has(> :last-child:nth-child(3)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .admin-kpi-grid:has(> :last-child:nth-child(3)) > :last-child {
+    grid-column: auto;
+  }
+}

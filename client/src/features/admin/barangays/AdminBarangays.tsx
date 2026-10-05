@@ -1,4 +1,5 @@
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { SearchInput } from "@/components/common/SearchInput";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -30,7 +31,7 @@ fetchManagedStreets,
 type BarangayManagerRow,
 type ManagedStreet,
 } from "@/services/barangaysService";
-import { MapPin, Pencil, Plus, Route, Trash2, Truck } from "lucide-react";
+import { MapPin, MapPinned, Pencil, Plus, Route, Search, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import StreetCoverageEditor, { type CoveragePoint } from "./StreetCoverageEditor";
 
@@ -45,6 +46,7 @@ const AdminBarangays = () => {
   const [selectedId, setSelectedId] = useState("");
   const selectedIdRef = useRef("");
   const [search, setSearch] = useState("");
+  const barangaySearchRef = useRef<HTMLInputElement>(null);
   const [streetSearch, setStreetSearch] = useState("");
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -69,10 +71,9 @@ const AdminBarangays = () => {
   const overviewError = overviewQuery.dataUpdatedAt === 0 ? overviewQuery.error?.message ?? "" : "";
   const streetsError = streetsQuery.dataUpdatedAt === 0 ? streetsQuery.error?.message ?? "" : "";
   useLayoutEffect(() => {
-    if (!overviewQuery.data.length) return;
     setSelectedId((current) => current && barangays.some((row) => row.id === current) ? current
-      : barangays.find((row) => row.name.toLowerCase() === "poblacion")?.id ?? barangays[0]?.id ?? "");
-  }, [overviewQuery.data, barangays]);
+      : "");
+  }, [barangays]);
   useEffect(() => { selectedIdRef.current = selectedId; setStreetSearch(""); }, [selectedId]);
 
   const selectedBarangay = barangays.find((row) => row.id === selectedId) ?? null;
@@ -325,6 +326,7 @@ const AdminBarangays = () => {
           <p className="mt-1 text-xs text-muted-foreground">Select a barangay to manage its streets.</p>
 
           <SearchInput
+            ref={barangaySearchRef}
             placeholder="Search barangays..."
             value={search}
             onChange={setSearch}
@@ -334,9 +336,8 @@ const AdminBarangays = () => {
 
           <div className={styles.list}>
             {visibleBarangays.length === 0 ? (
-              <p className="p-8 text-center text-sm text-muted-foreground">
-                No barangays found.
-              </p>
+              <ListEmptyState variant="inline" icon={MapPin} title="No barangays found."
+                description="Try another barangay name or clear your search." />
             ) : (
               visibleBarangays.map((barangay) => {
                 const isSelected = selectedId === barangay.id;
@@ -400,11 +401,33 @@ const AdminBarangays = () => {
         </aside>
 
         {/* ── Right Column: Selected Barangay Details & Streets Card ── */}
-        <section className={cn(styles.panel, styles.detail)}>
+        <section className={cn(styles.panel, styles.detail)} aria-label="Barangay details">
           {!selectedBarangay ? (
-            <div className="px-3 py-12 text-center text-sm text-muted-foreground">
-              Select a barangay to view its streets.
-            </div>
+            <>
+              <div className={styles.header}>
+                <h2 className="gw-heading text-base tracking-tight text-foreground">Barangay details</h2>
+                <span className={cn("rounded-lg border px-2 py-1 text-ui-caption", badgeStyles.neutral.className)}>
+                  No barangay selected
+                </span>
+              </div>
+              <div className="flex min-h-80 flex-col items-center justify-center px-3 py-10 text-center sm:min-h-96">
+                <div className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <MapPinned className="size-6" aria-hidden="true" />
+                </div>
+                <h3 className="gw-heading text-xl tracking-tight text-foreground">Choose a barangay</h3>
+                <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                  Select a barangay from the list to view its streets, update collection availability, and manage coverage paths.
+                </p>
+                <Button
+                  className="mt-5 gap-2 rounded-xl text-xs"
+                  onClick={() => barangaySearchRef.current?.focus()}
+                  disabled={barangays.length === 0}
+                >
+                  <Search className="size-4" aria-hidden="true" /> Find a barangay
+                </Button>
+                <p className="mt-4 text-ui-caption text-muted-foreground">Your selection will appear here.</p>
+              </div>
+            </>
           ) : (
             <>
               {/* Header row */}
@@ -497,11 +520,10 @@ const AdminBarangays = () => {
                         ) : streetsError ? (
                           <PageErrorState kind="unavailable" variant="section" title="Streets couldn't load" onRetry={() => void retryStreets()} retrying={streetsQuery.isFetching} />
                         ) : visibleStreets.length === 0 ? (
-                          <div className="py-12 text-center text-xs text-muted-foreground">
-                            {streets.length === 0
+                          <ListEmptyState variant="inline" icon={Route} title="No streets found"
+                            description={streets.length === 0
                               ? "No street records for this barangay yet."
-                              : "No streets match your search."}
-                          </div>
+                              : "No streets match your search."} />
                         ) : (
                           visibleStreets.map((street) => {
                             const inUse = street.account_link_count + street.route_plan_count + street.route_run_record_count > 0;

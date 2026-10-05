@@ -24,7 +24,8 @@ const clearPersistedAuth = () => {
 
 const SESSION_VERIFY_TTL_MS = 60_000;
 let lastSessionVerifiedAt = 0;
-let inFlightSessionCheck: Promise<boolean> | null = null;
+let authGeneration = 0;
+let inFlightSessionCheck: { generation: number; token: string; promise: Promise<boolean> } | null = null;
 
 const useAuthStore = create<AuthState>()(
   persist(
@@ -36,12 +37,17 @@ const useAuthStore = create<AuthState>()(
       hasHydrated: false,
 
       login: async (identifier, password) => {
+        const generation = ++authGeneration;
+        inFlightSessionCheck = null;
         set({ isLoading: true });
         try {
           const { token, user } = await authService.login({
             identifier,
             password,
           });
+          if (generation !== authGeneration) throw new Error("Your session changed");
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
           set({
             user,
             token,
@@ -50,23 +56,17 @@ const useAuthStore = create<AuthState>()(
           });
           lastSessionVerifiedAt = Date.now();
         } catch (err) {
-          set({ isLoading: false });
+          if (generation === authGeneration) set({ isLoading: false });
           throw err;
         }
       },
 
       logout: async () => {
-        try {
-          await authService.logout();
-        } finally {
-          clearPersistedAuth();
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
+        // Start revocation with the current token, then end local ownership
+        // immediately. A slow response cannot clear a subsequent login.
+        const revocation = authService.logout();
+        get().clearAuth();
+        await revocation;
       },
 
       ensureSession: async (force = false) => {
@@ -88,15 +88,18 @@ const useAuthStore = create<AuthState>()(
           return true;
         }
 
-        if (inFlightSessionCheck) {
-          return inFlightSessionCheck;
+        const generation = authGeneration;
+        const isCurrent = () => generation === authGeneration && authService.getToken() === token;
+        if (inFlightSessionCheck?.generation === generation && inFlightSessionCheck.token === token) {
+          return inFlightSessionCheck.promise;
         }
 
         set({ isLoading: true });
 
-        inFlightSessionCheck = authService
+        const promise = authService
           .getMe()
           .then((user) => {
+            if (!isCurrent()) return false;
             localStorage.setItem("user", JSON.stringify(user));
             set({
               user,
@@ -108,14 +111,14 @@ const useAuthStore = create<AuthState>()(
             return true;
           })
           .catch(() => {
-            get().clearAuth();
+            if (isCurrent()) get().clearAuth();
             return false;
           })
           .finally(() => {
-            inFlightSessionCheck = null;
+            if (inFlightSessionCheck?.promise === promise) inFlightSessionCheck = null;
           });
-
-        return inFlightSessionCheck;
+        inFlightSessionCheck = { generation, token, promise };
+        return promise;
       },
 
       setUser: (user) => {
@@ -126,6 +129,8 @@ const useAuthStore = create<AuthState>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
 
       clearAuth: () => {
+        authGeneration++;
+        inFlightSessionCheck = null;
         clearPersistedAuth();
         lastSessionVerifiedAt = 0;
         set({

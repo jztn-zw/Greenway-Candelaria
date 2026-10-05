@@ -27,6 +27,10 @@ export interface NotificationsResponse {
   limit: number;
   offset: number;
   next_cursor?: string | null;
+  unread_count?: number;
+  history_total?: number;
+  recent_count?: number;
+  unread_content_count?: number;
 }
 
 export interface NotificationFilters {
@@ -36,6 +40,7 @@ export interface NotificationFilters {
   is_read?: string;
   cursor?: string;
   category?: "all" | "routes" | "dispatch" | "announcements";
+  web_category?: "all" | `admin:${"operations" | "reports" | "content" | "announcements"}` | `resident:${"collection" | "reports" | "content" | "announcements"}`;
 }
 
 export interface SendNotificationPayload {
@@ -69,6 +74,9 @@ export const markNotificationAsRead = async (id: string): Promise<void> => {
 export const markAllNotificationsAsRead = async (): Promise<void> => {
   await api.put("/notifications/read-all");
 };
+export const markContentNotificationsAsRead = async (): Promise<void> => {
+  await api.put("/notifications/read-all", { category: "content" });
+};
 
 export const deleteNotification = async (id: string): Promise<void> => {
   await api.delete(`/notifications/${id}`);
@@ -89,6 +97,7 @@ const notificationsService = {
   fetchUnreadCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  markContentNotificationsAsRead,
   deleteNotification,
   clearAllNotifications,
   sendNotification,

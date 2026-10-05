@@ -44,21 +44,69 @@ beforeEach(() => {
   mocks.create.mockReset().mockResolvedValue(undefined); mocks.update.mockReset().mockResolvedValue(undefined);
   mocks.overviewError = null; mocks.streetsError = null; mocks.retryOverview.mockReset(); mocks.retryStreets.mockReset();
   mocks.road.mockReset(); mocks.mapHandlers.clear(); mocks.markers.length = 0; mocks.lines.length = 0;
+  mocks.barangays = [{ id: "poblacion", name: "Poblacion", status: "ACTIVE", collection_service_available: true, street_count: 1, streets_with_path: 0, active_route_count: 0, live_run_count: 0, latitude: null, longitude: null }];
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.useRealTimers(); });
 const button = (name: string, scope: ParentNode = document) => [...scope.querySelectorAll("button")].find(b => b.textContent?.trim() === name || b.getAttribute("aria-label") === name)!;
 const click = async (name: string, scope: ParentNode = document) => { await act(async () => button(name, scope).click()); };
 const change = (id: string, value: string) => act(() => Simulate.change(document.getElementById(id)!, { target: { value } } as never));
+const chooseBarangay = async (name: string) => {
+  const choice = [...host.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')].find(item => item.textContent?.includes(name))!;
+  await act(async () => choice.click());
+};
 async function openCreate() {
-  await act(async () => root.render(<AdminBarangays />)); await click("Add street");
+  await act(async () => root.render(<AdminBarangays />)); await chooseBarangay("Poblacion"); await click("Add street");
   return document.querySelector('[role="dialog"]')!;
 }
 const submit = async (editor: Element) => { await act(async () => Simulate.submit(editor.querySelector("form")!)); };
 
+describe("barangay selection", () => {
+  it.each(["Poblacion", "Mayabobo"])("starts without a selection when %s is available", async (name) => {
+    mocks.barangays = [{ ...mocks.barangays[0], id: "barangay-1", name }];
+    await act(async () => root.render(<AdminBarangays />));
+    expect(host.querySelector('button[aria-pressed="true"]')).toBeNull();
+    expect(host.querySelector("section")).toHaveTextContent("Choose a barangay");
+    expect(button("Add street", host)).toBeUndefined();
+    expect(host.textContent).not.toContain("Gonzales St");
+    mocks.barangays = mocks.barangays.map(row => ({ ...row, street_count: 2 }));
+    await act(async () => root.render(<AdminBarangays />));
+    expect(host.querySelector('button[aria-pressed="true"]')).toBeNull();
+  });
+
+  it("focuses barangay search from the empty state", async () => {
+    await act(async () => root.render(<AdminBarangays />));
+    await click("Find a barangay");
+    expect(document.activeElement).toBe(host.querySelector('[aria-label="Search barangays"]'));
+  });
+
+  it("keeps a manually selected barangay through overview refreshes", async () => {
+    mocks.barangays = [...mocks.barangays, { ...mocks.barangays[0], id: "mayabobo", name: "Mayabobo" }];
+    await act(async () => root.render(<AdminBarangays />));
+    await chooseBarangay("Mayabobo");
+    expect(host.querySelector("section h2")).toHaveTextContent("Barangay Mayabobo");
+    expect(host.textContent).toContain("Gonzales St");
+    mocks.barangays = mocks.barangays.map(row => ({ ...row, street_count: 2 }));
+    await act(async () => root.render(<AdminBarangays />));
+    expect(host.querySelector('button[aria-pressed="true"]')).toHaveTextContent("Mayabobo");
+    expect(host.querySelector("section h2")).toHaveTextContent("Barangay Mayabobo");
+  });
+
+  it("returns to the empty state when the selected barangay disappears", async () => {
+    mocks.barangays = [...mocks.barangays, { ...mocks.barangays[0], id: "mayabobo", name: "Mayabobo" }];
+    await act(async () => root.render(<AdminBarangays />));
+    await chooseBarangay("Mayabobo");
+    mocks.barangays = mocks.barangays.filter(row => row.id !== "mayabobo");
+    await act(async () => root.render(<AdminBarangays />));
+    expect(host.querySelector('button[aria-pressed="true"]')).toBeNull();
+    expect(host.querySelector("section")).toHaveTextContent("Choose a barangay");
+  });
+});
+
 it("uses one retry notice for failed barangay and street refreshes", async () => {
   mocks.overviewError = new Error("offline"); mocks.streetsError = new Error("offline");
   await act(async () => root.render(<AdminBarangays />));
+  await chooseBarangay("Poblacion");
   expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
   const retries = [...host.querySelectorAll("button")].filter((item) => item.textContent?.trim() === "Try again");
   expect(retries).toHaveLength(1);

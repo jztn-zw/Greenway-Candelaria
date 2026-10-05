@@ -1,0 +1,94 @@
+.collector-route-page {
+  container: collector-route / inline-size;
+}
+
+.collector-route-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.collector-route-workspace > * {
+  min-width: 0;
+}
+
+.collector-route-map-height {
+  height: clamp(320px, 55svh, 440px);
+}
+
+.collector-route-desktop-task {
+  display: none;
+}
+
+.collector-route-stop-list {
+  max-height: 360px;
+  overscroll-behavior: contain;
+}
+
+.collector-route-map-legend {
+  max-width: calc(100% - 80px);
+}
+
+.collector-route-map-caption {
+  max-width: calc(100% - 128px);
+}
+
+.collector-route-sidebar .collector-route-desktop-task > div {
+  box-shadow: none;
+}
+
+@container collector-route (max-width: 719px) {
+  .collector-route-start-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .collector-route-start-card > :last-child {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@container collector-route (min-width: 960px) {
+  .collector-route-workspace {
+    grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+  .collector-route-map-height {
+    height: 600px;
+  }
+  .collector-route-workspace > .collector-route-map-height {
+    height: auto;
+    min-height: 600px;
+  }
+  .collector-route-sidebar .collector-route-stop-list {
+    flex: 1;
+  }
+  .collector-route-mobile-task {
+    display: none;
+  }
+  .collector-route-desktop-task {
+    display: block;
+  }
+}
+
+@container collector-route (max-width: 599px) {
+  .collector-route-page h1,
+  .collector-route-page h2 {
+    overflow-wrap: anywhere;
+  }
+  .collector-route-summary-metrics {
+    width: 100%;
+    padding-top: 0.25rem;
+  }
+  .collector-route-stop-actions button {
+    height: auto;
+    min-height: 3rem;
+    padding-block: 0.75rem;
+  }
+  .collector-route-workspace button:not(.collector-route-map button) {
+    white-space: normal;
+  }
+}

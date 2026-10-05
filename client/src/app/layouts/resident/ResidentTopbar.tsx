@@ -138,7 +138,7 @@ const ResidentTopBar = () => {
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(6);
   const [selectedReminder, setSelectedReminder] = useState<ResidentNotification | null>(null);
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications();
+  const { notifications, total = notifications.length, recentCount, unreadCount, markAsRead, markAllAsRead, isMarkingAll, isMutating } = useNotifications({ limit: Math.max(30, visibleNotificationCount) });
   const pageTitle = getResidentPageTitle(location.pathname);
 
   const searchParams = new URLSearchParams(location.search);
@@ -180,14 +180,14 @@ const ResidentTopBar = () => {
   };
 
   const visibleNotifications = notifications.slice(0, visibleNotificationCount);
-  const hasMoreNotifications = visibleNotificationCount < notifications.length;
-  const recentNotificationCount = notifications.filter((notification) =>
+  const hasMoreNotifications = visibleNotificationCount < total;
+  const recentNotificationCount = recentCount ?? notifications.filter((notification) =>
     isWithinLast24Hours(notification.created_at),
   ).length;
 
   const loadMoreNotifications = () => {
     if (!hasMoreNotifications) return;
-    setVisibleNotificationCount((current) => Math.min(current + 6, notifications.length));
+    setVisibleNotificationCount((current) => Math.min(current + 6, total));
   };
 
   return (

@@ -40,7 +40,7 @@ const StopListItem = ({ stop }: StopListItemProps) => {
 
   return (
     <div
-      className={`group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all border ${
+      className={`group flex min-w-0 items-start gap-3 px-3.5 py-3 rounded-xl transition-all border ${
         isActive
           ? "bg-primary/[0.08] border-primary/40 shadow-2xs"
           : isDone
@@ -73,8 +73,8 @@ const StopListItem = ({ stop }: StopListItemProps) => {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-1.5">
-          <p className="text-xs sm:text-sm font-semibold text-foreground font-body truncate">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <p className="text-xs sm:text-sm font-semibold text-foreground font-body break-words [overflow-wrap:anywhere]">
             {stop.barangay}
           </p>
           {stop.status === "not-yet" && stop.distanceKm > 0 && (
@@ -98,7 +98,7 @@ const StopListItem = ({ stop }: StopListItemProps) => {
             </span>
           )}
           {stop.status === "skipped" && stop.skippedReason && (
-            <span className="text-ui-overline font-medium text-amber-600 dark:text-amber-400 truncate max-w-[160px]">
+            <span className="text-ui-overline font-medium text-amber-600 dark:text-amber-400 break-words [overflow-wrap:anywhere]">
               • {stop.skippedReason}
             </span>
           )}

@@ -68,7 +68,7 @@ const DashboardHeader = () => {
             onClick={() => navigate("/admin/truck-tracking")}
           >
             <MapPin className="w-4 h-4" />
-            <span>Live Fleet</span>
+            <span>Live Trucks</span>
           </Button>
         </div>
       </div>

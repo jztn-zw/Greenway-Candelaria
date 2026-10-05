@@ -1,0 +1,86 @@
+.collector-history-page {
+  container: collector-history / inline-size;
+  min-width: 0;
+}
+
+.collector-history-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 32px;
+  grid-template-areas: "ring heading arrow" "badges badges badges" "metadata metadata metadata";
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.collector-history-ring { grid-area: ring; }
+.collector-history-heading { grid-area: heading; min-width: 0; }
+.collector-history-arrow { grid-area: arrow; align-self: start; }
+.collector-history-badges { grid-area: badges; display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
+.collector-history-badges > span { max-width: 100%; overflow-wrap: anywhere; }
+.collector-history-metadata {
+  grid-area: metadata;
+  display: grid;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid hsl(var(--border) / 0.6);
+  padding-top: 0.875rem;
+}
+.collector-history-metadata > span { min-width: 0; align-items: flex-start; }
+.collector-history-metadata svg { margin-top: 0.125rem; }
+.collector-history-heading h2,
+.collector-history-heading h3,
+.collector-history-metadata,
+.collector-history-stop { overflow-wrap: anywhere; }
+
+.collector-history-more { min-height: 44px; width: 100%; height: auto; white-space: normal; }
+
+.collector-history-summary { display: flex; min-width: 0; flex-direction: column; gap: 1rem; padding: 1rem; overflow-wrap: anywhere; }
+.collector-history-summary-meta { display: grid; min-width: 0; gap: 1rem; }
+.collector-history-stop-list { display: grid; gap: 0.75rem; padding: 0.75rem; }
+.collector-history-stop {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-areas: "number heading" "meta meta" "reason reason";
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.875rem;
+  min-width: 0;
+}
+.collector-history-stop-number { grid-area: number; align-self: start; }
+.collector-history-stop:not(:has(.collector-history-stop-reason)) { grid-template-areas: "number heading" "meta meta"; }
+.collector-history-stop-title { grid-area: heading; min-width: 0; }
+.collector-history-stop-meta { grid-area: meta; display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 0.625rem 1rem; }
+.collector-history-stop-meta > span { max-width: 100%; }
+.collector-history-stop-reason { grid-area: reason; }
+
+@container collector-history (min-width: 420px) {
+  .collector-history-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container collector-history (min-width: 600px) {
+  .collector-history-card {
+    grid-template-columns: 48px minmax(0, 1fr) 36px;
+    grid-template-areas: "ring heading arrow" "ring badges arrow" "ring metadata arrow";
+    column-gap: 1rem;
+    row-gap: 0.5rem;
+    padding: 1.25rem;
+  }
+  .collector-history-ring, .collector-history-arrow { align-self: center; }
+  .collector-history-metadata { border-top: 0; padding-top: 0; }
+  .collector-history-more { width: auto; min-height: 36px; }
+  .collector-history-summary { padding: 1.25rem; }
+  .collector-history-summary-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .collector-history-detail-title-line { display: none; }
+  .collector-history-stop-list { padding: 1.25rem; }
+  .collector-history-stop {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas: "number heading meta" "number reason reason";
+    gap: 0.875rem 1rem;
+    padding: 1rem;
+  }
+  .collector-history-stop-meta { flex-direction: column; align-items: flex-end; gap: 0.375rem; }
+  .collector-history-stop:not(:has(.collector-history-stop-reason)) { grid-template-areas: "number heading meta"; }
+}
+
+@container collector-history (min-width: 900px) {
+  .collector-history-metadata { display: flex; flex-wrap: wrap; }
+}

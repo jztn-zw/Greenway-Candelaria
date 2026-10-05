@@ -1,6 +1,7 @@
 import { act } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { NotificationRow } from "@/services/notificationsService";
 import AdminNotifications from "./AdminNotifications";
@@ -8,7 +9,7 @@ import AdminTopbar from "@/app/layouts/admin/AdminTopbar";
 
 const mocks = vi.hoisted(() => ({ notifications: [] as NotificationRow[], markAsRead: vi.fn() }));
 vi.mock("./useAdminNotifications", () => ({ default: () => ({
-  notifications: mocks.notifications, unreadCount: 1, isLoading: false, hasLoadedData: true,
+  notifications: mocks.notifications, total: mocks.notifications.length, historyTotal: mocks.notifications.length, offset: 0, unreadCount: 1, isLoading: false, hasLoadedData: true,
   error: null, markAsRead: mocks.markAsRead, markAllAsRead: vi.fn(), clearAll: vi.fn(), isMutating: false,
 }) }));
 vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => ({ toggleSidebar: vi.fn() }) }));
@@ -23,9 +24,9 @@ const notice = (overrides: Partial<NotificationRow>): NotificationRow => ({
 
 function renderSource(source: "page" | "bell", notification: NotificationRow) {
   mocks.notifications = [notification];
-  render(<MemoryRouter initialEntries={["/admin/notifications"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+  render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/admin/notifications"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     {source === "page" ? <AdminNotifications /> : <AdminTopbar />}
-  </MemoryRouter>);
+  </MemoryRouter></QueryClientProvider>);
   if (source === "bell") fireEvent.click(screen.getByTitle("Notifications"));
   return document.querySelector<HTMLButtonElement>(source === "page" ? ".resident-notification-row" : ".gw-topbar-notification-row")!;
 }

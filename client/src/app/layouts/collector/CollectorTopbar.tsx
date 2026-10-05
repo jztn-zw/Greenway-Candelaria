@@ -24,13 +24,14 @@ import { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
 import {
   openCollectorNotification,
-  getCollectorNotificationTitle,
   getCollectorNotificationVisual,
 } from "@/features/collector/notifications/notificationRouting";
+import { getCollectorNotificationPresentation } from "@/features/collector/notifications/notificationPresentation";
 
 const COLLECTOR_PAGE_TITLES: Record<string, string> = {
   "/collector": "Driver Dashboard",
   "/collector/route-map": "Live Route Map",
+  "/collector/schedule": "MENRO Calendar",
   "/collector/route-history": "Route History",
   "/collector/notifications": "Notifications",
   "/collector/profile": "Driver Profile",
@@ -88,15 +89,19 @@ const CollectorTopBar = () => {
         <nav aria-label="Breadcrumb" className={navigationStyles.breadcrumb}>
           {isRouteMap ? (
             <>
-              <button
-                type="button"
-                onClick={() => navigate(isNotificationRouteMap ? "/collector/notifications" : "/collector")}
-                className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={isNotificationRouteMap ? "Back to Notifications" : "Back to Driver Dashboard"}
-              >
-                {isNotificationRouteMap ? "Notifications" : "Driver Dashboard"}
-              </button>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
+              {isNotificationRouteMap && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/collector/notifications")}
+                    className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Back to Notifications"
+                  >
+                    Notifications
+                  </button>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
+                </>
+              )}
               <span aria-current="page" className={navigationStyles.currentPage}>
                 {pageTitle}
               </span>
@@ -210,7 +215,7 @@ const CollectorTopBar = () => {
                 )) : (
                   recentNotifications.map((n) => {
                     const { Icon, style: avatarStyle } = getCollectorNotificationVisual(n);
-                    const title = getCollectorNotificationTitle(n);
+                    const { headline, message } = getCollectorNotificationPresentation(n);
                     const isUnread = !n.is_read;
                     return (
                       <button
@@ -227,17 +232,19 @@ const CollectorTopBar = () => {
                         {/* Content */}
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors leading-snug break-words">
-                              {title}
+                            <p className="text-[13px] font-semibold text-foreground/90 group-hover:text-primary transition-colors leading-snug break-words [overflow-wrap:anywhere]">
+                              <span className="font-bold text-foreground">{headline.prefix}</span>
+                              {headline.connector && <span className="text-foreground/80"> {headline.connector} </span>}
+                              {headline.highlight && <span className="font-bold text-foreground">{headline.highlight}</span>}
                             </p>
                             {isUnread && (
                               <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" title="Unread" />
                             )}
                           </div>
 
-                          {n.body && (
-                            <p className="text-ui-caption text-muted-foreground line-clamp-2 leading-relaxed break-words">
-                              {n.body}
+                          {message && (
+                            <p className="text-ui-caption text-muted-foreground line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">
+                              {message}
                             </p>
                           )}
 

@@ -1,5 +1,6 @@
 import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
+import ListEmptyState from "@/components/common/ListEmptyState";
 import {
   Table,
   TableBody,
@@ -60,17 +61,8 @@ export const RouteTable: React.FC<RouteTableProps> = ({
 
   if (routes.length === 0) {
     return (
-      <div className="bg-card border border-border/80 rounded-2xl px-4 py-10 sm:p-12 text-center space-y-3 shadow-2xs">
-        <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
-          <RouteIcon className="w-6 h-6" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-bold text-foreground">No routes match current filters</p>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Try adjusting your search query, clearing day filters, or creating a new collection route.
-          </p>
-        </div>
-      </div>
+      <ListEmptyState icon={RouteIcon} title="No routes match current filters"
+        description="Try adjusting your search query, clearing day filters, or creating a new collection route." />
     );
   }
 

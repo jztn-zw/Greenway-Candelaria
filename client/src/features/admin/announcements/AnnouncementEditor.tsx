@@ -858,7 +858,7 @@ const AnnouncementEditor = ({
           </div>
 
           {/* ── Fixed Pinned Footer (Non-Scrollable) ── */}
-          <div className="gw-modal-footer px-3 py-3 sm:px-5 sm:py-3.5 border-t border-border/60 shrink-0 z-10 flex flex-wrap items-center justify-between gap-2 bg-card">
+          <div className="gw-modal-footer px-3 py-3 sm:px-5 sm:py-3.5 border-t border-border/60 shrink-0 z-10 flex flex-wrap items-center justify-end gap-2 bg-card">
             {errors.form && <p role="alert" className="basis-full min-w-0 break-words text-ui-caption font-medium text-destructive">{errors.form}</p>}
             <Button type="button" variant="outline" onClick={handleAttemptClose} disabled={isSaving}
               className="h-8 max-w-full px-3 sm:h-9 sm:px-4 rounded-xl text-xs">

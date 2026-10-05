@@ -41,7 +41,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
   return (
     <div className={`rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs flex flex-col justify-between ${className || ""}`}>
       {/* Header: Title + Road Readiness Status */}
-      <div className="flex items-center justify-between pb-3 border-b border-border/50 shrink-0 gap-2">
+      <div className="flex flex-wrap items-center justify-between pb-3 border-b border-border/50 shrink-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Truck className="w-4 h-4 text-primary shrink-0" />
           <h3 className="gw-heading text-sm text-foreground tracking-tight truncate">
@@ -60,7 +60,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
       </div>
 
       {/* Middle: Balanced 3-Column Vehicle Telemetry Grid */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 my-auto py-2">
+      <div className="collector-dashboard-truck-details my-auto py-4">
         <div className="p-1.5 sm:p-2.5 md:p-3 rounded-xl bg-muted/25 border border-border/60 flex flex-col justify-between min-w-0">
           <span className="text-[9px] sm:text-ui-overline font-semibold text-muted-foreground uppercase tracking-tight sm:tracking-wider leading-none truncate">
             Unit name
@@ -98,14 +98,14 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
               {data.wasteType || "General waste"}
             </p>
             <p className="text-ui-overline sm:text-ui-caption text-muted-foreground mt-0.5 leading-tight truncate">
-              MENRO fleet
+              MENRO trucks
             </p>
           </div>
         </div>
       </div>
 
       {/* Footer: Contextual Prompt & Breakdown Action */}
-      <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-2 shrink-0">
+      <div className="collector-dashboard-truck-footer pt-3 border-t border-border/50 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
           <Building2 className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
           <span className="truncate">Candelaria MENRO</span>
@@ -115,7 +115,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
           <button
             type="button"
             onClick={onReportIssue}
-            className="gw-action-destructive-outline inline-flex items-center justify-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0"
+            className="gw-action-destructive-outline inline-flex items-center justify-center gap-1.5 min-h-11 px-2.5 sm:px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0"
           >
             <Wrench className="w-3.5 h-3.5" />
             <span>Report breakdown</span>

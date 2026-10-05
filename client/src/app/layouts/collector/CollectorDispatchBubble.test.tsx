@@ -103,7 +103,7 @@ it("shows loading instead of an empty conversation and limits the accessible com
   await mount(); await open();
   expect(screen.getByRole("status").textContent).toContain("Loading messages");
   expect(screen.queryByText("No messages yet.")).toBeNull();
-  expect((screen.getByRole("textbox", { name: "Message MENRO" }) as HTMLInputElement).maxLength).toBe(255);
+  expect((screen.getByRole("textbox", { name: "Message MENRO" }) as HTMLTextAreaElement).maxLength).toBe(1000);
   expect(screen.getByRole("button", { name: "Send message" })).toBeTruthy();
 });
 it("unchanged background refresh does not force scrolling", async () => {

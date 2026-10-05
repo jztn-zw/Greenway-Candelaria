@@ -47,7 +47,7 @@ const MODULE_LABELS: Record<string, string> = {
   posts: "Posts",
   announcements: "Announcements",
   routes: "Routes",
-  trucks: "Fleet",
+  trucks: "Trucks",
   schedule: "Schedule",
   users: "Accounts",
   auth: "Security",

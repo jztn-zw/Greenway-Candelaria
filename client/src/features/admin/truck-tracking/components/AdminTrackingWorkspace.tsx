@@ -29,16 +29,16 @@ export default function AdminTrackingWorkspace({ fleetOpen, onFleetOpenChange, f
           <span>Tracking map</span>
         </div>
         <Button ref={triggerRef} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl px-3"
-          aria-label="Open Fleet controls" aria-expanded={fleetOpen} aria-controls={panelId}
+          aria-label="Open Truck controls" aria-expanded={fleetOpen} aria-controls={panelId}
           onClick={() => onFleetOpenChange(!fleetOpen)}>
           <Truck className="size-4" aria-hidden="true" />
-          Fleet <span className="rounded-md bg-muted px-1.5 text-ui-caption tabular-nums">{fleetCount}</span>
+          Trucks <span className="rounded-md bg-muted px-1.5 text-ui-caption tabular-nums">{fleetCount}</span>
           {fleetOpen ? <ChevronDown className="size-3.5" aria-hidden="true" /> : <ChevronUp className="size-3.5" aria-hidden="true" />}
         </Button>
       </div>
       <div className={styles.map}>{map}</div>
       {/* Keep replay controls mounted when the compact panel closes. */}
-      <aside id={panelId} aria-label="Fleet controls"
+      <aside id={panelId} aria-label="Truck controls"
         className={cn(styles.fleet, fleetMinimized && "admin-tracking-fleet-minimized", !fleetOpen && "admin-tracking-fleet-hidden")}
         onKeyDown={(event) => {
           if (event.key === "Escape" && fleetOpen) {
@@ -47,8 +47,8 @@ export default function AdminTrackingWorkspace({ fleetOpen, onFleetOpenChange, f
           }
         }}>
         <div className="admin-tracking-mobile-panel-header mb-3 flex shrink-0 items-center justify-between gap-3 border-b border-border/70 pb-3">
-          <div className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4 text-primary" aria-hidden="true" />Fleet controls</div>
-          <Button variant="ghost" size="icon" className="size-11 rounded-xl" aria-label="Close fleet panel" onClick={closePanel}><X className="size-4" /></Button>
+          <div className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4 text-primary" aria-hidden="true" />Truck controls</div>
+          <Button variant="ghost" size="icon" className="size-11 rounded-xl" aria-label="Close truck panel" onClick={closePanel}><X className="size-4" /></Button>
         </div>
         {children}
       </aside>

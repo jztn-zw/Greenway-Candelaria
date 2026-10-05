@@ -20,7 +20,7 @@ dialogs, map rendering, and replay playback remain component state.
 | Truck tracking | Overview, missed collections, replay history, road route lookup, dispatch messages |
 | Analytics | Filtered dashboard and barangay options |
 | Audit logs | Filtered pages and summary counts |
-| Notifications | Shared topbar/history query, read/clear actions, socket refresh |
+| Notifications | Bounded topbar windows and category pages, read/clear actions, socket refresh |
 | Profile | Account details, profile and password updates |
 | Settings | Alert preferences |
 
@@ -48,7 +48,14 @@ dialogs, map rendering, and replay playback remain component state.
   Query keys contain no passwords or authentication tokens. Mutation entries
   have zero retention after their observer releases them.
 - Notification and admin change socket ownership is at the admin layout. Topbar and history
-  consume the same query rather than creating separate socket owners.
+  use the same account-scoped query domain rather than creating separate socket owners.
+  Each request includes full unread/recent/history counts, while records are fetched
+  only for the visible menu window or selected 15-row category page. Expanding a
+  menu fetches additional rows; refreshes do not download the entire history.
+  Collector-message badges count saved unread incoming messages independently of
+  alert preferences or cleared notifications. A focused, visible message bubble
+  saves its read flag; failures remain retryable. The existing single-admin schema
+  and collector message read flags are preserved; no migration is required.
 
 ## Automatic updates from other users
 

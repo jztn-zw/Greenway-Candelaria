@@ -24,10 +24,10 @@ import { useAnalyticsDashboard } from "./useAnalyticsDashboard";
 
 type DatePreset = "this-month" | "last-8-weeks" | "last-3-months";
 const pageTitle = "Analytics dashboard";
-const pageDescription = "A single view of collection operations, resident reports, and fleet activity.";
+const pageDescription = "A single view of collection operations, resident reports, and truck activity.";
 
 const sectionComponents: Record<string, { component: React.FC; title: string; subtitle: string }> = {
-  overview: { component: SectionOverview, title: "Operations overview", subtitle: "Collection coverage, open reports, missed stops, and fleet readiness." },
+  overview: { component: SectionOverview, title: "Operations overview", subtitle: "Collection coverage, open reports, missed stops, and truck readiness." },
   "collection-performance": { component: SectionCollectionPerformance, title: "Collection efficiency", subtitle: "Completed route stops as a share of scheduled route stops." },
   "missed-collections": { component: SectionMissedCollections, title: "Missed collections", subtitle: "Weekly missed route stops, affected areas, and recorded reasons." },
   "barangay-compliance": { component: SectionBarangayCompliance, title: "Barangay coverage", subtitle: "Scheduled, completed, and missed collection stops by barangay." },

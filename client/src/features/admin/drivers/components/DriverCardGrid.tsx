@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { useState, useMemo, useEffect } from "react";
 import {
   Truck,
@@ -92,21 +93,10 @@ const DriverCardGrid = ({
 
       {/* ── Cards Grid ── */}
       {paginated.length === 0 ? (
-        <div className="bg-card border border-border/80 rounded-2xl p-12 text-center shadow-2xs">
-          <div className="flex flex-col items-center justify-center gap-2.5 max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground">
-              <Users className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-semibold text-foreground">
-              No Collectors Found
-            </p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {search || statusFilter !== "all"
+        <ListEmptyState icon={Users} title="No Collectors Found"
+          description={search || statusFilter !== "all"
                 ? "No collectors match your search query or status filter."
-                : "No collector personnel registered yet."}
-            </p>
-          </div>
-        </div>
+                : "No collector personnel registered yet."} />
       ) : (
         <div className={styles.grid}>
           {paginated.map((d) => {

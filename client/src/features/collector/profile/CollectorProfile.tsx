@@ -49,6 +49,8 @@ import { CollectorModalHeader } from "../components/CollectorModal";
 import { collectorModalStyles as modalStyles } from "../components/collectorModalStyles";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import CollectorLogoutDialog from "../components/CollectorLogoutDialog";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { collectorProfileStyles as styles } from "./collectorProfileStyles";
 
 /* ─── Field Row Component (Improved Action Buttons & High Contrast) ─── */
 const FieldRow = ({
@@ -68,16 +70,16 @@ const FieldRow = ({
   isEmail?: boolean;
   onEdit?: () => void;
 }) => (
-  <div className="group -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/40 md:-mx-4 md:px-4 md:py-3">
-    <div className="flex min-w-0 flex-1 items-center gap-3 lg:gap-3.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground shadow-2xs transition-colors group-hover:border-primary/30 group-hover:text-primary lg:size-10">
-        <Icon className="w-4.5 h-4.5" />
+  <div className={styles.row}>
+    <div className={styles.rowContent}>
+      <div className={styles.rowIcon}>
+        <Icon aria-hidden="true" className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground lg:text-ui-caption">
+        <p className={styles.label}>
           {label}
         </p>
-        <p className="mt-0.5 truncate text-ui-label font-medium text-foreground lg:text-sm">
+        <p className={styles.value}>
           {masked ? (
             "••••••••"
           ) : value ? (
@@ -91,9 +93,10 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className="h-8 inline-flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium bg-muted/60 text-muted-foreground border border-border/70 shrink-0 select-none">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-        <span>Registered email</span>
+      <span className={styles.registeredEmail} title="Registered email">
+        <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+        <span aria-hidden="true" className="admin-profile-email-label">Registered email</span>
+        <span className="sr-only">Registered email</span>
       </span>
     ) : onEdit ? (
       <Button
@@ -101,7 +104,8 @@ const FieldRow = ({
         variant="primary-outline"
         size="sm"
         onClick={onEdit}
-        className="h-8 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold shadow-none transition-all focus-visible:ring-primary/25"
+        aria-label={`${masked ? "Change" : "Edit"} ${label.toLowerCase()}`}
+        className={styles.fieldAction}
       >
         <span>{masked ? "Change" : "Edit"}</span>
       </Button>
@@ -341,130 +345,131 @@ const CollectorProfile = () => {
 
   return (
     <PageRetryContext.Provider value={true}>
-    <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-5 pb-8 animate-in fade-in duration-300">
-      {/* ── 1. Profile Header Banner (Resident-style) ── */}
-      <div className="relative rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
-        {/* Profile banner */}
-        <div className="relative h-28 overflow-hidden border-b border-border/50 bg-muted/50 lg:h-36">
-          <ProfileBannerImage />
-        </div>
+    <div className={styles.page}>
+      <ResidentPageHeader title="Profile & account" description="Manage your personal details and account security." />
+      <div className={styles.stack}>
+        {/* ── 1. Profile Header Banner (Resident-style) ── */}
+        <div className={styles.hero}>
+          {/* Profile banner */}
+          <div className={styles.cover}>
+            <ProfileBannerImage />
+          </div>
 
-        {/* Avatar & Core Identity */}
-        <div className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6 lg:px-8 lg:pb-7">
-          <div className="-mt-14 flex flex-col items-center gap-3.5 text-center md:-mt-18 md:flex-row md:items-end md:gap-6 md:text-left">
-            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
+          {/* Avatar & Core Identity */}
+          <div className={styles.identity}>
+            <div className={styles.identityRow}>
+              <ProfileAvatarControl avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
 
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex flex-col justify-center gap-1.5 md:flex-row md:items-center md:justify-start md:gap-3">
-                <h1 className="gw-heading truncate text-lg tracking-tight text-foreground lg:text-2xl">
-                  {displayName}
-                </h1>
-                {displayUsername && displayUsername !== "—" && (
-                  <span className="inline-flex w-fit items-center rounded-md border border-border/60 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                    @{displayUsername}
-                  </span>
-                )}
-              </div>
+              <div className={styles.identityDetails}>
+                <div className={styles.nameRow}>
+                  <h2 className={styles.name}>
+                    {displayName}
+                  </h2>
+                  {displayUsername && displayUsername !== "—" && (
+                    <span className={styles.username}>
+                      @{displayUsername}
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground md:justify-start">
-                <span className="flex items-center gap-1.5"><Truck className="size-3.5 text-primary" /> Collector / Driver</span>
-                {joined && <span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span>}
+                <div className={styles.metadata}>
+                  <span className="flex min-w-0 items-center gap-1.5"><Truck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /> Collector / Driver</span>
+                  {joined && <span className="flex min-w-0 items-center gap-1.5"><Calendar aria-hidden="true" className="size-3.5 shrink-0" /> Joined {joined}</span>}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {(loadErrors.profile || loadErrors.driver) && <DataRefreshNotice primary message="Some profile or vehicle information couldn't load or refresh. Your edits are preserved; loaded data may be outdated." onRetry={retry} retrying={profileQuery.isFetching || driverQuery.isFetching} />}
+        {(loadErrors.profile || loadErrors.driver) && <DataRefreshNotice primary message="Some profile or vehicle information couldn't load or refresh. Your edits are preserved; loaded data may be outdated." onRetry={retry} retrying={profileQuery.isFetching || driverQuery.isFetching} />}
 
-      {/* ── 2. Assigned Vehicle & Equipment ── */}
-      <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-              <Truck className="w-4 h-4" />
+        {/* ── 2. Assigned Vehicle & Equipment ── */}
+        <section className={styles.section}>
+          <div className={styles.vehicleHeader}>
+            <div className={styles.vehicleHeading}>
+              <div className={styles.sectionIcon}>
+                <Truck aria-hidden="true" className="size-4" />
+              </div>
+              <div className="min-w-0 [overflow-wrap:anywhere]">
+                <h2 className="gw-heading text-sm text-foreground tracking-tight">
+                  Assigned vehicle & equipment
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Current truck assignment and operational truck status
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="gw-heading text-sm text-foreground tracking-tight">
-                Assigned vehicle & equipment
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Current truck assignment and operational fleet status
-              </p>
-            </div>
-          </div>
-          {hasAssignedTruck && (
-            <span
-              className={collectorBadgeClassName + " " + getStatusBadgeStyle(vehicleReadiness).className}
-            >
+            {hasAssignedTruck && (
               <span
-                className={"w-1.5 h-1.5 rounded-full shrink-0 " + getStatusBadgeStyle(vehicleReadiness).dot}
-              />
-              {vehicleReadiness}
-            </span>
-          )}
-        </div>
-
-        {hasAssignedTruck ? (
-          <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
-                <p className="text-xs text-muted-foreground font-medium">
-                  Vehicle plate number
-                </p>
-                <p className="text-base sm:text-lg font-semibold font-body text-foreground tabular-nums">
-                  {truckPlate || "Unavailable"}
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
-                <p className="text-xs text-muted-foreground font-medium">
-                  Unit designation
-                </p>
-                <p className="text-base sm:text-lg font-semibold font-body text-foreground">
-                  {truckName}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-muted-foreground text-center sm:text-left">
-                Assigned by MENRO Candelaria Fleet Operations
-              </p>
-              <Button
-                type="button"
-                variant="warning-outline"
-                size="sm"
-                onClick={() => setBreakdownModal(true)}
-                className="w-full sm:w-auto h-9 px-4 gap-1.5 rounded-xl text-xs font-semibold cursor-pointer shadow-2xs"
+                className={collectorBadgeClassName + " max-w-full whitespace-normal " + getStatusBadgeStyle(vehicleReadiness).className}
               >
-                <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Report truck issue</span>
-              </Button>
-            </div>
+                <span
+                  className={"w-1.5 h-1.5 rounded-full shrink-0 " + getStatusBadgeStyle(vehicleReadiness).dot}
+                />
+                {vehicleReadiness}
+              </span>
+            )}
           </div>
-        ) : loadErrors.driver && !driverData ? (
-          <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" onRetry={() => void driverQuery.refetch()} retrying={driverQuery.isFetching} />
-        ) : (
-          <div className="p-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
-            <p className="text-sm font-semibold text-foreground">
-              No vehicle currently assigned
-            </p>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Your supervisor will assign a collection truck to your account before scheduled route shifts.
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* ── 3. Personal Information (Resident-style) ── */}
-      <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-xs md:space-y-4 md:p-5 lg:p-6">
-        <div className="flex items-center justify-between pb-2 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <User className="w-4 h-4" />
+          {hasAssignedTruck ? (
+            <div className="space-y-3.5">
+              <div className={styles.vehicleGrid}>
+                <div className={styles.vehicleCard}>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Vehicle plate number
+                  </p>
+                  <p className="break-words text-base font-semibold text-foreground tabular-nums [overflow-wrap:anywhere]">
+                    {truckPlate || "Unavailable"}
+                  </p>
+                </div>
+
+                <div className={styles.vehicleCard}>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Unit designation
+                  </p>
+                  <p className="break-words text-base font-semibold text-foreground [overflow-wrap:anywhere]">
+                    {truckName}
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.vehicleFooter}>
+                <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+                  Assigned by MENRO Candelaria Truck Operations
+                </p>
+                <Button
+                  type="button"
+                  variant="warning-outline"
+                  size="sm"
+                  onClick={() => setBreakdownModal(true)}
+                  className={styles.vehicleAction}
+                >
+                  <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Report truck issue</span>
+                </Button>
+              </div>
             </div>
-            <div>
+          ) : loadErrors.driver && !driverData ? (
+            <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" onRetry={() => void driverQuery.refetch()} retrying={driverQuery.isFetching} />
+          ) : (
+            <div className="p-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
+              <p className="text-sm font-semibold text-foreground">
+                No vehicle currently assigned
+              </p>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                Your supervisor will assign a collection truck to your account before scheduled route shifts.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* ── 3. Personal Information (Resident-style) ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>
+              <User aria-hidden="true" className="size-4" />
+            </div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <h2 className="gw-heading text-sm text-foreground tracking-tight">
                 Personal Information
               </h2>
@@ -473,123 +478,116 @@ const CollectorProfile = () => {
               </p>
             </div>
           </div>
-          <span className="hidden md:inline-block text-ui-caption font-medium text-muted-foreground">
-            Tap edit to update
-          </span>
-        </div>
 
-        <div className="divide-y divide-border/50">
-          <FieldRow
-            label="Full Name"
-            value={displayName}
-            icon={User}
-            onEdit={() =>
-              setEditModal({
-                open: true,
-                field: "full_name",
-                label: "Full Name",
-                value: displayName,
-                initialValue: displayName,
-                saving: false,
-                error: "",
-              })
-            }
-          />
-          <FieldRow
-            label="Username"
-            value={displayUsername}
-            icon={AtSign}
-            onEdit={() =>
-              setEditModal({
-                open: true,
-                field: "username",
-                label: "Username",
-                value: displayUsername,
-                initialValue: displayUsername,
-                saving: false,
-                error: "",
-              })
-            }
-          />
-          <FieldRow
-            label="Email Address"
-            value={displayEmail}
-            icon={Mail}
-            isEmail={Boolean(displayEmail)}
-            placeholder="Email unavailable"
-          />
-          <FieldRow
-            label="Phone Number"
-            value={displayPhone}
-            icon={Phone}
-            placeholder="No phone number added"
-            onEdit={() =>
-              setEditModal({
-                open: true,
-                field: "phone",
-                label: "Phone Number",
-                value: displayPhone,
-                initialValue: displayPhone,
-                saving: false,
-                error: "",
-              })
-            }
-          />
-          <FieldRow
-            label="Security Password"
-            value=""
-            icon={Lock}
-            masked
-            onEdit={() =>
-              setPwModal((m) => ({
-                ...m,
-                open: true,
-                oldPw: "",
-                newPw: "",
-                confirmPw: "",
-                error: "",
-              }))
-            }
-          />
-        </div>
-      </div>
+          <div className="divide-y divide-border/50">
+            <FieldRow
+              label="Full Name"
+              value={displayName}
+              icon={User}
+              onEdit={() =>
+                setEditModal({
+                  open: true,
+                  field: "full_name",
+                  label: "Full Name",
+                  value: displayName,
+                  initialValue: displayName,
+                  saving: false,
+                  error: "",
+                })
+              }
+            />
+            <FieldRow
+              label="Username"
+              value={displayUsername}
+              icon={AtSign}
+              onEdit={() =>
+                setEditModal({
+                  open: true,
+                  field: "username",
+                  label: "Username",
+                  value: displayUsername,
+                  initialValue: displayUsername,
+                  saving: false,
+                  error: "",
+                })
+              }
+            />
+            <FieldRow
+              label="Email Address"
+              value={displayEmail}
+              icon={Mail}
+              isEmail={Boolean(displayEmail)}
+              placeholder="Email unavailable"
+            />
+            <FieldRow
+              label="Phone Number"
+              value={displayPhone}
+              icon={Phone}
+              placeholder="No phone number added"
+              onEdit={() =>
+                setEditModal({
+                  open: true,
+                  field: "phone",
+                  label: "Phone Number",
+                  value: displayPhone,
+                  initialValue: displayPhone,
+                  saving: false,
+                  error: "",
+                })
+              }
+            />
+            <FieldRow
+              label="Security Password"
+              value=""
+              icon={Lock}
+              masked
+              onEdit={() =>
+                setPwModal((m) => ({
+                  ...m,
+                  open: true,
+                  oldPw: "",
+                  newPw: "",
+                  confirmPw: "",
+                  error: "",
+                }))
+              }
+            />
+          </div>
+        </section>
 
-      {/* ── 4. Actions / Log Out ── */}
-      <div className="space-y-3 pb-8">
-        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+        {/* ── 4. Actions / Log Out ── */}
+        <div className="space-y-3">
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
-            className="w-full flex items-center justify-between p-4 lg:p-4.5 hover:bg-[var(--button-neutral-hover)] active:bg-[var(--button-neutral-active)] transition-all duration-150 group cursor-pointer text-left"
+            aria-label="Log out"
+            className={styles.logout}
           >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center justify-center shrink-0 border border-border/50">
-                <LogOut className="w-4.5 h-4.5" />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground">
+                <LogOut aria-hidden="true" className="size-4" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                <p className="text-sm font-semibold text-foreground">
                   Log Out
                 </p>
-                <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                  Sign out of your session on this device
+                <p className="text-xs text-muted-foreground">
+                  Sign out of this device
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors ml-4">
-              <span className="hidden lg:inline text-xs font-medium">Sign Out</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           </button>
-        </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-ui-caption text-muted-foreground/70 pt-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/60" />
-          <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
+          <div className={styles.privacy}>
+            <ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+            <span>In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span>
+          </div>
         </div>
       </div>
 
       <Dialog open={avatarOpen} onOpenChange={setAvatarOpen}>
-        <DialogContent className={modalStyles.content}>
+        <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
           <CollectorModalHeader title="Choose avatar" description="Select one of the ten profile avatars." icon={<Users />} onClose={() => setAvatarOpen(false)} />
           <div className={modalStyles.body}>
             <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
@@ -605,7 +603,7 @@ const CollectorProfile = () => {
         open={editModal.open}
         onOpenChange={(open) => { if (!open) requestCloseEdit(); }}
       >
-        <DialogContent className={modalStyles.content}>
+        <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
           <CollectorModalHeader title={`Edit ${editModal.label}`} description={`Update your ${editModal.label.toLowerCase()}.`} icon={<User />} onClose={requestCloseEdit} disabled={editModal.saving} />
 
           <div className={modalStyles.body}>
@@ -665,7 +663,7 @@ const CollectorProfile = () => {
         open={pwModal.open}
         onOpenChange={(open) => { if (!open) requestClosePassword(); }}
       >
-        <DialogContent className={modalStyles.content}>
+        <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
           <CollectorModalHeader title="Change Password" description="Enter your current and new password." icon={<Lock />} onClose={requestClosePassword} disabled={pwModal.saving} />
 
           <div className={modalStyles.body}>

@@ -1,5 +1,6 @@
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
 import { adminCommunityStyles as postStyles } from "@/components/communityContentStyles";
@@ -26,7 +27,7 @@ import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery
 import { toast } from "@/lib/toast";
 import postsService, { type AdminPostStats } from "@/services/postsService";
 import useAuthStore from "@/store/authStore";
-import { ArrowUpDown, LayoutGrid, List, Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ArrowUpDown, FileText, LayoutGrid, List, Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminPostDetail from "./AdminPostDetail";
@@ -822,14 +823,10 @@ const AdminPosts = () => {
 
       <div aria-busy={isListLoading}>
       {listQuery.isLoading ? <AdminPostsContentSkeleton viewMode={viewMode} /> : posts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
-          <p className="text-sm font-semibold text-foreground">No posts found</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {activeFilterCount > 0
+        <ListEmptyState icon={FileText} title="No posts found"
+          description={activeFilterCount > 0
               ? "Try clearing or changing the current filters."
-              : "Create the first community post to get started."}
-          </p>
-        </div>
+              : "Create the first community post to get started."} />
       ) : viewMode === "grid" ? (
         <div className={postStyles.grid}>
           {posts.map((post) => (

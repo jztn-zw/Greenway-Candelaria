@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   FileText,
   Megaphone,
+  MessageSquare,
+  Newspaper,
   SkipForward,
   Truck,
 } from "lucide-react";
@@ -92,6 +94,15 @@ export const getCollectorNotificationTitle = (notification: NotificationRow) => 
 };
 
 export const getCollectorNotificationVisual = (notification: NotificationRow) => {
+  if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT") {
+    return { Icon: Megaphone, style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
+  }
+  if (notification.ref_module === "posts" || notification.type === "NEW_POST") {
+    return { Icon: Newspaper, style: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" };
+  }
+  if (notification.ref_module === "driver-messages") {
+    return { Icon: MessageSquare, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
+  }
   if (notification.type === "COLLECTION_REMINDER") {
     return { Icon: CalendarClock, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
   }
@@ -104,10 +115,7 @@ export const getCollectorNotificationVisual = (notification: NotificationRow) =>
   if (notification.type === "REPORT_UPDATE") {
     return { Icon: FileText, style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
   }
-  if (notification.type === "ANNOUNCEMENT") {
-    return { Icon: Megaphone, style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
-  }
-  if (notification.ref_module === "routes" || notification.ref_module === "tracking") {
+  if (notification.ref_module === "routes" || notification.ref_module === "tracking" || notification.ref_module === "drivers" || notification.type === "TRUCK_IS_NEAR") {
     return { Icon: Truck, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
   }
   return { Icon: Bell, style: "bg-primary/10 text-primary border-primary/20" };

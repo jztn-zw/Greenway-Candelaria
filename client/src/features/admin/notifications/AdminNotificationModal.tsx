@@ -49,7 +49,7 @@ const typeConfig: Record<
   TRUCK_IS_NEAR: {
     icon: Truck,
     accent: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-    label: "Fleet Proximity",
+    label: "Truck Proximity",
   },
   COLLECTION_DONE: {
     icon: CheckCircle2,

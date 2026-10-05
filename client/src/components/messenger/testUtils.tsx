@@ -11,7 +11,7 @@ export const render = (node: ReactNode) => {
 };
 afterEach(() => { for (const { root, host, client } of mounted.splice(0)) { act(() => root.unmount()); host.remove(); client.clear(); } notifyManager.setScheduler((callback) => setTimeout(callback, 0)); });
 const matches = (value: string, expected?: string | RegExp) => expected === undefined || (typeof expected === "string" ? value === expected : expected.test(value));
-const roleSelectors: Record<string, string> = { button: "button", textbox: "input", alert: '[role="alert"]', status: '[role="status"]' };
+const roleSelectors: Record<string, string> = { button: "button", textbox: "input, textarea", alert: '[role="alert"]', status: '[role="status"]' };
 const byRole = (role: string, options?: { name?: string | RegExp }) => [...document.querySelectorAll<HTMLElement>(roleSelectors[role] || `[role="${role}"]`)].filter((element) => matches(element.getAttribute("aria-label") || element.textContent || "", options?.name));
 const byText = (text: string) => [...document.querySelectorAll<HTMLElement>("body *")].filter((element) => element.textContent === text && ![...element.children].some((child) => child.textContent === text));
 const required = (elements: HTMLElement[]) => { if (elements.length !== 1) throw new Error(`Expected one matching element, received ${elements.length}`); return elements[0]; };
@@ -25,7 +25,7 @@ export const screen = {
 export const fireEvent = {
   click: (element: HTMLElement) => act(() => { element.dispatchEvent(new MouseEvent("click", { bubbles: true })); }),
   change: (element: HTMLElement, event: { target: { value: string } }) => act(() => {
-    const prototype = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    const prototype = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, event.target.value);
     element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? "change" : "input", { bubbles: true }));
   }),

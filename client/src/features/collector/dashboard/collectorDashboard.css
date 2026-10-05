@@ -1,0 +1,67 @@
+.collector-dashboard {
+  container: collector-dashboard / inline-size;
+}
+
+.collector-dashboard-workspace,
+.collector-dashboard-support {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.collector-dashboard-workspace > *,
+.collector-dashboard-support > * {
+  min-width: 0;
+}
+
+.collector-dashboard-truck-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.collector-dashboard-truck-details > div {
+  padding: 0.75rem;
+}
+
+.collector-dashboard-truck-details p,
+.collector-dashboard-truck-details span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@container collector-dashboard (min-width: 400px) {
+  .collector-dashboard-truck-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container collector-dashboard (min-width: 900px) {
+  .collector-dashboard-workspace,
+  .collector-dashboard-support {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@container collector-dashboard (max-width: 599px) {
+  .collector-dashboard-greeting > div {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .collector-dashboard-greeting > div > :last-child {
+    flex-wrap: wrap;
+    border-top: 1px solid hsl(var(--border) / 0.6);
+    padding-top: 0.75rem;
+  }
+  .collector-dashboard-truck-footer > :last-child {
+    width: 100%;
+  }
+  .collector-dashboard-workspace button {
+    white-space: normal;
+    height: auto;
+    min-height: 2.75rem;
+    padding-block: 0.625rem;
+  }
+}

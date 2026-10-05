@@ -93,7 +93,7 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
         {/* Header */}
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>
-            Today's Fleet Operations
+            Today's Truck Operations
           </h3>
 
           <Button

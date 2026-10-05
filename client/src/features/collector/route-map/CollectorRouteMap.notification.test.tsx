@@ -54,9 +54,8 @@ it("renders the matching assignment from a notification and keeps ordinary map a
   expect(host.textContent).not.toContain("Route alert unavailable");
   await mount("");
   expect(host.textContent).toContain("Current assignment");
-  expect(host.querySelector('nav[aria-label="Breadcrumb"] button')?.textContent).toBe("Driver Dashboard");
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Back to Driver Dashboard"]')!.click());
-  expect(host.querySelector("[data-location]")?.textContent).toBe("/collector");
+  expect(host.querySelector('nav[aria-label="Breadcrumb"]')).toHaveTextContent("Live Route Map");
+  expect(host.querySelector('nav[aria-label="Breadcrumb"] button')).toBeNull();
 });
 
 it("never renders another route when the notification refers to a replaced assignment", async () => {

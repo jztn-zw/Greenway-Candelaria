@@ -1,0 +1,20 @@
+.admin-messenger-panel {
+  width: min(26rem, calc(100vw - 1rem));
+  height: min(36rem, calc(100dvh - 1rem - env(safe-area-inset-bottom, 0px)));
+  right: 0.5rem;
+  bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.admin-messenger-panel [aria-label="Conversation messages"] {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+@media (min-width: 40rem) {
+  .admin-messenger-panel {
+    right: 1.5rem;
+    bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    height: min(35rem, calc(100dvh - 3rem));
+  }
+}

@@ -20,33 +20,33 @@ function Workspace() {
   </AdminTrackingWorkspace>;
 }
 
-it("opens fleet controls over the map and closes them without replacing the map", () => {
+it("opens truck controls over the map and closes them without replacing the map", () => {
   render(<Workspace />);
   const map = screen.getByRole("application", { name: "Tracking map" });
-  const trigger = screen.getByRole("button", { name: "Open Fleet controls" });
+  const trigger = screen.getByRole("button", { name: "Open Truck controls" });
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("application", { name: "Tracking map" })).toBe(map);
   expect(map.parentElement).not.toHaveClass("admin-tracking-map-hidden");
-  fireEvent.click(screen.getByRole("button", { name: "Close fleet panel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close truck panel" }));
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByRole("application", { name: "Tracking map" })).toBe(map);
 });
 
-it("preserves replay controls while the fleet panel is closed", () => {
+it("preserves replay controls while the truck panel is closed", () => {
   render(<Workspace />);
-  const trigger = screen.getByRole("button", { name: "Open Fleet controls" });
+  const trigger = screen.getByRole("button", { name: "Open Truck controls" });
   fireEvent.click(trigger);
   fireEvent.change(screen.getByRole("combobox", { name: "Replay speed" }), { target: { value: "2" } });
-  fireEvent.click(screen.getByRole("button", { name: "Close fleet panel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close truck panel" }));
   fireEvent.click(trigger);
   expect(screen.getByRole("combobox", { name: "Replay speed" })).toHaveValue("2");
 });
 
-it("closes with Escape and returns focus to the Fleet button", () => {
+it("closes with Escape and returns focus to the Trucks button", () => {
   render(<Workspace />);
-  const trigger = screen.getByRole("button", { name: "Open Fleet controls" });
+  const trigger = screen.getByRole("button", { name: "Open Truck controls" });
   fireEvent.click(trigger);
   fireEvent.keyDown(screen.getByRole("combobox", { name: "Replay speed" }), { key: "Escape" });
   expect(trigger).toHaveAttribute("aria-expanded", "false");

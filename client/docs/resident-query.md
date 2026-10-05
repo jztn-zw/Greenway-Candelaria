@@ -15,6 +15,10 @@ and tracking HTTP reads now use TanStack Query. Mobile apps are outside this cha
   Draft posts and announcements remain subject to their existing visibility rules.
 - Notification sockets refresh the shared notification history used by the sidebar,
   top bar and notification page. Read/clear actions also invalidate that history.
+  Records load only for the visible menu window or selected category page; the
+  server supplies full unread/history/recent counts. The content badge also uses
+  the full unread post count, and viewing Contents marks only that resident's post
+  notifications read without downloading their older history.
 - Changes are batched for 300 ms. Only active queries fetch immediately; inactive
   queries are marked stale. Query keys retain search, filters and pagination.
 - Visible resident pages also reconcile after 60 seconds, on focus/reconnect, and

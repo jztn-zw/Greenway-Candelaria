@@ -2,14 +2,12 @@ import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Truck,
   MapPin,
   User,
   ChevronDown,
   ChevronUp,
-  MessageSquare,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -52,7 +50,6 @@ const formatTime12h = (raw: string): string => {
 
 interface AdminTruckCardProps {
   truck: AdminTruck;
-  unreadMessageCount: number;
   isSelected: boolean;
   onClick: () => void;
   onRouteChange: (routeId: string) => void;
@@ -66,16 +63,8 @@ const statusConfig: Record<TruckStatus, { label: string; className: string }> = 
   offline: { label: "Offline", className: getStatusBadgeStyle("Offline").className },
 };
 
-const MessageThread = ({ truck, unreadMessageCount }: { truck: AdminTruck; unreadMessageCount: number }) => <div className="border-t border-border/60 p-3" onClick={(event) => event.stopPropagation()}>
-  <Button type="button" variant={unreadMessageCount > 0 ? "primary-outline" : "outline"} size="sm" disabled={!truck.driverId} onClick={() => window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: { driverId: truck.driverId } }))} className={"gap-1.5"}>
-    <MessageSquare className="size-4" />Messages
-    {unreadMessageCount > 0 && <span aria-label={`${unreadMessageCount} new collector message${unreadMessageCount === 1 ? "" : "s"}`} className="ml-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-primary px-1 text-ui-overline font-bold leading-none text-primary-foreground">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}
-  </Button>
-</div>;
-
 const AdminTruckCard = ({
   truck,
-  unreadMessageCount,
   isSelected,
   onClick,
   onRouteChange,
@@ -290,10 +279,6 @@ const AdminTruckCard = ({
             </>
           )}
         </div>
-
-        {isSelected && truck.routeId && truck.driverUserId && (
-          <MessageThread key={truck.driverId} truck={truck} unreadMessageCount={unreadMessageCount} />
-        )}
 
         {/* Route Details Accordion */}
         {isSelected && <div className="border-t border-border/60">

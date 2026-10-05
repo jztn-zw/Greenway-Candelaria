@@ -27,12 +27,12 @@ const CollectorDashboardGreeting = ({
   const firstName = driverName ? driverName.split(" ")[0] : "Collector";
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 md:p-5 shadow-xs">
+    <div className="collector-dashboard-greeting rounded-2xl border border-border/80 bg-card p-3.5 sm:p-4 md:p-5 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
         {/* Left: Driver and Command Context */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="gw-heading text-xl sm:text-2xl md:text-3xl text-foreground tracking-tight">
+            <h1 className="gw-heading text-xl sm:text-2xl md:text-3xl text-foreground tracking-tight break-words [overflow-wrap:anywhere]">
               {text}, <span className="text-primary">{firstName}</span>
             </h1>
             {truckPlate && (
@@ -41,7 +41,7 @@ const CollectorDashboardGreeting = ({
               </span>
             )}
           </div>
-          <p className="text-ui-caption sm:text-xs text-muted-foreground mt-0.5 font-medium truncate">
+          <p className="text-ui-caption sm:text-xs text-muted-foreground mt-0.5 font-medium">
             Candelaria municipal collection operations
           </p>
         </div>

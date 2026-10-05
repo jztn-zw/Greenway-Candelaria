@@ -161,7 +161,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                     </span>
                   </div>
                   <p className="text-sm sm:text-base md:text-lg font-semibold font-body text-foreground tracking-tight leading-tight mt-0.5">
-                    Municipal fleet reserve
+                    Municipal truck reserve
                   </p>
                   <p className="text-ui-caption sm:text-xs text-muted-foreground mt-0.5 leading-snug break-words">
                     Check notifications and open your route map for new dispatches from MENRO.

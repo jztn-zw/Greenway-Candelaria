@@ -612,7 +612,7 @@ const ResidentSchedule = () => {
                 Municipal Solid Waste Management Policy (R.A. 9003)
               </p>
               <p className="leading-relaxed">
-                Garbage must be segregated at source. Unsegregated garbage, hazardous waste, or waste placed outside collection hours will not be hauled by the collection fleet.
+                Garbage must be segregated at source. Unsegregated garbage, hazardous waste, or waste placed outside collection hours will not be hauled by the collection trucks.
               </p>
             </div>
           </div>

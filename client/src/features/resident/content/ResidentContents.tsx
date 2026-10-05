@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
@@ -272,23 +273,15 @@ const ResidentContents = () => {
           <ContentCardsSkeleton />
         ) : posts.length === 0 ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-2xl border border-dashed border-border/80 bg-card/50">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 text-primary">
-              <FileText className="w-5 h-5" />
-            </div>
-            <h3 className="gw-heading text-foreground text-base mb-1">
-              No updates found
-            </h3>
-            <p className="text-xs text-muted-foreground max-w-sm">
-              {search
+          <ListEmptyState icon={FileText} title="No updates found"
+            description={search
                 ? "We couldn't find any updates matching your search. Try different keywords."
-                : "No community updates are available in this category yet."}
-            </p>
+                : "No community updates are available in this category yet."}>
             {search && (
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-4 rounded-xl text-xs h-9 px-3.5"
+                className="rounded-xl text-xs h-9 px-3.5"
                 onClick={() => {
                   setSearch("");
                   setCurrentPage(1);
@@ -297,7 +290,7 @@ const ResidentContents = () => {
                 Clear search
               </Button>
             )}
-          </div>
+          </ListEmptyState>
         ) : (
           /* 3-Column Posts Grid */
           <div className={contentStyles.grid}>

@@ -21,7 +21,7 @@ const render = async () => { await act(async () => root.render(<MemoryRouter fut
 it("renders API failure and retry instead of claiming the inbox is empty", async () => {
   state.error = "Notifications could not be loaded"; await render();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("This page couldn't load");
-  expect(host.textContent).not.toContain("No driver alerts found");
+  expect(host.textContent).not.toContain("No notifications found");
   await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Try again")!.click());
   expect(state.fetchNotifications).toHaveBeenCalled();
 });
@@ -53,5 +53,17 @@ it("returns to a valid page when notifications shrink", async () => {
   await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "3")!.click());
   expect(host.textContent).toContain("Alert 31");
   state.notifications = [row("new")]; await render();
-  expect(host.textContent).toContain("Alert new"); expect(host.textContent).not.toContain("No driver alerts found");
+  expect(host.textContent).toContain("Alert new"); expect(host.textContent).not.toContain("No notifications found");
+});
+it("presents announcements with the same sender and headline as resident notifications", async () => {
+  state.notifications = [{ ...row("announcement"), type: "ANNOUNCEMENT", ref_module: "announcements", title: "Holiday collection", body: "Collection resumes on Monday." }];
+  await render();
+  expect(host.textContent).toContain("MENRO Candelaria posted an announcement: Holiday collection");
+  expect(host.textContent).toContain("Collection resumes on Monday.");
+});
+it("formats dispatch messages without changing their original message", async () => {
+  state.notifications = [{ ...row("message"), ref_module: "driver-messages", title: "New Dispatch Message", body: "Please check the updated checkpoint." }];
+  await render();
+  expect(host.textContent).toContain("Dispatch sent a message");
+  expect(host.textContent).toContain("Please check the updated checkpoint.");
 });

@@ -1,5 +1,6 @@
 import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,17 +55,8 @@ export const ScheduleAgendaView: React.FC<ScheduleAgendaViewProps> = ({
 }) => {
   if (events.length === 0) {
     return (
-      <div className="bg-card border border-border/80 rounded-2xl p-12 text-center space-y-3 shadow-2xs">
-        <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-          <CalendarDays className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="gw-heading text-sm text-foreground">No events found</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            No schedule matches your active filters or search criteria.
-          </p>
-        </div>
-      </div>
+      <ListEmptyState icon={CalendarDays} title="No events found"
+        description="No schedule matches your active filters or search criteria." />
     );
   }
 

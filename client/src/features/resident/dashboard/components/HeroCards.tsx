@@ -196,7 +196,7 @@ const HeroCards = () => {
             </div>
             <div className="min-w-0">
               <h3 className={dashboardStyles.heroTitle}>
-                {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Fleet"}
+                {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Trucks"}
               </h3>
               <p className={dashboardStyles.heroDescription}>
                 {trucksFailed

@@ -38,8 +38,8 @@ it("separates loading, empty, and failed requests without claiming there are no 
   vi.mocked(fetchCalendarEvents).mockReturnValue(new Promise((done) => { resolve = done; }));
   await render();
   expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading schedule");
-  expect(host.textContent).toContain("Loading schedule calendar");
-  expect(host.textContent).toContain("Loading schedule events");
+  expect(host.querySelector(".admin-schedule-calendar")).not.toBeNull();
+  expect(host.querySelector(".admin-schedule-day-panel")).not.toBeNull();
   expect(host.querySelector('button[aria-label*="September"]')).toBeNull();
   expect(host.textContent).not.toContain("No internal events scheduled");
   await act(async () => resolve([]));
@@ -82,7 +82,7 @@ it("ignores late responses from a previous month and refreshes only the active m
   let resolve!: (events: CalendarEvent[]) => void;
   vi.mocked(fetchCalendarEvents).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
   await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("Internal schedule");
+  expect(host.querySelector("h1")?.textContent).toBe("MENRO Calendar");
   expect(host.textContent).toContain("Loading schedule calendar");
   expect(host.querySelector("aside")?.textContent).toContain("Loading schedule events");
   expect(host.textContent).not.toContain("No internal events scheduled");

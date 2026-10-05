@@ -31,7 +31,7 @@ const RouteProgressBar = ({
     return (
       <section aria-label="Collection route summary" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="gw-heading mr-1 truncate text-base tracking-tight text-foreground sm:text-lg">{routeName}</h2>
+          <h2 className="gw-heading mr-1 break-words [overflow-wrap:anywhere] text-base tracking-tight text-foreground sm:text-lg">{routeName}</h2>
           {wasteType && <span className={collectorBadgeClassName + " " + getWasteBadgeClass(wasteType)}>{wasteType}</span>}
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 text-primary" /> {total} {total === 1 ? "stop" : "stops"}
@@ -49,7 +49,7 @@ const RouteProgressBar = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Left: Route Title, Waste Type & Total Stops */}
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight truncate">
+          <h2 className="gw-heading text-sm sm:text-base text-foreground tracking-tight break-words [overflow-wrap:anywhere]">
             {routeName}
           </h2>
 
@@ -74,7 +74,7 @@ const RouteProgressBar = ({
         </div>
 
         {/* Right: Elapsed Timer + Progress Counter */}
-        <div className="flex items-center gap-2 shrink-0 ml-auto">
+        <div className="collector-route-summary-metrics flex flex-wrap items-center gap-2 min-w-0">
           <div
             className={cn(
               "flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-medium transition-colors",

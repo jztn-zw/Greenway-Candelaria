@@ -46,19 +46,11 @@ const authService = {
     const response = await api.post("/auth/login", data);
     const { token, user } = response.data.data;
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-
     return { token, user };
   },
 
   logout: async () => {
-    try {
-      await api.post("/auth/logout");
-    } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
+    await api.post("/auth/logout");
   },
 
   getMe: async (): Promise<User> => {

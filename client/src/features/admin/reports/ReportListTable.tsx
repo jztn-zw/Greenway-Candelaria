@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { Badge } from "@/components/ui/badge";
 import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
 import { Button } from "@/components/ui/button";
@@ -102,14 +103,9 @@ const ReportListTable = ({
               <WasteReportRowsSkeleton />
             ) : reports.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-14 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-3 text-muted-foreground">
-                    <AlertOctagon className="w-6 h-6" />
-                  </div>
-                  <p className="text-sm font-bold text-foreground">No Waste Reports Found</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    No reports match this status filter. Try selecting another tab or resetting filters.
-                  </p>
+                <TableCell colSpan={7} className="!p-0">
+                  <ListEmptyState variant="inline" icon={AlertOctagon} title="No Waste Reports Found"
+                    description="No reports match this status filter. Try selecting another tab or resetting filters." />
                 </TableCell>
               </TableRow>
             ) : (

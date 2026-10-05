@@ -1,0 +1,14 @@
+@container admin-profile (min-width: 37.5rem) {
+  .collector-profile .collector-profile-vehicle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collector-profile .collector-profile-vehicle-footer {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .collector-profile .collector-profile-vehicle-action {
+    width: auto;
+  }
+}

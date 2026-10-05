@@ -6,7 +6,7 @@ import ResidentNotifications from "./ResidentNotifications";
 import type { NotificationRow } from "@/services/notificationsService";
 
 const mocks = vi.hoisted(() => ({ clearAll: vi.fn(), markAsRead: vi.fn(), fetchResident: vi.fn(), isLoading: false, notifications: [] as NotificationRow[] }));
-vi.mock("./useResidentNotifications", () => ({ default: () => ({ notifications: mocks.notifications, unreadCount: 1, isLoading: mocks.isLoading, error: null, fetchNotifications: vi.fn(), markAsRead: mocks.markAsRead, markAllAsRead: vi.fn(), clearAll: mocks.clearAll }) }));
+vi.mock("./useResidentNotifications", () => ({ default: () => ({ notifications: mocks.notifications, total: mocks.notifications.length, historyTotal: mocks.notifications.length, offset: 0, unreadCount: 1, isLoading: mocks.isLoading, error: null, fetchNotifications: vi.fn(), markAsRead: mocks.markAsRead, markAllAsRead: vi.fn(), clearAll: mocks.clearAll }) }));
 vi.mock("@/lib/residentQuery", () => ({ useResidentFetch: () => mocks.fetchResident }));
 vi.mock("../announcements/ResidentAnnouncementModal", () => ({ default: ({ open, announcementId }: { open: boolean; announcementId?: string }) => open ? <div role="dialog">Announcement {announcementId}</div> : null }));
 const Location = () => <output data-testid="location">{useLocation().pathname}</output>;

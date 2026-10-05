@@ -1,3 +1,4 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { SearchInput } from "@/components/common/SearchInput";
@@ -377,21 +378,12 @@ const AdminResidents = () => {
                 <TableRow>
                   <TableCell
                     colSpan={8}
-                    className="text-center py-16 text-muted-foreground"
+                    className="!p-0"
                   >
-                    <div className="flex flex-col items-center justify-center gap-2.5 max-w-sm mx-auto">
-                      <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground">
-                        <Users className="w-6 h-6" />
-                      </div>
-                      <p className="text-sm font-semibold text-foreground">
-                        No Residents Found
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {hasActiveFilters
+                    <ListEmptyState variant="inline" icon={Users} title="No Residents Found"
+                      description={hasActiveFilters
                           ? "No residents match your active filter or search query. Try adjusting your filters."
-                          : "No residents have been registered yet."}
-                      </p>
-                    </div>
+                          : "No residents have been registered yet."} />
                   </TableCell>
                 </TableRow>
               ) : (

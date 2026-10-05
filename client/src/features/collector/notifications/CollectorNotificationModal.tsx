@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { MessageSquareText, Route, SkipForward, CheckCircle2, Shield, Bell, Megaphone, FileText, CalendarClock } from "lucide-react";
 import type { NotificationRow } from "@/services/notificationsService";
 import { formatRelativeTime } from "@/utils/date";
-import { getCollectorNotificationDestination, getCollectorNotificationTitle, openCollectorNotification } from "./notificationRouting";
+import { getCollectorNotificationDestination, openCollectorNotification } from "./notificationRouting";
+import { getCollectorNotificationPresentation } from "./notificationPresentation";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import { CollectorModalHeader } from "../components/CollectorModal";
@@ -31,8 +32,9 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
   const userId = useAuthStore((state) => state.user?.id);
   if (!notification || notification.user_id !== userId) return null;
   const destination = getCollectorNotificationDestination(notification);
+  const { headline, message } = getCollectorNotificationPresentation(notification);
 
-  const config = typeConfig[notification.type] || {
+  const config = typeConfig[notification.ref_module === "announcements" ? "ANNOUNCEMENT" : notification.ref_module === "posts" ? "NEW_POST" : notification.type] || {
     icon: Bell,
     accent: "text-primary",
     label: "Notification",
@@ -47,10 +49,10 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
 
         <div className={styles.body}>
           <div className="space-y-1">
-            <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">{getCollectorNotificationTitle(notification)}</h3>
+            <h3 className="gw-heading text-base text-foreground leading-snug tracking-tight break-words [overflow-wrap:anywhere]">{[headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" ")}</h3>
             {notification.created_at && <p className="text-xs text-muted-foreground font-normal">{formatRelativeTime(notification.created_at)}</p>}
           </div>
-          <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">{notification.body}</div>
+          <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">{message}</div>
         </div>
         <div className={styles.footer}>
           {(notification.ref_module === "driver-messages" || destination) && <Button type="button" variant="outline" className={styles.cancelButton} onClick={() => { if (openCollectorNotification(notification, navigate)) onOpenChange(false); }}>{notification.ref_module === "driver-messages" ? "Open messages" : "Open related page"}</Button>}

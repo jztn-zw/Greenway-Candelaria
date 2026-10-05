@@ -100,12 +100,12 @@ const SectionTruckDriver: React.FC = () => {
       <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Truck className="h-4 w-4" /></div>
-          <div><h3 className="gw-heading text-sm text-foreground">Fleet status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Truck status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
         </div>
         {fleetStatus.length === 0 ? (
           <EmptyState>No trucks served this barangay during the selected period.</EmptyState>
         ) : (
-          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Fleet status details">
+          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Truck status details">
             <Table className="analytics-detail-table min-w-[780px]">
               <TableHeader className="bg-muted/40"><TableRow className="border-border/80">
                 <TableHead>Truck</TableHead><TableHead>Status now</TableHead>

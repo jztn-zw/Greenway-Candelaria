@@ -1,3 +1,6 @@
+import { CalendarDays } from "lucide-react";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { adminScheduleStyles as scheduleStyles } from "@/components/communityContentStyles";
 import { useCollectorQuery } from "@/lib/collectorQuery";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -39,43 +42,57 @@ const CollectorSchedule = () => {
   if (schedule.error && schedule.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load this month's schedule. Please try again." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} homeHref="/collector" />;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-5 pb-8">
-      <div>
-        <div className="min-w-0">
-          <h1 className="gw-page-title sm:text-ui-page-lg tracking-tight text-foreground">Internal schedule</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">View internal events added by admin. Route assignments are shown separately in your route map.</p>
-        </div>
-      </div>
+    <div className={scheduleStyles.page}>
+      <ResidentPageHeader
+        className="admin-module-header"
+        title="MENRO Calendar"
+        description="View MENRO events scheduled for this month."
+      />
 
       {schedule.error && <DataRefreshNotice message="Couldn't refresh the schedule. Showing the last loaded events, which may be outdated." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
-        <div className="lg:col-span-2">
-          <CalendarGrid
-            isLoading={isLoading}
-            className="lg:h-[620px]"
-            fillHeight
-            compactMobileCells
-            currentDate={currentDate}
-            selectedDateStr={selectedDateStr}
-            events={events}
-            scheduleColorById={scheduleColorById}
-            onSelectDate={setSelectedDateStr}
-            onPrevMonth={() => changeMonth(-1)}
-            onNextMonth={() => changeMonth(1)}
-            onGoToday={goToday}
-          />
+      <section className={scheduleStyles.workspace} aria-labelledby="collector-calendar-title">
+        <div className={scheduleStyles.workspaceHeader}>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CalendarDays className="size-4" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h2 id="collector-calendar-title" className="gw-heading text-sm text-foreground">Monthly events</h2>
+              <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
+            </div>
+          </div>
         </div>
-
-        <aside className="lg:col-span-1">
-          <SelectedDayPanel
-            isLoading={isLoading}
-            className="min-h-[340px] max-h-[480px] lg:max-h-none lg:h-[620px]"
-            selectedDateStr={selectedDateStr}
-            events={selectedEvents}
-            scheduleColorById={scheduleColorById}
-          />
-        </aside>
-      </div>
+        <div className={`${scheduleStyles.layout} p-3 sm:p-5`}>
+          <div className="min-w-0">
+            <CalendarGrid
+              isLoading={isLoading}
+              className={scheduleStyles.calendar}
+              headingLabel={currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              fillHeight
+              compactMobileCells
+              currentDate={currentDate}
+              selectedDateStr={selectedDateStr}
+              events={events}
+              scheduleColorById={scheduleColorById}
+              onSelectDate={setSelectedDateStr}
+              onPrevMonth={() => changeMonth(-1)}
+              onNextMonth={() => changeMonth(1)}
+              onGoToday={goToday}
+            />
+          </div>
+  
+          <aside className="min-w-0">
+            <SelectedDayPanel
+              isLoading={isLoading}
+              className={scheduleStyles.dayPanel}
+              variant="admin"
+              selectedDateStr={selectedDateStr}
+              events={selectedEvents}
+              scheduleColorById={scheduleColorById}
+            />
+          </aside>
+        </div>
+      </section>
     </div>
   );
 };

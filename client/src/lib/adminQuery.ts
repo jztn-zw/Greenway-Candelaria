@@ -10,16 +10,18 @@ export const useAdminQuery = <T>(
   domain: string,
   parts: QueryKey,
   queryFn: () => Promise<T>,
-  options: { enabled?: boolean; staleTime?: number; refetchInterval?: number | false } = {},
+  options: { enabled?: boolean; staleTime?: number; refetchInterval?: number | false; keepPreviousData?: boolean } = {},
 ) => {
   const user = useAuthStore((state) => state.user);
+  const { keepPreviousData, ...queryOptions } = options;
   return useQuery({
     queryKey: adminKey(user?.id, domain, ...parts),
     queryFn,
     staleTime: 30_000,
     retry: false,
     refetchIntervalInBackground: false,
-    ...options,
+    placeholderData: (previous, previousQuery) => keepPreviousData && user?.role === "ADMIN" && previousQuery?.queryKey[1] === user.id ? previous : undefined,
+    ...queryOptions,
     enabled: user?.role === "ADMIN" && options.enabled !== false,
   });
 };

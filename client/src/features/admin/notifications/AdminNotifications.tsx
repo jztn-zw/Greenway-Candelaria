@@ -1,6 +1,7 @@
+import ListEmptyState from "@/components/common/ListEmptyState";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
 import PageErrorState from "@/components/PageErrorState";
 import DataRefreshNotice from "@/components/DataRefreshNotice";
@@ -23,7 +24,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-import { getAdminCategory, getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
+import { getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
 
 const tabs: FilterPillItem<AdminCategory>[] = [
   { id: "all", label: "All" },
@@ -35,8 +36,13 @@ const tabs: FilterPillItem<AdminCategory>[] = [
 
 const AdminNotifications: React.FC = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<AdminCategory>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const {
     notifications,
+    total,
+    historyTotal,
+    offset,
     unreadCount,
     isLoading,
     isRefreshing,
@@ -49,30 +55,19 @@ const AdminNotifications: React.FC = () => {
     isMarkingAll,
     isClearing,
     isMutating,
-  } = useNotifications();
-
-  const [activeTab, setActiveTab] = useState<AdminCategory>("all");
+  } = useNotifications({ limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE, web_category: activeTab === "all" ? "all" : `admin:${activeTab}` });
   const [modalNotification, setModalNotification] =
     useState<AdminNotificationDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const handleTabChange = (tab: AdminCategory) => {
     setActiveTab(tab);
     setCurrentPage(1);
   };
 
-  const filtered = useMemo(() => {
-    if (activeTab === "all") return notifications;
-    return notifications.filter((n) => getAdminCategory(n) === activeTab);
-  }, [notifications, activeTab]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginated = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(Math.floor(offset / PAGE_SIZE) + 1, totalPages);
+  const paginated = notifications;
 
   const handleClick = async (n: NotificationRow) => {
     if (!n.is_read) {
@@ -112,7 +107,7 @@ const AdminNotifications: React.FC = () => {
         description="Resident reports, collection updates, and driver messages."
         titleBadge={unreadCount > 0 ? <Badge className="shrink-0 text-[11px] tabular-nums">{unreadCount.toLocaleString()} unread</Badge> : undefined}
         actionsClassName={notificationStyles.headerActions}
-        actions={(unreadCount > 0 || notifications.length > 0) && (
+        actions={(unreadCount > 0 || historyTotal > 0) && (
           <>
             {unreadCount > 0 && (
               <Button
@@ -128,7 +123,7 @@ const AdminNotifications: React.FC = () => {
                 <span className="min-w-0 truncate">Mark all read</span>
               </Button>
             )}
-            {notifications.length > 0 && (
+            {historyTotal > 0 && (
               <Button
                 variant="destructive-outline"
                 size="sm"
@@ -157,7 +152,7 @@ const AdminNotifications: React.FC = () => {
           className="flex-1 pb-0"
         />
 
-        {(unreadCount > 0 || notifications.length > 0) && (
+        {(unreadCount > 0 || historyTotal > 0) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -178,7 +173,7 @@ const AdminNotifications: React.FC = () => {
                   Mark all as read
                 </DropdownMenuItem>
               )}
-              {notifications.length > 0 && (
+              {historyTotal > 0 && (
                 <DropdownMenuItem onSelect={clearAll} disabled={isMutating} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                   Clear all notifications
@@ -259,17 +254,8 @@ const AdminNotifications: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="px-4 py-12 text-center border border-dashed border-border/80 rounded-2xl bg-card/50">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 text-primary">
-            <Bell className="w-6 h-6" />
-          </div>
-          <h3 className="gw-heading text-base text-foreground">
-            No notifications found
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            You're all caught up! New alerts will appear here in real-time.
-          </p>
-        </div>
+        <ListEmptyState icon={Bell} title="No notifications found"
+          description="You're all caught up! New alerts will appear here in real-time." />
       )}
 
       {/* ── Pagination ── */}

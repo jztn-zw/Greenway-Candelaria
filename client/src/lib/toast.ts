@@ -1,4 +1,15 @@
-import { toast as sonnerToast } from "sonner";
+import { toast as sonnerToast, type ExternalToast } from "sonner";
+
+const cleanToastText = (message: string, fallback = "System update") => {
+  const cleaned = message.replace(/\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*/gu, "");
+  if (cleaned === message) return message;
+  return cleaned.replace(/[ \t]+/g, " ").trim() || fallback;
+};
+
+const cleanToastOptions = (options?: ExternalToast) => options ? {
+  ...options,
+  description: typeof options.description === "string" ? cleanToastText(options.description, "") || undefined : options.description,
+} : undefined;
 
 // Keep feedback focused. Detailed API errors are logged in the browser console
 // and server terminal; they are not appropriate for a user-facing popup.
@@ -17,23 +28,23 @@ const isNonCriticalInfo = (message: string) =>
 
 const toastWithPolicy = Object.assign(
   (message: string, options?: Parameters<typeof sonnerToast>[1]) =>
-    sonnerToast(message, options),
+    sonnerToast(cleanToastText(message), cleanToastOptions(options)),
   {
     success: (message: string, options?: Parameters<typeof sonnerToast.success>[1]) => {
       if (isRoutineSuccess(message)) return undefined;
-      return sonnerToast.success(message, options);
+      return sonnerToast.success(cleanToastText(message), cleanToastOptions(options));
     },
     error: (message: string, options?: Parameters<typeof sonnerToast.error>[1]) => {
       if (/^failed to (load|fetch)/i.test(message)) return undefined;
-      if (isLocalValidationMessage(message)) return sonnerToast.error(message);
+      if (isLocalValidationMessage(message)) return sonnerToast.error(cleanToastText(message));
       return sonnerToast.error("Could not complete that action. Please try again.");
     },
     info: (message: string, options?: Parameters<typeof sonnerToast.info>[1]) => {
       if (isNonCriticalInfo(message)) return undefined;
-      return sonnerToast.info(message, options);
+      return sonnerToast.info(cleanToastText(message), cleanToastOptions(options));
     },
     warning: (message: string, options?: Parameters<typeof sonnerToast.warning>[1]) =>
-      sonnerToast.warning(message, options ? { ...options, description: undefined } : undefined),
+      sonnerToast.warning(cleanToastText(message), options ? { ...options, description: undefined } : undefined),
     dismiss: sonnerToast.dismiss,
   },
 ) as typeof sonnerToast;

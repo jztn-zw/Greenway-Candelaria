@@ -154,10 +154,10 @@ const TruckDetailView = ({
           <div className="space-y-1.5">
             <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground/70" />
-              Fleet Status
+              Truck Status
             </span>
             <p className="text-xs sm:text-sm font-medium text-foreground">
-              {truck.status === "Active" ? "Operational Fleet" : "Under Service / Maintenance"}
+              {truck.status === "Active" ? "Operational" : "Under Service / Maintenance"}
             </p>
           </div>
         </div>

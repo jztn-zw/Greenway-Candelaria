@@ -6,6 +6,16 @@ export interface WebMessage {
 export interface ConversationPage {
   items: WebMessage[]; target: WebMessage | null; unreadCount: number; nextCursor: string | null;
 }
+export interface AdminUnreadMessages {
+  unreadCount: number; byDriver: { driverId: string; unreadCount: number }[];
+}
+export const fetchAdminUnreadMessages = async (): Promise<AdminUnreadMessages> => {
+  const response = await api.get<{ data: AdminUnreadMessages }>("/drivers/messages/unread");
+  return response.data.data;
+};
+export const markAdminMessagesAsRead = async (driverId: string, ids: string[]): Promise<void> => {
+  await api.put(`/drivers/${encodeURIComponent(driverId)}/messages/conversation/read`, { ids });
+};
 const endpoint = (driverId?: string) => driverId
   ? `/drivers/${encodeURIComponent(driverId)}/messages/conversation` : "/drivers/me/messages/conversation";
 export const fetchConversation = async (driverId?: string, params?: { cursor?: string; message_id?: string }) => {

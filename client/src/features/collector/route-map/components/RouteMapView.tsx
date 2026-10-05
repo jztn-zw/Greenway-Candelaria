@@ -398,7 +398,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   };
 
   return (
-    <div className={`relative h-full w-full overflow-hidden bg-card [&_.leaflet-control-attribution]:!hidden ${preview ? "" : "rounded-2xl border border-border shadow-xs"}`}>
+    <div className={`collector-route-map relative h-full min-w-0 w-full overflow-hidden bg-card [&_.leaflet-control-attribution]:!hidden ${preview ? "" : "rounded-2xl border border-border shadow-xs"}`}>
       <div ref={mapElRef} className="h-full w-full z-0" />
 
       {/* Floating Zoom Controls (Top-Right) */}
@@ -406,7 +406,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleZoomIn}
-          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost size-11 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom In"
           aria-label="Zoom in"
         >
@@ -416,7 +416,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleZoomOut}
-          className="gw-action-ghost w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
+          className="gw-action-ghost size-11 flex items-center justify-center transition-all rounded-lg cursor-pointer select-none"
           title="Zoom Out"
           aria-label="Zoom out"
         >
@@ -424,7 +424,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="absolute left-2.5 top-2.5 z-[400] flex items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
+      <div className="collector-route-map-legend absolute left-2.5 top-2.5 z-[400] flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
         {preview ? (
           <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned stops</span>
         ) : (
@@ -442,8 +442,9 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
           <button
             type="button"
             onClick={handleRecenter}
-            className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
+            className="gw-action-ghost inline-flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
             title="Recenter on Truck"
+            aria-label="Recenter on truck"
           >
             <Crosshair className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">Truck</span>
@@ -453,16 +454,17 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         <button
           type="button"
           onClick={handleFitRoute}
-          className="gw-action-ghost flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
+          className="gw-action-ghost inline-flex min-h-11 min-w-11 items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation select-none"
           title="Fit All Stops"
+          aria-label="Fit all stops"
         >
           <Maximize2 className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Fit Route</span>
         </button>
       </div>
 
-      <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center max-w-[130px] sm:max-w-none">
-        <span className="text-ui-overline sm:text-ui-caption font-body font-semibold text-foreground truncate">
+      <div className="collector-route-map-caption absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center min-w-0">
+        <span className="text-ui-overline sm:text-ui-caption font-body font-semibold text-foreground break-words">
           {preview ? "Route preview · GPS off" : activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
         </span>
       </div>
