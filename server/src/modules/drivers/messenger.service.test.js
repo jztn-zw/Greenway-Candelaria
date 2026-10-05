@@ -58,7 +58,7 @@ const withConnection = async (options, run) => {
     if (sql.startsWith("INSERT INTO driver_messages")) { savedId = params[0]; return [{ affectedRows: 1 }]; }
     if (sql.includes("SELECT u.id FROM users")) return [[{ id: "admin" }]];
     if (sql.includes("INSERT INTO notifications")) { if (options.notificationFailure) throw new Error("notification failed"); return [{ affectedRows: 1 }]; }
-    if (sql.startsWith("SELECT dm.id")) return [[{ ...row(savedId || params[0]), sender_role: "DRIVER", message: input.message }]];
+    if (sql.startsWith("SELECT dm.id")) return [[{ ...row(savedId || params[0]), sender_role: "DRIVER", message: options.message ?? input.message }]];
     throw new Error(`Unexpected query: ${sql}`);
   } });
   try { await run({ writes, state: () => ({ commit, rollback, released }) }); }
@@ -107,6 +107,56 @@ test("foreign route references roll back without saving messages", async () => {
   });
 });
 test("blank, oversized and unidentifiable writes are rejected", async () => {
-  for (const message of ["", "   ", "a".repeat(256)]) await assert.rejects(messenger.sendMessage(sender, driver, { ...input, message }), (error) => error.statusCode === 400);
+  for (const message of ["", "   ", "a".repeat(1001)]) await assert.rejects(messenger.sendMessage(sender, driver, { ...input, message }), (error) => error.statusCode === 400);
   await assert.rejects(messenger.sendMessage(sender, driver, { ...input, request_id: "bad" }), (error) => error.statusCode === 400);
+});
+
+test("admin and collector can save a complete 1,000-character message", async () => {
+  const message = "a".repeat(1000);
+  for (const role of ["ADMIN", "DRIVER"]) {
+    await withConnection({ message }, async ({ writes }) => {
+      const saved = await messenger.sendMessage({ ...sender, role }, driver, { ...input, message });
+      assert.equal(saved.message, message);
+      assert.equal(writes.find(({ sql }) => sql.startsWith("INSERT INTO driver_messages")).params[4], message);
+    });
+  }
+});
+
+test("the route-based admin message schema uses the same 1,000-character limit", () => {
+  const { adminDriverMessageSchema } = require("./drivers.schema");
+  const payload = { driver_user_id: "collector", route_id: "run", message: "a".repeat(1000) };
+  assert.equal(adminDriverMessageSchema.safeParse(payload).success, true);
+  assert.equal(adminDriverMessageSchema.safeParse({ ...payload, message: "a".repeat(1001) }).success, false);
+});
+
+test("admin conversation counts unread incoming messages independently of alerts", async () => {
+  await withQuery(async (sql) => {
+    if (sql.includes("unread_count")) {
+      assert.match(sql, /u\.role = 'DRIVER'/);
+      assert.doesNotMatch(sql, /notifications|user_settings/);
+      return [[{ unread_count: 402 }]];
+    }
+    return [[{ ...row("incoming"), sender_role: "DRIVER" }]];
+  }, async () => { assert.equal((await messenger.getConversation("driver", {}, "ADMIN")).unreadCount, 402); });
+});
+test("admin unread summary counts saved messages even with disabled or cleared alerts", async () => {
+  assert.equal(typeof messenger.getAdminUnread, "function", "A message-based admin unread summary is required");
+  await withQuery(async (sql) => {
+    assert.match(sql, /FROM driver_messages/); assert.match(sql, /u\.role = 'DRIVER'/);
+    assert.doesNotMatch(sql, /notifications|user_settings/);
+    return [[{ driver_id: "driver", unread_count: 402 }, { driver_id: "other", unread_count: 1 }]];
+  }, async () => { assert.deepEqual(await messenger.getAdminUnread(), { unreadCount: 403, byDriver: [{ driverId: "driver", unreadCount: 402 }, { driverId: "other", unreadCount: 1 }] }); });
+});
+test("admin read receipts affect only selected incoming messages in the selected conversation", async () => {
+  assert.equal(typeof messenger.markAdminRead, "function", "Scoped admin message read receipts are required");
+  const original = pool.getConnection; let read = false; let committed = false;
+  pool.getConnection = async () => ({ beginTransaction: async () => {}, commit: async () => { committed = true; }, rollback: async () => {}, release: () => {}, query: async (sql, params) => {
+    if (sql.startsWith("UPDATE driver_messages")) {
+      assert.match(sql, /driver_id = \?/); assert.match(sql, /sent_by/); assert.match(sql, /role = 'DRIVER'/);
+      assert.deepEqual(params, ["driver", ["incoming"]]); read = true;
+    } else { assert.match(sql, /UPDATE notifications/); assert.match(sql, /SELECT id FROM driver_messages WHERE driver_id = \?/); assert.deepEqual(params, ["admin", "driver", ["incoming"]]); }
+    return [{ affectedRows: 1 }];
+  } });
+  try { await messenger.markAdminRead("driver", "admin", ["incoming"]); assert.equal(read, true); assert.equal(committed, true); }
+  finally { pool.getConnection = original; }
 });

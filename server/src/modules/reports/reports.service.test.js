@@ -88,3 +88,46 @@ test("admin listing uses a stable tie breaker and clamps a stale page", async ()
     pool.query = originalQuery;
   }
 });
+
+test("a new report is fully read before commit so a read failure cannot falsely fail a saved submission", async () => {
+  const originalQuery = pool.query;
+  await withDatabase(async (sql) => {
+    if (sql.includes("SELECT counter")) return [[{ counter: 1 }]];
+    if (sql.includes("FROM reports r")) throw new Error("report read failed");
+    return [{ affectedRows: 1 }];
+  }, async (_statements, state) => {
+    pool.query = async (sql) => {
+      if (sql.includes("FROM barangays")) return [[{ id: "barangay-1" }]];
+      throw new Error("report read failed");
+    };
+    await assert.rejects(service.create("resident", { barangay_id: "barangay-1", violation_type: "ILLEGAL_DUMPING", description: "Fixture" }), /report read failed/);
+    assert.equal(state.committed, false); assert.equal(state.rolledBack, true); assert.equal(state.released, true);
+  });
+  pool.query = originalQuery;
+});
+
+test("resident cancellation locks the status before deleting and commits atomically", async () => {
+  await withDatabase(async (sql) => {
+    if (sql.includes("SELECT * FROM reports")) {
+      assert.match(sql, /FOR UPDATE/);
+      return [[{ ...current, user_id: "resident" }]];
+    }
+    return [{ affectedRows: 1 }];
+  }, async (statements, state) => {
+    pool.query = async (sql) => {
+      if (sql.includes("SELECT * FROM reports")) { assert.match(sql, /FOR UPDATE/); return [[{ ...current, user_id: "resident" }]]; }
+      return [{ affectedRows: 1 }];
+    };
+    const result = await service.softDelete("report-1", { id: "resident", role: "RESIDENT" });
+    assert.equal(result.id, "report-1"); assert.equal(state.committed, true); assert.equal(state.released, true);
+    assert.equal(statements.some(({ sql }) => sql.includes("UPDATE reports SET deleted_at")), true);
+  });
+});
+test("resident cancellation refuses a report already dispatched by admin", async () => {
+  await withDatabase(async (sql) => sql.includes("SELECT * FROM reports") ? [[{ ...current, user_id: "resident", status: "DISPATCHED" }]] : [{ affectedRows: 1 }], async (statements, state) => {
+    pool.query = async () => [[{ ...current, user_id: "resident", status: "DISPATCHED" }]];
+    await assert.rejects(service.softDelete("report-1", { id: "resident", role: "RESIDENT" }), (error) => error.statusCode === 400);
+    assert.equal(state.committed, false); assert.equal(state.rolledBack, true);
+    assert.equal(statements.some(({ sql }) => sql.includes("UPDATE reports")), false);
+  });
+});

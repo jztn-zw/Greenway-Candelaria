@@ -68,8 +68,8 @@ const cleanupUnattachedReportPhotos = async (urls) => {
 
 // ─── Get single report by ID ───────────────────────────────
 
-const getById = async (id) => {
-  const [rows] = await pool.query(
+const getById = async (id, db = pool) => {
+  const [rows] = await db.query(
     `SELECT
        r.*,
        b.name        AS barangay_name,
@@ -92,14 +92,14 @@ const getById = async (id) => {
   const report = rows[0];
 
   // Attach photos
-  const [photos] = await pool.query(
+  const [photos] = await db.query(
     "SELECT * FROM report_photos WHERE report_id = ? ORDER BY created_at ASC",
     [id],
   );
   report.photos = photos;
 
   // Attach status history with user names
-  const [statusHistory] = await pool.query(
+  const [statusHistory] = await db.query(
     `SELECT h.*, u.full_name AS changed_by_name
      FROM report_status_history h
      LEFT JOIN users u ON u.id = h.changed_by
@@ -110,7 +110,7 @@ const getById = async (id) => {
   report.status_history = statusHistory;
 
   // Attach internal notes with user names
-  const [notes] = await pool.query(
+  const [notes] = await db.query(
     `SELECT n.*, u.full_name AS created_by_name
      FROM report_notes n
      LEFT JOIN users u ON u.id = n.created_by
@@ -472,9 +472,11 @@ const create = async (userId, data) => {
       [generateId(), reportId, userId],
     );
 
+    // Read the response inside the transaction. If it fails, nothing has been
+    // committed and retrying cannot duplicate an already-saved submission.
+    const createdReport = await getById(reportId, conn);
     await conn.commit();
     emitResidentDataChanged(["reports"], userId);
-    const createdReport = await getById(reportId);
 
     await auditService.log({
       user_id: userId,
@@ -948,38 +950,32 @@ const getMyStats = async (userId) => {
 
 // ─── Soft-delete a report (Admin or Resident pending only) ─
 const softDelete = async (id, user, ip = null) => {
-  const [rows] = await pool.query(
-    "SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL",
-    [id],
-  );
-
-  if (rows.length === 0) {
-    throw { statusCode: 404, message: "Report not found" };
-  }
-
-  const report = rows[0];
-
-  // If resident, verify ownership and pending status
-  if (user.role !== "ADMIN") {
-    if (report.user_id !== user.id) {
-      throw {
-        statusCode: 403,
-        message: "You do not have permission to delete this report",
-      };
+  const conn = await pool.getConnection();
+  let report;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      "SELECT * FROM reports WHERE id = ? AND deleted_at IS NULL FOR UPDATE",
+      [id],
+    );
+    if (!rows.length) throw { statusCode: 404, message: "Report not found" };
+    report = rows[0];
+    if (user.role !== "ADMIN") {
+      if (report.user_id !== user.id) {
+        throw { statusCode: 403, message: "You do not have permission to delete this report" };
+      }
+      if (!["SUBMITTED", "PENDING"].includes(report.status)) {
+        throw { statusCode: 400, message: "Only pending reports can be cancelled or deleted" };
+      }
     }
-
-    if (!["SUBMITTED", "PENDING"].includes(report.status)) {
-      throw {
-        statusCode: 400,
-        message: "Only pending reports can be cancelled or deleted",
-      };
-    }
+    await conn.query("UPDATE reports SET deleted_at = NOW() WHERE id = ?", [id]);
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
   }
-
-  await pool.query(
-    "UPDATE reports SET deleted_at = NOW() WHERE id = ?",
-    [id],
-  );
 
   // Audit log
   auditService.log({

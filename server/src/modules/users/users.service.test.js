@@ -101,3 +101,30 @@ test("profile password and admin preference schemas reject unsafe input", () => 
   assert.equal(updateAdminSettingsSchema.safeParse({ notif_admin_reports: "false" }).success, false);
   assert.equal(updateAdminSettingsSchema.safeParse({ notif_admin_reports: false }).success, true);
 });
+
+for (const next of ["barangay-new", null, "barangay-old"]) {
+  test(`settings address change to ${next} preserves only a street in the same barangay`, async () => {
+    const original = pool.query;
+    const resident = { barangay_id: "barangay-old", street_id: "street-old" };
+    pool.query = async (sql, params) => {
+      if (sql.includes("FROM barangays")) return [[{ id: next }]];
+      if (sql.startsWith("UPDATE users SET")) {
+        if (sql.includes("street_id")) {
+          assert.match(sql, /CASE WHEN barangay_id <=> \? THEN street_id ELSE NULL END/);
+          assert.deepEqual(params, [next, next, "resident"]);
+          if (resident.barangay_id !== next) resident.street_id = null;
+        }
+        resident.barangay_id = next;
+        return [{ affectedRows: 1 }];
+      }
+      if (sql.startsWith("UPDATE user_settings")) return [{ affectedRows: 1 }];
+      if (sql.includes("FROM user_settings")) return [[{ user_id: "resident", primary_barangay_id: next }]];
+      throw new Error(`Unexpected query: ${sql}`);
+    };
+    try {
+      await service.updateUserSettings("resident", { primary_barangay_id: next });
+      assert.equal(resident.street_id, next === "barangay-old" ? "street-old" : null);
+      assert.equal(resident.barangay_id, next);
+    } finally { pool.query = original; }
+  });
+}

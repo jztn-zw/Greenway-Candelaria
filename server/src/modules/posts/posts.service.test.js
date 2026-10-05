@@ -114,3 +114,27 @@ test("duplicating a post retains its content, images and tags with the new autho
     assert.equal(Object.hasOwn(copy, "source"), false);
   });
 });
+
+test("scheduled publication rolls back a failed alert write and retries once without duplicate alerts", async () => {
+  const original = { query: pool.query, getConnection: pool.getConnection };
+  const post = { id: "scheduled", title: "Fixture post", category: "WASTE_TIP", status: "SCHEDULED" };
+  let savedAlerts = []; let failInsert = true; let snapshot;
+  const query = async (sql, params) => {
+    if (sql.trimStart().startsWith("SELECT") && sql.includes("scheduled_at <= NOW()")) return [[...(post.status === "SCHEDULED" ? [post] : [])]];
+    if (sql.includes("UPDATE posts")) { const changed = post.status === "SCHEDULED"; post.status = "PUBLISHED"; return [{ affectedRows: Number(changed) }]; }
+    if (sql.includes("FROM users u")) return [[{ id: "resident" }]];
+    if (sql.includes("INSERT INTO notifications")) { if (failInsert) throw new Error("alert write failed"); savedAlerts.push(...params[0]); return [{ affectedRows: 1 }]; }
+    throw new Error(`Unexpected query: ${sql}`);
+  };
+  pool.query = query;
+  pool.getConnection = async () => ({
+    query, beginTransaction: async () => { snapshot = { status: post.status, alerts: [...savedAlerts] }; },
+    commit: async () => {}, rollback: async () => { post.status = snapshot.status; savedAlerts = snapshot.alerts; }, release: () => {},
+  });
+  try {
+    await assert.rejects(posts.publishDueScheduledPosts(), /alert write failed/);
+    assert.equal(post.status, "SCHEDULED"); assert.equal(savedAlerts.length, 0);
+    failInsert = false; await posts.publishDueScheduledPosts(); await posts.publishDueScheduledPosts();
+    assert.equal(post.status, "PUBLISHED"); assert.equal(savedAlerts.length, 1);
+  } finally { pool.query = original.query; pool.getConnection = original.getConnection; }
+});

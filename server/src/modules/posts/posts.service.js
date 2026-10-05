@@ -1,7 +1,7 @@
 const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
-const { notifyAllResidents } = require("../notifications/notifications.service");
+const { notifyAllResidents, emitStoredNotifications } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
 const { deleteCloudinaryImage } = require("../../config/cloudinary");
 
@@ -102,22 +102,32 @@ const publishDueScheduledPosts = async () => {
   );
 
   for (const post of duePosts) {
-    // The status condition makes this safe if two requests reach this code at once:
-    // only the request that actually publishes the post sends the notification.
-    const [result] = await pool.query(
-      `UPDATE posts
-       SET published_at = COALESCE(scheduled_at, NOW()),
-           scheduled_at = NULL,
-           status = 'PUBLISHED'
-       WHERE id = ? AND status = 'SCHEDULED'`,
-      [post.id],
-    );
-
-    if (result.affectedRows === 1) {
-      emitAdminDataChanged(["posts", "dashboard", "analytics"]);
-      notifyAllResidents(buildPostNotification(post)).catch((err) =>
-        console.error("[Notify] ❌ Scheduled post notification failed:", err.message),
+    const conn = await pool.getConnection();
+    let delivery;
+    try {
+      await conn.beginTransaction();
+      const [result] = await conn.query(
+        `UPDATE posts
+         SET published_at = COALESCE(scheduled_at, NOW()),
+             scheduled_at = NULL,
+             status = 'PUBLISHED'
+         WHERE id = ? AND status = 'SCHEDULED'
+           AND scheduled_at <= NOW() AND deleted_at IS NULL`,
+        [post.id],
       );
+      if (result.affectedRows === 1) {
+        // Save publication and alerts together. Failed inserts leave the post
+        // scheduled for the next pass, without partial or duplicate alerts.
+        delivery = await notifyAllResidents({ ...buildPostNotification(post), db: conn, emit: false });
+      }
+      await conn.commit();
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally { conn.release(); }
+    if (delivery) {
+      emitAdminDataChanged(["posts", "dashboard", "analytics"]);
+      emitStoredNotifications(delivery.notifications);
     }
   }
 };

@@ -695,7 +695,7 @@ const resendToUnread = async (id, actorId) => {
   if (announcement.status !== "ACTIVE") {
     throw { statusCode: 409, message: "Only active announcements can be resent." };
   }
-  if (announcement.expires_at && new Date(announcement.expires_at) <= new Date()) {
+  if (Boolean(announcement.is_expired)) {
     throw { statusCode: 409, message: "Expired announcements cannot be resent." };
   }
 

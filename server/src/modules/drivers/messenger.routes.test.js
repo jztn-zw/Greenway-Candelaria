@@ -14,6 +14,9 @@ const calls = [];
 messenger.findDriver = async (...args) => { calls.push(args); return { id: args[1] || "own-driver", user_id: args[0] }; };
 messenger.getConversation = async () => ({ items: [], target: null, nextCursor: null, unreadCount: 0 });
 messenger.sendMessage = async () => ({ id: "saved", message: "Hello" });
+messenger.getAdminUnread = async () => ({ unreadCount: 2, byDriver: [] });
+const reads = [];
+messenger.markAdminRead = async (...args) => { reads.push(args); return { read: true }; };
 const app = express(); app.use(express.json()); app.use("/drivers", require("./drivers.routes"));
 let server; let base;
 const ready = new Promise((resolve) => { server = app.listen(0, "127.0.0.1", () => { base = `http://127.0.0.1:${server.address().port}`; resolve(); }); });
@@ -31,6 +34,21 @@ test("collector read requests always resolve their own driver despite supplied I
   calls.length = 0;
   const response = await request("/drivers/me/messages/conversation?driver_id=other", "DRIVER");
   assert.equal(response.status, 200); assert.deepEqual(calls, [["collector", undefined]]);
+});
+test("admin unread and receipt endpoints refuse anonymous, resident and collector access", async () => {
+  for (const role of [undefined, "RESIDENT", "DRIVER"]) {
+    const status = role ? 403 : 401;
+    assert.equal((await request("/drivers/messages/unread", role)).status, status);
+    assert.equal((await request("/drivers/other/messages/conversation/read", role, { method: "PUT", body: JSON.stringify({ ids: ["message"] }) })).status, status);
+  }
+});
+test("admin read receipts resolve the selected collector and authenticated admin", async () => {
+  calls.length = 0; reads.length = 0;
+  const summary = await request("/drivers/messages/unread", "ADMIN");
+  assert.equal(summary.status, 200); assert.equal((await summary.json()).data.unreadCount, 2);
+  const response = await request("/drivers/driver/messages/conversation/read", "ADMIN", { method: "PUT", headers: { "x-test-user": "admin" }, body: JSON.stringify({ ids: ["message"], user_id: "other-admin" }) });
+  assert.equal(response.status, 200); assert.deepEqual(calls, [["admin", "driver"]]);
+  assert.deepEqual(reads, [["driver", "admin", ["message"]]]);
 });
 test("admin send requests select the named collector without requiring route data", async () => {
   calls.length = 0;

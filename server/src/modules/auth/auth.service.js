@@ -195,6 +195,9 @@ const login = async ({ identifier, password }, req) => {
       avatar_url: user.avatar_url,
       barangay_id: user.barangay_id,
       barangay_name: user.barangay_name || null,
+      street_id: user.street_id || null,
+      street_name: user.street_name || null,
+      street_area: user.street_area || null,
     },
   };
 };

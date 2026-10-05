@@ -237,12 +237,22 @@ const messenger = require("./messenger.service");
 module.exports.getWebConversation = async (req, res, next) => {
   try {
     const driver = await messenger.findDriver(req.user.id, req.user.role === "ADMIN" ? req.params.id : undefined);
-    return success(res, await messenger.getConversation(driver.id, req.query), "Conversation fetched");
+    return success(res, await messenger.getConversation(driver.id, req.query, req.user.role), "Conversation fetched");
   } catch (error) { next(error); }
 };
 module.exports.sendWebMessage = async (req, res, next) => {
   try {
     const driver = await messenger.findDriver(req.user.id, req.user.role === "ADMIN" ? req.params.id : undefined);
     return success(res, await messenger.sendMessage(req.user, driver, req.body || {}), "Message saved");
+  } catch (error) { next(error); }
+};
+module.exports.getAdminUnreadMessages = async (req, res, next) => {
+  try { return success(res, await messenger.getAdminUnread(), "Unread messages fetched"); }
+  catch (error) { next(error); }
+};
+module.exports.markAdminConversationRead = async (req, res, next) => {
+  try {
+    const driver = await messenger.findDriver(req.user.id, req.params.id);
+    return success(res, await messenger.markAdminRead(driver.id, req.user.id, req.body?.ids), "Messages marked as read");
   } catch (error) { next(error); }
 };

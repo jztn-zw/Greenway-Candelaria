@@ -399,7 +399,11 @@ const updateUserSettings = async (userId, data) => {
         throw { statusCode: 400, message: "Invalid barangay selected" };
       }
     }
-    await pool.query("UPDATE users SET barangay_id = ? WHERE id = ?", [
+    // Evaluate the previous barangay before assigning the new one. Re-saving
+    // the same barangay keeps its street; changing or clearing it cannot leave
+    // an address pointing to a street in another barangay.
+    await pool.query("UPDATE users SET street_id = CASE WHEN barangay_id <=> ? THEN street_id ELSE NULL END, barangay_id = ? WHERE id = ?", [
+      data.primary_barangay_id || null,
       data.primary_barangay_id || null,
       userId,
     ]);

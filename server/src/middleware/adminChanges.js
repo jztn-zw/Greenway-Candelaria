@@ -40,7 +40,7 @@ const createAdminChangesMiddleware = (emit = emitAdminDataChanged) => (req, res,
   });
   // Web conversation writes change messaging only. Do not refresh resident,
   // dashboard, analytics, or assignment data for a chat message.
-  if (req.method === "POST" && /^\/api\/drivers\/(?:me|[^/]+)\/messages\/conversation(?:\?|$)/.test(req.originalUrl)) {
+  if (["POST", "PUT"].includes(req.method) && /^\/api\/drivers\/(?:me|[^/]+)\/messages\/conversation(?:\/read)?(?:\?|$)/.test(req.originalUrl)) {
     res.once("finish", () => {
       if (res.statusCode >= 200 && res.statusCode < 300) emit(["tracking"], { residents: false, collectors: false });
     });

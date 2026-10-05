@@ -315,6 +315,28 @@ const getMyNotifications = async (userId, filters = {}) => {
     if (!categories[filters.category]) throw { statusCode: 400, message: "Invalid notification category" };
     filterQuery += categories[filters.category];
   }
+  const webHistory = filters.web_category !== undefined;
+  if (webHistory && filters.web_category !== "all") {
+    const adminCategory = `CASE
+      WHEN n.ref_module = 'reports' OR n.type = 'REPORT_UPDATE' THEN 'reports'
+      WHEN n.ref_module = 'announcements' OR n.type = 'ANNOUNCEMENT' THEN 'announcements'
+      WHEN n.ref_module = 'posts' OR n.type = 'NEW_POST' THEN 'content'
+      WHEN n.ref_module IN ('tracking','routes','drivers','trucks','truck-breakdowns','schedule','driver-messages')
+        OR n.type IN ('COLLECTION_REMINDER','TRUCK_IS_NEAR','COLLECTION_DONE','MISSED_COLLECTION') THEN 'operations'
+      ELSE 'all' END`;
+    const categories = {
+      "admin:reports": `(${adminCategory}) = 'reports'`,
+      "admin:announcements": `(${adminCategory}) = 'announcements'`,
+      "admin:content": `(${adminCategory}) = 'content'`,
+      "admin:operations": `(${adminCategory}) = 'operations'`,
+      "resident:collection": "n.type IN ('COLLECTION_REMINDER','TRUCK_IS_NEAR','COLLECTION_DONE','MISSED_COLLECTION')",
+      "resident:reports": "n.type = 'REPORT_UPDATE'",
+      "resident:content": "n.type = 'NEW_POST'",
+      "resident:announcements": "n.type = 'ANNOUNCEMENT'",
+    };
+    if (!Object.hasOwn(categories, filters.web_category)) throw { statusCode: 400, message: "Invalid notification category" };
+    filterQuery += ` AND ${categories[filters.web_category]}`;
+  }
   query += filterQuery;
   if (filters.cursor) {
     let cursor;
@@ -333,22 +355,35 @@ const getMyNotifications = async (userId, filters = {}) => {
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(100, Math.max(1, requestedLimit))
     : 20;
-  const offset = Number.isFinite(requestedOffset)
+  let offset = Number.isFinite(requestedOffset)
     ? Math.max(0, requestedOffset)
     : 0;
   query += " LIMIT ? OFFSET ?";
   params.push(filters.category !== undefined ? limit + 1 : limit, offset);
 
-  const [rows] = await pool.query(query, params);
-
-  const [countResult] = await pool.query(
-    `SELECT COUNT(*) AS total
+  const countSql = `SELECT COUNT(*) AS total
      FROM notifications n
      WHERE n.user_id = ?
      ${excludeExpiredAnnouncementNotifications}
-     ${filterQuery}`,
-    countParams,
-  );
+     ${filterQuery}`;
+  let countResult;
+  if (webHistory) {
+    [countResult] = await pool.query(countSql, countParams);
+    const total = Number(countResult[0].total);
+    if (offset >= total) offset = Math.max(0, (Math.ceil(total / limit) - 1) * limit);
+    params[params.length - 1] = offset;
+  }
+  const [rows] = await pool.query(query, params);
+  if (!countResult) [countResult] = await pool.query(countSql, countParams);
+  let summary;
+  if (webHistory) {
+    const [counts] = await pool.query(`SELECT COUNT(*) AS history_total,
+      COALESCE(SUM(n.is_read = FALSE), 0) AS unread_count,
+      COALESCE(SUM(n.is_read = FALSE AND (n.type = 'NEW_POST' OR n.ref_module = 'posts')), 0) AS unread_content_count,
+      COALESCE(SUM(n.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND n.created_at <= NOW()), 0) AS recent_count
+      FROM notifications n WHERE n.user_id = ? ${excludeExpiredAnnouncementNotifications}`, [userId]);
+    summary = { history_total: Number(counts[0].history_total), unread_count: Number(counts[0].unread_count), unread_content_count: Number(counts[0].unread_content_count), recent_count: Number(counts[0].recent_count) };
+  }
 
   const paged = filters.category !== undefined;
   const notifications = paged ? rows.slice(0, limit) : rows;
@@ -357,6 +392,7 @@ const getMyNotifications = async (userId, filters = {}) => {
     ? last.created_at.toISOString().replace("T", " ").replace("Z", "") : String(last?.created_at ?? "");
   return {
     notifications,
+    ...summary,
     ...(paged ? { next_cursor: rows.length > limit && last
       ? Buffer.from(JSON.stringify({ date, id: last.id })).toString("base64url") : null } : {}),
     total: countResult[0].total,
@@ -401,9 +437,10 @@ const markAsRead = async (id, userId) => {
 
 // ─── Mark All as Read ──────────────────────────────────────
 
-const markAllAsRead = async (userId) => {
+const markAllAsRead = async (userId, category) => {
+  if (category !== undefined && category !== "content") throw { statusCode: 400, message: "Invalid notification category" };
   await pool.query(
-    "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
+    `UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE${category === "content" ? " AND (type = 'NEW_POST' OR ref_module = 'posts')" : ""}`,
     [userId],
   );
 

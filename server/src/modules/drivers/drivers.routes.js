@@ -13,6 +13,8 @@ router.get("/me/messages/conversation", authenticate, authorize("DRIVER"), contr
 router.post("/me/messages/conversation", authenticate, authorize("DRIVER"), messageLimiter, controller.sendWebMessage);
 router.get("/:id/messages/conversation", authenticate, authorize("ADMIN"), controller.getWebConversation);
 router.post("/:id/messages/conversation", authenticate, authorize("ADMIN"), messageLimiter, controller.sendWebMessage);
+router.get("/messages/unread", authenticate, authorize("ADMIN"), controller.getAdminUnreadMessages);
+router.put("/:id/messages/conversation/read", authenticate, authorize("ADMIN"), controller.markAdminConversationRead);
 
 // Driver self-routes (must come before /:id)
 router.get("/me", authenticate, authorize("DRIVER"), controller.getMe);

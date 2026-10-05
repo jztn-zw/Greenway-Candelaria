@@ -28,7 +28,7 @@ const projection = `dm.id, dm.route_id, dm.message, dm.is_read, dm.created_at,
 const normalize = (row) => ({ ...row, is_read: Boolean(row.is_read) });
 
 // Web messenger is scoped to a collector, rather than the currently active route.
-const getConversation = async (driverId, query = {}) => {
+const getConversation = async (driverId, query = {}, viewerRole = "DRIVER") => {
   const limit = messageLimit(query.limit);
   const cursor = readCursor(query.cursor);
   const targetId = optionalId(query.message_id);
@@ -43,7 +43,7 @@ const getConversation = async (driverId, query = {}) => {
   const window = rows.slice(0, limit);
   const last = window[window.length - 1];
   const [[counts]] = await pool.query(`SELECT COUNT(*) AS unread_count FROM driver_messages dm
-    JOIN users u ON u.id = dm.sent_by WHERE dm.driver_id = ? AND u.role <> 'DRIVER' AND dm.is_read = FALSE`, [driverId]);
+    JOIN users u ON u.id = dm.sent_by WHERE dm.driver_id = ? AND u.role ${viewerRole === "ADMIN" ? "=" : "<>"} 'DRIVER' AND dm.is_read = FALSE`, [driverId]);
   let target = null;
   if (targetId) {
     target = window.find((row) => row.id === targetId);
@@ -67,7 +67,7 @@ const findDriver = async (userId, driverId) => {
 };
 
 const sendMessage = async (sender, driver, input) => {
-  if (typeof input.message !== "string" || !input.message.trim() || input.message.trim().length > 255) fail("Message must contain 1 to 255 characters");
+  if (typeof input.message !== "string" || !input.message.trim() || input.message.trim().length > 1000) fail("Message must contain 1 to 1000 characters");
   if (typeof input.request_id !== "string" || !/^[a-f0-9-]{36}$/i.test(input.request_id)) fail("Invalid message request ID");
   const routeId = optionalId(input.route_id);
   const message = input.message.trim();
@@ -107,4 +107,35 @@ const sendMessage = async (sender, driver, input) => {
   return saved;
 };
 
-module.exports = { getConversation, findDriver, sendMessage, messageLimit, optionalId };
+// The schema permits one non-deleted admin account. Incoming messages use the
+// existing read flag independently of optional notification alerts.
+const getAdminUnread = async () => {
+  const [rows] = await pool.query(`SELECT dm.driver_id, COUNT(*) AS unread_count
+    FROM driver_messages dm JOIN users u ON u.id = dm.sent_by
+    JOIN drivers d ON d.id = dm.driver_id JOIN users collector ON collector.id = d.user_id
+    WHERE u.role = 'DRIVER' AND dm.is_read = FALSE
+      AND collector.status = 'ACTIVE' AND collector.deleted_at IS NULL
+    GROUP BY dm.driver_id`);
+  const byDriver = rows.map((row) => ({ driverId: row.driver_id, unreadCount: Number(row.unread_count) }));
+  return { unreadCount: byDriver.reduce((total, driver) => total + driver.unreadCount, 0), byDriver };
+};
+const markAdminRead = async (driverId, adminId, ids) => {
+  if (!Array.isArray(ids) || !ids.length || ids.length > 301 || ids.some((id) => typeof id !== "string" || !id || id.length > 64)) fail("Invalid message IDs");
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query(`UPDATE driver_messages SET is_read = TRUE
+      WHERE driver_id = ? AND id IN (?) AND is_read = FALSE
+        AND sent_by IN (SELECT id FROM users WHERE role = 'DRIVER')`, [driverId, ids]);
+    await conn.query(`UPDATE notifications SET is_read = TRUE
+      WHERE user_id = ? AND ref_module = 'driver-messages'
+        AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.message_id')) IN (
+          SELECT id FROM driver_messages WHERE driver_id = ? AND id IN (?)
+            AND sent_by IN (SELECT id FROM users WHERE role = 'DRIVER')
+        )`, [adminId, driverId, ids]);
+    await conn.commit();
+  } catch (error) { await conn.rollback(); throw error; }
+  finally { conn.release(); }
+  return { read: true };
+};
+module.exports = { getConversation, findDriver, sendMessage, messageLimit, optionalId, getAdminUnread, markAdminRead };

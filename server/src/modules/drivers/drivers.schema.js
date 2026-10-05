@@ -48,7 +48,7 @@ const breakdownReportSchema = z.object({
 const adminDriverMessageSchema = z.object({
   driver_user_id: z.string().min(1, "Driver user ID is required"),
   route_id: z.string().min(1, "Route ID is required"),
-  message: z.string().trim().min(1, "Message is required").max(255),
+  message: z.string().trim().min(1, "Message is required").max(1000),
 });
 
 module.exports = {
