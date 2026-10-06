@@ -168,7 +168,7 @@ const ResidentSidebar = () => {
         label: "COMMUNITY INFORMATION",
         items: [
           {
-            title: "Community Updates",
+            title: "Community Posts",
             url: "/resident/contents",
             icon: FileText,
             showDot: hasNewPost,
