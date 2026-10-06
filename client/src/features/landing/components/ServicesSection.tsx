@@ -1,8 +1,8 @@
-import { CalendarClock, Truck, BellRing, BarChart3, Users, ShieldCheck, LucideIcon } from "lucide-react";
-import { useScrollReveal, useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/MobileCarousel";
+import { CalendarClock,Truck,BellRing,BarChart3,Users,ShieldCheck,LucideIcon } from "lucide-react";
+import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
+import MobileCarousel from "@/components/common/MobileCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CONTENT, ServicesContent } from "../landingContent";
+import { CONTENT,ServicesContent } from "../landingContent";
 
 const serviceIcons: LucideIcon[] = [CalendarClock, Truck, BellRing, BarChart3, Users, ShieldCheck];
 

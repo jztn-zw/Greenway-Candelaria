@@ -1,26 +1,26 @@
 import KpiValue from "@/components/common/KpiValue";
 import { SearchInput } from "@/components/common/SearchInput";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import {
-Dialog,
-DialogContent,
-DialogDescription,
-DialogTitle
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAdminQuery } from "@/lib/adminQuery";
 import {
-fetchReadReceipts
+  fetchReadReceipts
 } from "@/services/announcementsService";
 import {
-BarChart3,
-Eye,
-TrendingDown,
-Users,
-X,
+  BarChart3,
+  Eye,
+  TrendingDown,
+  Users,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Announcement } from "./types";

@@ -1,6 +1,6 @@
-import { CheckCircle, Leaf, Eye, Settings, LucideIcon } from "lucide-react";
+import { CheckCircle,Leaf,Eye,Settings,LucideIcon } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { AboutContent, CONTENT } from "../landingContent";
+import { AboutContent,CONTENT } from "../landingContent";
 
 const pillarIcons: LucideIcon[] = [Leaf, Eye, Settings];
 

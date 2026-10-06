@@ -1,22 +1,22 @@
-import { FormDialogHeader } from "@/components/FormDialog";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
-import React, { useEffect, useRef, useState } from "react";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
+import React,{ useEffect,useRef,useState } from "react";
 import {
-  Dialog,
-  DialogContent,
+Dialog,
+DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Send,
-  MapPin,
-  FileText,
-  Camera,
-  ArrowLeft,
-  ShieldCheck,
-  Navigation,
-  Trash2,
+Send,
+MapPin,
+FileText,
+Camera,
+ArrowLeft,
+ShieldCheck,
+Navigation,
+Trash2,
 } from "lucide-react";
-import { VIOLATION_OPTIONS, type ReportFormData } from "./types";
+import { VIOLATION_OPTIONS,type ReportFormData } from "./types";
 import { reportStyles } from "./reportStyles";
 
 interface ReviewModalProps {

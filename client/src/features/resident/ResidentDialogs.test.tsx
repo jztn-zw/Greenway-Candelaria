@@ -6,7 +6,7 @@ import ResidentSettings from "./settings/ResidentSettings";
 import NotificationModal from "./notifications/NotificationModal";
 import ResidentAnnouncementModal from "./announcements/ResidentAnnouncementModal";
 import ReviewModal from "./waste-reporting/ReviewModal";
-import LogoutConfirmModal from "@/components/LogoutConfirmModal";
+import LogoutConfirmModal from "@/components/dialogs/LogoutConfirmModal";
 import type { ReportFormData } from "./waste-reporting/types";
 
 const mocks = vi.hoisted(() => ({ announcement: { id: "notice-1", title: "Collection update", body: "Collection starts at 7 AM.", type: "GENERAL", created_at: "2026-09-28 00:00:00" }, announcementState: "success" as "success" | "loading" | "error", errorStatus: null as number | null, refetch: vi.fn(), markRead: vi.fn().mockResolvedValue(undefined) }));

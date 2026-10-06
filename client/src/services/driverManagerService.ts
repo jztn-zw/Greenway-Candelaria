@@ -147,17 +147,6 @@ export interface DriverMeData {
   last_login?: string | null;
 }
 
-export interface DriverMessageRow {
-  id: string;
-  driver_id: string;
-  sent_by: string;
-  sender_name?: string;
-  route_id?: string | null;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
-
 export const fetchDriverMe = async (): Promise<DriverMeData> => {
   const res = await api.get<{ data: DriverMeData }>("/drivers/me");
   return res.data.data;
@@ -172,18 +161,7 @@ export const fetchCollectorDashboardProfile = async (): Promise<CollectorDashboa
     params: { view: "dashboard" },
   });
   return res.data.data;
-};
-
-export const fetchDriverMyMessages = async (): Promise<DriverMessageRow[]> => {
-  try {
-    const res = await api.get<{ data: DriverMessageRow[] }>("/drivers/me/messages");
-    return res.data.data ?? [];
-  } catch (error) {
-    return [];
-  }
-};
-
-export const reportTruckBreakdown = async (report: {
+};export const reportTruckBreakdown = async (report: {
   category: string;
   description: string;
   urgent: boolean;

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { changePassword, updateProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import ResidentProfile from "./ResidentProfile";
+import authService from "@/services/authService";
 
 const mocks = vi.hoisted(() => ({
   profile: { id: "resident", full_name: "Test Resident", username: "test_resident", email: "resident@example.com",
@@ -106,4 +107,45 @@ it("requires confirmation before logging out from the resident profile", async (
     await act(async () => signOut.click()); expect(logout).not.toHaveBeenCalled(); await click("Cancel"); expect(logout).not.toHaveBeenCalled();
     await act(async () => signOut.click()); await click("Log Out"); expect(logout).toHaveBeenCalledOnce();
   } finally { logout.mockRestore(); }
+});
+
+it("lets an existing resident create a recovery code after confirming their password", async () => {
+  const replace = vi.spyOn(authService, "replaceRecoveryCode").mockResolvedValue({ recovery_code: "ABCD-1234-ABCD-1234-ABCD-1234-ABCD-1234" });
+  try {
+    await click("Manage recovery code");
+    change("recovery-password", "current-password");
+    await click("Create recovery code");
+    expect(replace).toHaveBeenCalledWith("current-password");
+    expect(document.body.textContent).toContain("ABCD-1234-ABCD-1234-ABCD-1234-ABCD-1234");
+    expect(button("Done")).toBeDisabled();
+  } finally { replace.mockRestore(); }
+});
+
+
+it("shows avatar saving feedback and keeps the confirmed avatar until the request finishes", async () => {
+
+  await click("Customize avatar");
+  let finish!: (value: Awaited<ReturnType<typeof updateProfile>>) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await click("Select Man with styled hair on blue avatar");
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeInTheDocument();
+  expect(button("Close")).toBeDisabled();
+  expect(button("Customize avatar")).toBeDisabled();
+  expect(localStorage.getItem("greenway:resident-avatar:resident")).toBeNull();
+  await act(async () => finish({ ...mocks.profile, avatar_url: "/profile-avatars/avatar-7.png" } as Awaited<ReturnType<typeof updateProfile>>));
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBe("/profile-avatars/avatar-7.png");
+});
+
+it("clears avatar saving feedback after a failure and allows another attempt", async () => {
+
+  await click("Customize avatar");
+  let fail!: (error: Error) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+  await click("Select Man with styled hair on blue avatar");
+  await act(async () => fail(new Error("Offline")));
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeNull();
+  expect(button("Select Man with styled hair on blue avatar")).not.toBeDisabled();
+  expect(localStorage.getItem("greenway:resident-avatar:resident")).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBeNull();
 });

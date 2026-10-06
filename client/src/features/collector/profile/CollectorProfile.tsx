@@ -1,54 +1,54 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { useState, useEffect } from "react";
+import { useState,useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { collectorKey, useCollectorAction, useCollectorQuery } from "@/lib/collectorQuery";
+import { collectorKey,useCollectorAction,useCollectorQuery } from "@/lib/collectorQuery";
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar,
-  User,
-  Mail,
-  Phone,
-  Lock,
-  Truck,
-  Eye,
-  EyeOff,
-  Wrench,
-  Users,
-  ChevronRight,
-  LogOut,
-  ShieldCheck,
-  AtSign,
-  SquarePen,
+Calendar,
+User,
+Mail,
+Phone,
+Lock,
+Truck,
+Eye,
+EyeOff,
+Wrench,
+Users,
+ChevronRight,
+LogOut,
+ShieldCheck,
+AtSign,
+SquarePen,
 } from "lucide-react";
-import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
-import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
+import { ProfileAvatarControl,ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { DEFAULT_PROFILE_AVATAR_ID,isProfileAvatarId,profileAvatarForAccount,profileAvatarIdFromUrl,profileAvatarSrc,type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CollectorProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { Dialog,DialogContent } from "@/components/ui/dialog";
+import { CollectorProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import useAuthStore from "@/store/authStore";
 import {
-  fetchProfile,
-  updateProfile,
-  changePassword,
-  UserProfile,
+fetchProfile,
+updateProfile,
+changePassword,
+UserProfile,
 } from "@/services/profileService";
 import {
-  fetchDriverMe,
-  reportTruckBreakdown,
+fetchDriverMe,
+reportTruckBreakdown,
 } from "@/services/driverManagerService";
 import { toast } from "@/lib/toast";
 import { formatManilaDateTime } from "@/utils/date";
 import TruckBreakdownDialog from "../components/TruckBreakdownDialog";
 import { CollectorModalHeader } from "../components/CollectorModal";
 import { collectorModalStyles as modalStyles } from "../components/collectorModalStyles";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import CollectorLogoutDialog from "../components/CollectorLogoutDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { collectorProfileStyles as styles } from "./collectorProfileStyles";
@@ -133,7 +133,8 @@ const CollectorProfile = () => {
   const retry = () => { if (profileQuery.isError) void profileQuery.refetch(); if (driverQuery.isError) void driverQuery.refetch(); };
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [savingAvatarId, setSavingAvatarId] = useState<ProfileAvatarId | null>(null);
+  const savingAvatar = savingAvatarId !== null;
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
@@ -329,7 +330,7 @@ const CollectorProfile = () => {
   const joined = joinedAt ? formatManilaDateTime(joinedAt, { year: "numeric", month: "long" }) : null;
   const saveAvatar = async (selectedId: ProfileAvatarId) => {
     if (!avatarAccountId || savingAvatar) return;
-    setSavingAvatar(true);
+    setSavingAvatarId(selectedId);
     try {
       const updated = await runProfileAction(() => updateProfile({ avatar_url: profileAvatarSrc(selectedId) }));
       client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
@@ -341,7 +342,7 @@ const CollectorProfile = () => {
     } catch {
       toast.error("Could not update your avatar. Please try again.");
     } finally {
-      setSavingAvatar(false);
+      setSavingAvatarId(null);
     }
   };
 
@@ -360,7 +361,7 @@ const CollectorProfile = () => {
           {/* Avatar & Core Identity */}
           <div className={styles.identity}>
             <div className={styles.identityRow}>
-              <ProfileAvatarControl avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
+              <ProfileAvatarControl saving={savingAvatar} avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
 
               <div className={styles.identityDetails}>
                 <div className={styles.nameRow}>
@@ -588,14 +589,14 @@ const CollectorProfile = () => {
         </div>
       </div>
 
-      <Dialog open={avatarOpen} onOpenChange={setAvatarOpen}>
+      <Dialog open={avatarOpen} onOpenChange={(open) => { if (!savingAvatar) setAvatarOpen(open); }}>
         <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
-          <CollectorModalHeader title="Choose avatar" description="Select one of the ten profile avatars." icon={<Users />} onClose={() => setAvatarOpen(false)} />
+          <CollectorModalHeader title="Choose avatar" description="Select one of the ten profile avatars." icon={<Users />} disabled={savingAvatar} onClose={() => { if (!savingAvatar) setAvatarOpen(false); }} />
           <div className={modalStyles.body}>
-            <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
+            <ProfileAvatarPicker saving={savingAvatarId} selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
           </div>
           <div className={modalStyles.footer}>
-            <Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} className={modalStyles.cancelButton}>Close</Button>
+            <Button type="button" variant="outline" disabled={savingAvatar} onClick={() => setAvatarOpen(false)} className={modalStyles.cancelButton}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>

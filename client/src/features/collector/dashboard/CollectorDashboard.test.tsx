@@ -125,3 +125,10 @@ it("keeps the loaded assignment visible after a failed background refresh", asyn
   expect(host.textContent).toContain("Showing the last loaded data");
   expect(host.querySelector("h1")?.textContent).not.toBe("This page couldn't load");
 });
+
+// This test chooses the trusted clock fixture via its fake timer date.
+vi.mock("@/lib/serverClock", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/lib/serverClock")>()),
+  getSystemDate: () => new Date(Date.now()),
+  getSystemNow: () => Date.now(), getServerNow: () => Date.now(),
+}));

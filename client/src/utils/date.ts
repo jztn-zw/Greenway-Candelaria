@@ -1,6 +1,11 @@
+import { getServerNow,getSystemDate } from "@/lib/serverClock";
+import { parseApiTimestamp } from "./apiTimestamp";
+export { parseApiTimestamp } from "./apiTimestamp";
+
 export interface RelativeTimeOptions {
   emptyLabel?: string;
   dateOptions?: Intl.DateTimeFormatOptions;
+  now?: number | null;
 }
 
 export const MANILA_TIME_ZONE = "Asia/Manila";
@@ -15,25 +20,13 @@ const MANILA_WEEKDAYS = [
   "Saturday",
 ] as const;
 
-/** Parses API timestamps as UTC. MySQL returns UTC DATETIME values without Z. */
-export const parseApiTimestamp = (value: string | Date | null | undefined): Date | null => {
-  if (!value) return null;
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  const normalizedValue = value.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(value)
-    ? value
-    : /^\d{4}-\d{2}-\d{2}/.test(value)
-      ? `${value.replace(" ", "T")}Z`
-      : value;
-  const date = new Date(normalizedValue);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
 /** Formats an API timestamp using GreenWay's existing compact relative-time labels. */
 export const formatRelativeTime = (
   value: string | null | undefined,
   {
     emptyLabel = "",
     dateOptions = { month: "short", day: "numeric" },
+    now = getServerNow(),
   }: RelativeTimeOptions = {},
 ): string => {
   if (!value) return emptyLabel || "";
@@ -41,7 +34,12 @@ export const formatRelativeTime = (
   const date = parseApiTimestamp(value);
   if (!date) return value;
 
-  const differenceInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  // Without a trusted clock, show the actual Philippine date/time instead of
+  // inventing a relative age from a potentially incorrect device clock.
+  if (now === null) return formatManilaDateTime(date, {
+    ...dateOptions, year: "numeric", hour: "numeric", minute: "2-digit",
+  });
+  const differenceInSeconds = Math.floor((now - date.getTime()) / 1000);
   if (differenceInSeconds < 60) return "Just now";
   if (differenceInSeconds < 3600) return `${Math.floor(differenceInSeconds / 60)}m ago`;
   if (differenceInSeconds < 86400) return `${Math.floor(differenceInSeconds / 3600)}h ago`;
@@ -66,7 +64,7 @@ export const formatManilaDateTime = (
 };
 
 /** Returns the current Manila calendar fields without depending on the device timezone. */
-export const getManilaNow = (value: Date = new Date()) => {
+export const getManilaNow = (value: Date = getSystemDate()) => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: MANILA_TIME_ZONE,
     year: "numeric",
@@ -75,6 +73,8 @@ export const getManilaNow = (value: Date = new Date()) => {
     weekday: "long",
     hour: "2-digit",
     hourCycle: "h23",
+    minute: "2-digit",
+    second: "2-digit",
   }).formatToParts(value);
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((entry) => entry.type === type)?.value ?? "";
@@ -85,11 +85,26 @@ export const getManilaNow = (value: Date = new Date()) => {
     month: Number(part("month")),
     day: Number(part("day")),
     hour: Number(part("hour")),
+    minute: Number(part("minute")),
+    second: Number(part("second")),
     weekday,
     weekdayIndex: Math.max(0, MANILA_WEEKDAYS.indexOf(weekday as (typeof MANILA_WEEKDAYS)[number])),
     dateKey: `${part("year")}-${part("month")}-${part("day")}`,
   };
 };
+
+/** A date-picker carrier of Philippine calendar fields, not a stored instant. */
+export const toManilaCalendarDate = (value: string | Date = getSystemDate()) => {
+  const instant = parseApiTimestamp(value);
+  if (!instant) return new Date(NaN);
+  const fields = getManilaNow(instant);
+  return new Date(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second);
+};
+
+/** Converts picker fields in Philippine time to a UTC instant for saving. */
+export const fromManilaCalendarDate = (value: Date) => new Date(Date.UTC(
+  value.getFullYear(), value.getMonth(), value.getDate(), value.getHours() - 8, value.getMinutes(), value.getSeconds(), value.getMilliseconds(),
+));
 
 /** Formats a YYYY-MM-DD calendar value without shifting it across timezones. */
 export const formatDateOnly = (

@@ -12,7 +12,7 @@ import {
   Sun,
   Moon,
   CheckCheck,
-  } from "lucide-react";
+} from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   Popover,
@@ -23,7 +23,8 @@ import AdminNotificationModal, { type AdminNotificationDetail } from "@/features
 import { getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
 import useNotifications from "@/features/admin/notifications/useAdminNotifications";
 import { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
+import { parseApiTimestamp } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 
 const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin": "Admin Dashboard",
@@ -54,6 +55,7 @@ const getAdminPageTitle = (pathname: string) => {
 };
 
 const AdminTopBar = () => {
+  const { now, formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -100,7 +102,7 @@ const AdminTopBar = () => {
     else {
       const { headline, message } = getAdminNotificationPresentation(n);
       setModalNotification({ id: n.id, title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
-        message, type: n.type, time: formatRelativeTime(n.created_at),
+        message, type: n.type, created_at: n.created_at, time: formatRelativeTime(n.created_at),
         ref_module: n.ref_module, metadata: n.metadata });
     }
   };
@@ -109,8 +111,8 @@ const AdminTopBar = () => {
   const hasMoreNotifications = visibleNotificationCount < total;
   const recentNotificationCount = recentCount ?? notifications.filter((notification) => {
     const timestamp = parseApiTimestamp(notification.created_at)?.getTime();
-    if (timestamp === undefined) return false;
-    const elapsed = Date.now() - timestamp;
+    if (timestamp === undefined || now === null) return false;
+    const elapsed = now - timestamp;
     return elapsed >= 0 && elapsed < 86_400_000;
   }).length;
   const loadMoreNotifications = () => {

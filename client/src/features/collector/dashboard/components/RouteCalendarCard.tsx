@@ -1,19 +1,21 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { useCollectorQuery } from "@/lib/collectorQuery";
 import { getEventColors } from "@/components/calendar/calendar.utils";
-import { useMemo, useState } from "react";
+import { useMemo,useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
-import { CollectorCalendarCardSkeleton } from "@/components/PageLoadingSkeletons";
+import { CollectorCalendarCardSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { getManilaNow } from "@/utils/date";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
 const RouteCalendarCard = () => {
+  useSystemTime();
   const navigate = useNavigate();
   const today = getManilaNow();
   const [currentDate, setCurrentDate] = useState(() => new Date(today.year, today.month - 1, 1));

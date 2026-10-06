@@ -50,6 +50,11 @@ const authenticate = async (req, res, next) => {
     req.user = user;
     req.token = token;
 
+    if (user.role === "RESIDENT" && (user.profile_completed === 0 || user.profile_completed === false) &&
+        req.baseUrl !== "/api/auth" && req.baseUrl !== "/api/barangays") {
+      return error(res, "Complete your resident profile before continuing", 403);
+    }
+
     next();
   } catch (err) {
     if (err.name === "JsonWebTokenError") {

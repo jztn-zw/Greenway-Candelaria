@@ -1,3 +1,4 @@
+import { getSystemDate } from "@/lib/serverClock";
 import { navigationStyles, navigationSectionTitle } from "../navigationStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -28,8 +29,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import LogoutConfirmModal from "@/components/LogoutConfirmModal";
-import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
+import LogoutConfirmModal from "@/components/dialogs/LogoutConfirmModal";
+import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import postsService from "@/services/postsService";
@@ -57,7 +58,7 @@ const ResidentSidebar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
-  const { unreadContentCount, unreadCount, markContentAsRead } = useNotifications();
+  const { unreadContentCount, unreadCount } = useNotifications();
   const [hasNewPost, setHasNewPost] = useState(false);
   const latestPosts = useResidentQuery("posts", ["latest-badge"],
     () => postsService.getPage<{ id: string; created_at?: string }>({ status: "PUBLISHED", page: 1, limit: 1 }));
@@ -74,20 +75,20 @@ const ResidentSidebar = () => {
     let isMounted = true;
 
     const checkNewPosts = async () => {
+      if (unreadContentCount > 0) {
+        if (isMounted) setHasNewPost(true);
+        return;
+      }
       // If resident is currently on Contents, clear badge and mark seen
       if (location.pathname.startsWith("/resident/contents")) {
         if (isMounted) setHasNewPost(false);
-
-        // Preserve content acknowledgement across the entire history without
-        // downloading older notification pages.
-        if (unreadContentCount > 0) void markContentAsRead();
 
         try {
           const posts = latestPosts.data?.posts ?? [];
           if (posts.length > 0) {
             const latest = posts[0];
             localStorage.setItem(lastSeenKey, String(latest.id));
-            localStorage.setItem(lastSeenTimeKey, new Date().toISOString());
+            localStorage.setItem(lastSeenTimeKey, getSystemDate().toISOString());
           }
         } catch {
           // ignore network errors silently
@@ -95,14 +96,7 @@ const ResidentSidebar = () => {
         return;
       }
 
-      // 1. Check if there is an unread NEW_POST notification in the notifications store
-      const hasUnreadPostNotif = unreadContentCount > 0;
-      if (hasUnreadPostNotif) {
-        if (isMounted) setHasNewPost(true);
-        return;
-      }
-
-      // 2. Fetch latest published post to check if there is a new post since last visit
+      // Check the latest published post for accounts without unread alerts.
       try {
         const posts = latestPosts.data?.posts ?? [];
         if (!isMounted) return;
@@ -119,7 +113,7 @@ const ResidentSidebar = () => {
         if (!lastSeenId && !lastSeenTime) {
           // First time opening app: treat existing posts as seen to prevent stale indicator
           localStorage.setItem(lastSeenKey, String(latest.id));
-          localStorage.setItem(lastSeenTimeKey, new Date().toISOString());
+          localStorage.setItem(lastSeenTimeKey, getSystemDate().toISOString());
           setHasNewPost(false);
           return;
         }
@@ -153,7 +147,6 @@ const ResidentSidebar = () => {
     currentUser?.id,
     lastSeenKey,
     lastSeenTimeKey,
-    markContentAsRead,
   ]);
 
   const hasUnreadNotifications = unreadCount > 0;
@@ -346,7 +339,7 @@ const ResidentSidebar = () => {
           <div ref={gearMenuRef} className={navigationStyles.accountRow}>
             <div className="relative shrink-0">
               <Avatar className={navigationStyles.avatar}>
-                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "RESIDENT"))} alt="" className="object-cover object-center" />
+                <AvatarImage src={profileAvatarImageSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "RESIDENT"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>

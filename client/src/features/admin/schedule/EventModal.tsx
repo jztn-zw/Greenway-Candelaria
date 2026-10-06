@@ -1,43 +1,36 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React,{ useState,useEffect,useMemo } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogTitle,
+DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FieldButton } from "@/components/ui/field-button";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+Popover,
+PopoverContent,
+PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  CalendarDays,
-  CalendarPlus,
-  CalendarCheck,
-  ChevronDown,
-  X,
+CalendarDays,
+CalendarPlus,
+CalendarCheck,
+ChevronDown,
+X,
 } from "lucide-react";
 import {
-  CalendarEvent,
-  CreateEventPayload,
+CalendarEvent,
+CreateEventPayload,
 } from "@/services/scheduleService";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getManilaCalendarDate, calendarDateKey } from "@/components/calendar/calendar.utils";
+import { getManilaCalendarDate,calendarDateKey } from "@/components/calendar/calendar.utils";
 
 interface EventModalProps {
   isOpen: boolean;

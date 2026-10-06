@@ -1,6 +1,6 @@
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import { SearchInput } from "@/components/common/SearchInput";
-import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
+import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,20 +8,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
-import { cn } from "@/lib/utils";
 import { fetchBarangays } from "@/services/barangaysService";
 import type { AdminReportsKPIs } from "@/services/reportsService";
 import { format } from "date-fns";
 import { ArrowUpDown, Calendar as CalendarIcon, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { ReportStatus, ViolationType } from "./types";
+import { ViolationType } from "./types";
 
 interface ReportFiltersProps {
   search: string;
@@ -48,11 +47,7 @@ const violationTypes: ViolationType[] = [
   "Open Burning",
   "Littering",
   "Other",
-];
-
-const statuses: ReportStatus[] = ["Submitted", "Under Review", "Dispatched", "Resolved"];
-
-const ReportFilters = ({
+];const ReportFilters = ({
   search,
   onSearchChange,
   violationFilter,

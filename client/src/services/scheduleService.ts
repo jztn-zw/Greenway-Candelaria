@@ -62,14 +62,7 @@ export const fetchCalendarEvents = async (params?: {
     params,
   });
   return data.data ?? [];
-};
-
-export const fetchCalendarEventById = async (id: string): Promise<CalendarEvent> => {
-  const { data } = await api.get<{ data: CalendarEvent }>(`/schedule/events/${id}`);
-  return data.data;
-};
-
-export const createCalendarEvent = async (
+};export const createCalendarEvent = async (
   payload: CreateEventPayload
 ): Promise<CalendarEvent> => {
   const { data } = await api.post<{ data: CalendarEvent }>("/schedule/events", payload);

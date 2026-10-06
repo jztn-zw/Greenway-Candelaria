@@ -1,5 +1,5 @@
-import { formatReplayTime, getReplayDuration, getReplayTargetProgress, getReplayTargetState, sampleReplayTrip, type ReplayTrip } from "./replayTrip";
-import { fitReplayVideoMap, loadReplayVideoMap } from "./replayVideoMap";
+import { formatReplayTime,getReplayDuration,getReplayTargetProgress,getReplayTargetState,sampleReplayTrip,type ReplayTrip } from "./replayTrip";
+import { fitReplayVideoMap,loadReplayVideoMap } from "./replayVideoMap";
 import { encodeReplayVideoFast } from "./replayVideoEncoder";
 import { readThemeColor } from "@/lib/themeColors";
 

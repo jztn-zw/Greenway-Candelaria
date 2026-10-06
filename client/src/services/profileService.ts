@@ -4,7 +4,7 @@ export interface UserProfile {
   id: string;
   full_name: string;
   username: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   role: string;
   status: string;
@@ -45,19 +45,6 @@ export const fetchProfile = async (): Promise<UserProfile> => {
 export const updateProfile = async (payload: UpdateProfilePayload): Promise<UserProfile> => {
   const { data } = await api.put<{ data: UserProfile }>('/users/profile', payload);
   return data.data;
-};
-
-export const uploadAvatar = async (file: File): Promise<{ avatar_url: string; user: UserProfile }> => {
-  const form = new FormData();
-  form.append('avatar', file);
-  const { data } = await api.post<{ data: { avatar_url: string; user: UserProfile } }>(
-    '/users/avatar',
-    form,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
-  );
-  return data.data;
-};
-
-export const changePassword = async (payload: ChangePasswordPayload): Promise<void> => {
+};export const changePassword = async (payload: ChangePasswordPayload): Promise<void> => {
   await api.put('/users/change-password', payload);
 };

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { toggleThemeMode } from "@/lib/theme";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Moon, Sun } from "lucide-react";
+import { Menu,X,Moon,Sun } from "lucide-react";
 import AuthModal from "./AuthModal";
 
 const Navbar = () => {

@@ -1,15 +1,15 @@
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import React from "react";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
-import { Copy, Leaf, Trash2 } from "lucide-react";
-import { DAYS, WASTE_MAP } from "../constants";
+import { Copy,Leaf,Trash2 } from "lucide-react";
+import { DAYS,WASTE_MAP } from "../constants";
 import type { Day } from "../hooks/useRoutes";
 
 interface DuplicateDialogProps {

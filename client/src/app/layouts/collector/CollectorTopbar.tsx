@@ -19,9 +19,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import useNotifications from "@/hooks/useNotifications";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 import {
   openCollectorNotification,
   getCollectorNotificationVisual,
@@ -45,6 +45,7 @@ const getCollectorPageTitle = (pathname: string) => {
 import CollectorNotificationModal from "@/features/collector/notifications/CollectorNotificationModal";
 
 const CollectorTopBar = () => {
+  const { formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const location = useLocation();
   const { toggleSidebar } = useSidebar();

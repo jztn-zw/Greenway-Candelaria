@@ -35,3 +35,10 @@ it("applies and clears the selected date preset through the shared chips", () =>
   fireEvent.click(screen.getByRole("button", { name: "30 days" }));
   expect(changed).toHaveBeenLastCalledWith({ from: new Date(2026, 8, 3), to: new Date(2026, 9, 2) });
 });
+
+// This test chooses the trusted clock fixture via its fake timer date.
+vi.mock("@/lib/serverClock", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/lib/serverClock")>()),
+  getSystemDate: () => new Date(Date.now()),
+  getSystemNow: () => Date.now(), getServerNow: () => Date.now(),
+}));

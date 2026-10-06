@@ -28,6 +28,7 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
          u.status,
          u.barangay_id,
          u.street_id,
+         u.profile_completed,
          d.truck_id AS assigned_truck_id
        FROM sessions s
        JOIN users u ON u.id = s.user_id
@@ -44,6 +45,7 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
       return null;
     }
     if (allowedRoles && !allowedRoles.has(user.role)) return null;
+    if (user.role === "RESIDENT" && (user.profile_completed === 0 || user.profile_completed === false)) return null;
 
     return user;
   } catch {

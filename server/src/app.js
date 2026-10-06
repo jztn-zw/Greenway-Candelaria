@@ -4,6 +4,8 @@ const helmet = require("helmet");
 const errorHandler = require("./middleware/errorHandler");
 const requestContext = require("./middleware/requestContext");
 const { adminChanges } = require("./middleware/adminChanges");
+const { pool } = require("./config/db");
+const { success } = require("./utils/apiResponse");
 
 const app = express();
 app.disable("x-powered-by");
@@ -46,6 +48,13 @@ app.get("/health", (req, res) => {
 });
 
 // Routes
+app.get("/api/time", async (req, res, next) => {
+  try {
+    const [rows] = await pool.query("SELECT UTC_TIMESTAMP(3) AS server_time");
+    res.set("Cache-Control", "no-store");
+    return success(res, { server_time: rows[0].server_time });
+  } catch (error) { next(error); }
+});
 app.use("/api", adminChanges);
 app.use("/api/auth", require("./modules/auth/auth.routes"));
 app.use("/api/barangays", require("./modules/barangays/barangays.routes"));

@@ -1,6 +1,6 @@
-import { useResidentMutation, useResidentQuery } from "@/lib/residentQuery";
+import { useResidentMutation,useResidentQuery } from "@/lib/residentQuery";
 import { toast } from "@/lib/toast";
-import notificationsService, { type NotificationFilters } from "@/services/notificationsService";
+import notificationsService,{ type NotificationFilters } from "@/services/notificationsService";
 import { fetchNotificationWindow } from "@/lib/notificationHistory";
 import { useCallback } from "react";
 import { usePendingAction } from "@/hooks/usePendingAction";
@@ -16,8 +16,8 @@ const useResidentNotifications = (filters: NotificationFilters = {}) => {
   const markAll = useResidentMutation(notificationsService.markAllNotificationsAsRead, "notifications");
   const clear = useResidentMutation(notificationsService.clearAllNotifications, "notifications");
   const markContent = useResidentMutation(notificationsService.markContentNotificationsAsRead, "notifications");
-  const markContentAsRead = useCallback(async () => {
-    try { await markContent(); } catch { toast.error("Could not mark notification as read"); }
+  const markContentAsRead = useCallback(async (postId: string) => {
+    try { await markContent(postId); } catch { toast.error("Could not mark notification as read"); }
   }, [markContent]);
   const markAsRead = useCallback(async (id: string) => {
     try { await markRead(id); } catch { toast.error("Could not mark notification as read"); }

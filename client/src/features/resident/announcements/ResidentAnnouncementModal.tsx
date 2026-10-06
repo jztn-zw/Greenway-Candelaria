@@ -1,32 +1,34 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemNow } from "@/lib/serverClock";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
-import { FormDialogHeader } from "@/components/FormDialog";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
-import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
-import React, { useRef, useEffect } from "react";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
+import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
+import React,{ useRef,useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
+Dialog,
+DialogContent,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import {
-  Megaphone,
-  CalendarClock,
-  CalendarDays,
-  Sparkles,
-  AlertTriangle,
-  Wrench,
+Megaphone,
+CalendarClock,
+CalendarDays,
+Sparkles,
+AlertTriangle,
+Wrench,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
-  fetchAnnouncementById,
-  markAsRead as markAnnouncementAsRead,
+fetchAnnouncementById,
+markAsRead as markAnnouncementAsRead,
 } from "@/services/announcementsService";
 import {
-  announcementTypeStyles,
-  AnnouncementType,
+announcementTypeStyles,
+AnnouncementType,
 } from "@/features/admin/announcements/types";
 import type { NotificationRow } from "@/services/notificationsService";
 
@@ -99,7 +101,7 @@ const formatAnnouncementTime = (dateStr?: string | null) => {
     });
     const full = `${datePart} at ${timePart}`;
 
-    const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+    const diffSec = Math.floor((getSystemNow() - d.getTime()) / 1000);
     if (diffSec < 0) return { relative: full, full };
     if (diffSec < 60) return { relative: "Just now", full };
 
@@ -180,6 +182,7 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
   showExactTime = false,
   footerDetails,
 }) => {
+  useSystemTime();
   const targetId = announcementId || (notification?.ref_module === "announcements" ? notification.ref_id : null);
   const query = useResidentQuery("announcements", ["detail", targetId], () => fetchAnnouncementById(targetId!),
     { enabled: open && !!targetId && !disableReadTracking, staleTime: 0 });
@@ -199,14 +202,14 @@ const ResidentAnnouncementModal: React.FC<ResidentAnnouncementModalProps> = ({
       onMarkRead(notification.id);
     }
   }, [open, targetId, disableReadTracking, markRead, notification, onMarkRead, query.isSuccess, query.isFetching]);
+  const errorStatus = (query.error as { response?: { status?: number } } | null)?.response?.status;
   useEffect(() => {
-    const status = (query.error as { response?: { status?: number } } | null)?.response?.status;
-    if (open && !disableReadTracking && (status === 403 || status === 404)) {
+    if (open && !disableReadTracking && (errorStatus === 403 || errorStatus === 404)) {
       toast.info("This announcement is no longer available.");
       onOpenChange(false);
       onUnavailable?.();
     }
-  }, [query.error, open, disableReadTracking, onOpenChange, onUnavailable]);
+  }, [errorStatus, open, disableReadTracking, onOpenChange, onUnavailable]);
 
   if (!open) return null;
 

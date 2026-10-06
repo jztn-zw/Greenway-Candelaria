@@ -1,5 +1,5 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
-import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
+import { formatManilaDateTime,parseApiTimestamp } from "@/utils/date";
 
 export interface PostItem {
   id: string;
@@ -38,15 +38,7 @@ export function formatCategory(cat: string): string {
 
 export function getCategoryBadgeStyle(cat: string): { bg: string; text: string; border: string; dot: string } {
   return getCategoryBadgeColors(cat);
-}
-
-export function getReadingTime(text: string = ""): string {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const minutes = Math.max(1, Math.ceil(words / 180));
-  return `${minutes} min read`;
-}
-
-export function parsePostDate(dateStr?: string | null): {
+}export function parsePostDate(dateStr?: string | null): {
   month: string;
   day: string;
   formatted: string;

@@ -1,36 +1,36 @@
 import "./collectorRouteHistory.css";
 import ListEmptyState from "@/components/common/ListEmptyState";
-import ResidentPageHeader, { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
+import ResidentPageHeader,{ ResidentPageTitle } from "@/components/common/ResidentPageHeader";
 import { BackButton } from "@/components/common/BackButton";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { collectorKey, collectorQueryDefaults, useCollectorQuery } from "@/lib/collectorQuery";
+import { collectorKey,collectorQueryDefaults,useCollectorQuery } from "@/lib/collectorQuery";
 import useAuthStore from "@/store/authStore";
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getWasteBadgeClass, isNonBiodegradable } from "../dashboard/dashboard.utils";
+import { getWasteBadgeClass,isNonBiodegradable } from "../dashboard/dashboard.utils";
 import {
-  History,
-  MapPin,
-  ChevronRight,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Truck,
-  Calendar,
-  Route,
+History,
+MapPin,
+ChevronRight,
+Clock,
+CheckCircle2,
+AlertTriangle,
+Truck,
+Calendar,
+Route,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { CollectorRouteHistorySkeleton, CollectorRouteHistoryRowsSkeleton, CollectorRouteHistoryDetailSkeleton } from "@/components/PageLoadingSkeletons";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { FilterPillTabs,type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { CollectorRouteHistorySkeleton,CollectorRouteHistoryRowsSkeleton,CollectorRouteHistoryDetailSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from "@/components/ui/select";
 import {
-  fetchCollectorHistoryPage,
-  fetchCollectorHistoryRun,
-  RouteHistoryItem,
+fetchCollectorHistoryPage,
+fetchCollectorHistoryRun,
+RouteHistoryItem,
 } from "@/services/driverManagerService";
 
 type StatusFilter = "all" | "completed" | "partial" | "no-collection";

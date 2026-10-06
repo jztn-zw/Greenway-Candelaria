@@ -1,4 +1,4 @@
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { AlertTriangle } from "lucide-react";
 
 interface EndRouteModalProps {

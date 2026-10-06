@@ -1,6 +1,6 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { CheckCircle2, Clock, MapPin, Pause } from "lucide-react";
+import { CheckCircle2,Clock,MapPin,Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getWasteBadgeClass } from "../../dashboard/dashboard.utils";
 

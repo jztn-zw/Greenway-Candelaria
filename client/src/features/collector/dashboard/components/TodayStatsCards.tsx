@@ -1,5 +1,5 @@
-import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
-import { CheckCircle2, SkipForward, Timer } from "lucide-react";
+import { AdminKpiCard,AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+import { CheckCircle2,SkipForward,Timer } from "lucide-react";
 import type { AssignmentData } from "./types";
 
 const TodayStatsCards = ({ data }: { data: AssignmentData }) => {

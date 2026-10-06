@@ -1,3 +1,4 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +98,7 @@ interface ActivityFeedProps {
 }
 
 const ActivityFeed = ({ activityLogs, className = "" }: ActivityFeedProps) => {
+  useSystemTime();
   const navigate = useNavigate();
 
   const activities = (activityLogs ?? []).map((log) => {

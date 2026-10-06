@@ -1,14 +1,15 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { getEventColors, getManilaCalendarDate, calendarDateKey, eventOccursOnDate } from "@/components/calendar/calendar.utils";
-import { AdminScheduleSkeleton } from "@/components/PageLoadingSkeletons";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { getEventColors,getManilaCalendarDate,calendarDateKey,eventOccursOnDate } from "@/components/calendar/calendar.utils";
+import { AdminScheduleSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { SearchInput } from "@/components/common";
 import { Button } from "@/components/ui/button";
-import { adminCommunityStyles as managerStyles, adminScheduleStyles as scheduleStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as managerStyles,adminScheduleStyles as scheduleStyles } from "@/components/common/communityContentStyles";
 
-import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
+import { useAdminMutation,useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
 createCalendarEvent as apicreateCalendarEvent,
@@ -18,8 +19,8 @@ CalendarEvent,
 CreateEventPayload,
 fetchCalendarEvents,
 } from "@/services/scheduleService";
-import { AlertCircle, CalendarDays, Plus } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import { AlertCircle,CalendarDays,Plus } from "lucide-react";
+import React,{ useMemo,useState } from "react";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { EventDetailModal } from "./EventDetailModal";
 import { EventModal } from "./EventModal";
@@ -27,6 +28,7 @@ import { ScheduleKPIs } from "./ScheduleKPIs";
 import { SelectedDayPanel } from "@/components/calendar/SelectedDayPanel";
 
 const AdminCollectionSchedule: React.FC = () => {
+  useSystemTime();
   const createCalendarEvent = useAdminMutation(apicreateCalendarEvent, "schedule");
   const updateCalendarEvent = useAdminMutation(apiupdateCalendarEvent, "schedule");
   const deleteCalendarEvent = useAdminMutation(apideleteCalendarEvent, "schedule");

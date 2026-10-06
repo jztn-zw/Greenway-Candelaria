@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
-import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { profileAvatarForAccount, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 import { cn } from "@/lib/utils";
 
 interface DriverCardGridProps {
@@ -111,7 +111,7 @@ const DriverCardGrid = ({
                 <div className={styles.cardHeader}>
                   <div className={styles.cardIdentity}>
                     <div className="w-11 h-11 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-sm sm:text-base font-body shrink-0 shadow-2xs group-hover:bg-primary/15 transition-all duration-200">
-                      <img src={profileAvatarSrc(profileAvatarForAccount(d.userId, d.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
+                      <img src={profileAvatarImageSrc(profileAvatarForAccount(d.userId, d.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold font-body text-foreground text-sm sm:text-base truncate group-hover:text-primary transition-colors">

@@ -1,3 +1,4 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, FileText, Truck, CheckCircle2, ArrowRight, Wrench } from "lucide-react";
@@ -11,6 +12,7 @@ interface NeedsAttentionProps {
 }
 
 const NeedsAttention = ({ attention }: NeedsAttentionProps) => {
+  useSystemTime();
   const navigate = useNavigate();
   const items = attention?.items ?? [];
   const attentionCount = (attention?.awaiting_triage ?? 0)

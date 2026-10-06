@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, Calendar, ChevronLeft, ChevronRight, Star, User } from "lucide-react";
-import { communityContentStyles as styles } from "@/components/communityContentStyles";
+import { useCallback,useEffect,useState } from "react";
+import { ArrowUpRight,Calendar,ChevronLeft,ChevronRight,Star,User } from "lucide-react";
+import { communityContentStyles as styles } from "@/components/common/communityContentStyles";
 import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 import PostImagePlaceholder from "@/components/common/PostImagePlaceholder";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { Button } from "@/components/ui/button";
-import { formatCategory, parsePostDate, type PostItem } from "./types";
+import { formatCategory,parsePostDate,type PostItem } from "./types";
 
 interface FeaturedPostCarouselProps {
   posts: PostItem[];

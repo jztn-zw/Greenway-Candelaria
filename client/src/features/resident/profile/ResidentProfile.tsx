@@ -1,41 +1,42 @@
 import KpiValue from "@/components/common/KpiValue";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
-import { useState, useEffect } from "react";
+import { useResidentQuery,useResidentResource,useResidentMutation } from "@/lib/residentQuery";
+import { useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Mail, Phone, Lock, User, Award, Calendar,
-  Heart, ChevronRight, Check,
-  ClipboardList, Eye, EyeOff,
-  ShieldCheck, MapPin, Sparkles, AtSign, LogOut, Users, SquarePen,
+Mail,Phone,Lock,User,Award,Calendar,
+Heart,ChevronRight,Check,
+ClipboardList,Eye,EyeOff,
+ShieldCheck,MapPin,Sparkles,AtSign,LogOut,Users,SquarePen,
 } from "lucide-react";
-import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
-import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
+import { ProfileAvatarControl,ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { DEFAULT_PROFILE_AVATAR_ID,isProfileAvatarId,profileAvatarForAccount,profileAvatarIdFromUrl,profileAvatarSrc,type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
-import { FormDialog } from "@/components/FormDialog";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { FormDialog } from "@/components/dialogs/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { ProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { ProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { profileStyles } from "./profileStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
+import { AccountRecovery } from "@/features/landing/components/AccountRecovery";
 import {
-  fetchProfile,
-  updateProfile,
-  changePassword,
-  fetchMyReportStats,
-  UserProfile,
+fetchProfile,
+updateProfile,
+changePassword,
+fetchMyReportStats,
+UserProfile,
 } from "@/services/profileService";
 import {
-  fetchBarangays,
-  fetchBarangayStreets,
+fetchBarangays,
+fetchBarangayStreets,
 } from "@/services/barangaysService";
 import { toast } from "@/lib/toast";
 import { formatManilaDateTime } from "@/utils/date";
@@ -115,7 +116,9 @@ const ResidentProfile = () => {
   const savePassword = useResidentMutation(changePassword);
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarModal, setAvatarModal] = useState(false);
-  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [recoveryModal, setRecoveryModal] = useState(false);
+  const [savingAvatarId, setSavingAvatarId] = useState<ProfileAvatarId | null>(null);
+  const savingAvatar = savingAvatarId !== null;
 
   // Edit modal
   const [editModal, setEditModal] = useState<{
@@ -319,7 +322,7 @@ const ResidentProfile = () => {
     profile?.role?.toUpperCase() === "RESIDENT" && profile.status?.toUpperCase() === "ACTIVE";
   const saveAvatar = async (selectedId: ProfileAvatarId) => {
     if (!profile?.id || savingAvatar) return;
-    setSavingAvatar(true);
+    setSavingAvatarId(selectedId);
     try {
       const updated = await saveProfile({ avatar_url: profileAvatarSrc(selectedId) });
       setProfile(updated);
@@ -331,7 +334,7 @@ const ResidentProfile = () => {
     } catch {
       toast.error("Could not update your avatar. Please try again.");
     } finally {
-      setSavingAvatar(false);
+      setSavingAvatarId(null);
     }
   };
 
@@ -405,7 +408,7 @@ const ResidentProfile = () => {
         {/* Avatar & Core Identity */}
         <div className={profileStyles.identity}>
           <div className={profileStyles.identityRow}>
-            <ProfileAvatarControl avatarId={avatarId} onCustomize={() => setAvatarModal(true)} avatarClassName={profileStyles.avatar} />
+            <ProfileAvatarControl saving={savingAvatar} avatarId={avatarId} onCustomize={() => setAvatarModal(true)} avatarClassName={profileStyles.avatar} />
 
             <div className={profileStyles.identityDetails}>
               <div className={profileStyles.nameRow}>
@@ -472,9 +475,10 @@ const ResidentProfile = () => {
           />
           <FieldRow
             label="Email Address"
-            value={profile.email}
+            value={profile.email ?? ""}
+            placeholder="No email address added"
             icon={Mail}
-            isEmail
+            isEmail={Boolean(profile.email)}
             onEdit={() =>
               toast.info("Contact MENRO to change your registered email address.")
             }
@@ -505,9 +509,16 @@ const ResidentProfile = () => {
             masked
             onEdit={() => setPwModal((p) => ({ ...p, open: true }))}
           />
+          <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div><p className="text-sm font-medium">Recovery code</p><p className="text-xs text-muted-foreground">Recover your account without email or SMS.</p></div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setRecoveryModal(true)}>Manage recovery code</Button>
+          </div>
         </div>
       </section>
 
+      <FormDialog open={recoveryModal} onOpenChange={setRecoveryModal} title="Recovery code" description="Keep your code somewhere private." icon={<ShieldCheck />}>
+        {recoveryModal && <AccountRecovery mode="generate" onBack={() => setRecoveryModal(false)} />}
+      </FormDialog>
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
       <section className={profileStyles.panel} aria-labelledby="resident-profile-impact-title">
         <div className={profileStyles.sectionHeader}>
@@ -725,11 +736,11 @@ const ResidentProfile = () => {
         {addressModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{addressModal.error}</p>}
       </FormDialog>
 
-      <FormDialog open={avatarModal} onOpenChange={setAvatarModal} title="Choose Avatar" description="Select one of the ten profile avatars." icon={<Users />}
+      <FormDialog open={avatarModal} onOpenChange={setAvatarModal} pending={savingAvatar} title="Choose Avatar" description="Select one of the ten profile avatars." icon={<Users />}
         className="resident-profile-dialog"
-        footer={<Button type="button" variant="outline" onClick={() => setAvatarModal(false)} className={modalStyles.cancelButton}>Close</Button>}
+        footer={<Button type="button" variant="outline" disabled={savingAvatar} onClick={() => setAvatarModal(false)} className={modalStyles.cancelButton}>Close</Button>}
       >
-        <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
+        <ProfileAvatarPicker saving={savingAvatarId} selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
       </FormDialog>
 
       <FormDialog open={editModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("profile"); }}

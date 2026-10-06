@@ -17,16 +17,14 @@ import {
 } from "@/components/ui/select";
 import { X, Truck as TruckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
-import type { Truck, TruckOperationalStatus, Driver } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import type { Truck, TruckOperationalStatus } from "../types";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 interface TruckEditorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingTruck: Truck | null;
-  drivers: Driver[];
-  trucks: Truck[];
   isSaving?: boolean;
   onSave: (data: {
     name: string;
@@ -40,8 +38,6 @@ const TruckEditorModal = ({
   open,
   onOpenChange,
   editingTruck,
-  drivers,
-  trucks,
   isSaving = false,
   onSave,
 }: TruckEditorModalProps) => {

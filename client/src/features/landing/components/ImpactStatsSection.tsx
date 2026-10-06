@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useStaggerReveal } from "@/hooks/useScrollReveal";
-import { MapPin, Truck, Users, Flag, LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { CONTENT, StatisticsContent } from "../landingContent";
+import { MapPin,Truck,Users,Flag,LucideIcon } from "lucide-react";
+import { useEffect,useRef,useState } from "react";
+import { CONTENT,StatisticsContent } from "../landingContent";
 import { useNavigate } from "react-router-dom";
 import { handleLandingNavigation } from "../utils/navigation";
 

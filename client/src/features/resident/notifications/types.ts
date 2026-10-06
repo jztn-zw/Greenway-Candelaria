@@ -18,20 +18,8 @@ export interface ResidentNotification {
   title: string;
   message: string;
   time: string;
+  created_at?: string;
   read: boolean;
   /** Extra payload for modals */
   details?: string;
 }
-
-export const categoryForType: Record<NotificationType, NotificationCategory> = {
-  "collection-reminder": "collection",
-  "truck-near": "collection",
-  "collection-done": "collection",
-  "schedule-change": "collection",
-  "missed-collection": "collection",
-  "system-announcement": "announcements",
-  announcement: "announcements",
-  system: "all",
-  "report-update": "reports",
-  "new-content": "content",
-};

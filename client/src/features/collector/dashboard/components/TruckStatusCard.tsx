@@ -1,6 +1,6 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { Truck, ShieldCheck, Wrench, Building2 } from "lucide-react";
+import { Truck,ShieldCheck,Wrench,Building2 } from "lucide-react";
 import { isNonBiodegradable } from "../dashboard.utils";
 
 export interface TruckCardProps {

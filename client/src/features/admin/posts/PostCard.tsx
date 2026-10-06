@@ -1,3 +1,4 @@
+import { formatManilaDateTime } from "@/utils/date";
 import { useState, useEffect, useMemo } from "react";
 import { Eye, Heart, Star, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +27,7 @@ const PostCard = ({
   onTogglePublish,
   onToggleFeatured,
   onDelete,
-}: PostCardProps) => {
-  const isEvent = post.category === "Event";
-  const [imageIndex, setImageIndex] = useState(0);
+}: PostCardProps) => {  const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
 
   const validImages = useMemo(
@@ -107,7 +106,7 @@ const PostCard = ({
           <div className="absolute bottom-3 left-3 z-20">
             <span className="text-ui-overline font-medium text-foreground bg-card/90 backdrop-blur-sm rounded-md px-2 py-1 flex items-center gap-1 shadow-sm">
               <Calendar className="w-3 h-3" />
-              {new Date(post.scheduledDate).toLocaleDateString("en-US", {
+              {formatManilaDateTime(post.scheduledDate, {
                 month: "short",
                 day: "numeric",
                 year: "numeric",

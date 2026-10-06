@@ -31,8 +31,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import PaginationControls from "@/components/common/PaginationControls";
-import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
-import { AuditLogCardsSkeleton, AuditLogRowsSkeleton } from "@/components/PageLoadingSkeletons";
+import { adminAuditLogStyles as styles } from "@/components/common/communityContentStyles";
+import { AuditLogCardsSkeleton, AuditLogRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 const auditBadgeClass = "min-h-6 rounded-md px-2.5 py-0.5 text-[11px] font-semibold leading-4 shadow-none";
 

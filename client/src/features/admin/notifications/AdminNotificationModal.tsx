@@ -1,4 +1,5 @@
 import React from "react";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 import { getAdminNotificationMetadata } from "./notificationPresentation";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ export interface AdminNotificationDetail {
   title: string;
   message: string;
   time: string;
+  created_at?: string;
   type: string;
   details?: string;
   ref_module?: string | null;
@@ -88,6 +90,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
   open,
   onOpenChange,
 }) => {
+  const { formatTime } = useNotificationTime();
   if (!notification) return null;
 
   const config = typeConfig[notification.type] || {
@@ -123,7 +126,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
             <h3 className="gw-heading text-sm text-foreground leading-relaxed tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
             {notification.time && (
               <p className="text-xs text-muted-foreground font-normal">
-                <span>{notification.time}</span>
+                <span>{notification.created_at ? formatTime(notification.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }) : notification.time}</span>
               </p>
             )}
           </div>

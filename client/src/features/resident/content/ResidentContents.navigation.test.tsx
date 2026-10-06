@@ -14,7 +14,7 @@ vi.mock("@/services/postsService", () => ({ default: {
 } }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => ({ toggleSidebar: vi.fn() }) }));
-vi.mock("@/features/resident/notifications/useResidentNotifications", () => ({ default: () => ({ notifications: [], unreadCount: 0, markAsRead: vi.fn(), markAllAsRead: vi.fn() }) }));
+vi.mock("@/features/resident/notifications/useResidentNotifications", () => ({ default: () => ({ notifications: [], unreadCount: 0, markAsRead: vi.fn(), markAllAsRead: vi.fn(), markContentAsRead: vi.fn() }) }));
 
 const featuredPost: PostItem = {
   id: "featured-post", title: "Featured collection guide", body: "Full featured post details.",

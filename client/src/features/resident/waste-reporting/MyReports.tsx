@@ -1,69 +1,63 @@
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import { BackButton } from "@/components/common/BackButton";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { FilterPillTabs,type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { myReportsStyles } from "./myReportsStyles";
 import { reportDetailStyles } from "./reportDetailStyles";
-import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
+import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import {
-  useState,
-  useEffect,
+useState,
+useEffect,
 } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger
 } from "@/components/ui/select";
 import {
-  ChevronRight,
-  Clock,
-  FileText,
-  AlertCircle,
-  MapPin,
-  Camera,
-  EyeOff,
-  MessageSquare,
-  RefreshCw,
-  SortAsc,
-  Loader2,
-  Trash2,
-  Plus,
-  Copy,
-  Check,
+ChevronRight,
+Clock,
+FileText,
+AlertCircle,
+MapPin,
+Camera,MessageSquare,
+RefreshCw,
+SortAsc,
+Loader2,
+Trash2,
+Plus,
+Copy,
+Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MyReportDetailSkeleton, MyReportsListSkeleton, MyReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
-import type { SubmittedReport, ReportStatus } from "./types";
+import { MyReportDetailSkeleton,MyReportsListSkeleton,MyReportsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import type { SubmittedReport,ReportStatus } from "./types";
 import {
-  VIOLATION_OPTIONS,
-  VIOLATION_TYPE_REVERSE_MAP,
-  STATUS_REVERSE_MAP,
+VIOLATION_OPTIONS
 } from "./types";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate,useSearchParams } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import {
-  fetchMyReports,
-  fetchMyReportById,
-  fetchMyReportStats,
-  deleteReport,
+fetchMyReports,
+fetchMyReportById,
+fetchMyReportStats,
+deleteReport,
 } from "@/services/reportsService";
 import {
-  mapMyReport,
-  REPORT_FILTER_TABS,
-  REPORT_STATUS_CONFIG,
-  getViolationStyle,
-  type ReportFilterTab,
-  type ReportSortOption,
+mapMyReport,
+REPORT_FILTER_TABS,
+REPORT_STATUS_CONFIG,
+getViolationStyle,
+type ReportFilterTab,
+type ReportSortOption,
 } from "./myReports.utils";
 
 const REPORT_FILTER_ITEMS: FilterPillItem<ReportFilterTab>[] =

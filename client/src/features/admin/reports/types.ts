@@ -1,4 +1,4 @@
-import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
+import { getStatusBadgeStyle,getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { parseApiTimestamp } from "@/utils/date";
 
 export const safeFormatDate = (

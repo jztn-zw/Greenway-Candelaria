@@ -1,16 +1,16 @@
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { AdminSettingsSkeleton } from "@/components/PageLoadingSkeletons";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { AdminSettingsSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { Switch } from "@/components/ui/switch";
-import { useAdminAction, useAdminResource } from "@/lib/adminQuery";
+import { useAdminAction,useAdminResource } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { setThemeMode } from "@/lib/theme";
-import { fetchAdminAlertSettings, updateAdminAlertSettings, type AdminAlertSettings } from "@/services/settingsService";
-import { Bell, Moon, Settings, Sun } from "lucide-react";
-import { useState, type ElementType, type ReactNode } from "react";
-import { adminAlertOptions, adminSettingsCopy as copy, adminSettingsStyles as styles } from "./adminSettingsStyles";
+import { fetchAdminAlertSettings,updateAdminAlertSettings,type AdminAlertSettings } from "@/services/settingsService";
+import { Bell,Moon,Settings,Sun } from "lucide-react";
+import { useState,type ElementType,type ReactNode } from "react";
+import { adminAlertOptions,adminSettingsCopy as copy,adminSettingsStyles as styles } from "./adminSettingsStyles";
 
 const defaultAlerts: AdminAlertSettings = {
   notif_admin_reports: true,

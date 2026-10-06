@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Plus, X, Camera } from "lucide-react";
+import { Plus,X,Camera } from "lucide-react";
 import type { ReportPhoto } from "./types";
 import { toast } from "@/lib/toast";
 import { reportStyles } from "./reportStyles";

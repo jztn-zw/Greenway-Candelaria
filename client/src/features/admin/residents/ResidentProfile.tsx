@@ -1,29 +1,29 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { profileAvatarForAccount,profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
 } from "@/components/ui/table";
 import {
-  Phone,
-  Mail,
-  MapPin,
-  CalendarDays,
-  Clock,
-  ShieldCheck,
-  UserX,
-  UserCheck,
-  FileText,
+Phone,
+Mail,
+MapPin,
+CalendarDays,
+Clock,
+ShieldCheck,
+UserX,
+UserCheck,
+FileText,
 } from "lucide-react";
 import type { Resident } from "./types";
 import { usePendingAction } from "@/hooks/usePendingAction";
-import { adminResidentManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminResidentManagerStyles as styles } from "@/components/common/communityContentStyles";
 import { cn } from "@/lib/utils";
 
 const reportStatusStyles: Record<string, string> = {
@@ -69,7 +69,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
         <div className={cn(styles.profileHeader, "flex flex-col sm:flex-row sm:items-center justify-between gap-5")}>
           <div className={cn(styles.profileIdentity, "flex items-center gap-4")}>
             <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
-              <img src={profileAvatarSrc(profileAvatarForAccount(resident.id, resident.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
+              <img src={profileAvatarImageSrc(profileAvatarForAccount(resident.id, resident.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
               <div className={cn(styles.profileName, "flex items-center gap-2.5")}>
@@ -87,7 +87,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                @{resident.username}
+                {resident.username ? `@${resident.username}` : "Username not set"}
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
               <Mail className="w-3.5 h-3.5 text-muted-foreground/70" />
               Email Address
             </span>
-            <p className="text-xs sm:text-sm font-medium text-foreground truncate" title={resident.email}>
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate" title={resident.email ?? undefined}>
               {resident.email || "N/A"}
             </p>
           </div>

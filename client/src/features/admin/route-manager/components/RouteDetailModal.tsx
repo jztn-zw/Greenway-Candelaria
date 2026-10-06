@@ -1,21 +1,21 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import React, { useState } from "react";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import React,{ useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogTitle,
+DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import {
-  X,
-  Trash2,
-  SquarePen,
+X,
+Trash2,
+SquarePen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { WASTE_MAP, formatTime12h } from "../constants";
+import { WASTE_MAP,formatTime12h } from "../constants";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
 import type { Barangay } from "../hooks/useBarangays";

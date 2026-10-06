@@ -109,21 +109,6 @@ export interface TruckHistoryData {
   stops: RouteStopHistoryItem[];
 }
 
-export interface MissedCollectionRow {
-  id: string;
-  status: "MISSED";
-  event_at?: string | null;
-  run_date: string;
-  reason?: string | null;
-  barangay_id: string;
-  barangay: string;
-  route_id: string;
-  truck_id: string;
-  truck: string;
-  driver: string;
-  resident_report_link?: string | null;
-}
-
 export interface DriverMessageRow {
   id: string;
   driver_id: string;
@@ -200,27 +185,7 @@ export const fetchTruckHistory = async (truckId: string, date?: string): Promise
     if (cursor) seen.add(cursor);
   } while (cursor);
   return { logs, stops };
-};
-
-/**
- * GET /routes/missed-collections
- * Returns missed/skipped route stops for admin tracking log.
- */
-export const fetchMissedCollections = async (
-  params?: {
-    truck_id?: string;
-    barangay_id?: string;
-    days?: number;
-  },
-): Promise<MissedCollectionRow[]> => {
-  const res = await api.get<{ data: MissedCollectionRow[] }>(
-    "/routes/missed-collections",
-    { params },
-  );
-  return res.data.data ?? [];
-};
-
-/**
+};/**
  * GET /routes/today
  * Returns today's route plan per truck including stops and waste type.
  * The driver sees only their own route; the backend filters by auth token.
@@ -288,65 +253,12 @@ export const startMyRoute = async (routeId: string): Promise<void> => {
   await api.put(`/routes/${routeId}/start`);
 };
 
-/**
- * PUT /drivers/me/status
- * Driver updates a short status/reply message visible in admin truck tracking.
- */
-export const updateMyDriverStatusMessage = async (
-  statusMsg: string,
-  routeId?: string,
-): Promise<void> => {
-  await api.put("/drivers/me/status", { status_msg: statusMsg, route_id: routeId });
-};
-
-export const fetchMyDriverMessages = async (
-  routeId?: string,
-  limit = 100,
-  options?: { view: "collector"; message_id?: string },
-): Promise<DriverMessageRow[]> => {
-  const res = await api.get<{ data: DriverMessageRow[] }>("/drivers/me/messages", {
-    params: { limit, route_id: routeId, ...options },
-  });
-  return res.data.data ?? [];
-};
-
-export const fetchDriverMessagesForAdmin = async (
-  driverId: string,
-  routeId?: string,
-  limit = 100,
-): Promise<DriverMessageRow[]> => {
-  const res = await api.get<{ data: DriverMessageRow[] }>(
-    `/drivers/${driverId}/messages`,
-    {
-      params: { limit, route_id: routeId, view: "web" },
-    },
-  );
-  return res.data.data ?? [];
-};
-
 export const markMyDriverMessagesAsRead = async (
   routeId?: string,
   ids?: string[],
 ): Promise<void> => {
   await api.put("/drivers/me/messages/read", { route_id: routeId, ids });
-};
-/**
- * POST /drivers/messages
- * Admin sends a persisted message to a specific driver.
- */
-export const sendAdminMessageToDriver = async (
-  driverUserId: string,
-  routeId: string,
-  message: string,
-): Promise<void> => {
-  await api.post("/drivers/messages", {
-    driver_user_id: driverUserId,
-    route_id: routeId,
-    message,
-  });
-};
-
-/**
+};/**
  * PATCH /routes/:routeId/stops/:stopId/complete
  * Mark a stop as DONE. Backend records completed_at timestamp.
  *
@@ -390,16 +302,3 @@ export const skipStop = async (
 export const endRoute = async (routeId: string): Promise<void> => {
   await api.put(`/routes/${routeId}/end`);
 };
-
-/**
- * PATCH /trucks/:truckId/status
- * Manually override a truck's status (admin action).
- */
-export const updateTruckStatus = async (
-  truckId: string,
-  status: string,
-): Promise<void> => {
-  await api.put(`/trucks/${truckId}`, { status });
-};
-
-

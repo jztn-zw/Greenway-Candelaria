@@ -1,9 +1,10 @@
+import { formatManilaDateTime } from "@/utils/date";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
-import { ArrowUpRight, Calendar } from "lucide-react";
-import { useScrollReveal, useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/MobileCarousel";
+import { ArrowUpRight,Calendar } from "lucide-react";
+import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
+import MobileCarousel from "@/components/common/MobileCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { BlogContent, CONTENT } from "../landingContent";
+import { BlogContent,CONTENT } from "../landingContent";
 
 export interface LandingBlogPost {
   id: string;
@@ -18,7 +19,7 @@ const catColor: Record<string, string> = {
 };
 
 const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-US", {
+  formatManilaDateTime(value, {
     month: "short",
     day: "numeric",
     year: "numeric",

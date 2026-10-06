@@ -1,9 +1,10 @@
+import { toManilaCalendarDate } from "@/utils/date";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { AnalyticsDashboardSkeleton } from "@/components/PageLoadingSkeletons";
-import { adminAnalyticsStyles as styles } from "@/components/communityContentStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { AnalyticsDashboardSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { adminAnalyticsStyles as styles } from "@/components/common/communityContentStyles";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
@@ -44,7 +45,7 @@ const toIsoDate = (date: Date) => {
 };
 
 const dateRangeFor = (preset: DatePreset) => {
-  const today = new Date();
+  const today = toManilaCalendarDate();
   const from = new Date(today);
   if (preset === "this-month") from.setDate(1);
   if (preset === "last-8-weeks") from.setDate(today.getDate() - 55);

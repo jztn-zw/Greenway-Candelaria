@@ -1,8 +1,9 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { useResidentQuery } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
-import { ResidentDashboardSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
+import { ResidentDashboardSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { fetchLiveTrucks } from "@/services/trackingService";
 import { fetchMyReports } from "@/services/reportsService";
 import { fetchRoutes } from "@/services/routesService";
@@ -23,6 +24,7 @@ import EcoTipCard from "./components/EcoTipCard";
 import { dashboardStyles } from "./dashboardStyles";
 
 const ResidentDashboard = () => {
+  useSystemTime();
   const user = useAuthStore((state) => state.user);
   const today = getManilaNow();
   const monthIndex = today.month - 1;

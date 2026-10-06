@@ -1,8 +1,8 @@
-import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import {
 FilterPillItem,
 FilterPillTabs,
@@ -10,10 +10,10 @@ SearchInput,
 SegmentedControl,
 SegmentedControlOption,
 } from "@/components/common";
-import { RouteManagerPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { RouteManagerPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
-import { adminCommunityStyles as managerStyles, adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as managerStyles,adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
 import {
 Select,
 SelectContent,
@@ -22,22 +22,21 @@ SelectTrigger,
 SelectValue,
 } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
-import { fetchBarangayStreets, type BarangayStreetRow } from "@/services/barangaysService";
+import { fetchBarangayStreets,type BarangayStreetRow } from "@/services/barangaysService";
 import {
-AlertCircle,
 LayoutGrid,
 PauseCircle,
 PlayCircle,
 Plus,
 RotateCcw,
 TableProperties,
-Trash2,
+Trash2
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
-import { DAYS, DEFAULT_FORM } from "./constants";
+import React,{ useEffect,useMemo,useState } from "react";
+import { DAYS,DEFAULT_FORM } from "./constants";
 import { useBarangays } from "./hooks/useBarangays";
 import { useDrivers } from "./hooks/useDrivers";
-import { Day, RouteData, RouteForm, useRoutes } from "./hooks/useRoutes";
+import { Day,RouteData,RouteForm,useRoutes } from "./hooks/useRoutes";
 import { useTrucks } from "./hooks/useTrucks";
 
 import DuplicateDialog from "./components/DuplicateDialog";
@@ -70,7 +69,7 @@ const AdminRouteManager: React.FC = () => {
 
   const { barangays, isLoading: isLoadingBarangays } = useBarangays();
   const { trucks, isLoading: isLoadingTrucks } = useTrucks();
-  const { drivers, isLoading: isLoadingDrivers } = useDrivers();
+  const { drivers } = useDrivers();
 
   // ── UI Filter & View state ──
   const [filterDay, setFilterDay] = useState<"all" | Day>("all");
@@ -563,7 +562,6 @@ const AdminRouteManager: React.FC = () => {
         trucks={availableTrucks}
         drivers={drivers}
         isLoadingTrucks={isLoadingTrucks}
-        isLoadingDrivers={isLoadingDrivers}
         isLoadingBarangays={isLoadingBarangays}
         barangays={barangays}
         availableStopPoints={selectableStreets}

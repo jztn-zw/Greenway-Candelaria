@@ -17,8 +17,13 @@ and tracking HTTP reads now use TanStack Query. Mobile apps are outside this cha
   top bar and notification page. Read/clear actions also invalidate that history.
   Records load only for the visible menu window or selected category page; the
   server supplies full unread/history/recent counts. The content badge also uses
-  the full unread post count, and viewing Contents marks only that resident's post
-  notifications read without downloading their older history.
+  the full unread post count. Opening a successfully loaded post marks only that
+  resident's notifications for that post read, without downloading older history.
+  Browsing Contents or receiving a newly published post leaves its alerts unread.
+- Notification ages use the database UTC clock included with each history read,
+  advanced with the browser's monotonic timer. Labels refresh every 30 seconds;
+  absolute dates use Asia/Manila. Before time sync, an absolute Philippine timestamp
+  appears instead of a relative age based on the device's wall clock.
 - Changes are batched for 300 ms. Only active queries fetch immediately; inactive
   queries are marked stale. Query keys retain search, filters and pagination.
 - Visible resident pages also reconcile after 60 seconds, on focus/reconnect, and

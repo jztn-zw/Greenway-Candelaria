@@ -1,45 +1,45 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import React, { useState, useMemo, useEffect } from "react";
+import React,{ useState,useMemo,useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogTitle,
+DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TimePicker } from "@/components/ui/time-picker";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import {
-  Truck as TruckIcon,
-  User,
-  Clock,
-  Leaf,
-  Trash2,
-  X,
-  CalendarCheck,
-  CalendarPlus,
-  Save,
-  AlertTriangle,
-  MapPinned,
-  MapPin,
-  CheckCircle2,
-  Calendar,
-  Layers,
-  Info,
+Truck as TruckIcon,
+User,
+Clock,
+Leaf,
+Trash2,
+X,
+CalendarCheck,
+CalendarPlus,
+Save,
+AlertTriangle,
+MapPinned,
+MapPin,
+CheckCircle2,
+Calendar,
+Layers,
+Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DAYS, WASTE_MAP } from "../constants";
+import { DAYS,WASTE_MAP } from "../constants";
 import BarangayOrderList from "./BarangayOrderList";
-import type { RouteData, RouteForm, Day } from "../hooks/useRoutes";
+import type { RouteData,RouteForm,Day } from "../hooks/useRoutes";
 import type { Truck } from "../hooks/useTrucks";
 import type { Driver } from "../hooks/useDrivers";
 import type { Barangay } from "../hooks/useBarangays";
@@ -57,7 +57,6 @@ interface RouteEditorModalProps {
   trucks: Truck[];
   drivers: Driver[];
   isLoadingTrucks: boolean;
-  isLoadingDrivers: boolean;
   isLoadingBarangays: boolean;
   barangays: Barangay[];
   availableStopPoints: BarangayStreetRow[];
@@ -84,7 +83,6 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
   trucks,
   drivers,
   isLoadingTrucks,
-  isLoadingDrivers,
   isLoadingBarangays,
   barangays,
   availableStopPoints,

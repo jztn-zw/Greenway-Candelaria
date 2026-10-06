@@ -1,4 +1,4 @@
-import PageErrorState from "@/components/PageErrorState";
+import PageErrorState from "@/components/feedback/PageErrorState";
 import { webHomePath } from "@/lib/webHomePath";
 import useAuthStore from "@/store/authStore";
 

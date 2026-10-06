@@ -2,12 +2,12 @@ import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import React from "react";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { RouteCard } from "./RouteCard";
-import { DAYS, WASTE_MAP } from "../constants";
-import { Leaf, Trash2, Route as RouteIcon } from "lucide-react";
+import { DAYS,WASTE_MAP } from "../constants";
+import { Leaf,Trash2,Route as RouteIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RouteData, Day } from "../hooks/useRoutes";
+import type { RouteData,Day } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
-import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
+import { adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
 
 interface RouteDayViewProps {
   routesByDay: Record<Day, RouteData[]>;

@@ -1,21 +1,21 @@
+import { getManilaNow } from "@/utils/date";
 import authService from "@/services/authService";
+import { AccountRecovery,RecoveryCodeReceipt } from "./AccountRecovery";
 import useAuthStore from "@/store/authStore";
-import { useState, useRef, useEffect } from "react";
+import { useState,useRef,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogDescription,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { InputClearButton, inputIconButtonClassName } from "@/components/common/InputClearButton";
+import { InputClearButton,inputIconButtonClassName } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { fetchBarangays, fetchBarangayStreets, type BarangayLocationRow, type BarangayStreetRow } from "@/services/barangaysService";
-import { ArrowRight, Eye, EyeOff, Heart, Leaf, Lock, Mail, MapPin, User, Users, X } from "lucide-react";
+import { ArrowRight,Eye,EyeOff,Heart,Leaf,Lock,Mail,User,Users,X } from "lucide-react";
 
 interface AuthModalProps {
   open: boolean;
@@ -89,124 +89,53 @@ const AuthModal = ({
   }
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [barangayOptions, setBarangayOptions] = useState<BarangayLocationRow[]>([]);
-  const [streetOptions, setStreetOptions] = useState<BarangayStreetRow[]>([]);
-  const [streetsLoading, setStreetsLoading] = useState(false);
 
   // Register fields
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [barangay, setBarangay] = useState("");
-  const [street, setStreet] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryReceipt, setRecoveryReceipt] = useState<string | null>(null);
 
   // Login fields
   const [identifier, setIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      setRecoveryReceipt(null); setRecoveryOpen(false);
+      setPassword(""); setConfirmPassword(""); setLoginPassword("");
+      setShowPassword(false); setShowConfirmPassword(false); setErrors({});
+    }
+  }, [open]);
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetRegisterForm = () => {
-    setFullName("");
-    setUsername("");
     setEmail("");
-    setPhone("");
-    setBarangay("");
-    setStreet("");
     setTermsAccepted(false);
     setPassword("");
     setConfirmPassword("");
     setShowConfirmPassword(false);
   };
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadBarangays = async () => {
-      try {
-        const rows = await fetchBarangays();
-        if (mounted) setBarangayOptions(rows);
-      } catch {
-        if (mounted) setBarangayOptions([]);
-      }
-    };
-
-    if (open) {
-      void loadBarangays();
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    let mounted = true;
-    setStreet("");
-
-    if (!barangay) {
-      setStreetOptions([]);
-      return () => { mounted = false; };
-    }
-
-    setStreetsLoading(true);
-    void fetchBarangayStreets(barangay)
-      .then((result) => {
-        if (mounted) setStreetOptions(result.streets);
-      })
-      .catch(() => {
-        if (mounted) setStreetOptions([]);
-      })
-      .finally(() => {
-        if (mounted) setStreetsLoading(false);
-      });
-
-    return () => { mounted = false; };
-  }, [barangay]);
-
-  // Philippine phone validation: must start with 9, exactly 10 digits
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, "");
-    if (val.length <= 10) {
-      // Must start with 9 or be empty
-      if (val === "" || val.startsWith("9")) {
-        setPhone(val);
-      }
-    }
-  };
-
-  const formatPhone = (raw: string) => {
-    if (raw.length <= 3) return raw;
-    if (raw.length <= 6) return `${raw.slice(0, 3)} ${raw.slice(3)}`;
-    return `${raw.slice(0, 3)} ${raw.slice(3, 6)} ${raw.slice(6)}`;
-  };
-
   const validateRegister = () => {
     const errs: Record<string, string> = {};
-    if (!fullName.trim()) errs.fullName = "Full name is required";
-    if (!username.trim()) errs.username = "Username is required";
     if (!email.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Enter a valid email address";
+    else if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = "Enter a valid email address";
     if (!password) errs.password = "Password is required";
     else if (password.length < 8) errs.password = "Password must be at least 8 characters";
     if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
     else if (confirmPassword !== password) errs.confirmPassword = "Passwords do not match";
-    if (phone && phone.length !== 10) errs.phone = "Enter a valid 10-digit PH number starting with 9";
-    if (!barangay) errs.barangay = "Please select your barangay";
-    if (streetOptions.length > 0 && !street) errs.street = "Please select your street";
     if (!termsAccepted) errs.terms = "Please accept the Terms and Privacy Policy";
     return errs;
   };
 
   const validateLogin = () => {
     const errs: Record<string, string> = {};
-    if (!identifier.trim()) errs.identifier = "Email, phone, or username is required";
+    if (!identifier.trim()) errs.identifier = "Username or email is required";
     if (!loginPassword) errs.loginPassword = "Password is required";
     return errs;
   };
@@ -219,28 +148,35 @@ const AuthModal = ({
     if (Object.keys(errs).length > 0) return;
     setLoading(true);
     try {
-      await authService.register({
-        full_name: fullName,
-        username: username,
-        email: email,
-        password: password,
-        phone: phone ? `+63${phone}` : undefined,
-        barangay_id: barangay,
-        street_id: street || undefined,
-      });
+      const registration = { email: email.trim().toLowerCase(), password, confirm_password: confirmPassword, terms_accepted: termsAccepted };
+      const result = await authService.register(registration);
+      setIdentifier(registration.email);
+      setLoginPassword("");
+      if (result.data.recovery_code) setRecoveryReceipt(result.data.recovery_code);
+      setTab("login");
       resetRegisterForm();
       setErrors({});
-      setTab("login");
     } catch (err: unknown) {
-      const responseError = err as { response?: { data?: { message?: string } } };
-      setErrors({ form: responseError.response?.data?.message || "Registration failed. Please try again." });
+      const responseError = err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } };
+      const message = responseError.response?.data?.message;
+      const emailError = responseError.response?.data?.errors?.find(issue => issue.field === "email")?.message;
+      setErrors(message === "Email already in use"
+        ? { email: "Email already registered. Log in or use another email address." }
+        : emailError ? { email: emailError } : { form: message || "Registration failed. Please try again." });
     } finally {
       setLoading(false);
     }
   };
 
   const { login } = useAuthStore();
-
+  const finishLogin = () => {
+    const user = useAuthStore.getState().user;
+    setErrors({});
+    onOpenChange(false);
+    if (user?.role === "ADMIN") navigate("/admin");
+    else if (user?.role === "DRIVER") navigate("/collector");
+    else navigate("/resident");
+  };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -250,12 +186,7 @@ const AuthModal = ({
     setLoading(true);
     try {
       await login(identifier, loginPassword, rememberMe);
-      const user = useAuthStore.getState().user;
-      setErrors({});
-      onOpenChange(false);
-      if (user?.role === "ADMIN") navigate("/admin");
-      else if (user?.role === "DRIVER") navigate("/collector");
-      else navigate("/resident");
+      finishLogin();
     } catch (err: unknown) {
       const responseError = err as { response?: { data?: { message?: string } } };
       setErrors({ form: responseError.response?.data?.message || "Invalid credentials. Please try again." });
@@ -307,19 +238,19 @@ const AuthModal = ({
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
               <DialogTitle className="gw-heading gw-auth-title text-foreground">
-                {tab === "login" ? "Welcome back" : "Create an account"}
+                {recoveryReceipt ? "Save your recovery code" : recoveryOpen ? "Reset your password" : tab === "login" ? "Welcome back" : "Create an account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
               <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {tab === "login"
-                  ? "Log in to access your Resident Portal"
-                  : "Sign up and join the green movement in your community"}
+                {recoveryReceipt ? "Keep this code safe before you continue." : recoveryOpen ? "Recover your account using your saved code." : tab === "login"
+                  ? "Use your email or username and GreenWay password."
+                  : "Create your login. Complete your resident profile after signing in."}
               </DialogDescription>
             </div>
 
             {/* Scrollable form area */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 sm:px-10 sm:pb-8">
-              {tab === "login" ? (
+              {recoveryReceipt ? <RecoveryCodeReceipt key={recoveryReceipt} code={recoveryReceipt} onContinue={() => { setRecoveryReceipt(null); setTab("login"); }} /> : recoveryOpen ? <AccountRecovery onBack={() => { setRecoveryOpen(false); setLoginPassword(""); setTab("login"); }} /> : tab === "login" ? (
                 <form onSubmit={handleLogin} noValidate className="space-y-5">
                   {errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
@@ -328,14 +259,15 @@ const AuthModal = ({
                   )}
                   <div className="space-y-1.5">
                     <Label htmlFor="identifier" className={fieldLabelClass}>
-                      Email, Phone, or Username
+                      Username or email
                     </Label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <ClearableInput
                         id="identifier"
                         aria-invalid={Boolean(errors.identifier)}
-                        placeholder="Enter your email, phone, or username"
+                        autoComplete="username"
+                        placeholder="Enter your username or email"
                         value={identifier}
                         onChange={(e) => { setIdentifier(e.target.value); setErrors((prev) => { const { identifier, ...rest } = prev; return rest; }); }}
                         className={`pl-10 ${fieldClass} ${errors.identifier ? "border-destructive" : ""}`}
@@ -370,81 +302,28 @@ const AuthModal = ({
                       <Checkbox id="remember-me" checked={rememberMe} disabled={loading} onCheckedChange={(checked) => setRememberMe(checked === true)} />
                       <Label htmlFor="remember-me" className="cursor-pointer text-xs font-normal text-muted-foreground">Remember me</Label>
                     </div>
-                    <button type="button" className="gw-action-link text-xs font-medium transition-colors hover:underline">
+                    <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setErrors({}); setRecoveryOpen(true); }} className="gw-action-link text-xs font-medium transition-colors hover:underline">
                       Forgot password?
                     </button>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Signing in…">
 
-                    <span>{"Log In to GreenWay"}</span>
+                    <span>Log In to GreenWay</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-
-                  <div className="relative my-1">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-3 text-ui-overline tracking-wide text-muted-foreground">or continue with</span>
-                    </div>
-                  </div>
-
-                  <Button type="button" variant="outline" className="w-full" disabled>
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Continue with Google
                   </Button>
 
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <button type="button" disabled={loading} onClick={() => { setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
+                    <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Sign Up
                     </button>
                   </p>
                 </form>
               ) : (
                 <form onSubmit={handleRegister} noValidate className="space-y-4">
-                  {errors.form && (
-                    <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
-                      {errors.form}
-                    </div>
-                  )}
-                  <fieldset className="min-w-0">
-                    <legend className="mb-3 text-ui-label font-semibold text-foreground">Account details</legend>
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="fullName" className={fieldLabelClass}>Full Name</Label>
-                        <div className="relative">
-                          <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <ClearableInput
-                            id="fullName"
-                            aria-invalid={Boolean(errors.fullName)}
-                            placeholder="Juan Dela Cruz"
-                            value={fullName}
-                            onChange={(e) => { setFullName(e.target.value); setErrors((prev) => { const { fullName, ...rest } = prev; return rest; }); }}
-                            className={`pl-10 ${fieldClass} ${errors.fullName ? "border-destructive" : ""}`}
-                          />
-                        </div>
-                        {errors.fullName && <p className="text-xs text-destructive mt-0.5">{errors.fullName}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="username" className={fieldLabelClass}>Username</Label>
-                        <div className="relative">
-                          <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <ClearableInput
-                            id="username"
-                            aria-invalid={Boolean(errors.username)}
-                            placeholder="juandc"
-                            value={username}
-                            onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
-                            className={`pl-10 ${fieldClass} ${errors.username ? "border-destructive" : ""}`}
-                          />
-                        </div>
-                        {errors.username && <p className="text-xs text-destructive mt-0.5">{errors.username}</p>}
-                      </div>
+                  {errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
+                  <div className="space-y-4">
                       <div className="space-y-1.5">
                         <Label htmlFor="email" className={fieldLabelClass}>Email address</Label>
                         <div className="relative">
@@ -452,6 +331,7 @@ const AuthModal = ({
                           <ClearableInput
                             id="email"
                             aria-invalid={Boolean(errors.email)}
+                            aria-describedby={errors.email ? "email-error" : undefined}
                             type="email"
                             placeholder="juan@email.com"
                             value={email}
@@ -459,30 +339,7 @@ const AuthModal = ({
                             className={`pl-10 ${fieldClass} ${errors.email ? "border-destructive" : ""}`}
                           />
                         </div>
-                        {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="phone" className={fieldLabelClass}>
-                          Phone number <span className="font-normal text-muted-foreground">(optional)</span>
-                        </Label>
-                        <div className="relative">
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none z-10">
-                            <span className="text-xs font-semibold text-muted-foreground">+63</span>
-                            <span className="mx-0.5 text-border">|</span>
-                          </div>
-                          <ClearableInput
-                            id="phone"
-                            aria-invalid={Boolean(errors.phone)}
-                            type="tel"
-                            placeholder="9XX XXX XXXX"
-                            value={formatPhone(phone)}
-                            onChange={handlePhoneChange}
-                            className={`pl-[4rem] ${fieldClass} ${errors.phone ? "border-destructive" : ""}`}
-                            maxLength={14}
-                          />
-                        </div>
-                        {errors.phone && <p className="text-xs text-destructive mt-0.5">{errors.phone}</p>}
+                        {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive mt-0.5">{errors.email}</p>}
                       </div>
 
                       <div className="space-y-1.5">
@@ -533,46 +390,7 @@ const AuthModal = ({
                         </div>
                         {errors.confirmPassword && <p id="confirm-password-error" className="mt-0.5 text-xs text-destructive">{errors.confirmPassword}</p>}
                       </div>
-                    </div>
-                  </fieldset>
-
-                  <fieldset className="min-w-0 border-t border-border/70 pt-4">
-                    <legend className="px-2 text-ui-label font-semibold text-foreground">Collection area</legend>
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="barangay" className={fieldLabelClass}>Barangay</Label>
-                        <SearchableSelect
-                          aria-invalid={Boolean(errors.barangay)}
-                          value={barangay}
-                          onValueChange={(v) => { setBarangay(v); setErrors((prev) => { const { barangay, ...rest } = prev; return rest; }); }}
-                          options={barangayOptions.map((b) => ({ value: b.id, label: b.name }))}
-                          placeholder={barangayOptions.length ? "Select your barangay" : "Loading barangays..."}
-                          searchPlaceholder="Search barangays..."
-                          leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                          className={`h-10 rounded-lg ${errors.barangay ? "border-destructive" : ""}`}
-                        />
-                        {errors.barangay && <p className="text-xs text-destructive mt-0.5">{errors.barangay}</p>}
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="street" className={fieldLabelClass}>Select street</Label>
-                        <SearchableSelect
-                          aria-invalid={Boolean(errors.street)}
-                          value={street}
-                          onValueChange={(value) => { setStreet(value); setErrors((prev) => { const { street, ...rest } = prev; return rest; }); }}
-                          options={streetOptions.map((option) => ({ value: option.id, label: `${option.name}${option.area ? ` (${option.area})` : ""}` }))}
-                          placeholder={!barangay ? "Select your barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select your street" : "No streets available yet"}
-                          searchPlaceholder="Search streets..."
-                          disabled={!barangay || streetsLoading || streetOptions.length === 0}
-                          leadingIcon={<MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                          className={`h-10 rounded-lg ${errors.street ? "border-destructive" : ""}`}
-                        />
-                        {errors.street && <p className="text-xs text-destructive mt-0.5">{errors.street}</p>}
-                      </div>
-
-                    </div>
-                  </fieldset>
-
+                  </div>
                   <div className="flex items-start gap-2.5">
                     <Checkbox
                       id="terms"
@@ -589,30 +407,11 @@ const AuthModal = ({
                   </div>
                   {errors.terms && <p className="-mt-2 text-xs text-destructive">{errors.terms}</p>}
 
-                  <Button type="submit" className="mt-0.5 w-full" disabled={loading} loading={loading} loadingLabel="Creating account…">
-
-                    <span>{"Create My Account"}</span>
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-
-                  <div className="relative my-1">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-ui-overline tracking-wide text-muted-foreground">or</span></div>
-                  </div>
-
-                  <Button type="button" variant="outline" className="w-full" disabled>
-                    <svg className="mr-2 w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Continue with Google
-                  </Button>
-
+                  <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  <p className="text-xs leading-relaxed text-muted-foreground">After login, we’ll help you set up your resident profile and collection area.</p>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Already a member?{" "}
-                    <button type="button" disabled={loading} onClick={() => { setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
+                    <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
                       Log In
                     </button>
                   </p>
@@ -663,7 +462,7 @@ const AuthModal = ({
                     <p className="text-ui-caption text-forest-foreground/70">Collection rate</p>
                   </div>
                 </div>
-                <p className="mt-6 text-ui-caption text-forest-foreground/65">© {new Date().getFullYear()} GreenWay</p>
+                <p className="mt-6 text-ui-caption text-forest-foreground/65">© {getManilaNow().year} GreenWay</p>
               </div>
             </div>
           </aside>

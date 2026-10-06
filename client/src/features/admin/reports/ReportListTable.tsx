@@ -1,42 +1,40 @@
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { Badge } from "@/components/ui/badge";
-import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
+import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuSeparator,
+DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  MoreHorizontal,
-  AlertOctagon,
-  Camera,
-  EyeOff,
-  MapPin,
-  CalendarDays,
-  Eye,
-  Copy,
-  ClipboardCheck,
-  Truck,
-  CheckCircle2,
+MoreHorizontal,
+AlertOctagon,
+Camera,MapPin,
+CalendarDays,
+Eye,
+Copy,
+ClipboardCheck,
+Truck,
+CheckCircle2
 } from "lucide-react";
 import PaginationControls from "@/components/common/PaginationControls";
-import { WasteReportRowsSkeleton } from "@/components/PageLoadingSkeletons";
+import { WasteReportRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
-  WasteReport,
-  statusBadgeStyles,
-  violationBadgeStyles,
-  safeFormatDate,
+WasteReport,
+statusBadgeStyles,
+violationBadgeStyles,
+safeFormatDate,
 } from "./types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -50,7 +48,6 @@ interface ReportListTableProps {
   totalPages?: number;
   onPageChange?: (page: number) => void;
   onQuickStatusChange?: (id: string, newStatus: string) => void;
-  onFlagReport?: (id: string, payload: { is_false?: boolean; is_duplicate?: boolean }) => void;
 }
 
 const ReportListTable = ({
@@ -62,7 +59,6 @@ const ReportListTable = ({
   totalPages = 1,
   onPageChange,
   onQuickStatusChange,
-  onFlagReport,
 }: ReportListTableProps) => {
   const handleCopyRef = (e: React.MouseEvent, refNumber: string) => {
     e.stopPropagation();

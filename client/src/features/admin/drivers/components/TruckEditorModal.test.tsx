@@ -18,7 +18,7 @@ const click = async (name: string) => { await act(async () => button(name).click
 const change = (id: string, value: string) => act(() => Simulate.change(document.getElementById(id)!, { target: { value } } as never));
 async function setup(editingTruck: Truck | null = null, isSaving = false) {
   const onOpenChange = vi.fn(); const onSave = vi.fn().mockResolvedValue(undefined);
-  await act(async () => root.render(<TruckEditorModal open onOpenChange={onOpenChange} editingTruck={editingTruck} drivers={[]} trucks={[]} isSaving={isSaving} onSave={onSave} />));
+  await act(async () => root.render(<TruckEditorModal open onOpenChange={onOpenChange} editingTruck={editingTruck} isSaving={isSaving} onSave={onSave} />));
   return { onOpenChange, onSave };
 }
 

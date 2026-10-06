@@ -3,10 +3,10 @@ import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FormDialogHeader } from "@/components/FormDialog";
-import { formDialogStyles } from "@/components/formDialogStyles";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { cn } from "@/lib/utils";
-import "@/components/communityContent.css";
+import "@/components/common/communityContent.css";
 
 /** Popup edits stay local until Apply; opening starts from the current filters. */
 export function AdminFilterDialog<T extends object>({ title, values, onApply, resetValues, activeCount = 0, children, className = "admin-toolbar-mobile-only" }: {

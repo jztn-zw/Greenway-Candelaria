@@ -4,6 +4,17 @@ import api from "./api";
 const originalAdapter = api.defaults.adapter;
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks(); });
 afterEach(() => { api.defaults.adapter = originalAdapter; localStorage.clear(); sessionStorage.clear(); vi.unstubAllGlobals(); });
+it.each(["/auth/login", "/auth/register", "/auth/recover"])("credential errors in %s stay in the form without clearing an existing session", async (endpoint) => {
+  localStorage.setItem("token", "existing-session");
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.stubGlobal("window", { location: { href: "/login" } });
+  api.defaults.adapter = async config => {
+    throw new AxiosError("Invalid credentials", "ERR_BAD_REQUEST", config, {}, { config, data: {}, status: 401, statusText: "Unauthorized", headers: {} });
+  };
+  await expect(api.post(endpoint, {})).rejects.toThrow("Invalid credentials");
+  expect(localStorage.getItem("token")).toBe("existing-session");
+  expect(window.location.href).toBe("/login");
+});
 it.each(["remembered", "temporary"])("captures the originating %s session before a queued request can use another account's token", async (kind) => {
   const storage = kind === "remembered" ? localStorage : sessionStorage;
   storage.setItem("token", "session-A"); let sentToken: unknown;

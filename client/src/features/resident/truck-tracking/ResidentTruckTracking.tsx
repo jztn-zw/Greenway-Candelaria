@@ -1,35 +1,37 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemNow,getSystemDate } from "@/lib/serverClock";
 import { useQueryClient } from "@tanstack/react-query";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { io, Socket } from "socket.io-client";
-import { AlertTriangle, RefreshCw, Truck as TruckIcon } from "lucide-react";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { useState,useMemo,useEffect,useCallback,useRef } from "react";
+import { io,Socket } from "socket.io-client";
+import { AlertTriangle } from "lucide-react";
 import TrackingMap from "./TrackingMap";
 import ProximityAlert from "./ProximityAlert";
 import CountdownBanner from "./CountdownBanner";
-import type { Truck, CollectionDayStatus, CollectionSchedule } from "./types";
-import { ResidentTrackingSkeleton } from "@/components/PageLoadingSkeletons";
+import type { Truck,CollectionDayStatus,CollectionSchedule } from "./types";
+import { ResidentTrackingSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { fetchBarangays } from "@/services/barangaysService";
-import { fetchRoutes, type ApiRoute } from "@/services/routesService";
+import { fetchRoutes,type ApiRoute } from "@/services/routesService";
 import useAuthStore from "@/store/authStore";
-import { residentKey, useResidentQuery, useResidentResource } from "@/lib/residentQuery";
+import { residentKey,useResidentQuery,useResidentResource } from "@/lib/residentQuery";
 import {
-  fetchAllTrucks,
-  fetchLiveTrucks,
-  fetchTodayRoutes,
-  type LiveRow,
-  type TruckRow,
-  type TruckRouteRow,
+fetchAllTrucks,
+fetchLiveTrucks,
+fetchTodayRoutes,
+type LiveRow,
+type TruckRow,
+type TruckRouteRow,
 } from "@/services/trackingService";
 import {
-  calculateDistanceInKilometers,
-  formatCollectionTime,
-  normaliseId,
-  parseCoordinate,
+calculateDistanceInKilometers,
+formatCollectionTime,
+normaliseId,
+parseCoordinate,
 } from "./truckTracking.utils";
 import type { RoadRouteResult } from "@/services/roadRoutingService";
-import { getManilaNow, parseApiTimestamp } from "@/utils/date";
+import { getManilaNow,parseApiTimestamp } from "@/utils/date";
 import { trackingStyles } from "./trackingStyles";
 import { trackingPageContent } from "./trackingContent";
 
@@ -66,7 +68,7 @@ const parseBackendDate = (value?: string | null): number | null => {
   return parseApiTimestamp(value)?.getTime() ?? null;
 };
 
-const isPingFresh = (value?: string | null, now = Date.now()) => {
+const isPingFresh = (value?: string | null, now = getSystemNow()) => {
   const parsed = parseBackendDate(value);
   return parsed !== null && now - parsed <= STALE_PING_MS;
 };
@@ -135,7 +137,7 @@ const resolveResidentTruckStatus = (
   truckStatus: string,
   live: LiveRow | undefined,
   route?: TruckRouteRow,
-  now = Date.now(),
+  now = getSystemNow(),
 ): Truck["status"] => {
   const liveStatus = live ? normaliseTruckStatus(live.truck_status) : null;
   const hasFreshPing = Boolean(live && isPingFresh(live.last_ping, now) &&
@@ -228,6 +230,7 @@ const buildSchedule = (
   residentStreetId: string | null,
   residentBarangayId: string | null,
   residentCollectionFinishedToday = false,
+  manilaDateKey = getManilaNow().dateKey,
 ): CollectionSchedule => {
   const residentRoutes = routes.filter((route) =>
     String(route.status || "").toUpperCase() !== "INACTIVE" &&
@@ -240,7 +243,7 @@ const buildSchedule = (
     return {
       nextCollectionDay: "soon",
       nextCollectionTime: "TBD",
-      nextCollectionDate: new Date(),
+      nextCollectionDate: getSystemDate(),
     };
   }
 
@@ -251,7 +254,8 @@ const buildSchedule = (
     }
   }
 
-  const todayIndex = getCurrentDayIndex();
+  const manilaToday = getManilaNow(new Date(`${manilaDateKey}T00:00:00Z`));
+  const todayIndex = manilaToday.weekdayIndex;
   // After today's street collection ends, this card answers one question only:
   // is the same resident street scheduled again tomorrow?
   const offsetsToCheck = residentCollectionFinishedToday
@@ -263,7 +267,6 @@ const buildSchedule = (
     const route = routeByDay.get(day);
     if (!route) continue;
 
-    const manilaToday = getManilaNow();
     const date = new Date(Date.UTC(
       manilaToday.year,
       manilaToday.month - 1,
@@ -281,11 +284,12 @@ const buildSchedule = (
   return {
     nextCollectionDay: "soon",
     nextCollectionTime: "TBD",
-    nextCollectionDate: new Date(),
+    nextCollectionDate: getSystemDate(),
   };
 };
 
 const ResidentTruckTracking = () => {
+  useSystemTime();
   const client = useQueryClient();
   const currentUser = useAuthStore((state) => state.user);
   const residentStreetLabel = currentUser?.street_name
@@ -537,6 +541,7 @@ const ResidentTruckTracking = () => {
         (stop) => stop.isResidentBarangay && (stop.status === "done" || stop.status === "skipped"),
       ),
   );
+  const manilaDateKey = getManilaNow().dateKey;
   const schedule = useMemo(
     () =>
       buildSchedule(
@@ -544,8 +549,9 @@ const ResidentTruckTracking = () => {
         residentStreetId,
         residentBarangayId,
         residentCollectionFinalized,
+        manilaDateKey,
       ),
-    [routeTemplates, residentStreetId, residentBarangayId, residentCollectionFinalized],
+    [routeTemplates, residentStreetId, residentBarangayId, residentCollectionFinalized, manilaDateKey],
   );
   const hasLiveTrackingForResident =
     hasActiveTrucks && !residentCollectionFinalized;

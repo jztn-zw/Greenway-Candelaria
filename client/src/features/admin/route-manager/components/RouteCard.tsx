@@ -1,28 +1,28 @@
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
-import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import { getCategoryBadgeColors,getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuSeparator,
+DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Copy,
-  Truck,
-  User,
-  Clock,
-  MapPin,
-  MoreVertical,
-  SquarePen,
-  Power,
-  Trash2,
+Copy,
+Truck,
+User,
+Clock,
+MapPin,
+MoreVertical,
+SquarePen,
+Power,
+Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatTime12h, WASTE_MAP } from "../constants";
-import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
+import { formatTime12h,WASTE_MAP } from "../constants";
+import { adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
 

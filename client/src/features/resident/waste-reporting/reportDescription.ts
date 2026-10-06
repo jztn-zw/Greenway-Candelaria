@@ -1,4 +1,4 @@
-import { QUICK_CHIPS, type ViolationType } from "./types";
+import { QUICK_CHIPS,type ViolationType } from "./types";
 
 const missedCollectionPrompts = [
   "What was the scheduled collection day?",

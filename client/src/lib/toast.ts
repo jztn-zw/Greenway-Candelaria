@@ -1,4 +1,4 @@
-import { toast as sonnerToast, type ExternalToast } from "sonner";
+import { toast as sonnerToast,type ExternalToast } from "sonner";
 
 const cleanToastText = (message: string, fallback = "System update") => {
   const cleaned = message.replace(/\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*/gu, "");
@@ -34,7 +34,7 @@ const toastWithPolicy = Object.assign(
       if (isRoutineSuccess(message)) return undefined;
       return sonnerToast.success(cleanToastText(message), cleanToastOptions(options));
     },
-    error: (message: string, options?: Parameters<typeof sonnerToast.error>[1]) => {
+    error: (message: string, _options?: Parameters<typeof sonnerToast.error>[1]) => {
       if (/^failed to (load|fetch)/i.test(message)) return undefined;
       if (isLocalValidationMessage(message)) return sonnerToast.error(cleanToastText(message));
       return sonnerToast.error("Could not complete that action. Please try again.");

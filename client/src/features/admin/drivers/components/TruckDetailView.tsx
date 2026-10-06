@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Driver, truckStatusStyles } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 interface TruckDetailViewProps {
   truck: Truck;

@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLiveTracking } from "./useLiveTracking";
 import { pingLocation } from "@/services/trackingService";
 import { distanceToStopKm } from "../routeMap.utils";
+import { getSystemNow } from "@/lib/serverClock";
 
 vi.mock("@/services/trackingService", () => ({ pingLocation: vi.fn() }));
 const ping = vi.mocked(pingLocation);
@@ -40,6 +41,23 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("web GPS lifecycle", () => {
+  it("preserves a GPS sample's measured age while correcting a wrong device clock", async () => {
+    vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+    const { result } = renderHook(() => useLiveTracking(options));
+    const capturedAt = new Date(getSystemNow() - 5_000).toISOString();
+    await act(async () => success({ ...position(), timestamp: Date.now() - 5_000 }));
+    expect(ping).toHaveBeenCalledWith("truck", 14, 121, expect.objectContaining({ captured_at: capturedAt }), expect.any(AbortSignal));
+    expect(result.current.truckCoords).toEqual([14, 121]);
+    await act(async () => vi.advanceTimersByTime(125_000));
+    expect(result.current.truckCoords).toBeNull();
+  });
+  it("still rejects old GPS samples when the device clock is wrong", async () => {
+    vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+    const { result } = renderHook(() => useLiveTracking(options));
+    await act(async () => success({ ...position(), timestamp: Date.now() - 125_000 }));
+    expect(ping).not.toHaveBeenCalled();
+    expect(result.current.gpsError).toMatch(/outdated/);
+  });
   it("discards a GPS callback that arrives after pause", async () => {
     const { rerender } = renderHook((props) => useLiveTracking(props), { initialProps: options });
     const lateCallback = success;
@@ -61,7 +79,7 @@ describe("web GPS lifecycle", () => {
     expect(getPosition).toHaveBeenCalledTimes(1);
     await act(async () => { success(position()); });
     expect(ping).toHaveBeenCalledWith("truck", 14, 121, expect.objectContaining({
-      route_run_id: "run", captured_at: new Date().toISOString(), sample_id: expect.any(String),
+      route_run_id: "run", captured_at: new Date(getSystemNow()).toISOString(), sample_id: expect.any(String),
     }), expect.any(AbortSignal));
     await act(async () => vi.advanceTimersByTime(15000));
     expect(getPosition).toHaveBeenCalledTimes(1);

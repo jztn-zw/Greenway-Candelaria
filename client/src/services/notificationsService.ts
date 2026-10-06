@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { syncServerClock } from "@/lib/serverClock";
 
 export interface NotificationRow {
   id: string;
@@ -22,6 +23,7 @@ export interface NotificationRow {
 }
 
 export interface NotificationsResponse {
+  server_time?: string;
   notifications: NotificationRow[];
   total: number;
   limit: number;
@@ -43,22 +45,14 @@ export interface NotificationFilters {
   web_category?: "all" | `admin:${"operations" | "reports" | "content" | "announcements"}` | `resident:${"collection" | "reports" | "content" | "announcements"}`;
 }
 
-export interface SendNotificationPayload {
-  user_ids: string[];
-  type: NotificationRow["type"];
-  title: string;
-  body: string;
-  ref_id?: string | null;
-  ref_module?: string | null;
-  metadata?: Record<string, unknown> | null;
-}
-
 export const fetchMyNotifications = async (
   params: NotificationFilters = {},
 ): Promise<NotificationsResponse> => {
+  const requestedAt = performance.now();
   const res = await api.get<{ data: NotificationsResponse }>("/notifications", {
     params,
   });
+  syncServerClock(res.data.data.server_time, requestedAt);
   return res.data.data;
 };
 
@@ -74,8 +68,9 @@ export const markNotificationAsRead = async (id: string): Promise<void> => {
 export const markAllNotificationsAsRead = async (): Promise<void> => {
   await api.put("/notifications/read-all");
 };
-export const markContentNotificationsAsRead = async (): Promise<void> => {
-  await api.put("/notifications/read-all", { category: "content" });
+export const markContentNotificationsAsRead = async (postId: string): Promise<void> => {
+  if (!postId?.trim()) throw new Error("A post is required to mark its notifications as read.");
+  await api.put("/notifications/read-all", { category: "content", post_id: postId });
 };
 
 export const deleteNotification = async (id: string): Promise<void> => {
@@ -86,12 +81,6 @@ export const clearAllNotifications = async (): Promise<void> => {
   await api.delete("/notifications/clear");
 };
 
-export const sendNotification = async (
-  payload: SendNotificationPayload,
-): Promise<void> => {
-  await api.post("/notifications/send", payload);
-};
-
 const notificationsService = {
   fetchMyNotifications,
   fetchUnreadCount,
@@ -100,7 +89,6 @@ const notificationsService = {
   markContentNotificationsAsRead,
   deleteNotification,
   clearAllNotifications,
-  sendNotification,
 };
 
 export default notificationsService;

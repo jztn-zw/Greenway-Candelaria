@@ -1,24 +1,24 @@
+import { getManilaNow,parseApiTimestamp } from "@/utils/date";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { useState, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState,useMemo } from "react";
+import { Card,CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Truck,
-  MapPin,
-  User,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Radio,
-  Route as RouteIcon,
+Truck,
+MapPin,
+User,
+ChevronDown,
+ChevronUp,
+Clock,
+CheckCircle2,
+AlertTriangle,
+Radio,
+Route as RouteIcon,
 } from "lucide-react";
-import AnimatedList from "@/components/AnimatedList";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import type { AdminTruck, TruckStatus } from "../types";
+import type { AdminTruck,TruckStatus } from "../types";
 import { cn } from "@/lib/utils";
-import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
+import { adminTruckTrackingStyles as styles } from "@/components/common/communityContentStyles";
 
 /** Convert time strings like "6:05 AM", "7:45 PM", or "18:30" -> "6:05am" / "7:45pm" */
 const formatTime12h = (raw: string): string => {
@@ -36,10 +36,11 @@ const formatTime12h = (raw: string): string => {
     else if (hour > 12) hour -= 12;
     return `${hour}:${min}${period}`;
   }
-  const d = new Date(raw);
-  if (!isNaN(d.getTime())) {
-    let hour = d.getHours();
-    const min = String(d.getMinutes()).padStart(2, "0");
+  const d = parseApiTimestamp(raw);
+  if (d) {
+    const fields = getManilaNow(d);
+    let hour = fields.hour;
+    const min = String(fields.minute).padStart(2, "0");
     const period = hour >= 12 ? "pm" : "am";
     if (hour === 0) hour = 12;
     else if (hour > 12) hour -= 12;

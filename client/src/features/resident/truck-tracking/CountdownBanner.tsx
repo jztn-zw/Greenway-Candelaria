@@ -1,5 +1,5 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
-import { CalendarDays, Clock, Info } from "lucide-react";
+import { CalendarDays,Clock,Info } from "lucide-react";
 import type { CollectionSchedule } from "./types";
 import { formatManilaDateTime } from "@/utils/date";
 import { trackingStyles } from "./trackingStyles";

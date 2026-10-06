@@ -1,7 +1,8 @@
+import { getSystemNow } from "@/lib/serverClock";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import type { RouteRunToday } from "@/services/routesService";
 import { parseApiTimestamp } from "@/utils/date";
-import type { AssignmentData, RouteState } from "./components/types";
+import type { AssignmentData,RouteState } from "./components/types";
 
 export const routeStatusLabels: Record<RouteState, string> = {
   unassigned: "Unassigned", "no-schedule": "No route scheduled", "not-started": "Not started",
@@ -24,7 +25,7 @@ export const getWasteBadgeClass = (value: string) => {
 };
 
 export const buildAssignment = (
-  route: RouteRunToday | null, hasTruck: boolean, plateNumber?: string | null, now = Date.now(),
+  route: RouteRunToday | null, hasTruck: boolean, plateNumber?: string | null, now = getSystemNow(),
 ): AssignmentData => {
   const stops = [...(route?.stops ?? [])].sort((a, b) => a.order_index - b.order_index);
   const totalStops = stops.length;

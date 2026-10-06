@@ -20,6 +20,10 @@ export const isProfileAvatarId = (value: string | null): value is ProfileAvatarI
 export const profileAvatarSrc = (avatarId: ProfileAvatarId) =>
   PROFILE_AVATARS.find((avatar) => avatar.id === avatarId)?.src ?? PROFILE_AVATARS[0].src;
 
+// Keep saved URLs compatible with existing accounts; use small portraits on the web.
+export const profileAvatarImageSrc = (avatarId: ProfileAvatarId) =>
+  profileAvatarSrc(avatarId).replace(/\.png$/, ".webp");
+
 export const profileAvatarIdFromUrl = (url: string | null | undefined): ProfileAvatarId | null =>
   PROFILE_AVATARS.find((avatar) => avatar.src === url)?.id ?? null;
 

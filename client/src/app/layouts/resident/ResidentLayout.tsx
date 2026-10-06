@@ -2,11 +2,16 @@ import { Outlet } from "react-router-dom";
 import ResidentSidebar from "./ResidentSidebar";
 import ResidentTopBar from "./ResidentTopbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import PageTransition from "@/components/PageTransition";
+import PageTransition from "@/components/motion/PageTransition";
 
 import ResidentLiveSync from "./ResidentLiveSync";
+import useAuthStore from "@/store/authStore";
+import ResidentSetup from "@/features/resident/profile/ResidentSetup";
 
 const ResidentLayout = () => {
+  const user = useAuthStore(state => state.user);
+  const token = useAuthStore(state => state.token);
+  if (user?.profile_completed === false) return <ResidentSetup key={`${user.id}:${token}`} />;
   return (
     <SidebarProvider mobileBreakpoint={1024}>
       <div className="min-h-screen flex w-full">

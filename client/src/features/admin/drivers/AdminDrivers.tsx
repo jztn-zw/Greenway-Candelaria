@@ -3,47 +3,47 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { Users, UserCheck, Truck, Link2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import { SearchInput } from "@/components/common/SearchInput";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/common/SegmentedControl";
-import { CollectorManagerPageSkeleton, CollectorManagerProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { CollectorManagerPageSkeleton, CollectorManagerProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { Button } from "@/components/ui/button";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useAdminMutation, useAdminQuery, useAdminResource } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
-createDriver as apicreateDriver,
-createTruck as apicreateTruck,
-deleteDriver as apideleteDriverApi,
-deleteTruck as apideleteTruckApi,
-updateDriver as apiupdateDriver,
-updateDriverAccountStatus as apiupdateDriverAccountStatus,
-updateTruck as apiupdateTruck,
-fetchDriverActivity,
-fetchDrivers,
-fetchTrucks,
+  createDriver as apicreateDriver,
+  createTruck as apicreateTruck,
+  deleteDriver as apideleteDriverApi,
+  deleteTruck as apideleteTruckApi,
+  updateDriver as apiupdateDriver,
+  updateDriverAccountStatus as apiupdateDriverAccountStatus,
+  updateTruck as apiupdateTruck,
+  fetchDriverActivity,
+  fetchDrivers,
+  fetchTrucks,
 } from "@/services/driverManagerService";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-mapDriverActivityRow,
-mapDriverRow,
-mapTruckRow,
-toAvailabilityStatus,
+  mapDriverActivityRow,
+  mapDriverRow,
+  mapTruckRow,
+  toAvailabilityStatus,
 } from "./driverManager.utils";
 import type { Driver, Truck as TruckType } from "./types";
 
@@ -91,8 +91,8 @@ const AdminDrivers = () => {
 
   const driversQuery = useAdminResource<Driver[]>("drivers", ["manager"], async () => (await fetchDrivers()).map(mapDriverRow), []);
   const trucksQuery = useAdminResource<TruckType[]>("trucks", ["manager"], async () => (await fetchTrucks()).map(mapTruckRow), []);
-  const { data: drivers, setData: setDrivers } = driversQuery;
-  const { data: trucks, setData: setTrucks } = trucksQuery;
+  const { data: drivers } = driversQuery;
+  const { data: trucks } = trucksQuery;
   const isLoading = driversQuery.isLoading || trucksQuery.isLoading;
   const driversError = driversQuery.dataUpdatedAt === 0 ? driversQuery.error?.message ?? "" : "";
   const trucksError = trucksQuery.dataUpdatedAt === 0 ? trucksQuery.error?.message ?? "" : "";
@@ -722,8 +722,6 @@ const AdminDrivers = () => {
         open={truckEditorOpen}
         onOpenChange={setTruckEditorOpen}
         editingTruck={editingTruck}
-        trucks={trucks}
-        drivers={drivers}
         isSaving={isSavingTruck}
         onSave={handleSaveTruck}
       />

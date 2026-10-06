@@ -3,37 +3,37 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
 import { getCollectorNotificationPresentation } from "./notificationPresentation";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { useState, useMemo, useRef, useEffect } from "react";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { FilterPillTabs,type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { useState,useMemo,useRef,useEffect } from "react";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { useNavigate } from "react-router-dom";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import {
-  Bell,
-  CheckCheck,
-  Trash2,
-  Clock,
-  MoreHorizontal,
-  ChevronRight,
+Bell,
+CheckCheck,
+Trash2,
+Clock,
+MoreHorizontal,
+ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import useNotifications from "@/hooks/useNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
-import { formatRelativeTime } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 import CollectorNotificationModal from "./CollectorNotificationModal";
-import { NotificationsListSkeleton, NotificationsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { NotificationsListSkeleton,NotificationsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
-  getCollectorNotificationCategory,
-  openCollectorNotification,
-  getCollectorNotificationVisual,
+getCollectorNotificationCategory,
+openCollectorNotification,
+getCollectorNotificationVisual,
 } from "./notificationRouting";
 
 const PAGE_SIZE = 15;
@@ -48,6 +48,7 @@ const tabs: FilterPillItem<CollectorCategory>[] = [
 ];
 
 const CollectorNotifications = () => {
+  const { formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const {
     notifications,

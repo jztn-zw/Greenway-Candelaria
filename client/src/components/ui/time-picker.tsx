@@ -1,4 +1,5 @@
-﻿import * as React from "react";
+import { toManilaCalendarDate } from "@/utils/date";
+import * as React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Clock } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -152,7 +153,7 @@ export function TimePicker({
   };
 
   const handleSetNow = () => {
-    const now = new Date();
+    const now = toManilaCalendarDate();
     const h24 = now.getHours();
     const m = now.getMinutes();
     const time24 = `${String(h24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;

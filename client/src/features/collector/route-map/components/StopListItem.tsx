@@ -1,7 +1,7 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import type { RouteStop } from "../types";
-import { CheckCircle2, Circle, Navigation, AlertTriangle } from "lucide-react";
+import { CheckCircle2,Circle,Navigation,AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface StopListItemProps {

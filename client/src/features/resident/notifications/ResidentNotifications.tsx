@@ -1,3 +1,4 @@
+import { getSystemNow } from "@/lib/serverClock";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
@@ -5,32 +6,28 @@ import { Badge } from "@/components/ui/badge";
 import { notificationStyles } from "./notificationStyles";
 import { getResidentNotificationPresentation } from "./notificationPresentation";
 import { useResidentFetch } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bell,
   CheckCheck,
-  CalendarClock,
   Truck,
   CheckCircle2,
-  AlertTriangle,
   Megaphone,
   FileText,
   Newspaper,
   Trash2,
   Lightbulb,
   CalendarDays,
-  Wrench,
   ChevronRight,
   Clock,
   MoreHorizontal,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,14 +37,14 @@ import {
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import PaginationControls from "@/components/common/PaginationControls";
-import { formatRelativeTime } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 import NotificationModal from "./NotificationModal";
 import type { NotificationType, ResidentNotification } from "./types";
 import ResidentAnnouncementModal from "../announcements/ResidentAnnouncementModal";
 import { fetchLiveTrucks, fetchTodayRoutes } from "@/services/trackingService";
 import {
   NotificationsPageSkeleton,
-} from "@/components/PageLoadingSkeletons";
+} from "@/components/loading/PageLoadingSkeletons";
 
 const PAGE_SIZE = 15;
 
@@ -60,28 +57,6 @@ const tabs: FilterPillItem<NotificationCategory>[] = [
   { id: "content", label: "Content" },
   { id: "announcements", label: "Announcements" },
 ];
-
-const typeIcons: Record<string, React.ElementType> = {
-  COLLECTION_REMINDER: CalendarClock,
-  TRUCK_IS_NEAR: Truck,
-  COLLECTION_DONE: CheckCircle2,
-  MISSED_COLLECTION: AlertTriangle,
-  ANNOUNCEMENT: Megaphone,
-  REPORT_UPDATE: FileText,
-  NEW_POST: Newspaper,
-  SYSTEM: Bell,
-};
-
-const typeLabels: Record<string, string> = {
-  COLLECTION_REMINDER: "Collection",
-  TRUCK_IS_NEAR: "Truck Near",
-  COLLECTION_DONE: "Done",
-  MISSED_COLLECTION: "Alert",
-  ANNOUNCEMENT: "Announcement",
-  REPORT_UPDATE: "Report",
-  NEW_POST: "Content",
-  SYSTEM: "System",
-};
 
 const modalTypeByNotificationType: Record<NotificationRow["type"], NotificationType> = {
   COLLECTION_REMINDER: "collection-reminder",
@@ -112,7 +87,7 @@ const isFreshLivePing = (value?: string | null) => {
     ? `${value.replace(" ", "T")}Z`
     : value;
   const timestamp = Date.parse(normalized);
-  return !Number.isNaN(timestamp) && Date.now() - timestamp <= 120_000;
+  return !Number.isNaN(timestamp) && getSystemNow() - timestamp <= 120_000;
 };
 
 const isActiveTruckNearAlert = async (notification: NotificationRow, fetchResident: ReturnType<typeof useResidentFetch>) => {
@@ -195,6 +170,7 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 };
 
 const ResidentNotifications = () => {
+  const { formatTime: formatRelativeTime } = useNotificationTime();
   const fetchResident = useResidentFetch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<NotificationCategory>("all");
@@ -284,6 +260,7 @@ const ResidentNotifications = () => {
         id: n.id,
         title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
         message,
+        created_at: n.created_at,
         time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
         type: modalTypeByNotificationType[n.type],
         read: true,

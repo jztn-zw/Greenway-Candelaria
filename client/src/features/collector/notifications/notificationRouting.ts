@@ -1,15 +1,15 @@
 import type { NotificationRow } from "@/services/notificationsService";
 import { getManilaNow } from "@/utils/date";
 import {
-  Bell,
-  CalendarClock,
-  CheckCircle2,
-  FileText,
-  Megaphone,
-  MessageSquare,
-  Newspaper,
-  SkipForward,
-  Truck,
+Bell,
+CalendarClock,
+CheckCircle2,
+FileText,
+Megaphone,
+MessageSquare,
+Newspaper,
+SkipForward,
+Truck,
 } from "lucide-react";
 
 const referenceId = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
@@ -119,17 +119,7 @@ export const getCollectorNotificationVisual = (notification: NotificationRow) =>
     return { Icon: Truck, style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20" };
   }
   return { Icon: Bell, style: "bg-primary/10 text-primary border-primary/20" };
-};
-
-export const getCollectorNotificationLabel = (notification: NotificationRow) => {
-  if (notification.ref_module === "routes" || notification.ref_module === "tracking") return "Route";
-  if (notification.ref_module === "drivers") return "Assignment";
-  if (notification.ref_module === "driver-messages") return "Dispatch";
-  if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT") return "Announcement";
-  return notification.type === "SYSTEM" ? "System" : "Alert";
-};
-
-export const openCollectorMessage = (notification: NotificationRow) => {
+};export const openCollectorMessage = (notification: NotificationRow) => {
   const metadata = getMetadata(notification);
   window.dispatchEvent(new CustomEvent("collector:open-messages", { detail: {
     messageId: typeof metadata.message_id === "string" ? metadata.message_id : undefined,

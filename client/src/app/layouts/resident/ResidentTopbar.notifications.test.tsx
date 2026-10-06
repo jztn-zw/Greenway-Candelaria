@@ -4,6 +4,8 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { NotificationRow } from "@/services/notificationsService";
 import ResidentTopbar from "./ResidentTopbar";
+import api from "@/lib/api";
+import { fetchMyNotifications } from "@/services/notificationsService";
 
 const mocks = vi.hoisted(() => ({ notifications: [] as NotificationRow[], markAsRead: vi.fn() }));
 vi.mock("@/features/resident/notifications/useResidentNotifications", () => ({ default: () => ({
@@ -36,7 +38,25 @@ beforeEach(() => {
   document.body.appendChild(host);
   root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); host.remove(); });
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it.each(["2020-01-01T00:00:00Z", "2030-01-01T00:00:00Z"])("uses trusted Philippine time and keeps labels ticking when the device clock is %s", async (deviceTime) => {
+  let elapsed = performance.now();
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse(deviceTime));
+  vi.spyOn(performance, "now").mockImplementation(() => elapsed);
+  vi.spyOn(api, "get").mockResolvedValue({ data: { data: {
+    notifications: [], total: 0, limit: 20, offset: 0, server_time: "2026-10-06 16:59:00.000",
+  } } });
+  await fetchMyNotifications();
+  mocks.notifications = [notice({ created_at: "2026-10-06 16:55:00" })];
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  await openMenu();
+  expect(document.querySelector(".gw-topbar-notification-row")).toHaveTextContent("4m ago");
+  elapsed += 60_000;
+  vi.mocked(Date.now).mockReturnValue(Date.parse("2040-01-01T00:00:00Z"));
+  await act(async () => { vi.advanceTimersByTime(60_000); });
+  expect(document.querySelector(".gw-topbar-notification-row")).toHaveTextContent("5m ago");
+});
 
 it.each([
   ["NEW_POST", "posts", "/resident/contents?post=detail-1"],

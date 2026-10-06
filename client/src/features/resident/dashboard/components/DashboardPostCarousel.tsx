@@ -1,19 +1,19 @@
 import { useResidentQuery } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
-import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import { useState,useEffect,useRef } from "react";
+import { ChevronLeft,ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card,CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { dashboardStyles } from "../dashboardStyles";
 import { cn } from "@/lib/utils";
-import { ResidentDashboardUpdateSkeleton } from "@/components/PageLoadingSkeletons";
+import { ResidentDashboardUpdateSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import postsService from "@/services/postsService";
 import {
-  PostItem,
-  formatCategory,
-  getCategoryBadgeStyle,
+PostItem,
+formatCategory,
+getCategoryBadgeStyle,
 } from "../../content/types";
 import { PostImagePlaceholder } from "../../content/PostImagePlaceholder";
 

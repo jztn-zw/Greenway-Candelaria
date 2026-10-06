@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { VIOLATION_OPTIONS, type ViolationType } from "./types";
+import { VIOLATION_OPTIONS,type ViolationType } from "./types";
 import { cn } from "@/lib/utils";
 import { reportStyles } from "./reportStyles";
 

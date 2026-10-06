@@ -1,4 +1,4 @@
-// Idempotent application of 20260924_preserve_route_run_history.sql.
+// Idempotent repair of the route-template foreign key that protects history.
 const inspect = async (db) => {
   const [columns] = await db.query(`SELECT COLUMN_TYPE, IS_NULLABLE, CHARACTER_SET_NAME, COLLATION_NAME
     FROM information_schema.COLUMNS

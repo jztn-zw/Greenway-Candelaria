@@ -1,36 +1,33 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { trackingStyles } from "./trackingStyles";
 import { scheduledTrackingContent } from "./trackingContent";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentFetch } from "@/lib/residentQuery";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Truck, CollectionDayStatus } from "./types";
+import type { Truck,CollectionDayStatus } from "./types";
 import {
-  CalendarOff,
-  CalendarClock,
-  CheckCircle2,
-  AlertTriangle,
-  Truck as TruckIcon,
-  Navigation,
-  Route as RouteIcon,
-  MapPin,
-  Home,
-  Clock,
-  LocateFixed,
-  Maximize2,
-  ChevronUp,
-  ChevronDown,
-  Info,
-  Plus,
-  Minus,
-  WifiOff,
+CalendarOff,
+CalendarClock,
+CheckCircle2,
+AlertTriangle,
+Truck as TruckIcon,Route as RouteIcon,
+MapPin,
+Home,
+Clock,
+LocateFixed,
+Maximize2,
+ChevronUp,
+ChevronDown,Plus,
+Minus,
+WifiOff
 } from "lucide-react";
-import { formatManilaDateTime, formatRelativeTime } from "@/utils/date";
+import { formatManilaDateTime,formatRelativeTime } from "@/utils/date";
 import {
-  getMultiStopRoadRoute,
-  getRoadRoute,
-  type RoadRouteResult,
+getMultiStopRoadRoute,
+getRoadRoute,
+type RoadRouteResult,
 } from "@/services/roadRoutingService";
 
 interface TrackingMapProps {
@@ -46,9 +43,7 @@ interface TrackingMapProps {
   onRouteCalculated?: (truckId: string, route: RoadRouteResult) => void;
 }
 
-const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-const BOUNDS: L.LatLngBoundsExpression = [
+const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";const BOUNDS: L.LatLngBoundsExpression = [
   [13.82, 121.20],
   [14.23, 121.66],
 ];
@@ -185,6 +180,7 @@ const TrackingMap = ({
   onSelectTruck,
   onRouteCalculated,
 }: TrackingMapProps) => {
+  useSystemTime();
   const fetchResident = useResidentFetch();
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -199,10 +195,7 @@ const TrackingMap = ({
   const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);
   const [arrivalRouteData, setArrivalRouteData] = useState<RoadRouteResult | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
-  const [showLegend, setShowLegend] = useState(false);
-
-  const residentTruck = useMemo(
+  const [isCardCollapsed, setIsCardCollapsed] = useState(false);  const residentTruck = useMemo(
     () => trucks.find((t) => t.isResidentTruck),
     [trucks]
   );

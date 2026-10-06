@@ -16,7 +16,7 @@ import {
 import { CalendarEvent } from "@/services/scheduleService";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
-import { SelectedDayEventsSkeleton } from "@/components/PageLoadingSkeletons";
+import { SelectedDayEventsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 

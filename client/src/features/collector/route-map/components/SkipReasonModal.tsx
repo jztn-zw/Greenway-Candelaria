@@ -1,8 +1,8 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog,DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { useEffect,useState } from "react";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import type { SkipReason } from "../types";
 import { AlertTriangle } from "lucide-react";
 import { CollectorModalHeader } from "../../components/CollectorModal";

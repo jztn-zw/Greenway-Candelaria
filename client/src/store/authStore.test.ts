@@ -31,6 +31,23 @@ it.each([true, false])("stores login only in the selected storage when remember 
   expect(other.getItem("auth-storage")).toBeNull();
 });
 
+it("a failed password login does not authenticate or store a session", async () => {
+  vi.mocked(authService.login).mockRejectedValueOnce(new Error("Invalid credentials"));
+  await expect(useAuthStore.getState().login("resident", "password", false)).rejects.toThrow("Invalid credentials");
+  expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  expect(sessionStorage.getItem("token")).toBeNull();
+});
+
+it("a late password-login response cannot revive a logged-out session", async () => {
+  const pending = deferred<{ user: User; token: string }>();
+  vi.mocked(authService.login).mockReturnValueOnce(pending.promise);
+  const signingIn = useAuthStore.getState().login("resident", "password", true);
+  useAuthStore.getState().clearAuth();
+  pending.resolve({ user: user("resident"), token: "late-session" });
+  await expect(signingIn).rejects.toThrow("Your session changed");
+  expect(localStorage.getItem("token")).toBeNull();
+});
+
 it("keeps temporary sessions temporary through verification and profile updates", async () => {
   vi.mocked(authService.login).mockResolvedValueOnce({ user: user("a"), token: "session-a" });
   await useAuthStore.getState().login("a", "password", false);
@@ -116,4 +133,14 @@ it("rejects a login response after logout", async () => {
   await useAuthStore.getState().logout(); old.resolve({ user: user("a"), token: "session-a" });
   await expect(loggingIn).rejects.toThrow("session changed");
   expect(useAuthStore.getState().isAuthenticated).toBe(false); expect(localStorage.getItem("token")).toBeNull();
+});
+it("a late session check cannot undo saved resident setup", async () => {
+  await signIn("a");
+  const old = deferred<User>();
+  vi.mocked(authService.getMe).mockReturnValueOnce(old.promise);
+  const checking = useAuthStore.getState().ensureSession(true);
+  useAuthStore.getState().setUser({ ...user("a"), profile_completed: true });
+  old.resolve({ ...user("a"), profile_completed: false });
+  await checking;
+  expect(useAuthStore.getState().user?.profile_completed).toBe(true);
 });

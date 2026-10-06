@@ -8,16 +8,14 @@ import {
   Truck,
   AlertTriangle,
   BarChart3,
-  ClipboardList,
-  Bell,
-  LogOut,
+  ClipboardList, LogOut,
   Settings,
   UserCircle,
   ChevronLeft,
   ChevronDown,
   Navigation,
   CalendarDays,
-  MapPinned,
+  MapPinned
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,8 +33,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import {
   Collapsible,
@@ -284,7 +282,7 @@ const AdminSidebar = () => {
           <div ref={gearMenuRef} className={navigationStyles.accountRow}>
             <div className="relative shrink-0">
               <Avatar className={navigationStyles.avatar}>
-                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "ADMIN"))} alt="" className="object-cover object-center" />
+                <AvatarImage src={profileAvatarImageSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "ADMIN"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>

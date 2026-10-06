@@ -1,8 +1,8 @@
-import { Award, Trophy } from "lucide-react";
-import { useScrollReveal, useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/MobileCarousel";
+import { Award,Trophy } from "lucide-react";
+import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
+import MobileCarousel from "@/components/common/MobileCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AwardsContent, CONTENT } from "../landingContent";
+import { AwardsContent,CONTENT } from "../landingContent";
 
 const AwardCard = ({
   item,

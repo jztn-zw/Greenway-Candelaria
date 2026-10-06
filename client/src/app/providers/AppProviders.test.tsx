@@ -8,6 +8,7 @@ import AppProviders from "./AppProviders";
 import App from "@/App";
 import useAuthStore from "@/store/authStore";
 import type { User } from "@/services/authService";
+vi.mock("@/lib/api", () => ({ default: { get: vi.fn(async () => ({ data: { data: { server_time: new Date().toISOString() } } })) } }));
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
 vi.mock("@/components/ui/toaster", () => ({ Toaster: () => null }));
 const loginRole = vi.hoisted(() => ({ value: "ADMIN" }));

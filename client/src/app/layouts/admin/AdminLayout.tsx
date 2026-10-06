@@ -3,7 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import PageTransition from "@/components/PageTransition";
+import PageTransition from "@/components/motion/PageTransition";
 import authService from "@/services/authService";
 
 const AdminLayout = () => {

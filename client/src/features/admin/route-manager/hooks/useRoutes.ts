@@ -1,4 +1,4 @@
-import { useAdminMutation, useAdminResource } from "@/lib/adminQuery";
+import { useAdminMutation,useAdminResource } from "@/lib/adminQuery";
 // src/pages/admin/hooks/useRoutes.ts
 import { toast } from "@/lib/toast";
 import {
@@ -8,7 +8,7 @@ ApiRoute,
 updateRoute as apiupdateRoute,
 fetchRoutes,
 } from "@/services/routesService";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback,useState } from "react";
 import { WASTE_MAP } from "../constants";
 
 // ─── Frontend shape (what the component works with) ───────────────────────────

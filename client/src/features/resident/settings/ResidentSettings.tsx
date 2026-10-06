@@ -1,19 +1,19 @@
-import { FormDialog } from "@/components/FormDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
-import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
-import { useState, useEffect, useRef } from "react";
+import { FormDialog } from "@/components/dialogs/FormDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
+import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
+import { useState,useEffect,useRef } from "react";
 import {
-  Bell, BellRing, Calendar, Shield, HelpCircle,
-  Mail, ChevronRight,
-  Sun, Moon, FileText, Truck, Megaphone,
-  BookOpen, Lock
+Bell,BellRing,Calendar,Shield,HelpCircle,
+Mail,ChevronRight,
+Sun,Moon,FileText,Truck,Megaphone,
+BookOpen,Lock
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { SettingsSkeleton } from "@/components/PageLoadingSkeletons";
-import { fetchUserSettings, updateUserSettings, UpdateSettingsPayload } from "@/services/settingsService";
+import { SettingsSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { fetchUserSettings,updateUserSettings,UpdateSettingsPayload } from "@/services/settingsService";
 import { toast } from "@/lib/toast";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { setThemeMode } from "@/lib/theme";

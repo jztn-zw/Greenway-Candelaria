@@ -1,34 +1,35 @@
+import { formatManilaDateTime } from "@/utils/date";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
-import { adminCommunityStyles as postStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as postStyles } from "@/components/common/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
 import {
-AdminPostDetailSkeleton,
-AdminPostsSkeleton,
-AdminPostsContentSkeleton,
-} from "@/components/PageLoadingSkeletons";
+  AdminPostDetailSkeleton,
+  AdminPostsSkeleton,
+  AdminPostsContentSkeleton,
+} from "@/components/loading/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import postsService, { type AdminPostStats } from "@/services/postsService";
 import useAuthStore from "@/store/authStore";
 import { ArrowUpDown, FileText, LayoutGrid, List, Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminPostDetail from "./AdminPostDetail";
 import PostCard from "./PostCard";
@@ -36,8 +37,8 @@ import PostEditor, { EditorForm } from "./PostEditor";
 import PostListView from "./PostListView";
 import PostStats from "./PostStats";
 import {
-Post,
-PostStatus
+  Post,
+  PostStatus
 } from "./types";
 
 const POSTS_PER_PAGE_GRID = 6;
@@ -68,7 +69,7 @@ const mapStatusToApi = (status: PostStatus): string => {
 
 // TiDB stores DATETIME values without timezone metadata. Scheduled post times
 // are stored in UTC, so restore that metadata before the browser displays them
-// in the administrator's local timezone.
+// in Philippine time.
 const toUtcIsoString = (value: string | null | undefined): string | null => {
   if (!value) return null;
   const normalized = value.replace(" ", "T");
@@ -103,14 +104,14 @@ const mapApiPost = (p: ApiPost): Post => ({
   featured: Boolean(p.is_featured),
   author: p.author_name || "Admin",
   publishedDate: p.published_at
-    ? new Date(p.published_at.replace(" ", "T")).toLocaleDateString("en-US", {
+    ? formatManilaDateTime(p.published_at, {
         month: "short",
         day: "numeric",
         year: "numeric",
       })
     : null,
   lastEdited: p.updated_at
-    ? new Date(p.updated_at.replace(" ", "T")).toLocaleDateString("en-US", {
+    ? formatManilaDateTime(p.updated_at, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -158,9 +159,7 @@ const AdminPosts = () => {
     } catch {
       return null;
     }
-  });
-  const [previewActiveImageIndex, setPreviewActiveImageIndex] = useState(0);
-  const wasPreviewRef = useRef(false);
+  });  const wasPreviewRef = useRef(false);
   const hasLoadedListRef = useRef(false);
   const postsPerPage =
     viewMode === "grid" ? POSTS_PER_PAGE_GRID : POSTS_PER_PAGE_TABLE;
@@ -510,7 +509,7 @@ const AdminPosts = () => {
         useAuthStore.getState().user?.full_name ||
         "Admin",
       publishedDate: form.scheduledDate
-        ? new Date(form.scheduledDate).toLocaleDateString("en-US", {
+        ? formatManilaDateTime(form.scheduledDate, {
             month: "short",
             day: "numeric",
             year: "numeric",

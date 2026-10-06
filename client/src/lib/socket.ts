@@ -1,4 +1,4 @@
-import { io, Socket } from "socket.io-client";
+import { io,Socket } from "socket.io-client";
 import { getAuthStorage } from "./authStorage";
 
 let socket: Socket | null = null;

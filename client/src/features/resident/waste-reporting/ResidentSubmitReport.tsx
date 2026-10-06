@@ -1,11 +1,10 @@
-import { useResidentQuery, useResidentMutation } from "@/lib/residentQuery";
+import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import useAuthStore from "@/store/authStore";
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState,useMemo,useEffect,useCallback,useRef } from "react";
 import { Button } from "@/components/ui/button";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { Switch } from "@/components/ui/switch";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { toast } from "@/lib/toast";
-import { Send, RotateCcw } from "lucide-react";
+import { Send,RotateCcw } from "lucide-react";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { reportStyles } from "./reportStyles";
 import ViolationTypeSelector from "./ViolationTypeSelector";
@@ -20,9 +19,9 @@ import { prepareReportDescription } from "./reportDescription";
 import type { ReportFormData } from "./types";
 import { VIOLATION_TYPE_MAP } from "./types";
 import {
-  checkSimilarReport,
-  submitReport,
-  uploadReportPhotos,
+checkSimilarReport,
+submitReport,
+uploadReportPhotos,
 } from "@/services/reportsService";
 type SubmissionStage = "compressing" | "uploading" | "creating" | null;
 
@@ -139,9 +138,7 @@ const ResidentSubmitReport = () => {
     { enabled: !!form.barangayId && !!form.violationType });
   const hasSimilarReport = similarQuery.data ?? false;
 
-  const [submitted, setSubmitted] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
-  const [referenceNumber, setReferenceNumber] = useState("");
+  const [submitted, setSubmitted] = useState(false);  const [referenceNumber, setReferenceNumber] = useState("");
 
   const update = <K extends keyof ReportFormData>(
     key: K,

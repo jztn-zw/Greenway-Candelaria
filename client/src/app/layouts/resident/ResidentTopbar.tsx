@@ -7,19 +7,15 @@ import {
   Menu,
   Bell,
   Sun,
-  Moon,
-  CalendarClock,
-  Truck,
-  CheckCircle2,
-  AlertTriangle,
-  Megaphone,
+  Moon, Truck,
+  CheckCircle2, Megaphone,
   FileText,
   Newspaper,
   CheckCheck,
   Loader2,
   ChevronRight,
   Lightbulb,
-  CalendarDays,
+  CalendarDays
 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,7 +24,8 @@ import { getResidentNotificationPresentation } from "@/features/resident/notific
 import NotificationModal from "@/features/resident/notifications/NotificationModal";
 import type { ResidentNotification } from "@/features/resident/notifications/types";
 import { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime, parseApiTimestamp } from "@/utils/date";
+import { parseApiTimestamp } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 
 const getMetadata = (notification: NotificationRow): Record<string, unknown> => {
   if (!notification.metadata) return {};
@@ -42,11 +39,11 @@ const getMetadata = (notification: NotificationRow): Record<string, unknown> => 
   return notification.metadata;
 };
 
-const isWithinLast24Hours = (value: string) => {
+const isWithinLast24Hours = (value: string, now: number | null) => {
   const date = parseApiTimestamp(value);
-  if (!date) return false;
+  if (!date || now === null) return false;
 
-  const elapsed = Date.now() - date.getTime();
+  const elapsed = now - date.getTime();
   return elapsed >= 0 && elapsed < 24 * 60 * 60 * 1000;
 };
 
@@ -130,6 +127,7 @@ const getResidentPageTitle = (pathname: string) => {
 };
 
 const ResidentTopBar = () => {
+  const { now, formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const location = useLocation();
   const { toggleSidebar } = useSidebar();
@@ -168,6 +166,7 @@ const ResidentTopBar = () => {
         type: "collection-reminder",
         title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
         message,
+        created_at: n.created_at,
         time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
         read: true,
       });
@@ -182,7 +181,7 @@ const ResidentTopBar = () => {
   const visibleNotifications = notifications.slice(0, visibleNotificationCount);
   const hasMoreNotifications = visibleNotificationCount < total;
   const recentNotificationCount = recentCount ?? notifications.filter((notification) =>
-    isWithinLast24Hours(notification.created_at),
+    isWithinLast24Hours(notification.created_at, now),
   ).length;
 
   const loadMoreNotifications = () => {

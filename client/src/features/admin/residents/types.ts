@@ -10,7 +10,7 @@ export interface Resident {
   fullName: string;
   username: string;
   avatarUrl: string | null;
-  email: string;
+  email: string | null;
   phone: string;
   barangay: string;
   dateRegistered: string;

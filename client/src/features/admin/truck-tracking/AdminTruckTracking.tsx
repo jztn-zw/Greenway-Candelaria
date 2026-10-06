@@ -1,10 +1,12 @@
+import { parseApiTimestamp } from "@/utils/date";
+import { getSystemNow,getSystemDate } from "@/lib/serverClock";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { Truck, MapPin, Activity, CircleCheck, PanelRightClose, RotateCcw } from "lucide-react";
-import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+import { Truck,MapPin,Activity,CircleCheck,PanelRightClose,RotateCcw } from "lucide-react";
+import { AdminKpiCard,AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 
 import { badgeStyles } from "@/components/ui/badgeStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { useAdminQuery } from "@/lib/adminQuery";
 /**
  * AdminTruckTracking.tsx
@@ -18,17 +20,15 @@ import { useAdminQuery } from "@/lib/adminQuery";
  *  4. Reconcile the full snapshot once per minute while connected.
  */
 
-import { AdminTruckTrackingPageSkeleton } from "@/components/PageLoadingSkeletons";
-import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
+import { AdminTruckTrackingPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { adminTruckTrackingStyles as styles } from "@/components/common/communityContentStyles";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useScheduledRouteOrder } from "@/features/collector/route-map/hooks/useAutoRoute";
+import { useScheduledRouteOrder } from "@/features/collector/route-map/hooks/useScheduledRouteOrder";
 import type { RouteStop } from "@/features/collector/route-map/types";
 import { useThemeMode } from "@/hooks/useThemeMode";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import authService from "@/services/authService";
-import { fetchBarangays, type BarangayLocationRow } from "@/services/barangaysService";
+import { fetchBarangays,type BarangayLocationRow } from "@/services/barangaysService";
 import {
 fetchAdminTrackingOverview,
 type AdminTrackingOverview,
@@ -39,14 +39,14 @@ type TruckRouteRow,
 type TruckRow,
 } from "@/services/trackingService";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import { io } from "socket.io-client";
 import AdminTrackingMap from "./components/AdminTrackingMap";
 import AdminTrackingWorkspace from "./components/AdminTrackingWorkspace";
 import AdminTruckCard from "./components/AdminTruckCard";
 import RouteReplay from "./components/RouteReplay";
 import type { ReplayTargetLocation } from "./utils/replayTrip";
-import type { AdminTruck, TruckStatus } from "./types";
+import type { AdminTruck,TruckStatus } from "./types";
 
 // Config
 const SOCKET_URL =
@@ -101,43 +101,9 @@ const normaliseStatus = (raw: string): TruckStatus => {
   return map[raw?.toUpperCase()] ?? "offline";
 };
 
-const parseBackendDate = (value: string): number | null => {
-  const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/,
-  );
+const parseBackendDate = (value: string): number | null => parseApiTimestamp(value)?.getTime() ?? null;
 
-  if (match) {
-    const [, year, month, day, hour, minute, second] = match;
-    const localMs = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    ).getTime();
-    const utcMs = Date.UTC(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    );
-
-    // MySQL DATETIME often arrives without timezone. Choose the candidate
-    // closest to "now" to avoid false 8-hour stale/offline labels.
-    const now = Date.now();
-    const localDelta = Math.abs(now - localMs);
-    const utcDelta = Math.abs(now - utcMs);
-    return localDelta <= utcDelta ? localMs : utcMs;
-  }
-
-  const direct = Date.parse(value);
-  return Number.isNaN(direct) ? null : direct;
-};
-
-const elapsedLabel = (timestamp: string, now = Date.now()): string => {
+const elapsedLabel = (timestamp: string, now = getSystemNow()): string => {
   const parsed = parseBackendDate(timestamp);
   if (parsed === null) return "unknown";
 
@@ -156,7 +122,7 @@ const elapsedLabel = (timestamp: string, now = Date.now()): string => {
   return `${days} day${days > 1 ? "s" : ""}`;
 };
 
-const isPingStale = (timestamp: string | null, now = Date.now()): boolean => {
+const isPingStale = (timestamp: string | null, now = getSystemNow()): boolean => {
   if (!timestamp) return true;
 
   const parsed = parseBackendDate(timestamp);
@@ -165,7 +131,7 @@ const isPingStale = (timestamp: string | null, now = Date.now()): boolean => {
   return now - parsed > DRIVER_STALE_MS;
 };
 
-const isPingFresh = (timestamp: string | null, now = Date.now()): boolean =>
+const isPingFresh = (timestamp: string | null, now = getSystemNow()): boolean =>
   !isPingStale(timestamp, now);
 
 const normalizeBarangayName = (value: string) =>
@@ -179,7 +145,7 @@ const normalizeBarangayName = (value: string) =>
 const resolveTruckStatus = (
   rawStatus: string,
   lastPing: string | null,
-  now = Date.now(),
+  now = getSystemNow(),
 ): TruckStatus => {
   const normalizedKey = rawStatus?.toUpperCase().replace(/-/g, "_");
   const status =
@@ -282,7 +248,7 @@ const resolveTrackedTruckStatus = ({
   truckStatus,
   live,
   route,
-  now = Date.now(),
+  now = getSystemNow(),
 }: {
   truckStatus: string;
   live?: LiveRow;
@@ -610,9 +576,7 @@ const mergeLiveIntoTrucks = (
 
 //  Component
 
-type TrackingSidebarTab = "FLEET" | "REPLAY";
-type TrackingStatusFilter = "ALL" | TruckStatus;
-const pageTitle = "Live Truck Tracking";
+type TrackingSidebarTab = "FLEET" | "REPLAY";const pageTitle = "Live Truck Tracking";
 const pageDescription = "Real-time GPS telemetry, route execution, and dispatch controls for municipal trucks.";
 
 const AdminTruckTracking = () => {
@@ -626,15 +590,11 @@ const AdminTruckTracking = () => {
   const [replayTargetLocation, setReplayTargetLocation] = useState<ReplayTargetLocation | null>(null);
   const [replayCompletedTargets, setReplayCompletedTargets] = useState<ReplayTargetLocation[]>([]);
   const [replaySkippedTargets, setReplaySkippedTargets] = useState<ReplayTargetLocation[]>([]);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [socketConnected, setSocketConnected] = useState(false);
-  const [lastSyncSuccess, setLastSyncSuccess] = useState(true);
-  const [overviewFailed, setOverviewFailed] = useState(false);
+  const [currentTime, setCurrentTime] = useState(getSystemDate());
+  const [socketConnected, setSocketConnected] = useState(false);  const [overviewFailed, setOverviewFailed] = useState(false);
   const [mobileView, setMobileView] = useState<"MAP" | "LIST">("MAP");
   const [sidebarTab, setSidebarTab] = useState<TrackingSidebarTab>("FLEET");
-  const [isFleetPanelMinimized, setIsFleetPanelMinimized] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const mapTheme = useThemeMode();
+  const [isFleetPanelMinimized, setIsFleetPanelMinimized] = useState(false);  const mapTheme = useThemeMode();
   // The compact Fleet shortcut belongs only to the wide, side-by-side workspace.
   // Reset it when crossing into the single-view tablet/mobile layout so no
   // hidden panel state or duplicate control carries across breakpoints.
@@ -691,17 +651,15 @@ const AdminTruckTracking = () => {
           (t) => t.status === "on-the-way" && Boolean(t.coords),
         );
         return firstActive ? firstActive.id : null;
-      });
-      setLastSyncSuccess(true);
-      setOverviewFailed(false);
+      });      setOverviewFailed(false);
   }, [overviewQuery.data]);
   useEffect(() => {
-    if (overviewQuery.error) { setLastSyncSuccess(false); setOverviewFailed(true); }
+    if (overviewQuery.error) { setOverviewFailed(true); }
   }, [overviewQuery.error]);
 
   //  Live clock
   useEffect(() => {
-    const t = setInterval(() => setCurrentTime(new Date()), 30_000);
+    const t = setInterval(() => setCurrentTime(getSystemDate()), 30_000);
     return () => clearInterval(t);
   }, []);
 
@@ -725,9 +683,7 @@ const AdminTruckTracking = () => {
     };
 
     socket.on("connect", () => {
-      setSocketConnected(true);
-      setLastSyncSuccess(true);
-      socket.emit("tracking:join");
+      setSocketConnected(true);      socket.emit("tracking:join");
     });
 
     socket.on("disconnect", () => {
@@ -744,17 +700,13 @@ const AdminTruckTracking = () => {
     socket.on("live:snapshot", (liveRows: LiveRow[]) => {
       liveVersionRef.current += 1;
       latestLiveRowsRef.current = liveRows;
-      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));
-      setLastSyncSuccess(true);
-    });
+      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));    });
 
     // Incremental update after each driver ping
     socket.on("live:update", (liveRows: LiveRow[]) => {
       liveVersionRef.current += 1;
       latestLiveRowsRef.current = liveRows;
-      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));
-      setLastSyncSuccess(true);
-    });
+      setTrucks((prev) => mergeLiveIntoTrucks(prev, liveRows, operationalRouteMapRef.current));    });
 
     // AdminLiveSync owns route-change HTTP refreshes for the admin layout.
 
@@ -818,23 +770,7 @@ const AdminTruckTracking = () => {
           : t,
       ),
     [trucks, currentTime],
-  );
-
-  const handleManualRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshTrackingData();
-      toast.success("Tracking telemetry refreshed", {
-        description: "Live positions and route progress updated.",
-      });
-    } catch {
-      toast.error("Failed to refresh telemetry");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Keep the shared map neutral until an admin deliberately selects a truck.
+  );  // Keep the shared map neutral until an admin deliberately selects a truck.
   // A selected truck alone owns the displayed stop pins and route corridor.
   const activeTruck = useMemo(() => {
     if (focusedTruckId) {

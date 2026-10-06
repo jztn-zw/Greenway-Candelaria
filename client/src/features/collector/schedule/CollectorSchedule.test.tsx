@@ -132,3 +132,10 @@ it("allows admin to save corrected instructions on an ongoing event without chan
   await act(async () => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ event_date: "2026-09-25", end_date: "2026-09-30" }));
 });
+
+// This test chooses the trusted clock fixture via its fake timer date.
+vi.mock("@/lib/serverClock", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/lib/serverClock")>()),
+  getSystemDate: () => new Date(Date.now()),
+  getSystemNow: () => Date.now(), getServerNow: () => Date.now(),
+}));

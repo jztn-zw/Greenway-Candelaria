@@ -1,7 +1,8 @@
+import { getManilaNow } from "@/utils/date";
 import { Button } from "@/components/ui/button";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { CalendarSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { CalendarSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { getEventColor } from "@/components/calendar/calendar.utils";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ interface AdminCollectionCalendarProps {
 
 const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ className = "", asOfDate }) => {
   const navigate = useNavigate();
-  const currentDate = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  const currentDate = new Date(`${asOfDate || getManilaNow().dateKey}T12:00:00Z`);
   const query = useAdminQuery("schedule", ["calendar", asOfDate], () => fetchCalendarEvents(), { refetchInterval: 60_000 });
   const { data: events = [], isLoading, isError: error } = query;
 

@@ -47,7 +47,7 @@ it("marks resident content alerts without downloading their older pages", async 
   vi.mocked(notificationsService.fetchMyNotifications).mockResolvedValue({ notifications: [], total: 10000, history_total: 10000, unread_count: 9000, unread_content_count: 400, limit: 30, offset: 0 });
   const { result } = renderHook(() => useResidentNotifications(), { wrapper: wrapper() });
   await waitFor(() => expect(result.current.unreadContentCount).toBe(400));
-  await act(async () => { await result.current.markContentAsRead(); });
-  expect(notificationsService.markContentNotificationsAsRead).toHaveBeenCalledTimes(1);
+  await act(async () => { await result.current.markContentAsRead("opened-post"); });
+  expect(notificationsService.markContentNotificationsAsRead).toHaveBeenCalledExactlyOnceWith("opened-post");
   expect(notificationsService.markAllNotificationsAsRead).not.toHaveBeenCalled();
 });

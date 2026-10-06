@@ -1,7 +1,7 @@
-import { useId, useRef, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Navigation, Truck, X } from "lucide-react";
+import { useId,useRef,type ReactNode } from "react";
+import { ChevronDown,ChevronUp,Navigation,Truck,X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { adminTruckTrackingStyles as styles } from "@/components/communityContentStyles";
+import { adminTruckTrackingStyles as styles } from "@/components/common/communityContentStyles";
 import { cn } from "@/lib/utils";
 
 type Props = {

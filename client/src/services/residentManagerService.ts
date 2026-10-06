@@ -4,9 +4,9 @@ export type ResidentAccountStatus = "ACTIVE" | "DEACTIVATED" | "BANNED";
 
 export interface ResidentListRow {
   id: string;
-  full_name: string;
-  username: string;
-  email: string;
+  full_name: string | null;
+  username: string | null;
+  email: string | null;
   phone: string | null;
   status: ResidentAccountStatus;
   created_at: string;
@@ -29,9 +29,9 @@ export interface ResidentListResponse {
 
 export interface ResidentDetailsRow {
   id: string;
-  full_name: string;
-  username: string;
-  email: string;
+  full_name: string | null;
+  username: string | null;
+  email: string | null;
   phone: string | null;
   role: string;
   status: ResidentAccountStatus;

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { AdminMessenger } from "@/features/admin/truck-tracking/components/AdminMessenger";
+import { AdminMessenger } from "@/features/admin/messages/AdminMessenger";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { fetchAllDrivers } from "@/services/trackingService";
 import { fetchAdminUnreadMessages } from "@/services/messengerService";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { navigationStyles } from "../navigationStyles";
 

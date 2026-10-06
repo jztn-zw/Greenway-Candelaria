@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Truck, Driver, truckStatusStyles } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 import { cn } from "@/lib/utils";
 
 interface TruckCardGridProps {

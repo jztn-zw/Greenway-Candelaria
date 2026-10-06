@@ -5,6 +5,8 @@ const generateId = require("../../utils/generateId");
 const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const SessionService = require("../sessions/sessions.service");
 const auditService = require("../audit/audit.service");
+const { createRecoveryCode, recoverPassword, replaceRecoveryCode } = require("./auth.recovery");
+const { pool } = require("../../config/db");
 
 const register = async ({
   full_name,
@@ -15,20 +17,22 @@ const register = async ({
   barangay_id,
   street_id,
 }) => {
+  email = typeof email === "string" ? email.trim().toLowerCase() || null : null;
+  const completed = Boolean(full_name && username);
   // Check if email already exists
-  const [existingEmail] = await queryWithRetry(
+  const [existingEmail] = email ? await queryWithRetry(
     "SELECT id FROM users WHERE email = ?",
     [email],
-  );
+  ) : [[]];
   if (existingEmail.length > 0) {
     throw { statusCode: 409, message: "Email already in use" };
   }
 
   // Check if username already exists
-  const [existingUsername] = await queryWithRetry(
+  const [existingUsername] = completed ? await queryWithRetry(
     "SELECT id FROM users WHERE username = ?",
     [username],
-  );
+  ) : [[]];
   if (existingUsername.length > 0) {
     throw { statusCode: 409, message: "Username already taken" };
   }
@@ -37,13 +41,14 @@ const register = async ({
   const hashedPassword = await bcrypt.hash(password, 12);
   const id = generateId();
   const avatarUrl = avatarUrlForAccount(id);
+  const recovery = createRecoveryCode();
 
   // Ensure submitted barangay exists.
-  const [barangayRows] = await queryWithRetry(
+  const [barangayRows] = completed ? await queryWithRetry(
     "SELECT id FROM barangays WHERE id = ?",
     [barangay_id],
-  );
-  if (barangayRows.length === 0) {
+  ) : [[]];
+  if (completed && barangayRows.length === 0) {
     throw { statusCode: 400, message: "Invalid barangay selected" };
   }
 
@@ -58,24 +63,29 @@ const register = async ({
   }
 
   // Insert user
-  await queryWithRetry(
+  try { await queryWithRetry(
     `INSERT INTO users 
-     (id, full_name, username, email, password, phone, barangay_id, street_id, avatar_url, role)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'RESIDENT')`,
+     (id, full_name, username, email, password, phone, barangay_id, street_id, avatar_url, recovery_code_hash, role, profile_completed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'RESIDENT', ?)`,
     [
       id,
-      full_name,
-      username,
+      full_name || null,
+      username || null,
       email,
       hashedPassword,
       phone || null,
-      barangay_id,
+      barangay_id || null,
       street_id || null,
       avatarUrl,
+      recovery.hash,
+      completed ? 1 : 0,
     ],
-  );
+  ); } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") throw { statusCode: 409, message: "Email already in use" };
+    throw error;
+  }
 
-  return { id, full_name, username, email, avatar_url: avatarUrl, role: "RESIDENT" };
+  return { id, full_name: full_name || "", username: username || "", email, avatar_url: avatarUrl, role: "RESIDENT", profile_completed: completed, recovery_code: recovery.code };
 };
 
 const login = async ({ identifier, password }, req) => {
@@ -153,24 +163,36 @@ const login = async ({ identifier, password }, req) => {
     throw { statusCode: 401, message: "Invalid email or password" };
   }
 
-  // Generate token
-  const token = jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
-  );
+  return createLoginSession(user, req, loginContext);
+};
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  await SessionService.createSession({
-    userId: user.id,
-    token,
-    device: req?.headers ? req.headers["user-agent"] : null,
-    ip: req?.ip,
-    expiresAt,
-  });
-  await queryWithRetry("UPDATE users SET last_login_at = NOW() WHERE id = ?", [
-    user.id,
-  ]);
+const createLoginSession = async (user, req, loginContext) => {
+  // Recovery/password changes lock this same row before revoking sessions.
+  // A login verified before a reset must not issue a session after it commits.
+  const connection = await pool.getConnection();
+  let token;
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.query(
+      "SELECT password, role, status, deleted_at, profile_completed FROM users WHERE id = ? FOR UPDATE", [user.id],
+    );
+    const current = rows[0];
+    if (!current || current.deleted_at || current.status !== "ACTIVE") throw { statusCode: 403, message: "Account unavailable" };
+    if (typeof user.password === "string" && user.password !== current.password) throw { statusCode: 401, message: "Account changed. Please sign in again." };
+    user.role = current.role;
+    user.status = current.status;
+    if (current.profile_completed !== undefined) user.profile_completed = current.profile_completed;
+    token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await SessionService.createSession({ userId: user.id, token,
+      device: req?.headers?.["user-agent"], ip: req?.ip, expiresAt }, connection);
+    await connection.query("UPDATE users SET last_login_at = NOW() WHERE id = ?", [user.id]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally { connection.release(); }
 
   if (user.role !== "RESIDENT") {
     auditService.log({
@@ -185,20 +207,9 @@ const login = async ({ identifier, password }, req) => {
 
   return {
     token,
-    user: {
-      id: user.id,
-      full_name: user.full_name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      avatar_url: user.avatar_url,
-      barangay_id: user.barangay_id,
-      barangay_name: user.barangay_name || null,
-      street_id: user.street_id || null,
-      street_name: user.street_name || null,
-      street_area: user.street_area || null,
-    },
+    // Setup may have completed since the credential lookup. Return one fresh
+    // public profile instead of mixing the locked flag with the old area/name.
+    user: await getMe(user.id),
   };
 };
 
@@ -250,7 +261,7 @@ const changePassword = async (userId, { current_password, new_password }) => {
 
 const getMe = async (userId) => {
   const [rows] = await queryWithRetry(
-    `SELECT u.id, u.full_name, u.username, u.email, u.role, u.status,
+    `SELECT u.id, u.full_name, u.username, u.email, u.role, u.status, u.profile_completed,
             u.avatar_url, u.phone, u.barangay_id, u.street_id, u.last_login_at,
             b.name AS barangay_name, bs.name AS street_name, bs.area AS street_area
      FROM users u
@@ -264,7 +275,20 @@ const getMe = async (userId) => {
     throw { statusCode: 404, message: "User not found" };
   }
 
-  return rows[0];
+  const user = rows[0];
+  return {
+    id: user.id, full_name: user.full_name || "", username: user.username || "",
+    email: user.email, role: user.role, status: user.status,
+    avatar_url: user.avatar_url || null, phone: user.phone || null,
+    barangay_id: user.barangay_id || null, barangay_name: user.barangay_name || null,
+    street_id: user.street_id || null, street_name: user.street_name || null,
+    street_area: user.street_area || null, last_login_at: user.last_login_at || null,
+    profile_completed: user.profile_completed !== 0 && user.profile_completed !== false,
+  };
 };
 
-module.exports = { register, login, logout, changePassword, getMe };
+const completeResidentProfile = async (userId, data) => {
+  await require('./auth.setup').completeResidentProfile(userId, data);
+  return getMe(userId);
+};
+module.exports = { register, login, logout, changePassword, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile };

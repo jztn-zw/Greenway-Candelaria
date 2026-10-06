@@ -1,3 +1,4 @@
+import { getSystemNow } from "@/lib/serverClock";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Community Event" | "Emergency Advisory" | "General Notice" | "System Maintenance";
 export type AnnouncementStatus = "Draft" | "Scheduled" | "Active" | "Archived";
@@ -66,7 +67,7 @@ export const isAnnouncementExpired = (expiryDate?: string | null): boolean => {
     : expiryDate;
   const expiryTime = new Date(normalized).getTime();
 
-  return !Number.isNaN(expiryTime) && expiryTime <= Date.now();
+  return !Number.isNaN(expiryTime) && expiryTime <= getSystemNow();
 };
 
 export const announcementTypeStyles: Record<AnnouncementType, string> = {

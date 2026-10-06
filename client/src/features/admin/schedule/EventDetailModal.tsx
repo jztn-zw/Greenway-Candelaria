@@ -1,25 +1,25 @@
-import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import { getCategoryBadgeColors,getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogContent,
+DialogTitle,
+DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays,
-  Lock,
-  Users,
-  Truck,
-  SquarePen,
-  Trash2,
-  User,
-  Info,
-  X,
+CalendarDays,
+Lock,
+Users,
+Truck,
+SquarePen,
+Trash2,
+User,
+Info,
+X,
 } from "lucide-react";
-import { CalendarEvent, EventType, EventStatus } from "@/services/scheduleService";
+import { CalendarEvent,EventType,EventStatus } from "@/services/scheduleService";
 
 interface EventDetailModalProps {
   event: CalendarEvent | null;

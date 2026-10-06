@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { useMutation,useQuery,useQueryClient,type QueryKey } from "@tanstack/react-query";
 import useAuthStore from "@/store/authStore";
 
 export const collectorKey = (userId: string | undefined, domain: string, ...parts: unknown[]) => ["collector", userId ?? "signed-out", domain, ...parts] as const;

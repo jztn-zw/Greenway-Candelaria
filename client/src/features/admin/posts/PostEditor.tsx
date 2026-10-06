@@ -1,39 +1,41 @@
+import { getSystemNow } from "@/lib/serverClock";
+import { toManilaCalendarDate, fromManilaCalendarDate } from "@/utils/date";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { Button } from "@/components/ui/button";
 import { BackButton } from "@/components/common/BackButton";
-import "@/components/communityContent.css";
+import "@/components/common/communityContent.css";
 import { FieldButton } from "@/components/ui/field-button";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-Popover,
-PopoverContent,
-PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
+import { UnsavedChangesDialog } from "@/components/dialogs/UnsavedChangesDialog";
 import { useAdminMutation } from "@/lib/adminQuery";
 import postsService from "@/services/postsService";
 import {
-Calendar as CalendarIcon,
-Check,
-ChevronLeft,
-Clock,
-Eye,
-Send,
-Tag,
-Trash2,
-UploadCloud,
-X,
+  Calendar as CalendarIcon,
+  Check,
+  ChevronLeft,
+  Clock,
+  Eye,
+  Send,
+  Tag,
+  Trash2,
+  UploadCloud,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Post, PostCategory, PostStatus } from "./types";
@@ -78,12 +80,12 @@ const CustomDateTimePicker = ({
     if (!value) return null;
     const normalized =
       value.includes("Z") || value.includes("+") ? value : value.replace(" ", "T");
-    const d = new Date(normalized);
+    const d = toManilaCalendarDate(normalized);
     return isNaN(d.getTime()) ? null : d;
   }, [value]);
 
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(
-    parsedDate || new Date(),
+    parsedDate || toManilaCalendarDate(),
   );
 
   const [selectedHour, setSelectedHour] = useState<string>(() => {
@@ -116,10 +118,7 @@ const CustomDateTimePicker = ({
 
     let h24 = parseInt(hourStr, 10);
     if (period === "PM" && h24 < 12) h24 += 12;
-    if (period === "AM" && h24 === 12) h24 = 0;
-    const hourFormatted = String(h24).padStart(2, "0");
-
-    // Convert the date/time selected in the administrator's local timezone to
+    if (period === "AM" && h24 === 12) h24 = 0;    // Convert the date/time selected in the Philippine timezone to
     // an unambiguous UTC instant before it is sent to the API.
     const localDate = new Date(
       year,
@@ -128,7 +127,7 @@ const CustomDateTimePicker = ({
       h24,
       Number.parseInt(minStr, 10),
     );
-    onChange(localDate.toISOString());
+    onChange(fromManilaCalendarDate(localDate).toISOString());
   };
 
   const handleDaySelect = (day: Date | undefined) => {
@@ -244,7 +243,7 @@ const CustomDateTimePicker = ({
   };
 
   const handleSetNow = () => {
-    const now = new Date();
+    const now = toManilaCalendarDate();
     setSelectedDay(now);
     const h = now.getHours();
     const h12 = h % 12 === 0 ? 12 : h % 12;
@@ -584,7 +583,7 @@ const PostEditor = ({
     if (candidate.status === "Scheduled") {
       if (!candidate.scheduledDate) {
         nextErrors.scheduledDate = "Select a future publish date and time.";
-      } else if (new Date(candidate.scheduledDate).getTime() <= Date.now()) {
+      } else if (new Date(candidate.scheduledDate).getTime() <= getSystemNow()) {
         nextErrors.scheduledDate = "Scheduled publish time must be in the future.";
       }
     }

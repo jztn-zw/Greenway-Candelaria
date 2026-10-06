@@ -1,3 +1,4 @@
+import { getSystemNow } from "@/lib/serverClock";
 /**
  * CollectorRouteMap.tsx
  *
@@ -10,30 +11,30 @@
  *
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState,useCallback,useMemo,useEffect } from "react";
+import { useNavigate,useSearchParams } from "react-router-dom";
 import {
-  Clock,
-  MapPin,
-  SkipForward,
-  Flag,
-  WifiOff,
-  AlertCircle,
-  AlertTriangle,
-  RefreshCw,
-  CheckCircle2,
-  Radio,
-  Navigation,
-  Pause,
-  Play,
-  History,
-  CalendarClock,
+Clock,
+MapPin,
+SkipForward,
+Flag,
+WifiOff,
+AlertCircle,
+AlertTriangle,
+RefreshCw,
+CheckCircle2,
+Radio,
+Navigation,
+Pause,
+Play,
+History,
+CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { CollectorRouteMapSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { CollectorRouteMapSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import RouteProgressBar from "./components/RouteProgressBar";
@@ -44,13 +45,13 @@ import EndRouteModal from "./components/EndRouteModal";
 import { useCollectorTracking } from "./useCollectorTracking";
 import { useCollectorAction } from "@/lib/collectorQuery";
 import { distanceToStopKm } from "./routeMap.utils";
-import { useScheduledRouteOrder } from "./hooks/useAutoRoute";
+import { useScheduledRouteOrder } from "./hooks/useScheduledRouteOrder";
 import {
-  completeStop,
-  skipStop,
-  endRoute,
-  startMyRoute,
-  setMyRoutePaused,
+completeStop,
+skipStop,
+endRoute,
+startMyRoute,
+setMyRoutePaused,
 } from "@/services/trackingService";
 import type { SkipReason } from "./types";
 import "./collectorRouteMap.css";
@@ -186,7 +187,7 @@ const CollectorRouteMap = () => {
   const isScheduledRoute = Boolean(
     !hasStartedRoute &&
       routeInfo?.startedAt &&
-      routeInfo.startedAt.getTime() > Date.now(),
+      routeInfo.startedAt.getTime() > getSystemNow(),
   );
   const isPaused = routeInfo?.routeStatus === "PAUSED";
 
@@ -244,7 +245,7 @@ const CollectorRouteMap = () => {
     }
 
     const tick = () => {
-      const now = isPaused && routeInfo?.pausedAt ? routeInfo.pausedAt.getTime() : Date.now();
+      const now = isPaused && routeInfo?.pausedAt ? routeInfo.pausedAt.getTime() : getSystemNow();
       const diff = now - routeStartMs - (routeInfo?.totalPausedSeconds ?? 0) * 1000;
       if (diff < 0) {
         setElapsed("0h 00m 00s");
@@ -282,13 +283,7 @@ const CollectorRouteMap = () => {
       autoRoutedStops.filter((s) => s.status === "not-yet" || s.status === "in-progress")
         .length,
     [autoRoutedStops],
-  );
-  const nextStops = useMemo(
-    () => autoRoutedStops.filter((s) => s.status === "not-yet").slice(0, 2),
-    [autoRoutedStops],
-  );
-
-  const resolvedTruckCoords = truckCoords;
+  );  const resolvedTruckCoords = truckCoords;
 
   // Geofence detection (150 meters = 0.15 km)
   const GEOFENCE_RADIUS_KM = 0.15;
@@ -417,7 +412,7 @@ const CollectorRouteMap = () => {
               <p className="font-body text-lg font-semibold tracking-tight text-foreground">Route scheduled</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Review the planned stops below. Collection is scheduled for{" "}
-                {routeInfo.startedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.
+                {routeInfo.startedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}.
               </p>
             </div>
           </div>

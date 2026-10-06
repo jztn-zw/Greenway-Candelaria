@@ -1,10 +1,10 @@
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { Truck, MapPin, Clock, Play, ArrowRight, Eye, CheckCircle2, Navigation, History } from "lucide-react";
+import { Truck,MapPin,Clock,Play,ArrowRight,Eye,CheckCircle2,Navigation,History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { AssignmentData } from "./types";
-import { getWasteBadgeClass, isFinishedRoute } from "../dashboard.utils";
+import { getWasteBadgeClass,isFinishedRoute } from "../dashboard.utils";
 
 interface Props {
   data: AssignmentData;

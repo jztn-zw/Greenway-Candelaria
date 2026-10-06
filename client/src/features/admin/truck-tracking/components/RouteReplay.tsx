@@ -1,8 +1,9 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { Button } from "@/components/ui/button";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { FormDialog } from "@/components/FormDialog";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { FormDialog } from "@/components/dialogs/FormDialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover,PopoverContent,PopoverTrigger } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
 import { useAdminFetch } from "@/lib/adminQuery";
@@ -10,11 +11,11 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchTruckHistory } from "@/services/trackingService";
 import { format } from "date-fns";
-import { CalendarDays, Pause, Play, RotateCcw, Video } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays,Pause,Play,RotateCcw,Video } from "lucide-react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import type { AdminTruck } from "../types";
-import { buildReplayTrip, formatReplayDuration, formatReplayTime, getReplayCompletedTargetLocations, getReplayDuration, getReplaySkippedTargetLocations, getReplayTargetLocation, getReplayTargetProgress, getReplayTargetStartElapsed, getReplayTargetState, sampleReplayTrip, type ReplayTargetLocation, type ReplayTrip } from "../utils/replayTrip";
-import { exportReplayVideo, REPLAY_VIDEO_SPEEDS } from "../utils/replayVideoExporter";
+import { buildReplayTrip,formatReplayDuration,formatReplayTime,getReplayCompletedTargetLocations,getReplayDuration,getReplaySkippedTargetLocations,getReplayTargetLocation,getReplayTargetProgress,getReplayTargetStartElapsed,getReplayTargetState,sampleReplayTrip,type ReplayTargetLocation,type ReplayTrip } from "../utils/replayTrip";
+import { exportReplayVideo,REPLAY_VIDEO_SPEEDS } from "../utils/replayVideoExporter";
 import { getManilaNow } from "@/utils/date";
 
 interface RouteReplayProps {
@@ -29,6 +30,7 @@ interface RouteReplayProps {
 const SPEED_OPTIONS = [1, 2, 5, 10, 30, 60] as const;
 
 const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets }: RouteReplayProps) => {
+  useSystemTime();
   const fetchAdmin = useAdminFetch();
   const [selectedTruck, setSelectedTruck] = useState("");
   const [date, setDate] = useState<Date | undefined>(() => {

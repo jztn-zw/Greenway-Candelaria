@@ -112,3 +112,32 @@ it("prevents closing during password updates and signs out after success", async
   await act(async () => resolveSave());
   expect(useAuthStore.getState().isAuthenticated).toBe(false);
 });
+
+
+it("shows avatar saving feedback and keeps the confirmed avatar until the request finishes", async () => {
+
+  await click("Customize avatar");
+  let finish!: (value: Awaited<ReturnType<typeof updateProfile>>) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await click("Select Woman with short hair on blue avatar");
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeInTheDocument();
+  expect(button("Close")).toBeDisabled();
+  expect(button("Customize avatar")).toBeDisabled();
+  expect(localStorage.getItem("greenway:admin-avatar:admin")).toBeNull();
+  await act(async () => finish({ ...mocks.profile, avatar_url: "/profile-avatars/avatar-2.png" } as Awaited<ReturnType<typeof updateProfile>>));
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBe("/profile-avatars/avatar-2.png");
+});
+
+it("clears avatar saving feedback after a failure and allows another attempt", async () => {
+
+  await click("Customize avatar");
+  let fail!: (error: Error) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+  await click("Select Woman with short hair on blue avatar");
+  await act(async () => fail(new Error("Offline")));
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeNull();
+  expect(button("Select Woman with short hair on blue avatar")).not.toBeDisabled();
+  expect(localStorage.getItem("greenway:admin-avatar:admin")).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBeNull();
+});

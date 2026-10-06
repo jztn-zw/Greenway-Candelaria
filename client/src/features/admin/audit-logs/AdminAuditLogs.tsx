@@ -4,11 +4,10 @@ import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 
 
-import { AuditLogsSkeleton } from "@/components/PageLoadingSkeletons";
-import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { toast } from "@/lib/toast";
+import { AuditLogsSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { adminAuditLogStyles as styles } from "@/components/common/communityContentStyles";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import auditService from "@/services/auditService";
 import { formatAuditEntry } from "./auditFormatter";
 import AuditLogFilters from "./AuditLogFilters";

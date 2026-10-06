@@ -1,8 +1,9 @@
-import { FormDialog } from "@/components/FormDialog";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
+import { FormDialog } from "@/components/dialogs/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Truck, CheckCircle2, AlertTriangle, Megaphone, CircleAlert, Bell } from "lucide-react";
+import { CalendarClock,Truck,CheckCircle2,AlertTriangle,Megaphone,CircleAlert,Bell } from "lucide-react";
 import type { ResidentNotification } from "./types";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 
 interface NotificationModalProps {
   notification: ResidentNotification | null;
@@ -23,6 +24,7 @@ const typeConfig: Record<string, { icon: React.ElementType; accent: string; labe
 };
 
 const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }: NotificationModalProps) => {
+  const { formatTime } = useNotificationTime();
   if (!notification) return null;
 
   const config = typeConfig[notification.type] || {
@@ -45,7 +47,7 @@ const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }:
       }>
       <div className="space-y-1">
         <h3 className="gw-heading text-base leading-snug tracking-tight text-foreground break-words [overflow-wrap:anywhere]">{notification.title}</h3>
-        {notification.time && <p className="text-xs text-muted-foreground">{notification.time}</p>}
+        {notification.time && <p className="text-xs text-muted-foreground">{notification.created_at ? formatTime(notification.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }) : notification.time}</p>}
       </div>
       <div className="whitespace-pre-wrap break-words rounded-md border border-border/60 bg-muted/20 p-3.5 text-xs leading-relaxed text-foreground/85 [overflow-wrap:anywhere]">
         {notification.details || notification.message}

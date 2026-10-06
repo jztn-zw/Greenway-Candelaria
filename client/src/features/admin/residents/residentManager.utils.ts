@@ -1,21 +1,13 @@
+import { formatManilaDateTime } from "@/utils/date";
 import type {
-  ResidentAccountStatus,
-  ResidentDetailsRow,
-  ResidentListRow,
-  ResidentReportRow,
+ResidentAccountStatus,
+ResidentDetailsRow,
+ResidentListRow,
+ResidentReportRow,
 } from "@/services/residentManagerService";
-import type { Resident, ResidentReport } from "./types";
+import type { Resident,ResidentReport } from "./types";
 
-const formatResidentDate = (value?: string | null): string => {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
+const formatResidentDate = (value?: string | null): string => formatManilaDateTime(value, { month: "short", day: "numeric", year: "numeric" }, "N/A");
 
 const toTitleCase = (value: string): string =>
   String(value || "")
@@ -44,8 +36,8 @@ const mapResidentReportRow = (row: ResidentReportRow): ResidentReport => ({
 
 export const mapResidentListRow = (row: ResidentListRow): Resident => ({
   id: row.id,
-  fullName: row.full_name,
-  username: row.username,
+  fullName: row.full_name || "Profile not completed",
+  username: row.username || "",
   avatarUrl: row.avatar_url,
   email: row.email,
   phone: row.phone || "N/A",
@@ -61,8 +53,8 @@ export const mapResidentDetails = (
   reports: ResidentReportRow[],
 ): Resident => ({
   id: details.id,
-  fullName: details.full_name,
-  username: details.username,
+  fullName: details.full_name || "Profile not completed",
+  username: details.username || "",
   avatarUrl: details.avatar_url,
   email: details.email,
   phone: details.phone || "N/A",

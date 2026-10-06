@@ -1,19 +1,21 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { CalendarDays } from "lucide-react";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { adminScheduleStyles as scheduleStyles } from "@/components/communityContentStyles";
+import { adminScheduleStyles as scheduleStyles } from "@/components/common/communityContentStyles";
 import { useCollectorQuery } from "@/lib/collectorQuery";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { useEffect, useMemo, useState } from "react";
-import { CollectorScheduleSkeleton } from "@/components/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { useEffect,useMemo,useState } from "react";
+import { CollectorScheduleSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { SelectedDayPanel } from "@/components/calendar/SelectedDayPanel";
-import { calendarDateKey, eventOccursOnDate, getEventColors, getManilaCalendarDate } from "@/components/calendar/calendar.utils";
+import { calendarDateKey,eventOccursOnDate,getEventColors,getManilaCalendarDate } from "@/components/calendar/calendar.utils";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 
 const EMPTY_EVENTS: Awaited<ReturnType<typeof fetchCalendarEvents>> = [];
 
 const CollectorSchedule = () => {
+  useSystemTime();
   const [currentDate, setCurrentDate] = useState(getManilaCalendarDate);
   const [selectedDateStr, setSelectedDateStr] = useState(() => calendarDateKey(getManilaCalendarDate()));
   const monthKey = calendarDateKey(currentDate).slice(0, 7);

@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+import { clsx,type ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
 // Custom text sizes must merge as sizes, independently of text colors.

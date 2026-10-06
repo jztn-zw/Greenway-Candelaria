@@ -361,7 +361,7 @@ const getMyNotifications = async (userId, filters = {}) => {
   query += " LIMIT ? OFFSET ?";
   params.push(filters.category !== undefined ? limit + 1 : limit, offset);
 
-  const countSql = `SELECT COUNT(*) AS total
+  const countSql = `SELECT COUNT(*) AS total, UTC_TIMESTAMP(3) AS server_time
      FROM notifications n
      WHERE n.user_id = ?
      ${excludeExpiredAnnouncementNotifications}
@@ -392,6 +392,7 @@ const getMyNotifications = async (userId, filters = {}) => {
     ? last.created_at.toISOString().replace("T", " ").replace("Z", "") : String(last?.created_at ?? "");
   return {
     notifications,
+    server_time: countResult[0].server_time,
     ...summary,
     ...(paged ? { next_cursor: rows.length > limit && last
       ? Buffer.from(JSON.stringify({ date, id: last.id })).toString("base64url") : null } : {}),
@@ -437,11 +438,14 @@ const markAsRead = async (id, userId) => {
 
 // ─── Mark All as Read ──────────────────────────────────────
 
-const markAllAsRead = async (userId, category) => {
+const markAllAsRead = async (userId, category, postId) => {
   if (category !== undefined && category !== "content") throw { statusCode: 400, message: "Invalid notification category" };
+  if (postId !== undefined && (category !== "content" || typeof postId !== "string" || !postId.trim())) {
+    throw { statusCode: 400, message: "Invalid post notification scope" };
+  }
   await pool.query(
-    `UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE${category === "content" ? " AND (type = 'NEW_POST' OR ref_module = 'posts')" : ""}`,
-    [userId],
+    `UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE${category === "content" ? " AND (type = 'NEW_POST' OR ref_module = 'posts')" : ""}${postId !== undefined ? " AND ref_id = ?" : ""}`,
+    postId !== undefined ? [userId, postId] : [userId],
   );
 
   return { read: true };

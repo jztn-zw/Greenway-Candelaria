@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import useAuthStore from "@/store/authStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useMemo, type PropsWithChildren } from "react";
+import SystemTimeProvider from "./SystemTimeProvider";
 
 let nextSessionKey = 0;
 const createSessionCache = (_token: string | null, _identity: string) => ({ queryClient: new QueryClient(), sessionKey: ++nextSessionKey });
@@ -14,12 +15,14 @@ const AppProviders = ({ children }: PropsWithChildren) => {
   const { queryClient, sessionKey } = useMemo(() => createSessionCache(token, identity), [token, identity]);
   useEffect(() => () => queryClient.clear(), [queryClient]);
   return (
+  <SystemTimeProvider>
   <QueryClientProvider key={sessionKey} client={queryClient}>
     <TooltipProvider>
       <Sonner />
       {children}
     </TooltipProvider>
   </QueryClientProvider>
+  </SystemTimeProvider>
   );
 };
 

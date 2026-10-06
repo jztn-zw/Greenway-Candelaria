@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import AdminLayout from "@/app/layouts/admin/AdminLayout";
 import CollectorLayout from "@/app/layouts/collector/CollectorLayout";
 import ResidentLayout from "@/app/layouts/resident/ResidentLayout";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/app/routes/ProtectedRoute";
 import AdminAnalyticsDashboard from "@/features/admin/analytics/AdminAnalyticsDashboard";
 import AdminAnnouncements from "@/features/admin/announcements/AdminAnnouncements";
 import AdminAuditLogs from "@/features/admin/audit-logs/AdminAuditLogs";

@@ -1,7 +1,7 @@
-import { useInfiniteQuery, useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery,useIsMutating,useQuery,useQueryClient } from "@tanstack/react-query";
 import useAuthStore from "@/store/authStore";
-import notificationsService, { type NotificationFilters } from "@/services/notificationsService";
-import { collectorKey, collectorQueryDefaults, useCollectorAction, useCollectorQuery } from "@/lib/collectorQuery";
+import notificationsService,{ type NotificationFilters } from "@/services/notificationsService";
+import { collectorKey,collectorQueryDefaults,useCollectorAction,useCollectorQuery } from "@/lib/collectorQuery";
 import { toast } from "@/lib/toast";
 import { usePendingAction } from "./usePendingAction";
 

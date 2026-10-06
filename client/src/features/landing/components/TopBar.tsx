@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin,Phone,Mail,Clock } from "lucide-react";
 
 const TopBar = () => (
   <div className="bg-forest text-forest-foreground text-xs py-2 hidden md:block">

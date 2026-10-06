@@ -1,6 +1,6 @@
 import AppProviders from "@/app/providers/AppProviders";
 import AppRoutes from "@/app/routes/AppRoutes";
-import WebPageBoundary from "@/components/WebPageBoundary";
+import WebPageBoundary from "@/components/feedback/WebPageBoundary";
 import { BrowserRouter } from "react-router-dom";
 
 const App = () => (

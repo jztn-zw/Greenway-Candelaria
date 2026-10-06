@@ -1,4 +1,4 @@
-import notificationsService, { type NotificationFilters } from "@/services/notificationsService";
+import notificationsService,{ type NotificationFilters } from "@/services/notificationsService";
 
 // Fetch only what the current page/menu asks to display. Extra pages are
 // requested when the user expands the menu, rather than on every refresh.

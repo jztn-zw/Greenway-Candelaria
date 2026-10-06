@@ -2,9 +2,9 @@ const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const hashSessionToken = require("../../utils/hashSessionToken");
 
-const createSession = async ({ userId, token, device, ip, expiresAt }) => {
+const createSession = async ({ userId, token, device, ip, expiresAt }, executor = pool) => {
   const id = generateId();
-  await pool.query(
+  await executor.query(
     `INSERT INTO sessions (id, user_id, token, device, ip_address, expires_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, userId, hashSessionToken(token), device || null, ip || null, expiresAt],

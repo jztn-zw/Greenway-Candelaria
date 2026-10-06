@@ -2,15 +2,6 @@ import api from "@/lib/api";
 
 // ─── Shared types ──────────────────────────────────────────
 
-export interface ReportListRow {
-  id: string;
-  reference_number: string;
-  barangay_id: string;
-  violation_type: string;
-  status: string;
-  created_at: string;
-}
-
 export interface MyReportPhoto {
   id: string;
   report_id: string;

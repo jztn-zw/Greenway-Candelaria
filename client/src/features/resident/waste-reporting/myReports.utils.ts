@@ -2,14 +2,11 @@ import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import type { MyReportRow } from "@/services/reportsService";
 import { parseApiTimestamp } from "@/utils/date";
 import {
-  STATUS_REVERSE_MAP,
-  VIOLATION_TYPE_REVERSE_MAP,
-  type ReportStatus,
-  type SubmittedReport,
+STATUS_REVERSE_MAP,
+VIOLATION_TYPE_REVERSE_MAP,
+type ReportStatus,
+type SubmittedReport,
 } from "./types";
-
-export const MY_REPORTS_PAGE_SIZE = 10;
-
 export type ReportFilterTab = "all" | ReportStatus;
 export type ReportSortOption = "newest" | "oldest";
 

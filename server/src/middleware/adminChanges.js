@@ -23,7 +23,7 @@ const changedDomains = (req) => {
     case "users":
       if (["settings", "admin-settings", "change-password"].includes(action)) return [];
       return ["residents", "drivers", "trucks", "reports", "routes", "tracking"];
-    case "auth": return action === "register" ? ["residents"] : [];
+    case "auth": return ["register", "resident-profile"].includes(action) ? ["residents"] : [];
     default: return [];
   }
 };
@@ -36,6 +36,7 @@ const createAdminChangesMiddleware = (emit = emitAdminDataChanged) => (req, res,
     const path = req.originalUrl.split("?")[0];
     if (path === "/api/users/settings") emitResidentDataChanged(["settings"], req.user.id);
     if (path === "/api/users/profile") emitResidentDataChanged(["profile"], req.user.id);
+    if (path === "/api/auth/resident-profile") emitResidentDataChanged(["profile", "settings"], req.user.id);
     if (path.startsWith("/api/notifications")) emitResidentDataChanged(["notifications"], req.user.id);
   });
   // Web conversation writes change messaging only. Do not refresh resident,

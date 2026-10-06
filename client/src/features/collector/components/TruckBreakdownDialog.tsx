@@ -1,13 +1,13 @@
-import { useEffect, useId, useState, type FormEvent } from "react";
-import { Truck, Wrench } from "lucide-react";
+import { useEffect,useId,useState,type FormEvent } from "react";
+import { Truck,Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog,DialogContent } from "@/components/ui/dialog";
+import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/lib/toast";
 import { CollectorModalHeader } from "./CollectorModal";
 import { collectorModalStyles as styles } from "./collectorModalStyles";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 
 export interface TruckBreakdownReport {
   category: string;

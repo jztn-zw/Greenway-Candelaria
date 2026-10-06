@@ -1,6 +1,8 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemDate } from "@/lib/serverClock";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { formatManilaDateTime, getManilaNow } from "@/utils/date";
+import { formatManilaDateTime,getManilaNow } from "@/utils/date";
 
 const getGreeting = () => {
   const hour = getManilaNow().hour;
@@ -22,7 +24,8 @@ const CollectorDashboardGreeting = ({
   statusLabel,
   active,
 }: Props) => {
-  const today = new Date();
+  useSystemTime();
+  const today = getSystemDate();
   const text = getGreeting();
   const firstName = driverName ? driverName.split(" ")[0] : "Collector";
 

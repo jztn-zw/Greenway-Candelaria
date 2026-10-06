@@ -1,3 +1,4 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ interface RecentReportsTableProps {
 }
 
 const RecentReportsTable = ({ reports: liveReports, className = "" }: RecentReportsTableProps) => {
+  useSystemTime();
   const navigate = useNavigate();
 
   const displayReports = (liveReports ?? []).map((r) => ({

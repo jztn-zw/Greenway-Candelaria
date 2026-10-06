@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import notificationsService, { type NotificationRow, type NotificationFilters } from "@/services/notificationsService";
+import notificationsService,{ type NotificationRow,type NotificationFilters } from "@/services/notificationsService";
 import useAuthStore from "@/store/authStore";
 import { getSocket } from "@/lib/socket";
 import { getAuthStorage } from "@/lib/authStorage";

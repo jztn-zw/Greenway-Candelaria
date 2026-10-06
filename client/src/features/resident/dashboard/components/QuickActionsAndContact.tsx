@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, Mail, MapPin, Clock, ClipboardList } from "lucide-react";
+import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
+import { Phone,Mail,MapPin,Clock,ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";

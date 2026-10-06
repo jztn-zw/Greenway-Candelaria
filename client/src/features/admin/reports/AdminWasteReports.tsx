@@ -1,41 +1,39 @@
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { WasteReportsPageSkeleton } from "@/components/PageLoadingSkeletons";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { Button } from "@/components/ui/button";
+import { WasteReportsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import {
-Sheet,
-SheetContent,
-SheetDescription,
-SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
-addAdminReportNote as apiaddAdminReportNote,
-deleteReport as apideleteReport,
-flagAdminReport as apiflagAdminReport,
-updateAdminReportStatus as apiupdateAdminReportStatus,
-fetchAdminReportById,
-fetchAdminReports,
-type AdminReportItem,
-type AdminReportsKPIs,
-type AdminReportsParams,
+  addAdminReportNote as apiaddAdminReportNote,
+  deleteReport as apideleteReport,
+  flagAdminReport as apiflagAdminReport,
+  updateAdminReportStatus as apiupdateAdminReportStatus,
+  fetchAdminReportById,
+  fetchAdminReports,
+  type AdminReportItem,
+  type AdminReportsKPIs,
+  type AdminReportsParams,
 } from "@/services/reportsService";
-import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReportDetailPanel from "./ReportDetailPanel";
 import ReportFilters from "./ReportFilters";
 import ReportKPIs from "./ReportKPIs";
-import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
+import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import ReportListTable from "./ReportListTable";
 import {
-STATUS_LABEL_TO_BACKEND,
-STATUS_TO_LABEL,
-VIOLATION_LABEL_TO_BACKEND,
-VIOLATION_TYPE_TO_LABEL,
-WasteReport,
+  STATUS_LABEL_TO_BACKEND,
+  STATUS_TO_LABEL,
+  VIOLATION_LABEL_TO_BACKEND,
+  VIOLATION_TYPE_TO_LABEL,
+  WasteReport,
 } from "./types";
 const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   id: r.id,
@@ -284,24 +282,6 @@ const AdminWasteReports = () => {
     if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
   };
 
-  // Quick flag from table dropdown
-  const handleQuickFlag = async (
-    id: string,
-    payload: { is_false?: boolean; is_duplicate?: boolean },
-  ) => {
-    const detailVersion = detailVersionRef.current;
-    try {
-      const updated = await flagAdminReport(id, payload);
-      const mapped = mapAdminReport(updated);
-      toast.success(`Report ${mapped.referenceNumber} flagged`);
-      if (selectedId === id && detailVersion === detailVersionRef.current) {
-        setSelectedReport(mapped);
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to flag report");
-    }
-  };
-
   // Delete report
   const handleDeleteReport = async (id: string) => {
     const detailVersion = detailVersionRef.current;
@@ -387,7 +367,6 @@ const AdminWasteReports = () => {
           totalPages={totalPages}
           onPageChange={setPage}
           onQuickStatusChange={handleQuickStatusChange}
-          onFlagReport={handleQuickFlag}
         />
       </div>
 

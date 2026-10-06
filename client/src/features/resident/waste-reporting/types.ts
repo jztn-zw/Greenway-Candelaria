@@ -103,13 +103,13 @@ export interface StatusHistoryEntry {
 }
 
 import {
-  Trash2,
-  Truck,
-  Archive,
-  Flame,
-  CigaretteOff,
-  Recycle,
-  ClipboardList,
+Trash2,
+Truck,
+Archive,
+Flame,
+CigaretteOff,
+Recycle,
+ClipboardList,
 } from "lucide-react";
 
 export const VIOLATION_OPTIONS: ViolationOption[] = [

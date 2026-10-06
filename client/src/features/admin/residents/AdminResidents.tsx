@@ -1,19 +1,19 @@
 import ListEmptyState from "@/components/common/ListEmptyState";
-import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
+import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
-import { AdminKpiCard, AdminKpiGrid, AdminKpiSkeleton } from "@/components/admin/AdminKpiCards";
-import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { ResidentManagerPageSkeleton, ResidentManagerProfileSkeleton, ResidentManagerRowsSkeleton } from "@/components/PageLoadingSkeletons";
+import { AdminKpiCard,AdminKpiGrid,AdminKpiSkeleton } from "@/components/admin/AdminKpiCards";
+import { profileAvatarForAccount,profileAvatarImageSrc } from "@/components/common/profileAvatars";
+import { FilterPillTabs,type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { ResidentManagerPageSkeleton,ResidentManagerProfileSkeleton,ResidentManagerRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { adminResidentManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminResidentManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 import {
 DropdownMenu,
@@ -31,7 +31,7 @@ TableHead,
 TableHeader,
 TableRow,
 } from "@/components/ui/table";
-import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
+import { useAdminMutation,useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
@@ -56,9 +56,9 @@ UserCheck,
 UserX,
 Ban
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect,useLayoutEffect,useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { mapResidentDetails, mapResidentListRow } from "./residentManager.utils";
+import { mapResidentDetails,mapResidentListRow } from "./residentManager.utils";
 import ResidentProfileView from "./ResidentProfile";
 import type { Resident } from "./types";
 
@@ -113,10 +113,7 @@ const AdminResidents = () => {
   const isLoading = listQuery.isLoading;
   const isInitialLoading = isLoading && !hasLoadedList;
   const isResultsLoading = isLoading && hasLoadedList;
-  const listError = listQuery.data ? "" : listQuery.error?.message ?? "";
-  const loadResidents = listQuery.refetch;
-  const loadKpiCounts = countQuery.refetch;
-  useLayoutEffect(() => {
+  const listError = listQuery.data ? "" : listQuery.error?.message ?? "";useLayoutEffect(() => {
     const result = listQuery.data;
     if (!result) return;
     setResidents(result.data.map(mapResidentListRow));
@@ -183,16 +180,7 @@ const AdminResidents = () => {
       next.set("residentName", resident.fullName);
       return next;
     });
-  };
-
-  const resetFilters = () => {
-    setSearch("");
-    setBarangayFilter("all");
-    setStatusFilter("all");
-    setCurrentPage(1);
-  };
-
-  const hasActiveFilters =
+  };  const hasActiveFilters =
     search.trim().length > 0 ||
     barangayFilter !== "all" ||
     statusFilter !== "all";
@@ -397,14 +385,14 @@ const AdminResidents = () => {
                       <TableCell className="pl-5 py-3">
                         <div className="resident-manager-identity flex items-center gap-3">
                           <div className="w-9 h-9 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-xs font-body shrink-0 shadow-2xs">
-                            <img src={profileAvatarSrc(profileAvatarForAccount(r.id, r.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
+                            <img src={profileAvatarImageSrc(profileAvatarForAccount(r.id, r.avatarUrl))} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover object-center" />
                           </div>
                           <div className="min-w-0">
                             <span className="resident-manager-resident-name font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
                               {r.fullName}
                             </span>
                             <span className="resident-manager-inline-username text-ui-caption text-muted-foreground md:hidden truncate block mt-0.5">
-                              @{r.username}
+                              {r.username ? `@${r.username}` : "Username not set"}
                             </span>
                           </div>
                         </div>
@@ -421,7 +409,7 @@ const AdminResidents = () => {
 
                       {/* Username */}
                       <TableCell className="hidden md:table-cell text-xs text-muted-foreground font-medium">
-                        @{r.username}
+                        {r.username ? `@${r.username}` : "Username not set"}
                       </TableCell>
 
                       {/* Email & Phone */}
@@ -429,7 +417,7 @@ const AdminResidents = () => {
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-1.5 text-foreground/90 truncate">
                             <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                            <span className="truncate">{r.email}</span>
+                            <span className="truncate">{r.email || "No email added"}</span>
                           </div>
                           {r.phone !== "N/A" && (
                             <div className="flex items-center gap-1.5 text-muted-foreground text-ui-caption">

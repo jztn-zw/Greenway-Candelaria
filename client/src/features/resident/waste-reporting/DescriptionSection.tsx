@@ -1,5 +1,5 @@
 import { Textarea } from "@/components/ui/textarea";
-import { VIOLATION_OPTIONS, type ViolationType } from "./types";
+import { VIOLATION_OPTIONS,type ViolationType } from "./types";
 import { getReportPrompts } from "./reportDescription";
 
 interface DescriptionSectionProps {

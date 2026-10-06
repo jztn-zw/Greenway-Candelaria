@@ -1,5 +1,5 @@
-import { MapPin, Phone, Mail, Leaf } from "lucide-react";
-import { ContactContent, CONTENT, FooterContent } from "../landingContent";
+import { MapPin,Phone,Mail,Leaf } from "lucide-react";
+import { ContactContent,CONTENT,FooterContent } from "../landingContent";
 
 interface FooterProps {
   content?: FooterContent;

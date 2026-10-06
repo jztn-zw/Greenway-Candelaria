@@ -79,7 +79,7 @@ it.each(["account", "vehicle"] as const)("keeps the full skeleton until the slow
     if (slower === "account") resolveProfile(profile as never);
     else resolveDriver(driver as never);
   });
-  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.querySelector('[role="status"][aria-busy="true"]')).toBeNull();
   expect(host.textContent).toContain("Test Collector");
   expect(host.textContent).toContain("ABC-123");
 });
@@ -93,7 +93,7 @@ it("keeps the profile and open edit dialog visible while both requests refresh",
   vi.mocked(fetchDriverMe).mockReturnValueOnce(new Promise((done) => { resolveDriver = done; }));
   let refreshing!: Promise<void>;
   await act(async () => { refreshing = client.invalidateQueries({ queryKey: collectorKey("collector", "profile") }); });
-  expect(host.querySelector('[role="status"]')).toBeNull();
+  expect(host.querySelector('[role="status"][aria-busy="true"]')).toBeNull();
   expect(host.textContent).toContain("ABC-123");
   expect(document.getElementById("collector-profile-field")).toHaveValue("Unsaved name");
   await act(async () => { resolveProfile(profile as never); resolveDriver(driver as never); await refreshing; });
@@ -246,4 +246,33 @@ it("keeps the last profile and vehicle visible when a background refresh fails",
   expect(document.body.textContent).toContain("ABC-123");
   expect(document.body.textContent).toContain("loaded data may be outdated");
   expect(document.body.textContent).not.toContain("Profile unavailable");
+});
+
+
+it("shows avatar saving feedback and keeps the confirmed avatar until the request finishes", async () => {
+  await renderProfile();
+  await click("Customize avatar");
+  let finish!: (value: Awaited<ReturnType<typeof updateProfile>>) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await click("Select Woman with short hair on blue avatar");
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeInTheDocument();
+  expect(button("Close")).toBeDisabled();
+  expect(button("Customize avatar")).toBeDisabled();
+  expect(localStorage.getItem("greenway:collector-avatar:collector")).toBeNull();
+  await act(async () => finish({ ...profile, avatar_url: "/profile-avatars/avatar-2.png" } as Awaited<ReturnType<typeof updateProfile>>));
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBe("/profile-avatars/avatar-2.png");
+});
+
+it("clears avatar saving feedback after a failure and allows another attempt", async () => {
+  await renderProfile();
+  await click("Customize avatar");
+  let fail!: (error: Error) => void;
+  vi.mocked(updateProfile).mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+  await click("Select Woman with short hair on blue avatar");
+  await act(async () => fail(new Error("Offline")));
+  expect(document.querySelector('[role="status"][aria-label="Saving avatar"]')).toBeNull();
+  expect(button("Select Woman with short hair on blue avatar")).not.toBeDisabled();
+  expect(localStorage.getItem("greenway:collector-avatar:collector")).toBeNull();
+  expect(useAuthStore.getState().user?.avatar_url).toBeNull();
 });

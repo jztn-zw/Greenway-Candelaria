@@ -1,3 +1,5 @@
+import { toManilaCalendarDate, fromManilaCalendarDate } from "@/utils/date";
+import { getSystemDate } from "@/lib/serverClock";
 import { SearchInput } from "@/components/common/SearchInput";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import { useState, useMemo } from "react";
@@ -14,12 +16,8 @@ import {
   ChevronDown,
   Megaphone,
   Clock,
-  Send,
-  AlertTriangle,
-  FileText,
-  Trash2,
-  X,
-  CheckCheck,
+  Send, X,
+  CheckCheck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -32,13 +30,9 @@ import {
 } from "@/components/ui/select";
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  DialogContent, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 
 import {
   Popover,
@@ -94,7 +88,7 @@ const AnnouncementEditor = ({
     const normalized = /^\d{4}-\d{2}-\d{2}/.test(value) && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
       ? `${value.replace(" ", "T")}Z`
       : value;
-    return new Date(normalized);
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : toManilaCalendarDate(normalized);
   };
 
   const getTimeFromDate = (dateStr: string) => {
@@ -110,23 +104,23 @@ const AnnouncementEditor = ({
     time: string,
   ) => {
     setForm((prev) => {
-      const current = prev[field] ? parseStoredDate(prev[field]) : new Date();
+      const current = prev[field] ? parseStoredDate(prev[field]) : toManilaCalendarDate();
       const [h, m] = time.split(":").map(Number);
       // An announcement expires exactly at the time selected by the admin.
       current.setHours(h, m, 0, 0);
-      return { ...prev, [field]: current.toISOString() };
+      return { ...prev, [field]: fromManilaCalendarDate(current).toISOString() };
     });
   };
 
   const expiryAtEndOfDay = (date?: Date) => {
     if (!date) return "";
     const expiry = new Date(date);
-    // When an admin chooses only a date, expire at the end of that local day.
+    // When an admin chooses only a date, expire at the end of that Philippine day.
     expiry.setHours(23, 59, 59, 0);
-    return expiry.toISOString();
+    return fromManilaCalendarDate(expiry).toISOString();
   };
   const toDateInputValue = (value?: string) => {
-    const date = value ? parseStoredDate(value) : new Date();
+    const date = value ? parseStoredDate(value) : toManilaCalendarDate();
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
 
@@ -172,7 +166,7 @@ const AnnouncementEditor = ({
 
   const validateForm = (candidate: EditorForm = form) => {
     const nextErrors: typeof errors = {};
-    const now = new Date();
+    const now = getSystemDate();
 
     if (!candidate.title.trim()) nextErrors.title = "Enter a notice title.";
     if (!candidate.body.trim()) nextErrors.body = "Enter the announcement details.";
@@ -709,7 +703,7 @@ const AnnouncementEditor = ({
                         onSelect={(date) => {
                           setForm((p) => ({
                             ...p,
-                            scheduledDate: date ? date.toISOString() : "",
+                            scheduledDate: date ? fromManilaCalendarDate(date).toISOString() : "",
                           }));
                           clearError("scheduledDate");
                         }}

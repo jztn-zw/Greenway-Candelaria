@@ -1,5 +1,5 @@
-import axios, { AxiosError } from "axios";
-import { clearAuthStorage, getAuthStorage } from "./authStorage";
+import axios,{ AxiosError } from "axios";
+import { clearAuthStorage,getAuthStorage } from "./authStorage";
 
 const api = axios.create({
   timeout: 15000,
@@ -24,6 +24,7 @@ api.interceptors.response.use(
   (error: AxiosError<{ message?: string; requestId?: string; errors?: Array<{ field?: string; message?: string }> }>) => {
     const isAuthRoute =
       error.config?.url?.includes("/auth/login") ||
+      error.config?.url?.includes("/auth/recover") ||
       error.config?.url?.includes("/auth/register");
 
     const status = error.response?.status;

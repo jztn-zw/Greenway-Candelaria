@@ -1,4 +1,4 @@
-import type { Day, RouteForm } from "./hooks/useRoutes";
+import type { Day,RouteForm } from "./hooks/useRoutes";
 
 export const DAYS: Day[] = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",

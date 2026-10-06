@@ -120,3 +120,10 @@ describe("resident tracking queries and GPS", () => {
     expect(html).not.toContain("Travel estimate");
   });
 });
+
+// This test chooses the trusted clock fixture via its fake timer date.
+vi.mock("@/lib/serverClock", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/lib/serverClock")>()),
+  getSystemDate: () => new Date(Date.now()),
+  getSystemNow: () => Date.now(), getServerNow: () => Date.now(),
+}));

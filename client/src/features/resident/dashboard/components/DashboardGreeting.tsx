@@ -1,10 +1,12 @@
-import { MapPin, Plus } from "lucide-react";
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemDate } from "@/lib/serverClock";
+import { MapPin,Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import { dashboardStyles } from "../dashboardStyles";
-import { formatManilaDateTime, getManilaNow } from "@/utils/date";
+import { formatManilaDateTime,getManilaNow } from "@/utils/date";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 
 const getGreeting = () => {
@@ -15,10 +17,11 @@ const getGreeting = () => {
 };
 
 const DashboardGreeting = () => {
+  useSystemTime();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const greeting = getGreeting();
-  const now = new Date();
+  const now = getSystemDate();
 
   const firstName = user?.full_name ? user.full_name.split(" ")[0] : "Resident";
   const barangay = user?.barangay_name;

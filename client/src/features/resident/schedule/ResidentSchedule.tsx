@@ -1,49 +1,44 @@
-import { getCategoryBadgeColors, badgeStyles } from "@/components/ui/badgeStyles";
-import { FormDialogHeader } from "@/components/FormDialog";
-import { formDialogStyles as modalStyles } from "@/components/formDialogStyles";
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getCategoryBadgeColors,badgeStyles } from "@/components/ui/badgeStyles";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
+import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { residentPageStyles } from "@/components/common/residentPageStyles";
-import React, { useMemo, useState } from "react";
+import { useMemo,useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
+Dialog,
+DialogContent,
 } from "@/components/ui/dialog";
 import {
-  CalendarDays,
-  Clock,
-  MapPin,
-  Truck,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
-  Info,
-  Calendar,
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Check,
-  X as CloseIcon,
+CalendarDays,
+Clock,
+MapPin,
+Truck,
+ArrowRight,AlertCircle,Info,
+Calendar,ChevronDown,
+ChevronRight,
+Check,
+X as CloseIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
-import { ResidentScheduleSkeleton } from "@/components/PageLoadingSkeletons";
+import { ResidentScheduleSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
-  CalendarEvent,
-  CollectionScheduleDay,
-  fetchCalendarEvents,
-  fetchCollectionSchedule,
+CalendarEvent,
+CollectionScheduleDay,
+fetchCalendarEvents,
+fetchCollectionSchedule,
 } from "@/services/scheduleService";
 import { SegmentedControl } from "@/components/common";
 import useAuthStore from "@/store/authStore";
-import { formatDateOnly, getManilaNow } from "@/utils/date";
+import { formatDateOnly,getManilaNow } from "@/utils/date";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -169,6 +164,7 @@ const dayNameToIndex: Record<string, number> = {
 type ViewTab = "CALENDAR" | "WEEKLY_GUIDE";
 
 const ResidentSchedule = () => {
+  useSystemTime();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const barangayName = user?.barangay_name || "Candelaria";

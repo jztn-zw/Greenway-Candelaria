@@ -1,5 +1,5 @@
 const authService = require("./auth.service");
-const { registerSchema, loginSchema } = require("./auth.schema");
+const { registerSchema, residentSetupSchema, loginSchema, recoverySchema, recoveryCodeSchema } = require("./auth.schema");
 const { success, error } = require("../../utils/apiResponse");
 const {
   broadcastLiveUpdate,
@@ -52,5 +52,19 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, logout, getMe };
+const recoverPassword = async (req, res, next) => {
+  try { return success(res, await authService.recoverPassword(recoverySchema.parse(req.body)), "Password reset. Log in with your new password."); }
+  catch (err) { next(err); }
+};
+const replaceRecoveryCode = async (req, res, next) => {
+  try { return success(res, await authService.replaceRecoveryCode(req.user.id, recoveryCodeSchema.parse(req.body).password)); }
+  catch (err) { next(err); }
+};
+
+const completeResidentProfile = async (req, res, next) => {
+  try {
+    return success(res, await authService.completeResidentProfile(req.user.id, residentSetupSchema.parse(req.body)), "Resident profile completed");
+  } catch (err) { next(err); }
+};
+module.exports = { register, login, logout, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile };
 

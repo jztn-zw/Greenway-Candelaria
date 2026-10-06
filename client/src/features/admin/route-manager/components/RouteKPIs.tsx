@@ -1,8 +1,8 @@
 import KpiValue from "@/components/common/KpiValue";
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Route, CircleCheck, PauseCircle, MapPin } from "lucide-react";
-import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
+import { Route,CircleCheck,PauseCircle,MapPin } from "lucide-react";
+import { adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
 
 interface RouteKPIsProps {
   totalRoutes: number;

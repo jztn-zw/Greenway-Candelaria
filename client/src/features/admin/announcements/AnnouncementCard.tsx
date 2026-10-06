@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -277,11 +276,7 @@ const AnnouncementCard = ({
           </>
         );
     }
-  };
-
-  const isSent = ann.status === "Active" || ann.status === "Archived";
-
-  return (
+  };  return (
     <div
       onClick={() => onPreview(ann)}
       className="min-w-0 bg-card border border-border/80 rounded-2xl overflow-hidden flex flex-col group hover:border-primary/30 transition-all duration-300 cursor-pointer shadow-2xs"

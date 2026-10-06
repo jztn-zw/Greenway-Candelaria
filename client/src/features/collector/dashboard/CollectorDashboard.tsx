@@ -1,34 +1,37 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemNow } from "@/lib/serverClock";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
-import { useCollectorQuery, useCollectorAction } from "@/lib/collectorQuery";
+import { useCollectorQuery,useCollectorAction } from "@/lib/collectorQuery";
 import { getManilaNow } from "@/utils/date";
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, History } from "lucide-react";
+import { useState,useEffect } from "react";
+import { Link,useNavigate } from "react-router-dom";
+import { ChevronRight,History } from "lucide-react";
 import {
-  CollectorDashboardSkeleton,
-} from "@/components/PageLoadingSkeletons";
+CollectorDashboardSkeleton,
+} from "@/components/loading/PageLoadingSkeletons";
 import AssignmentCard from "./components/AssignmentCard";
 import TodayStatsCards from "./components/TodayStatsCards";
 import TruckStatusCard from "./components/TruckStatusCard";
 import TruckBreakdownDialog from "../components/TruckBreakdownDialog";
 import CollectorDashboardGreeting from "./components/CollectorDashboardGreeting";
 import RouteCalendarCard from "./components/RouteCalendarCard";
-import { buildAssignment, getAssignmentDestination, getWasteBadgeClass } from "./dashboard.utils";
+import { buildAssignment,getAssignmentDestination,getWasteBadgeClass } from "./dashboard.utils";
 import {
-  fetchCollectorDashboardProfile,
-  fetchDriverMyHistory,
-  reportTruckBreakdown,
+fetchCollectorDashboardProfile,
+fetchDriverMyHistory,
+reportTruckBreakdown,
 } from "@/services/driverManagerService";
 import { fetchMyRouteToday } from "@/services/routesService";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import useAuthStore from "@/store/authStore";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 
 import "./collectorDashboard.css";
 
 const CollectorDashboard = () => {
+  useSystemTime();
   const navigate = useNavigate();
   const authUser = useAuthStore((s) => s.user);
 
@@ -46,13 +49,13 @@ const CollectorDashboard = () => {
   const loadErrors = { profile: Boolean(profileQuery.error) && profileQuery.data === undefined,
     route: Boolean(routeQuery.error) && routeQuery.data === undefined, history: Boolean(historyQuery.error) && historyQuery.data === undefined };
   const retryDashboard = () => { queries.filter((query) => query.isError).forEach((query) => { void query.refetch(); }); };
-  const [now, setNow] = useState(Date.now);
+  const [now, setNow] = useState(getSystemNow);
 
   const [issueModalOpen, setIssueModalOpen] = useState(false);
 
   // Only advance the displayed duration; this does not fetch or reload data.
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    const timer = window.setInterval(() => setNow(getSystemNow()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
 

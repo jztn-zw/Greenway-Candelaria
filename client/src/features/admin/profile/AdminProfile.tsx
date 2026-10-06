@@ -1,13 +1,13 @@
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
-import { FormDialogHeader } from "@/components/FormDialog";
-import { formDialogStyles } from "@/components/formDialogStyles";
-import { AdminProfileSkeleton } from "@/components/PageLoadingSkeletons";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
+import { AdminProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { adminProfileStyles as styles } from "./adminProfileStyles";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
 import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,8 @@ const AdminProfile = () => {
   const runAction = useAdminAction("profile");
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [savingAvatarId, setSavingAvatarId] = useState<ProfileAvatarId | null>(null);
+  const savingAvatar = savingAvatarId !== null;
   const [edit, setEdit] = useState<{ field: EditableField; value: string; error: string; saving: boolean } | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [password, setPassword] = useState({ current: "", next: "", confirm: "" });
@@ -106,7 +107,7 @@ const AdminProfile = () => {
 
   const saveAvatar = async (selectedId: ProfileAvatarId) => {
     if (!profile || savingAvatar) return;
-    setSavingAvatar(true);
+    setSavingAvatarId(selectedId);
     try {
       const updated = await runAction(() => updateProfile({ avatar_url: profileAvatarSrc(selectedId) }));
       setProfile(updated);
@@ -117,7 +118,7 @@ const AdminProfile = () => {
     } catch {
       toast.error("Could not update your avatar. Please try again.");
     } finally {
-      setSavingAvatar(false);
+      setSavingAvatarId(null);
     }
   };
 
@@ -205,7 +206,7 @@ const AdminProfile = () => {
           </div>
           <div className={styles.identity}>
             <div className={styles.identityRow}>
-              <ProfileAvatarControl avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
+              <ProfileAvatarControl saving={savingAvatar} avatarClassName={styles.avatar} avatarId={avatarId} onCustomize={() => setAvatarOpen(true)} />
               <div className={styles.identityDetails}>
                 <div className={styles.nameRow}><h2 className={styles.name}>{profile.full_name}</h2><span className={styles.username}>@{profile.username}</span></div>
                 <div className={styles.metadata}><span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Administrator</span><span className="flex items-center gap-1.5"><Calendar className="size-3.5" /> Joined {joined}</span></div>
@@ -220,7 +221,7 @@ const AdminProfile = () => {
           <div className="divide-y divide-border/50">
             <ProfileField label="Full Name" value={profile.full_name} icon={User} onEdit={() => setEdit({ field: "full_name", value: profile.full_name, error: "", saving: false })} />
             <ProfileField label="Username" value={profile.username} icon={AtSign} onEdit={() => setEdit({ field: "username", value: profile.username, error: "", saving: false })} />
-            <ProfileField label="Email Address" value={profile.email} icon={Mail} />
+            <ProfileField label="Email Address" value={profile.email ?? ""} icon={Mail} />
             <ProfileField label="Phone Number" value={profile.phone} icon={Phone} onEdit={() => setEdit({ field: "phone", value: profile.phone ?? "", error: "", saving: false })} />
             <ProfileField label="Security Password" value="••••••••" icon={Lock} action="Change" onEdit={() => setPasswordOpen(true)} />
           </div>
@@ -241,9 +242,9 @@ const AdminProfile = () => {
       <ProfileDialog
         open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize avatar"
         description="Select one of the ten profile avatars." icon={Users} pending={savingAvatar}
-        footer={<Button type="button" variant="outline" onClick={() => setAvatarOpen(false)} className={profileButtonClass}>Close</Button>}
+        footer={<Button type="button" variant="outline" disabled={savingAvatar} onClick={() => setAvatarOpen(false)} className={profileButtonClass}>Close</Button>}
       >
-        <ProfileAvatarPicker selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
+        <ProfileAvatarPicker saving={savingAvatarId} selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
       </ProfileDialog>
 
       <ProfileDialog

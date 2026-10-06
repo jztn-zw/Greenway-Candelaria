@@ -3,13 +3,17 @@ import api from "@/lib/api";
 import { getAuthStorage } from "@/lib/authStorage";
 
 export interface RegisterData {
-  full_name: string;
-  username: string;
   email: string;
   password: string;
-  phone?: string;
-  barangay_id?: string;
-  street_id?: string;
+  confirm_password: string;
+  terms_accepted: boolean;
+}
+export interface ResidentSetupData {
+  full_name: string;
+  username: string;
+  phone: string;
+  barangay_id: string;
+  street_id?: string | null;
 }
 
 export interface LoginData {
@@ -21,7 +25,7 @@ export interface User {
   id: string;
   full_name: string;
   username: string;
-  email: string;
+  email: string | null;
   role: string;
   status: string;
   avatar_url: string | null;
@@ -30,6 +34,8 @@ export interface User {
   street_id?: string | null;
   street_name?: string | null;
   street_area?: string | null;
+  phone?: string | null;
+  profile_completed?: boolean;
 }
 
 export interface AuthResponse {
@@ -38,9 +44,21 @@ export interface AuthResponse {
 }
 
 const authService = {
+  completeResidentProfile: async (data: ResidentSetupData): Promise<User> => {
+    const response = await api.put("/auth/resident-profile", data);
+    return response.data.data;
+  },
+  recoverPassword: async (data: { identifier: string; recovery_code: string; new_password: string; confirm_password: string }): Promise<{ recovery_code: string }> => {
+    const response = await api.post("/auth/recover", data);
+    return response.data.data;
+  },
+  replaceRecoveryCode: async (password: string): Promise<{ recovery_code: string }> => {
+    const response = await api.post("/auth/recovery-code", { password });
+    return response.data.data;
+  },
   register: async (data: RegisterData) => {
     const response = await api.post("/auth/register", data);
-    return response.data;
+    return response.data as { data: { email: string; recovery_code: string } };
   },
 
   login: async (data: LoginData): Promise<AuthResponse> => {

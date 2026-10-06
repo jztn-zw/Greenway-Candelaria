@@ -5,7 +5,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { reportStyles } from "./reportStyles";
 import { fetchBarangays } from "@/services/barangaysService";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 
 interface LocationSectionProps {
   barangayId: string;

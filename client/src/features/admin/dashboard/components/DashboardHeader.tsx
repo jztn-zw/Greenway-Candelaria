@@ -1,3 +1,5 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemDate } from "@/lib/serverClock";
 import { useState, useEffect } from "react";
 import { Megaphone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +8,7 @@ import { adminDashboardStyles as styles } from "../dashboardStyles";
 import authService from "@/services/authService";
 
 const getGreeting = () => {
-  const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", hour: "numeric", hourCycle: "h23" }).format(getSystemDate()));
   if (h < 12) return "Good Morning";
   if (h < 18) return "Good Afternoon";
   return "Good Evening";
@@ -16,13 +18,14 @@ const formatDate = (d: Date) =>
   d.toLocaleDateString("en-US", { timeZone: "Asia/Manila", weekday: "long", year: "numeric", month: "short", day: "numeric" });
 
 const DashboardHeader = () => {
-  const [time, setTime] = useState(new Date());
+  useSystemTime();
+  const [time, setTime] = useState(getSystemDate());
   const navigate = useNavigate();
 
   const adminName = authService.getCurrentUser()?.full_name?.split(" ")[0] || "Admin";
 
   useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
+    const id = setInterval(() => setTime(getSystemDate()), 1000);
     return () => clearInterval(id);
   }, []);
 

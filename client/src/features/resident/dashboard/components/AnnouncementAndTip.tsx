@@ -1,17 +1,17 @@
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
-import { useResidentQuery, useResidentFetch } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
+import { useResidentQuery,useResidentFetch } from "@/lib/residentQuery";
+import PageErrorState from "@/components/feedback/PageErrorState";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card,CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { dashboardStyles } from "../dashboardStyles";
-import { ResidentDashboardUpdateSkeleton } from "@/components/PageLoadingSkeletons";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ResidentDashboardUpdateSkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { ArrowRight,ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import {
-  fetchAnnouncementById,
-  fetchAnnouncements,
+fetchAnnouncementById,
+fetchAnnouncements,
 } from "@/services/announcementsService";
 import ResidentAnnouncementModal from "../../announcements/ResidentAnnouncementModal";
 import type { AnnouncementDetail } from "../../announcements/ResidentAnnouncementModal";

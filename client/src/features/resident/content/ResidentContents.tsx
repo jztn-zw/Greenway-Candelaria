@@ -1,37 +1,38 @@
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
+import { FilterPillTabs,type FilterPillItem } from "@/components/common/FilterPillTabs";
 import PaginationControls from "@/components/common/PaginationControls";
-import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { useResidentQuery, useResidentResource, useResidentMutation } from "@/lib/residentQuery";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { useResidentQuery,useResidentResource,useResidentMutation } from "@/lib/residentQuery";
+import { useState,useEffect,useRef,useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FileText, ArrowDownUp } from "lucide-react";
+import { FileText,ArrowDownUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import postsService from "@/services/postsService";
+import useResidentNotifications from "@/features/resident/notifications/useResidentNotifications";
 import { PostItem } from "./types";
 import PostDetail from "./PostDetail";
 import FeaturedPostCarousel from "./FeaturedPostCarousel";
 import PostCard from "./PostCard";
 import {
-  ContentCardsSkeleton,
-  ResidentContentsSkeleton,
-  ResidentPostDetailSkeleton,
-} from "@/components/PageLoadingSkeletons";
+ContentCardsSkeleton,
+ResidentContentsSkeleton,
+ResidentPostDetailSkeleton,
+} from "@/components/loading/PageLoadingSkeletons";
 import {
-  RESIDENT_CONTENT_CATEGORIES,
-  type ResidentContentCategory,
-  type ResidentContentSort,
+RESIDENT_CONTENT_CATEGORIES,
+type ResidentContentCategory,
+type ResidentContentSort,
 } from "./hooks/useResidentContentFeed";
 
 const CONTENT_PAGE_SIZE = 6;
@@ -83,6 +84,11 @@ const ResidentContents = () => {
     () => postsService.getById(postIdParam!), null, { enabled: !!postIdParam });
   const inaccessible = [403, 404].includes((detail.error as { response?: { status?: number } } | null)?.response?.status ?? 0);
   const openPost = postIdParam && !inaccessible ? detail.data : null;
+  const { markContentAsRead } = useResidentNotifications();
+  const openedPostId = !detail.isError && openPost?.id === postIdParam ? openPost.id : null;
+  useEffect(() => {
+    if (openedPostId) void markContentAsRead(openedPostId);
+  }, [openedPostId, markContentAsRead]);
   const setOpenPost = detail.setData;
   const isDetailLoading = detail.isLoading;
   const fetchPosts = () => feed.refetch();

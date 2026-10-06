@@ -104,3 +104,10 @@ it("highlights the Manila date before 8 AM instead of the previous UTC date", ()
     hideTodayButtonWhenOtherDateSelected />);
   expect(html).toContain("Today");
 });
+
+// This test chooses the trusted clock fixture via its fake timer date.
+vi.mock("@/lib/serverClock", async importOriginal => ({
+  ...(await importOriginal<typeof import("@/lib/serverClock")>()),
+  getSystemDate: () => new Date(Date.now()),
+  getSystemNow: () => Date.now(), getServerNow: () => Date.now(),
+}));

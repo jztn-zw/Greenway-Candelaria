@@ -2,7 +2,7 @@ import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
 import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
-import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
+import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
 import {
   Archive,
   ArchiveRestore,

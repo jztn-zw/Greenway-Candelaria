@@ -1,5 +1,6 @@
-﻿import React from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
+
 
 export interface FilterPillItem<T extends string = string> {
   id: T;

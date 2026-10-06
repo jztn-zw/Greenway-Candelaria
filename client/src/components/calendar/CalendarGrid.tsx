@@ -6,7 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
 import { indexMonthEvents } from "./calendar.utils";
-import { CalendarMonthGridSkeleton } from "@/components/PageLoadingSkeletons";
+import { CalendarMonthGridSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 interface CalendarGridProps {
   currentDate: Date;

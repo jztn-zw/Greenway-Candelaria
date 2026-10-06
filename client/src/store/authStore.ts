@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import authService, { User } from "../services/authService";
-import { authStateStorage, clearAuthStorage, getAuthStorage } from "@/lib/authStorage";
+import { createJSONStorage,persist } from "zustand/middleware";
+import authService,{ User,type AuthResponse } from "../services/authService";
+import { authStateStorage,clearAuthStorage,getAuthStorage } from "@/lib/authStorage";
 
 interface AuthState {
   user: User | null;
@@ -22,6 +22,27 @@ let lastSessionVerifiedAt = 0;
 let authGeneration = 0;
 let inFlightSessionCheck: { generation: number; token: string; promise: Promise<boolean> } | null = null;
 
+const authenticate = async (request: () => Promise<AuthResponse>, rememberMe: boolean): Promise<AuthResponse> => {
+  const generation = ++authGeneration;
+  inFlightSessionCheck = null;
+  useAuthStore.setState({ isLoading: true });
+  try {
+    const result = await request();
+    if (generation !== authGeneration) throw new Error("Your session changed");
+    if ("token" in result) {
+      clearAuthStorage();
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem("token", result.token);
+      storage.setItem("user", JSON.stringify(result.user));
+      useAuthStore.setState({ user: result.user, token: result.token, isAuthenticated: true });
+      lastSessionVerifiedAt = performance.now();
+    }
+    return result;
+  } finally {
+    if (generation === authGeneration) useAuthStore.setState({ isLoading: false });
+  }
+};
+
 const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -32,30 +53,7 @@ const useAuthStore = create<AuthState>()(
       hasHydrated: false,
 
       login: async (identifier, password, rememberMe = true) => {
-        const generation = ++authGeneration;
-        inFlightSessionCheck = null;
-        set({ isLoading: true });
-        try {
-          const { token, user } = await authService.login({
-            identifier,
-            password,
-          });
-          if (generation !== authGeneration) throw new Error("Your session changed");
-          clearAuthStorage();
-          const storage = rememberMe ? localStorage : sessionStorage;
-          storage.setItem("token", token);
-          storage.setItem("user", JSON.stringify(user));
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          lastSessionVerifiedAt = Date.now();
-        } catch (err) {
-          if (generation === authGeneration) set({ isLoading: false });
-          throw err;
-        }
+        await authenticate(() => authService.login({ identifier, password }), rememberMe);
       },
 
       logout: async () => {
@@ -69,7 +67,7 @@ const useAuthStore = create<AuthState>()(
       ensureSession: async (force = false) => {
         const token = authService.getToken();
         const currentUser = get().user ?? authService.getCurrentUser();
-        const now = Date.now();
+        const now = performance.now();
 
         if (!token) {
           get().clearAuth();
@@ -104,7 +102,7 @@ const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
             });
-            lastSessionVerifiedAt = Date.now();
+            lastSessionVerifiedAt = performance.now();
             return true;
           })
           .catch(() => {
@@ -119,8 +117,11 @@ const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user) => {
+        // A server-confirmed profile write supersedes older session snapshots.
+        authGeneration++;
+        inFlightSessionCheck = null;
         getAuthStorage().setItem("user", JSON.stringify(user));
-        set({ user });
+        set({ user, isLoading: false });
       },
 
       setHasHydrated: (value) => set({ hasHydrated: value }),

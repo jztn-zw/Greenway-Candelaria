@@ -1,12 +1,12 @@
-import { useResidentResource, useResidentMutation } from "@/lib/residentQuery";
-import { useState, useEffect, useRef } from "react";
-import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
+import { useResidentResource,useResidentMutation } from "@/lib/residentQuery";
+import { useState,useEffect,useRef } from "react";
+import { PostActions,PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
 import { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
-import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
+import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
-import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
+import { PostItem,formatCategory,parsePostDate,getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
 import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 import PostCard from "./PostCard";
@@ -31,9 +31,7 @@ const PostDetail = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const detail = useResidentResource<PostItem>("posts", ["detail", initialPost.id], () => postsService.getById(initialPost.id), initialPost);
   const post = detail.data;
-  const setPost = detail.setData;
-  const isLoading = detail.isLoading;
-  const like = useResidentMutation(postsService.like, "posts");
+  const setPost = detail.setData;  const like = useResidentMutation(postsService.like, "posts");
   const unlike = useResidentMutation(postsService.unlike, "posts");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLiking, setIsLiking] = useState(false);

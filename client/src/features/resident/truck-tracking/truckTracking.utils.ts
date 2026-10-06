@@ -1,4 +1,4 @@
-import { formatManilaDateTime, parseApiTimestamp } from "@/utils/date";
+import { formatManilaDateTime } from "@/utils/date";
 
 export const formatCollectionTime = (value?: string | null) => {
   if (!value) return "-";
@@ -13,20 +13,7 @@ export const formatCollectionTime = (value?: string | null) => {
   }
 
   return formatManilaDateTime(value, { hour: "numeric", minute: "2-digit" }, "-");
-};
-
-export const formatCollectionDate = (value?: string | null) => {
-  if (!value) return "-";
-  const parsedDate = parseApiTimestamp(value);
-  if (!parsedDate) return "-";
-  return formatManilaDateTime(parsedDate, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }, "-");
-};
-
-export const calculateDistanceInKilometers = (
+};export const calculateDistanceInKilometers = (
   firstCoordinate: [number, number],
   secondCoordinate: [number, number],
 ) => {

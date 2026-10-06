@@ -1,5 +1,6 @@
+import { formatManilaDateTime } from "@/utils/date";
 import { Star, Eye, Heart, ChevronRight } from "lucide-react";
-import { adminCommunityStyles as postStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as postStyles } from "@/components/common/communityContentStyles";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -57,7 +58,7 @@ const PostListView = ({
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border/60 pt-2 text-ui-caption text-muted-foreground">
             <span className="min-w-0 break-words">{post.status === "Scheduled" && post.scheduledDate
-              ? new Date(post.scheduledDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              ? formatManilaDateTime(post.scheduledDate, { month: "short", day: "numeric", year: "numeric" })
               : post.publishedDate || "Not published"}</span>
             <span className="ml-auto inline-flex items-center gap-1" aria-label={`${post.views} views`}><Eye aria-hidden="true" className="size-3.5" />{post.views.toLocaleString()}</span>
             <span className="inline-flex items-center gap-1" aria-label={`${post.likes || 0} reactions`}><Heart aria-hidden="true" className="size-3.5" />{(post.likes || 0).toLocaleString()}</span>
@@ -200,7 +201,7 @@ const PostListView = ({
                   {/* Date */}
                   <TableCell className="py-3 text-xs text-muted-foreground whitespace-nowrap">
                     {post.status === "Scheduled" && post.scheduledDate
-                      ? new Date(post.scheduledDate).toLocaleDateString("en-US", {
+                      ? formatManilaDateTime(post.scheduledDate, {
                           month: "short",
                           day: "numeric",
                         })

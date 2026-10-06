@@ -1,13 +1,14 @@
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
-import { adminCommunityStyles as noticeStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as noticeStyles } from "@/components/common/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { useState, useEffect } from "react";
 import { Plus, LayoutGrid, List, Megaphone, Trash2, Archive, ArrowUpDown, Send, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { toast } from "@/lib/toast";
 import { useAnnouncements } from "./hooks/useAnnouncements";
 import AnnouncementKPIs from "./AnnouncementKPIs";
 import AnnouncementCard from "./AnnouncementCard";
@@ -30,7 +30,7 @@ import ResidentAnnouncementModal, {
   type AnnouncementDetail,
 } from "@/features/resident/announcements/ResidentAnnouncementModal";
 import PaginationControls from "@/components/common/PaginationControls";
-import { AnnouncementsContentSkeleton, AnnouncementsPageSkeleton } from "@/components/PageLoadingSkeletons";
+import { AnnouncementsContentSkeleton, AnnouncementsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { Announcement, EditorForm, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
@@ -65,6 +65,7 @@ const DEFAULT_FORM: EditorForm = {
 };
 
 const AdminAnnouncements = () => {
+  useSystemTime();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");

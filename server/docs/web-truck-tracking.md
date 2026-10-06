@@ -4,7 +4,7 @@ Scope: the web client and shared server. No mobile app files were changed or tes
 
 ## Deployment
 
-Apply `src/database/migrations/20260926_tracking_consistency.sql` once, after earlier migrations, **before starting the updated server**. Fresh installations use the updated `schema.sql` instead. This migration was applied to the configured database on September 26, 2026; do not reapply it there. Column creation and index creation use separate statements for TiDB compatibility.
+The complete tracking structure is included in `src/database/schema.sql`. The earlier tracking migration was applied on September 26, 2026 and has since been consolidated into the baseline. Fresh installations import that baseline into an empty database. For another existing environment, compare the live schema with the baseline and prepare a reviewed, backed-up upgrade before starting the updated server; importing the baseline over existing tables is not an upgrade.
 
 The migration preserves existing GPS history and adds an indexed latest-location table, capture/sample identity, persisted pause duration, and GPS outage state. The latest-location table starts empty: existing active runs become visible after their next accepted GPS sample. Pauses before this migration cannot be reconstructed from the old browser-only timer. An already paused run starts its persisted pause interval at migration time.
 

@@ -4,7 +4,7 @@ import CollectorSidebar from "./CollectorSidebar";
 import CollectorTopBar from "./CollectorTopbar";
 import CollectorDispatchBubble from "./CollectorDispatchBubble";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import PageTransition from "@/components/PageTransition";
+import PageTransition from "@/components/motion/PageTransition";
 import useAuthStore from "@/store/authStore";
 
 import { CollectorTrackingProvider } from "@/features/collector/route-map/CollectorTrackingProvider";

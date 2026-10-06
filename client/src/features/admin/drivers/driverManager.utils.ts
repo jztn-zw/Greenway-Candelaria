@@ -1,3 +1,4 @@
+import { formatManilaDateTime } from "@/utils/date";
 import type {
   DriverActivityApiRow,
   DriverApiRow,
@@ -5,16 +6,7 @@ import type {
 } from "@/services/driverManagerService";
 import type { Driver, Truck as TruckType } from "./types";
 
-const formatDriverDate = (value?: string) => {
-  if (!value) return "-";
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return "-";
-  return parsedDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
+const formatDriverDate = (value?: string) => formatManilaDateTime(value, { month: "short", day: "numeric", year: "numeric" }, "-");
 
 const formatDriverDateTime = (value?: string | null) => {
   if (!value) return "-";

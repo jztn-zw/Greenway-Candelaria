@@ -3,8 +3,8 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
 import React, { useState } from "react";
 import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { Bell, CheckCheck, Trash2, ChevronRight, Clock, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import PaginationControls from "@/components/common/PaginationControls";
 import useNotifications from "@/features/admin/notifications/useAdminNotifications";
 import { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime } from "@/utils/date";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
 import AdminNotificationModal, {
   AdminNotificationDetail,
 } from "./AdminNotificationModal";
 import {
 
   NotificationsPageSkeleton,
-} from "@/components/PageLoadingSkeletons";
+} from "@/components/loading/PageLoadingSkeletons";
 
 const PAGE_SIZE = 15;
 
@@ -35,6 +35,7 @@ const tabs: FilterPillItem<AdminCategory>[] = [
 ];
 
 const AdminNotifications: React.FC = () => {
+  const { formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminCategory>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +84,7 @@ const AdminNotifications: React.FC = () => {
         id: n.id,
         title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
         message,
+        created_at: n.created_at,
         time: formatRelativeTime(n.created_at, {
           dateOptions: { month: "short", day: "numeric", year: "numeric" },
         }),

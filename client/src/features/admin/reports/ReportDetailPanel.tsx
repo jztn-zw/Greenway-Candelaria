@@ -1,16 +1,16 @@
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { SearchInput } from "@/components/common/SearchInput";
-import { WasteReportDetailBodySkeleton } from "@/components/PageLoadingSkeletons";
-import { adminWasteReportStyles as styles } from "@/components/communityContentStyles";
+import { WasteReportDetailBodySkeleton } from "@/components/loading/PageLoadingSkeletons";
+import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-Dialog,
-DialogContent,
-DialogDescription,
-DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminFetch } from "@/lib/adminQuery";
@@ -20,11 +20,11 @@ import { fetchAdminReports, type AdminReportItem } from "@/services/reportsServi
 import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
-ReportStatus,
-safeFormatDate,
-STATUS_LABEL_TO_BACKEND,
-violationBadgeStyles,
-WasteReport,
+  ReportStatus,
+  safeFormatDate,
+  STATUS_LABEL_TO_BACKEND,
+  violationBadgeStyles,
+  WasteReport,
 } from "./types";
 
 interface ReportDetailPanelProps {
@@ -67,9 +67,7 @@ const ReportDetailPanel = ({
 }: ReportDetailPanelProps) => {
   const fetchAdmin = useAdminFetch();
   const [officialResponse, setOfficialResponse] = useState(report?.officialResponse || "");
-  const [internalNote, setInternalNote] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<ReportStatus>(report?.status || "Submitted");
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [internalNote, setInternalNote] = useState("");  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingResponse, setIsSavingResponse] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
@@ -88,20 +86,16 @@ const ReportDetailPanel = ({
   const reportStatus = report?.status;
   const reportResponse = report?.officialResponse;
 
-  const previousReport = useRef({ id: reportId, status: reportStatus, response: reportResponse || "" });
+  const previousReport = useRef({ id: reportId, response: reportResponse || "" });
   useEffect(() => {
     if (!reportId || !reportStatus) return;
     const previous = previousReport.current;
-    if (previous.id !== reportId) {
-      setSelectedStatus(reportStatus);
-      setOfficialResponse(reportResponse || "");
+    if (previous.id !== reportId) {      setOfficialResponse(reportResponse || "");
       setInternalNote("");
     } else {
-      // Refresh untouched fields, preserving text and status choices being edited.
-      setSelectedStatus((current) => current === previous.status ? reportStatus : current);
-      setOfficialResponse((current) => current === previous.response ? reportResponse || "" : current);
+      // Refresh an untouched response without overwriting the draft.      setOfficialResponse((current) => current === previous.response ? reportResponse || "" : current);
     }
-    previousReport.current = { id: reportId, status: reportStatus, response: reportResponse || "" };
+    previousReport.current = { id: reportId, response: reportResponse || "" };
   }, [reportId, reportStatus, reportResponse]);
 
   useEffect(() => {
@@ -175,9 +169,7 @@ const ReportDetailPanel = ({
     setIsUpdatingStatus(true);
     try {
       const backendStatus = STATUS_LABEL_TO_BACKEND[newStatus] || "SUBMITTED";
-      await onUpdateStatus(backendStatus, officialResponse.trim() || undefined);
-      setSelectedStatus(newStatus);
-      toast.success(`Status updated to ${newStatus}`);
+      await onUpdateStatus(backendStatus, officialResponse.trim() || undefined);      toast.success(`Status updated to ${newStatus}`);
       return true;
     } catch {
       toast.error("Failed to update status");

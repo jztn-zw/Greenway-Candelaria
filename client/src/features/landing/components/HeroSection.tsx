@@ -1,10 +1,12 @@
+import { getManilaNow } from "@/utils/date";
+import { useSystemTime } from "@/hooks/useSystemTime";
 import { Button } from "@/components/ui/button";
 import heroBg from "@/assets/hero-bg.webp";
-import { CalendarDays, CalendarCheck, MapPin, Bell, Sparkles, LucideIcon } from "lucide-react";
-import { useScrollReveal, useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/MobileCarousel";
+import { CalendarDays,CalendarCheck,MapPin,Bell,Sparkles,LucideIcon } from "lucide-react";
+import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
+import MobileCarousel from "@/components/common/MobileCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CONTENT, HeroContent } from "../landingContent";
+import { CONTENT,HeroContent } from "../landingContent";
 import { useNavigate } from "react-router-dom";
 import { handleLandingNavigation } from "../utils/navigation";
 
@@ -20,8 +22,7 @@ const days = [
 
 const serviceIcons: LucideIcon[] = [CalendarCheck, MapPin, Bell];
 
-const todayIndex = new Date().getDay();
-const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+
 
 const HeroServiceCard = ({ c }: { c: { icon: LucideIcon; title: string; desc: string } }) => (
   <div className="group bg-card rounded-xl border border-border/50 p-5 sm:p-6 lg:p-6 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-all duration-300 h-full">
@@ -38,6 +39,9 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ content = CONTENT.hero }: HeroSectionProps) => {
+  useSystemTime();
+  const todayIndex = getManilaNow().weekdayIndex;
+  const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
   const navigate = useNavigate();
   const leftRef = useScrollReveal();
   const rightRef = useScrollReveal({ rootMargin: "0px 0px -20px 0px" });

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import AnimatedSection from "@/components/AnimatedSection";
+import { useEffect,useState } from "react";
+import AnimatedSection from "@/components/motion/AnimatedSection";
 import TopBar from "./components/TopBar";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
@@ -7,7 +7,7 @@ import AboutSection from "./components/AboutSection";
 import ServicesSection from "./components/ServicesSection";
 import ImpactStatsSection from "./components/ImpactStatsSection";
 import AwardsSection from "./components/AwardsSection";
-import BlogSection, { LandingBlogPost } from "./components/BlogSection";
+import BlogSection,{ LandingBlogPost } from "./components/BlogSection";
 import TestimonialsSection from "./components/TestimonialsSection";
 import FAQSection from "./components/FAQSection";
 import ContactSection from "./components/ContactSection";

@@ -7,13 +7,10 @@ import {
   Bell,
   LogOut,
   Settings,
-  UserCircle,
-  Sun,
-  Moon,
-  Headphones,
+  UserCircle, Headphones,
   Phone,
   Mail,
-  ChevronLeft,
+  ChevronLeft
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -31,8 +28,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
-import { useThemeMode } from "@/hooks/useThemeMode";
-import { toggleThemeMode } from "@/lib/theme";
 import CollectorLogoutDialog from "@/features/collector/components/CollectorLogoutDialog";
 import { CollectorModalHeader } from "@/features/collector/components/CollectorModal";
 import { collectorModalStyles as modalStyles } from "@/features/collector/components/collectorModalStyles";
@@ -41,7 +36,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { profileAvatarForCurrentUser, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
@@ -84,9 +79,7 @@ const CollectorSidebar = () => {
   const location = useLocation();
   const [showGearMenu, setShowGearMenu] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
-  const gearMenuRef = useRef<HTMLDivElement>(null);
-  const isDarkMode = useThemeMode() === "dark";
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const gearMenuRef = useRef<HTMLDivElement>(null);  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
   const isActive = (path: string) =>
@@ -97,15 +90,7 @@ const CollectorSidebar = () => {
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowGearMenu((isOpen) => !isOpen);
-  };
-
-  const handleToggleTheme = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleThemeMode();
-    setShowGearMenu(false);
-  };
-
-  useEffect(() => {
+  };  useEffect(() => {
     if (!showGearMenu) return;
 
     const closeMenu = (event: PointerEvent) => {
@@ -222,7 +207,7 @@ const CollectorSidebar = () => {
           <div ref={gearMenuRef} className={navigationStyles.accountRow}>
             <div className="relative shrink-0">
               <Avatar className={navigationStyles.avatar}>
-                <AvatarImage src={profileAvatarSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "DRIVER"))} alt="" className="object-cover object-center" />
+                <AvatarImage src={profileAvatarImageSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "DRIVER"))} alt="" className="object-cover object-center" />
                 <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
                   {initials}
                 </AvatarFallback>

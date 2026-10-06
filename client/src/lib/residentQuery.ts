@@ -1,7 +1,7 @@
 import useAuthStore from "@/store/authStore";
-import { hashKey, useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { hashKey,useMutation,useQuery,useQueryClient,type QueryKey } from "@tanstack/react-query";
 import type { SetStateAction } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback,useRef } from "react";
 
 export const residentKey = (userId: string | undefined, domain: string, ...parts: unknown[]) =>
   ["resident", userId ?? "signed-out", domain, ...parts] as const;

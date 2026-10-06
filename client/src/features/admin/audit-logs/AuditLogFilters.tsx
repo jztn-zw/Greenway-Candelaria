@@ -1,3 +1,4 @@
+import { toManilaCalendarDate } from "@/utils/date";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import { SearchInput } from "@/components/common/SearchInput";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
@@ -10,9 +11,9 @@ import {
 } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Calendar } from "@/components/ui/calendar";
-import { format, startOfToday, subDays } from "date-fns";
+import { format, startOfDay, subDays } from "date-fns";
 import { useState } from "react";
-import { adminAuditLogStyles as styles } from "@/components/communityContentStyles";
+import { adminAuditLogStyles as styles } from "@/components/common/communityContentStyles";
 
 interface AuditLogFiltersProps {
   search: string;
@@ -68,7 +69,7 @@ const AuditLogFilters = ({
 
   const isPresetActive = (days: number) => {
     if (!dateRange.from || !dateRange.to) return false;
-    const today = startOfToday();
+    const today = startOfDay(toManilaCalendarDate());
     const todayStr = format(today, "yyyy-MM-dd");
     const targetFromStr = format(
       days === 0 ? today : subDays(today, days - 1),
@@ -84,7 +85,7 @@ const AuditLogFilters = ({
       onDateRangeChange({});
       return;
     }
-    const today = startOfToday();
+    const today = startOfDay(toManilaCalendarDate());
     if (days === 0) {
       onDateRangeChange({ from: today, to: today });
     } else {

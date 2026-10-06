@@ -1,3 +1,4 @@
+import { getManilaNow } from "@/utils/date";
 import {
   ChartContainer,
   ChartTooltip,
@@ -34,7 +35,7 @@ const pieConfig = {
 // Generate continuous 6-month rolling window (e.g. Mar -> Aug)
 const getLast6Months = (asOfDate?: string) => {
   const months: { key: string; label: string }[] = [];
-  const now = new Date(`${asOfDate || new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  const now = new Date(`${asOfDate || getManilaNow().dateKey}T12:00:00Z`);
   for (let i = 5; i >= 0; i--) {
     const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -104,10 +105,7 @@ const TrendCharts = ({ reportsAnalytics, usersAnalytics, asOfDate }: TrendCharts
   });
 
   const currentMonthLabel = last6[last6.length - 1]?.label || "Month";
-  const thisMonthNewResidents = growthData[growthData.length - 1]?.residents || 0;
-  const resolutionRateText = reportsAnalytics?.resolution_rate || "0%";
-
-  return (
+  const thisMonthNewResidents = growthData[growthData.length - 1]?.residents || 0;  return (
     <div className={styles.charts}>
       {/* ── 1. Report Volume Trend (Continuous Area Chart) ── */}
       <div className={styles.chart}>

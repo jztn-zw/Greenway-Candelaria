@@ -1,5 +1,5 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { adminCommunityStyles as noticeStyles } from "@/components/communityContentStyles";
+import { adminCommunityStyles as noticeStyles } from "@/components/common/communityContentStyles";
 import AnnouncementCard from "./AnnouncementCard";
 import {
   MoreHorizontal,

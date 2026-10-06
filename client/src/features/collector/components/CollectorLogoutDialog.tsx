@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 
 interface Props {
   open: boolean;

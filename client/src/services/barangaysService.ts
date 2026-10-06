@@ -92,16 +92,7 @@ export const fetchBarangays = async (): Promise<BarangayLocationRow[]> => {
 export const fetchBarangaysAdmin = async (): Promise<BarangayAdminRow[]> => {
   const { data } = await api.get<{ data: BarangayAdminRow[] }>("/barangays");
   return data.data ?? [];
-};
-
-export const fetchBarangayById = async (
-  id: string,
-): Promise<BarangayLocationRow> => {
-  const { data } = await api.get<{ data: BarangayLocationRow }>(`/barangays/${id}`);
-  return data.data;
-};
-
-export const fetchBarangayStreets = async (
+};export const fetchBarangayStreets = async (
   id: string,
 ): Promise<BarangayStreetsResponse> => {
   const { data } = await api.get<{ data: BarangayStreetsResponse }>(`/barangays/${id}/streets`);

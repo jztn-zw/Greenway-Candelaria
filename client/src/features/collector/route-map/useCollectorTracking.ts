@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext,useContext } from "react";
 import type { useRouteData } from "./hooks/useRouteData";
 import type { useLiveTracking } from "./hooks/useLiveTracking";
 type TrackingContext = ReturnType<typeof useRouteData> & ReturnType<typeof useLiveTracking>;

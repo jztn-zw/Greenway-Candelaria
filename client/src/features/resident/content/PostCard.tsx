@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Heart, Calendar, User } from "lucide-react";
-import { communityContentStyles as contentStyles } from "@/components/communityContentStyles";
-import { PostItem, formatCategory, parsePostDate, getCategoryBadgeStyle } from "./types";
+import React,{ useState,useEffect,useMemo } from "react";
+import { Heart,Calendar,User } from "lucide-react";
+import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
+import { PostItem,formatCategory,parsePostDate,getCategoryBadgeStyle } from "./types";
 import { PostImagePlaceholder } from "./PostImagePlaceholder";
 import PostImageBackdrop from "@/components/common/PostImageBackdrop";
 import { Badge } from "@/components/ui/badge";

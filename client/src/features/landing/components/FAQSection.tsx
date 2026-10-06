@@ -1,7 +1,7 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Accordion,AccordionContent,AccordionItem,AccordionTrigger } from "@/components/ui/accordion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { HelpCircle } from "lucide-react";
-import { CONTENT, FAQContent } from "../landingContent";
+import { CONTENT,FAQContent } from "../landingContent";
 
 interface FAQSectionProps {
   content?: FAQContent;

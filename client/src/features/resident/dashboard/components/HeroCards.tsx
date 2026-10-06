@@ -1,29 +1,29 @@
-import { getStatusBadgeStyle, getCategoryBadgeColors } from "@/components/ui/badgeStyles";
+import { getStatusBadgeStyle,getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useResidentQuery } from "@/lib/residentQuery";
-import PageErrorState from "@/components/PageErrorState";
+import PageErrorState from "@/components/feedback/PageErrorState";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { dashboardStyles } from "../dashboardStyles";
-import { ResidentDashboardCardSkeleton as HeroCardSkeleton } from "@/components/PageLoadingSkeletons";
+import { ResidentDashboardCardSkeleton as HeroCardSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
-  Package,
-  Truck,
-  FileText,
-  Clock,
-  Radio,
-  Hash,
-  Calendar,
-  ArrowRight,
-  CheckCircle2,
+Package,
+Truck,
+FileText,
+Clock,
+Radio,
+Hash,
+Calendar,
+ArrowRight,
+CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchLiveTrucks } from "@/services/trackingService";
 import { fetchMyReports } from "@/services/reportsService";
-import { fetchRoutes, type ApiRoute, type ApiRouteStop } from "@/services/routesService";
-import { formatManilaDateTime, getManilaNow } from "@/utils/date";
+import { fetchRoutes,type ApiRoute,type ApiRouteStop } from "@/services/routesService";
+import { formatManilaDateTime,getManilaNow } from "@/utils/date";
 import useAuthStore from "@/store/authStore";
-import { formatCollectionTime, normaliseId } from "../../truck-tracking/truckTracking.utils";
+import { formatCollectionTime,normaliseId } from "../../truck-tracking/truckTracking.utils";
 
 const wasteTypeDetails: Record<"BIODEGRADABLE" | "NON_BIODEGRADABLE", {
   label: string;

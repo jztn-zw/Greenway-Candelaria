@@ -2,17 +2,17 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { SearchInput } from "@/components/common/SearchInput";
-import { ConfirmationDialog } from "@/components/ConfirmationDialog";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
-import { FormDialog } from "@/components/FormDialog";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
-import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/PageLoadingSkeletons";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
+import { FormDialog } from "@/components/dialogs/FormDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";
-import { formDialogStyles } from "@/components/formDialogStyles";
-import { adminBarangayStyles as styles, adminCommunityStyles } from "@/components/communityContentStyles";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
+import { adminBarangayStyles as styles } from "@/components/common/communityContentStyles";
 import { badgeStyles } from "@/components/ui/badgeStyles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,15 +21,15 @@ import { useAdminMutation, useAdminResource } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
-createBarangayStreet as apicreateBarangayStreet,
-deleteBarangayStreet as apideleteBarangayStreet,
-updateBarangayCollectionService as apiupdateBarangayCollectionService,
-updateBarangayStreet as apiupdateBarangayStreet,
-updateBarangayStreetCoverage as apiupdateBarangayStreetCoverage,
-fetchBarangaysManager,
-fetchManagedStreets,
-type BarangayManagerRow,
-type ManagedStreet,
+  createBarangayStreet as apicreateBarangayStreet,
+  deleteBarangayStreet as apideleteBarangayStreet,
+  updateBarangayCollectionService as apiupdateBarangayCollectionService,
+  updateBarangayStreet as apiupdateBarangayStreet,
+  updateBarangayStreetCoverage as apiupdateBarangayStreetCoverage,
+  fetchBarangaysManager,
+  fetchManagedStreets,
+  type BarangayManagerRow,
+  type ManagedStreet,
 } from "@/services/barangaysService";
 import { MapPin, MapPinned, SquarePen, Plus, Route, Search, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";

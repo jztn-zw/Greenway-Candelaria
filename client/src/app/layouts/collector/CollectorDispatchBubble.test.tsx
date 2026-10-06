@@ -1,5 +1,5 @@
 import useAuthStore from "@/store/authStore";
-import { act, fireEvent, render, screen } from "@/components/messenger/testUtils";
+import { act, fireEvent, render, screen } from "@/test/messengerTestUtils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CollectorDispatchBubble from "./CollectorDispatchBubble";
 import { fetchConversation, sendConversationMessage, type ConversationPage, type WebMessage } from "@/services/messengerService";

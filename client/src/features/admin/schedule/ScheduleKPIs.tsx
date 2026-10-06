@@ -1,7 +1,7 @@
-import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
+import { AdminKpiCard,AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import React from "react";
 import { CalendarEvent } from "@/services/scheduleService";
-import { CalendarDays, CalendarClock, Clock3, CircleCheck } from "lucide-react";
+import { CalendarDays,CalendarClock,Clock3,CircleCheck } from "lucide-react";
 
 interface ScheduleKPIsProps {
   events: CalendarEvent[];

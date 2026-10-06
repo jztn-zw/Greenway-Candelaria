@@ -1,6 +1,6 @@
 import KpiValue from "@/components/common/KpiValue";
 import React from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AlertTriangle, MapPin, MessageSquareWarning } from "lucide-react";
 import { useAnalyticsData } from "./AnalyticsDataContext";

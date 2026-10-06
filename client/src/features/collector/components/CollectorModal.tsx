@@ -1,1 +1,1 @@
-export { FormDialogHeader as CollectorModalHeader } from "@/components/FormDialog";
+export { FormDialogHeader as CollectorModalHeader } from "@/components/dialogs/FormDialog";

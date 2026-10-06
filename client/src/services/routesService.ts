@@ -83,14 +83,7 @@ export interface RouteRunToday {
 export const fetchRoutes = async (): Promise<ApiRoute[]> => {
   const { data } = await api.get<{ data: ApiRoute[] }>("/routes");
   return data.data;
-};
-
-export const fetchRouteById = async (id: string): Promise<ApiRoute> => {
-  const { data } = await api.get<{ data: ApiRoute }>(`/routes/${id}`);
-  return data.data;
-};
-
-export const createRoute = async (
+};export const createRoute = async (
   payload: CreateRoutePayload,
 ): Promise<ApiRoute> => {
   const { data } = await api.post<{ data: ApiRoute }>("/routes", payload);

@@ -19,8 +19,7 @@ const applyPostSourceRemoval = async (db, {
   const backupFile = path.join(backupDirectory, `post-source-${timestamp.replace(/[:.]/g, "-")}.json`);
   await fs.writeFile(backupFile, JSON.stringify({ exportedAt: timestamp, attributions }, null, 2), { flag: "wx" });
 
-  const migration = await fs.readFile(path.resolve(__dirname, "../src/database/migrations/20261002_remove_post_source.sql"), "utf8");
-  await db.query(migration);
+  await db.query("ALTER TABLE posts DROP COLUMN source");
 
   const [afterColumns] = await db.query("SHOW COLUMNS FROM posts");
   const remaining = new Set(afterColumns.map((column) => column.Field));

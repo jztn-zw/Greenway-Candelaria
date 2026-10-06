@@ -54,7 +54,7 @@ it("renders the matching assignment from a notification and keeps ordinary map a
   expect(host.textContent).not.toContain("Route alert unavailable");
   await mount("");
   expect(host.textContent).toContain("Current assignment");
-  expect(host.querySelector('nav[aria-label="Breadcrumb"]')).toHaveTextContent("Live Route Map");
+  expect(host.querySelector('nav[aria-label="Breadcrumb"]')).toHaveTextContent("Live Route Tracking");
   expect(host.querySelector('nav[aria-label="Breadcrumb"] button')).toBeNull();
 });
 

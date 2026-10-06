@@ -1,3 +1,4 @@
+import { getSystemDate } from "@/lib/serverClock";
 /**
  * useRouteData.ts
  *
@@ -6,19 +7,19 @@
  * Re-fetches after mutations (mark done, skip) via the `refresh` callback.
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo,useCallback } from "react";
 import { useCollectorQuery } from "@/lib/collectorQuery";
 import { getManilaNow } from "@/utils/date";
 import { fetchMyRoute } from "@/services/trackingService";
 import type { TruckRouteRow } from "@/services/trackingService";
-import type { RouteStop, RouteInfo } from "../types";
+import type { RouteStop,RouteInfo } from "../types";
 import { toFiniteNumber } from "../routeMap.utils";
 
 const CANDELARIA_CENTER: [number, number] = [14.0388, 121.4285];
 const ROUTE_REFRESH_MS = 30_000;
 
 const parseRouteStartedAt = (value: string | null | undefined): Date => {
-  if (!value) return new Date();
+  if (!value) return getSystemDate();
 
   // MySQL DATETIME values from the API are UTC. Parse this format before the
   // browser's Date parser, which otherwise treats it as local time and can
@@ -48,11 +49,11 @@ const parseRouteStartedAt = (value: string | null | undefined): Date => {
   const timeOnlyMatch = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (timeOnlyMatch) {
     const [, hour, minute, second = "0"] = timeOnlyMatch;
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(getSystemDate());
     return new Date(`${today}T${hour}:${minute}:${second}+08:00`);
   }
 
-  return new Date();
+  return getSystemDate();
 };
 
 // Backend status → frontend StopStatus
@@ -129,6 +130,7 @@ const mapStops = (
         status: mapStatus(s.status),
         completedAt: s.completed_at
           ? parseRouteStartedAt(s.completed_at).toLocaleTimeString("en-US", {
+              timeZone: "Asia/Manila",
               hour: "numeric",
               minute: "2-digit",
             })

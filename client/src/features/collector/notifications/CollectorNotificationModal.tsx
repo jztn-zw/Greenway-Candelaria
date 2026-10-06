@@ -1,9 +1,9 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog,DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquareText, Route, SkipForward, CheckCircle2, Shield, Bell, Megaphone, FileText, CalendarClock } from "lucide-react";
+import { MessageSquareText,Route,SkipForward,CheckCircle2,Shield,Bell,Megaphone,FileText,CalendarClock } from "lucide-react";
 import type { NotificationRow } from "@/services/notificationsService";
-import { formatRelativeTime } from "@/utils/date";
-import { getCollectorNotificationDestination, openCollectorNotification } from "./notificationRouting";
+import { useNotificationTime } from "@/hooks/useNotificationTime";
+import { getCollectorNotificationDestination,openCollectorNotification } from "./notificationRouting";
 import { getCollectorNotificationPresentation } from "./notificationPresentation";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
@@ -28,6 +28,7 @@ const typeConfig: Record<NotificationRow["type"], { icon: React.ElementType; acc
 };
 
 const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props) => {
+  const { formatTime: formatRelativeTime } = useNotificationTime();
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
   if (!notification || notification.user_id !== userId) return null;

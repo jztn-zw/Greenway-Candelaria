@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import type { AnalyticsDashboardData, AnalyticsDateRange } from "@/features/admin/analytics/analytics.types";
+import type { AnalyticsDashboardData,AnalyticsDateRange } from "@/features/admin/analytics/analytics.types";
 
 export interface AnalyticsDashboardFilters extends AnalyticsDateRange {
   barangayId?: string;

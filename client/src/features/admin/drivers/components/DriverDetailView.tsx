@@ -1,5 +1,5 @@
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
-import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { profileAvatarForAccount, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import {
   Clock,
   CheckCircle2,
@@ -14,12 +14,12 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
-import { CollectorManagerActivitySkeleton } from "@/components/PageLoadingSkeletons";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
+import { CollectorManagerActivitySkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { cn } from "@/lib/utils";
 
 interface DriverDetailViewProps {
@@ -63,7 +63,7 @@ const DriverDetailView = ({
         <div className={styles.profileHeader}>
           <div className={styles.profileIdentity}>
             <div className="w-14 h-14 overflow-hidden rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-semibold text-lg font-body shrink-0 shadow-2xs">
-              <img src={profileAvatarSrc(profileAvatarForAccount(driver.userId, driver.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
+              <img src={profileAvatarImageSrc(profileAvatarForAccount(driver.userId, driver.avatarUrl))} alt="" decoding="async" className="block h-full w-full object-cover object-center" />
             </div>
             <div>
               <div className={styles.profileName}>

@@ -1,8 +1,8 @@
-import { Star, Quote } from "lucide-react";
-import { useScrollReveal, useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/MobileCarousel";
+import { Star,Quote } from "lucide-react";
+import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
+import MobileCarousel from "@/components/common/MobileCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CONTENT, TestimonialsContent } from "../landingContent";
+import { CONTENT,TestimonialsContent } from "../landingContent";
 
 const TestimonialCard = ({ t }: { t: TestimonialsContent["items"][number] }) => (
   <div className="group bg-card rounded-xl border border-border/60 p-4 sm:p-6 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-all duration-300 relative h-full">

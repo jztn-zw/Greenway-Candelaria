@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState,useEffect } from "react";
 import { pingLocation } from "@/services/trackingService";
+import { getSystemNow } from "@/lib/serverClock";
 
 export const isRetryablePingFailure = (error: unknown) => {
   const status = (error as { response?: { status?: number } })?.response?.status;
@@ -42,14 +43,18 @@ export const useLiveTracking = ({ truckId, routeId, isRouteEnded, isTrackingEnab
       if (!navigator.geolocation) { setGpsError("This browser does not support GPS."); return; }
       navigator.geolocation.getCurrentPosition(async ({ coords, timestamp }) => {
         if (cancelled) return;
-        if (Date.now() - timestamp > 120000) { setGpsError("GPS location is outdated. Waiting for a fresh fix."); next(); return; }
+        // The browser's sensor timestamp uses its device clock. Measure sample
+        // age on that same clock, then preserve the age against trusted UTC.
+        const sampleAge = Date.now() - timestamp;
+        if (!Number.isFinite(sampleAge) || sampleAge < -1000 || sampleAge > 120000) { setGpsError("GPS location is outdated. Waiting for a fresh fix."); next(); return; }
+        const capturedAt = getSystemNow() - Math.max(0, sampleAge);
         try {
           await pingLocation(truckId, coords.latitude, coords.longitude, {
-            route_run_id: routeId, sample_id: crypto.randomUUID(), captured_at: new Date(timestamp).toISOString(),
+            route_run_id: routeId, sample_id: crypto.randomUUID(), captured_at: new Date(capturedAt).toISOString(),
           }, abort.signal);
           if (cancelled) return;
           setTruckCoords([coords.latitude, coords.longitude]);
-          setLastPing(timestamp);
+          setLastPing(capturedAt);
           setGpsError(null);
         } catch (error) {
           if (cancelled) return;
@@ -68,8 +73,8 @@ export const useLiveTracking = ({ truckId, routeId, isRouteEnded, isTrackingEnab
     return () => { cancelled = true; clearTimeout(timer); abort.abort(); };
   }, [truckId, routeId, isRouteEnded, isTrackingEnabled]);
 
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(timer); }, []);
+  const [now, setNow] = useState(getSystemNow);
+  useEffect(() => { const timer = setInterval(() => setNow(getSystemNow()), 5000); return () => clearInterval(timer); }, []);
   const fresh = lastPing !== null && now - lastPing <= 120000;
   return { truckCoords: fresh ? truckCoords : null, isOffline, pendingSync: 0, gpsError, lastPing };
 };

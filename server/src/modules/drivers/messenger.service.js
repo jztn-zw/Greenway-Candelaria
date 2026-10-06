@@ -24,6 +24,7 @@ const readCursor = (value) => {
   } catch { fail("Invalid message cursor"); }
 };
 const projection = `dm.id, dm.route_id, dm.message, dm.is_read, dm.created_at,
+  u.id AS sender_id, u.avatar_url AS sender_avatar_url,
   u.role AS sender_role, COALESCE(NULLIF(u.full_name, ''), 'MENRO Admin') AS sender_name`;
 const normalize = (row) => ({ ...row, is_read: Boolean(row.is_read) });
 

@@ -1,1 +1,1 @@
-export { formDialogStyles as collectorModalStyles } from "@/components/formDialogStyles";
+export { formDialogStyles as collectorModalStyles } from "@/components/dialogs/formDialogStyles";

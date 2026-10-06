@@ -1,3 +1,6 @@
+import { parseApiTimestamp } from "@/utils/date";
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getSystemNow } from "@/lib/serverClock";
 import type { RouteStop } from "@/features/collector/route-map/types";
 import { createTrackingLocationPin } from "@/components/maps/trackingLocationPin";
 import { useAdminFetch } from "@/lib/adminQuery";
@@ -25,26 +28,12 @@ SignalZero,
 Truck as TruckIcon,
 X
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import type { AdminTruck } from "../types";
 import type { ReplayTargetLocation } from "../utils/replayTrip";
 import { createReplayMapRenderer } from "../utils/replayMapRenderer";
 
-const parsePingTimestamp = (timestamp: string | null): Date | null => {
-  const raw = String(timestamp || "").trim();
-  if (!raw) return null;
-
-  const mysqlMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/);
-  if (mysqlMatch) {
-    const [, year, month, day, hour, minute, second, milliseconds = "0"] = mysqlMatch;
-    const local = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(milliseconds));
-    const utc = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(milliseconds)));
-    return Math.abs(Date.now() - local.getTime()) <= Math.abs(Date.now() - utc.getTime()) ? local : utc;
-  }
-
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
+const parsePingTimestamp = (value: string | null): Date | null => parseApiTimestamp(value);
 
 const getGpsSignal = (lastPingIso: string | null, status: AdminTruck["status"]) => {
   const ping = parsePingTimestamp(lastPingIso);
@@ -52,7 +41,7 @@ const getGpsSignal = (lastPingIso: string | null, status: AdminTruck["status"]) 
     return { Icon: SignalZero, className: "text-muted-foreground", label: "Offline", age: null };
   }
 
-  const ageSeconds = Math.max(0, Math.floor((Date.now() - ping.getTime()) / 1000));
+  const ageSeconds = Math.max(0, Math.floor((getSystemNow() - ping.getTime()) / 1000));
   const age = ageSeconds < 60 ? `${ageSeconds}s ago` : ageSeconds < 3600 ? `${Math.floor(ageSeconds / 60)}m ago` : `${Math.floor(ageSeconds / 3600)}h ago`;
   if (status === "paused") {
     return { Icon: SignalZero, className: "text-muted-foreground", label: "GPS paused", age };
@@ -85,10 +74,7 @@ interface AdminTrackingMapProps {
 }
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const EMPTY_REPLAY_TARGETS: ReplayTargetLocation[] = [];
-const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-
-const BOUNDS: L.LatLngBoundsExpression = [
+const EMPTY_REPLAY_TARGETS: ReplayTargetLocation[] = [];const BOUNDS: L.LatLngBoundsExpression = [
   [13.82, 121.20],
   [14.23, 121.66],
 ];
@@ -160,9 +146,7 @@ const createAdminTruckPinIcon = (
       ? "hsl(var(--primary))"
       : state === "delayed"
         ? "hsl(var(--warning-foreground))"
-        : "hsl(var(--muted-foreground))";
-  const scale = isFocused ? 1.16 : 1;
-  const cx = width / 2;
+        : "hsl(var(--muted-foreground))";  const cx = width / 2;
   const cy = isFocused ? 21 : 18;
   const r = isFocused ? 12 : 11;
   const translateOffset = isFocused ? "translate(11.2, 11.5) scale(0.8)" : "translate(9.5, 9.5) scale(0.7)";
@@ -199,21 +183,6 @@ const createAdminTruckPinIcon = (
 };
 
 // Haversine distance in km between two [lat, lng] points
-const haversineKm = (
-  [lat1, lng1]: [number, number],
-  [lat2, lng2]: [number, number],
-): number => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
 const AdminTrackingMap = ({
   trucks,
   focusedTruckId,
@@ -231,6 +200,7 @@ const AdminTrackingMap = ({
   replaySkippedTargets = EMPTY_REPLAY_TARGETS,
   theme,
 }: Omit<AdminTrackingMapProps, "theme"> & { theme?: string }) => {
+  useSystemTime();
   const fetchAdmin = useAdminFetch();
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -239,17 +209,10 @@ const AdminTrackingMap = ({
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const replayLayerRef = useRef<L.LayerGroup | null>(null);
   const lastViewModeRef = useRef<"bounds" | "focused" | null>(null);
-  const lastFocusedTruckIdRef = useRef<string | null>(null);
-  const lastTargetViewKeyRef = useRef<string | null>(null);
-  const replayRendererRef = useRef<ReturnType<typeof createReplayMapRenderer> | null>(null);
+  const lastFocusedTruckIdRef = useRef<string | null>(null);  const replayRendererRef = useRef<ReturnType<typeof createReplayMapRenderer> | null>(null);
 
   const [isMapReady, setIsMapReady] = useState(false);
-  const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);
-  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
-  const hasAutoFittedRef = useRef(false);
-
-  const visibleTrucks = useMemo(
+  const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);  const [isCardCollapsed, setIsCardCollapsed] = useState(false);  const visibleTrucks = useMemo(
     () =>
       trucks.filter(
         (truck) =>
@@ -402,14 +365,12 @@ const AdminTrackingMap = ({
     ) {
       routeLayer.clearLayers();
       setRouteData(null);
-      setIsCalculatingRoute(false);
       return;
     }
 
     let cancelled = false;
     const currentTruck = activeTruckCoords;
     const currentStop = activeStopCoords;
-    setIsCalculatingRoute(true);
 
     fetchAdmin("tracking", ["road-route", currentTruck, currentStop], () => getRoadRoute(currentTruck, currentStop))
       .then((result) => {
@@ -441,9 +402,6 @@ const AdminTrackingMap = ({
       .catch((err) => {
         if (cancelled) return;
         console.error("[AdminTrackingMap] Route fetch error:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setIsCalculatingRoute(false);
       });
 
     return () => {

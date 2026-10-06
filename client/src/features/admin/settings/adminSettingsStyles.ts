@@ -1,4 +1,4 @@
-import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
+import { AlertTriangle,FileText,MessageSquare } from "lucide-react";
 import type { AdminAlertSettings } from "@/services/settingsService";
 import type { ElementType } from "react";
 import "./adminSettings.css";

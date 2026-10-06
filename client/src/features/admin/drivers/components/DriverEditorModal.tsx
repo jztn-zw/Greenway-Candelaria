@@ -11,9 +11,9 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { X, UserPlus, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import type { Driver, Truck } from "../types";
-import { adminCollectorManagerStyles as styles } from "@/components/communityContentStyles";
+import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 interface DriverEditorModalProps {
   open: boolean;

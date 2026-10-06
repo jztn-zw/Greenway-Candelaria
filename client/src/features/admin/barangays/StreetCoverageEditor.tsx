@@ -5,8 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { isAxiosError } from "axios";
 import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, MapPin, Minus, MousePointer2, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import {
   Dialog,
   DialogContent,

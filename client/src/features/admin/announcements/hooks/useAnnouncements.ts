@@ -1,13 +1,14 @@
+import { getSystemDate } from "@/lib/serverClock";
 import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
-createAnnouncement as apicreateAnnouncement,
-deleteAnnouncement as apideleteAnnouncement,
-permanentlyDeleteArchivedAnnouncement as apipermanentlyDeleteArchivedAnnouncement,
-resendAnnouncementToUnread as apiresendAnnouncementToUnread,
-updateAnnouncement as apiupdateAnnouncement,
-fetchAdminAnnouncementsPage,
-fetchBarangayList,
+  createAnnouncement as apicreateAnnouncement,
+  deleteAnnouncement as apideleteAnnouncement,
+  permanentlyDeleteArchivedAnnouncement as apipermanentlyDeleteArchivedAnnouncement,
+  resendAnnouncementToUnread as apiresendAnnouncementToUnread,
+  updateAnnouncement as apiupdateAnnouncement,
+  fetchAdminAnnouncementsPage,
+  fetchBarangayList,
 } from "@/services/announcementsService";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Announcement, AnnouncementStatus, EditorForm } from "../types";
@@ -76,7 +77,7 @@ const mapFromApi = (raw: Record<string, unknown>): Announcement => {
     return new Date(normalized).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
+      year: "numeric", timeZone: "Asia/Manila",
     });
   };
 
@@ -220,7 +221,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
       setAnnouncements((prev) =>
         prev.map((a) =>
           a.id === id
-            ? { ...a, status: "Archived" as AnnouncementStatus, archived: true, archivedAt: new Date().toISOString() }
+            ? { ...a, status: "Archived" as AnnouncementStatus, archived: true, archivedAt: getSystemDate().toISOString() }
             : a,
         ),
       );

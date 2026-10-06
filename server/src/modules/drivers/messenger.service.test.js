@@ -11,11 +11,15 @@ test("conversation pages are bounded, stable, minimal, and count all unread mess
   await withQuery(async (sql, params) => {
     queries.push({ sql, params });
     if (sql.includes("unread_count")) return [[{ unread_count: 402 }]];
-    return [[row("c"), row("b"), row("a")]];
+    assert.match(sql, /u\.id AS sender_id/);
+    assert.match(sql, /u\.avatar_url AS sender_avatar_url/);
+    return [[row("c"), { ...row("b"), sender_id: "admin", sender_avatar_url: "/profile-avatars/avatar-9.png" }, row("a")]];
   }, async () => {
     const page = await messenger.getConversation("driver", { limit: "2" });
     assert.deepEqual(page.items.map((item) => item.id), ["b", "c"]);
     assert.equal(page.unreadCount, 402); assert.equal(page.items[0].is_read, false);
+    assert.equal(page.items[0].sender_id, "admin");
+    assert.equal(page.items[0].sender_avatar_url, "/profile-avatars/avatar-9.png");
     assert.deepEqual(JSON.parse(Buffer.from(page.nextCursor, "base64url")), { time: "2026-09-28 01:00:00", id: "b" });
     assert.deepEqual(queries[0].params, ["driver", 3]);
     assert.doesNotMatch(queries[0].sql, /sender_user_id|u\.email|u\.phone|u\.username/);

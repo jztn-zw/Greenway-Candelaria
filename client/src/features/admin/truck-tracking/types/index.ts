@@ -41,18 +41,3 @@ export interface AdminTruck {
   barangaysAway: number | null;
   route: BarangayStop[];
 }
-
-export interface MissedCollectionEntry {
-  id: string;
-  date: string;
-  barangay: string;
-  truck: string;
-  driver: string;
-  residentReportLink?: string;
-}
-
-export interface RouteReplayPoint {
-  coords: [number, number];
-  barangay: string;
-  arrivedAt: string;
-}

@@ -1,36 +1,36 @@
-import { getCategoryBadgeColors, getStatusBadgeStyle } from "@/components/ui/badgeStyles";
+import { getCategoryBadgeColors,getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuSeparator,
+DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Copy,
-  SquarePen,
-  MoreVertical,
-  Power,
-  Route as RouteIcon,
-  Trash2,
+Copy,
+SquarePen,
+MoreVertical,
+Power,
+Route as RouteIcon,
+Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { WASTE_MAP, formatTime12h } from "../constants";
+import { WASTE_MAP,formatTime12h } from "../constants";
 import type { RouteData } from "../hooks/useRoutes";
 import type { Truck as TruckType } from "../hooks/useTrucks";
 import { RouteCard } from "./RouteCard";
-import { adminRouteStyles as routeStyles } from "@/components/communityContentStyles";
+import { adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
 
 interface RouteTableProps {
   routes: RouteData[];

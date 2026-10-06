@@ -77,10 +77,10 @@ const validPoint = (p: [number, number]) =>
   p.every(Number.isFinite) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
 const remember = (key: string, result: RoadRouteResult) => {
   for (const [oldKey, entry] of ROUTE_CACHE) {
-    if (Date.now() - entry.timestamp >= CACHE_TTL_MS) ROUTE_CACHE.delete(oldKey);
+    if (performance.now() - entry.timestamp >= CACHE_TTL_MS) ROUTE_CACHE.delete(oldKey);
   }
   if (ROUTE_CACHE.size >= 128) ROUTE_CACHE.delete(ROUTE_CACHE.keys().next().value!);
-  ROUTE_CACHE.set(key, { result, timestamp: Date.now() });
+  ROUTE_CACHE.set(key, { result, timestamp: performance.now() });
   return result;
 };
 export const getRoadRoute = async (
@@ -89,7 +89,7 @@ export const getRoadRoute = async (
   if (!validPoint(from) || !validPoint(to)) throw new Error("Invalid route coordinates");
   const key = [from, to].map((point) => point.map((v) => v.toFixed(4)).join(",")).join(">");
   const cached = ROUTE_CACHE.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.result;
+  if (cached && performance.now() - cached.timestamp < CACHE_TTL_MS) return cached.result;
   const pending = IN_FLIGHT.get(key);
   if (pending) return pending;
   if (IN_FLIGHT.size >= 12) return buildFallbackRoute(from, to);

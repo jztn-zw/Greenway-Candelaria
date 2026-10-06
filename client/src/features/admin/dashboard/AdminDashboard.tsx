@@ -6,7 +6,7 @@ import {
   OperationsAndAttentionSkeleton,
   ReportsTableSkeleton,
   ActivityFeedSkeleton,
-} from "@/components/PageLoadingSkeletons";
+} from "@/components/loading/PageLoadingSkeletons";
 import DashboardHeader from "./components/DashboardHeader";
 import KPICards from "./components/KPICards";
 import TrendCharts from "./components/TrendCharts";
@@ -16,11 +16,9 @@ import NeedsAttention from "./components/NeedsAttention";
 import RecentReportsTable from "./components/RecentReportsTable";
 import ActivityFeed from "./components/ActivityFeed";
 import { useAdminDashboard } from "./components/useAdminDashboard";
-import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import PageErrorState from "@/components/PageErrorState";
-import DataRefreshNotice from "@/components/DataRefreshNotice";
-import { PageRetryContext } from "@/components/pageRetryContext";
+import PageErrorState from "@/components/feedback/PageErrorState";
+import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
+import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 import { useAdminQuery } from "@/lib/adminQuery";
 import { fetchCalendarEvents } from "@/services/scheduleService";
 import { adminDashboardStyles as styles } from "./dashboardStyles";
