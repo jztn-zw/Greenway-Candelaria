@@ -17,7 +17,7 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
     {
       title: "Total Schedules",
       value: total,
-      description: "All internal activities",
+      description: "All Internal Activities",
       icon: CalendarDays,
       tone: "neutral" as const,
     },
@@ -26,7 +26,7 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
       value: upcomingCount,
       description:
         total > 0
-          ? `${Math.round((upcomingCount / total) * 100)}% queued next`
+          ? `${Math.round((upcomingCount / total) * 100)}% Queued Next`
           : "None queued",
       icon: CalendarClock,
       tone: "warning" as const,
@@ -36,7 +36,7 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
       value: ongoingCount,
       description:
         total > 0
-          ? `${Math.round((ongoingCount / total) * 100)}% active operations`
+          ? `${Math.round((ongoingCount / total) * 100)}% Active Operations`
           : "No active tasks",
       icon: Clock3,
       tone: "info" as const,
@@ -46,7 +46,7 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
       value: completedCount,
       description:
         total > 0
-          ? `${Math.round((completedCount / total) * 100)}% concluded`
+          ? `${Math.round((completedCount / total) * 100)}% Completed`
           : "0 completed",
       icon: CircleCheck,
       tone: "success" as const,
