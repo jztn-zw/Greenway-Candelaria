@@ -94,7 +94,7 @@ const navGroups: NavGroup[] = [
     collapsible: true,
     items: [
       { title: "Waste Violation Reports", url: "/admin/reports", icon: AlertTriangle },
-      { title: "Truck Tracking", url: "/admin/tracking", icon: Navigation },
+      { title: "Live Truck Tracking", url: "/admin/tracking", icon: Navigation },
     ],
   },
   {
