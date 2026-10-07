@@ -336,7 +336,7 @@ const AdminBarangays = () => {
 
           <div className={styles.list}>
             {visibleBarangays.length === 0 ? (
-              <ListEmptyState variant="inline" icon={MapPin} title="No barangays found."
+              <ListEmptyState variant="inline" icon={MapPin} title="No Barangays Found."
                 description="Try another barangay name or clear your search." />
             ) : (
               visibleBarangays.map((barangay) => {
@@ -405,7 +405,7 @@ const AdminBarangays = () => {
           {!selectedBarangay ? (
             <>
               <div className={styles.header}>
-                <h2 className="gw-heading text-base tracking-tight text-foreground">Barangay details</h2>
+                <h2 className="gw-heading text-base tracking-tight text-foreground">Barangay Details</h2>
                 <span className={cn("rounded-lg border px-2 py-1 text-ui-caption", badgeStyles.neutral.className)}>
                   No barangay selected
                 </span>
@@ -414,7 +414,7 @@ const AdminBarangays = () => {
                 <div className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
                   <MapPinned className="size-6" aria-hidden="true" />
                 </div>
-                <h3 className="gw-heading text-xl tracking-tight text-foreground">Choose a barangay</h3>
+                <h3 className="gw-heading text-xl tracking-tight text-foreground">Choose a Barangay</h3>
                 <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
                   Select a barangay from the list to view its streets, update collection availability, and manage coverage paths.
                 </p>
@@ -423,7 +423,7 @@ const AdminBarangays = () => {
                   onClick={() => barangaySearchRef.current?.focus()}
                   disabled={barangays.length === 0}
                 >
-                  <Search className="size-4" aria-hidden="true" /> Find a barangay
+                  <Search className="size-4" aria-hidden="true" /> Find a Barangay
                 </Button>
                 <p className="mt-4 text-ui-caption text-muted-foreground">Your selection will appear here.</p>
               </div>
@@ -446,7 +446,7 @@ const AdminBarangays = () => {
                   onClick={openCreate}
                   className={cn(styles.action, "ml-auto")}
                 >
-                  <Plus className="w-4 h-4 stroke-[2.5]" /> Add street
+                  <Plus className="w-4 h-4 stroke-[2.5]" /> Add Street
                 </Button>
               </div>
 
@@ -461,7 +461,7 @@ const AdminBarangays = () => {
                       htmlFor="collection-service"
                       className="text-sm font-medium text-foreground cursor-pointer"
                     >
-                      Truck collection service
+                      Truck Collection Service
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {selectedBarangay.collection_service_available
@@ -490,7 +490,7 @@ const AdminBarangays = () => {
               <div className="mt-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="gw-heading text-base text-foreground">
-                    Streets and areas
+                    Streets and Areas
                   </h3>
                   <span className="text-xs text-muted-foreground">
                     Area is optional
@@ -508,9 +508,9 @@ const AdminBarangays = () => {
                 {/* Rows share the same layout as the loading state. */}
                 <div className={styles.streets}>
                       <div className={styles.streetHeader}>
-                        <div>Street / area</div>
-                        <div className="text-center">Active residents</div>
-                        <div className="text-center">Route plans</div>
+                        <div>Street / Area</div>
+                        <div className="text-center">Active Residents</div>
+                        <div className="text-center">Route Plans</div>
                         <div className="text-right">Actions</div>
                       </div>
 
@@ -518,9 +518,9 @@ const AdminBarangays = () => {
                         {isLoadingStreets ? (
                           <BarangayStreetRowsSkeleton />
                         ) : streetsError ? (
-                          <PageErrorState kind="unavailable" variant="section" title="Streets couldn't load" onRetry={() => void retryStreets()} retrying={streetsQuery.isFetching} />
+                          <PageErrorState kind="unavailable" variant="section" title="Streets Couldn't Load" onRetry={() => void retryStreets()} retrying={streetsQuery.isFetching} />
                         ) : visibleStreets.length === 0 ? (
-                          <ListEmptyState variant="inline" icon={Route} title="No streets found"
+                          <ListEmptyState variant="inline" icon={Route} title="No Streets Found"
                             description={streets.length === 0
                               ? "No street records for this barangay yet."
                               : "No streets match your search."} />
@@ -620,13 +620,13 @@ const AdminBarangays = () => {
           <Button type="button" variant="outline" onClick={requestCloseStreetEditor} disabled={isSavingStreet} className={formDialogStyles.cancelButton}>Cancel</Button>
           <Button type="submit" form="barangay-street-form" disabled={isSavingStreet} className={formDialogStyles.primaryButton} loading={isSavingStreet} loadingLabel={editingStreet ? "Saving street…" : "Adding street…"}>
 
-            {editingStreet ? "Save changes" : "Add street"}
+            {editingStreet ? "Save Changes" : "Add Street"}
           </Button>
         </>}
       >
         <form id="barangay-street-form" onSubmit={(event) => void saveStreet(event)} noValidate className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="barangay-street-name" className={formDialogStyles.label}>Street name</Label>
+            <Label htmlFor="barangay-street-name" className={formDialogStyles.label}>Street Name</Label>
             <Input id="barangay-street-name" fieldSize="compact" value={streetName} onChange={(event) => { setStreetName(event.target.value); setStreetNameError(""); setFormError(""); }} maxLength={150} placeholder="e.g. Gonzales St" required autoFocus aria-invalid={Boolean(streetNameError)} aria-describedby={streetNameError ? "barangay-street-name-error" : undefined} />
             {streetNameError && <p id="barangay-street-name-error" className="text-xs text-destructive">{streetNameError}</p>}
           </div>
@@ -678,7 +678,7 @@ const AdminBarangays = () => {
         icon={<Trash2 />}
         variant="destructive"
         description={<>This removes the street from Barangay {selectedBarangay?.name}. Streets linked to user accounts, route plans, or saved route runs cannot be deleted.</>}
-        confirmLabel="Delete street"
+        confirmLabel="Delete Street"
         isPending={isDeletingStreet}
         pendingLabel="Deleting…"
         onConfirm={() => void confirmDelete()}

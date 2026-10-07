@@ -109,16 +109,16 @@ it("navigates to tracking only after confirming the truck alert is current", asy
 });
 
 it("requires confirmation before clearing resident notification history", async () => {
-  await click("Clear all", host); expect(mocks.clearAll).not.toHaveBeenCalled();
+  await click("Clear All", host); expect(mocks.clearAll).not.toHaveBeenCalled();
   expect(document.querySelector('[role="alertdialog"]')).toHaveTextContent("every category");
   await click("Cancel"); expect(mocks.clearAll).not.toHaveBeenCalled();
-  await click("Clear all", host); await click("Clear all", document.querySelector('[role="alertdialog"]')!);
+  await click("Clear All", host); await click("Clear All", document.querySelector('[role="alertdialog"]')!);
   expect(mocks.clearAll).toHaveBeenCalledOnce(); expect(document.querySelector('[role="alertdialog"]')).toBeNull();
 });
 it("blocks dismissal and duplicate clears while the request is pending", async () => {
   let resolveClear!: () => void;
   mocks.clearAll.mockImplementationOnce(() => new Promise<void>(resolve => { resolveClear = resolve; }));
-  await click("Clear all", host); await click("Clear all", document.querySelector('[role="alertdialog"]')!);
+  await click("Clear All", host); await click("Clear All", document.querySelector('[role="alertdialog"]')!);
   const dialog = document.querySelector('[role="alertdialog"]')!;
   expect([...dialog.querySelectorAll("button")].every(b => b.disabled)).toBe(true);
   await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));

@@ -126,7 +126,7 @@ export interface FooterContent {
 export const CONTENT = {
   hero: {
     badge: "Candelaria, Quezon Official Waste System",
-    headline: "Smart GreenWay For Candelaria",
+    headline: "Smart GreenWay for Candelaria",
     subtitle:
       "The official waste collection schedule and tracking system for the Municipality of Candelaria, Quezon. Stay informed, stay clean, and help build a smarter community.",
     ctaPrimaryLabel: "Start Tracking",
@@ -187,7 +187,7 @@ export const CONTENT = {
 
   services: {
     sectionLabel: "Services",
-    heading: "Built for every layer of the system",
+    heading: "Built for Every Layer of the System",
     items: [
       {
         id: "sv1",
@@ -371,7 +371,7 @@ export const CONTENT = {
 
   contact: {
     sectionLabel: "Contact",
-    heading: "Get in touch",
+    heading: "Get in Touch",
     address: "MENRO Office, Brgy. Poblacion, Candelaria, Quezon",
     phone: "Hotline: 383",
     email: "menro@candelaria.gov.ph",

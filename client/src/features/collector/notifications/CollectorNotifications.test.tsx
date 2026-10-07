@@ -20,9 +20,9 @@ afterEach(() => { act(() => root.unmount()); host.remove(); });
 const render = async () => { await act(async () => root.render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><CollectorNotifications /></MemoryRouter>)); };
 it("renders API failure and retry instead of claiming the inbox is empty", async () => {
   state.error = "Notifications could not be loaded"; await render();
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This page couldn't load");
-  expect(host.textContent).not.toContain("No notifications found");
-  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Try again")!.click());
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This Page Couldn't Load");
+  expect(host.textContent).not.toContain("No Notifications Found");
+  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Try Again")!.click());
   expect(state.fetchNotifications).toHaveBeenCalled();
 });
 it("keeps loaded notifications visible when a refresh fails", async () => {
@@ -31,7 +31,7 @@ it("keeps loaded notifications visible when a refresh fails", async () => {
   expect(host.querySelector('[role="alert"]')).toBeNull();
   expect(host.querySelector('[role="status"]')).toHaveTextContent("may be outdated");
   expect(host.textContent).toContain("Alert cached");
-  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Try again")!.click());
+  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Try Again")!.click());
   expect(state.fetchNotifications).toHaveBeenCalledOnce();
 });
 it("uses keyboard-accessible notification buttons", async () => {
@@ -42,10 +42,10 @@ it("uses keyboard-accessible notification buttons", async () => {
 });
 it("requires confirmation before clearing all categories", async () => {
   state.notifications = [row("1")]; await render();
-  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Clear all")!.click());
+  await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Clear All")!.click());
   expect(state.clearAll).not.toHaveBeenCalled();
   expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain("every category");
-  await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find((b) => b.textContent === "Clear all")!.click());
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find((b) => b.textContent === "Clear All")!.click());
   expect(state.clearAll).toHaveBeenCalledOnce();
 });
 it("returns to a valid page when notifications shrink", async () => {
@@ -53,7 +53,7 @@ it("returns to a valid page when notifications shrink", async () => {
   await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "3")!.click());
   expect(host.textContent).toContain("Alert 31");
   state.notifications = [row("new")]; await render();
-  expect(host.textContent).toContain("Alert new"); expect(host.textContent).not.toContain("No notifications found");
+  expect(host.textContent).toContain("Alert new"); expect(host.textContent).not.toContain("No Notifications Found");
 });
 it("presents announcements with the same sender and headline as resident notifications", async () => {
   state.notifications = [{ ...row("announcement"), type: "ANNOUNCEMENT", ref_module: "announcements", title: "Holiday collection", body: "Collection resumes on Monday." }];

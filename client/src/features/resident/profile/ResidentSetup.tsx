@@ -85,17 +85,17 @@ export default function ResidentSetup() {
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:w-full lg:max-w-4xl lg:py-6">
         <form onSubmit={save} noValidate aria-labelledby="setup-title" className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="px-5 pb-6 pt-6 sm:px-8 sm:pt-8">
-            <h1 id="setup-title" className="font-display text-ui-page font-semibold tracking-tight">Complete your resident profile</h1>
+            <h1 id="setup-title" className="font-display text-ui-page font-semibold tracking-tight">Complete Your Resident Profile</h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Add your details and collection area to get started.</p>
           </div>
           <fieldset disabled={saving} className="min-w-0">
             <div className="space-y-6 px-5 pb-7 sm:px-8">
               {errors.form && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
               <section aria-labelledby="setup-personal-heading">
-                <h2 id="setup-personal-heading" className="mb-4 text-sm font-semibold">Personal details</h2>
+                <h2 id="setup-personal-heading" className="mb-4 text-sm font-semibold">Personal Details</h2>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor="setup-full-name">Full name</Label>
+                    <Label htmlFor="setup-full-name">Full Name</Label>
                     <Input id="setup-full-name" autoComplete="name" maxLength={100} value={fullName} onChange={event => { setFullName(event.target.value); clearError("full_name"); }} placeholder="Enter your full name" {...accessibility("full_name")} />
                     {fieldError("full_name")}
                   </div>
@@ -105,7 +105,7 @@ export default function ResidentSetup() {
                     {fieldError("username")}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="setup-phone">Phone number</Label>
+                    <Label htmlFor="setup-phone">Phone Number</Label>
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input/80 px-3 text-sm text-muted-foreground">+63</span>
                       <Input id="setup-phone" type="tel" inputMode="numeric" required maxLength={10} className="pl-16" placeholder="9XX XXX XXXX" value={phone} onChange={event => { setPhone(event.target.value.replace(/\D/g, "")); clearError("phone"); }} {...accessibility("phone")} aria-describedby={`setup-phone-help${errors.phone ? " setup-phone-error" : ""}`} />
@@ -116,7 +116,7 @@ export default function ResidentSetup() {
                 <p id="setup-phone-help" className="mt-3 text-xs leading-relaxed text-muted-foreground">We need your phone number so staff can contact you if they need more information about a report.</p>
               </section>
               <section aria-labelledby="setup-area-heading" className="border-t border-border pt-6">
-                <h2 id="setup-area-heading" className="text-sm font-semibold">Collection area</h2>
+                <h2 id="setup-area-heading" className="text-sm font-semibold">Collection Area</h2>
                 <p className="mb-4 mt-1 text-xs leading-relaxed text-muted-foreground">Choose your barangay and street in Candelaria.</p>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -135,8 +135,8 @@ export default function ResidentSetup() {
               </section>
             </div>
             <div className="flex flex-col-reverse gap-3 border-t border-border bg-muted/20 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-              <Button type="button" variant="destructive-ghost" size="lg" className="w-full sm:w-auto" disabled={saving} onClick={() => { void useAuthStore.getState().logout().catch(() => {}).finally(() => navigate("/login", { replace: true })); }}>Log out</Button>
-              <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={saving || areaLoading || streetLoading || Boolean(areaError || streetError)} loading={saving} loadingLabel="Saving profile…">Save and continue<ArrowRight aria-hidden="true" /></Button>
+              <Button type="button" variant="destructive-ghost" size="lg" className="w-full sm:w-auto" disabled={saving} onClick={() => { void useAuthStore.getState().logout().catch(() => {}).finally(() => navigate("/login", { replace: true })); }}>Log Out</Button>
+              <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={saving || areaLoading || streetLoading || Boolean(areaError || streetError)} loading={saving} loadingLabel="Saving profile…">Save and Continue<ArrowRight aria-hidden="true" /></Button>
             </div>
           </fieldset>
         </form>

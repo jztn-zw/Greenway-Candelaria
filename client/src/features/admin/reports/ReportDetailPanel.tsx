@@ -336,7 +336,7 @@ const ReportDetailPanel = ({
                   onClick={onPrevious}
                   disabled={!hasPrevious}
                   className="h-7 w-7 rounded-lg disabled:opacity-30 cursor-pointer"
-                  title="Previous report"
+                  title="Previous Report"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
@@ -346,7 +346,7 @@ const ReportDetailPanel = ({
                   onClick={onNext}
                   disabled={!hasNext}
                   className="h-7 w-7 rounded-lg disabled:opacity-30 cursor-pointer"
-                  title="Next report"
+                  title="Next Report"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -482,7 +482,7 @@ const ReportDetailPanel = ({
           <div className="flex items-center justify-between text-xs font-semibold text-foreground">
             <span>Evidence Photos ({report.photos?.length || 0})</span>
             {report.photos && report.photos.length > 0 && (
-              <span className="text-ui-overline text-muted-foreground font-normal">Click to enlarge</span>
+              <span className="text-ui-overline text-muted-foreground font-normal">Click to Enlarge</span>
             )}
           </div>
 
@@ -521,7 +521,7 @@ const ReportDetailPanel = ({
               Official Resident Response
             </span>
             <span className="text-ui-caption text-muted-foreground font-medium">
-              Visible to resident
+              Visible to Resident
             </span>
           </div>
 
@@ -553,7 +553,7 @@ const ReportDetailPanel = ({
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground">Internal Notes</span>
             <Badge variant="secondary" className="text-ui-overline px-2 py-0.5 rounded-md font-medium">
-              Staff only
+              Staff Only
             </Badge>
           </div>
 
@@ -877,10 +877,10 @@ const ReportDetailPanel = ({
         open={showResolveModal}
         onOpenChange={(open) => !open && setShowResolveModal(false)}
         className="z-[200]"
-        title="Resolve this report?"
+        title="Resolve This Report?"
         icon={<Check />}
         description="This finalizes the report. Its status cannot be changed again, and the resident will be notified."
-        confirmLabel="Yes, resolve report"
+        confirmLabel="Yes, Resolve Report"
         isPending={isUpdatingStatus}
         pendingLabel="Resolving..."
         onConfirm={async () => {

@@ -258,7 +258,7 @@ const MyReports = () => {
           className={myReportsStyles.createButton}
         >
           <Plus className="w-4 h-4" />
-          <span className="min-w-0 truncate">Submit report</span>
+          <span className="min-w-0 truncate">Submit Report</span>
         </Button>
         }
       />
@@ -343,7 +343,7 @@ const MyReports = () => {
                   size="sm"
                   className="h-9 max-w-full text-xs"
                 >
-                  Submit report
+                  Submit Report
                 </Button>
             )}
         </ListEmptyState>

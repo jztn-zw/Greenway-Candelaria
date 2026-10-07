@@ -26,7 +26,7 @@ it("waits for trusted time before mounting screens", async () => {
 it("offers retry if startup time is unavailable instead of trusting the PC", async () => {
   vi.mocked(api.get).mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce(response);
   render(<SystemTimeProvider><p>Ready screen</p></SystemTimeProvider>);
-  await screen.findByText("Unable to load GreenWay");
+  await screen.findByText(/^Unable to load GreenWay$/i);
   expect(screen.queryByText("Ready screen")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /retry|try again/i }));
   expect(await screen.findByText("Ready screen")).toBeInTheDocument();

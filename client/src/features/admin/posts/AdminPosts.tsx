@@ -682,7 +682,7 @@ const AdminPosts = () => {
                       </SelectContent>
                     </Select>
                   </AdminFilterField>
-                  <AdminFilterField label="Sort order">
+                  <AdminFilterField label="Sort Order">
                     <Select
                       value={draft.sortBy}
                       onValueChange={(v) => {
@@ -707,8 +707,8 @@ const AdminPosts = () => {
                   <AdminFilterField label="Layout">
                     <SegmentedControl<"grid" | "list">
                       options={[
-                        { value: "grid", label: "Grid view", icon: LayoutGrid },
-                        { value: "list", label: "List view", icon: List },
+                        { value: "grid", label: "Grid View", icon: LayoutGrid },
+                        { value: "list", label: "List View", icon: List },
                       ]}
                       value={draft.viewMode}
                       onChange={(value) => setDraft({ ...draft, viewMode: value })}
@@ -758,7 +758,7 @@ const AdminPosts = () => {
                 className="h-8 shrink-0 rounded-xl gap-1 px-2 text-xs [&_svg]:size-3.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span className="admin-community-clear-label">Clear all</span>
+                <span className="admin-community-clear-label">Clear All</span>
               </Button>
             )}
           </div>
@@ -822,7 +822,7 @@ const AdminPosts = () => {
 
       <div aria-busy={isListLoading}>
       {listQuery.isLoading ? <AdminPostsContentSkeleton viewMode={viewMode} /> : posts.length === 0 ? (
-        <ListEmptyState icon={FileText} title="No posts found"
+        <ListEmptyState icon={FileText} title="No Posts Found"
           description={activeFilterCount > 0
               ? "Try clearing or changing the current filters."
               : "Create the first community post to get started."} />

@@ -36,7 +36,7 @@ const SectionTruckDriver: React.FC = () => {
       <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
-          <div><h3 className="gw-heading text-sm text-foreground">Route outcomes by driver</h3><p className="text-xs text-muted-foreground">Completed, incomplete, missed, and cancelled runs in the selected period.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Route Outcomes by Driver</h3><p className="text-xs text-muted-foreground">Completed, incomplete, missed, and cancelled runs in the selected period.</p></div>
         </div>
         {outcomeCount === 0 ? (
           <EmptyState>No completed, incomplete, missed, or cancelled routes in this period.</EmptyState>
@@ -62,7 +62,7 @@ const SectionTruckDriver: React.FC = () => {
       <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UserRoundCog className="h-4 w-4" /></div>
-          <div><h3 className="gw-heading text-sm text-foreground">Driver operations</h3><p className="text-xs text-muted-foreground">Current truck assignment and route-run outcomes.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Driver Operations</h3><p className="text-xs text-muted-foreground">Current truck assignment and route-run outcomes.</p></div>
         </div>
         {driverOperations.length === 0 ? (
           <EmptyState>No driver routes match this period and barangay.</EmptyState>
@@ -70,11 +70,11 @@ const SectionTruckDriver: React.FC = () => {
           <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Driver operations details">
             <Table className="analytics-detail-table min-w-[920px]">
               <TableHeader className="bg-muted/40"><TableRow className="border-border/80">
-                <TableHead>Driver</TableHead><TableHead>Current truck</TableHead>
-                <TableHead className="text-right">Route runs</TableHead><TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">Incomplete</TableHead><TableHead className="text-right">Missed routes</TableHead>
-                <TableHead className="text-right">Cancelled</TableHead><TableHead className="text-right">Missed stops</TableHead>
-                <TableHead className="text-right">Stop completion</TableHead>
+                <TableHead>Driver</TableHead><TableHead>Current Truck</TableHead>
+                <TableHead className="text-right">Route Runs</TableHead><TableHead className="text-right">Completed</TableHead>
+                <TableHead className="text-right">Incomplete</TableHead><TableHead className="text-right">Missed Routes</TableHead>
+                <TableHead className="text-right">Cancelled</TableHead><TableHead className="text-right">Missed Stops</TableHead>
+                <TableHead className="text-right">Stop Completion</TableHead>
               </TableRow></TableHeader>
               <TableBody className="divide-y divide-border/60">
                 {driverOperations.map((driver) => (
@@ -100,7 +100,7 @@ const SectionTruckDriver: React.FC = () => {
       <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
         <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Truck className="h-4 w-4" /></div>
-          <div><h3 className="gw-heading text-sm text-foreground">Truck status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Truck Status</h3><p className="text-xs text-muted-foreground">Current vehicle status and route work in the selected period.</p></div>
         </div>
         {fleetStatus.length === 0 ? (
           <EmptyState>No trucks served this barangay during the selected period.</EmptyState>
@@ -108,10 +108,10 @@ const SectionTruckDriver: React.FC = () => {
           <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Truck status details">
             <Table className="analytics-detail-table min-w-[780px]">
               <TableHeader className="bg-muted/40"><TableRow className="border-border/80">
-                <TableHead>Truck</TableHead><TableHead>Status now</TableHead>
-                <TableHead className="text-right">Route runs</TableHead><TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">Incomplete</TableHead><TableHead className="text-right">Missed routes</TableHead>
-                <TableHead className="text-right">Cancelled</TableHead><TableHead className="text-right">Missed stops</TableHead>
+                <TableHead>Truck</TableHead><TableHead>Status Now</TableHead>
+                <TableHead className="text-right">Route Runs</TableHead><TableHead className="text-right">Completed</TableHead>
+                <TableHead className="text-right">Incomplete</TableHead><TableHead className="text-right">Missed Routes</TableHead>
+                <TableHead className="text-right">Cancelled</TableHead><TableHead className="text-right">Missed Stops</TableHead>
               </TableRow></TableHeader>
               <TableBody className="divide-y divide-border/60">
                 {fleetStatus.map((truck) => (

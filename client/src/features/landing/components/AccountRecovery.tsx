@@ -17,7 +17,7 @@ export const RecoveryCodeReceipt = ({ code, onContinue, continueLabel = "Continu
     <Button type="button" variant="outline" className="w-full" onClick={async () => {
       try { await navigator.clipboard.writeText(code); setCopyStatus("Code copied. Keep it somewhere safe."); }
       catch { setCopyStatus("Select the code above and copy it manually."); }
-    }}>Copy recovery code</Button>
+    }}>Copy Recovery Code</Button>
     {copyStatus && <p role="status" className="text-sm text-muted-foreground">{copyStatus}</p>}
     <div className="flex items-center gap-2">
       <Checkbox id="recovery-code-saved" checked={saved} onCheckedChange={value => setSaved(value === true)} />
@@ -62,13 +62,13 @@ export const AccountRecovery = ({ mode = "reset", onBack }: { mode?: "reset" | "
     <p className="text-sm text-muted-foreground">{generate ? "Confirm your GreenWay password to create a new recovery code. Any previous code will stop working." : "Use the recovery code you saved when creating your account."}</p>
     {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {!generate && <>
-      <div className="space-y-1.5"><Label htmlFor="recovery-identifier">Username or email</Label><Input id="recovery-identifier" autoComplete="username" value={identifier} disabled={pending} onChange={event => setIdentifier(event.target.value)} /></div>
-      <div className="space-y-1.5"><Label htmlFor="recovery-code">Recovery code</Label><Input id="recovery-code" autoComplete="off" spellCheck={false} value={code} disabled={pending} onChange={event => setCode(event.target.value)} /></div>
+      <div className="space-y-1.5"><Label htmlFor="recovery-identifier">Username or Email</Label><Input id="recovery-identifier" autoComplete="username" value={identifier} disabled={pending} onChange={event => setIdentifier(event.target.value)} /></div>
+      <div className="space-y-1.5"><Label htmlFor="recovery-code">Recovery Code</Label><Input id="recovery-code" autoComplete="off" spellCheck={false} value={code} disabled={pending} onChange={event => setCode(event.target.value)} /></div>
     </>}
-    <div className="space-y-1.5"><Label htmlFor="recovery-password">{generate ? "Current password" : "New password"}</Label><Input id="recovery-password" type="password" autoComplete={generate ? "current-password" : "new-password"} value={password} disabled={pending} onChange={event => setPassword(event.target.value)} /></div>
-    {!generate && <div className="space-y-1.5"><Label htmlFor="recovery-confirm">Confirm new password</Label><Input id="recovery-confirm" type="password" autoComplete="new-password" value={confirmation} disabled={pending} onChange={event => setConfirmation(event.target.value)} /></div>}
-    <Button className="w-full" type="submit" loading={pending} loadingLabel="Please wait…" disabled={pending || (!generate && (!identifier.trim() || !code.trim()))}>{generate ? "Create recovery code" : "Reset password"}</Button>
-    <Button type="button" variant="ghost" className="w-full" disabled={pending} onClick={onBack}>{generate ? "Cancel" : "Back to login"}</Button>
+    <div className="space-y-1.5"><Label htmlFor="recovery-password">{generate ? "Current Password" : "New Password"}</Label><Input id="recovery-password" type="password" autoComplete={generate ? "current-password" : "new-password"} value={password} disabled={pending} onChange={event => setPassword(event.target.value)} /></div>
+    {!generate && <div className="space-y-1.5"><Label htmlFor="recovery-confirm">Confirm New Password</Label><Input id="recovery-confirm" type="password" autoComplete="new-password" value={confirmation} disabled={pending} onChange={event => setConfirmation(event.target.value)} /></div>}
+    <Button className="w-full" type="submit" loading={pending} loadingLabel="Please wait…" disabled={pending || (!generate && (!identifier.trim() || !code.trim()))}>{generate ? "Create Recovery Code" : "Reset Password"}</Button>
+    <Button type="button" variant="ghost" className="w-full" disabled={pending} onClick={onBack}>{generate ? "Cancel" : "Back to Login"}</Button>
     {!generate && <p className="border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">No recovery code? Contact <a className="gw-action-link underline" href={MUNICIPAL_CONTACT.hotlineHref}>{MUNICIPAL_CONTACT.officeName}</a> for assistance. Your name or phone number alone cannot reset a password.</p>}
   </form>;
 };

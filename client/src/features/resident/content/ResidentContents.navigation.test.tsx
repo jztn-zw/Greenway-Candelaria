@@ -151,11 +151,11 @@ it("returns from a related post to the feed using the post back button and resto
 it("shows a page error for a failed feed, hides empty results, and retries the request", async () => {
   vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("Network Error"));
   await render();
-  expect(host.querySelector("h1")).toHaveTextContent("This page couldn't load");
+  expect(host.querySelector("h1")).toHaveTextContent("This Page Couldn't Load");
   expect(host.querySelector('input[aria-label="Search community updates"]')).toBeNull();
   expect(host.textContent).not.toContain("Showing 0 articles");
-  expect(host.textContent).not.toContain("No updates found");
-  await clickButton("Try again");
+  expect(host.textContent).not.toContain("No Updates Found");
+  await clickButton("Try Again");
   expect(host.querySelector("h1")).toHaveTextContent("Community Updates");
   expect(host.textContent).toContain("Community cleanup");
   expect(postsService.getPage).toHaveBeenCalledTimes(2);
@@ -175,7 +175,7 @@ it("combines failed feed and featured refreshes into one retry action", async ()
   vi.mocked(postsService.getPage).mockRejectedValueOnce(new Error("offline"));
   vi.mocked(postsService.getAll).mockRejectedValueOnce(new Error("offline"));
   await act(async () => { await client.refetchQueries({ predicate: ({ queryKey }) => queryKey.includes("feed") || queryKey.includes("featured") }); });
-  const retries = [...host.querySelectorAll("button")].filter((button) => button.textContent?.trim() === "Try again");
+  const retries = [...host.querySelectorAll("button")].filter((button) => button.textContent?.trim() === "Try Again");
   expect(retries).toHaveLength(1);
   expect(host.textContent).toContain("Community cleanup");
   const feedAttempts = vi.mocked(postsService.getPage).mock.calls.length;
@@ -198,7 +198,7 @@ it("changes featured slides without opening an article, then opens the selected 
   const previous = host.querySelector<HTMLButtonElement>('button[aria-label="Previous featured post"]')!;
   await act(async () => previous.click());
   expect(host.querySelector("h2")).toHaveTextContent(featuredPost.title);
-  await clickButton("Read post");
+  await clickButton("Read Post");
   expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
   expect(postsService.getById).toHaveBeenCalledWith(featuredPost.id);
 });

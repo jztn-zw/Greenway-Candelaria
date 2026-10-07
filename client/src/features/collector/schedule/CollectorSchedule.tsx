@@ -59,7 +59,7 @@ const CollectorSchedule = () => {
               <CalendarDays className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 id="collector-calendar-title" className="gw-heading text-sm text-foreground">Monthly events</h2>
+              <h2 id="collector-calendar-title" className="gw-heading text-sm text-foreground">Monthly Events</h2>
               <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
             </div>
           </div>

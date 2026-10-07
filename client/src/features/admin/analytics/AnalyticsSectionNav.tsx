@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 
 const sections = [
   { id: "overview", label: "Overview" },
-  { id: "collection-performance", label: "Collection efficiency" },
-  { id: "missed-collections", label: "Missed collections" },
-  { id: "waste-reports", label: "Reports & incidents" },
+  { id: "collection-performance", label: "Collection Efficiency" },
+  { id: "missed-collections", label: "Missed Collections" },
+  { id: "waste-reports", label: "Reports & Incidents" },
   { id: "resident-engagement", label: "Residents" },
-  { id: "truck-driver", label: "Driver operations" },
-  { id: "barangay-compliance", label: "Barangay coverage" },
+  { id: "truck-driver", label: "Driver Operations" },
+  { id: "barangay-compliance", label: "Barangay Coverage" },
 ];
 
 interface Props {

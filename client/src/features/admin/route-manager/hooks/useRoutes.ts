@@ -230,7 +230,7 @@ export const useRoutes = () => {
     try {
       await updateRoute(route.id, { status: newStatus });
       setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, active: !route.active, status: newStatus } : r));
-      toast.success(route.active ? "Route paused" : "Route enabled");
+      toast.success(route.active ? "Route Paused" : "Route enabled");
       return true;
     } catch (err) {
       toast.error(

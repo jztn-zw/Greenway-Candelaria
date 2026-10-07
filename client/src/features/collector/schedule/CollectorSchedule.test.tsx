@@ -47,7 +47,7 @@ it("separates loading, empty, and failed requests without claiming there are no 
   expect(host.textContent).not.toContain("No collection duties");
   vi.mocked(fetchCalendarEvents).mockRejectedValue(new Error("Temporary outage"));
   await act(async () => host.querySelector<HTMLButtonElement>('[title="Next Month"]')!.click());
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This page couldn't load");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("This Page Couldn't Load");
   expect(host.textContent).not.toContain("No internal events scheduled");
 });
 

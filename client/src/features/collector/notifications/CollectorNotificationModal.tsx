@@ -56,7 +56,7 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
           <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">{message}</div>
         </div>
         <div className={styles.footer}>
-          {(notification.ref_module === "driver-messages" || destination) && <Button type="button" variant="outline" className={styles.cancelButton} onClick={() => { if (openCollectorNotification(notification, navigate)) onOpenChange(false); }}>{notification.ref_module === "driver-messages" ? "Open messages" : "Open related page"}</Button>}
+          {(notification.ref_module === "driver-messages" || destination) && <Button type="button" variant="outline" className={styles.cancelButton} onClick={() => { if (openCollectorNotification(notification, navigate)) onOpenChange(false); }}>{notification.ref_module === "driver-messages" ? "Open Messages" : "Open Related Page"}</Button>}
           <Button type="button" onClick={() => onOpenChange(false)} className={styles.primaryButton}>Close</Button>
         </div>
       </DialogContent>

@@ -101,16 +101,16 @@ const HeroCards = () => {
   const routeStopName = todayRoute?.stop.stop_name || todayRoute?.stop.barangay_name;
   const scheduleTime = todayRoute
     ? formatCollectionTime(todayRoute.route.start_time)
-    : scheduleLoading || scheduleFailed ? "—" : "Not scheduled";
+    : scheduleLoading || scheduleFailed ? "—" : "Not Scheduled";
   const scheduleDestination = addressMissing ? "/resident/profile" : "/resident/tracking";
-  const scheduleBadge = addressMissing ? "Address needed"
+  const scheduleBadge = addressMissing ? "Address Needed"
     : scheduleLoading ? "Loading"
       : scheduleFailed ? "Unavailable"
-        : todayRoute ? todayWaste?.tag ?? "Scheduled" : "No collection";
-  const scheduleTitle = addressMissing ? "Set your collection address"
-    : scheduleLoading ? "Checking today's route"
-      : scheduleFailed ? "Schedule unavailable"
-        : todayRoute ? `${todayWaste?.label ?? "Waste"} collection` : "No collection scheduled";
+        : todayRoute ? todayWaste?.tag ?? "Scheduled" : "No Collection";
+  const scheduleTitle = addressMissing ? "Set Your Collection Address"
+    : scheduleLoading ? "Checking Today's Route"
+      : scheduleFailed ? "Schedule Unavailable"
+        : todayRoute ? `${todayWaste?.label ?? "Waste"} Collection` : "No Collection Scheduled";
   const scheduleDescription = addressMissing
     ? "Add your barangay and street to see your collection route."
     : scheduleLoading ? "Looking up your registered collection stop."
@@ -121,14 +121,14 @@ const HeroCards = () => {
   return (
     <div className={dashboardStyles.overview}>
       {/* ─── Card 1: Today's Collection Schedule ─── */}
-      {scheduleLoading ? <HeroCardSkeleton className={dashboardStyles.collectionColumn} /> : scheduleFailed ? <div className={dashboardStyles.collectionColumn}><PageErrorState kind="unavailable" variant="section" title="Collection schedule couldn't load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /></div> : <Card
+      {scheduleLoading ? <HeroCardSkeleton className={dashboardStyles.collectionColumn} /> : scheduleFailed ? <div className={dashboardStyles.collectionColumn}><PageErrorState kind="unavailable" variant="section" title="Collection Schedule Couldn't Load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /></div> : <Card
         onClick={() => navigate(scheduleDestination)}
         className={cn(dashboardStyles.hero, dashboardStyles.collectionColumn, "cursor-pointer border-primary/25 bg-primary/[0.04]")}
       >
           <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
             <span className={dashboardStyles.label}>
-              Today's schedule
+              Today's Schedule
             </span>
             <Badge variant="outline" className={todayRoute && todayWaste ? todayWaste.tagColor : undefined}>
               {scheduleBadge}
@@ -152,27 +152,27 @@ const HeroCards = () => {
           <div className={dashboardStyles.heroFooter}>
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
-              Collection time
+              Collection Time
             </span>
             <span className={cn("font-semibold text-foreground tabular-nums", todayRoute ? "text-xl" : "text-sm")}>{scheduleTime}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
-          <span>{addressMissing ? "Update collection address" : "View route details"}</span>
+          <span>{addressMissing ? "Update Collection Address" : "View Route Details"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>}
 
       {/* ─── Card 2: Live Truck Status ─── */}
-      {liveQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.truckColumn} /> : trucksFailed ? <div className={dashboardStyles.truckColumn}><PageErrorState kind="unavailable" variant="section" title="Truck status couldn't load" onRetry={() => void liveQuery.refetch()} retrying={liveQuery.isFetching} /></div> : <Card
+      {liveQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.truckColumn} /> : trucksFailed ? <div className={dashboardStyles.truckColumn}><PageErrorState kind="unavailable" variant="section" title="Truck Status Couldn't Load" onRetry={() => void liveQuery.refetch()} retrying={liveQuery.isFetching} /></div> : <Card
         onClick={() => navigate("/resident/tracking")}
         className={cn(dashboardStyles.hero, dashboardStyles.truckColumn, "cursor-pointer border-primary/20")}
       >
           <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
             <span className={dashboardStyles.label}>
-              Collection truck
+              Collection Truck
             </span>
             {trucksFailed ? (
               <Badge className={getStatusBadgeStyle("Status unavailable").className}>
@@ -181,11 +181,11 @@ const HeroCards = () => {
             ) : hasActive ? (
               <Badge className={cn("gap-1.5", getStatusBadgeStyle("Live On Route").className)}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                Live on route
+                Live on Route
               </Badge>
             ) : (
               <Badge className={getStatusBadgeStyle("No active collection").className}>
-                No active collection
+                No Active Collection
               </Badge>
             )}
           </div>
@@ -196,7 +196,7 @@ const HeroCards = () => {
             </div>
             <div className="min-w-0">
               <h3 className={dashboardStyles.heroTitle}>
-                {trucksFailed ? "Truck status unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Trucks"}
+                {trucksFailed ? "Truck Status Unavailable" : hasActive ? activeTruck.truck_name || activeTruck.truck_plate : "Candelaria Trucks"}
               </h3>
               <p className={dashboardStyles.heroDescription}>
                 {trucksFailed
@@ -211,7 +211,7 @@ const HeroCards = () => {
           <div className={dashboardStyles.heroFooter}>
             <span className="text-muted-foreground flex items-center gap-1.5">
               <Radio className="w-3.5 h-3.5 text-muted-foreground/80" />
-              Live trucks
+              Live Trucks
             </span>
             <span className="font-semibold text-foreground tabular-nums">
               {trucksFailed ? "—" : `${activeTrucks.length} truck${activeTrucks.length !== 1 ? "s" : ""} on route`}
@@ -220,20 +220,20 @@ const HeroCards = () => {
         </div>
 
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
-          <span>Open live GPS map</span>
+          <span>Open Live GPS Map</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>}
 
       {/* ─── Card 3: Latest Report ─── */}
-      {reportsQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.reportColumn} /> : reportsFailed ? <div className={dashboardStyles.reportColumn}><PageErrorState kind="unavailable" variant="section" title="Latest report couldn't load" onRetry={() => void reportsQuery.refetch()} retrying={reportsQuery.isFetching} /></div> : <Card
+      {reportsQuery.isLoading ? <HeroCardSkeleton className={dashboardStyles.reportColumn} /> : reportsFailed ? <div className={dashboardStyles.reportColumn}><PageErrorState kind="unavailable" variant="section" title="Latest Report Couldn't Load" onRetry={() => void reportsQuery.refetch()} retrying={reportsQuery.isFetching} /></div> : <Card
         onClick={() => navigate(latestReport || reportsFailed ? "/resident/my-reports" : "/resident/report")}
         className={cn(dashboardStyles.hero, dashboardStyles.reportColumn, "cursor-pointer")}
       >
           <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
             <span className={dashboardStyles.label}>
-              Latest report
+              Latest Report
             </span>
             {latestReport && (
               <Badge
@@ -277,7 +277,7 @@ const HeroCards = () => {
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <p className="text-xs font-semibold text-foreground">
-                {reportsFailed ? "Reports unavailable" : "No waste reports yet"}
+                {reportsFailed ? "Reports Unavailable" : "No Waste Reports Yet"}
               </p>
               <p className="text-ui-caption text-muted-foreground">
                 {reportsFailed
@@ -289,7 +289,7 @@ const HeroCards = () => {
         </div>
 
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
-          <span>{latestReport || reportsFailed ? "View report history" : "Submit new report"}</span>
+          <span>{latestReport || reportsFailed ? "View Report History" : "Submit New Report"}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
         </div>
       </Card>}

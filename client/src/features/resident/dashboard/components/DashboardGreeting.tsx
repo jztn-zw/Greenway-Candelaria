@@ -53,7 +53,7 @@ const DashboardGreeting = () => {
           className="h-10 gap-1.5 px-3.5 text-xs"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Report waste</span>
+          <span>Report Waste</span>
         </Button>
       </>}
     />

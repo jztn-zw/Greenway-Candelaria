@@ -86,6 +86,6 @@ it("keeps recent notifications visible and retries when the bell refresh fails",
 
   expect(document.querySelector('[role="status"]')).toHaveTextContent("Couldn't refresh notifications");
   expect([...document.querySelectorAll("button")].some(button => button.textContent?.includes(row.title))).toBe(true);
-  await act(async () => [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Try again"))!.click());
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Try Again"))!.click());
   expect(state.fetchNotifications).toHaveBeenCalledOnce();
 });

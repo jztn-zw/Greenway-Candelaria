@@ -364,18 +364,17 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
 
                       {/* Keyboard-editable GreenWay time picker */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-foreground">
+                        <Label htmlFor="route-start-time" className="text-xs font-medium text-foreground">
                           Start Time
                         </Label>
                         <TimePicker
+                          id="route-start-time"
                           value={form.startTime.slice(0, 5)}
                           onChange={(value) =>
                             setForm((prev) => ({ ...prev, startTime: value }))
                           }
                           containerClassName="max-w-none"
                           className="w-full"
-                          dropdownSide="bottom"
-                          dropdownAlign="right"
                         />
                       </div>
                     </div>
@@ -572,7 +571,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     {/* Interactive Leaflet Route Map */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-ui-caption text-muted-foreground px-0.5">
-                        <span>Street coverage route</span>
+                        <span>Street Coverage Route</span>
                         <span>
                           {form.barangays.length - stopsMissingCoverage.length} of {form.barangays.length} mapped
                         </span>
@@ -641,12 +640,12 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                                 {stop.coveragePath && stop.coveragePath.length >= 2 ? (
                                   <span className="flex shrink-0 items-center gap-1 text-ui-overline font-semibold text-emerald-600 dark:text-emerald-400">
                                     <CheckCircle2 className="h-3 w-3" />
-                                    Path saved
+                                    Path Saved
                                   </span>
                                 ) : (
                                   <span className="flex shrink-0 items-center gap-1 text-ui-overline font-semibold text-amber-600 dark:text-amber-400">
                                     <AlertTriangle className="h-3 w-3" />
-                                    Needs path
+                                    Needs Path
                                   </span>
                                 )}
                               </div>

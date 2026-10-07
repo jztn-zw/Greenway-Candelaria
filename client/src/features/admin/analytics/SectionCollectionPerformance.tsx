@@ -6,8 +6,8 @@ import { CheckCircle2, Route, UsersRound } from "lucide-react";
 import { useAnalyticsData } from "./AnalyticsDataContext";
 import { withDriverChartLabels } from "./analytics.utils";
 
-const trendConfig = { rate: { label: "Completion rate", color: "hsl(var(--chart-1))" } };
-const driverConfig = { completedStops: { label: "Completed stops", color: "hsl(var(--chart-1))" }, missedStops: { label: "Missed stops", color: "hsl(var(--error))" } };
+const trendConfig = { rate: { label: "Completion Rate", color: "hsl(var(--chart-1))" } };
+const driverConfig = { completedStops: { label: "Completed Stops", color: "hsl(var(--chart-1))" }, missedStops: { label: "Missed Stops", color: "hsl(var(--error))" } };
 
 const SectionCollectionPerformance: React.FC = () => {
   const { collectionCompletionTrend, driverOperations, overview } = useAnalyticsData();
@@ -17,14 +17,14 @@ const SectionCollectionPerformance: React.FC = () => {
     <div className="analytics-grid grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
       <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Collection rate over time</h3><p className="text-xs text-muted-foreground">Completed stops divided by scheduled stops.</p></div></div>
+          <div className="flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Collection Rate Over Time</h3><p className="text-xs text-muted-foreground">Completed stops divided by scheduled stops.</p></div></div>
           <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">{overview.completionRate}% overall</span>
         </div>
         <ChartContainer config={trendConfig} className="h-[260px] w-full aspect-auto"><LineChart data={collectionCompletionTrend}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" /><XAxis dataKey="period" fontSize={10} tickLine={false} axisLine={false} /><YAxis domain={[0, 100]} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} /><ChartTooltip content={<ChartTooltipContent />} /><ReferenceLine y={90} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" /><Line type="monotone" dataKey="rate" stroke="var(--color-rate)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--color-rate)" }} activeDot={{ r: 5 }} /></LineChart></ChartContainer>
       </section>
 
       <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
-        <div className="mb-5 flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Scheduled stop outcomes</h3><p className="text-xs text-muted-foreground">This period’s route-stop results.</p></div></div>
+        <div className="mb-5 flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Scheduled Stop Outcomes</h3><p className="text-xs text-muted-foreground">This period’s route-stop results.</p></div></div>
         <div className="analytics-metrics grid grid-cols-3 gap-3">
           <div className="rounded-xl bg-muted/45 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-muted-foreground">Scheduled</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-foreground"><KpiValue value={overview.scheduledStops} /></p><p className="mt-1 text-xs text-muted-foreground">Route stops</p></div>
           <div className="rounded-xl bg-emerald-500/10 p-4"><p className="text-ui-overline font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Completed</p><p className="gw-stat-value mt-3 text-3xl tabular-nums text-emerald-700 dark:text-emerald-300"><KpiValue value={overview.completedStops} /></p><p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">Route stops</p></div>
@@ -35,7 +35,7 @@ const SectionCollectionPerformance: React.FC = () => {
     </div>
 
     <section className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
-      <div className="mb-5 flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UsersRound className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Collection performance by driver</h3><p className="text-xs text-muted-foreground">Completed and missed stops from routes assigned to each driver.</p></div></div>
+      <div className="mb-5 flex items-center gap-2.5"><div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><UsersRound className="h-4 w-4" /></div><div><h3 className="gw-heading text-sm text-foreground">Collection Performance by Driver</h3><p className="text-xs text-muted-foreground">Completed and missed stops from routes assigned to each driver.</p></div></div>
       {driverChartRows.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">No driver route stops match this period and barangay.</p>
       ) : (

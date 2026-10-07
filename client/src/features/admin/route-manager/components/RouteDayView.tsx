@@ -40,7 +40,7 @@ export const RouteDayView: React.FC<RouteDayViewProps> = ({
 
   if (filteredRoutes.length === 0) {
     return (
-      <ListEmptyState icon={RouteIcon} title="No routes match current filters"
+      <ListEmptyState icon={RouteIcon} title="No Routes Match Current Filters"
         description="Try adjusting your search, selecting another day, or creating a collection route." />
     );
   }

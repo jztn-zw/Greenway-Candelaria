@@ -7,6 +7,7 @@ import "@/components/common/communityContent.css";
 import { FieldButton } from "@/components/ui/field-button";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -27,9 +28,7 @@ import { useAdminMutation } from "@/lib/adminQuery";
 import postsService from "@/services/postsService";
 import {
   Calendar as CalendarIcon,
-  Check,
   ChevronLeft,
-  Clock,
   Eye,
   Send,
   Tag,
@@ -88,177 +87,44 @@ const CustomDateTimePicker = ({
     parsedDate || toManilaCalendarDate(),
   );
 
-  const [selectedHour, setSelectedHour] = useState<string>(() => {
-    if (!parsedDate) return "09";
-    const h = parsedDate.getHours();
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    return String(h12).padStart(2, "0");
-  });
+  const [selectedTime, setSelectedTime] = useState(() => parsedDate
+    ? `${String(parsedDate.getHours()).padStart(2, "0")}:${String(parsedDate.getMinutes()).padStart(2, "0")}`
+    : "09:00");
 
-  const [selectedMinute, setSelectedMinute] = useState<string>(() => {
-    if (!parsedDate) return "00";
-    return String(parsedDate.getMinutes()).padStart(2, "0");
-  });
-
-  const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">(() => {
-    if (!parsedDate) return "AM";
-    return parsedDate.getHours() >= 12 ? "PM" : "AM";
-  });
-
-  const updateDateTime = (
-    day: Date | undefined,
-    hourStr: string,
-    minStr: string,
-    period: "AM" | "PM",
-  ) => {
-    if (!day) return;
-    const year = day.getFullYear();
-    const month = String(day.getMonth() + 1).padStart(2, "0");
-    const date = String(day.getDate()).padStart(2, "0");
-
-    let h24 = parseInt(hourStr, 10);
-    if (period === "PM" && h24 < 12) h24 += 12;
-    if (period === "AM" && h24 === 12) h24 = 0;    // Convert the date/time selected in the Philippine timezone to
-    // an unambiguous UTC instant before it is sent to the API.
-    const localDate = new Date(
-      year,
-      Number.parseInt(month, 10) - 1,
-      Number.parseInt(date, 10),
-      h24,
-      Number.parseInt(minStr, 10),
-    );
+  const updateDateTime = (day: Date | undefined, time: string) => {
+    if (!day || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return;
+    const [hour, minute] = time.split(":").map(Number);
+    // Convert Philippine picker fields to an unambiguous UTC instant for the API.
+    const localDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute);
     onChange(fromManilaCalendarDate(localDate).toISOString());
   };
 
   const handleDaySelect = (day: Date | undefined) => {
     setSelectedDay(day);
-    if (day) {
-      updateDateTime(day, selectedHour, selectedMinute, selectedPeriod);
-    }
+    if (day) updateDateTime(day, selectedTime);
   };
 
   useEffect(() => {
     if (!parsedDate) return;
     setSelectedDay(parsedDate);
-    const h = parsedDate.getHours();
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    setSelectedHour(String(h12).padStart(2, "0"));
-    setSelectedMinute(String(parsedDate.getMinutes()).padStart(2, "0"));
-    setSelectedPeriod(h >= 12 ? "PM" : "AM");
+    setSelectedTime(`${String(parsedDate.getHours()).padStart(2, "0")}:${String(parsedDate.getMinutes()).padStart(2, "0")}`);
   }, [parsedDate]);
 
-  const handleHourInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    if (raw === "") {
-      setSelectedHour("");
-      return;
-    }
-    const num = parseInt(raw, 10);
-    if (num > 12) {
-      setSelectedHour("12");
-      updateDateTime(selectedDay, "12", selectedMinute || "00", selectedPeriod);
-      return;
-    }
-    setSelectedHour(raw);
-    if (num >= 1 && num <= 12) {
-      updateDateTime(selectedDay, String(num).padStart(2, "0"), selectedMinute || "00", selectedPeriod);
-    }
-  };
-
-  const handleHourBlur = () => {
-    let num = parseInt(selectedHour, 10);
-    if (isNaN(num) || num < 1) num = 12;
-    if (num > 12) num = 12;
-    const formatted = String(num).padStart(2, "0");
-    setSelectedHour(formatted);
-    updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
-  };
-
-  const handleMinuteInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    if (raw === "") {
-      setSelectedMinute("");
-      return;
-    }
-    const num = parseInt(raw, 10);
-    if (num > 59) {
-      setSelectedMinute("59");
-      updateDateTime(selectedDay, selectedHour || "12", "59", selectedPeriod);
-      return;
-    }
-    setSelectedMinute(raw);
-    if (num >= 0 && num <= 59) {
-      updateDateTime(selectedDay, selectedHour || "12", String(num).padStart(2, "0"), selectedPeriod);
-    }
-  };
-
-  const handleMinuteBlur = () => {
-    let num = parseInt(selectedMinute, 10);
-    if (isNaN(num) || num < 0) num = 0;
-    if (num > 59) num = 59;
-    const formatted = String(num).padStart(2, "0");
-    setSelectedMinute(formatted);
-    updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
-  };
-
-  const handleHourKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const current = parseInt(selectedHour, 10) || 12;
-      const next = current >= 12 ? 1 : current + 1;
-      const formatted = String(next).padStart(2, "0");
-      setSelectedHour(formatted);
-      updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const current = parseInt(selectedHour, 10) || 12;
-      const prev = current <= 1 ? 12 : current - 1;
-      const formatted = String(prev).padStart(2, "0");
-      setSelectedHour(formatted);
-      updateDateTime(selectedDay, formatted, selectedMinute || "00", selectedPeriod);
-    }
-  };
-
-  const handleMinuteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const current = parseInt(selectedMinute, 10) || 0;
-      const next = current >= 59 ? 0 : current + 1;
-      const formatted = String(next).padStart(2, "0");
-      setSelectedMinute(formatted);
-      updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const current = parseInt(selectedMinute, 10) || 0;
-      const prev = current <= 0 ? 59 : current - 1;
-      const formatted = String(prev).padStart(2, "0");
-      setSelectedMinute(formatted);
-      updateDateTime(selectedDay, selectedHour || "12", formatted, selectedPeriod);
-    }
-  };
-
-  const handlePeriodChange = (newPeriod: "AM" | "PM") => {
-    setSelectedPeriod(newPeriod);
-    updateDateTime(selectedDay, selectedHour, selectedMinute, newPeriod);
+  const handleTimeChange = (time: string) => {
+    setSelectedTime(time);
+    updateDateTime(selectedDay, time);
   };
 
   const handleSetNow = () => {
     const now = toManilaCalendarDate();
+    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     setSelectedDay(now);
-    const h = now.getHours();
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    const hStr = String(h12).padStart(2, "0");
-    const mStr = String(now.getMinutes()).padStart(2, "0");
-    const period = h >= 12 ? "PM" : "AM";
-
-    setSelectedHour(hStr);
-    setSelectedMinute(mStr);
-    setSelectedPeriod(period);
-    updateDateTime(now, hStr, mStr, period);
+    setSelectedTime(time);
+    updateDateTime(now, time);
   };
 
   const formattedDisplay = useMemo(() => {
-    if (!value || !parsedDate) return "Select scheduled date and time";
+    if (!value || !parsedDate) return "Select publish date and time";
     return parsedDate.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -272,121 +138,34 @@ const CustomDateTimePicker = ({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
-        <FieldButton
-          aria-invalid={error}
-        >
-          <span className="flex items-center gap-2.5 truncate">
-            <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span
-              className={
-                value ? "text-foreground font-medium" : "text-muted-foreground"
-              }
-            >
+        <FieldButton id="post-publish-date" aria-label="Publish date and time" aria-invalid={error}>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className={`truncate ${value ? "font-medium text-foreground" : "text-muted-foreground"}`}>
               {formattedDisplay}
             </span>
           </span>
-          <span className="text-xs text-primary font-semibold shrink-0">Set</span>
+          <span className="shrink-0 text-xs font-semibold text-primary">Set</span>
         </FieldButton>
       </PopoverTrigger>
       <PopoverContent
+        aria-label="Publish date and time"
         align="start"
-        className="w-auto p-3 shadow-md rounded-2xl border-border bg-popover z-50"
+        className="w-auto p-0 rounded-xl border border-border/80 shadow-md"
       >
-        <div className="space-y-3">
-          <CalendarPicker
-            mode="single"
-            selected={selectedDay}
-            onSelect={handleDaySelect}
-            initialFocus
-            className="rounded-xl border border-border/60 p-2"
-          />
-
-          <div className="pt-2 border-t border-border/60 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-primary" /> Time
-              </span>
-              <button
-                type="button"
-                onClick={handleSetNow}
-                className="text-xs font-semibold text-primary hover:underline cursor-pointer"
-              >
-                Set Current Time
-              </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <div className="flex flex-col items-center gap-0.5">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
-                  value={selectedHour}
-                  onChange={handleHourInput}
-                  onBlur={handleHourBlur}
-                  onKeyDown={handleHourKeyDown}
-                  placeholder="12"
-                  className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
-                  aria-label="Hour (1-12)"
-                />
-                <span className="text-ui-overline text-muted-foreground font-medium">hr</span>
-              </div>
-
-              <span className="text-muted-foreground font-bold text-base pb-3.5">:</span>
-
-              <div className="flex flex-col items-center gap-0.5">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
-                  value={selectedMinute}
-                  onChange={handleMinuteInput}
-                  onBlur={handleMinuteBlur}
-                  onKeyDown={handleMinuteKeyDown}
-                  placeholder="00"
-                  className="w-14 h-9 text-center text-sm font-semibold rounded-xl px-1"
-                  aria-label="Minute (0-59)"
-                />
-                <span className="text-ui-overline text-muted-foreground font-medium">min</span>
-              </div>
-
-              <div className="flex rounded-xl border border-input/80 overflow-hidden shadow-2xs h-9 mb-3.5">
-                <button
-                  type="button"
-                  onClick={() => handlePeriodChange("AM")}
-                  className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
-                    selectedPeriod === "AM"
-                      ? "bg-primary text-primary-foreground"
-                      : "gw-action-ghost "
-                  }`}
-                >
-                  AM
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePeriodChange("PM")}
-                  className={`px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
-                    selectedPeriod === "PM"
-                      ? "bg-primary text-primary-foreground"
-                      : "gw-action-ghost "
-                  }`}
-                >
-                  PM
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <Button
-                type="button"
-                size="sm"
-                className="h-8 text-xs px-3 gap-1 rounded-lg cursor-pointer"
-                onClick={() => setPopoverOpen(false)}
-              >
-                <Check className="w-3.5 h-3.5" /> Done
-              </Button>
-            </div>
-          </div>
+        <CalendarPicker
+          mode="single" selected={selectedDay} defaultMonth={selectedDay}
+          onSelect={handleDaySelect}
+          initialFocus className="p-3"
+        />
+        <div className="relative border-t border-border/60 p-2.5 flex items-center justify-between gap-2 bg-muted/20">
+          <Label htmlFor="post-publish-time" className="text-xs font-medium text-muted-foreground shrink-0">Time</Label>
+          <TimePicker id="post-publish-time" value={selectedTime} aria-invalid={error} onChange={handleTimeChange} />
+        </div>
+        <div className="border-t border-border/60 px-3 py-2">
+          <button type="button" onClick={handleSetNow} className="gw-action-primary-ghost text-xs font-semibold">
+            Set Current Time
+          </button>
         </div>
       </PopoverContent>
     </Popover>
@@ -649,7 +428,7 @@ const PostEditor = ({
 
   return (
     <div className="admin-community-editor min-w-0 w-full max-w-[1000px] mx-auto space-y-5 pb-10">
-      <BackButton onBack={handleAttemptBack} label="Back to posts" disabled={isSaving || isUploading} className="mb-0" />
+      <BackButton onBack={handleAttemptBack} label="Back to Posts" disabled={isSaving || isUploading} className="mb-0" />
       {/* ── Section 1: Post Content & Details ── */}
       <section className="admin-community-editor-panel min-w-0 bg-card border border-border/80 rounded-2xl space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">

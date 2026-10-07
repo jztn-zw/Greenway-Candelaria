@@ -26,7 +26,7 @@ export default function AdminTrackingWorkspace({ fleetOpen, onFleetOpenChange, f
       <div className={styles.switcher}>
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <Navigation className="size-4 shrink-0 text-primary" aria-hidden="true" />
-          <span>Tracking map</span>
+          <span>Tracking Map</span>
         </div>
         <Button ref={triggerRef} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl px-3"
           aria-label="Open Truck controls" aria-expanded={fleetOpen} aria-controls={panelId}
@@ -47,7 +47,7 @@ export default function AdminTrackingWorkspace({ fleetOpen, onFleetOpenChange, f
           }
         }}>
         <div className="admin-tracking-mobile-panel-header mb-3 flex shrink-0 items-center justify-between gap-3 border-b border-border/70 pb-3">
-          <div className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4 text-primary" aria-hidden="true" />Truck controls</div>
+          <div className="flex items-center gap-2 text-sm font-semibold"><Truck className="size-4 text-primary" aria-hidden="true" />Truck Controls</div>
           <Button variant="ghost" size="icon" className="size-11 rounded-xl" aria-label="Close truck panel" onClick={closePanel}><X className="size-4" /></Button>
         </div>
         {children}

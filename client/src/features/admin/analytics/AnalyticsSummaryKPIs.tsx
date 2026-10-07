@@ -11,10 +11,10 @@ const AnalyticsSummaryKPIs = () => {
   const { overview } = useAnalyticsData();
   return (
     <AdminKpiGrid>
-      <Kpi label="Scheduled stops" value={overview.scheduledStops} description="Route stops this period" icon={MapPin} />
-      <Kpi label="Collection rate" value={overview.completionRate} suffix="%" description={`${overview.completedStops} ${overview.completedStops === 1 ? "stop" : "stops"} completed`} icon={CircleCheck} tone="success" />
-      <Kpi label="Missed stops" value={overview.missedStops} description="Requires collection follow-up" icon={CircleX} tone="danger" />
-      <Kpi label="Open reports now" value={overview.openReports} description="Current queue awaiting resolution" icon={ClipboardList} tone="warning" />
+      <Kpi label="Scheduled Stops" value={overview.scheduledStops} description="Route stops this period" icon={MapPin} />
+      <Kpi label="Collection Rate" value={overview.completionRate} suffix="%" description={`${overview.completedStops} ${overview.completedStops === 1 ? "stop" : "stops"} completed`} icon={CircleCheck} tone="success" />
+      <Kpi label="Missed Stops" value={overview.missedStops} description="Requires collection follow-up" icon={CircleX} tone="danger" />
+      <Kpi label="Open Reports Now" value={overview.openReports} description="Current queue awaiting resolution" icon={ClipboardList} tone="warning" />
     </AdminKpiGrid>
   );
 };

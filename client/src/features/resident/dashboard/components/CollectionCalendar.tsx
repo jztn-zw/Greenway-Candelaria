@@ -72,7 +72,7 @@ const CollectionCalendar = () => {
     );
   }
 
-  if (calendarError && calendarQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" description="We couldn't load calendar announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />;
+  if (calendarError && calendarQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Calendar Couldn't Load" description="We couldn't load calendar announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} />;
 
   return (
     <section className={dashboardStyles.calendarSection}>
@@ -102,7 +102,7 @@ const CollectionCalendar = () => {
             onClick={() => navigate("/resident/schedule")}
             className="group h-8 shrink-0 gap-1 px-2 text-xs"
           >
-            <span className="resident-dashboard-calendar-action-label">View calendar</span> <ArrowRight className="h-3.5 w-3.5" />
+            <span className="resident-dashboard-calendar-action-label">View Calendar</span> <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         }
         footer={<TooltipProvider delayDuration={100}>

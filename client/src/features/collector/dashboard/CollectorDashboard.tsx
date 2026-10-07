@@ -90,7 +90,7 @@ const CollectorDashboard = () => {
       {/* ── Route workspace and monthly schedule ── */}
       <div className="collector-dashboard-workspace">
         <div className="flex min-h-[360px] flex-col sm:min-h-[380px] lg:min-h-[355px] lg:h-full">
-          {assignmentUnavailable ? <PageErrorState kind="unavailable" variant="section" title="Route assignment unavailable" description="We couldn't load your assignment. Please try again." onRetry={() => { void profileQuery.refetch(); void routeQuery.refetch(); }} retrying={profileQuery.isFetching || routeQuery.isFetching} /> : <AssignmentCard
+          {assignmentUnavailable ? <PageErrorState kind="unavailable" variant="section" title="Route Assignment Unavailable" description="We couldn't load your assignment. Please try again." onRetry={() => { void profileQuery.refetch(); void routeQuery.refetch(); }} retrying={profileQuery.isFetching || routeQuery.isFetching} /> : <AssignmentCard
             className="h-full flex-1"
             data={assignmentData}
             onAction={() => navigate(getAssignmentDestination(assignmentData.routeState))}
@@ -104,7 +104,7 @@ const CollectorDashboard = () => {
       {/* ── Supporting route and vehicle details ── */}
       <div className="collector-dashboard-support">
         <div className="h-full">
-          {loadErrors.history ? <PageErrorState kind="unavailable" variant="section" title="Route history unavailable" description="We couldn't load your recent routes. Please try again." onRetry={() => void historyQuery.refetch()} retrying={historyQuery.isFetching} /> : recentHistory.length > 0 ? (
+          {loadErrors.history ? <PageErrorState kind="unavailable" variant="section" title="Route History Unavailable" description="We couldn't load your recent routes. Please try again." onRetry={() => void historyQuery.refetch()} retrying={historyQuery.isFetching} /> : recentHistory.length > 0 ? (
             <div className="h-full min-h-0 rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs flex flex-col">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-border/60 bg-muted/20">
                 <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ const CollectorDashboard = () => {
                   onClick={() => navigate("/collector/route-history")}
                   className="gw-action-primary-ghost inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold cursor-pointer"
                 >
-                  View all <ChevronRight className="w-3 h-3" />
+                  View All <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
               <div className="divide-y divide-border/50 flex flex-1 min-h-0 flex-col justify-start overflow-hidden">
@@ -184,13 +184,13 @@ const CollectorDashboard = () => {
             </div>
           ) : (
             <div className="h-full rounded-2xl border border-border bg-card p-5">
-              <h2 className="gw-heading text-sm ">Recent route history</h2>
+              <h2 className="gw-heading text-sm ">Recent Route History</h2>
               <p className="mt-2 text-sm text-muted-foreground">No finished collection routes yet.</p>
             </div>
           )}
         </div>
         <div className="h-full">
-          {loadErrors.profile ? <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" description="We couldn't load your vehicle information. Please try again." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} /> : <TruckStatusCard
+          {loadErrors.profile ? <PageErrorState kind="unavailable" variant="section" title="Vehicle Information Unavailable" description="We couldn't load your vehicle information. Please try again." onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} /> : <TruckStatusCard
             className="h-full"
             data={driverMe?.truck_id ? {
               name: driverMe?.truck_name || "Assigned Truck",

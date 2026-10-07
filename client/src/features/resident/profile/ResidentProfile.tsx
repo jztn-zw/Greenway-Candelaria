@@ -76,10 +76,10 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className="inline-flex h-8 shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground" title="Registered email">
+      <span className="inline-flex h-8 shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground" title="Registered Email">
         <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
         <span className="resident-profile-email-label" aria-hidden="true">Registered</span>
-        <span className="sr-only">Registered email</span>
+        <span className="sr-only">Registered Email</span>
       </span>
     ) : (
       <Button
@@ -451,7 +451,7 @@ const ResidentProfile = () => {
             </div>
             <div className="min-w-0">
               <h2 id="resident-profile-personal-title" className={profileStyles.sectionTitle}>
-                Personal information
+                Personal Information
               </h2>
               <p className={profileStyles.sectionDescription}>
                 Update your details and account security.
@@ -511,12 +511,12 @@ const ResidentProfile = () => {
           />
           <div className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div><p className="text-sm font-medium">Recovery code</p><p className="text-xs text-muted-foreground">Recover your account without email or SMS.</p></div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setRecoveryModal(true)}>Manage recovery code</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setRecoveryModal(true)}>Manage Recovery Code</Button>
           </div>
         </div>
       </section>
 
-      <FormDialog open={recoveryModal} onOpenChange={setRecoveryModal} title="Recovery code" description="Keep your code somewhere private." icon={<ShieldCheck />}>
+      <FormDialog open={recoveryModal} onOpenChange={setRecoveryModal} title="Recovery Code" description="Keep your code somewhere private." icon={<ShieldCheck />}>
         {recoveryModal && <AccountRecovery mode="generate" onBack={() => setRecoveryModal(false)} />}
       </FormDialog>
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
@@ -528,7 +528,7 @@ const ResidentProfile = () => {
             </div>
             <div className="min-w-0">
               <h2 id="resident-profile-impact-title" className={profileStyles.sectionTitle}>
-                Community impact
+                Community Impact
               </h2>
               <p className={profileStyles.sectionDescription}>
                 Your reports and contributions to Candelaria.
@@ -552,7 +552,7 @@ const ResidentProfile = () => {
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs">
             <div className="min-w-0">
               <span className="font-semibold text-foreground">
-                Report resolution
+                Report Resolution
               </span>
             </div>
             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-body bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -612,7 +612,7 @@ const ResidentProfile = () => {
             </div>
             <div className="min-w-0">
               <h2 id="resident-profile-badges-title" className={profileStyles.sectionTitle}>
-                Badges & recognition
+                Badges & Recognition
               </h2>
               <p className={profileStyles.sectionDescription}>
                 Recognition for your community activity.
@@ -713,7 +713,7 @@ const ResidentProfile = () => {
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("address")} disabled={addressModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
           <Button type="button" onClick={() => void saveAddress()} className={modalStyles.primaryButton}
             disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0} loading={addressModal.saving} loadingLabel="Saving…">
-            Save address
+            Save Address
           </Button>
         </>}
       >
@@ -773,9 +773,9 @@ const ResidentProfile = () => {
           </Button>
         </>}
       >
-        {([{ key: "oldPw", label: "Current password", autoComplete: "current-password", visible: pwModal.showOld },
-          { key: "newPw", label: "New password", autoComplete: "new-password", visible: pwModal.showNew },
-          { key: "confirmPw", label: "Confirm new password", autoComplete: "new-password", visible: false }] as const).map(({ key, label, autoComplete, visible }) => (
+        {([{ key: "oldPw", label: "Current Password", autoComplete: "current-password", visible: pwModal.showOld },
+          { key: "newPw", label: "New Password", autoComplete: "new-password", visible: pwModal.showNew },
+          { key: "confirmPw", label: "Confirm New Password", autoComplete: "new-password", visible: false }] as const).map(({ key, label, autoComplete, visible }) => (
           <div key={key} className="space-y-1.5">
             <Label htmlFor={`resident-password-${key}`} className={modalStyles.label}>{label}</Label>
             <div className="relative">

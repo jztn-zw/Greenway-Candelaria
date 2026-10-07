@@ -100,7 +100,7 @@ const AdminCollectionCalendar: React.FC<AdminCollectionCalendarProps> = ({ class
   if (isLoading) {
     return <CalendarSkeleton asOfDate={asOfDate} className={className} />;
   }
-  if (error && query.data === undefined) return <div className={className}><PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>;
+  if (error && query.data === undefined) return <div className={className}><PageErrorState kind="unavailable" variant="section" title="Calendar Couldn't Load" onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>;
 
   return (
     <div

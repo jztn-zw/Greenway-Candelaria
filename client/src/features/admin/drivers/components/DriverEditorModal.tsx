@@ -313,7 +313,7 @@ const DriverEditorModal = ({
                   </p>
                 ) : (
                   <SearchableSelect value={formTruckId} onValueChange={setFormTruckId}
-                    options={[{ value: "none", label: "No truck assigned" }, ...availableTrucks.map((t) => ({ value: t.id, label: `${t.name} — ${t.model} (${t.plateNumber})` }))]}
+                    options={[{ value: "none", label: "No Truck Assigned" }, ...availableTrucks.map((t) => ({ value: t.id, label: `${t.name} — ${t.model} (${t.plateNumber})` }))]}
                     placeholder="Select a truck" aria-label="Assigned Truck" searchPlaceholder="Search by truck name or plate…" compactSearchPlaceholder="Truck name or plate…" fieldSize="compact"
                     className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs px-3" />
                 )}

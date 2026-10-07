@@ -103,10 +103,10 @@ it("keeps the profile and open edit dialog visible while both requests refresh",
 it("shows an API failure instead of inventing an unassigned vehicle, then retries", async () => {
   vi.mocked(fetchDriverMe).mockRejectedValueOnce(new Error("Network unavailable"));
   await renderProfile();
-  expect(document.body.textContent).toContain("Vehicle information unavailable");
+  expect(document.body.textContent).toContain("Vehicle Information Unavailable");
   expect(document.body.textContent).not.toContain("No vehicle currently assigned");
   expect(document.body.textContent).not.toContain("driver@menro.gov.ph");
-  const retry = [...document.querySelectorAll("button")].find((button) => button.textContent === "Try again")!;
+  const retry = [...document.querySelectorAll("button")].find((button) => button.textContent === "Try Again")!;
   expect(retry).toBeDefined();
   await act(async () => { retry.click(); });
   expect(fetchDriverMe).toHaveBeenCalledTimes(2);
@@ -118,21 +118,21 @@ it("shows vehicle status without a status badge on the profile banner", async ()
   vi.mocked(fetchDriverMe).mockResolvedValue({ ...driver, truck_availability: "UNDER_MAINTENANCE" } as never);
   await renderProfile();
   expect(document.body.textContent).not.toContain("Deactivated collector");
-  expect(document.body.textContent).toContain("Under maintenance");
+  expect(document.body.textContent).toContain("Under Maintenance");
   expect(document.body.textContent).not.toContain("Operational / Ready");
   expect(document.querySelector('a[href^="tel:"]')).toBeNull();
   expect(document.body.textContent).not.toContain("Ask the dispatch team for route or vehicle assistance");
-  expect(document.body.textContent).not.toContain("Open messages");
+  expect(document.body.textContent).not.toContain("Open Messages");
 });
 
 it("shows a retry state when both profile requests fail", async () => {
   vi.mocked(fetchProfile).mockRejectedValueOnce(new Error("Network unavailable"));
   vi.mocked(fetchDriverMe).mockRejectedValueOnce(new Error("Network unavailable"));
   await renderProfile();
-  expect(document.body.textContent).toContain("This page couldn't load");
+  expect(document.body.textContent).toContain("This Page Couldn't Load");
   expect(document.body.textContent).not.toContain("Active collector");
   expect(document.body.textContent).not.toContain("No vehicle currently assigned");
-  await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Try again")!.click());
+  await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Try Again")!.click());
   expect(document.body.textContent).toContain("Test Collector");
   expect(document.body.textContent).toContain("ABC-123");
   expect(fetchProfile).toHaveBeenCalledTimes(2);
@@ -181,7 +181,7 @@ it("blocks profile dismissal during a save, retains failed edits, then saves suc
   await renderProfile(); await click("Edit"); change("collector-profile-field", "Updated Collector");
   let rejectSave!: (error: Error) => void;
   vi.mocked(updateProfile).mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectSave = reject; }));
-  await click("Save changes"); expect(button("Cancel")).toBeDisabled(); expect(document.getElementById("collector-profile-field")).toBeDisabled();
+  await click("Save Changes"); expect(button("Cancel")).toBeDisabled(); expect(document.getElementById("collector-profile-field")).toBeDisabled();
   await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
   expect(document.body.textContent).not.toContain("Discard Profile Changes?");
   await act(async () => rejectSave(new Error("Offline")));
@@ -189,7 +189,7 @@ it("blocks profile dismissal during a save, retains failed edits, then saves suc
   expect(document.getElementById("collector-profile-field")).toHaveValue("Updated Collector");
   vi.mocked(updateProfile).mockResolvedValueOnce({ ...profile, full_name: "Updated Collector" } as never);
   vi.mocked(fetchProfile).mockResolvedValue({ ...profile, full_name: "Updated Collector" } as never);
-  await click("Save changes"); expect(updateProfile).toHaveBeenLastCalledWith({ full_name: "Updated Collector" });
+  await click("Save Changes"); expect(updateProfile).toHaveBeenLastCalledWith({ full_name: "Updated Collector" });
   expect(document.querySelector('[role="dialog"]')).toBeNull(); expect(document.body.textContent).toContain("Updated Collector");
 });
 
@@ -204,10 +204,10 @@ it("keeps password drafts and clears fields and visibility after discard", async
 });
 
 it("validates and saves a password without a discard prompt", async () => {
-  await renderProfile(); await click("Change"); await click("Update password");
+  await renderProfile(); await click("Change"); await click("Update Password");
   expect(document.querySelector('[role="alert"]')).toHaveTextContent("All fields are required");
   change("collector-current-password", "old-secret"); change("collector-new-password", "new-secret"); change("collector-confirm-password", "new-secret");
-  vi.mocked(changePassword).mockResolvedValueOnce(undefined); await click("Update password");
+  vi.mocked(changePassword).mockResolvedValueOnce(undefined); await click("Update Password");
   expect(changePassword).toHaveBeenCalledWith({ old_password: "old-secret", new_password: "new-secret" });
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
@@ -233,7 +233,7 @@ it("uses cached profile data on navigation and refreshes admin changes without l
   vi.mocked(fetchDriverMe).mockResolvedValue({ ...driver, truck_plate: "NEW-789", truck_availability: "UNDER_MAINTENANCE" } as never);
   await act(async () => { await client.invalidateQueries({ queryKey: collectorKey("collector", "profile") }); });
   expect(document.body.textContent).toContain("NEW-789");
-  expect(document.body.textContent).toContain("Under maintenance");
+  expect(document.body.textContent).toContain("Under Maintenance");
   expect(document.getElementById("collector-profile-field")).toHaveValue("Unsaved collector name");
 });
 

@@ -354,7 +354,7 @@ const AdminRouteManager: React.FC = () => {
 
   const viewOptions = useMemo<SegmentedControlOption<ViewMode>[]>(() => {
     return [
-      { id: "DAY_VIEW", label: "By day", icon: LayoutGrid },
+      { id: "DAY_VIEW", label: "By Day", icon: LayoutGrid },
       { id: "TABLE_VIEW", label: "List", icon: TableProperties },
     ];
   }, []);
@@ -392,7 +392,7 @@ const AdminRouteManager: React.FC = () => {
           className={`${managerStyles.action} shrink-0`}
         >
           <Plus className="w-4 h-4" />
-          <span>Create route</span>
+          <span>Create Route</span>
         </Button>}
       />
 
@@ -448,7 +448,7 @@ const AdminRouteManager: React.FC = () => {
             >
               {(draft, setDraft) => (
                 <>
-                  <AdminFilterField label="Collection day">
+                  <AdminFilterField label="Collection Day">
                     <Select
                       value={draft.filterDay}
                       onValueChange={(val: "all" | Day) => setDraft({ ...draft, filterDay: val })}
@@ -508,7 +508,7 @@ const AdminRouteManager: React.FC = () => {
                 size="sm"
                 onClick={handleResetFilters}
                 className="h-8 px-2 text-xs rounded-xl shrink-0 gap-1.5 [&_svg]:size-3.5"
-                title="Reset active filters"
+                title="Reset Active Filters"
                 aria-label="Reset active filters"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -605,11 +605,11 @@ const AdminRouteManager: React.FC = () => {
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete collection route?"
+        title="Delete Collection Route?"
         icon={<Trash2 />}
         variant="destructive"
         description="This removes the inactive route template. Completed daily route history will be preserved in the system."
-        confirmLabel="Delete route"
+        confirmLabel="Delete Route"
         pendingLabel="Deleting route…"
         confirmDisabled={!deleteTarget || deletingRouteId === deleteTarget.id}
         closeOnConfirm
@@ -630,7 +630,7 @@ const AdminRouteManager: React.FC = () => {
         description={statusTarget?.active
           ? "Pausing removes the route from active operations. Its saved truck, collector, schedule, and stop order will remain available for later use."
           : "Enabling returns this route to active operations. GreenWay will check for same-day barangay conflicts before applying the change."}
-        cancelLabel="Keep current status"
+        cancelLabel="Keep Current Status"
         confirmLabel={statusTarget?.active ? "Pause Route" : "Enable Route"}
         pendingLabel={statusTarget?.active ? "Pausing route…" : "Enabling route…"}
         onConfirm={confirmStatusChange}

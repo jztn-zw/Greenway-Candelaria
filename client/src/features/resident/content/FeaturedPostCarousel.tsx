@@ -127,7 +127,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
 
           <div className={styles.featuredFooter}>
             <Button type="button" onClick={() => onOpenPost(post)} className={styles.readButton}>
-              Read post <ArrowUpRight aria-hidden="true" />
+              Read Post <ArrowUpRight aria-hidden="true" />
             </Button>
 
           </div>

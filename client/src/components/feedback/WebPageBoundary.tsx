@@ -40,7 +40,7 @@ class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
           description={this.state.retryCount > 0 ? "The page still couldn't open. Please try again in a moment." : undefined}
           onRetry={() => this.setState((state) => ({ hasError: false, retryCount: state.retryCount + 1 }))}
           homeHref={this.props.homeHref}
-          homeLabel={this.props.homeHref === "/" ? "Go to home" : "Go to dashboard"}
+          homeLabel={this.props.homeHref === "/" ? "Go to Home" : "Go to Dashboard"}
           fullScreen
         />
       );

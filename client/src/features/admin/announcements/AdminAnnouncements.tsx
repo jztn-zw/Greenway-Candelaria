@@ -290,7 +290,7 @@ const AdminAnnouncements = () => {
                       </SelectContent>
                     </Select>
                   </AdminFilterField>
-                  <AdminFilterField label="Sort order">
+                  <AdminFilterField label="Sort Order">
                     <Select
                       value={draft.sortBy}
                       onValueChange={(v) => {
@@ -315,8 +315,8 @@ const AdminAnnouncements = () => {
                   <AdminFilterField label="Layout">
                     <SegmentedControl<"grid" | "list">
                       options={[
-                        { value: "grid", label: "Grid view", icon: LayoutGrid },
-                        { value: "list", label: "List view", icon: List },
+                        { value: "grid", label: "Grid View", icon: LayoutGrid },
+                        { value: "list", label: "List View", icon: List },
                       ]}
                       value={draft.viewMode}
                       onChange={(value) => setDraft({ ...draft, viewMode: value })}
@@ -370,7 +370,7 @@ const AdminAnnouncements = () => {
                 className="h-8 shrink-0 rounded-xl gap-1 px-2 text-xs [&_svg]:size-3.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span className="admin-community-clear-label">Clear all</span>
+                <span className="admin-community-clear-label">Clear All</span>
               </Button>
             )}
           </div>
@@ -437,7 +437,7 @@ const AdminAnnouncements = () => {
       {isResultsLoading ? (
         <AnnouncementsContentSkeleton viewMode={viewMode} />
       ) : announcements.length === 0 ? (
-        <ListEmptyState icon={Megaphone} title="No announcements found"
+        <ListEmptyState icon={Megaphone} title="No Announcements Found"
           description={search || typeFilter !== "all"
                 ? "Try adjusting your filters or search keywords to find what you're looking for."
                 : "Get started by broadcasting your first community announcement to residents."}>

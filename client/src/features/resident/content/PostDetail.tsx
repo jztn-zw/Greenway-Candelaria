@@ -120,7 +120,7 @@ const PostDetail = ({
       ref={contentRef}
       className={`${contentStyles.detailPage} animate-in fade-in duration-300`}
     >
-      <BackButton onBack={onBack} label="Back to updates" />
+      <BackButton onBack={onBack} label="Back to Updates" />
       <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
         <article className={contentStyles.detailArticle}>

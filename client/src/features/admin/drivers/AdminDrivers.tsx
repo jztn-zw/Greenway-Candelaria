@@ -654,7 +654,7 @@ const AdminDrivers = () => {
                 size="sm"
                 onClick={handleResetFilters}
                 className={styles.reset}
-                title="Reset active filters"
+                title="Reset Active Filters"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -666,9 +666,9 @@ const AdminDrivers = () => {
 
       {/* ── Main Content Grid ── */}
       {activeTab === "drivers" && driversError ? (
-        <PageErrorState kind="unavailable" variant="section" title="Collectors couldn't load" onRetry={() => void driversQuery.refetch()} retrying={driversQuery.isFetching} />
+        <PageErrorState kind="unavailable" variant="section" title="Collectors Couldn't Load" onRetry={() => void driversQuery.refetch()} retrying={driversQuery.isFetching} />
       ) : activeTab === "trucks" && trucksError ? (
-        <PageErrorState kind="unavailable" variant="section" title="Trucks couldn't load" onRetry={() => void trucksQuery.refetch()} retrying={trucksQuery.isFetching} />
+        <PageErrorState kind="unavailable" variant="section" title="Trucks Couldn't Load" onRetry={() => void trucksQuery.refetch()} retrying={trucksQuery.isFetching} />
       ) : activeTab === "drivers" ? (
         <DriverCardGrid
           drivers={drivers}

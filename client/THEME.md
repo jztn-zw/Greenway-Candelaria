@@ -1,5 +1,11 @@
 # GreenWay colors
 
+## UI capitalization
+
+Use title case for page and section headings, field labels, short actions, table headers, KPI labels, and status badges. Keep articles, conjunctions, and short prepositions lowercase within titles (for example, "Reports by Barangay"). Capitalize action particles such as "Log Out" and "Zoom In".
+
+Use sentence case for descriptions, helper and validation messages, search placeholders, loading messages, and FAQ questions. Preserve GreenWay, MENRO, GPS, AM/PM, measurement units, proper names, and user-entered content. Change display copy only; keep identifiers and API values unchanged.
+
 Edit the color variables in `src/index.css` to change the website palette.
 
 - `:root` defines the light theme and shared color tones.

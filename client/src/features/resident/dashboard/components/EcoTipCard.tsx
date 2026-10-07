@@ -4,22 +4,22 @@ import { Lightbulb } from "lucide-react";
 
 const TIPS = [
   {
-    title: "Sort waste at home",
+    title: "Sort Waste at Home",
     message:
       "Keep food scraps separate from plastic and other non-biodegradable waste to make proper disposal easier.",
   },
   {
-    title: "Prepare recyclables",
+    title: "Prepare Recyclables",
     message:
       "Empty and rinse bottles and cans before setting them aside for recycling. Clean materials are easier to handle.",
   },
   {
-    title: "Prevent litter",
+    title: "Prevent Litter",
     message:
       "Secure waste bags and keep them in a proper container until collection to help prevent spills and scattered trash.",
   },
   {
-    title: "Check collection updates",
+    title: "Check Collection Updates",
     message:
       "Check your collection schedule and truck updates in GreenWay so you know when to prepare your waste.",
   },
@@ -41,7 +41,7 @@ const EcoTipCard = () => {
         <div className="flex items-center gap-2">
           <Lightbulb className="h-4 w-4 shrink-0 text-primary" />
           <p className="text-xs font-medium text-muted-foreground">
-            Everyday waste tip
+            Everyday Waste Tip
           </p>
         </div>
         <div className="min-h-[4.5rem]">

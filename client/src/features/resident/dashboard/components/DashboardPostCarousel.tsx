@@ -52,14 +52,14 @@ const DashboardPostCarousel = () => {
     return <ResidentDashboardUpdateSkeleton post />;
   }
 
-  if (loadFailed && postsQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Community updates couldn't load" description="We couldn't load published posts. Please try again." onRetry={() => void postsQuery.refetch()} retrying={postsQuery.isFetching} />;
+  if (loadFailed && postsQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Community Updates Couldn't Load" description="We couldn't load published posts. Please try again." onRetry={() => void postsQuery.refetch()} retrying={postsQuery.isFetching} />;
 
   if (posts.length === 0) {
     return (
       <Card className={cn(dashboardStyles.card, "resident-dashboard-update flex h-full flex-col overflow-hidden")}>
         <CardContent className={dashboardStyles.updateInner}>
           <div className={dashboardStyles.updateHeader}>
-            <p className={dashboardStyles.label}>Community updates</p>
+            <p className={dashboardStyles.label}>Community Updates</p>
           </div>
           <div className="flex min-h-32 flex-1 flex-col items-center justify-center gap-3 py-4 text-center">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -67,7 +67,7 @@ const DashboardPostCarousel = () => {
             </div>
             <div className="min-w-0 max-w-full space-y-1">
               <h3 className="gw-heading break-words text-sm leading-snug text-foreground">
-                {loadFailed ? "Community updates unavailable" : "No community updates yet"}
+                {loadFailed ? "Community Updates Unavailable" : "No Community Updates Yet"}
               </h3>
               <p className="break-words text-xs leading-relaxed text-muted-foreground">
                 {loadFailed
@@ -111,7 +111,7 @@ const DashboardPostCarousel = () => {
 
         <div className={dashboardStyles.updateInner}>
           <div className={dashboardStyles.updateHeader}>
-            <p className={dashboardStyles.label}>Community update</p>
+            <p className={dashboardStyles.label}>Community Update</p>
             <Badge className={`shrink-0 ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>{categoryLabel}</Badge>
           </div>
 

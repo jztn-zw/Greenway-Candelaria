@@ -54,7 +54,7 @@ const SkipReasonModal = ({
     <>
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent className={styles.content}>
-        <CollectorModalHeader title="Skip checkpoint" description="Choose a skip reason" icon={<AlertTriangle />} onClose={requestClose} />
+        <CollectorModalHeader title="Skip Checkpoint" description="Choose a skip reason" icon={<AlertTriangle />} onClose={requestClose} />
 
         <div className={styles.body}>
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -102,7 +102,7 @@ const SkipReasonModal = ({
             className={styles.primaryButton}
             onClick={handleConfirm}
           >
-            Confirm skip
+            Confirm Skip
           </Button>
         </div>
       </DialogContent>

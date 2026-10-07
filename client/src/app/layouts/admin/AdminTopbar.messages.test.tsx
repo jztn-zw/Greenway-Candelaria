@@ -50,7 +50,7 @@ function mount(path = "/admin") {
 
 it("opens messaging from another admin page and sends to an offline, unassigned collector", async () => {
   mount("/admin/posts?action=create");
-  const trigger = screen.getByRole("button", { name: "Collector messages" });
+  const trigger = screen.getByRole("button", { name: /^Collector messages$/i });
   await waitFor(() => expect(trigger).toHaveTextContent("402 unread collector messages"));
   expect(fetchAllDrivers).not.toHaveBeenCalled();
   fireEvent.click(trigger);
@@ -65,16 +65,16 @@ it("opens messaging from another admin page and sends to an offline, unassigned 
   expect(mocks.markAsRead).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   fireEvent.click(screen.getByRole("button", { name: "Go to reports" }));
-  fireEvent.click(screen.getByRole("button", { name: "Collector messages" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Collector messages$/i }));
   expect(screen.getByLabelText("Collector")).toHaveTextContent("Offline collector");
 });
 
 it("provides retry when the collector list cannot load", async () => {
   vi.mocked(fetchAllDrivers).mockRejectedValueOnce(new Error("Offline"));
   mount();
-  fireEvent.click(screen.getByRole("button", { name: "Collector messages" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Collector messages$/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not load collectors");
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Try again$/i }));
   await waitFor(() => expect(fetchAllDrivers).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });
@@ -89,17 +89,17 @@ it("opens a notification's exact conversation from any admin page", async () => 
 
 it("keeps the admin page interactive while the floating chat is open", async () => {
   mount();
-  fireEvent.click(screen.getByRole("button", { name: "Collector messages" }));
-  const panel = screen.getByRole("dialog", { name: "Collector messages" });
+  fireEvent.click(screen.getByRole("button", { name: /^Collector messages$/i }));
+  const panel = screen.getByRole("dialog", { name: /^Collector messages$/i });
   expect(panel.getAttribute("aria-modal")).not.toBe("true");
   expect(document.querySelector(".gw-modal-overlay")).toBeNull();
   expect(panel).toHaveClass("admin-messenger-panel");
   fireEvent.click(screen.getByRole("button", { name: "Go to reports" }));
-  expect(screen.getByRole("dialog", { name: "Collector messages" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: /^Collector messages$/i })).toBeTruthy();
   expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toHaveTextContent("Waste Reports");
   fireEvent.keyDown(panel, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Collector messages" }));
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: /^Collector messages$/i }));
 });
 
 it("uses a multiline composer, keeps Shift+Enter for a new line, and sends with Enter", async () => {

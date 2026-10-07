@@ -79,7 +79,7 @@ export function PostActions({ reactionCount, isLiked = false, reactionPending = 
         title={preview ? "Sharing is unavailable in preview" : undefined}
       >
         {linkCopied ? <Check className="text-primary" aria-hidden="true" /> : <Share2 aria-hidden="true" />}
-        <span aria-live="polite" className={`min-w-0 truncate ${linkCopied ? "text-primary" : ""}`}>{linkCopied ? "Link copied" : "Share post"}</span>
+        <span aria-live="polite" className={`min-w-0 truncate ${linkCopied ? "text-primary" : ""}`}>{linkCopied ? "Link Copied" : "Share Post"}</span>
       </Button>
     </div>
   );

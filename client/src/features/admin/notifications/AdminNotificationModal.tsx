@@ -135,7 +135,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
               <p><span className="font-semibold">Vehicle:</span> {reportText("truck_name") || "Assigned truck"}{reportText("truck_plate") ? ` (${reportText("truck_plate")})` : ""}</p>
               <p><span className="font-semibold">Collector:</span> {reportText("driver_name") || "Unknown"}</p>
               <p><span className="font-semibold">Issue:</span> {reportText("category") || "Vehicle breakdown"}</p>
-              <p><span className="font-semibold">Priority:</span> {report.urgent === true ? "Critical road hazard" : "Standard"}</p>
+              <p><span className="font-semibold">Priority:</span> {report.urgent === true ? "Critical Road Hazard" : "Standard"}</p>
               <p className="font-semibold">Description and location</p>
               <p className="whitespace-pre-wrap break-words">{reportText("description") || notification.message}</p>
             </div>

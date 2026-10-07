@@ -10,7 +10,7 @@ const NotFound = () => {
     <PageErrorState
       kind="not-found"
       homeHref={homeHref}
-      homeLabel={homeHref === "/" ? "Go to home" : "Go to dashboard"}
+      homeLabel={homeHref === "/" ? "Go to home" : "Go to Dashboard"}
       fullScreen
     />
   );

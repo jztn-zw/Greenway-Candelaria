@@ -360,7 +360,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                           }}
                           className="h-7 text-xs px-2.5"
                         >
-                          Clear end date
+                          Clear End Date
                         </Button>
                       </div>
                     )}

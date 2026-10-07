@@ -32,7 +32,7 @@ it("allows a failed read receipt to retry instead of permanently acknowledging i
   vi.mocked(markAdminMessagesAsRead).mockRejectedValueOnce(new Error("Offline"));
   mount(); await screen.findByText("Please assist"); await view();
   await screen.findByRole("alert");
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Try again$/i }));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   await view(); expect(markAdminMessagesAsRead).toHaveBeenCalledTimes(2);
 });

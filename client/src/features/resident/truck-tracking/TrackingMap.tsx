@@ -690,14 +690,14 @@ const TrackingMap = ({
           badge: targetTruck?.name || "Collection started",
           icon: <TruckIcon className="w-4 h-4 text-primary" />,
           iconBg: "bg-primary/10 border-primary/25",
-          title: "Collection in progress",
+          title: "Collection in Progress",
           desc: isCalculatingRoute ? "Live location is available. Calculating the travel estimate…" : "Live location is available, but a travel estimate is unavailable.",
         };
       case "paused":
         return {
           icon: <CalendarClock className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
           iconBg: "bg-amber-500/10 border-amber-500/25",
-          title: "Collection temporarily paused",
+          title: "Collection Temporarily Paused",
           desc: "The truck is paused at its last known location. Live arrival estimates will continue when collection resumes.",
         };
       case "completed":
@@ -706,7 +706,7 @@ const TrackingMap = ({
           badgeClass: getStatusBadgeStyle("Completed Today").className,
           icon: <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
           iconBg: "bg-emerald-500/10 border-emerald-500/25",
-          title: "Today's Collection is Complete",
+          title: "Today's Collection Is Complete",
           desc: "Collection for your street has ended. Check your next scheduled collection day.",
           hint: "Thank you for keeping your waste segregated",
           isLiveWaiting: false,
@@ -854,7 +854,7 @@ const TrackingMap = ({
                 <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-ui-overline text-muted-foreground font-medium flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-primary" />
-                    {routeData.source === "haversine" ? "Straight-line distance" : "Road distance"}
+                    {routeData.source === "haversine" ? "Straight-Line Distance" : "Road Distance"}
                   </span>
                   <span className="text-sm font-semibold font-body tabular-nums text-foreground tracking-tight mt-0.5">
                     {routeData.distanceKm} km
@@ -864,7 +864,7 @@ const TrackingMap = ({
                 <div className="bg-muted/30 rounded-xl p-2.5 flex flex-col border border-border/40">
                   <span className="text-ui-overline text-muted-foreground font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3 text-primary" />
-                    Travel estimate
+                    Travel Estimate
                   </span>
                   <span className="text-sm font-semibold font-body tabular-nums text-primary tracking-tight mt-0.5">
                     ~{estimatedArrivalMinutes ?? routeData.durationMinutes} mins driving
@@ -910,7 +910,7 @@ const TrackingMap = ({
             {collectionDayStatus === "gps-unavailable" && unavailableResidentTruck?.lastPing && (
               <p className="text-ui-overline text-muted-foreground flex items-center gap-1.5">
                 <Clock className="w-3 h-3 shrink-0" />
-                Last GPS update: {formatManilaDateTime(unavailableResidentTruck.lastPing, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {formatRelativeTime(unavailableResidentTruck.lastPing)}
+                Last GPS Update: {formatManilaDateTime(unavailableResidentTruck.lastPing, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {formatRelativeTime(unavailableResidentTruck.lastPing)}
               </p>
             )}
           </div>
@@ -921,13 +921,13 @@ const TrackingMap = ({
         {residentBarangayCoords && (
           <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
             <Home aria-hidden="true" className={`size-3.5 ${isResidentMissed ? "text-destructive" : "text-primary"}`} />
-            Your area
+            Your Area
             {isResidentCompleted && <CheckCircle2 aria-label="Collection completed" className="size-3.5 text-[hsl(var(--success-600))]" />}
           </span>
         )}
         {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
           <div className={trackingStyles.legend} aria-label="Street collection status">
-            <span>Street coverage:</span>
+            <span>Street Coverage:</span>
             <span className="flex items-center gap-1">
               <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-warning" /> Collecting
             </span>

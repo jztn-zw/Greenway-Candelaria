@@ -42,8 +42,8 @@ const MODULE_OPTIONS = [
 
 const DATE_PRESETS: FilterPillItem<"0" | "7" | "30">[] = [
   { id: "0", label: "Today" },
-  { id: "7", label: "7 days" },
-  { id: "30", label: "30 days" },
+  { id: "7", label: "7 Days" },
+  { id: "30", label: "30 Days" },
 ];
 
 const AuditLogFilters = ({
@@ -126,7 +126,7 @@ const AuditLogFilters = ({
                     options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search by module name…" compactSearchPlaceholder="Module name…"
                     className={styles.module} />
                 </AdminFilterField>
-                <AdminFilterField label="Date range">
+                <AdminFilterField label="Date Range">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -138,7 +138,7 @@ const AuditLogFilters = ({
                         <span>
                           {draft.dateRange.from
                             ? `${format(draft.dateRange.from, "MMM d")}${draft.dateRange.to ? ` – ${format(draft.dateRange.to, "MMM d")}` : ""}`
-                            : "Date range"}
+                            : "Date Range"}
                         </span>
                       </Button>
                     </PopoverTrigger>
@@ -196,7 +196,7 @@ const AuditLogFilters = ({
                   <span>
                     {isCustomDateSelected && dateRange.from
                       ? `${format(dateRange.from, "MMM d")}${dateRange.to ? ` – ${format(dateRange.to, "MMM d")}` : ""}`
-                      : "Date range"}
+                      : "Date Range"}
                   </span>
                 </Button>
               </PopoverTrigger>

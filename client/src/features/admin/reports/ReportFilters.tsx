@@ -153,7 +153,7 @@ const violationTypes: ViolationType[] = [
                       placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" fieldSize="compact"
                       className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs" />
                   </AdminFilterField>
-                  <AdminFilterField label="Sort order">
+                  <AdminFilterField label="Sort Order">
                     <Select value={draft.sortBy} onValueChange={(value) => setDraft({ ...draft, sortBy: value })}>
                       <SelectTrigger aria-label="Sort order" className="h-9 w-full rounded-xl text-xs">
                         <SelectValue placeholder="Sort by" />
@@ -166,7 +166,7 @@ const violationTypes: ViolationType[] = [
                       </SelectContent>
                     </Select>
                   </AdminFilterField>
-                  <AdminFilterField label="Date range">
+                  <AdminFilterField label="Date Range">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -177,7 +177,7 @@ const violationTypes: ViolationType[] = [
                           <span>
                             {draft.dateRange.from
                               ? `${format(draft.dateRange.from, "MMM d")}${draft.dateRange.to ? ` – ${format(draft.dateRange.to, "MMM d")}` : ""}`
-                              : "Pick a date range"}
+                              : "Pick a Date Range"}
                           </span>
                         </Button>
                       </PopoverTrigger>
@@ -270,7 +270,7 @@ const violationTypes: ViolationType[] = [
             className="h-9 px-2.5 text-xs rounded-xl gap-1.5 cursor-pointer transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Clear all</span>
+            <span>Clear All</span>
           </Button>
         )}
 

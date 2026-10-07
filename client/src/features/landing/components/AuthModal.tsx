@@ -238,7 +238,7 @@ const AuthModal = ({
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
               <DialogTitle className="gw-heading gw-auth-title text-foreground">
-                {recoveryReceipt ? "Save your recovery code" : recoveryOpen ? "Reset your password" : tab === "login" ? "Welcome back" : "Create an account"}
+                {recoveryReceipt ? "Save Your Recovery Code" : recoveryOpen ? "Reset Your Password" : tab === "login" ? "Welcome Back" : "Create an Account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
               <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
@@ -259,7 +259,7 @@ const AuthModal = ({
                   )}
                   <div className="space-y-1.5">
                     <Label htmlFor="identifier" className={fieldLabelClass}>
-                      Username or email
+                      Username or Email
                     </Label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -300,10 +300,10 @@ const AuthModal = ({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Checkbox id="remember-me" checked={rememberMe} disabled={loading} onCheckedChange={(checked) => setRememberMe(checked === true)} />
-                      <Label htmlFor="remember-me" className="cursor-pointer text-xs font-normal text-muted-foreground">Remember me</Label>
+                      <Label htmlFor="remember-me" className="cursor-pointer text-xs font-normal text-muted-foreground">Remember Me</Label>
                     </div>
                     <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setErrors({}); setRecoveryOpen(true); }} className="gw-action-link text-xs font-medium transition-colors hover:underline">
-                      Forgot password?
+                      Forgot Password?
                     </button>
                   </div>
 
@@ -325,7 +325,7 @@ const AuthModal = ({
                   {errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
                   <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <Label htmlFor="email" className={fieldLabelClass}>Email address</Label>
+                        <Label htmlFor="email" className={fieldLabelClass}>Email Address</Label>
                         <div className="relative">
                           <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <ClearableInput
@@ -361,7 +361,7 @@ const AuthModal = ({
                         {errors.password && <p className="text-xs text-destructive mt-0.5">{errors.password}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="confirm-password" className={fieldLabelClass}>Confirm password</Label>
+                        <Label htmlFor="confirm-password" className={fieldLabelClass}>Confirm Password</Label>
                         <div className="relative">
                           <Lock className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
@@ -438,15 +438,15 @@ const AuthModal = ({
                 <ul className="mt-7 space-y-4 border-t border-forest-foreground/15 pt-5" aria-label="GreenWay community benefits">
                   <li className="flex items-center gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Users className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-snug">Cleaner communities</span>
+                    <span className="text-sm font-medium leading-snug">Cleaner Communities</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Leaf className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-snug">A greener tomorrow</span>
+                    <span className="text-sm font-medium leading-snug">A Greener Tomorrow</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-forest-foreground/10"><Heart className="h-4 w-4" /></span>
-                    <span className="text-sm font-medium leading-snug">Stronger together</span>
+                    <span className="text-sm font-medium leading-snug">Stronger Together</span>
                   </li>
                 </ul>
               </div>
@@ -455,7 +455,7 @@ const AuthModal = ({
                 <div className="grid grid-cols-2 gap-4 border-t border-forest-foreground/15 pt-5">
                   <div>
                     <p className="gw-stat-value text-2xl tracking-[-0.04em]">12k+</p>
-                    <p className="text-ui-caption text-forest-foreground/70">Active residents</p>
+                    <p className="text-ui-caption text-forest-foreground/70">Active Residents</p>
                   </div>
                   <div className="border-l border-forest-foreground/15 pl-4">
                     <p className="gw-stat-value text-2xl tracking-[-0.04em]">98%</p>

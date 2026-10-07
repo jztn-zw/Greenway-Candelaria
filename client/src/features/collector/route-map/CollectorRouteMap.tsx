@@ -93,7 +93,7 @@ const NoScheduledRouteView = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3.5 rounded-xl bg-muted/20 border border-border/60 text-left">
         <div className="min-w-0">
           <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
-            Shift status
+            Shift Status
           </p>
           <p className="text-xs font-bold text-foreground mt-0.5 flex items-center gap-1.5 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
@@ -103,7 +103,7 @@ const NoScheduledRouteView = ({
 
         <div className="min-w-0">
           <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
-            Dispatch office
+            Dispatch Office
           </p>
           <p className="text-xs font-bold text-foreground mt-0.5 truncate">
             Candelaria MENRO
@@ -112,7 +112,7 @@ const NoScheduledRouteView = ({
 
         <div className="min-w-0">
           <p className="text-ui-overline font-semibold text-muted-foreground uppercase tracking-wider">
-            Live updates
+            Live Updates
           </p>
           <p className="text-xs font-bold text-foreground mt-0.5 truncate">
             Awaiting callout
@@ -128,7 +128,7 @@ const NoScheduledRouteView = ({
             onClick={onViewHistory}
             className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer transition-all"
           >
-            <History className="w-4 h-4 mr-2" /> View route history
+            <History className="w-4 h-4 mr-2" /> View Route History
           </Button>
 
         </div>
@@ -143,7 +143,7 @@ const NoScheduledRouteView = ({
             loadingLabel="Checking assignment…"
             className="gw-action-ghost text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Check for newly assigned route
+            <RefreshCw className="w-3.5 h-3.5" /> Check for Newly Assigned Route
           </Button>
         </div>}
       </div>
@@ -211,7 +211,7 @@ const CollectorRouteMap = () => {
     try {
       const nextPaused = !isPaused;
       await runRouteAction(() => setMyRoutePaused(routeInfo.routeId, nextPaused));
-      toast.success(nextPaused ? "Route paused" : "Route resumed", {
+      toast.success(nextPaused ? "Route Paused" : "Route resumed", {
         description: nextPaused
           ? "GPS updates and collection actions are on hold."
           : "GPS updates and collection actions are active again.",
@@ -389,7 +389,7 @@ const CollectorRouteMap = () => {
   // ─── Render guards ──────────────────────────────────────────────────────────
   if (isLoading) return <CollectorRouteMapSkeleton />;
 
-  if (error && !hasLoadedData) return <RouteMapError title="This page couldn't load" message="We couldn't load your assigned route. Check your connection and try again." onRetry={refresh} retrying={isRefreshing} />;
+  if (error && !hasLoadedData) return <RouteMapError title="This Page Couldn't Load" message="We couldn't load your assigned route. Check your connection and try again." onRetry={refresh} retrying={isRefreshing} />;
 
   if (!matchesCollectorRouteAlert(searchParams, routeInfo)) {
     return <RouteMapError title="Route alert unavailable" message="The route in this notification is no longer your current assignment. Open Notifications in the topbar to review the alert." onRetry={refresh} retrying={isRefreshing} />;
@@ -450,7 +450,7 @@ const CollectorRouteMap = () => {
             loading={isStartingRoute}
             loadingLabel="Starting route…"
           >
-            <span className="flex items-center gap-2"><Play className="h-4 w-4 fill-current" /> Start collection route</span>
+            <span className="flex items-center gap-2"><Play className="h-4 w-4 fill-current" /> Start Collection Route</span>
           </Button>
         </div>
       );
@@ -512,12 +512,12 @@ const CollectorRouteMap = () => {
                 {isWithinGeofence ? (
                   <span className="flex min-w-0 items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span className="break-words whitespace-normal">Complete stop (Arrived)</span>
+                    <span className="break-words whitespace-normal">Complete Stop (Arrived)</span>
                   </span>
                 ) : (
                   <span className="flex min-w-0 items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span className="break-words whitespace-normal">Mark stop as cleared</span>
+                    <span className="break-words whitespace-normal">Mark Stop as Cleared</span>
                   </span>
                 )}
               </Button>
@@ -528,7 +528,7 @@ const CollectorRouteMap = () => {
                 onClick={() => setShowSkipModal(true)}
             disabled={mutating !== null || isPaused || isPauseUpdating}
                 className="h-12 px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
-                title="Skip this stop"
+                title="Skip This Stop"
               >
                 <SkipForward className="w-4 h-4 shrink-0" />
                 <span>Skip</span>
@@ -584,7 +584,7 @@ const CollectorRouteMap = () => {
             </div>
             <div className="min-w-0 flex-1">
               <span className="text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-300">
-                Route paused
+                Route Paused
               </span>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 GPS updates and collection actions are temporarily on hold. Residents and dispatchers see that your truck is paused.
@@ -605,7 +605,7 @@ const CollectorRouteMap = () => {
           <span>You are offline</span>
           {pendingSync > 0 && (
             <span className="text-muted-foreground break-words">
-              — {pendingSync} GPS ping{pendingSync > 1 ? "s" : ""} queued, will sync when reconnected
+              — {pendingSync} GPS Ping{pendingSync > 1 ? "s" : ""} queued, will sync when reconnected
             </span>
           )}
         </div>
@@ -618,7 +618,7 @@ const CollectorRouteMap = () => {
             <section aria-label="Planned route map" className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3 sm:px-5">
                 <div>
-                  <h2 className="gw-heading text-sm text-foreground sm:text-base">Planned route</h2>
+                  <h2 className="gw-heading text-sm text-foreground sm:text-base">Planned Route</h2>
                   <p className="text-xs text-muted-foreground">Assigned street locations on the map</p>
                 </div>
                 <span className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1 text-ui-caption font-semibold text-muted-foreground">Preview</span>
@@ -638,7 +638,7 @@ const CollectorRouteMap = () => {
             <section aria-label="Assigned stop order" className="min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="gw-heading text-sm text-foreground sm:text-base">Stop order</h2>
+                  <h2 className="gw-heading text-sm text-foreground sm:text-base">Stop Order</h2>
                   <p className="text-xs text-muted-foreground">Follow the assigned order once collection starts</p>
                 </div>
                 <span className="shrink-0 rounded-lg bg-muted/60 px-2.5 py-1 tabular-nums text-xs font-semibold tabular-nums text-foreground">{autoRoutedStops.length}</span>
@@ -690,7 +690,7 @@ const CollectorRouteMap = () => {
           <div className="flex flex-wrap items-center justify-between shrink-0 gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <h2 className="gw-heading text-xs sm:text-sm text-foreground tracking-tight truncate">
-                Collection checkpoints
+                Collection Checkpoints
               </h2>
               <span className="text-ui-overline px-2 py-0.5 rounded-lg bg-muted/80 text-muted-foreground font-semibold tabular-nums shrink-0 border border-border/60">
                 {autoRoutedStops.length} stops
@@ -736,12 +736,12 @@ const CollectorRouteMap = () => {
                 {isPaused ? (
                   <>
                     <Play className="w-4 h-4 shrink-0 fill-current" />
-                    <span className="truncate">Resume<span className="hidden min-[380px]:inline"> route</span></span>
+                    <span className="truncate">Resume<span className="hidden min-[380px]:inline"> Route</span></span>
                   </>
                 ) : (
                   <>
                     <Pause className="w-4 h-4 shrink-0" />
-                    <span className="truncate">Pause<span className="hidden min-[380px]:inline"> route</span></span>
+                    <span className="truncate">Pause<span className="hidden min-[380px]:inline"> Route</span></span>
                   </>
                 )}
               </Button>
@@ -758,7 +758,7 @@ const CollectorRouteMap = () => {
                 <>
                     <Flag className="w-4 h-4 shrink-0" />
                     <span className="truncate">
-                      {remaining === 0 ? "Conclude shift" : "End route"}
+                      {remaining === 0 ? "Conclude Shift" : "End Route"}
                     </span>
                   </>
               </Button>

@@ -11,7 +11,7 @@ afterEach(cleanup);
 it("returns from an untouched editor using Back", () => {
   const onBack = vi.fn();
   render(<PostEditor editingPost={null} onBack={onBack} onSave={vi.fn()} isSaving={false} />);
-  fireEvent.click(screen.getByRole("button", { name: "Back to posts" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Back to posts$/i }));
   expect(onBack).toHaveBeenCalledOnce();
 });
 
@@ -19,7 +19,7 @@ it("protects unsaved content when Back is pressed and returns only after discard
   const onBack = vi.fn();
   render(<PostEditor editingPost={null} onBack={onBack} onSave={vi.fn()} isSaving={false} />);
   fireEvent.change(screen.getByPlaceholderText("e.g., Household Waste Segregation Guidelines for 2026"), { target: { value: "Unsaved post" } });
-  fireEvent.click(screen.getByRole("button", { name: "Back to posts" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Back to posts$/i }));
   expect(onBack).not.toHaveBeenCalled();
   expect(screen.getByRole("dialog")).toHaveTextContent("Save as Draft?");
   fireEvent.click(screen.getByRole("button", { name: "Discard Post" }));
@@ -29,7 +29,7 @@ it("protects unsaved content when Back is pressed and returns only after discard
 it("disables Back while a post is saving", () => {
   const onBack = vi.fn();
   render(<PostEditor editingPost={null} onBack={onBack} onSave={vi.fn()} isSaving />);
-  const back = screen.getByRole("button", { name: "Back to posts" });
+  const back = screen.getByRole("button", { name: /^Back to posts$/i });
   expect(back).toBeDisabled();
   fireEvent.click(back);
   expect(onBack).not.toHaveBeenCalled();

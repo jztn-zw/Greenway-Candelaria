@@ -15,7 +15,7 @@ const statusConfig = {
     badgeClass: getStatusBadgeStyle("Completed").className,
   },
   "in-progress": {
-    label: "Current target",
+    label: "Current Target",
     icon: Navigation,
     badgeClass: getStatusBadgeStyle("Current target").className,
   },

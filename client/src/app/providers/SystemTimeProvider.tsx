@@ -1,5 +1,4 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
-import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import api from "@/lib/api";
 import { getServerNow, syncServerClock } from "@/lib/serverClock";
 import { useSystemTime } from "@/hooks/useSystemTime";
@@ -42,14 +41,11 @@ const SystemTimeProvider = ({ children }: PropsWithChildren) => {
     };
   }, [attempt]);
   if (now !== null || getServerNow() !== null) return children;
-  if (failed) return <PageErrorState fullScreen kind="unavailable" title="Unable to load GreenWay" description="We couldn't connect to the system. Check your connection and try again." onRetry={() => { setFailed(false); setAttempt(value => value + 1); }} />;
+  if (failed) return <PageErrorState fullScreen kind="unavailable" title="Unable to Load GreenWay" description="We couldn't connect to the system. Check your connection and try again." onRetry={() => { setFailed(false); setAttempt(value => value + 1); }} />;
   return (
-    <div role="status" className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4 text-sm text-muted-foreground">
-      <ActionButtonLoader
-        variant="display"
-        className="text-primary [--action-loader-width:7rem] [--action-loader-height:4.5rem] [--action-loader-canvas-size:10rem] md:[--action-loader-width:9rem] md:[--action-loader-height:5.75rem] md:[--action-loader-canvas-size:13rem] lg:[--action-loader-width:11rem] lg:[--action-loader-height:7rem] lg:[--action-loader-canvas-size:16rem]"
-      />
-      <span>Loading GreenWay…</span>
+    <div role="status" className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <img src="/greenway.svg" alt="" aria-hidden="true" width={112} height={112} className="size-20 object-contain sm:size-24 lg:size-28" />
+      <span className="sr-only">Loading GreenWay…</span>
     </div>
   );
 };

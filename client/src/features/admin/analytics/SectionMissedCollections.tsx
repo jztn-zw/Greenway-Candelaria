@@ -5,8 +5,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { AlertTriangle, MapPin, MessageSquareWarning } from "lucide-react";
 import { useAnalyticsData } from "./AnalyticsDataContext";
 
-const weeklyConfig = { missed: { label: "Missed stops", color: "hsl(var(--error))" } };
-const areaConfig = { missed: { label: "Missed stops", color: "hsl(var(--error))" } };
+const weeklyConfig = { missed: { label: "Missed Stops", color: "hsl(var(--error))" } };
+const areaConfig = { missed: { label: "Missed Stops", color: "hsl(var(--error))" } };
 const reasonColors = ["hsl(var(--error))", "hsl(var(--warning))", "hsl(var(--info))", "hsl(var(--chart-1))"];
 
 const SectionMissedCollections: React.FC = () => {
@@ -24,7 +24,7 @@ const SectionMissedCollections: React.FC = () => {
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="gw-heading text-sm text-foreground">Missed stops by week</h3>
+                <h3 className="gw-heading text-sm text-foreground">Missed Stops by Week</h3>
                 <p className="text-xs text-muted-foreground">A stop marked missed after a route ends or is skipped.</p>
               </div>
             </div>
@@ -47,7 +47,7 @@ const SectionMissedCollections: React.FC = () => {
               <MapPin className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="gw-heading text-sm text-foreground">Areas needing follow-up</h3>
+              <h3 className="gw-heading text-sm text-foreground">Areas Needing Follow-Up</h3>
               <p className="text-xs text-muted-foreground">Stops missed within the selected period.</p>
             </div>
           </div>
@@ -73,7 +73,7 @@ const SectionMissedCollections: React.FC = () => {
             <MessageSquareWarning className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="gw-heading text-sm text-foreground">Recorded skip reasons</h3>
+            <h3 className="gw-heading text-sm text-foreground">Recorded Skip Reasons</h3>
             <p className="text-xs text-muted-foreground">Reasons saved when a driver marks a route stop as missed.</p>
           </div>
         </div>

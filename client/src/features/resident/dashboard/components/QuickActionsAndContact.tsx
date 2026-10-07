@@ -67,7 +67,7 @@ const QuickActionsAndContact = () => {
           className="h-9 w-full gap-2 text-xs"
         >
           <ClipboardList className="w-3.5 h-3.5" />
-          Track my reports
+          Track My Reports
         </Button>
       </div>
     </Card>

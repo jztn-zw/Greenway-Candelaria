@@ -36,20 +36,20 @@ const openModal = (tab: "login" | "register") => {
 it("clears passwords on close while keeping the resident's other signup details", async () => {
   const modal = render(<MemoryRouter><AuthModal open onOpenChange={() => {}} defaultTab="register" /></MemoryRouter>);
   fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "FixturePassword1!" } });
-  fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "FixturePassword1!" } });
-  fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "resident@example.test" } });
+  fireEvent.change(screen.getByLabelText(/^Confirm password$/i), { target: { value: "FixturePassword1!" } });
+  fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "resident@example.test" } });
   modal.rerender(<MemoryRouter><AuthModal open={false} onOpenChange={() => {}} defaultTab="register" /></MemoryRouter>);
   modal.rerender(<MemoryRouter><AuthModal open onOpenChange={() => {}} defaultTab="register" /></MemoryRouter>);
-  expect(await screen.findByLabelText(/Email address/)).toHaveValue("resident@example.test");
+  expect(await screen.findByLabelText(/Email address/i)).toHaveValue("resident@example.test");
   expect(screen.getByLabelText("Password", { exact: true })).toHaveValue("");
-  expect(screen.getByLabelText("Confirm password")).toHaveValue("");
+  expect(screen.getByLabelText(/^Confirm password$/i)).toHaveValue("");
 });
 
 it.each([false, true])("uses the remember-me choice on login (%s)", async (rememberMe) => {
   openModal("login");
-  fireEvent.change(screen.getByLabelText("Username or email"), { target: { value: "resident" } });
+  fireEvent.change(screen.getByLabelText(/^Username or email$/i), { target: { value: "resident" } });
   fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "FixturePassword1!" } });
-  const remember = screen.getByRole("checkbox", { name: "Remember me" });
+  const remember = screen.getByRole("checkbox", { name: /^Remember me$/i });
   expect(remember).not.toBeChecked();
   if (rememberMe) fireEvent.click(remember);
   fireEvent.click(screen.getByRole("button", { name: "Log In to GreenWay" }));
@@ -60,9 +60,9 @@ it.each([false, true])("uses the remember-me choice on login (%s)", async (remem
 
 const fillRegistration = async (open = true) => {
   if (open) openModal("register");
-  fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "resident@example.test" } });
+  fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "resident@example.test" } });
   fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "FixturePassword1!" } });
-  fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "FixturePassword1!" } });
+  fireEvent.change(screen.getByLabelText(/^Confirm password$/i), { target: { value: "FixturePassword1!" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I agree/ }));
 };
 
@@ -70,49 +70,49 @@ it("blocks missing or mismatched confirmation, then accepts matching passwords",
   openModal("register");
   fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "FixturePassword1!" } });
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText(/^Confirm password$/i)).toHaveAttribute("aria-invalid", "true");
   expect(registrations).toHaveLength(0);
-  fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "DifferentPassword1!" } });
+  fireEvent.change(screen.getByLabelText(/^Confirm password$/i), { target: { value: "DifferentPassword1!" } });
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText(/^Confirm password$/i)).toHaveAttribute("aria-invalid", "true");
   expect(registrations).toHaveLength(0);
   await fillRegistration(false);
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  await screen.findByRole("heading", { name: /^Welcome back/ });
+  await screen.findByRole("heading", { name: /^Welcome back/i });
   expect(registrations).toHaveLength(1);
   expect(registrations[0]).toEqual({ email: "resident@example.test", password: "FixturePassword1!", confirm_password: "FixturePassword1!", terms_accepted: true });
   fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
-  expect(screen.getByLabelText("Confirm password")).toHaveValue("");
+  expect(screen.getByLabelText(/^Confirm password$/i)).toHaveValue("");
 });
 
 it("checks confirmation again when the original password changes", async () => {
   await fillRegistration();
-  fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "FixturePassword1!" } });
+  fireEvent.change(screen.getByLabelText(/^Confirm password$/i), { target: { value: "FixturePassword1!" } });
   fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "ChangedPassword1!" } });
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText(/^Confirm password$/i)).toHaveAttribute("aria-invalid", "true");
   expect(registrations).toHaveLength(0);
 });
 
 it("offers a single password login flow with signup and recovery, without Google", async () => {
   openModal("login");
-  expect(screen.getByLabelText("Username or email")).not.toHaveAttribute("readonly");
+  expect(screen.getByLabelText(/^Username or email$/i)).not.toHaveAttribute("readonly");
   expect(screen.getByLabelText("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
-  expect(screen.getByRole("checkbox", { name: "Remember me" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Forgot password?" })).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: /^Remember me$/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Forgot password\?$/i })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Google/ })).not.toBeInTheDocument();
   expect(screen.queryByText(/or continue with/i)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
-  expect(screen.getByLabelText("Email address")).toBeInTheDocument();
+  expect(screen.getByLabelText(/^Email address$/i)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Continue with Google" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Log In" }));
-  expect(screen.getByLabelText("Username or email")).toBeInTheDocument();
+  expect(screen.getByLabelText(/^Username or email$/i)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Google/ })).not.toBeInTheDocument();
 });
 
 it.each(["email", "terms"])("requires %s before creating an account", async field => {
   await fillRegistration();
-  if (field === "email") fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "" } });
+  if (field === "email") fireEvent.change(screen.getByLabelText(/^Email address$/i), { target: { value: "" } });
   else fireEvent.click(screen.getByRole("checkbox", { name: /I agree/ }));
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
   expect(registrations).toHaveLength(0);
@@ -123,16 +123,16 @@ it("shows duplicate email below its input and keeps the signup draft", async () 
   api.defaults.adapter = async config => { throw Object.assign(new Error("Email already in use"), { config, response: { config, status: 409, data: { message: "Email already in use" } } }); };
   await fillRegistration();
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  await waitFor(() => expect(screen.getByLabelText(/Email address/)).toHaveAttribute("aria-invalid", "true"));
-  expect(screen.getByLabelText(/Email address/)).toHaveAccessibleDescription("Email already registered. Log in or use another email address.");
-  expect(screen.getByLabelText(/Email address/)).toHaveValue("resident@example.test");
+  await waitFor(() => expect(screen.getByLabelText(/Email address/i)).toHaveAttribute("aria-invalid", "true"));
+  expect(screen.getByLabelText(/Email address/i)).toHaveAccessibleDescription("Email already registered. Log in or use another email address.");
+  expect(screen.getByLabelText(/Email address/i)).toHaveValue("resident@example.test");
 });
 
 it("shows server email validation errors below the email field", async () => {
   api.defaults.adapter = async config => { throw Object.assign(new Error("Invalid email address"), { config, response: { config, status: 400, data: { message: "Invalid email address", errors: [{ field: "email", message: "Invalid email address" }] } } }); };
   await fillRegistration();
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  await waitFor(() => expect(screen.getByLabelText(/Email address/)).toHaveAccessibleDescription("Invalid email address"));
+  await waitFor(() => expect(screen.getByLabelText(/Email address/i)).toHaveAccessibleDescription("Invalid email address"));
 });
 
 it("registers with email only and shows a recovery code until acknowledged", async () => {
@@ -152,14 +152,14 @@ it("registers with email only and shows a recovery code until acknowledged", asy
   fireEvent.click(screen.getByRole("checkbox", { name: "I saved my recovery code" }));
   fireEvent.click(screen.getByRole("button", { name: "Continue to login" }));
   expect(screen.queryByText("ABCD-1234-ABCD-1234-ABCD-1234-ABCD-1234")).not.toBeInTheDocument();
-  expect(screen.getByLabelText("Username or email")).toHaveValue("resident@example.test");
+  expect(screen.getByLabelText(/^Username or email$/i)).toHaveValue("resident@example.test");
 });
 
 it("rejects an invalid required email without losing the signup draft", async () => {
   await fillRegistration();
-  fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "invalid" } });
+  fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "invalid" } });
   fireEvent.click(screen.getByRole("button", { name: "Create My Account" }));
-  expect(screen.getByLabelText(/Email address/)).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText(/Email address/i)).toHaveAttribute("aria-invalid", "true");
   expect(registrations).toHaveLength(0);
 });
 
@@ -170,12 +170,12 @@ it("resets through a recovery code and requires saving the replacement before lo
     return { config, status: 200, statusText: "OK", headers: {}, data: { data: { recovery_code: "FFFF-1234-FFFF-1234-FFFF-1234-FFFF-1234" } } };
   };
   openModal("login");
-  fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
-  fireEvent.change(await screen.findByLabelText("Username or email"), { target: { value: "resident" } });
-  fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: "old-code" } });
-  fireEvent.change(screen.getByLabelText("New password"), { target: { value: "NewPassword123!" } });
-  fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "NewPassword123!" } });
-  fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Forgot password\?$/i }));
+  fireEvent.change(await screen.findByLabelText(/^Username or email$/i), { target: { value: "resident" } });
+  fireEvent.change(screen.getByLabelText(/^Recovery code$/i), { target: { value: "old-code" } });
+  fireEvent.change(screen.getByLabelText(/^New password$/i), { target: { value: "NewPassword123!" } });
+  fireEvent.change(screen.getByLabelText(/^Confirm new password$/i), { target: { value: "NewPassword123!" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Reset password$/i }));
   await screen.findByText("FFFF-1234-FFFF-1234-FFFF-1234-FFFF-1234");
   expect(reset).toMatchObject({ identifier: "resident", new_password: "NewPassword123!", confirm_password: "NewPassword123!" });
   expect(useAuthStore.getState().isAuthenticated).toBe(false);

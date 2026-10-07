@@ -21,15 +21,15 @@ it("reopens the page when the underlying render problem is gone", () => {
   render(<MemoryRouter initialEntries={["/resident/profile"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <WebPageBoundary><Page /></WebPageBoundary>
   </MemoryRouter>);
-  expect(screen.getByRole("heading", { name: "Something went wrong" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /^Something went wrong$/i })).toBeInTheDocument();
   const failedAttempts = attempts;
 
   shouldFail = false;
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Try again$/i }));
 
   expect(attempts).toBeGreaterThan(failedAttempts);
   expect(screen.getByRole("heading", { name: "Page recovered" })).toBeInTheDocument();
-  expect(screen.queryByRole("heading", { name: "Something went wrong" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: /^Something went wrong$/i })).toBeNull();
 });
 
 it("reports that a retry happened when the page fails again", () => {
@@ -45,9 +45,9 @@ it("reports that a retry happened when the page fails again", () => {
   </MemoryRouter>);
   const failedAttempts = attempts;
 
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Try again$/i }));
 
   expect(attempts).toBeGreaterThan(failedAttempts);
   expect(screen.getByText("The page still couldn't open. Please try again in a moment.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: /^Try again$/i })).toBeEnabled();
 });

@@ -24,14 +24,14 @@ interface TruckBreakdownDialogProps {
 }
 
 const categories = [
-  { value: "Flat Tire", label: "Flat tire or puncture" },
-  { value: "Engine Problem", label: "Engine problem or overheating" },
-  { value: "Hydraulic Compactor Fault", label: "Hydraulic compactor fault" },
-  { value: "Brake System Issue", label: "Brake or steering issue" },
-  { value: "Fuel / Fluid Leak", label: "Fuel or fluid leak" },
-  { value: "Battery / Electrical", label: "Battery or electrical failure" },
-  { value: "Road Accident", label: "Road accident or collision" },
-  { value: "Other Issue", label: "Other mechanical issue" },
+  { value: "Flat Tire", label: "Flat Tire or Puncture" },
+  { value: "Engine Problem", label: "Engine Problem or Overheating" },
+  { value: "Hydraulic Compactor Fault", label: "Hydraulic Compactor Fault" },
+  { value: "Brake System Issue", label: "Brake or Steering Issue" },
+  { value: "Fuel / Fluid Leak", label: "Fuel or Fluid Leak" },
+  { value: "Battery / Electrical", label: "Battery or Electrical Failure" },
+  { value: "Road Accident", label: "Road Accident or Collision" },
+  { value: "Other Issue", label: "Other Mechanical Issue" },
 ] as const;
 
 const descriptionLimit = 140;
@@ -104,7 +104,7 @@ const TruckBreakdownDialog = ({
     <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className={`${styles.content} sm:max-w-lg`}>
-        <CollectorModalHeader title="Report truck breakdown" description="Share the issue and your location" icon={<Wrench />} onClose={() => handleOpenChange(false)} disabled={submitting} closeLabel="Close breakdown report" />
+        <CollectorModalHeader title="Report Truck Breakdown" description="Share the issue and your location" icon={<Wrench />} onClose={() => handleOpenChange(false)} disabled={submitting} closeLabel="Close breakdown report" />
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className={styles.body}>
@@ -120,7 +120,7 @@ const TruckBreakdownDialog = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className={`block ${styles.label}`} htmlFor={categoryId}>Issue category</label>
+              <label className={`block ${styles.label}`} htmlFor={categoryId}>Issue Category</label>
               <Select value={category} onValueChange={setCategory} disabled={submitting}>
                 <SelectTrigger id={categoryId} className={styles.select}>
                   <SelectValue placeholder="Select an issue" />
@@ -133,7 +133,7 @@ const TruckBreakdownDialog = ({
 
             <div className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">
-                <label className={styles.label} htmlFor={descriptionId}>Issue details and location</label>
+                <label className={styles.label} htmlFor={descriptionId}>Issue Details and Location</label>
                 <span className="shrink-0 text-ui-caption tabular-nums text-muted-foreground">{description.length}/{descriptionLimit}</span>
               </div>
               <Textarea
@@ -160,7 +160,7 @@ const TruckBreakdownDialog = ({
             <label className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 transition-colors focus-within:ring-2 focus-within:ring-ring ${urgent ? "border-destructive/35 bg-destructive/5" : "border-border/70 bg-muted/20 hover:bg-muted/35"}`}>
               <input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} disabled={submitting} className="mt-0.5 size-4 shrink-0 accent-destructive disabled:cursor-not-allowed" />
               <span className="min-w-0">
-                <span className={`block ${styles.label}`}>Critical road hazard</span>
+                <span className={`block ${styles.label}`}>Critical Road Hazard</span>
                 <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">Select if the truck is immobilized or blocking traffic.</span>
               </span>
             </label>
@@ -170,7 +170,7 @@ const TruckBreakdownDialog = ({
           <div className={styles.footer}>
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting} className={styles.cancelButton}>Cancel</Button>
             <Button type="submit" variant="destructive" disabled={submitting} className={styles.primaryButton} loading={submitting} loadingLabel="Sending report…">
-              Send report
+              Send Report
             </Button>
           </div>
         </form>

@@ -65,7 +65,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
         <form onSubmit={(event) => void submit(event)} className="space-y-4 pt-1">
           <div className="space-y-1.5">
-            <Label htmlFor="collector-new-password" className="text-xs font-medium">New password</Label>
+            <Label htmlFor="collector-new-password" className="text-xs font-medium">New Password</Label>
             <div className="relative">
               <Input
                 id="collector-new-password"
@@ -91,7 +91,7 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="collector-confirm-password" className="text-xs font-medium">Confirm new password</Label>
+            <Label htmlFor="collector-confirm-password" className="text-xs font-medium">Confirm New Password</Label>
             <Input
               id="collector-confirm-password"
               type="password"

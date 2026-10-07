@@ -121,7 +121,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
         {/* ── Scrollable Body ── */}
         <div className="min-h-0 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
-          {isLoading && !analytics ? <ReadAnalyticsSkeleton /> : loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read analytics couldn't load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
+          {isLoading && !analytics ? <ReadAnalyticsSkeleton /> : loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read Analytics Couldn't Load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
           {loadError && <DataRefreshNotice message="Couldn't refresh read analytics. Showing the last loaded results, which may be outdated." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* ── Executive Summary Metrics ── */}
           <div className="rounded-2xl bg-muted/40 border border-border/80 p-3 sm:p-4 space-y-3">
@@ -173,7 +173,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
               </div>
               <span className="text-ui-overline font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1">
                 <TrendingDown className="w-3 h-3" />
-                Lowest read first
+                Lowest Read First
               </span>
             </div>
 

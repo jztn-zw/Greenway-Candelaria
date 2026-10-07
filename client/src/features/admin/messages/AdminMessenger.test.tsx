@@ -34,7 +34,7 @@ it("admin notification links open the specific collector message without a route
 });
 it("admin can select an unassigned collector and reply without route data", async () => {
   await act(async () => { render(<MemoryRouter><AdminMessenger drivers={drivers} /></MemoryRouter>); });
-  expect(screen.queryByRole("button", { name: "Collector messages" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Collector messages$/i })).toBeNull();
   await openCollector("driver");
   vi.mocked(sendConversationMessage).mockResolvedValue({ id: "reply", sender_role: "ADMIN", sender_name: "Admin Maria", message: "We will assist", is_read: false, created_at: "2026-09-28 01:01:00" });
   fireEvent.change(screen.getByRole("textbox", { name: "Message collector" }), { target: { value: "We will assist" } });

@@ -73,7 +73,7 @@ const getEventBadgeInfo = (event: CalendarEvent) => {
   }
   if (titleLower.includes("cleanup") || titleLower.includes("clean-up")) {
     return {
-      label: "Clean-up Drive",
+      label: "Clean-Up Drive",
       badgeClass: getCategoryBadgeColors("Clean-up Drive").className,
       iconClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     };
@@ -136,7 +136,7 @@ const wasteGuidance: Record<NonNullable<CollectionScheduleDay["waste_type"]>, {
 };
 
 const generalCollectionGuidance = {
-  title: "Waste collection",
+  title: "Waste Collection",
   badgeClass: getCategoryBadgeColors("Waste collection").className,
   accepted: [] as string[],
   prohibited: [] as string[],
@@ -293,7 +293,7 @@ const ResidentSchedule = () => {
       {(calendarQuery.isError || scheduleQuery.isError) && <DataRefreshNotice primary message="Some schedule information couldn't load or refresh. Available information is still shown; previously loaded data may be outdated." onRetry={retrySchedule} retrying={calendarQuery.isFetching || scheduleQuery.isFetching} />}
 
       {/* ─── View Tab 1: Monthly Calendar ─── */}
-      {activeTab === "CALENDAR" && (calendarError ? <PageErrorState kind="unavailable" variant="section" title="Calendar couldn't load" description="We couldn't load this month's announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} /> : (
+      {activeTab === "CALENDAR" && (calendarError ? <PageErrorState kind="unavailable" variant="section" title="Calendar Couldn't Load" description="We couldn't load this month's announcements. Please try again." onRetry={() => void calendarQuery.refetch()} retrying={calendarQuery.isFetching} /> : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
           {/* Main Interactive Calendar */}
           <div className="lg:col-span-2 space-y-4">
@@ -368,7 +368,7 @@ const ResidentSchedule = () => {
 
               <CardContent className="p-4 lg:p-5 space-y-4">
                 {/* 1. Regular Waste Collection Card for Selected Day */}
-                {scheduleError ? <PageErrorState kind="unavailable" variant="section" title="Collection details couldn't load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} /> : selectedDayCollection ? (
+                {scheduleError ? <PageErrorState kind="unavailable" variant="section" title="Collection Details Couldn't Load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} /> : selectedDayCollection ? (
                 <div className="rounded-xl border border-border/70 bg-muted/30 dark:bg-muted/20 p-4 space-y-3.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <span className="text-ui-caption font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0 whitespace-nowrap">
@@ -526,7 +526,7 @@ const ResidentSchedule = () => {
         <div className="space-y-4">
           {/* 7-Day Cards Grid */}
           {scheduleError ? (
-            <PageErrorState kind="unavailable" variant="section" title="Weekly schedule couldn't load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} />
+            <PageErrorState kind="unavailable" variant="section" title="Weekly Schedule Couldn't Load" onRetry={() => void scheduleQuery.refetch()} retrying={scheduleQuery.isFetching} />
           ) : filteredWeeklyGuide.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 text-center">
               <CalendarDays className="mx-auto size-6 text-muted-foreground/60" />

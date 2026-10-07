@@ -61,7 +61,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
 
   if (routes.length === 0) {
     return (
-      <ListEmptyState icon={RouteIcon} title="No routes match current filters"
+      <ListEmptyState icon={RouteIcon} title="No Routes Match Current Filters"
         description="Try adjusting your search query, clearing day filters, or creating a new collection route." />
     );
   }
@@ -230,7 +230,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
                             <Power aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            {route.active ? "Disable schedule" : "Enable schedule"}
+                            {route.active ? "Disable Schedule" : "Enable Schedule"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
@@ -243,7 +243,7 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             <span>Delete</span>
                             {route.active && (
                               <span className="ml-auto whitespace-nowrap text-ui-overline text-muted-foreground font-normal">
-                                Disable first
+                                Disable First
                               </span>
                             )}
                           </DropdownMenuItem>

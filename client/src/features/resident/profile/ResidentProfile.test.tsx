@@ -89,7 +89,7 @@ it("resets the street after a barangay change and guards the address draft", asy
   await openField(3); change("resident-address-barangay", "masin"); expect(document.getElementById("resident-address-street")).toHaveValue("");
   change("resident-address-street", "street-2"); await click("Cancel"); expect(document.body.textContent).toContain("Discard Address Changes?");
   await click("Keep Editing"); expect(document.getElementById("resident-address-street")).toHaveValue("street-2");
-  await click("Save address"); expect(updateProfile).toHaveBeenLastCalledWith({ barangay_id: "masin", street_id: "street-2" });
+  await click("Save Address"); expect(updateProfile).toHaveBeenLastCalledWith({ barangay_id: "masin", street_id: "street-2" });
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 it("validates password changes and signs out after a successful update", async () => {
@@ -112,9 +112,9 @@ it("requires confirmation before logging out from the resident profile", async (
 it("lets an existing resident create a recovery code after confirming their password", async () => {
   const replace = vi.spyOn(authService, "replaceRecoveryCode").mockResolvedValue({ recovery_code: "ABCD-1234-ABCD-1234-ABCD-1234-ABCD-1234" });
   try {
-    await click("Manage recovery code");
+    await click("Manage Recovery Code");
     change("recovery-password", "current-password");
-    await click("Create recovery code");
+    await click("Create Recovery Code");
     expect(replace).toHaveBeenCalledWith("current-password");
     expect(document.body.textContent).toContain("ABCD-1234-ABCD-1234-ABCD-1234-ABCD-1234");
     expect(button("Done")).toBeDisabled();

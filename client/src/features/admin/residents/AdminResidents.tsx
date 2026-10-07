@@ -262,7 +262,7 @@ const AdminResidents = () => {
         <div className="admin-toolbar admin-toolbar-resident-controls">
           <div className={styles.toolbar}>
             <div className="min-w-0 admin-toolbar-heading">
-              <h2 className="gw-heading text-base text-foreground">Resident directory</h2>
+              <h2 className="gw-heading text-base text-foreground">Resident Directory</h2>
               <p className="mt-1 text-xs text-muted-foreground">Find accounts by name, contact details, or barangay.</p>
             </div>
             <div className={`${styles.fields} admin-toolbar-search-row`}>
@@ -342,7 +342,7 @@ const AdminResidents = () => {
                   Username
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden lg:table-cell">
-                  Email & phone
+                  Email & Phone
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground py-3">
                   Barangay
@@ -351,7 +351,7 @@ const AdminResidents = () => {
                   Registered
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground py-3 hidden xl:table-cell">
-                  Last login
+                  Last Login
                 </TableHead>
                 <TableHead className="text-xs font-medium text-muted-foreground py-3">
                   Status

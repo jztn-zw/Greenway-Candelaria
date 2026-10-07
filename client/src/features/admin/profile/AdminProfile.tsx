@@ -65,7 +65,7 @@ const ProfileField = ({ label, value, icon: Icon, onEdit, action = "Edit" }: {
       <div className="min-w-0 flex-1"><p className={styles.label}>{label}</p><p className={styles.value}>{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
     </div>
     {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action === "Edit" && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}{action}</Button>
-      : <span className={styles.registeredEmail} title="Registered email"><ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /><span className="admin-profile-email-label" aria-hidden="true">Registered email</span><span className="sr-only">Registered email</span></span>}
+      : <span className={styles.registeredEmail} title="Registered Email"><ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /><span className="admin-profile-email-label" aria-hidden="true">Registered Email</span><span className="sr-only">Registered Email</span></span>}
   </div>
 );
 
@@ -229,18 +229,18 @@ const AdminProfile = () => {
 
         <Section title="Account Overview" description="Current account details from GreenWay" icon={ShieldCheck}>
           <div className={styles.overview}>
-            {[{ label: "Role", value: "Administrator", icon: ShieldCheck }, { label: "Status", value: profile.status.charAt(0) + profile.status.slice(1).toLowerCase(), icon: User }, { label: "Last sign-in", value: lastSignIn, icon: Clock3 }].map(({ label, value, icon: Icon }) => (
+            {[{ label: "Role", value: "Administrator", icon: ShieldCheck }, { label: "Status", value: profile.status.charAt(0) + profile.status.slice(1).toLowerCase(), icon: User }, { label: "Last Sign-In", value: lastSignIn, icon: Clock3 }].map(({ label, value, icon: Icon }) => (
               <div key={label} className={styles.overviewCard}><Icon className="mb-2 size-4 text-primary" /><p className={styles.overviewLabel}>{label}</p><p className="mt-1 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">{value}</p></div>
             ))}
           </div>
         </Section>
 
-        <button type="button" onClick={() => setLogoutOpen(true)} className={styles.logout}><span className="flex min-w-0 items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground"><LogOut className="size-4" /></span><span><span className="block text-sm font-semibold text-foreground">Log Out</span><span className="block text-xs text-muted-foreground">Sign out of this device</span></span></span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>
+        <button type="button" onClick={() => setLogoutOpen(true)} className={styles.logout}><span className="flex min-w-0 items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/60 text-muted-foreground"><LogOut className="size-4" /></span><span><span className="block text-sm font-semibold text-foreground">Log Out</span><span className="block text-xs text-muted-foreground">Sign Out of This Device</span></span></span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>
 
       </div>
 
       <ProfileDialog
-        open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize avatar"
+        open={avatarOpen} onOpenChange={setAvatarOpen} title="Customize Avatar"
         description="Select one of the ten profile avatars." icon={Users} pending={savingAvatar}
         footer={<Button type="button" variant="outline" disabled={savingAvatar} onClick={() => setAvatarOpen(false)} className={profileButtonClass}>Close</Button>}
       >
@@ -283,7 +283,7 @@ const AdminProfile = () => {
         </>}
       >
         <div className="space-y-1.5">
-          <Label htmlFor="admin-current-password" className="text-xs font-medium">Current password</Label>
+          <Label htmlFor="admin-current-password" className="text-xs font-medium">Current Password</Label>
           <div className="relative">
             <Input id="admin-current-password" type={showPassword ? "text" : "password"} autoComplete="current-password"
               value={password.current} onChange={(event) => setPassword((value) => ({ ...value, current: event.target.value }))}
@@ -296,7 +296,7 @@ const AdminProfile = () => {
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="admin-new-password" className="text-xs font-medium">New password</Label>
+          <Label htmlFor="admin-new-password" className="text-xs font-medium">New Password</Label>
           <Input id="admin-new-password" type="password" autoComplete="new-password" value={password.next}
             onChange={(event) => setPassword((value) => ({ ...value, next: event.target.value }))}
             disabled={savingPassword} className={profileInputClass} aria-describedby="admin-password-hint"
@@ -304,7 +304,7 @@ const AdminProfile = () => {
           <p id="admin-password-hint" className="text-ui-caption leading-relaxed text-muted-foreground">Use at least 8 characters.</p>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="admin-confirm-password" className="text-xs font-medium">Confirm new password</Label>
+          <Label htmlFor="admin-confirm-password" className="text-xs font-medium">Confirm New Password</Label>
           <Input id="admin-confirm-password" type="password" autoComplete="new-password" value={password.confirm}
             onChange={(event) => setPassword((value) => ({ ...value, confirm: event.target.value }))}
             disabled={savingPassword} className={profileInputClass}

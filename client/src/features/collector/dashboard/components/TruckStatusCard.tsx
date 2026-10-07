@@ -25,7 +25,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
         <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-2.5 text-muted-foreground border border-border/50">
           <Truck className="w-4 h-4" />
         </div>
-        <p className="text-sm font-semibold text-foreground font-body">No truck assigned</p>
+        <p className="text-sm font-semibold text-foreground font-body">No Truck Assigned</p>
         <p className="text-xs text-muted-foreground mt-0.5 max-w-xs mx-auto">
           Contact your MENRO supervisor or dispatch office for your daily vehicle assignment.
         </p>
@@ -45,25 +45,25 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
         <div className="flex items-center gap-2 min-w-0">
           <Truck className="w-4 h-4 text-primary shrink-0" />
           <h3 className="gw-heading text-sm text-foreground tracking-tight truncate">
-            Assigned vehicle
+            Assigned Vehicle
           </h3>
         </div>
         {isUnderMaintenance ? (
           <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Under maintenance").className}>
-            <Wrench className="w-3 h-3" /> Under maintenance
+            <Wrench className="w-3 h-3" /> Under Maintenance
           </span>
         ) : data.availabilityStatus === "ACTIVE" ? (
           <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Road ready").className}>
-            <ShieldCheck className="w-3 h-3" /> Road ready
+            <ShieldCheck className="w-3 h-3" /> Road Ready
           </span>
-        ) : <span className="text-xs text-muted-foreground">Readiness unavailable</span>}
+        ) : <span className="text-xs text-muted-foreground">Readiness Unavailable</span>}
       </div>
 
       {/* Middle: Balanced 3-Column Vehicle Telemetry Grid */}
       <div className="collector-dashboard-truck-details my-auto py-4">
         <div className="p-1.5 sm:p-2.5 md:p-3 rounded-xl bg-muted/25 border border-border/60 flex flex-col justify-between min-w-0">
           <span className="text-[9px] sm:text-ui-overline font-semibold text-muted-foreground uppercase tracking-tight sm:tracking-wider leading-none truncate">
-            Unit name
+            Unit Name
           </span>
           <div className="min-w-0 mt-1">
             <p className="text-xs sm:text-sm font-semibold text-foreground font-body leading-tight break-words [overflow-wrap:anywhere]">
@@ -77,7 +77,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
 
         <div className="p-1.5 sm:p-2.5 md:p-3 rounded-xl bg-muted/25 border border-border/60 flex flex-col justify-between min-w-0">
           <span className="text-[9px] sm:text-ui-overline font-semibold text-muted-foreground uppercase tracking-tight sm:tracking-wider leading-none truncate">
-            Plate number
+            Plate Number
           </span>
           <div className="min-w-0 mt-1">
             <p className="text-xs sm:text-sm font-semibold tabular-nums text-foreground leading-tight break-words [overflow-wrap:anywhere]">
@@ -91,14 +91,14 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
 
         <div className="p-1.5 sm:p-2.5 md:p-3 rounded-xl bg-muted/25 border border-border/60 flex flex-col justify-between min-w-0">
           <span className="text-[9px] sm:text-ui-overline font-semibold text-muted-foreground uppercase tracking-tight sm:tracking-wider leading-none truncate">
-            Assigned load
+            Assigned Load
           </span>
           <div className="min-w-0 mt-1">
             <p className={`text-xs sm:text-sm font-semibold font-body leading-tight break-words [overflow-wrap:anywhere] ${isNonBiodegradable(data.wasteType) ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
               {data.wasteType || "General waste"}
             </p>
             <p className="text-ui-overline sm:text-ui-caption text-muted-foreground mt-0.5 leading-tight truncate">
-              MENRO trucks
+              MENRO Trucks
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ const TruckStatusCard = ({ data, onReportIssue, className }: Props) => {
             className="gw-action-destructive-outline inline-flex items-center justify-center gap-1.5 min-h-11 px-2.5 sm:px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0"
           >
             <Wrench className="w-3.5 h-3.5" />
-            <span>Report breakdown</span>
+            <span>Report Breakdown</span>
           </button>
         )}
       </div>

@@ -134,7 +134,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
         <span className="text-ui-caption font-medium shrink-0">
           {photos.length >= MAX_REPORT_PHOTOS ? (
             <span className="text-foreground font-semibold px-2 py-0.5 rounded-md bg-muted border border-border/80">
-              5/5 (Max reached)
+              5/5 (Max Reached)
             </span>
           ) : photos.length > 0 ? (
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -189,7 +189,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
               </div>
               <div className="flex flex-col items-center text-center px-1">
                 <span className="text-xs font-semibold text-foreground/90 group-hover:text-primary transition-colors">
-                  Add photo
+                  Add Photo
                 </span>
                 <span className="text-ui-overline text-muted-foreground font-medium">
                   {photos.length}/{MAX_REPORT_PHOTOS} max

@@ -509,7 +509,7 @@ const AnnouncementEditor = ({
                       <div className="space-y-0.5 pr-2">
                         {filteredBarangays.length === 0 ? (
                           <p className="text-xs text-muted-foreground text-center py-4">
-                            No barangays found.
+                            No Barangays Found.
                           </p>
                         ) : (
                           filteredBarangays.map((b) => {
@@ -611,7 +611,7 @@ const AnnouncementEditor = ({
                           <CalendarIcon className="h-4 w-4 text-primary" />
                           {form.calendarDate
                             ? format(parseStoredDate(form.calendarDate), "MMMM d, yyyy")
-                            : "Choose event date"}
+                            : "Choose Event Date"}
                         </span>
                         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                       </FieldButton>
@@ -745,7 +745,7 @@ const AnnouncementEditor = ({
                         <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span className="min-w-0 truncate">{form.expiryDate
                           ? format(parseStoredDate(form.expiryDate), "PPP p")
-                          : "Never expires"}</span>
+                          : "Never Expires"}</span>
                       </FieldButton>
                     </PopoverTrigger>
                     <PopoverContent
@@ -808,7 +808,7 @@ const AnnouncementEditor = ({
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       <span className="min-w-0 truncate">{form.expiryDate
                         ? format(parseStoredDate(form.expiryDate), "PPP p")
-                        : "Never expires (stays visible until manually archived)"}</span>
+                        : "Never Expires (stays visible until manually archived)"}</span>
                     </FieldButton>
                   </PopoverTrigger>
                   <PopoverContent

@@ -47,7 +47,7 @@ it.each(["page", "bell"] as const)("keeps the complete headline and breakdown de
   await act(async () => row.click());
   const dialog = screen.getByRole("dialog");
   expect(dialog).toHaveTextContent("Alex reported a truck breakdown: Truck 2");
-  expect(dialog).toHaveTextContent("Critical road hazard");
+  expect(dialog).toHaveTextContent("Critical Road Hazard");
   expect(dialog).toHaveTextContent("Engine stopped near the route entrance.");
   expect(mocks.markAsRead).toHaveBeenCalledExactlyOnceWith("notice");
 });

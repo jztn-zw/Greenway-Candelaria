@@ -198,14 +198,14 @@ const DriverCardGrid = ({
                       </span>
                     ) : (
                       <span className="text-muted-foreground/60 italic">
-                        No truck assigned
+                        No Truck Assigned
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="truncate">Last login: {d.lastLogin}</span>
+                    <span className="truncate">Last Login: {d.lastLogin}</span>
                   </div>
                 </div>
               </div>

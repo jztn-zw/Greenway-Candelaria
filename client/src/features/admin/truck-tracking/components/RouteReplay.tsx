@@ -236,7 +236,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
   return (
     <section aria-label="Route replay" className="admin-tracking-replay min-w-0 space-y-4 rounded-lg border border-border/80 bg-card p-3 sm:p-4">
       <header className="space-y-1">
-        <h3 className="gw-heading text-sm text-foreground">Route replay</h3>
+        <h3 className="gw-heading text-sm text-foreground">Route Replay</h3>
         <p className="text-xs text-muted-foreground">Review the full recorded trip.</p>
       </header>
       <div className="space-y-3">
@@ -253,7 +253,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
             <PopoverTrigger asChild>
               <Button variant="outline" disabled={exporting} aria-labelledby="replay-date-label replay-date-value" className="h-9 w-full justify-start gap-2 rounded-md text-xs font-normal">
                 <CalendarDays className="size-3.5 shrink-0 text-primary" />
-                <span id="replay-date-value">{date ? format(date, "MMMM d, yyyy") : "Select a date"}</span>
+                <span id="replay-date-value">{date ? format(date, "MMMM d, yyyy") : "Select a Date"}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -267,7 +267,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
           {loadFailed ? <DataRefreshNotice primary role="alert" message={loadMessage || "Couldn't load the route replay. Please try again."} onRetry={() => void loadReplay()} retrying={loading} disabled={!selectedTruck || !date} /> : <>
           <Button onClick={() => void loadReplay()} disabled={!selectedTruck || !date || loading} className="h-9 w-full gap-2 rounded-md text-xs font-semibold" loading={loading} loadingLabel="Loading replay…">
             <Play className="size-3.5" />
-            Load replay
+            Load Replay
           </Button>
           {loadMessage && <p role="status" className="text-xs leading-relaxed text-muted-foreground">{loadMessage}</p>}
           </>}
@@ -278,7 +278,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
           {targetProgress && (
             <dl aria-label="Street target progress" className="border-l-2 border-primary/60 pl-3">
               <div className="space-y-1">
-                <dt className="text-xs text-muted-foreground">Current target street</dt>
+                <dt className="text-xs text-muted-foreground">Current Target Street</dt>
                 <dd className="text-sm font-semibold leading-snug text-foreground">
                   {targetProgress.currentTarget ?? (targetProgress.targetUnknown ? "Not recorded" : targetRows.some(({ stop }) => getReplayTargetState(stop, replayTime) === "upcoming") ? "No active target" : "No remaining target")}
                 </dd>
@@ -294,14 +294,14 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
                   else { syncClock(); setPlaying(!playing); }
                 }}>
                   {playing && !finished ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-                  {finished ? "Replay again" : playing ? "Pause" : "Play"}
+                  {finished ? "Replay Again" : playing ? "Pause" : "Play"}
                 </Button>
-                <Button variant="outline" aria-label="Restart replay" title="Restart replay" className="size-9 shrink-0 rounded-md p-0" onClick={restart}>
+                <Button variant="outline" aria-label="Restart replay" title="Restart Replay" className="size-9 shrink-0 rounded-md p-0" onClick={restart}>
                   <RotateCcw className="size-3.5" />
                 </Button>
               </div>
               <div className="space-y-1.5">
-                <span id="replay-speed-label" className="text-xs text-muted-foreground">Playback speed</span>
+                <span id="replay-speed-label" className="text-xs text-muted-foreground">Playback Speed</span>
                 <div role="group" aria-labelledby="replay-speed-label" className="admin-tracking-replay-speeds grid grid-cols-6 gap-1 rounded-md bg-muted/40 p-1">
                   {SPEED_OPTIONS.map((value) => (
                     <button key={value} type="button" aria-pressed={speed === value} onClick={() => { syncClock(); setSpeed(value); }} className={cn("min-h-8 min-w-0 rounded-md px-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", speed === value ? "bg-primary text-primary-foreground" : "gw-action-ghost ")}>{value}×</button>
@@ -315,7 +315,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
                 </div>
                 <Slider aria-label="Trip replay progress" value={[elapsedMs]} min={0} max={durationMs} step={1} onValueChange={([value]) => seek(value)} />
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-ui-caption tabular-nums text-muted-foreground">
-                  <span>Replay time: {formatReplayTime(sample?.timestamp)}</span>
+                  <span>Replay Time: {formatReplayTime(sample?.timestamp)}</span>
                   <span>End: {formatReplayTime(trip.timestamps[lastIndex])}</span>
                 </div>
               </div>
@@ -332,7 +332,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
             </div>
           </div>
           <div className="space-y-2">
-            <h4 className="gw-heading text-xs text-foreground">Target streets</h4>
+            <h4 className="gw-heading text-xs text-foreground">Target Streets</h4>
             {targetRows.length ? (
               <>
                 <p className="text-ui-caption text-muted-foreground">Select a street to replay from its start.</p>
@@ -367,7 +367,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
             {canPlay && <div className="space-y-1.5">
               <Button variant="outline" disabled={exporting} onClick={() => { setExportError(""); setExportOpen(true); }} className="h-9 w-full gap-2 rounded-md text-xs font-semibold">
                 <Video className="size-3.5" />
-                Download video
+                Download Video
               </Button>
               <p className="text-ui-caption text-muted-foreground">Save the full map replay at your chosen speed.</p>
             </div>}
@@ -375,17 +375,17 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
         </>
       )}
       <FormDialog open={exportOpen} onOpenChange={setExportOpen} pending={exporting}
-        title="Download replay video" description="Choose your playback speed." icon={<Video className="size-5" />}
+        title="Download Replay Video" description="Choose your playback speed." icon={<Video className="size-5" />}
         footer={<>
           <Button variant="outline" onClick={() => { exportAbortRef.current?.abort(); setExportOpen(false); }}>Cancel</Button>
           <Button className="min-w-[12.5rem]" disabled={exporting || !canPlay} onClick={() => void downloadVideo()} loading={exporting} loadingLabel={exportStageLabel}>
 
-            Create video
+            Create Video
           </Button>
         </>}>
         <div className="space-y-4">
           <fieldset disabled={exporting} className="space-y-2">
-            <legend className="mb-2 text-sm font-semibold">Video speed</legend>
+            <legend className="mb-2 text-sm font-semibold">Video Speed</legend>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {REPLAY_VIDEO_SPEEDS.map((value) => <label key={value} className="cursor-pointer">
                 <input type="radio" name="replay-video-speed" value={value} checked={exportSpeed === value} onChange={() => setExportSpeed(value)} className="peer sr-only" />

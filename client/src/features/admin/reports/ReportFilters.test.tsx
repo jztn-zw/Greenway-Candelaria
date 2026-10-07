@@ -38,7 +38,7 @@ it("keeps report dropdowns and calendar usable and applies selections only on Ap
   fireEvent.click(screen.getByRole("option", { name: "Poblacion" }));
   expect(within(dialog).getByRole("combobox", { name: "Barangay" })).toHaveTextContent("Poblacion");
   expect(barangayChanged).not.toHaveBeenCalled();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Pick a date range" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: /^Pick a date range$/i }));
   expect(screen.getByRole("button", { name: "Go to previous month" })).toBeInTheDocument();
   const selectedDate = new Date();
   selectedDate.setDate(10);

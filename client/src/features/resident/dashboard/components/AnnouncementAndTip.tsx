@@ -72,7 +72,7 @@ const AnnouncementAndTip = () => {
     return <ResidentDashboardUpdateSkeleton />;
   }
 
-  if (loadFailed && announcementQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Announcements couldn't load" description="We couldn't load official notices. Please try again." onRetry={() => void announcementQuery.refetch()} retrying={announcementQuery.isFetching} />;
+  if (loadFailed && announcementQuery.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Announcements Couldn't Load" description="We couldn't load official notices. Please try again." onRetry={() => void announcementQuery.refetch()} retrying={announcementQuery.isFetching} />;
 
   // Clean empty state when no active announcements exist in database
   if (!announcement) {
@@ -84,12 +84,12 @@ const AnnouncementAndTip = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5 gap-2">
                 <p className="truncate text-xs font-medium text-muted-foreground">
-                  Latest announcement
+                  Latest Announcement
                 </p>
               </div>
 
               <p className="gw-heading text-base text-foreground">
-                {loadFailed ? "Announcements unavailable" : "No active announcements"}
+                {loadFailed ? "Announcements Unavailable" : "No Active Announcements"}
               </p>
               <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 {loadFailed
@@ -104,11 +104,11 @@ const AnnouncementAndTip = () => {
                 onClick={() => navigate("/resident/contents")}
                 className="gw-action-primary-ghost group inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all"
               >
-                View all bulletins <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                View All Bulletins <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
               <div className="flex items-center gap-1.5 text-ui-caption text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden lg:inline">MENRO verified</span>
+                <span className="hidden lg:inline">MENRO Verified</span>
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@ const AnnouncementAndTip = () => {
 
           <div className={dashboardStyles.updateInner}>
             <div className={dashboardStyles.updateHeader}>
-              <p className={dashboardStyles.label}>Latest announcement</p>
+              <p className={dashboardStyles.label}>Latest Announcement</p>
               <Badge className={"shrink-0 " + getCategoryBadgeColors(announcement.type).className}>{announcement.type}</Badge>
             </div>
             <div className={dashboardStyles.updateBody}>
@@ -140,7 +140,7 @@ const AnnouncementAndTip = () => {
             <div className={dashboardStyles.updateFooter}>
               <div className="flex items-center gap-1.5 text-ui-caption font-medium text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden lg:inline">MENRO verified</span>
+                <span className="hidden lg:inline">MENRO Verified</span>
               </div>
             </div>
           </div>

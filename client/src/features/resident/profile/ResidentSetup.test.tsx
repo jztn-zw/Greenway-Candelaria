@@ -25,9 +25,9 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const fill = async () => {
-  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Test Resident" } });
+  fireEvent.change(screen.getByLabelText(/^Full name$/i), { target: { value: "Test Resident" } });
   fireEvent.change(screen.getByLabelText("Username"), { target: { value: "resident" } });
-  fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "9123456789" } });
+  fireEvent.change(screen.getByLabelText(/^Phone number$/i), { target: { value: "9123456789" } });
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Barangay" })).not.toBeDisabled());
   fireEvent.click(screen.getByRole("combobox", { name: "Barangay" }));
   fireEvent.click(await screen.findByRole("option", { name: "Test barangay" }));
@@ -37,7 +37,7 @@ const fill = async () => {
 };
 it("requires setup before mounting resident features and skips it for completed accounts", async () => {
   const view = render(<MemoryRouter><ResidentLayout /></MemoryRouter>);
-  expect(screen.getByRole("heading", { name: /Complete your resident profile/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Complete your resident profile/i })).toBeInTheDocument();
   expect(screen.queryByText("Resident sidebar")).not.toBeInTheDocument();
   await act(async () => { useAuthStore.setState({ user: { ...pending, profile_completed: true } }); });
   view.rerender(<MemoryRouter><ResidentLayout /></MemoryRouter>);
@@ -47,11 +47,11 @@ it("retains the draft after failure and completes only after server success", as
   const save = vi.spyOn(authService, "completeResidentProfile").mockRejectedValueOnce({ response: { data: { message: "Username is already in use" } } }).mockResolvedValue({ ...pending, full_name: "Test Resident", username: "resident", profile_completed: true });
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
-  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   expect(await screen.findByText("Username is already in use")).toBeInTheDocument();
-  expect(screen.getByLabelText("Full name")).toHaveValue("Test Resident");
+  expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
   expect(useAuthStore.getState().user?.profile_completed).toBe(false);
-  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(useAuthStore.getState().user?.profile_completed).toBe(true));
   expect(save).toHaveBeenLastCalledWith({ full_name: "Test Resident", username: "resident", phone: "+639123456789", barangay_id: "barangay-a", street_id: "street-a" });
 });
@@ -61,7 +61,7 @@ it("allows selecting a saved street even when collection service is unavailable"
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
   expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Main Street");
-  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: "street-a" })));
 });
 it.each([
@@ -72,11 +72,11 @@ it.each([
   const save = vi.spyOn(authService, "completeResidentProfile");
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
-  const phone = screen.getByLabelText("Phone number");
+  const phone = screen.getByLabelText(/^Phone number$/i);
   expect(phone).toBeRequired();
   expect(phone).toHaveAccessibleDescription(/staff can contact you.*report/);
   fireEvent.change(phone, { target: { value } });
-  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   expect(await screen.findByText(message)).toBeInTheDocument();
   expect(phone).toHaveAttribute("aria-invalid", "true");
   expect(save).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ it("ignores a setup response after the signed-in account changes", async () => {
   vi.spyOn(authService, "completeResidentProfile").mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
-  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(finish).toBeDefined());
   await act(async () => {
     useAuthStore.setState({ user: { ...pending, id: "different" }, token: "different-token" });

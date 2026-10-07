@@ -44,15 +44,15 @@ const getGpsSignal = (lastPingIso: string | null, status: AdminTruck["status"]) 
   const ageSeconds = Math.max(0, Math.floor((getSystemNow() - ping.getTime()) / 1000));
   const age = ageSeconds < 60 ? `${ageSeconds}s ago` : ageSeconds < 3600 ? `${Math.floor(ageSeconds / 60)}m ago` : `${Math.floor(ageSeconds / 3600)}h ago`;
   if (status === "paused") {
-    return { Icon: SignalZero, className: "text-muted-foreground", label: "GPS paused", age };
+    return { Icon: SignalZero, className: "text-muted-foreground", label: "GPS Paused", age };
   }
   if (ageSeconds <= 30) {
     return { Icon: SignalHigh, className: "text-emerald-600 dark:text-emerald-400", label: "Strong GPS", age };
   }
   if (ageSeconds <= 90) {
-    return { Icon: SignalMedium, className: "text-amber-600 dark:text-amber-400", label: "GPS delayed", age };
+    return { Icon: SignalMedium, className: "text-amber-600 dark:text-amber-400", label: "GPS Delayed", age };
   }
-  return { Icon: SignalLow, className: "text-red-600 dark:text-red-400", label: "GPS needs attention", age };
+  return { Icon: SignalLow, className: "text-red-600 dark:text-red-400", label: "GPS Needs Attention", age };
 };
 
 interface AdminTrackingMapProps {

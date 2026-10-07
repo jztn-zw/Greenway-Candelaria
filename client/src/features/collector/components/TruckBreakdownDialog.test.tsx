@@ -13,7 +13,7 @@ it("requires a location and sends the selected breakdown details", async () => {
   const root = createRoot(host);
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   const onOpenChange = vi.fn();
-  const send = () => [...document.querySelectorAll("button")].find((button) => button.textContent?.includes("Send report")) as HTMLButtonElement;
+  const send = () => [...document.querySelectorAll("button")].find((button) => button.textContent?.includes("Send Report")) as HTMLButtonElement;
 
   try {
     await act(async () => {
@@ -54,7 +54,7 @@ it("protects an unsent breakdown draft and retains it after a failed submission"
     act(() => Simulate.change(document.querySelector("textarea")!, { target: { value: "Flat tire near chapel" } } as never));
     await click("Cancel"); expect(onOpenChange).not.toHaveBeenCalled(); expect(document.body.textContent).toContain("Discard Breakdown Report?");
     await click("Keep Editing"); expect(document.querySelector("textarea")).toHaveValue("Flat tire near chapel");
-    await click("Send report"); expect(document.querySelector('[role="alert"]')).toHaveTextContent("The report could not be sent");
+    await click("Send Report"); expect(document.querySelector('[role="alert"]')).toHaveTextContent("The report could not be sent");
     expect(document.querySelector("textarea")).toHaveAttribute("aria-invalid", "false");
     expect(document.querySelector("textarea")).not.toHaveAttribute("aria-errormessage");
     expect(document.querySelector("textarea")).toHaveValue("Flat tire near chapel"); expect(onOpenChange).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ const mountReport = async (onSubmit = vi.fn().mockResolvedValue(undefined)) => {
     onOpenChange,
     change: (value: string) => act(() => Simulate.change(details, { target: { value } } as never)),
     send: async () => {
-      await act(async () => [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === "Send report")!.click());
+      await act(async () => [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === "Send Report")!.click());
     },
     cleanup: () => { act(() => root.unmount()); host.remove(); },
   };

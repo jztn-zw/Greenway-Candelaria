@@ -55,13 +55,13 @@ it("stages Reset without clearing applied filters until Apply", () => {
   const applied = vi.fn();
   render(<Filters applied={applied} initialStatus="resolved" />);
   const dialog = openFilters();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Reset filters" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: /^Reset filters$/i }));
   expect(within(dialog).getByRole("combobox", { name: "Status" })).toHaveValue("all");
   expect(applied).not.toHaveBeenCalled();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close filters" }));
   const reopened = openFilters();
   expect(within(reopened).getByRole("combobox", { name: "Status" })).toHaveValue("resolved");
-  fireEvent.click(within(reopened).getByRole("button", { name: "Reset filters" }));
+  fireEvent.click(within(reopened).getByRole("button", { name: /^Reset filters$/i }));
   fireEvent.click(within(reopened).getByRole("button", { name: "Apply Filters" }));
   expect(applied).toHaveBeenCalledExactlyOnceWith({ status: "all" });
 });

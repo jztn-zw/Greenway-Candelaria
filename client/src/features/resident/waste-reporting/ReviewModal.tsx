@@ -200,7 +200,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               className={`${modalStyles.primaryButton} min-w-0 px-2 text-[11px] [&_svg]:size-3`}
             >
               <Send className="w-4 h-4" />
-              <span className="truncate">Submit report</span>
+              <span className="truncate">Submit Report</span>
             </Button>
           </div>
         </div>

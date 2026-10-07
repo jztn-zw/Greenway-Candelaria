@@ -22,16 +22,16 @@ function Workspace() {
 
 it("opens truck controls over the map and closes them without replacing the map", () => {
   render(<Workspace />);
-  const map = screen.getByRole("application", { name: "Tracking map" });
+  const map = screen.getByRole("application", { name: /^Tracking map$/i });
   const trigger = screen.getByRole("button", { name: "Open Truck controls" });
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("application", { name: "Tracking map" })).toBe(map);
+  expect(screen.getByRole("application", { name: /^Tracking map$/i })).toBe(map);
   expect(map.parentElement).not.toHaveClass("admin-tracking-map-hidden");
   fireEvent.click(screen.getByRole("button", { name: "Close truck panel" }));
   expect(trigger).toHaveAttribute("aria-expanded", "false");
-  expect(screen.getByRole("application", { name: "Tracking map" })).toBe(map);
+  expect(screen.getByRole("application", { name: /^Tracking map$/i })).toBe(map);
 });
 
 it("preserves replay controls while the truck panel is closed", () => {

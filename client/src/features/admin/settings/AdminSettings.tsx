@@ -80,7 +80,7 @@ const AdminSettings = () => {
 
       <Section title={copy.notificationsTitle} subtitle={copy.notificationsDescription} icon={Bell}>
         {alertsError && alertsUpdatedAt > 0 && <DataRefreshNotice message="Couldn't refresh alert preferences. Showing your last loaded settings." onRetry={() => void loadAlerts()} retrying={alertsRefreshing} />}
-        {alertsError && !alertsUpdatedAt ? <PageErrorState kind="unavailable" variant="section" title="Alert preferences couldn't load" onRetry={() => void loadAlerts()} retrying={alertsRefreshing} /> : <div className="space-y-1">
+        {alertsError && !alertsUpdatedAt ? <PageErrorState kind="unavailable" variant="section" title="Alert Preferences Couldn't Load" onRetry={() => void loadAlerts()} retrying={alertsRefreshing} /> : <div className="space-y-1">
           {adminAlertOptions.map(({ key, label, description, icon: Icon }) => (
             <div key={key} className={styles.row}>
               <div className={styles.rowContent}>

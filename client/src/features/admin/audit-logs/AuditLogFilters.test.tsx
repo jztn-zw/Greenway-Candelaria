@@ -30,9 +30,9 @@ it("applies and clears the selected date preset through the shared chips", () =>
   expect(changed).toHaveBeenLastCalledWith({});
   expect(today).toHaveAttribute("aria-pressed", "false");
 
-  fireEvent.click(screen.getByRole("button", { name: "7 days" }));
+  fireEvent.click(screen.getByRole("button", { name: /^7 days$/i }));
   expect(changed).toHaveBeenLastCalledWith({ from: new Date(2026, 8, 26), to: new Date(2026, 9, 2) });
-  fireEvent.click(screen.getByRole("button", { name: "30 days" }));
+  fireEvent.click(screen.getByRole("button", { name: /^30 days$/i }));
   expect(changed).toHaveBeenLastCalledWith({ from: new Date(2026, 8, 3), to: new Date(2026, 9, 2) });
 });
 

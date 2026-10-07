@@ -278,7 +278,7 @@ const ResidentSubmitReport = () => {
             className="h-8 gap-1.5 px-2.5 text-xs [&_svg]:size-3"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Clear draft</span>
+            <span>Clear Draft</span>
           </Button>
         )}
       />
@@ -344,7 +344,7 @@ const ResidentSubmitReport = () => {
             className={reportStyles.submit}
           >
             <Send className="w-4 h-4" />
-            <span className="min-w-0 truncate">Review report</span>
+            <span className="min-w-0 truncate">Review Report</span>
           </Button>
         </div>
       </div>

@@ -72,12 +72,12 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
           </div>
         )}
         <div className="min-w-0">
-          {isAdmin && <p className="mb-1 text-ui-overline font-medium text-muted-foreground">Selected day</p>}
+          {isAdmin && <p className="mb-1 text-ui-overline font-medium text-muted-foreground">Selected Day</p>}
           <h3 className="gw-heading text-sm sm:text-base text-foreground">
             {formattedDate}
           </h3>
           <p className="text-ui-caption text-muted-foreground mt-0.5">
-            {isLoading ? "Loading internal events…" : error ? "Schedule unavailable" : `${events.length} internal event${events.length === 1 ? "" : "s"} on this date`}
+            {isLoading ? "Loading internal events…" : error ? "Schedule Unavailable" : `${events.length} internal event${events.length === 1 ? "" : "s"} on this date`}
           </p>
         </div>
       </div>
@@ -122,7 +122,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                   {onEditEvent && onDeleteEvent && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button type="button" className="gw-action-ghost w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors" title="Schedule actions">
+                        <button type="button" className="gw-action-ghost w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors" title="Schedule Actions">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </DropdownMenuTrigger>
@@ -143,7 +143,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
                 {isAdmin && (
                   <div className="space-y-2">
                     <Badge className={cn("text-ui-overline", getStatusBadgeStyle(evt.status).className)}>
-                      {evt.status === "ONGOING" ? "In progress" : evt.status.charAt(0) + evt.status.slice(1).toLowerCase()}
+                      {evt.status === "ONGOING" ? "In Progress" : evt.status.charAt(0) + evt.status.slice(1).toLowerCase()}
                     </Badge>
                     {(evt.start_time || evt.location || evt.barangay_name) && (
                       <div className="space-y-1.5 text-ui-caption text-muted-foreground">

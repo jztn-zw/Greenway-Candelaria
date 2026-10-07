@@ -94,10 +94,10 @@ const FieldRow = ({
       </div>
     </div>
     {isEmail ? (
-      <span className={styles.registeredEmail} title="Registered email">
+      <span className={styles.registeredEmail} title="Registered Email">
         <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
-        <span aria-hidden="true" className="admin-profile-email-label">Registered email</span>
-        <span className="sr-only">Registered email</span>
+        <span aria-hidden="true" className="admin-profile-email-label">Registered Email</span>
+        <span className="sr-only">Registered Email</span>
       </span>
     ) : onEdit ? (
       <Button
@@ -324,8 +324,8 @@ const CollectorProfile = () => {
   const truckPlate = driverData?.truck_plate || "";
   const isUnderMaintenance = driverData?.truck_availability === "UNDER_MAINTENANCE" ||
     driverData?.truck_status === "MAINTENANCE" || driverData?.truck_status === "INACTIVE";
-  const vehicleReadiness = isUnderMaintenance ? "Under maintenance" :
-    driverData?.truck_availability === "ACTIVE" ? "Operational / Ready" : "Readiness unavailable";
+  const vehicleReadiness = isUnderMaintenance ? "Under Maintenance" :
+    driverData?.truck_availability === "ACTIVE" ? "Operational / Ready" : "Readiness Unavailable";
   const joinedAt = profile?.created_at || driverData?.created_at;
   const joined = joinedAt ? formatManilaDateTime(joinedAt, { year: "numeric", month: "long" }) : null;
   const saveAvatar = async (selectedId: ProfileAvatarId) => {
@@ -395,7 +395,7 @@ const CollectorProfile = () => {
               </div>
               <div className="min-w-0 [overflow-wrap:anywhere]">
                 <h2 className="gw-heading text-sm text-foreground tracking-tight">
-                  Assigned vehicle & equipment
+                  Assigned Vehicle & Equipment
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   Current truck assignment and operational truck status
@@ -448,12 +448,12 @@ const CollectorProfile = () => {
                   className={styles.vehicleAction}
                 >
                   <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Report truck issue</span>
+                  <span>Report Truck Issue</span>
                 </Button>
               </div>
             </div>
           ) : loadErrors.driver && !driverData ? (
-            <PageErrorState kind="unavailable" variant="section" title="Vehicle information unavailable" onRetry={() => void driverQuery.refetch()} retrying={driverQuery.isFetching} />
+            <PageErrorState kind="unavailable" variant="section" title="Vehicle Information Unavailable" onRetry={() => void driverQuery.refetch()} retrying={driverQuery.isFetching} />
           ) : (
             <div className="p-6 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
               <p className="text-sm font-semibold text-foreground">
@@ -591,7 +591,7 @@ const CollectorProfile = () => {
 
       <Dialog open={avatarOpen} onOpenChange={(open) => { if (!savingAvatar) setAvatarOpen(open); }}>
         <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
-          <CollectorModalHeader title="Choose avatar" description="Select one of the ten profile avatars." icon={<Users />} disabled={savingAvatar} onClose={() => { if (!savingAvatar) setAvatarOpen(false); }} />
+          <CollectorModalHeader title="Choose Avatar" description="Select one of the ten profile avatars." icon={<Users />} disabled={savingAvatar} onClose={() => { if (!savingAvatar) setAvatarOpen(false); }} />
           <div className={modalStyles.body}>
             <ProfileAvatarPicker saving={savingAvatarId} selected={avatarId} onSelect={(selectedId) => { void saveAvatar(selectedId); }} disabled={savingAvatar} />
           </div>
@@ -655,7 +655,7 @@ const CollectorProfile = () => {
               loading={editModal.saving}
               loadingLabel="Saving changes…"
             >
-              Save changes
+              Save Changes
             </Button>
           </div>
         </DialogContent>
@@ -672,7 +672,7 @@ const CollectorProfile = () => {
           <div className={modalStyles.body}>
             <div className="space-y-1.5">
               <Label htmlFor="collector-current-password" className={modalStyles.label}>
-                Current password
+                Current Password
               </Label>
               <div className="relative">
                 <Input
@@ -706,7 +706,7 @@ const CollectorProfile = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="collector-new-password" className={modalStyles.label}>
-                New password
+                New Password
               </Label>
               <div className="relative">
                 <Input
@@ -740,7 +740,7 @@ const CollectorProfile = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="collector-confirm-password" className={modalStyles.label}>
-                Confirm new password
+                Confirm New Password
               </Label>
               <Input
                 id="collector-confirm-password"
@@ -783,7 +783,7 @@ const CollectorProfile = () => {
               loading={pwModal.saving}
               loadingLabel="Updating password…"
             >
-              Update password
+              Update Password
             </Button>
           </div>
         </DialogContent>

@@ -37,16 +37,16 @@ type StatusFilter = "all" | "completed" | "partial" | "no-collection";
 type WasteTypeFilter = "all" | "Biodegradable" | "Non-Biodegradable" | "General";
 
 const statusTabs: FilterPillItem<StatusFilter>[] = [
-  { id: "all", label: "All routes" },
+  { id: "all", label: "All Routes" },
   { id: "completed", label: "Completed" },
   { id: "partial", label: "Partial" },
-  { id: "no-collection", label: "No collection" },
+  { id: "no-collection", label: "No Collection" },
 ];
 
 const wasteTabs: { key: WasteTypeFilter; label: string }[] = [
-  { key: "all", label: "All waste types" },
+  { key: "all", label: "All Waste Types" },
   { key: "Biodegradable", label: "Biodegradable" },
-  { key: "Non-Biodegradable", label: "Non-biodegradable" },
+  { key: "Non-Biodegradable", label: "Non-Biodegradable" },
   { key: "General", label: "General" },
 ];
 
@@ -66,7 +66,7 @@ const getStatusBadge = (status: RouteHistoryItem["status"]) => {
       };
     default:
       return {
-        label: "No collection",
+        label: "No Collection",
         cls: getStatusBadgeStyle("No collection").className,
         icon: Clock,
       };
@@ -187,7 +187,7 @@ const CollectorRouteHistory = () => {
 
     return (
       <div className="resident-page collector-history-page collector-history-detail w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
-        <BackButton onBack={backToHistory} label="Back to route history" className="mb-0 h-11 w-fit sm:h-9" />
+        <BackButton onBack={backToHistory} label="Back to Route History" className="mb-0 h-11 w-fit sm:h-9" />
         {/* Route Run Header Card */}
         <section aria-label="Route summary" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
           <div className="flex min-w-0 items-center gap-3">
@@ -221,7 +221,7 @@ const CollectorRouteHistory = () => {
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
               <h2 id="route-checkpoint-heading" className="gw-heading text-sm text-foreground tracking-tight">
-                Checkpoint breakdown
+                Checkpoint Breakdown
               </h2>
             </div>
             <span className="rounded-lg border border-border/60 bg-muted/60 px-2.5 py-1 font-body text-xs font-semibold tabular-nums text-muted-foreground">
@@ -230,7 +230,7 @@ const CollectorRouteHistory = () => {
           </div>
 
           {!r.stops || r.stops.length === 0 ? (
-            <ListEmptyState icon={MapPin} variant="inline" title="No checkpoint records" description="No individual checkpoint records logged for this collection route." />
+            <ListEmptyState icon={MapPin} variant="inline" title="No Checkpoint Records" description="No individual checkpoint records logged for this collection route." />
           ) : (
             <ol className="collector-history-stop-list">
               {r.stops.map((stop) => {
@@ -273,18 +273,18 @@ const CollectorRouteHistory = () => {
                         </span>
                       ) : (
                         <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Not completed").className}>
-                          <Clock className="w-3 h-3" /> Not completed
+                          <Clock className="w-3 h-3" /> Not Completed
                         </span>
                       )}
                       {stop.time && (
-                        <span title="Active collection time" className="inline-flex min-w-0 items-center gap-1.5 font-body text-ui-caption tabular-nums text-muted-foreground">
+                        <span title="Active Collection Time" className="inline-flex min-w-0 items-center gap-1.5 font-body text-ui-caption tabular-nums text-muted-foreground">
                           <Clock aria-hidden="true" className="size-3.5 shrink-0" /> {stop.time}
                         </span>
                       )}
                     </div>
                     {stop.skipReason && (
                       <div className="collector-history-stop-reason min-w-0 space-y-1.5 rounded-lg border border-warning/20 bg-warning/5 p-3">
-                        <p className="flex items-center gap-1.5 text-ui-caption font-semibold text-warning-foreground"><AlertTriangle aria-hidden="true" className="size-3.5 shrink-0" />Skip reason</p>
+                        <p className="flex items-center gap-1.5 text-ui-caption font-semibold text-warning-foreground"><AlertTriangle aria-hidden="true" className="size-3.5 shrink-0" />Skip Reason</p>
                         <p className="text-ui-caption leading-relaxed text-foreground">{stop.skipReason}</p>
                       </div>
                     )}
@@ -331,7 +331,7 @@ const CollectorRouteHistory = () => {
       {error && <DataRefreshNotice message="Couldn't update route history. Showing the last loaded routes, which may be outdated." onRetry={retry} retrying={history.isFetching} />}
       {/* ── Route Logs List ── */}
       {history.isLoading ? <CollectorRouteHistoryRowsSkeleton /> : filtered.length === 0 ? (
-        <ListEmptyState icon={History} title="No route logs found"
+        <ListEmptyState icon={History} title="No Route Logs Found"
           description="No past collection shifts match your selected status or waste filter.">
           {(statusFilter !== "all" || wasteFilter !== "all") && (
             <Button
@@ -344,7 +344,7 @@ const CollectorRouteHistory = () => {
               size="sm"
               className="cursor-pointer"
             >
-              Reset filters
+              Reset Filters
             </Button>
           )}
         </ListEmptyState>
@@ -392,7 +392,7 @@ const CollectorRouteHistory = () => {
                     {item.completedStops}/{item.totalStops} cleared
                   </span>
                   {item.timeOnRoute && (
-                    <span title="Active collection time" className="inline-flex items-center gap-1.5 tabular-nums">
+                    <span title="Active Collection Time" className="inline-flex items-center gap-1.5 tabular-nums">
                       <Clock className="h-3.5 w-3.5 shrink-0" />
                       {item.timeOnRoute}
                     </span>

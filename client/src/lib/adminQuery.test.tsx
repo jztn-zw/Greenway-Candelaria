@@ -138,7 +138,7 @@ describe("admin server state", () => {
     await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
     expect(host.textContent).not.toContain("Loading community posts");
     expect(host.querySelector("h1")?.textContent).toBe("Community Posts");
-    expect(host.textContent).toContain("No posts found");
+    expect(host.textContent).toContain("No Posts Found");
   });
 
   it("keeps community filters visible while a new filtered list is loading", async () => {
@@ -164,7 +164,7 @@ describe("admin server state", () => {
 
     await act(async () => finish({ posts: [], total: 0, totalPages: 1, page: 1, limit: 6 }));
     expect(host.textContent).not.toContain("Loading community posts");
-    expect(host.textContent).toContain("No posts found");
+    expect(host.textContent).toContain("No Posts Found");
   });
 
   it("opens and closes the post editor without committing a view for the previous URL", async () => {

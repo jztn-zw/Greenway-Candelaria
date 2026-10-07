@@ -22,19 +22,19 @@ interface PageErrorStateProps {
 const copy = {
   "not-found": {
     eyebrow: "404",
-    title: "Page not found",
+    title: "Page Not Found",
     description: "The address may have changed, or the page may no longer exist.",
     icon: FileSearch2,
   },
   unavailable: {
     eyebrow: "Unable to load",
-    title: "This page couldn't load",
+    title: "This Page Couldn't Load",
     description: "We couldn't get the information right now. Please try again.",
     icon: WifiOff,
   },
   unexpected: {
-    eyebrow: "Page error",
-    title: "Something went wrong",
+    eyebrow: "Page Error",
+    title: "Something Went Wrong",
     description: "This page ran into a problem. Try opening it again.",
     icon: AlertTriangle,
   },
@@ -47,7 +47,7 @@ const PageErrorState = ({
   onRetry,
   retrying = false,
   homeHref,
-  homeLabel = "Go to dashboard",
+  homeLabel = "Go to Dashboard",
   fullScreen = false,
   variant = "page",
 }: PageErrorStateProps) => {

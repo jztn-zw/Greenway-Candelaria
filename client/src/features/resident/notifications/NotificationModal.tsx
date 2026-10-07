@@ -40,7 +40,7 @@ const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }:
       footer={
         <>
           {notification.type === "collection-reminder" && onViewSchedule && (
-            <Button type="button" variant="outline" onClick={onViewSchedule} className={modalStyles.cancelButton}>View schedule</Button>
+            <Button type="button" variant="outline" onClick={onViewSchedule} className={modalStyles.cancelButton}>View Schedule</Button>
           )}
           <Button type="button" onClick={() => onOpenChange(false)} className={modalStyles.primaryButton}>Close</Button>
         </>

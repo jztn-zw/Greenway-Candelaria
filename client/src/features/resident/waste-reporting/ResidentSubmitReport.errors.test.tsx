@@ -38,8 +38,8 @@ afterEach(() => {
 
 it("retries barangays without unmounting the form or losing description, landmark, and photo evidence", async () => {
   const view = render(<QueryClientProvider client={client}><MemoryRouter><ResidentSubmitReport /></MemoryRouter></QueryClientProvider>);
-  await screen.findByRole("button", { name: "Try again" });
-  expect(screen.queryByRole("heading", { name: "This page couldn't load" })).toBeNull();
+  await screen.findByRole("button", { name: /Try again/i });
+  expect(screen.queryByRole("heading", { name: /This page couldn't load/i })).toBeNull();
   const description = screen.getByDisplayValue("Waste was left beside the chapel.");
   const landmark = screen.getByDisplayValue("Near the chapel");
   fireEvent.change(description, { target: { value: "The waste is still here this morning." } });
@@ -47,8 +47,8 @@ it("retries barangays without unmounting the form or losing description, landmar
   const photoInput = view.container.querySelector<HTMLInputElement>('input[type="file"]')!;
   fireEvent.change(photoInput, { target: { files: [new File(["photo"], "evidence.png", { type: "image/png" })] } });
   expect(view.container.querySelector('img[src="blob:evidence-photo"]')).not.toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Try again" })).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: /Try again/i }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: /Try again/i })).toBeNull());
   expect(fetchBarangays).toHaveBeenCalledTimes(2);
   expect(description).toHaveValue("The waste is still here this morning.");
   expect(landmark).toHaveValue("Chapel entrance");
@@ -65,9 +65,9 @@ it("warns and retries when the similar-report check fails without clearing the d
   vi.mocked(checkSimilarReport).mockRejectedValueOnce(new Error("Network Error")).mockResolvedValue(false);
 
   render(<QueryClientProvider client={client}><MemoryRouter><ResidentSubmitReport /></MemoryRouter></QueryClientProvider>);
-  expect(await screen.findByText(/Couldn't check for similar reports/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  await waitFor(() => expect(screen.queryByText(/Couldn't check for similar reports/)).toBeNull());
+  expect(await screen.findByText(/Couldn't check for similar reports/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Try again/i }));
+  await waitFor(() => expect(screen.queryByText(/Couldn't check for similar reports/i)).toBeNull());
   expect(checkSimilarReport).toHaveBeenCalledTimes(2);
   expect(screen.getByDisplayValue("Waste was left beside the chapel.")).toBeInTheDocument();
   expect(screen.getByDisplayValue("Near the chapel")).toBeInTheDocument();

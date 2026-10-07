@@ -48,7 +48,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           <div className="flex items-center gap-2">
             <Truck className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs font-semibold text-foreground font-body tracking-tight">
-              Vehicle assignment status
+              Vehicle Assignment Status
             </span>
           </div>
           <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Unassigned").className}>
@@ -61,7 +61,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           <div className="space-y-3.5">
             <div className="space-y-1">
               <h2 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
-                No truck assigned yet
+                No Truck Assigned Yet
               </h2>
               <p className="text-xs text-muted-foreground">
                 You currently do not have an active municipal collection truck assigned for duty.
@@ -98,7 +98,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
               onClick={onAction}
               className="w-full h-11 text-xs sm:text-sm font-semibold rounded-xl cursor-pointer transition-all"
             >
-              <History className="w-4 h-4 mr-2" /> View past route runs and logs
+              <History className="w-4 h-4 mr-2" /> View Past Route Runs and Logs
             </Button>
           </div>
         </div>
@@ -116,11 +116,11 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
             <span className="text-xs font-semibold text-foreground font-body tracking-tight">
-              Today's route assignment
+              Today's Route Assignment
             </span>
           </div>
           <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Standby shift").className}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Standby shift
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Standby Shift
           </span>
         </div>
 
@@ -131,7 +131,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="gw-heading text-base sm:text-lg text-foreground tracking-tight">
-                  No collection scheduled today
+                  No Collection Scheduled Today
                 </h2>
                 {getWasteBadge(wasteType)}
               </div>
@@ -154,7 +154,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                   <div className="flex items-center justify-between sm:justify-start gap-2">
                     <div className="flex items-center gap-1.5 text-ui-caption sm:text-xs font-medium text-muted-foreground">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>Municipal standby status</span>
+                      <span>Municipal Standby Status</span>
                     </div>
                     <span className={collectorBadgeClassName + " " + getStatusBadgeStyle("Reserve").className + " sm:hidden"}>
                       Reserve
@@ -178,7 +178,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
             {/* Standby Protocol Steps Grid */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                <span>Standby shift guidelines</span>
+                <span>Standby Shift Guidelines</span>
                 <span className="text-xs font-semibold text-muted-foreground/90">Ready</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
@@ -187,7 +187,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                     <span className="w-5 h-5 rounded-md flex items-center justify-center text-ui-overline font-bold shrink-0 bg-muted/90 text-muted-foreground border border-border/70">
                       1
                     </span>
-                    <span className="text-xs font-bold text-foreground leading-tight truncate">Truck check</span>
+                    <span className="text-xs font-bold text-foreground leading-tight truncate">Truck Check</span>
                   </div>
                   <p className="text-ui-overline sm:text-ui-caption text-muted-foreground mt-1 leading-snug break-words">
                     Fluids & road readiness
@@ -199,7 +199,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                     <span className="w-5 h-5 rounded-md flex items-center justify-center text-ui-overline font-bold shrink-0 bg-muted/90 text-muted-foreground border border-border/70">
                       2
                     </span>
-                    <span className="text-xs font-bold text-foreground leading-tight truncate">Dispatch monitor</span>
+                    <span className="text-xs font-bold text-foreground leading-tight truncate">Dispatch Monitor</span>
                   </div>
                   <p className="text-ui-overline sm:text-ui-caption text-muted-foreground mt-1 leading-snug break-words">
                     Check live notifications
@@ -211,7 +211,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
                     <span className="w-5 h-5 rounded-md flex items-center justify-center text-ui-overline font-bold shrink-0 bg-muted/90 text-muted-foreground border border-border/70">
                       3
                     </span>
-                    <span className="text-xs font-bold text-foreground leading-tight truncate">View schedule</span>
+                    <span className="text-xs font-bold text-foreground leading-tight truncate">View Schedule</span>
                   </div>
                   <p className="text-ui-overline sm:text-ui-caption text-muted-foreground mt-1 leading-snug break-words">
                     Check monthly calendar
@@ -229,7 +229,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
               onClick={onAction}
               className="w-full h-11 text-xs sm:text-sm font-semibold rounded-xl cursor-pointer transition-all"
             >
-              <History className="w-4 h-4 mr-2" /> View past route runs and logs
+              <History className="w-4 h-4 mr-2" /> View Past Route Runs and Logs
             </Button>
           </div>
         </div>
@@ -259,7 +259,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold text-foreground font-body tracking-tight">
-            Today's route assignment
+            Today's Route Assignment
           </span>
         </div>
 
@@ -327,7 +327,7 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           {!isFinished && data.upcomingStops && data.upcomingStops.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                <span>Upcoming checkpoint sequence</span>
+                <span>Upcoming Checkpoint Sequence</span>
                 <span className="text-xs font-semibold text-foreground/80 tabular-nums">
                   {completedStops} of {totalStops} cleared
                 </span>
@@ -406,15 +406,15 @@ const AssignmentCard = ({ data, onAction, className }: Props) => {
           >
             {isFinished ? (
               <>
-                <Eye className="w-4 h-4 mr-2" /> View route history
+                <Eye className="w-4 h-4 mr-2" /> View Route History
               </>
             ) : isInProgress || routeState === "paused" ? (
               <>
-                <ArrowRight className="w-4 h-4 mr-2" /> Continue route navigation
+                <ArrowRight className="w-4 h-4 mr-2" /> Continue Route Navigation
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 mr-2" /> Start today's collection route
+                <Play className="w-4 h-4 mr-2" /> Start Today's Collection Route
               </>
             )}
           </Button>

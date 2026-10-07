@@ -329,7 +329,7 @@ const ResidentNotifications = () => {
                 className={notificationStyles.actionButton}
               >
                 <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="min-w-0 truncate">Mark all read</span>
+                <span className="min-w-0 truncate">Mark All Read</span>
               </Button>
             )}
             {historyTotal > 0 && (
@@ -341,7 +341,7 @@ const ResidentNotifications = () => {
                 className={notificationStyles.actionButton}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span className="min-w-0 truncate">Clear all</span>
+                <span className="min-w-0 truncate">Clear All</span>
               </Button>
             )}
           </>
@@ -368,7 +368,7 @@ const ResidentNotifications = () => {
                 size="icon"
                 className={notificationStyles.menuTrigger}
                 disabled={isMutating}
-                title="Notification actions"
+                title="Notification Actions"
                 aria-label="Notification actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -378,13 +378,13 @@ const ResidentNotifications = () => {
               {unreadCount > 0 && (
                 <DropdownMenuItem onSelect={markAllAsRead} disabled={isMutating} className="gap-2">
                   <CheckCheck className="h-3.5 w-3.5 text-primary" />
-                  Mark all as read
+                  Mark All as Read
                 </DropdownMenuItem>
               )}
               {historyTotal > 0 && (
                 <DropdownMenuItem onSelect={() => setConfirmClear(true)} disabled={isMutating} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
-                  Clear all notifications
+                  Clear All Notifications
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -425,7 +425,7 @@ const ResidentNotifications = () => {
 
                 {/* Main Content Area */}
                 <div className="min-w-0 flex-1 space-y-1">
-                  {isUnread && <span className="sr-only">Unread notification</span>}
+                  {isUnread && <span className="sr-only">Unread Notification</span>}
                   {/* Primary text with bold focal points */}
                   <p className="text-sm font-semibold text-foreground/90 leading-snug break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                     <span className="font-bold text-foreground">
@@ -466,7 +466,7 @@ const ResidentNotifications = () => {
           })}
         </div>
       ) : (
-        <ListEmptyState icon={Bell} title="No notifications found"
+        <ListEmptyState icon={Bell} title="No Notifications Found"
           description="You're all caught up! New alerts will appear here in real-time." />
       )}
 
@@ -475,9 +475,9 @@ const ResidentNotifications = () => {
       </div>
 
       {/* ── Modal for Announcements ── */}
-      <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear} title="Clear all notification history?"
+      <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear} title="Clear All Notification History?"
         description="This permanently deletes notifications in every category. This cannot be undone."
-        icon={<Trash2 />} variant="destructive" confirmLabel="Clear all" isPending={isClearing} pendingLabel="Clearing..."
+        icon={<Trash2 />} variant="destructive" confirmLabel="Clear All" isPending={isClearing} pendingLabel="Clearing..."
         onConfirm={async () => {
           if (isClearing) return;
           setIsClearing(true);

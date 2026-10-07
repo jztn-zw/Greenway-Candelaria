@@ -72,7 +72,7 @@ const BlogSection = ({ content = CONTENT.blog, posts = [] }: BlogSectionProps) =
           </div>
           {displayPosts.length > 0 && (
             <a href="/posts" className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-all duration-300 group">
-              View all posts <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+              View All Posts <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
             </a>
           )}
         </div>

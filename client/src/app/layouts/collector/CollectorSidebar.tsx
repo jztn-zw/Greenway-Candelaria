@@ -297,7 +297,7 @@ const CollectorSidebar = () => {
         {/* ── Contact Dispatch Modal ── */}
         <Dialog open={showDispatchModal} onOpenChange={setShowDispatchModal}>
           <DialogContent className={modalStyles.content}>
-            <CollectorModalHeader title="Contact MENRO dispatch" description="Office and vehicle support" icon={<Headphones />} onClose={() => setShowDispatchModal(false)} closeLabel="Close contact dispatch" />
+            <CollectorModalHeader title="Contact MENRO Dispatch" description="Office and vehicle support" icon={<Headphones />} onClose={() => setShowDispatchModal(false)} closeLabel="Close contact dispatch" />
 
             <div className={modalStyles.body}>
               <section className="rounded-md border border-border/70 bg-muted/20 p-4">
@@ -307,7 +307,7 @@ const CollectorSidebar = () => {
                 </div>
                 <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
                   <a href={MUNICIPAL_CONTACT.hotlineHref} className="flex items-center gap-2.5 text-sm font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <Phone className="size-4 shrink-0" /> Office hotline: {MUNICIPAL_CONTACT.hotline}
+                    <Phone className="size-4 shrink-0" /> Office Hotline: {MUNICIPAL_CONTACT.hotline}
                   </a>
                   <a href={MUNICIPAL_CONTACT.emailHref} className="flex items-center gap-2.5 break-all text-sm font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Mail className="size-4 shrink-0 text-muted-foreground" /> {MUNICIPAL_CONTACT.email}
@@ -317,7 +317,7 @@ const CollectorSidebar = () => {
 
               <section className="rounded-md border border-border/70 p-4">
                 <div className="min-w-0 space-y-1">
-                  <h3 className="gw-heading text-sm text-foreground">Vehicle breakdown?</h3>
+                  <h3 className="gw-heading text-sm text-foreground">Vehicle Breakdown?</h3>
                   <p className="text-xs leading-relaxed text-muted-foreground">
                     Use Report breakdown in Profile &amp; Vehicle to send the truck details and your location to admins.
                   </p>

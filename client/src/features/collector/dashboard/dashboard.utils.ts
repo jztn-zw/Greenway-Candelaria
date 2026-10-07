@@ -5,9 +5,9 @@ import { parseApiTimestamp } from "@/utils/date";
 import type { AssignmentData,RouteState } from "./components/types";
 
 export const routeStatusLabels: Record<RouteState, string> = {
-  unassigned: "Unassigned", "no-schedule": "No route scheduled", "not-started": "Not started",
-  "in-progress": "On route", paused: "Paused", completed: "Route completed",
-  partial: "Partially completed", "no-collection": "No collection", cancelled: "Cancelled",
+  unassigned: "Unassigned", "no-schedule": "No Route Scheduled", "not-started": "Not Started",
+  "in-progress": "On Route", paused: "Paused", completed: "Route Completed",
+  partial: "Partially Completed", "no-collection": "No Collection", cancelled: "Cancelled",
 };
 
 export const isFinishedRoute = (state: RouteState) =>
@@ -46,7 +46,7 @@ export const buildAssignment = (
   const start = parseApiTimestamp(route?.collection_started_at);
   const end = parseApiTimestamp(route?.ended_at);
   const pause = parseApiTimestamp(route?.paused_at);
-  let durationLabel = "Not started";
+  let durationLabel = "Not Started";
   if (start) {
     const boundary = isFinishedRoute(routeState) ? end : routeState === "paused" ? pause : new Date(now);
     if (boundary) {

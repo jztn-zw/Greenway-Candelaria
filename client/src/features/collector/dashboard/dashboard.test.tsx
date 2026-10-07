@@ -32,7 +32,7 @@ describe("collector dashboard route facts", () => {
   it("keeps an unstarted scheduled route unstarted", () => {
     const data = buildAssignment(route({ route_status: "SCHEDULED", collection_started_at: null }), true, null, now);
     expect(data.routeState).toBe("not-started");
-    expect(data.durationLabel).toBe("Not started");
+    expect(data.durationLabel).toBe("Not Started");
     expect(buildAssignment(route({ started_at: undefined }), true).estimatedStart).toBe("Unavailable");
   });
 
@@ -59,8 +59,8 @@ describe("collector dashboard route facts", () => {
     const data = buildAssignment(missed, true, null, now);
     expect(data.routeState).toBe("no-collection");
     const html = renderToStaticMarkup(<AssignmentCard data={data} onAction={() => {}} />);
-    expect(html).toContain("No collection");
-    expect(html).not.toContain("Route completed");
+    expect(html).toContain("No Collection");
+    expect(html).not.toContain("Route Completed");
   });
 
   it("distinguishes partial and cancelled runs and does not infer completion from stop counts", () => {
@@ -84,14 +84,14 @@ describe("collector dashboard route facts", () => {
 describe("vehicle truthfulness", () => {
   it("never invents road readiness for maintenance, unknown availability, or no assignment", () => {
     const maintenance = renderToStaticMarkup(<TruckStatusCard data={{ availabilityStatus: "UNDER_MAINTENANCE", plateNumber: "ABC-123" }} />);
-    expect(maintenance).toContain("Under maintenance");
-    expect(maintenance).not.toContain("Road ready");
+    expect(maintenance).toContain("Under Maintenance");
+    expect(maintenance).not.toContain("Road Ready");
     const unknown = renderToStaticMarkup(<TruckStatusCard data={{ plateNumber: "ABC-123" }} />);
-    expect(unknown).toContain("Readiness unavailable");
+    expect(unknown).toContain("Readiness Unavailable");
     expect(unknown).not.toContain("Compactor");
     const unassigned = renderToStaticMarkup(<TruckStatusCard data={null} />);
-    expect(unassigned).toContain("No truck assigned");
-    expect(unassigned).not.toContain("Road ready");
+    expect(unassigned).toContain("No Truck Assigned");
+    expect(unassigned).not.toContain("Road Ready");
   });
 });
 

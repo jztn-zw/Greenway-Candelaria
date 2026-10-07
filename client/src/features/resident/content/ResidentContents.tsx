@@ -279,7 +279,7 @@ const ResidentContents = () => {
           <ContentCardsSkeleton />
         ) : posts.length === 0 ? (
           /* Empty State */
-          <ListEmptyState icon={FileText} title="No updates found"
+          <ListEmptyState icon={FileText} title="No Updates Found"
             description={search
                 ? "We couldn't find any updates matching your search. Try different keywords."
                 : "No community updates are available in this category yet."}>
@@ -293,7 +293,7 @@ const ResidentContents = () => {
                   setCurrentPage(1);
                 }}
               >
-                Clear search
+                Clear Search
               </Button>
             )}
           </ListEmptyState>

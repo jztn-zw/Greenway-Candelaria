@@ -46,7 +46,7 @@ const RouteCalendarCard = () => {
   };
 
   if (calendarLoading) return <CollectorCalendarCardSkeleton year={year} month={month} />;
-  if (calendarError && schedule.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Schedule couldn't load" description="We couldn't load this month's events. Please try again." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />;
+  if (calendarError && schedule.data === undefined) return <PageErrorState kind="unavailable" variant="section" title="Schedule Couldn't Load" description="We couldn't load this month's events. Please try again." onRetry={() => void schedule.refetch()} retrying={schedule.isFetching} />;
 
   return (
     <section className="flex h-full min-h-0 sm:min-h-[380px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card p-3 shadow-xs sm:p-4 lg:min-h-0">
@@ -78,7 +78,7 @@ const RouteCalendarCard = () => {
             onClick={() => navigate("/collector/schedule")}
               className="gw-action-primary-ghost group inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all"
             >
-            View schedule <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            View Schedule <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </button>
           }
         />

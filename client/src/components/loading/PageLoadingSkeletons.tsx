@@ -355,7 +355,7 @@ export const CollectorRouteHistorySkeleton = () => (
 export const CollectorRouteHistoryDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className="resident-page collector-history-page collector-history-detail mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
     <span className="sr-only">Loading route details…</span>
-    {onBack ? <BackButton onBack={onBack} label="Back to route history" className="mb-0 h-11 w-fit sm:h-9" /> : <Skeleton aria-hidden="true" className="h-11 w-20 sm:h-9" />}
+    {onBack ? <BackButton onBack={onBack} label="Back to Route History" className="mb-0 h-11 w-fit sm:h-9" /> : <Skeleton aria-hidden="true" className="h-11 w-20 sm:h-9" />}
     <div aria-hidden="true" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
       <div className="flex min-w-0 items-center gap-3">
         <Skeleton className="size-10 shrink-0 rounded-xl" />
@@ -415,7 +415,7 @@ export const CollectorProfileSkeleton = () => (
           <div className={collectorProfile.vehicleHeading}>
             <Skeleton className={collectorProfile.sectionIcon} />
             <div className="min-w-0">
-              <Skeleton className="gw-heading w-fit max-w-full text-sm tracking-tight"><span className="invisible">Assigned vehicle & equipment</span></Skeleton>
+              <Skeleton className="gw-heading w-fit max-w-full text-sm tracking-tight"><span className="invisible">Assigned Vehicle & Equipment</span></Skeleton>
               <Skeleton className="mt-0.5 w-fit max-w-full text-xs leading-relaxed"><span className="invisible">Current truck assignment and operational truck status</span></Skeleton>
             </div>
           </div>
@@ -1249,7 +1249,7 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
 
 export const AdminPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className={contentStyles.detailPage}>
-    {onBack ? <BackButton onBack={onBack} label="Back to posts" /> : <Skeleton aria-hidden="true" className="mb-3 h-8 w-16 rounded-lg" />}
+    {onBack ? <BackButton onBack={onBack} label="Back to Posts" /> : <Skeleton aria-hidden="true" className="mb-3 h-8 w-16 rounded-lg" />}
     <div aria-hidden="true" className="space-y-6 sm:space-y-8">
       <div className={contentStyles.detailArticle}>
         <div className={contentStyles.detailImage}>

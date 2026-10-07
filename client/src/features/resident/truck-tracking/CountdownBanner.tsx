@@ -59,7 +59,7 @@ const CountdownBanner = ({
         {/* Header Line: Location Collection Schedule + System Waste Badge */}
         <div className={trackingStyles.scheduleHeading}>
           <h3 className={trackingStyles.scheduleTitle}>
-            {collectionFinishedToday ? "Tomorrow's collection for" : "Collection for"} {residentArea || "Your Location"}
+            {collectionFinishedToday ? "Tomorrow's Collection for" : "Collection for"} {residentArea || "Your Location"}
           </h3>
 
           {schedule.wasteType && (

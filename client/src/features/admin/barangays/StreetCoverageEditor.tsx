@@ -47,22 +47,22 @@ const describeRoadMatchingFailure = (error: unknown): RoadMatchingFailure => {
   if (isAxiosError(error)) {
     const status = error.response?.status;
     if (status && status >= 500) {
-      return { title: "Road matching is temporarily unavailable", description: "The road service couldn't complete this request. Try again in a moment." };
+      return { title: "Road Matching Is Temporarily Unavailable", description: "The road service couldn't complete this request. Try again in a moment." };
     }
     if (status === 429) {
-      return { title: "Road matching is busy", description: "Wait a moment before trying again." };
+      return { title: "Road Matching Is Busy", description: "Wait a moment before trying again." };
     }
     if (!error.response) {
       return error.code === "ECONNABORTED" || error.code === "ETIMEDOUT"
-        ? { title: "Road matching took too long", description: "The request timed out. Check your connection and try again." }
-        : { title: "Couldn't connect to the road service", description: "Check your connection and try again." };
+        ? { title: "Road Matching Took Too Long", description: "The request timed out. Check your connection and try again." }
+        : { title: "Couldn't Connect to the Road Service", description: "Check your connection and try again." };
     }
     if (status === 400 || status === 422) {
-      return { title: "Adjust the marked points", description: error.message };
+      return { title: "Adjust the Marked Points", description: error.message };
     }
   }
   return {
-    title: "Couldn't match the street path",
+    title: "Couldn't Match the Street Path",
     description: error instanceof Error ? error.message : "Try again, or move the points closer to the street.",
   };
 };
@@ -317,7 +317,7 @@ const StreetCoverageEditor = ({
               <MapPin className="size-5" />
             </span>
             <div className="min-w-0">
-              <DialogTitle className="gw-heading text-base tracking-tight text-foreground">Draw street coverage</DialogTitle>
+              <DialogTitle className="gw-heading text-base tracking-tight text-foreground">Draw Street Coverage</DialogTitle>
               <DialogDescription className="mt-0.5 break-words text-xs leading-5 text-muted-foreground">
                 {streetName}{barangayName ? ` · Brgy. ${barangayName}` : ""}
               </DialogDescription>
@@ -413,7 +413,7 @@ const StreetCoverageEditor = ({
             <Button type="button" variant="outline" className="h-9 flex-1 rounded-xl px-4 text-xs font-medium sm:flex-none" onClick={requestClose} disabled={saving}>Cancel</Button>
               <Button type="button" className="h-9 flex-1 gap-1.5 rounded-xl px-5 text-xs font-semibold shadow-sm sm:flex-none" onClick={() => void savePath()} disabled={!canSave} loading={saving} loadingLabel="Saving path…">
               <Save className="h-4 w-4" />
-              Save path
+              Save Path
             </Button>
           </div>
         </div>

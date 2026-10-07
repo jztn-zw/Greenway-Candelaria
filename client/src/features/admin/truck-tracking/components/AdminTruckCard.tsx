@@ -58,7 +58,7 @@ interface AdminTruckCardProps {
 
 const statusConfig: Record<TruckStatus, { label: string; className: string }> = {
   scheduled: { label: "Scheduled", className: getStatusBadgeStyle("Scheduled").className },
-  "on-the-way": { label: "On The Way", className: getStatusBadgeStyle("On The Way").className },
+  "on-the-way": { label: "On the Way", className: getStatusBadgeStyle("On The Way").className },
   paused: { label: "Paused", className: getStatusBadgeStyle("Paused").className },
   done: { label: "Offline", className: getStatusBadgeStyle("Offline").className },
   offline: { label: "Offline", className: getStatusBadgeStyle("Offline").className },
@@ -144,7 +144,7 @@ const AdminTruckCard = ({
           {truck.routeChoices.length > 1 && truck.routeId && (
             <div className="mt-3" onClick={(event) => event.stopPropagation()}>
               <span className="mb-1 block text-ui-overline font-semibold uppercase tracking-wide text-muted-foreground">
-                Showing route
+                Showing Route
               </span>
               <SearchableSelect value={truck.routeId} onValueChange={onRouteChange ?? (() => {})}
                 options={truck.routeChoices.map((route) => ({ value: route.id, label: `${route.name} · ${route.status.toLowerCase()}` }))}
@@ -176,7 +176,7 @@ const AdminTruckCard = ({
             <div className="col-span-2 flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-2 min-w-0">
               <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
               <div className="min-w-0">
-                <p className="text-ui-overline font-medium text-muted-foreground">Current stop</p>
+                <p className="text-ui-overline font-medium text-muted-foreground">Current Stop</p>
                 <p className={cn(
                   "truncate text-xs font-semibold",
                   truck.currentBarangay ? "text-foreground" : "italic text-muted-foreground/60"
@@ -199,7 +199,7 @@ const AdminTruckCard = ({
             </div>
 
             <div className="rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
-              <p className="text-ui-overline font-medium text-muted-foreground">Waste type</p>
+              <p className="text-ui-overline font-medium text-muted-foreground">Waste Type</p>
               <p className={cn(
                 "mt-0.5 truncate text-xs font-semibold",
                 truck.wasteType && truck.wasteType !== "Not assigned" ? "text-primary" : "italic text-muted-foreground/60"

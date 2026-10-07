@@ -39,7 +39,7 @@ const select = async (id: string) => act(async () => {
   element.dispatchEvent(new Event("change", { bubbles: true }));
 });
 const tick = async (milliseconds: number) => act(async () => { vi.advanceTimersByTime(milliseconds); });
-const load = async () => { await select("one"); await click("Load replay"); };
+const load = async () => { await select("one"); await click("Load Replay"); };
 
 beforeEach(async () => {
   vi.useFakeTimers();
@@ -62,9 +62,9 @@ it("plays one complete GPS trail across street boundaries without transition pau
   }
   expect(host.textContent).toContain("Finished");
   expect(host.textContent).toContain("100%");
-  expect(button("Replay again")).toBeTruthy();
+  expect(button("Replay Again")).toBeTruthy();
   expect(host.textContent).not.toMatch(/Leg Progress|GPS Point|A street|B street/);
-  await click("Replay again");
+  await click("Replay Again");
   expect(onIndex).toHaveBeenLastCalledWith(0);
 });
 
@@ -86,11 +86,11 @@ it("pauses, seeks, changes speed and restarts without a pending street transitio
 it("discards a stale request when the selected truck changes", async () => {
   let resolve!: (result: { logs: HistoryRow[]; stops: [] }) => void;
   vi.mocked(fetchTruckHistory).mockImplementation(() => new Promise((done) => { resolve = done; }));
-  await select("one"); await click("Load replay"); await select("two");
+  await select("one"); await click("Load Replay"); await select("two");
   await act(async () => resolve({ logs, stops: [] }));
   expect(onPath).toHaveBeenLastCalledWith(undefined);
   expect(host.querySelector('input[type="range"]')).toBeNull();
-  expect(button("Load replay").disabled).toBe(false);
+  expect(button("Load Replay").disabled).toBe(false);
 });
 
 it("shows useful empty and retry states without a fake route", async () => {
@@ -99,9 +99,9 @@ it("shows useful empty and retry states without a fake route", async () => {
   expect(host.textContent).toContain("No GPS records");
   expect(host.querySelector('input[type="range"]')).toBeNull();
   vi.mocked(fetchTruckHistory).mockRejectedValueOnce(new Error("Unavailable"));
-  await click("Load replay");
+  await click("Load Replay");
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not load");
-  await click("Try again"); expect(button("Pause")).toBeTruthy();
+  await click("Try Again"); expect(button("Pause")).toBeTruthy();
 });
 
 it("shows a lone recorded position without playback or video controls", async () => {
@@ -110,7 +110,7 @@ it("shows a lone recorded position without playback or video controls", async ()
   expect(onPath).toHaveBeenLastCalledWith([[14, 121]]);
   expect(host.textContent).toContain("Only one GPS record");
   expect(host.querySelector('input[type="range"]')).toBeNull();
-  expect(host.textContent).not.toContain("Download video");
+  expect(host.textContent).not.toContain("Download Video");
 });
 
 it("lists every target immediately and updates its state while playback remains continuous", async () => {
@@ -140,18 +140,18 @@ it("lists every target immediately and updates its state while playback remains 
   await click("Restart replay");
   expect(target()).toBe("Argao Street (Poblacion)");
   expect(list().querySelectorAll("li")).toHaveLength(3);
-  expect(host.textContent).toContain("Current target street");
-  expect(host.textContent).toContain("Target streets");
+  expect(host.textContent).toContain("Current Target Street");
+  expect(host.textContent).toContain("Target Streets");
   expect(host.textContent).not.toContain("Completed streets");
   expect(host.textContent).not.toContain("Completed barangays");
 });
 
 it("exports the full trip and aborts video work when the panel closes", async () => {
   vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new Error("Aborted")))));
-  await load(); await click("Download video");
+  await load(); await click("Download Video");
   expect(exportReplayVideo).not.toHaveBeenCalled();
   await act(async () => (document.querySelector('input[name="replay-video-speed"][value="5"]') as HTMLInputElement).click());
-  await click("Create video");
+  await click("Create Video");
   const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
   expect(options.speed).toBe(5);
   expect(options.trip.path).toHaveLength(4);
@@ -165,7 +165,7 @@ it("exports the full trip and aborts video work when the panel closes", async ()
 
 it("shows accurate video export stages and progress while keeping cancel available", async () => {
   vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
-  await load(); await click("Download video"); await click("Create video");
+  await load(); await click("Download Video"); await click("Create Video");
   const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
   const progress = () => document.querySelector('[role="progressbar"][aria-label="Video export progress"]');
   const loadingButton = () => document.querySelector('button[data-loading="true"]');
@@ -191,20 +191,20 @@ it("shows accurate video export stages and progress while keeping cancel availab
 
 it("cancels a video export from the popup and allows another attempt", async () => {
   vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
-  await load(); await click("Download video"); await click("Create video");
+  await load(); await click("Download Video"); await click("Create Video");
   const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
   await click("Cancel");
   expect(options.signal!.aborted).toBe(true);
   expect(host.querySelector("select")!.disabled).toBe(false);
-  await click("Download video");
-  expect(button("Create video").disabled).toBe(false);
+  await click("Download Video");
+  expect(button("Create Video").disabled).toBe(false);
 });
 
 it("shows a failed map export in the popup and lets the user retry", async () => {
   vi.mocked(exportReplayVideo).mockRejectedValueOnce(new Error("Could not load the map. Please check your connection and try again."));
-  await load(); await click("Download video"); await click("Create video");
+  await load(); await click("Download Video"); await click("Create Video");
   expect(document.querySelector('[role="alert"]')?.textContent).toContain("Could not load the map");
-  expect(button("Create video").disabled).toBe(false);
+  expect(button("Create Video").disabled).toBe(false);
 });
 
 it("uses real recorded time gaps at 1× and keeps the clock accurate through pause and speed changes", async () => {
@@ -216,7 +216,7 @@ it("uses real recorded time gaps at 1× and keeps the clock accurate through pau
   await load(); await click("1×");
   await tick(1000);
   expect(onIndex).toHaveBeenLastCalledWith(0.5);
-  expect(host.textContent).toContain("Replay time: 09:00 AM");
+  expect(host.textContent).toContain("Replay Time: 09:00 AM");
   expect(host.textContent).toContain("10%");
   // Pause between animation frames: preserve the extra 50 ms too.
   await tick(50); await click("Pause"); await tick(5000);
@@ -224,7 +224,7 @@ it("uses real recorded time gaps at 1× and keeps the clock accurate through pau
   await click("Play"); await tick(950);
   expect(onIndex).toHaveBeenLastCalledWith(0.975);
   await click("2×"); await tick(1000);
-  expect(host.textContent).toContain("Replay time: 09:00 AM");
+  expect(host.textContent).toContain("Replay Time: 09:00 AM");
   expect(onIndex.mock.lastCall?.[0]).toBeCloseTo(1.25);
   await click("Restart replay");
   expect(onIndex).toHaveBeenLastCalledWith(0);
@@ -256,7 +256,7 @@ it("plays from a selected target's start while playing, paused, or finished", as
   expect(onTargetLocation).toHaveBeenLastCalledWith({ name: "Cabunag St (Ibaba) (Poblacion)", coords: [14.06, 121.44] });
   expect(onCompletedTargets).toHaveBeenLastCalledWith([{ name: "Argao St (Ilaya) (Poblacion)", coords: [14.04, 121.42] }]);
   expect(onSkippedTargets).toHaveBeenLastCalledWith([{ name: "Argao St (Ibaba) (Poblacion)", coords: [14.05, 121.43] }]);
-  expect(host.textContent).toContain("Replay time: 09:02 AM");
+  expect(host.textContent).toContain("Replay Time: 09:02 AM");
   expect(button("Pause")).toBeTruthy();
   await tick(3000);
   expect(onIndex).toHaveBeenLastCalledWith(2.1);
@@ -264,7 +264,7 @@ it("plays from a selected target's start while playing, paused, or finished", as
   await click("Play from target 2: Argao St (Ibaba) (Poblacion)");
   expect(onIndex).toHaveBeenLastCalledWith(1);
   expect(onSkippedTargets).toHaveBeenLastCalledWith([]);
-  expect(host.textContent).toContain("Replay time: 09:01 AM");
+  expect(host.textContent).toContain("Replay Time: 09:01 AM");
   expect(button("Pause")).toBeTruthy();
   await tick(60000);
   expect(host.textContent).toContain("Finished");

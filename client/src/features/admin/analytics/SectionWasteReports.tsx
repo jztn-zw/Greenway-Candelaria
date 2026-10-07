@@ -107,7 +107,7 @@ const SectionWasteReports: React.FC = () => {
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="gw-heading text-sm text-foreground">Average resolution time</h3>
+              <h3 className="gw-heading text-sm text-foreground">Average Resolution Time</h3>
               <p className="text-xs text-muted-foreground">Time from report submission to resolution</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ const SectionWasteReports: React.FC = () => {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="gw-heading text-sm text-foreground">Report categories</h3>
+              <h3 className="gw-heading text-sm text-foreground">Report Categories</h3>
               <p className="text-xs text-muted-foreground">Most common issues submitted by residents</p>
             </div>
           </div>
@@ -167,7 +167,7 @@ const SectionWasteReports: React.FC = () => {
             <MapPin className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="gw-heading text-sm text-foreground">Reports by barangay</h3>
+            <h3 className="gw-heading text-sm text-foreground">Reports by Barangay</h3>
             <p className="text-xs text-muted-foreground">Barangays with the highest report volume in this period</p>
           </div>
         </div>

@@ -41,7 +41,7 @@ it("uses the shared route page skeleton while the assignment loads", async () =>
   expect(host.querySelector('[role="status"][aria-busy="true"]')).toHaveTextContent("Loading collection route");
   expect(host.querySelector('[aria-label="Loading planned route map"]')).not.toBeNull();
   expect(host.querySelector('[aria-label="Loading assigned stop order"]')).not.toBeNull();
-  expect(host.textContent).not.toContain("Start collection route");
+  expect(host.textContent).not.toContain("Start Collection Route");
   state.isLoading = false;
   await mount("");
   expect(host.querySelector('[role="status"][aria-busy="true"]')).toBeNull();
@@ -63,7 +63,7 @@ it("never renders another route when the notification refers to a replaced assig
   expect(host.querySelector('[role="alert"]')).toHaveTextContent("no longer your current assignment");
   expect(host.textContent).not.toContain("Current assignment");
   expect(host.textContent).not.toContain("Live map");
-  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Try again"))!.click());
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Try Again"))!.click());
   expect(state.refresh).toHaveBeenCalledOnce();
   expect(host.querySelector('button[aria-label="Back to Notifications"]')?.textContent).toBe("Notifications");
   expect(host.textContent).not.toContain("Back to notifications");
@@ -95,19 +95,19 @@ it.each(["start", "pause", "resume", "done", "skip", "end"] as const)("%s preser
     if (!button) throw new Error(`Missing ${label}`);
     button.click();
   }); };
-  if (action === "start") { await click("Start collection route"); expect(startMyRoute).toHaveBeenCalledWith("current-run"); }
+  if (action === "start") { await click("Start Collection Route"); expect(startMyRoute).toHaveBeenCalledWith("current-run"); }
   if (action === "pause" || action === "resume") {
-    await click(action === "pause" ? "Pause route" : "Resume route");
+    await click(action === "pause" ? "Pause Route" : "Resume Route");
     expect(setMyRoutePaused).toHaveBeenCalledWith("current-run", action === "pause");
   }
-  if (action === "done") { await click("Mark stop as cleared"); expect(completeStop).toHaveBeenCalledWith("current-run", "first"); }
+  if (action === "done") { await click("Mark Stop as Cleared"); expect(completeStop).toHaveBeenCalledWith("current-run", "first"); }
   if (action === "skip") {
-    await click("Skip"); await click("Truck Issue"); await click("Confirm skip");
+    await click("Skip"); await click("Truck Issue"); await click("Confirm Skip");
     expect(skipStop).toHaveBeenCalledWith("current-run", "first", "Truck Issue");
   }
   if (action === "end") {
-    await click("End route"); expect(endRoute).not.toHaveBeenCalled();
-    await click("Conclude route"); expect(endRoute).toHaveBeenCalledWith("current-run");
+    await click("End Route"); expect(endRoute).not.toHaveBeenCalled();
+    await click("Conclude Route"); expect(endRoute).toHaveBeenCalledWith("current-run");
     expect(host.querySelector("[data-location]")?.textContent).toBe("/collector");
   }
   expect(own.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual([true, true, true]);
@@ -119,7 +119,7 @@ it("shows pause loading only while the request is pending and releases it after 
   let reject!: (error: Error) => void;
   vi.mocked(setMyRoutePaused).mockImplementationOnce(() => new Promise((_, no) => { reject = no; }));
   await mount("");
-  const pause = [...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Pause route")!;
+  const pause = [...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Pause Route")!;
   expect(pause).toHaveAttribute("aria-busy", "false");
   await act(async () => pause.click());
   expect(pause).toHaveAttribute("aria-busy", "true");
@@ -143,9 +143,9 @@ it("keeps skip confirmation and its selected reason while the request runs and f
   const button = (label: string) => [...document.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.trim() === label)!;
   await act(async () => button("Skip").click());
   await act(async () => button("Truck Issue").click());
-  const submit = button("Confirm skip");
+  const submit = button("Confirm Skip");
   await act(async () => submit.click());
-  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Skip checkpoint");
+  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Skip Checkpoint");
   expect(submit).toHaveAttribute("aria-busy", "true");
   expect(submit).toBeDisabled();
   expect(button("Truck Issue")).toHaveAttribute("aria-pressed", "true");

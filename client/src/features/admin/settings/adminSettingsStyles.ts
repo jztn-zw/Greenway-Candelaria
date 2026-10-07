@@ -4,9 +4,9 @@ import type { ElementType } from "react";
 import "./adminSettings.css";
 
 export const adminAlertOptions: { key: keyof AdminAlertSettings; label: string; description: string; icon: ElementType }[] = [
-  { key: "notif_admin_reports", label: "New resident reports", description: "Be alerted when a resident submits a waste report.", icon: FileText },
-  { key: "notif_admin_route_issues", label: "Route and collection updates", description: "Get updates about route progress, missed collections, and tracking problems.", icon: AlertTriangle },
-  { key: "notif_admin_driver_messages", label: "Driver messages", description: "Know when a collector sends an operational message.", icon: MessageSquare },
+  { key: "notif_admin_reports", label: "New Resident Reports", description: "Be alerted when a resident submits a waste report.", icon: FileText },
+  { key: "notif_admin_route_issues", label: "Route and Collection Updates", description: "Get updates about route progress, missed collections, and tracking problems.", icon: AlertTriangle },
+  { key: "notif_admin_driver_messages", label: "Driver Messages", description: "Know when a collector sends an operational message.", icon: MessageSquare },
 ];
 
 export const adminSettingsCopy = {

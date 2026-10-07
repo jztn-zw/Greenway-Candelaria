@@ -56,7 +56,7 @@ const chooseBarangay = async (name: string) => {
   await act(async () => choice.click());
 };
 async function openCreate() {
-  await act(async () => root.render(<AdminBarangays />)); await chooseBarangay("Poblacion"); await click("Add street");
+  await act(async () => root.render(<AdminBarangays />)); await chooseBarangay("Poblacion"); await click("Add Street");
   return document.querySelector('[role="dialog"]')!;
 }
 const submit = async (editor: Element) => { await act(async () => Simulate.submit(editor.querySelector("form")!)); };
@@ -66,8 +66,8 @@ describe("barangay selection", () => {
     mocks.barangays = [{ ...mocks.barangays[0], id: "barangay-1", name }];
     await act(async () => root.render(<AdminBarangays />));
     expect(host.querySelector('button[aria-pressed="true"]')).toBeNull();
-    expect(host.querySelector("section")).toHaveTextContent("Choose a barangay");
-    expect(button("Add street", host)).toBeUndefined();
+    expect(host.querySelector("section")).toHaveTextContent("Choose a Barangay");
+    expect(button("Add Street", host)).toBeUndefined();
     expect(host.textContent).not.toContain("Gonzales St");
     mocks.barangays = mocks.barangays.map(row => ({ ...row, street_count: 2 }));
     await act(async () => root.render(<AdminBarangays />));
@@ -76,7 +76,7 @@ describe("barangay selection", () => {
 
   it("focuses barangay search from the empty state", async () => {
     await act(async () => root.render(<AdminBarangays />));
-    await click("Find a barangay");
+    await click("Find a Barangay");
     expect(document.activeElement).toBe(host.querySelector('[aria-label="Search barangays"]'));
   });
 
@@ -99,7 +99,7 @@ describe("barangay selection", () => {
     mocks.barangays = mocks.barangays.filter(row => row.id !== "mayabobo");
     await act(async () => root.render(<AdminBarangays />));
     expect(host.querySelector('button[aria-pressed="true"]')).toBeNull();
-    expect(host.querySelector("section")).toHaveTextContent("Choose a barangay");
+    expect(host.querySelector("section")).toHaveTextContent("Choose a Barangay");
   });
 });
 
@@ -108,7 +108,7 @@ it("uses one retry notice for failed barangay and street refreshes", async () =>
   await act(async () => root.render(<AdminBarangays />));
   await chooseBarangay("Poblacion");
   expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
-  const retries = [...host.querySelectorAll("button")].filter((item) => item.textContent?.trim() === "Try again");
+  const retries = [...host.querySelectorAll("button")].filter((item) => item.textContent?.trim() === "Try Again");
   expect(retries).toHaveLength(1);
   expect(host.textContent).toContain("Gonzales St");
   await act(async () => retries[0].click());
@@ -146,7 +146,7 @@ describe("street editor unsaved changes", () => {
     const editor = await openCreate(); change("barangay-street-name", "New street"); await click("Close", editor);
     expect(document.body.textContent).toContain("Discard New Street?"); await click("Keep Editing");
     expect(document.getElementById("barangay-street-name")).toHaveValue("New street"); await click("Cancel", editor); await click("Discard");
-    expect(document.querySelector('[role="dialog"]')).toBeNull(); await click("Add street");
+    expect(document.querySelector('[role="dialog"]')).toBeNull(); await click("Add Street");
     expect(document.getElementById("barangay-street-name")).toHaveValue(""); expect(mocks.create).not.toHaveBeenCalled();
   });
   it("closes unchanged forms directly and guards edited streets on Escape", async () => {
@@ -233,7 +233,7 @@ describe("street coverage road matching", () => {
     const save = await openCoverage(vi.fn(), road, close);
     await click("Clear"); await click("Cancel");
     expect(document.body.textContent).toContain("Discard Path Changes?");
-    await click("Keep Editing"); await click("Save path");
+    await click("Keep Editing"); await click("Save Path");
     expect(save).toHaveBeenCalledWith(null);
     expect(close).toHaveBeenCalledExactlyOnceWith(false);
     expect(document.body.textContent).not.toContain("Discard Path Changes?");
@@ -243,7 +243,7 @@ describe("street coverage road matching", () => {
     let finishSave!: () => void;
     const close = vi.fn();
     const save = vi.fn(() => new Promise<void>(resolve => { finishSave = resolve; }));
-    await openCoverage(save, road, close); await click("Clear"); await click("Save path");
+    await openCoverage(save, road, close); await click("Clear"); await click("Save Path");
     await click("Close");
     await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     expect(close).not.toHaveBeenCalled();
@@ -254,26 +254,26 @@ describe("street coverage road matching", () => {
 
   it.each<{ initialPath: [number, number][] | null }>([{ initialPath: null }, { initialPath: [] }])("does not save an unchanged empty path: $initialPath", async ({ initialPath }) => {
     const save = await openCoverage(vi.fn(), initialPath);
-    expect(button("Save path")).toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).toBeDisabled();
+    await click("Save Path");
     expect(save).not.toHaveBeenCalled();
     mark(points[0]);
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     await click("Undo");
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     expect(save).not.toHaveBeenCalled();
   });
 
   it("does not save an existing path until it changes", async () => {
     const save = await openCoverage(vi.fn(), road);
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     expect(document.body.textContent).toContain("No changes to save");
-    await click("Save path");
+    await click("Save Path");
     expect(save).not.toHaveBeenCalled();
     expect(mocks.road).not.toHaveBeenCalled();
     await click("Clear");
-    expect(button("Save path")).not.toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).not.toBeDisabled();
+    await click("Save Path");
     expect(save).toHaveBeenCalledWith(null);
   });
 
@@ -282,8 +282,8 @@ describe("street coverage road matching", () => {
     const save = await openCoverage(vi.fn(), detailedPath);
     expect(mocks.markers.length).toBeLessThan(detailedPath.length);
     expect(mocks.lines).toContainEqual(detailedPath);
-    expect(button("Save path")).toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).toBeDisabled();
+    await click("Save Path");
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -292,8 +292,8 @@ describe("street coverage road matching", () => {
     const save = await openCoverage(vi.fn(), road);
     mark(road[road.length - 1]);
     await finishMatching();
-    expect(button("Save path")).toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).toBeDisabled();
+    await click("Save Path");
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -302,12 +302,12 @@ describe("street coverage road matching", () => {
     const save = await openCoverage(vi.fn(), points);
     await click("Reverse");
     await finishMatching();
-    expect(button("Save path")).not.toBeDisabled();
+    expect(button("Save Path")).not.toBeDisabled();
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
     await click("Reverse");
     await finishMatching();
-    expect(button("Save path")).toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).toBeDisabled();
+    await click("Save Path");
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -315,10 +315,10 @@ describe("street coverage road matching", () => {
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
     const save = await openCoverage(); mark(points[0]); mark(points[1]);
     expect(document.body.textContent).toContain("Matching roads…");
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     await finishMatching();
     expect(mocks.lines).toContainEqual(road);
-    await click("Save path");
+    await click("Save Path");
     expect(save).toHaveBeenCalledWith(road);
     expect(mocks.road).toHaveBeenCalledTimes(1);
   });
@@ -333,53 +333,53 @@ describe("street coverage road matching", () => {
     expect(signal.aborted).toBe(true);
     expect(document.body.textContent).toContain("No path saved");
     expect(mocks.lines).toHaveLength(0);
-    expect(button("Save path")).toBeDisabled();
-    await click("Save path"); expect(save).not.toHaveBeenCalled();
+    expect(button("Save Path")).toBeDisabled();
+    await click("Save Path"); expect(save).not.toHaveBeenCalled();
   });
 
   it("keeps marked points through a 503 and retries without saving an unmatched path", async () => {
     mocks.road.mockRejectedValueOnce(Object.assign(new Error("Something went wrong. Please try again."), { isAxiosError: true, response: { status: 503 } }));
     const save = await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
-    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Road matching is temporarily unavailable");
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent("Road Matching Is Temporarily Unavailable");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Your marked points are kept while this window stays open.");
-    expect(document.querySelector('[role="alert"]')).not.toHaveTextContent("Something went wrong");
+    expect(document.querySelector('[role="alert"]')).not.toHaveTextContent("Something Went Wrong");
     expect(mocks.markers.map(marker => marker.coordinate)).toEqual(points);
     expect(mocks.lines).toHaveLength(0);
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     expect(save).not.toHaveBeenCalled();
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
-    await click("Try again");
-    expect(button("Save path")).toBeDisabled();
+    await click("Try Again");
+    expect(button("Save Path")).toBeDisabled();
     await finishMatching();
     expect(mocks.road.mock.calls[1][0]).toEqual(points);
     expect(document.querySelector('[role="alert"]')).toBeNull();
-    await click("Save path");
+    await click("Save Path");
     expect(save).toHaveBeenCalledWith(road);
   });
 
   it.each([
-    [Object.assign(new Error("timeout of 8000ms exceeded"), { isAxiosError: true, code: "ECONNABORTED" }), "Road matching took too long", "Check your connection"],
-    [Object.assign(new Error("Too many requests"), { isAxiosError: true, response: { status: 429 } }), "Road matching is busy", "Wait a moment"],
-    [Object.assign(new Error("Move the numbered points closer to the street and try again."), { isAxiosError: true, response: { status: 422 } }), "Adjust the marked points", "Move the numbered points closer to the street"],
+    [Object.assign(new Error("timeout of 8000ms exceeded"), { isAxiosError: true, code: "ECONNABORTED" }), "Road Matching Took Too Long", "Check your connection"],
+    [Object.assign(new Error("Too many requests"), { isAxiosError: true, response: { status: 429 } }), "Road Matching Is Busy", "Wait a moment"],
+    [Object.assign(new Error("Move the numbered points closer to the street and try again."), { isAxiosError: true, response: { status: 422 } }), "Adjust the Marked Points", "Move the numbered points closer to the street"],
   ])("shows actionable guidance for a matching failure: %s", async (failure, title, description) => {
     mocks.road.mockRejectedValueOnce(failure);
     await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
     expect(document.querySelector('[role="alert"]')).toHaveTextContent(title);
     expect(document.querySelector('[role="alert"]')).toHaveTextContent(description);
     expect(mocks.markers.map(marker => marker.coordinate)).toEqual(points);
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
   });
 
   it("keeps the matched path after a failed save and lets the user save again", async () => {
-    const save = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Something went wrong"), { isAxiosError: true, response: { status: 503 } })).mockResolvedValueOnce(undefined);
+    const save = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Something Went Wrong"), { isAxiosError: true, response: { status: 503 } })).mockResolvedValueOnce(undefined);
     mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
     await openCoverage(save); mark(points[0]); mark(points[1]); await finishMatching();
-    await click("Save path");
+    await click("Save Path");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Path wasn't saved");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Your changes are kept in this window");
     expect(mocks.lines).toContainEqual(road);
-    expect(button("Save path")).not.toBeDisabled();
-    await click("Save path");
+    expect(button("Save Path")).not.toBeDisabled();
+    await click("Save Path");
     expect(save).toHaveBeenCalledTimes(2);
     expect(save).toHaveBeenLastCalledWith(road);
     expect(document.querySelector('[role="alert"]')).toBeNull();
@@ -394,7 +394,7 @@ describe("street coverage road matching", () => {
     const marker = mocks.markers[0]; marker.coordinate = moved;
     act(() => marker.handlers.get("dragend")!()); await finishMatching();
     expect(mocks.road.mock.calls[0][0][0]).toEqual(moved);
-    await click("Save path"); expect(save).toHaveBeenCalledWith(updatedRoad);
+    await click("Save Path"); expect(save).toHaveBeenCalledWith(updatedRoad);
   });
 
   it("respects reversed collection order and disables saving after undo leaves one point", async () => {
@@ -406,7 +406,7 @@ describe("street coverage road matching", () => {
     expect(mocks.road.mock.calls[0][0]).toEqual(reversed);
     expect(mocks.lines).toContainEqual(reversedRoad);
     await click("Undo");
-    expect(button("Save path")).toBeDisabled();
+    expect(button("Save Path")).toBeDisabled();
     expect(mocks.lines).toHaveLength(0);
   });
 });

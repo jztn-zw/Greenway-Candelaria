@@ -62,7 +62,7 @@ it("shows announcement loading and failure honestly, then retries without markin
   mocks.announcementState = "error"; await render();
   expect(document.querySelector('[role="alert"]')).toHaveTextContent("could not be loaded");
   expect(document.body.textContent).not.toContain("No additional details");
-  await click("Try again"); expect(mocks.refetch).toHaveBeenCalledOnce();
+  await click("Try Again"); expect(mocks.refetch).toHaveBeenCalledOnce();
   expect(mocks.markRead).not.toHaveBeenCalled();
   mocks.announcementState = "success"; await render();
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent(mocks.announcement.body);
@@ -110,7 +110,7 @@ it("returns to editing a report or submits it only through the selected action",
   await act(async () => root.render(<ReviewModal open onOpenChange={onOpenChange} onSubmit={onSubmit} form={report} />));
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Waste blocking road");
   await click("Back"); expect(onOpenChange).toHaveBeenCalledWith(false); expect(onSubmit).not.toHaveBeenCalled();
-  await click("Submit report"); expect(onSubmit).toHaveBeenCalledOnce();
+  await click("Submit Report"); expect(onSubmit).toHaveBeenCalledOnce();
 });
 it("prevents report review dismissal or duplicate submission while uploading", async () => {
   const onOpenChange = vi.fn(); const onSubmit = vi.fn();

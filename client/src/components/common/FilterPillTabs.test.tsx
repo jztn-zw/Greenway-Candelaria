@@ -19,7 +19,7 @@ it("selects filters with the keyboard, moves focus, and wraps at either end", ()
     return <FilterPillTabs items={items} activeId={active} ariaLabel="Route status" onChange={(id) => { changed(id); setActive(id); }} />;
   };
   render(<Filters />);
-  const all = screen.getByRole("button", { name: "All routes" });
+  const all = screen.getByRole("button", { name: /^All routes$/i });
   const completed = screen.getByRole("button", { name: "Completed" });
   const partial = screen.getByRole("button", { name: "Partial" });
   all.focus();
@@ -64,7 +64,7 @@ it("keeps keyboard activation available after dragging and with no selected pres
   const changed = vi.fn();
   render(<FilterPillTabs items={items} onChange={changed} ariaLabel="Date presets" />);
   const group = screen.getByRole("group", { name: "Date presets" });
-  const all = screen.getByRole("button", { name: "All routes" });
+  const all = screen.getByRole("button", { name: /^All routes$/i });
   const completed = screen.getByRole("button", { name: "Completed" });
   expect(all).toHaveAttribute("tabindex", "0");
   expect(group.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);

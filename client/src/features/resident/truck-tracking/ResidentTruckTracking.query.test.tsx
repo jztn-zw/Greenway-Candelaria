@@ -18,7 +18,7 @@ vi.mock("socket.io-client", () => ({ io: () => ({
 vi.mock("@/services/trackingService", () => ({ fetchAllTrucks: () => mocks.trucks(), fetchTodayRoutes: () => mocks.routes(), fetchLiveTrucks: () => mocks.live() }));
 vi.mock("@/services/barangaysService", () => ({ fetchBarangays: () => mocks.barangays() }));
 vi.mock("@/services/routesService", () => ({ fetchRoutes: () => mocks.templates() }));
-vi.mock("./TrackingMap", () => ({ default: (props: MapProps) => { mocks.map(props); return <div>Tracking map</div>; } }));
+vi.mock("./TrackingMap", () => ({ default: (props: MapProps) => { mocks.map(props); return <div>Tracking Map</div>; } }));
 
 describe("resident tracking queries and GPS", () => {
   let host: HTMLDivElement; let root: Root; let client: QueryClient;
@@ -59,7 +59,7 @@ describe("resident tracking queries and GPS", () => {
     expect(client.getQueryData(key)).toEqual(fresh);
     await act(async () => { finish([{ truck_id: "truck-a", last_ping: "2026-09-27T11:59:00Z" }]); });
     expect(client.getQueryData(key)).toEqual(fresh);
-    expect(host.textContent).toContain("Tracking map");
+    expect(host.textContent).toContain("Tracking Map");
   });
 
   it("renders a failed live request without a repeated state-update loop", async () => {
@@ -67,7 +67,7 @@ describe("resident tracking queries and GPS", () => {
     await render();
     expect(host.textContent).toContain("Tracking could not be refreshed");
     expect(mocks.live).toHaveBeenCalled();
-    expect(host.textContent).toContain("Tracking map");
+    expect(host.textContent).toContain("Tracking Map");
   });
 
   it("keeps an ongoing collection when GPS ages out, and resumes on a fresh update", async () => {
@@ -114,10 +114,10 @@ describe("resident tracking queries and GPS", () => {
     const { default: ActualMap } = await vi.importActual<typeof import("./TrackingMap")>("./TrackingMap");
     const html = renderToStaticMarkup(<QueryClientProvider client={client}><ActualMap {...mapProps()} /></QueryClientProvider>);
     expect(html).toContain("GPS updates delayed");
-    expect(html).toContain("Last GPS update:");
+    expect(html).toContain("Last GPS Update:");
     expect(html).toContain("last known location");
     expect(html).not.toContain("No Collection Scheduled Today");
-    expect(html).not.toContain("Travel estimate");
+    expect(html).not.toContain("Travel Estimate");
   });
 });
 

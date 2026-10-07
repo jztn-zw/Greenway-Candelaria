@@ -172,7 +172,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-foreground">Collection Stops</span>
-                <span className="text-ui-overline text-muted-foreground font-medium">Order of service</span>
+                <span className="text-ui-overline text-muted-foreground font-medium">Order of Service</span>
               </div>
 
               <div className="border border-border/70 rounded-xl max-h-48 overflow-y-auto divide-y divide-border/60 bg-muted/15 scrollbar-thin">
@@ -271,7 +271,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
         icon={<Trash2 />}
         variant="destructive"
         description={<>The inactive route template for {route.day} ({route.truckName}) will be removed and recorded in the MENRO Audit Logs. Completed daily route history will be preserved.</>}
-        confirmLabel="Delete permanently"
+        confirmLabel="Delete Permanently"
         isPending={isDeleting}
         pendingLabel="Deleting..."
         closeOnConfirm

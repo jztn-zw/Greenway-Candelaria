@@ -426,7 +426,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
       <div className="collector-route-map-legend absolute left-2.5 top-2.5 z-[400] flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
         {preview ? (
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned stops</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned Stops</span>
         ) : (
           <>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-600" /> Current</span>
@@ -465,7 +465,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
       <div className="collector-route-map-caption absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center min-w-0">
         <span className="text-ui-overline sm:text-ui-caption font-body font-semibold text-foreground break-words">
-          {preview ? "Route preview · GPS off" : activeRoute?.source === "haversine" ? "Estimated straight-line path" : "Candelaria, Quezon"}
+          {preview ? "Route Preview · GPS Off" : activeRoute?.source === "haversine" ? "Estimated Straight-Line Path" : "Candelaria, Quezon"}
         </span>
       </div>
     </div>

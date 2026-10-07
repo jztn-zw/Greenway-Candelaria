@@ -46,14 +46,14 @@ afterEach(() => {
 const render = async () => {
   await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentDashboard /></MemoryRouter></QueryClientProvider>));
 };
-const retryButtons = () => [...host.querySelectorAll("button")].filter((button) => button.textContent?.trim() === "Try again");
+const retryButtons = () => [...host.querySelectorAll("button")].filter((button) => button.textContent?.trim() === "Try Again");
 
 it("uses one retry for multiple unavailable sections and leaves healthy requests alone", async () => {
   vi.mocked(fetchCalendarEvents).mockRejectedValue(new Error("offline"));
   vi.mocked(fetchAnnouncements).mockRejectedValue(new Error("offline"));
   await render();
-  expect(host.textContent).toContain("Calendar couldn't load");
-  expect(host.textContent).toContain("Announcements couldn't load");
+  expect(host.textContent).toContain("Calendar Couldn't Load");
+  expect(host.textContent).toContain("Announcements Couldn't Load");
   expect(host.textContent).toContain("Yuki");
   expect(retryButtons()).toHaveLength(1);
   const calendarAttempts = vi.mocked(fetchCalendarEvents).mock.calls.length;

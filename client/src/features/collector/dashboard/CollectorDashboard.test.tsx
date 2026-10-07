@@ -58,7 +58,7 @@ it("keeps the full dashboard skeleton until calendar data is ready", async () =>
 });
 
 it("does not keep the dashboard skeleton after a calendar request fails", async () => {
-  vi.mocked(fetchCalendarEvents).mockRejectedValueOnce(new Error("Schedule unavailable"));
+  vi.mocked(fetchCalendarEvents).mockRejectedValueOnce(new Error("Schedule Unavailable"));
   await render();
   expect(host.textContent).toContain("Morning collection");
   expect(host.textContent).not.toContain("Loading collector dashboard");
@@ -68,16 +68,16 @@ it("keeps the assignment available if history fails, without presenting false em
   vi.mocked(fetchDriverMyHistory).mockRejectedValue(new Error("Temporary failure"));
   await render();
   expect(host.textContent).toContain("Morning collection");
-  expect(host.textContent).toContain("Route history unavailable");
+  expect(host.textContent).toContain("Route History Unavailable");
   expect(host.textContent).not.toContain("No finished collection routes yet");
 });
 
 it("does not invent a ready truck or an unassigned state when the profile request fails", async () => {
   vi.mocked(fetchCollectorDashboardProfile).mockRejectedValue(new Error("Temporary failure"));
   await render();
-  expect(host.textContent).toContain("Vehicle information unavailable");
-  expect(host.textContent).not.toContain("Road ready");
-  expect(host.textContent).not.toContain("No truck assigned");
+  expect(host.textContent).toContain("Vehicle Information Unavailable");
+  expect(host.textContent).not.toContain("Road Ready");
+  expect(host.textContent).not.toContain("No Truck Assigned");
 });
 
 it("advances the clock and refreshes dashboard data in the background", async () => {
@@ -107,10 +107,10 @@ it("replaces a failed primary dashboard load and recovers with a real retry", as
   vi.mocked(fetchCollectorDashboardProfile).mockRejectedValueOnce(new Error("Network Error"));
   vi.mocked(fetchMyRouteToday).mockRejectedValueOnce(new Error("Network Error"));
   await render();
-  expect(host.querySelector("h1")).toHaveTextContent("This page couldn't load");
-  expect(host.textContent).not.toContain("Stops cleared");
+  expect(host.querySelector("h1")).toHaveTextContent("This Page Couldn't Load");
+  expect(host.textContent).not.toContain("Stops Cleared");
   expect(host.textContent).not.toContain("No finished collection routes yet");
-  const retry = [...host.querySelectorAll("button")].find((button) => button.textContent === "Try again")!;
+  const retry = [...host.querySelectorAll("button")].find((button) => button.textContent === "Try Again")!;
   await act(async () => retry.click());
   expect(host.textContent).toContain("Morning collection");
   expect(fetchMyRouteToday).toHaveBeenCalledTimes(2);
@@ -123,7 +123,7 @@ it("keeps the loaded assignment visible after a failed background refresh", asyn
   await act(async () => { await client.refetchQueries({ predicate: ({ queryKey }) => queryKey[2] === "routes" }); });
   expect(host.textContent).toContain("Morning collection");
   expect(host.textContent).toContain("Showing the last loaded data");
-  expect(host.querySelector("h1")?.textContent).not.toBe("This page couldn't load");
+  expect(host.querySelector("h1")?.textContent).not.toBe("This Page Couldn't Load");
 });
 
 // This test chooses the trusted clock fixture via its fake timer date.

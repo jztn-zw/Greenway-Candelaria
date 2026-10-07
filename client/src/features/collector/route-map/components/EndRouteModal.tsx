@@ -11,11 +11,11 @@ interface EndRouteModalProps {
 
 const EndRouteModal = ({ open, remaining, onConfirm, onCancel, isPending }: EndRouteModalProps) => (
   <ConfirmationDialog kind="dialog" open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel(); }}
-    title="Conclude collection route?"
+    title="Conclude Collection Route?"
     description={remaining > 0
       ? `You still have ${remaining} checkpoint${remaining > 1 ? "s" : ""} remaining. Concluding now will mark unfinished barangays as missed.`
       : "All checkpoints are completed. Ready to conclude your collection shift?"}
-    icon={<AlertTriangle />} variant="destructive" confirmLabel="Conclude route"
+    icon={<AlertTriangle />} variant="destructive" confirmLabel="Conclude Route"
     onConfirm={onConfirm} onCancel={onCancel} isPending={isPending} pendingLabel="Concluding route…" />
 );
 

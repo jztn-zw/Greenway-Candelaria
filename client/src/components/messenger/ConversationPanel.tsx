@@ -94,7 +94,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
     {error && !admin && <DataRefreshNotice primary role="alert" className="m-3" message={error} onRetry={() => void refresh()} retrying={refreshing} />}
     <div ref={scrollRef} onScroll={() => { const root = scrollRef.current; if (root) nearBottom.current = root.scrollHeight - root.scrollTop - root.clientHeight < 48; }} className={cn("min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto bg-background/25 px-4 py-4", !admin && "collector-dispatch-messages")} aria-label="Conversation messages">
       {error && admin && <DataRefreshNotice primary role="alert" message={error} onRetry={() => void refresh()} retrying={refreshing} />}
-      {nextCursor && <div className={admin ? undefined : "flex justify-center"}><Button variant="outline" size="sm" className={admin ? undefined : "h-9 max-w-full rounded-lg px-3 text-xs"} onClick={() => void handleOlder()} disabled={loadingOlder} loading={loadingOlder} loadingLabel="Loading older messages…">Load older messages</Button></div>}
+      {nextCursor && <div className={admin ? undefined : "flex justify-center"}><Button variant="outline" size="sm" className={admin ? undefined : "h-9 max-w-full rounded-lg px-3 text-xs"} onClick={() => void handleOlder()} disabled={loadingOlder} loading={loadingOlder} loadingLabel="Loading older messages…">Load Older Messages</Button></div>}
       {loading && (admin ? (
         <div role="status" aria-label="Loading messages" className="flex min-h-full items-center justify-center text-primary">
           <ActionButtonLoader variant="display" />

@@ -28,13 +28,13 @@ const pageTitle = "Analytics Dashboard";
 const pageDescription = "A single view of collection operations, resident reports, and truck activity.";
 
 const sectionComponents: Record<string, { component: React.FC; title: string; subtitle: string }> = {
-  overview: { component: SectionOverview, title: "Operations overview", subtitle: "Collection coverage, open reports, missed stops, and truck readiness." },
-  "collection-performance": { component: SectionCollectionPerformance, title: "Collection efficiency", subtitle: "Completed route stops as a share of scheduled route stops." },
-  "missed-collections": { component: SectionMissedCollections, title: "Missed collections", subtitle: "Weekly missed route stops, affected areas, and recorded reasons." },
-  "barangay-compliance": { component: SectionBarangayCompliance, title: "Barangay coverage", subtitle: "Scheduled, completed, and missed collection stops by barangay." },
-  "waste-reports": { component: SectionWasteReports, title: "Incident resolution report", subtitle: "Resident reports by status, category, location, and resolution time." },
-  "resident-engagement": { component: SectionResidentEngagement, title: "Resident engagement", subtitle: "Resident registration and participation in reporting and announcements." },
-  "truck-driver": { component: SectionTruckDriver, title: "Driver operations", subtitle: "Assigned trucks, route outcomes, stop completion, and missed stops." },
+  overview: { component: SectionOverview, title: "Operations Overview", subtitle: "Collection coverage, open reports, missed stops, and truck readiness." },
+  "collection-performance": { component: SectionCollectionPerformance, title: "Collection Efficiency", subtitle: "Completed route stops as a share of scheduled route stops." },
+  "missed-collections": { component: SectionMissedCollections, title: "Missed Collections", subtitle: "Weekly missed route stops, affected areas, and recorded reasons." },
+  "barangay-compliance": { component: SectionBarangayCompliance, title: "Barangay Coverage", subtitle: "Scheduled, completed, and missed collection stops by barangay." },
+  "waste-reports": { component: SectionWasteReports, title: "Incident Resolution Report", subtitle: "Resident reports by status, category, location, and resolution time." },
+  "resident-engagement": { component: SectionResidentEngagement, title: "Resident Engagement", subtitle: "Resident registration and participation in reporting and announcements." },
+  "truck-driver": { component: SectionTruckDriver, title: "Driver Operations", subtitle: "Assigned trucks, route outcomes, stop completion, and missed stops." },
 };
 
 const toIsoDate = (date: Date) => {
@@ -66,7 +66,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
   const barangays = useMemo(() => barangayRows.filter((row) => row.status === "ACTIVE").sort((a, b) => a.name.localeCompare(b.name)), [barangayRows]);
   const barangayOptions = useMemo(
     () => [
-      { value: "all", label: "All barangays" },
+      { value: "all", label: "All Barangays" },
       ...barangays.map((barangay) => ({ value: barangay.id, label: barangay.name })),
     ],
     [barangays],
@@ -109,9 +109,9 @@ const AdminAnalyticsDashboard: React.FC = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="this-month">This month</SelectItem>
-                <SelectItem value="last-8-weeks">Last 8 weeks</SelectItem>
-                <SelectItem value="last-3-months">Last 3 months</SelectItem>
+                <SelectItem value="this-month">This Month</SelectItem>
+                <SelectItem value="last-8-weeks">Last 8 Weeks</SelectItem>
+                <SelectItem value="last-3-months">Last 3 Months</SelectItem>
               </SelectContent>
             </Select>
             <SearchableSelect
@@ -141,9 +141,9 @@ const AdminAnalyticsDashboard: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="this-month">This month</SelectItem>
-                      <SelectItem value="last-8-weeks">Last 8 weeks</SelectItem>
-                      <SelectItem value="last-3-months">Last 3 months</SelectItem>
+                      <SelectItem value="this-month">This Month</SelectItem>
+                      <SelectItem value="last-8-weeks">Last 8 Weeks</SelectItem>
+                      <SelectItem value="last-3-months">Last 3 Months</SelectItem>
                     </SelectContent>
                   </Select>
                 </AdminFilterField>

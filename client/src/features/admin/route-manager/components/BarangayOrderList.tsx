@@ -138,7 +138,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                   size="sm"
                   onClick={handleAddAll}
                   className="h-5 px-1.5 text-ui-caption font-semibold rounded cursor-pointer"
-                  title="Add all listed streets to route"
+                  title="Add All Listed Streets to Route"
                 >
                   + Add All ({filteredAvailable.length})
                 </Button>
@@ -338,7 +338,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       onClick={() => onMove(index, "up")}
                       disabled={index === 0}
                       className="h-7 w-7 rounded-lg cursor-pointer disabled:opacity-20"
-                      title="Move up"
+                      title="Move Up"
                     >
                       <ChevronUp className="h-3.5 w-3.5" />
                     </Button>
@@ -349,7 +349,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       onClick={() => onMove(index, "down")}
                       disabled={index === form.barangays.length - 1}
                       className="h-7 w-7 rounded-lg cursor-pointer disabled:opacity-20"
-                      title="Move down"
+                      title="Move Down"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
                     </Button>
@@ -359,7 +359,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                       size="icon"
                       onClick={() => onRemove(stop.id)}
                       className="h-7 w-7 rounded-lg cursor-pointer ml-1"
-                      title="Remove stop"
+                      title="Remove Stop"
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>

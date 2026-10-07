@@ -146,7 +146,7 @@ const AdminCollectionSchedule: React.FC = () => {
               <CalendarDays className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal calendar</h2>
+              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal Calendar</h2>
               <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
             </div>
           </div>

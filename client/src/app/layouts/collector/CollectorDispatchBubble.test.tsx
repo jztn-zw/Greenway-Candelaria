@@ -81,11 +81,11 @@ it("loads older pages and keeps them during latest-message refresh", async () =>
   vi.mocked(fetchConversation).mockResolvedValue(page([message], "older-cursor"));
   await mount(); await open();
   vi.mocked(fetchConversation).mockImplementation(async (_driver, params) => params?.cursor ? page([{ ...message, id: "old", message: "Earlier dispatch", created_at: "2026-09-27 01:00:00" }]) : page([message], "older-cursor"));
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Load older messages" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Load older messages$/i })); });
   expect(fetchConversation).toHaveBeenLastCalledWith(undefined, { cursor: "older-cursor" });
   await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
   expect(screen.getByText("Earlier dispatch")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Load older messages" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Load older messages$/i })).toBeNull();
 });
 it("a missing old notification does not stop latest messages from loading", async () => {
   vi.mocked(fetchConversation).mockImplementation(async (_driver, params) => { if (params?.message_id) throw new Error("404"); return page(); });
@@ -95,7 +95,7 @@ it("a missing old notification does not stop latest messages from loading", asyn
   expect(screen.getByRole("alert").textContent).toContain("selected message");
   await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
   expect(screen.getByText("Dispatch instruction")).toBeTruthy();
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Try again" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Try again$/i })); });
   expect(screen.queryByRole("alert")).toBeNull();
 });
 it("shows loading instead of an empty conversation and limits the accessible composer", async () => {

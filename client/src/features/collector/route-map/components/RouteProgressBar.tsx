@@ -37,8 +37,8 @@ const RouteProgressBar = ({
             <MapPin className="h-3.5 w-3.5 text-primary" /> {total} {total === 1 ? "stop" : "stops"}
           </span>
         </div>
-        <span className={collectorBadgeClassName + " " + getStatusBadgeStyle(isScheduled ? "Scheduled" : "Ready to start").className}>
-          <Clock className="h-3.5 w-3.5" /> {isScheduled ? "Scheduled" : "Ready to start"}
+        <span className={collectorBadgeClassName + " " + getStatusBadgeStyle(isScheduled ? "Scheduled" : "Ready to Start").className}>
+          <Clock className="h-3.5 w-3.5" /> {isScheduled ? "Scheduled" : "Ready to Start"}
         </span>
       </section>
     );
@@ -96,7 +96,7 @@ const RouteProgressBar = ({
             ) : !hasStarted && !isScheduled ? (
               <>
                 <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span>Ready to start</span>
+                <span>Ready to Start</span>
               </>
             ) : (
               <>

@@ -22,18 +22,18 @@ it("clears the current query once and restores focus without submitting its form
   fireEvent.change(input, { target: { value: "Recycling" } });
   expect(changed).toHaveBeenLastCalledWith("Recycling");
   changed.mockClear();
-  fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Clear search$/i }));
   expect(changed).toHaveBeenCalledExactlyOnceWith("");
   expect(cleared).toHaveBeenCalledOnce();
   expect(input).toHaveValue("");
   expect(input).toHaveFocus();
   expect(submitted).not.toHaveBeenCalled();
-  expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Clear search$/i })).not.toBeInTheDocument();
 });
 
 it.each([{ value: "" }, { value: "Query", disabled: true }, { value: "Query", readOnly: true }])("offers no clear action for empty or noneditable fields: %j", (props) => {
   render(<SearchInput {...props} onChange={vi.fn()} />);
-  expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Clear search$/i })).not.toBeInTheDocument();
 });
 
 it("preserves the caller's input reference, accessible name, and keyboard handler", () => {
@@ -59,6 +59,6 @@ it("allows a pending search to be cleared while exposing its loading status", ()
   render(<SearchInput value="Reference" onChange={changed} loading />);
   expect(screen.getByRole("textbox")).toHaveAttribute("aria-busy", "true");
   expect(screen.getByRole("status")).toHaveTextContent("Searching…");
-  fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Clear search$/i }));
   expect(changed).toHaveBeenCalledExactlyOnceWith("");
 });

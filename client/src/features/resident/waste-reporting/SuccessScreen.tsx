@@ -51,7 +51,7 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
 
         <div className="space-y-1">
           <h2 className="gw-heading text-xl text-foreground tracking-tight md:text-2xl">
-            Report submitted
+            Report Submitted
           </h2>
           <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground md:max-w-sm md:text-sm">
             Your report has been received and forwarded to MENRO Candelaria officers.
@@ -150,14 +150,14 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
           className="flex h-10 items-center justify-center gap-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer md:h-11 md:text-sm"
         >
           <PlusCircle className="w-4 h-4" />
-          <span className="min-w-0 truncate">Submit another</span>
+          <span className="min-w-0 truncate">Submit Another</span>
         </Button>
         <Button
           type="button"
           onClick={() => navigate("/resident/my-reports")}
           className="flex h-10 items-center justify-center gap-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer md:h-11 md:text-sm"
         >
-          <span className="min-w-0 truncate">View my reports</span>
+          <span className="min-w-0 truncate">View My Reports</span>
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

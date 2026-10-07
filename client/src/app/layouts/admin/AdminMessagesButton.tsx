@@ -20,7 +20,7 @@ export default function AdminMessagesButton() {
   return <AdminMessenger
     drivers={collectors.data ?? []}
     onOpenChange={setOpen}
-    trigger={<button type="button" aria-label="Collector messages" title="Collector messages" className={navigationStyles.topbarButton}>
+    trigger={<button type="button" aria-label="Collector messages" title="Collector Messages" className={navigationStyles.topbarButton}>
       <MessageCircle className="size-4" aria-hidden="true" />
       {unreadCount > 0 && <span aria-hidden="true" className={`${navigationStyles.unreadBadge} ${unreadCount > 9 ? "min-w-4 px-1" : "w-4"}`}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
       <span className="sr-only">{unreadCount} unread collector messages</span>

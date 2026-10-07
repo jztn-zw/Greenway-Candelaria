@@ -111,8 +111,8 @@ const CollectorNotifications = () => {
         titleBadge={unreadCount > 0 ? <Badge className="shrink-0 text-[11px] tabular-nums">{unreadCount.toLocaleString()} unread</Badge> : undefined}
         actionsClassName={notificationStyles.headerActions}
         actions={(unreadCount > 0 || notifications.length > 0) && <>
-          {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} loading={isMarkingAll} loadingLabel="Marking…" onClick={() => void markAllAsRead()} className={notificationStyles.actionButton}><CheckCheck className="size-3.5 text-primary" /><span className="min-w-0 truncate">Mark all read</span></Button>}
-          {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className={notificationStyles.actionButton}><Trash2 className="size-3.5" /><span className="min-w-0 truncate">Clear all</span></Button>}
+          {unreadCount > 0 && <Button variant="outline" size="sm" disabled={isMutating} loading={isMarkingAll} loadingLabel="Marking…" onClick={() => void markAllAsRead()} className={notificationStyles.actionButton}><CheckCheck className="size-3.5 text-primary" /><span className="min-w-0 truncate">Mark All Read</span></Button>}
+          {notifications.length > 0 && <Button variant="destructive-outline" size="sm" disabled={isMutating} onClick={() => setConfirmClear(true)} className={notificationStyles.actionButton}><Trash2 className="size-3.5" /><span className="min-w-0 truncate">Clear All</span></Button>}
         </>} />
 
       <div className="space-y-4">
@@ -128,11 +128,11 @@ const CollectorNotifications = () => {
           {(unreadCount > 0 || notifications.length > 0) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className={notificationStyles.menuTrigger} title="Notification actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" className={notificationStyles.menuTrigger} title="Notification Actions" aria-label="Notification actions"><MoreHorizontal className="h-4 w-4" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-44">
-                {unreadCount > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => void markAllAsRead()} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark all as read</DropdownMenuItem>}
-                {notifications.length > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => setConfirmClear(true)} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="h-3.5 w-3.5" />Clear all notifications</DropdownMenuItem>}
+                {unreadCount > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => void markAllAsRead()} className="gap-2"><CheckCheck className="h-3.5 w-3.5 text-primary" />Mark All as Read</DropdownMenuItem>}
+                {notifications.length > 0 && <DropdownMenuItem disabled={isMutating} onSelect={() => setConfirmClear(true)} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="h-3.5 w-3.5" />Clear All Notifications</DropdownMenuItem>}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -163,7 +163,7 @@ const CollectorNotifications = () => {
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-1">
-                    {isUnread && <span className="sr-only">Unread notification</span>}
+                    {isUnread && <span className="sr-only">Unread Notification</span>}
                     <p className="text-sm font-semibold text-foreground/90 leading-snug break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                       <span className="font-bold text-foreground">{headline.prefix}</span>
                       {headline.connector && <span className="text-foreground/80"> {headline.connector} </span>}
@@ -182,7 +182,7 @@ const CollectorNotifications = () => {
             })}
           </div>
         ) : !error && !isLoading ? (
-          <ListEmptyState icon={Bell} title="No notifications found"
+          <ListEmptyState icon={Bell} title="No Notifications Found"
             description="You're all caught up! New alerts will appear here in real-time." />
         ) : null}
 
@@ -192,9 +192,9 @@ const CollectorNotifications = () => {
         {nextCursor && <Button className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9" variant="outline" disabled={isRefreshing || isMutating} loading={isLoading} loadingLabel="Loading older notifications…" onClick={() => void loadMore()}>{`Load older notifications (${notifications.length} of ${total} loaded)`}</Button>}
       </div>
       <ConfirmationDialog open={confirmClear} onOpenChange={setConfirmClear}
-        title="Clear all notification history?"
+        title="Clear All Notification History?"
         description="This permanently deletes notifications in every category, including older notifications. This cannot be undone."
-        icon={<Trash2 />} variant="destructive" confirmLabel="Clear all" confirmDisabled={isMutating} pendingLabel="Clearing…"
+        icon={<Trash2 />} variant="destructive" confirmLabel="Clear All" confirmDisabled={isMutating} pendingLabel="Clearing…"
         closeOnConfirm onConfirm={async () => { await clearAll(); setCurrentPage(1); }} />
       {/* ── Details Modal ── */}
       {modalNotification && (

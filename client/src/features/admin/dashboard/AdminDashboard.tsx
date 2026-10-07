@@ -61,7 +61,7 @@ const AdminDashboard = () => {
   }
 
   if (error && !overview) {
-    return <PageErrorState kind="unavailable" title="Dashboard data couldn't load" description="We couldn't load the current figures. Check your connection and try again." onRetry={() => void refetch()} retrying={isRefreshing} />;
+    return <PageErrorState kind="unavailable" title="Dashboard Data Couldn't Load" description="We couldn't load the current figures. Check your connection and try again." onRetry={() => void refetch()} retrying={isRefreshing} />;
   }
 
   return (

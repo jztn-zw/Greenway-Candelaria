@@ -21,18 +21,18 @@ interface TruckRow {
   currentRoute: string;
   completed: number;
   total: number;
-  status: "Scheduled" | "On route" | "Paused" | "Completed" | "Partial" | "Cancelled" | "No route today" | "Under maintenance";
+  status: "Scheduled" | "On Route" | "Paused" | "Completed" | "Partial" | "Cancelled" | "No Route Today" | "Under Maintenance";
 }
 
 const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
-  "On route": getStatusBadgeStyle("On route"),
+  "On Route": getStatusBadgeStyle("On Route"),
   Scheduled: getStatusBadgeStyle("Scheduled"),
   Completed: getStatusBadgeStyle("Completed"),
   Paused: getStatusBadgeStyle("Paused"),
   Partial: getStatusBadgeStyle("Partial"),
   Cancelled: getStatusBadgeStyle("Cancelled"),
-  "No route today": getStatusBadgeStyle("No route today"),
-  "Under maintenance": getStatusBadgeStyle("Under maintenance"),
+  "No Route Today": getStatusBadgeStyle("No Route Today"),
+  "Under Maintenance": getStatusBadgeStyle("Under Maintenance"),
 };
 
 interface TodaysOperationsProps {
@@ -47,11 +47,11 @@ const TodaysOperations = ({ trucks: liveTrucks, barangays: liveBarangays }: Toda
   const displayTrucks: TruckRow[] = (liveTrucks ?? []).map((t) => {
     const hasRoute = Boolean(t.run_status && t.run_status !== "CANCELLED");
     const status = t.availability_status === "UNDER_MAINTENANCE"
-      ? "Under maintenance"
+      ? "Under Maintenance"
       : !hasRoute
-        ? t.run_status === "CANCELLED" ? "Cancelled" : "No route today"
+        ? t.run_status === "CANCELLED" ? "Cancelled" : "No Route Today"
         : t.run_status === "ACTIVE"
-          ? "On route"
+          ? "On Route"
           : t.run_status === "PAUSED"
             ? "Paused"
           : t.run_status === "SCHEDULED"

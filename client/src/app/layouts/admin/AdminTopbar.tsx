@@ -313,7 +313,7 @@ const AdminTopBar = () => {
                   className="gw-topbar-notification-action"
                 >
                   {isMarkingAll ? <ActionButtonLoader className="gw-action-loader--compact" /> : <CheckCheck className="w-3.5 h-3.5" />}
-                  <span>{isMarkingAll ? "Marking all read…" : "Mark all read"}</span>
+                  <span>{isMarkingAll ? "Marking All Read…" : "Mark All Read"}</span>
                 </button>
               )}
             </div>
@@ -407,7 +407,7 @@ const AdminTopBar = () => {
                 }}
                 className="gw-topbar-notification-action w-full py-2 group"
               >
-                <span>View all notifications</span>
+                <span>View All Notifications</span>
                 <ChevronRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
               </button>
             </div>

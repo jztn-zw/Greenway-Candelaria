@@ -54,7 +54,7 @@ export const AdminMessenger = ({ drivers, trigger, onOpenChange, collectorNotice
               <MessagesSquare className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="gw-heading text-sm tracking-tight">Collector messages</DialogTitle>
+              <DialogTitle className="gw-heading text-sm tracking-tight">Collector Messages</DialogTitle>
               <DialogDescription className="mt-0.5 text-xs leading-relaxed">Message collectors anytime, even when offline or without a route.</DialogDescription>
             </div>
             <DialogClose asChild><Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-lg p-0" aria-label="Close"><X className="size-4" aria-hidden="true" /></Button></DialogClose>
@@ -67,8 +67,8 @@ export const AdminMessenger = ({ drivers, trigger, onOpenChange, collectorNotice
           <SearchableSelect id="messenger-collector" aria-label="Collector" value={driverId || "none"}
             onValueChange={(value) => { setDriverId(value === "none" ? "" : value); setTargetId(undefined); }}
             options={[
-              { value: "none", label: "Choose a collector" },
-              ...(driverId && !drivers.some((driver) => driver.id === driverId) ? [{ value: driverId, label: "Selected collector" }] : []),
+              { value: "none", label: "Choose a Collector" },
+              ...(driverId && !drivers.some((driver) => driver.id === driverId) ? [{ value: driverId, label: "Selected Collector" }] : []),
               ...drivers.filter((driver) => driver.account_status === "ACTIVE").map((driver) => ({ value: driver.id, label: driver.full_name })),
             ]}
             placeholder="Choose a collector" searchPlaceholder="Search by collector name…" compactSearchPlaceholder="Collector name…"

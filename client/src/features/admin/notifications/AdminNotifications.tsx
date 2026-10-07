@@ -122,7 +122,7 @@ const AdminNotifications: React.FC = () => {
                 className={notificationStyles.actionButton}
               >
                 <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                <span className="min-w-0 truncate">Mark all read</span>
+                <span className="min-w-0 truncate">Mark All Read</span>
               </Button>
             )}
             {historyTotal > 0 && (
@@ -136,7 +136,7 @@ const AdminNotifications: React.FC = () => {
                 className={notificationStyles.actionButton}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span className="min-w-0 truncate">Clear all</span>
+                <span className="min-w-0 truncate">Clear All</span>
               </Button>
             )}
           </>
@@ -162,7 +162,7 @@ const AdminNotifications: React.FC = () => {
                 size="icon"
                 className={notificationStyles.menuTrigger}
                 disabled={isMutating}
-                title="Notification actions"
+                title="Notification Actions"
                 aria-label="Notification actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -172,13 +172,13 @@ const AdminNotifications: React.FC = () => {
               {unreadCount > 0 && (
                 <DropdownMenuItem onSelect={markAllAsRead} disabled={isMutating} className="gap-2">
                   <CheckCheck className="h-3.5 w-3.5 text-primary" />
-                  Mark all as read
+                  Mark All as Read
                 </DropdownMenuItem>
               )}
               {historyTotal > 0 && (
                 <DropdownMenuItem onSelect={clearAll} disabled={isMutating} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
-                  Clear all notifications
+                  Clear All Notifications
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -217,7 +217,7 @@ const AdminNotifications: React.FC = () => {
 
                 {/* Main Content Area */}
                 <div className="min-w-0 flex-1 space-y-1">
-                  {isUnread && <span className="sr-only">Unread notification</span>}
+                  {isUnread && <span className="sr-only">Unread Notification</span>}
                   {/* Primary text with bold focal points */}
                   <p className="text-sm font-semibold text-foreground/90 leading-snug break-words [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                     <span className="font-bold text-foreground">
@@ -256,7 +256,7 @@ const AdminNotifications: React.FC = () => {
           })}
         </div>
       ) : (
-        <ListEmptyState icon={Bell} title="No notifications found"
+        <ListEmptyState icon={Bell} title="No Notifications Found"
           description="You're all caught up! New alerts will appear here in real-time." />
       )}
 

@@ -30,7 +30,7 @@ it("advances automatically, wraps around, and opens the selected post without a 
   expect(screen.queryByRole("button", { name: /pause|resume/i })).not.toBeInTheDocument();
   advance();
   expectPost(first.title);
-  fireEvent.click(screen.getByRole("button", { name: "Read post" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Read post$/i }));
   expect(open).toHaveBeenCalledExactlyOnceWith(first);
 });
 
