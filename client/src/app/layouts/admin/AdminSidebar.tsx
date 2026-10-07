@@ -93,7 +93,7 @@ const navGroups: NavGroup[] = [
     label: "OPERATIONS",
     collapsible: true,
     items: [
-      { title: "Waste Reports", url: "/admin/reports", icon: AlertTriangle },
+      { title: "Waste Violation Reports", url: "/admin/reports", icon: AlertTriangle },
       { title: "Truck Tracking", url: "/admin/tracking", icon: Navigation },
     ],
   },
