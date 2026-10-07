@@ -216,7 +216,7 @@ const AdminAnnouncements = () => {
       <ResidentPageHeader
         className="admin-module-header"
         title="Announcements"
-        description="Broadcast official MENRO advisories, schedule changes, and alerts to residents."
+        description="Broadcast official MENRO announcements, advisories, and alerts to residents."
         actionsClassName="admin-module-header-actions"
         actions={<Button
           onClick={() => openEditor()}
