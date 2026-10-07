@@ -86,10 +86,10 @@ const AdminCollectionSchedule: React.FC = () => {
   const handleSubmitEvent = async (payload: CreateEventPayload) => {
     if (editingEvent) {
       await updateCalendarEvent(editingEvent.id, payload);
-      toast.success("Schedule event updated successfully");
+      toast.success("Schedule Event Updated Successfully");
     } else {
       await createCalendarEvent(payload);
-      toast.success("New schedule event added to MENRO calendar");
+      toast.success("New Schedule Event added to MENRO Calendar");
     }
   };
 
@@ -98,7 +98,7 @@ const AdminCollectionSchedule: React.FC = () => {
     try {
       setIsDeleting(true);
       await deleteCalendarEvent(deletingEvent.id);
-      toast.success("Schedule event removed from calendar");
+      toast.success("Schedule Event Removed from Calendar");
       setDeletingEvent(null);
       if (viewingDetailEvent?.id === deletingEvent.id) {
         setViewingDetailEvent(null);
@@ -113,7 +113,7 @@ const AdminCollectionSchedule: React.FC = () => {
   if (isLoading) {
     return <AdminScheduleSkeleton currentDate={currentDate} />;
   }
-  if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the internal schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
+  if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the Internal Schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className={scheduleStyles.page}>
@@ -121,7 +121,7 @@ const AdminCollectionSchedule: React.FC = () => {
       <ResidentPageHeader
         className="admin-module-header"
         title="Schedule Manager"
-        description="Plan MENRO activities. Manage resident collection days in Route Manager."
+        description="Plan MENRO activities. Manage Resident Collection Days in Route Manager."
         actionsClassName="admin-module-header-actions"
         actions={<Button
           onClick={handleOpenCreate}
@@ -144,15 +144,15 @@ const AdminCollectionSchedule: React.FC = () => {
               <CalendarDays className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal calendar</h2>
-              <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
+              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal Calendar</h2>
+              <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a Date to View its Activities.</p>
             </div>
           </div>
           <div className={scheduleStyles.toolbar}>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search internal schedule title or venue..."
+              placeholder="Search Internal Schedule Title or Venue..."
               containerClassName={scheduleStyles.search}
             />
           </div>
@@ -230,7 +230,7 @@ const AdminCollectionSchedule: React.FC = () => {
         title="Confirm Event Deletion"
         icon={<AlertCircle />}
         variant="destructive"
-        description={<>Are you sure you want to permanently remove <strong className="font-semibold text-foreground">&ldquo;{deletingEvent?.title}&rdquo;</strong>? This will remove the event from both administrative tracking and the resident community portal. This action cannot be undone.</>}
+        description={<>Are you sure you want to Permanently Remove <strong className="font-semibold text-foreground">&ldquo;{deletingEvent?.title}&rdquo;</strong>? This will Remove the Rvent from both Administrative Tracking and the Resident Community Portal. This Action cannot be undone.</>}
         confirmLabel="Delete Event"
         isPending={isDeleting}
         pendingLabel="Deleting..."
