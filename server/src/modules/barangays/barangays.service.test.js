@@ -5,6 +5,36 @@ const service = require("./barangays.service");
 
 after(() => pool.end());
 
+test("street lookup returns saved streets independently of collection service availability", async () => {
+  const original = pool.query;
+  const streets = [{ id: "street-1", barangay_id: "barangay-1", name: "Main Street", area: "Zone A" }];
+  try {
+    for (const available of [0, 1]) {
+      pool.query = async (sql, params) => {
+        assert.deepEqual(params, ["barangay-1"]);
+        if (sql.includes("FROM barangays WHERE")) return [[{ id: "barangay-1", collection_service_available: available }]];
+        assert.match(sql, /WHERE bs\.barangay_id = \?/);
+        assert.match(sql, /ORDER BY bs\.name ASC, bs\.area ASC/);
+        return [streets];
+      };
+      assert.deepEqual(await service.getStreets("barangay-1"), {
+        collection_service_available: Boolean(available), streets,
+      });
+    }
+  } finally { pool.query = original; }
+});
+
+test("street lookup preserves an empty list and rejects a missing barangay", async () => {
+  const original = pool.query;
+  try {
+    pool.query = async sql => sql.includes("FROM barangays WHERE")
+      ? [[{ id: "barangay-1", collection_service_available: 0 }]] : [[]];
+    assert.deepEqual(await service.getStreets("barangay-1"), { collection_service_available: false, streets: [] });
+    pool.query = async () => [[]];
+    await assert.rejects(service.getStreets("missing"), { statusCode: 404 });
+  } finally { pool.query = original; }
+});
+
 test("a zero-length coverage path is rejected before writing", async () => {
   await assert.rejects(
     service.updateStreetCoverage("barangay-1", "street-1", [[13.9, 121.4], [13.9, 121.4]]),

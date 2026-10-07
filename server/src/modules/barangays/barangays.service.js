@@ -52,10 +52,6 @@ const getStreets = async (barangayId) => {
     throw { statusCode: 404, message: "Barangay not found" };
   }
 
-  if (!barangays[0].collection_service_available) {
-    return { collection_service_available: false, streets: [] };
-  }
-
   const [streets] = await pool.query(
     `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, b.latitude, b.longitude
      FROM barangay_streets bs
