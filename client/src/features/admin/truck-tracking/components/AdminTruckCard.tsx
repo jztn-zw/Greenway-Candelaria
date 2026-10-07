@@ -148,7 +148,7 @@ const AdminTruckCard = ({
               </span>
               <SearchableSelect value={truck.routeId} onValueChange={onRouteChange ?? (() => {})}
                 options={truck.routeChoices.map((route) => ({ value: route.id, label: `${route.name} · ${route.status.toLowerCase()}` }))}
-                aria-label="Showing route" searchPlaceholder="Search routes..." fieldSize="compact"
+                aria-label="Showing route" searchPlaceholder="Search by route name or status…" compactSearchPlaceholder="Route name or status…" fieldSize="compact"
                 className="h-8 w-full rounded-lg text-xs" />
             </div>
           )}

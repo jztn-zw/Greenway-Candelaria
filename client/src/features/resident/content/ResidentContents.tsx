@@ -214,7 +214,7 @@ const ResidentContents = () => {
       <div className="space-y-3">
         {/* Search Bar */}
         <SearchInput
-          placeholder="Search community updates…"
+          placeholder="Search by title, content, tag, or author…" compactPlaceholder="Title or content…"
           value={search}
           onChange={(value) => {
             setSearch(value);

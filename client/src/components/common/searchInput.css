@@ -1,0 +1,13 @@
+.gw-search-input {
+  container: search-input / inline-size;
+}
+
+@container search-input (max-width: 24rem) {
+  .gw-search-input input::placeholder {
+    color: transparent;
+  }
+
+  .gw-search-input .gw-search-short-placeholder {
+    display: flex;
+  }
+}

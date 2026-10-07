@@ -106,10 +106,10 @@ const ResidentProfile = () => {
   const setUser  = useAuthStore((s) => s.setUser);
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const profileQuery = useResidentResource<UserProfile | null>("profile", ["me"], fetchProfile, null);
+  const profileQuery = useResidentResource<UserProfile | null>("profile", ["me"], fetchProfile, null, { scope: "account" });
   const profile = profileQuery.data;
   const setProfile = profileQuery.setData;
-  const statsQuery = useResidentQuery("reports", ["profile-stats"], fetchMyReportStats);
+  const statsQuery = useResidentQuery("reports", ["profile-stats"], fetchMyReportStats, { scope: "account" });
   const stats = statsQuery.data;
   const isLoading = profileQuery.isLoading || statsQuery.isLoading;
   const saveProfile = useResidentMutation(updateProfile, "profile", "routes", "tracking", "schedule", "announcements");
@@ -721,7 +721,7 @@ const ResidentProfile = () => {
           <Label htmlFor="resident-address-barangay" className={modalStyles.label}>Barangay</Label>
           <SearchableSelect id="resident-address-barangay" value={addressModal.barangayId} onValueChange={changeAddressBarangay}
             options={barangays.map((barangay) => ({ value: barangay.id, label: `Brgy. ${barangay.name}` }))}
-            placeholder="Select barangay" searchPlaceholder="Search barangays..." emptyMessage="No barangays available."
+            placeholder="Select barangay" searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" emptyMessage="No barangays available."
             disabled={addressModal.saving} className={modalStyles.select} />
         </div>
         <div className="space-y-1.5">
@@ -730,7 +730,7 @@ const ResidentProfile = () => {
             onValueChange={(streetId) => setAddressModal((p) => ({ ...p, streetId, error: "" }))}
             options={streetOptions.map((street) => ({ value: street.id, label: `${street.name}${street.area ? ` (${street.area})` : ""}` }))}
             placeholder={!addressModal.barangayId ? "Select a barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select street" : "No streets available yet"}
-            searchPlaceholder="Search streets..." emptyMessage="No streets found."
+            searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" emptyMessage="No streets found."
             disabled={!addressModal.barangayId || streetsLoading || streetOptions.length === 0 || addressModal.saving} className={modalStyles.select} />
         </div>
         {addressModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{addressModal.error}</p>}

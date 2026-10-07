@@ -730,7 +730,7 @@ const ReportDetailPanel = ({
                 </label>
                 <SearchInput
                   aria-label="Original report reference"
-                  placeholder="e.g. RPT-2026-00012"
+                  placeholder="Search by report reference…" compactPlaceholder="Report reference…"
                   value={duplicateReference}
                   onChange={(value) => {
                     setDuplicateReference(value);

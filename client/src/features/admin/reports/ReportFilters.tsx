@@ -113,7 +113,7 @@ const violationTypes: ViolationType[] = [
         {/* Search Input + Mobile Filter Sheet Trigger */}
         <div className={`${styles.search} admin-toolbar-search-row`}>
           <SearchInput
-            placeholder="Search reference, resident, or description..."
+            placeholder="Search by reference, resident, description, or location…" compactPlaceholder="Reference or description…"
             value={search}
             onChange={onSearchChange}
             containerClassName="min-w-0 flex-1"
@@ -150,7 +150,7 @@ const violationTypes: ViolationType[] = [
                   <AdminFilterField label="Barangay">
                     <SearchableSelect value={draft.barangayFilter} onValueChange={(value) => setDraft({ ...draft, barangayFilter: value })}
                       options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
-                      placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+                      placeholder="All Barangays" aria-label="Barangay" searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" fieldSize="compact"
                       className="h-9 w-full bg-background/80 border-border/80 rounded-xl text-xs" />
                   </AdminFilterField>
                   <AdminFilterField label="Sort order">
@@ -226,7 +226,7 @@ const violationTypes: ViolationType[] = [
         {/* Barangay */}
         <SearchableSelect value={barangayFilter} onValueChange={onBarangayFilterChange}
           options={[{ value: "all", label: "All Barangays" }, ...barangays.map((b) => ({ value: b.name, label: b.name }))]}
-          placeholder="Barangay" aria-label="Barangay" searchPlaceholder="Search barangays..." fieldSize="compact"
+          placeholder="Barangay" aria-label="Barangay" searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" fieldSize="compact"
           className="h-9 text-xs w-auto min-w-[130px] bg-card border-border/80 rounded-xl" />
 
         {/* Date Range Popover */}

@@ -13,6 +13,7 @@
   .resident-dashboard .resident-page-header.resident-dashboard-greeting {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .resident-dashboard-greeting-actions {
@@ -78,7 +79,7 @@
     }
   }
 
-  @container resident-dashboard (min-width: 56.25rem) {
+  @container resident-dashboard (min-width: 48rem) {
     .resident-dashboard-overview {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -86,7 +87,9 @@
     .resident-dashboard-report {
       grid-column: auto;
     }
+  }
 
+  @container resident-dashboard (min-width: 56.25rem) {
     .resident-dashboard .resident-page-header.resident-dashboard-greeting {
       flex-direction: row;
       align-items: center;

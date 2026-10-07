@@ -119,7 +119,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
               onValueChange={setBarangayId}
               options={barangayOptions}
               placeholder="All barangays"
-              searchPlaceholder="Search barangays..."
+              searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
               emptyMessage="No barangays found."
               className={styles.barangay}
               aria-label="Analytics barangay"
@@ -153,7 +153,7 @@ const AdminAnalyticsDashboard: React.FC = () => {
                     onValueChange={(value) => setDraft({ ...draft, barangayId: value })}
                     options={barangayOptions}
                     placeholder="All barangays"
-                    searchPlaceholder="Search barangays..."
+                    searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
                     emptyMessage="No barangays found."
                     className={styles.barangay}
                     aria-label="Analytics barangay"

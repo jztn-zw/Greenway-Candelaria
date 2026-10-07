@@ -26,7 +26,7 @@ export default function AdminMessagesButton() {
       <span className="sr-only">{unreadCount} unread collector messages</span>
     </button>}
     collectorNotice={collectors.isLoading ? (
-      <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground"><ActionButtonLoader className="gw-action-loader--compact" />Loading collectors…</p>
+      <div role="status" className="flex items-center gap-2 text-xs text-muted-foreground"><ActionButtonLoader className="gw-action-loader--compact" />Loading collectors…</div>
     ) : collectors.error ? (
       <DataRefreshNotice primary role="alert" message="Could not load collectors." onRetry={() => void collectors.refetch()} retrying={collectors.isFetching} />
     ) : undefined}

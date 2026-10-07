@@ -25,6 +25,7 @@ interface BarangayOrderListProps {
   form: RouteForm;
   barangays: Barangay[];
   availableStopPoints: BarangayStreetRow[];
+  savedStreetCount?: number;
   isLoadingBarangays: boolean;
   isLoadingStopPoints: boolean;
   isCollectionAvailable: boolean;
@@ -42,6 +43,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
   form,
   barangays,
   availableStopPoints,
+  savedStreetCount = availableStopPoints.length,
   isLoadingBarangays,
   isLoadingStopPoints,
   isCollectionAvailable,
@@ -117,7 +119,7 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
               disabled={isLoadingBarangays}
               options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
               placeholder={isLoadingBarangays ? "Loading barangays..." : "Select a barangay"}
-              searchPlaceholder="Search barangays..."
+              searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
               leadingIcon={<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
               className="h-10 rounded-xl border-border/80 bg-background text-xs shadow-2xs focus:ring-primary/20"
             />
@@ -148,9 +150,8 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                 "min-h-9 rounded-xl border border-border/80 bg-background/70 p-2 shadow-2xs",
                 (!form.selectedBarangayId ||
                   isLoadingStopPoints ||
-                  !isCollectionAvailable ||
                   availableStopPoints.length === 0) &&
-                  "flex h-10 items-center px-3 py-0",
+                  "flex min-h-10 items-center px-3 py-2",
               )}
             >
               {!form.selectedBarangayId ? (
@@ -158,28 +159,18 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                   Select a barangay first to see streets.
                 </p>
               ) : isLoadingStopPoints ? (
-                <p className="flex min-w-0 items-center gap-2 truncate text-xs text-muted-foreground">
+                <div role="status" className="flex min-w-0 items-center gap-2 truncate text-xs text-muted-foreground">
                   <ActionButtonLoader className="gw-action-loader--compact text-primary" /> Loading streets…
-                </p>
-              ) : !isCollectionAvailable ? (
-                <p
-                  className="min-w-0 truncate text-xs text-amber-600 dark:text-amber-400"
-                  title="Collection service is not available for this barangay yet."
-                >
-                  Collection is not available yet.
-                </p>
+                </div>
               ) : availableStopPoints.length === 0 ? (
-                <p
-                  className="min-w-0 truncate text-xs text-muted-foreground"
-                  title="All available streets are already added or scheduled."
-                >
-                  All available streets are already added or scheduled.
-                </p>
+                <div className="min-w-0 space-y-1 text-xs leading-relaxed text-muted-foreground">
+                  <p>{savedStreetCount === 0 ? "No streets added yet." : "All streets are already added or scheduled."}</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {availableStopPoints.length > 4 && (
                     <SearchInput
-                      placeholder="Filter streets..."
+                      placeholder="Search by street or area…" compactPlaceholder="Street or area…"
                       value={streetFilter}
                       onChange={setStreetFilter}
                     />
@@ -200,9 +191,12 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                             type="button"
                             variant="outline"
                             size="sm"
+                            disabled={!isCollectionAvailable}
                             onClick={() => onAdd(point)}
                             className="min-h-7 h-auto max-w-full gap-1 rounded-lg px-2.5 py-1 text-ui-caption font-medium"
-                            title={hasCoveragePath
+                            title={!isCollectionAvailable
+                              ? "Enable collection service in Barangay Management before adding this street"
+                              : hasCoveragePath
                               ? `Add ${label} to route`
                               : `${label} needs a coverage path in Barangay Manager`}
                           >
@@ -219,6 +213,11 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                 </div>
               )}
             </div>
+            {form.selectedBarangayId && !isLoadingStopPoints && availableStopPoints.length > 0 && !isCollectionAvailable && (
+              <p className="text-xs leading-relaxed text-warning-foreground">
+                Enable collection to add streets.
+              </p>
+            )}
           </div>
         </div>
       </div>

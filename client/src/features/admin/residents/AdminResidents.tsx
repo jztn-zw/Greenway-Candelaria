@@ -267,7 +267,7 @@ const AdminResidents = () => {
             </div>
             <div className={`${styles.fields} admin-toolbar-search-row`}>
               <SearchInput
-                placeholder="Search name, username, email..."
+                placeholder="Search by name, username, or email…" compactPlaceholder="Name, username, or email…"
                 value={search}
                 onChange={(value) => {
                   setSearch(value);
@@ -284,7 +284,7 @@ const AdminResidents = () => {
                   }}
                   options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
                   placeholder="Barangay"
-                  searchPlaceholder="Search barangays..."
+                  searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
                   aria-label="Barangay"
                   leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                   fieldSize="compact"
@@ -309,7 +309,7 @@ const AdminResidents = () => {
                         }}
                         options={[{ value: "all", label: "All Barangays" }, ...barangayOptions.map((b) => ({ value: b.id, label: b.name }))]}
                         placeholder="Barangay"
-                        searchPlaceholder="Search barangays..."
+                        searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
                         aria-label="Barangay"
                         leadingIcon={<Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                         fieldSize="compact"

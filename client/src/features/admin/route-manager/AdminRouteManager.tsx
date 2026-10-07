@@ -435,7 +435,7 @@ const AdminRouteManager: React.FC = () => {
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search truck, plate, driver, barangay..."
+              placeholder="Search by truck, plate, collector, barangay, or day…" compactPlaceholder="Truck or barangay…"
               containerClassName="min-w-0 flex-1"
             />
             <AdminFilterDialog title="Filter Routes" activeCount={Number(filterDay !== "all")}
@@ -565,6 +565,7 @@ const AdminRouteManager: React.FC = () => {
         isLoadingBarangays={isLoadingBarangays}
         barangays={barangays}
         availableStopPoints={selectableStreets}
+        savedStreetCount={availableStreets.length}
         isLoadingStopPoints={isLoadingStreets}
         isCollectionAvailable={isCollectionAvailable}
         onSelectBarangay={(selectedBarangayId) => setForm((previous) => ({ ...previous, selectedBarangayId }))}

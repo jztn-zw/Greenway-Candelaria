@@ -121,12 +121,12 @@ export default function ResidentSetup() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="setup-barangay">Barangay</Label>
-                    <SearchableSelect id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
+                    <SearchableSelect id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
                     {fieldError("barangay_id")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="setup-street">Street</Label>
-                    <SearchableSelect id="setup-street" aria-label="Street" value={street} onValueChange={value => { setStreet(value); clearError("street_id"); }} options={streets.map(row => ({ value: row.id, label: row.area ? `${row.name} (${row.area})` : row.name }))} placeholder={!barangay ? "Select barangay first" : streetLoading ? "Loading streets…" : !streets.length ? "No streets listed" : "Select your street"} disabled={saving || !barangay || streetLoading || !streets.length || Boolean(streetError)} {...accessibility("street_id")} />
+                    <SearchableSelect id="setup-street" aria-label="Street" value={street} onValueChange={value => { setStreet(value); clearError("street_id"); }} options={streets.map(row => ({ value: row.id, label: row.area ? `${row.name} (${row.area})` : row.name }))} placeholder={!barangay ? "Select barangay first" : streetLoading ? "Loading streets…" : !streets.length ? "No streets listed" : "Select your street"} searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" disabled={saving || !barangay || streetLoading || !streets.length || Boolean(streetError)} {...accessibility("street_id")} />
                     {fieldError("street_id")}
                   </div>
                 </div>

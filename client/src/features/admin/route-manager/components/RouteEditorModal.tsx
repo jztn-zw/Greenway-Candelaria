@@ -60,6 +60,7 @@ interface RouteEditorModalProps {
   isLoadingBarangays: boolean;
   barangays: Barangay[];
   availableStopPoints: BarangayStreetRow[];
+  savedStreetCount?: number;
   isLoadingStopPoints: boolean;
   isCollectionAvailable: boolean;
   onSelectBarangay: (barangayId: string) => void;
@@ -86,6 +87,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
   isLoadingBarangays,
   barangays,
   availableStopPoints,
+  savedStreetCount,
   isLoadingStopPoints,
   isCollectionAvailable,
   onSelectBarangay,
@@ -416,7 +418,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                             keywords: truck.plate_number,
                           }))}
                           placeholder={isLoadingTrucks ? "Loading trucks..." : "Select a collection truck"}
-                          searchPlaceholder="Search trucks..."
+                          searchPlaceholder="Search by truck name or plate…" compactSearchPlaceholder="Truck name or plate…"
                           leadingIcon={<TruckIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
                           className={cn(
                             "h-9 rounded-xl text-xs",
@@ -490,6 +492,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                       form={form}
                       barangays={barangays}
                       availableStopPoints={availableStopPoints}
+                      savedStreetCount={savedStreetCount}
                       isLoadingBarangays={isLoadingBarangays}
                       isLoadingStopPoints={isLoadingStopPoints}
                       isCollectionAvailable={isCollectionAvailable}

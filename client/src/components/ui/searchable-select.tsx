@@ -26,6 +26,7 @@ interface SearchableSelectProps {
   options: SearchableSelectOption[];
   placeholder?: string;
   searchPlaceholder?: string;
+  compactSearchPlaceholder?: string;
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
@@ -45,7 +46,8 @@ export function SearchableSelect({
   onValueChange,
   options,
   placeholder = "Select an option",
-  searchPlaceholder = "Search options...",
+  searchPlaceholder = "Search by option name…",
+  compactSearchPlaceholder = "Option name…",
   emptyMessage = "No options found.",
   disabled,
   className,
@@ -120,6 +122,7 @@ export function SearchableSelect({
                 value={search}
                 onChange={setSearch}
                 placeholder={searchPlaceholder}
+                compactPlaceholder={compactSearchPlaceholder}
                 aria-label={searchPlaceholder}
               >
                 <CommandInput onValueChange={setSearch} />

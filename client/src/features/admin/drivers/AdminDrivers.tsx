@@ -544,14 +544,14 @@ const AdminDrivers = () => {
               <SearchInput
                 value={driverSearch}
                 onChange={setDriverSearch}
-                placeholder="Search collector name, username, phone..."
+                placeholder="Search by name, username, email, or phone…" compactPlaceholder="Name or phone…"
                 containerClassName={styles.search}
               />
             ) : (
               <SearchInput
                 value={truckSearch}
                 onChange={setTruckSearch}
-                placeholder="Search truck name, model, plate..."
+                placeholder="Search by truck name, model, or plate…" compactPlaceholder="Truck name or plate…"
                 containerClassName={styles.search}
               />
             )}

@@ -495,7 +495,7 @@ const AnnouncementEditor = ({
                   >
                     <div className="p-2.5 border-b border-border">
                       <SearchInput
-                        placeholder="Search barangays..."
+                        placeholder="Search by barangay name…" compactPlaceholder="Barangay name…"
                         value={barangaySearch}
                         onChange={setBarangaySearch}
                       />

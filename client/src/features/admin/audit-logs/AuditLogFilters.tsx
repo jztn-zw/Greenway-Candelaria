@@ -106,7 +106,7 @@ const AuditLogFilters = ({
         <div className={`${styles.fields} admin-toolbar-search-row`}>
           {/* Search Bar */}
           <SearchInput
-            placeholder="Search action, user, target ID..."
+            placeholder="Search by action, user, module, or target ID…" compactPlaceholder="Action, user, or ID…"
             value={search}
             onChange={onSearchChange}
             containerClassName={styles.search}
@@ -123,7 +123,7 @@ const AuditLogFilters = ({
               <>
                 <AdminFilterField label="Module">
                   <SearchableSelect value={draft.moduleFilter} onValueChange={(value) => setDraft({ ...draft, moduleFilter: value })}
-                    options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
+                    options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search by module name…" compactSearchPlaceholder="Module name…"
                     className={styles.module} />
                 </AdminFilterField>
                 <AdminFilterField label="Date range">
@@ -168,7 +168,7 @@ const AuditLogFilters = ({
           {/* All Modules Dropdown */}
           <div className="admin-toolbar-desktop-only">
             <SearchableSelect value={moduleFilter} onValueChange={onModuleFilterChange}
-              options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search modules..."
+              options={MODULE_OPTIONS} placeholder="All Modules" aria-label="Module" searchPlaceholder="Search by module name…" compactSearchPlaceholder="Module name…"
               className={styles.module} />
           </div>
         </div>

@@ -179,7 +179,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
 
             {/* Search Input */}
             <SearchInput
-              placeholder="Filter by barangay name..."
+              placeholder="Search by barangay name…" compactPlaceholder="Barangay name…"
               value={search}
               onChange={setSearch}
             />

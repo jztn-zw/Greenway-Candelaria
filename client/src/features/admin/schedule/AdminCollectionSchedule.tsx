@@ -154,7 +154,7 @@ const AdminCollectionSchedule: React.FC = () => {
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search internal schedule title or venue..."
+              placeholder="Search by title, description, venue, or barangay…" compactPlaceholder="Title or venue…"
               containerClassName={scheduleStyles.search}
             />
           </div>

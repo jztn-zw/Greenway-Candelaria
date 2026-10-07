@@ -158,7 +158,7 @@ describe("admin server state", () => {
     expect(published).toBeDefined();
     await act(async () => published!.click());
     expect(host.querySelector("h1")?.textContent).toBe("Community Posts");
-    expect(host.querySelector('input[placeholder="Search posts by title, tag, or author..."]')).not.toBeNull();
+    expect(host.querySelector('input[placeholder="Search by title, content, tag, or author…"]')).not.toBeNull();
     expect(host.textContent).toContain("Loading community posts");
     expect(host.textContent).not.toContain("Collection guide");
 

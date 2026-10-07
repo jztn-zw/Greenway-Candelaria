@@ -327,7 +327,7 @@ const AdminBarangays = () => {
 
           <SearchInput
             ref={barangaySearchRef}
-            placeholder="Search barangays..."
+            placeholder="Search by barangay name…" compactPlaceholder="Barangay name…"
             value={search}
             onChange={setSearch}
             aria-label="Search barangays"
@@ -498,7 +498,7 @@ const AdminBarangays = () => {
                 </div>
 
                 <SearchInput
-                  placeholder="Search streets or areas..."
+                  placeholder="Search by street or area…" compactPlaceholder="Street or area…"
                   value={streetSearch}
                   onChange={setStreetSearch}
                   aria-label="Search streets and areas"

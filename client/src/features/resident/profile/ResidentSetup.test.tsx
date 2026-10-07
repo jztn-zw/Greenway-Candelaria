@@ -55,6 +55,15 @@ it("retains the draft after failure and completes only after server success", as
   await waitFor(() => expect(useAuthStore.getState().user?.profile_completed).toBe(true));
   expect(save).toHaveBeenLastCalledWith({ full_name: "Test Resident", username: "resident", phone: "+639123456789", barangay_id: "barangay-a", street_id: "street-a" });
 });
+it("allows selecting a saved street even when collection service is unavailable", async () => {
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [{ id: "street-a", name: "Main Street" }] });
+  const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...pending, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  await fill();
+  expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Main Street");
+  fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: "street-a" })));
+});
 it.each([
   { value: "", message: "Enter your phone number" },
   { value: "8123456789", message: "Enter a 10-digit Philippine mobile number starting with 9" },

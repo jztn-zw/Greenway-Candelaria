@@ -24,7 +24,7 @@ afterEach(() => {
 });
 const renderChoices = async (choices: SearchableSelectOption[]) => { await act(async () => root.render(<Harness choices={choices} />)); };
 const trigger = () => host.querySelector<HTMLButtonElement>('button[aria-label="Choice"]')!;
-const search = () => document.querySelector<HTMLInputElement>('input[placeholder="Search options..."]');
+const search = () => document.querySelector<HTMLInputElement>('input[placeholder="Search by option name…"]');
 const visibleOptions = () => [...document.querySelectorAll<HTMLElement>('[role="option"]')];
 const open = async () => { await act(async () => trigger().click()); };
 const keyDown = async (element: Element, key: string) => { await act(async () => { element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })); }); };

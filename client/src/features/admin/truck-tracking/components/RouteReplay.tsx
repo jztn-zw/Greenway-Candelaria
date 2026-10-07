@@ -243,7 +243,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
         <div className="space-y-1.5">
           <label id="replay-truck-label" className="block text-xs font-medium text-foreground">Truck</label>
           <SearchableSelect value={selectedTruck} onValueChange={setSelectedTruck} disabled={exporting}
-            aria-labelledby="replay-truck-label" fieldSize="compact" placeholder="Select a truck" searchPlaceholder="Search trucks..."
+            aria-labelledby="replay-truck-label" fieldSize="compact" placeholder="Select a truck" searchPlaceholder="Search by truck name or plate…" compactSearchPlaceholder="Truck name or plate…"
             options={trucks.map((truck) => ({ value: truck.id, label: `${truck.name} ${truck.plateNumber}` }))}
             className="h-9 rounded-md border-border/80 text-xs" />
         </div>

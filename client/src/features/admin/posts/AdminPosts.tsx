@@ -645,7 +645,7 @@ const AdminPosts = () => {
           {/* Search Input */}
           <div className={`${postStyles.search} admin-toolbar-search-row`}>
             <SearchInput
-              placeholder="Search posts by title, tag, or author..."
+              placeholder="Search by title, content, tag, or author…" compactPlaceholder="Title or content…"
               value={search}
               onChange={(value) => {
                 setSearch(value);

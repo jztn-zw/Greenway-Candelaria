@@ -270,7 +270,7 @@ const MyReports = () => {
         {/* Full-width Search Bar */}
         <SearchInput
           aria-label="Search reports"
-          placeholder="Search by reference number or description…"
+          placeholder="Search by reference or description…" compactPlaceholder="Reference or description…"
           value={search}
           onChange={handleSearchChange}
           containerClassName="w-full"

@@ -71,7 +71,7 @@ export const AdminMessenger = ({ drivers, trigger, onOpenChange, collectorNotice
               ...(driverId && !drivers.some((driver) => driver.id === driverId) ? [{ value: driverId, label: "Selected collector" }] : []),
               ...drivers.filter((driver) => driver.account_status === "ACTIVE").map((driver) => ({ value: driver.id, label: driver.full_name })),
             ]}
-            placeholder="Choose a collector" searchPlaceholder="Search collectors..."
+            placeholder="Choose a collector" searchPlaceholder="Search by collector name…" compactSearchPlaceholder="Collector name…"
             className="h-10 w-full rounded-xl border-border/80 bg-background px-3 text-xs font-semibold shadow-2xs" />
         </div>
 

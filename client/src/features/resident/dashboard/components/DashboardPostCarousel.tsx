@@ -1,7 +1,7 @@
 import { useResidentQuery } from "@/lib/residentQuery";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import { useState,useEffect,useRef } from "react";
-import { ChevronLeft,ChevronRight } from "lucide-react";
+import { ChevronLeft,ChevronRight,Newspaper } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card,CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,16 +56,26 @@ const DashboardPostCarousel = () => {
 
   if (posts.length === 0) {
     return (
-      <Card className="h-full rounded-2xl border border-border/70">
-        <CardContent className="flex min-h-[165px] flex-col justify-center p-5">
-          <p className="text-sm font-bold text-foreground">
-            {loadFailed ? "Community updates unavailable" : "No community updates yet"}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {loadFailed
-              ? "Published posts could not be loaded right now."
-              : "Published MENRO posts will appear here."}
-          </p>
+      <Card className={cn(dashboardStyles.card, "resident-dashboard-update flex h-full flex-col overflow-hidden")}>
+        <CardContent className={dashboardStyles.updateInner}>
+          <div className={dashboardStyles.updateHeader}>
+            <p className={dashboardStyles.label}>Community updates</p>
+          </div>
+          <div className="flex min-h-32 flex-1 flex-col items-center justify-center gap-3 py-4 text-center">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Newspaper aria-hidden="true" className="size-5" />
+            </div>
+            <div className="min-w-0 max-w-full space-y-1">
+              <h3 className="gw-heading break-words text-sm leading-snug text-foreground">
+                {loadFailed ? "Community updates unavailable" : "No community updates yet"}
+              </h3>
+              <p className="break-words text-xs leading-relaxed text-muted-foreground">
+                {loadFailed
+                  ? "Published posts could not be loaded right now."
+                  : "Published MENRO posts will appear here."}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );

@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { notifyManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import useAuthStore from "@/store/authStore";
-import { residentKey, useResidentAction, useResidentQuery } from "./residentQuery";
+import { residentKey, useResidentAction, useResidentQuery, useResidentResource } from "./residentQuery";
 
 describe("resident server state", () => {
   let host: HTMLDivElement;
@@ -51,6 +51,29 @@ describe("resident server state", () => {
     await act(async () => useAuthStore.setState({ user: { id: "admin-a", role: "ADMIN" } as never }));
     expect(read).toHaveBeenCalledTimes(2);
     expect(host.textContent).toBe("loading");
+  });
+
+  it("keeps account-owned profile data mounted across address changes and separates different residents", async () => {
+    const read = vi.fn().mockResolvedValue("Saved profile");
+    let setProfile!: (value: string) => void;
+    const View = () => {
+      const query = useResidentResource<string | null>("profile", ["me"], read, null, { scope: "account" });
+      setProfile = query.setData;
+      return <span>{query.isLoading ? "loading" : query.data}</span>;
+    };
+    await render(<View />);
+    expect(host.textContent).toBe("Saved profile");
+    await act(async () => {
+      setProfile("Updated profile");
+      useAuthStore.setState({ user: { id: "resident-a", role: "RESIDENT", barangay_id: "b2", street_id: "s2" } as never });
+    });
+    expect(host.textContent).toBe("Updated profile");
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(client.getQueryData(residentKey("resident-a", "profile", "account", "me"))).toBe("Updated profile");
+    read.mockImplementation(() => new Promise(() => {}));
+    await act(async () => useAuthStore.setState({ user: { id: "resident-b", role: "RESIDENT", barangay_id: "b2", street_id: "s2" } as never }));
+    expect(host.textContent).toBe("loading");
+    expect(host.textContent).not.toContain("Updated profile");
   });
 
   it("refreshes only this resident's affected domains after saving and never retries writes", async () => {

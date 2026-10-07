@@ -249,7 +249,7 @@ const AdminAnnouncements = () => {
           {/* Search Input */}
           <div className={`${noticeStyles.search} admin-toolbar-search-row`}>
             <SearchInput
-              placeholder="Search announcements by title or content..."
+              placeholder="Search by title or content…" compactPlaceholder="Title or content…"
               value={search}
               onChange={(value) => {
                 setSearch(value);

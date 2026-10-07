@@ -39,7 +39,11 @@ and tracking HTTP reads now use TanStack Query. Mobile apps are outside this cha
 
 ## Boundaries
 
-Query keys include role, resident ID, barangay and street. Account/role/token changes
+Query keys include role and resident ID. Area-dependent reads also include barangay
+and street. The profile and its owner-only report totals use account scope, so a
+saved address change updates the profile in place without restarting its initial
+loading skeleton. Collection and tracking reads still switch to the new area.
+Account/role/token changes
 already replace the application's QueryClient. Queued writes also verify their
 original login before executing. Writes and failed reads are not automatically retried.
 

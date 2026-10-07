@@ -10,13 +10,13 @@ export const useResidentQuery = <T>(
   domain: string,
   parts: QueryKey,
   queryFn: () => Promise<T>,
-  options: { enabled?: boolean; staleTime?: number; refetchInterval?: number | false; keepPreviousData?: boolean } = {},
+  options: { enabled?: boolean; staleTime?: number; refetchInterval?: number | false; keepPreviousData?: boolean; scope?: "address" | "account" } = {},
 ) => {
   const user = useAuthStore((state) => state.user);
-  const { keepPreviousData, ...queryOptions } = options;
-  const scope = `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`;
+  const { keepPreviousData, scope: queryScope = "address", ...queryOptions } = options;
+  const scope = queryScope === "account" ? "account" : `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`;
   return useQuery({
-    queryKey: residentKey(user?.id, domain, `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`, ...parts),
+    queryKey: residentKey(user?.id, domain, scope, ...parts),
     queryFn,
     staleTime: 30_000,
     retry: false,
@@ -86,7 +86,7 @@ export const useResidentResource = <T,>(domain: string, parts: QueryKey, queryFn
   const client = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const userId = user?.id;
-  const scope = `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`;
+  const scope = options.scope === "account" ? "account" : `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`;
   const serializedKey = hashKey(residentKey(userId, domain, scope, ...parts));
   const setData = useCallback((update: SetStateAction<T>) => {
     client.setQueryData<T>(JSON.parse(serializedKey), (previous) =>

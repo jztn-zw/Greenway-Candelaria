@@ -60,7 +60,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
               onValueChange={handleSelect}
               options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
               placeholder="Select barangay"
-              searchPlaceholder="Search barangays..."
+              searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
               className={`w-full h-10 rounded-xl text-xs lg:text-sm font-medium transition-all ${
                   showError
                     ? "border-destructive/80 focus:ring-destructive/25"
