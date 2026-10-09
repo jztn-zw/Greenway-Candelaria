@@ -101,6 +101,8 @@ const bindTargetPopup = (marker: L.Marker, target: ReplayTargetLocation, state: 
 export const createReplayMapRenderer = (map: L.Map, layer: L.LayerGroup, truckIcon: L.DivIcon) => {
   const canvas = L.canvas({ padding: 0.5 });
   let path: Point[] | null = null;
+  let breakBefore: boolean[] | undefined;
+  let hasBreaks = false;
   let pathBounds: L.LatLngBounds | null = null;
   let fullTrail: L.Polyline | null = null;
   let traversedTrail: L.Polyline | null = null;
@@ -120,6 +122,8 @@ export const createReplayMapRenderer = (map: L.Map, layer: L.LayerGroup, truckIc
   const clear = () => {
     layer.clearLayers();
     path = null;
+    breakBefore = undefined;
+    hasBreaks = false;
     pathBounds = null;
     fullTrail = traversedTrail = trailHead = null;
     truck = null;
@@ -130,20 +134,33 @@ export const createReplayMapRenderer = (map: L.Map, layer: L.LayerGroup, truckIc
     lastPosition = -1;
   };
 
-  const setTrip = (nextPath: Point[] | undefined, current: ReplayTargetLocation | null, completed: ReplayTargetLocation[], skipped: ReplayTargetLocation[] = []) => {
+  const trailPrefix = (end: number): Point[] | Point[][] => {
+    if (!path) return [];
+    if (!hasBreaks) return path.slice(0, end + 1);
+    const segments: Point[][] = [];
+    for (let index = 0; index <= end; index++) {
+      if (index === 0 || breakBefore?.[index]) segments.push([]);
+      segments[segments.length - 1].push(path[index]);
+    }
+    return segments;
+  };
+
+  const setTrip = (nextPath: Point[] | undefined, current: ReplayTargetLocation | null, completed: ReplayTargetLocation[], skipped: ReplayTargetLocation[] = [], nextBreaks?: boolean[]) => {
     if (!nextPath?.length) {
       if (path) clear();
       return;
     }
-    const changedTrip = path !== nextPath;
+    const changedTrip = path !== nextPath || breakBefore !== nextBreaks;
     if (changedTrip) {
       clear();
       path = nextPath;
+      breakBefore = nextBreaks;
+      hasBreaks = Boolean(breakBefore?.some(Boolean));
       pathBounds = L.latLngBounds(nextPath);
       if (path.length > 1) {
         const style: L.PolylineOptions = { renderer: canvas, interactive: false, lineCap: "round", lineJoin: "round" };
-        fullTrail = L.polyline(path, { ...style, color: colors.muted, weight: 4, opacity: 0.6 }).addTo(layer);
-        traversedTrail = L.polyline([path[0]], { ...style, color: colors.primary, weight: 5, opacity: 1 }).addTo(layer);
+        fullTrail = L.polyline(trailPrefix(path.length - 1), { ...style, color: colors.muted, weight: 4, opacity: 0.6 }).addTo(layer);
+        traversedTrail = L.polyline(trailPrefix(0), { ...style, color: colors.primary, weight: 5, opacity: 1 }).addTo(layer);
         trailHead = L.polyline([path[0], path[0]], { ...style, color: colors.primary, weight: 5, opacity: 1 }).addTo(layer);
         anchors = [path[0], path[path.length - 1]].map((point, index) =>
           L.circleMarker(point, { renderer: canvas, radius: 5, color: colors.primary, weight: 2, fillColor: colors.card, fillOpacity: 1 })
@@ -190,15 +207,20 @@ export const createReplayMapRenderer = (map: L.Map, layer: L.LayerGroup, truckIc
     if (position === lastPosition) return;
     const index = Math.floor(position);
     const next = Math.min(index + 1, path.length - 1);
-    const fraction = position - index;
+    const fraction = breakBefore?.[next] ? 0 : position - index;
     const point: Point = [path[index][0] + (path[next][0] - path[index][0]) * fraction, path[index][1] + (path[next][1] - path[index][1]) * fraction];
     truck.setLatLng(point);
     if (traversedTrail && trailHead) {
-      if (index < trailIndex || index - trailIndex > 32) {
+      if (index < trailIndex || index - trailIndex > 32 || breakBefore?.slice(trailIndex + 1, index + 1).some(Boolean)) {
         // A seek replaces the prefix once; normal playback only appends new GPS points.
-        traversedTrail.setLatLngs(path.slice(0, index + 1));
+        traversedTrail.setLatLngs(trailPrefix(index));
       } else {
-        for (let step = trailIndex + 1; step <= index; step++) traversedTrail.addLatLng(path[step]);
+        for (let step = trailIndex + 1; step <= index; step++) {
+          if (hasBreaks) {
+            const segments = traversedTrail.getLatLngs() as L.LatLng[][];
+            traversedTrail.addLatLng(path[step], segments[segments.length - 1]);
+          } else traversedTrail.addLatLng(path[step]);
+        }
       }
       trailHead.setLatLngs([path[index], point]);
     }

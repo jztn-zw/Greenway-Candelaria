@@ -8,7 +8,7 @@ const leaflet = vi.hoisted(() => {
       options: {} as { title?: string },
       addTo: vi.fn(), bindTooltip: vi.fn((_content: unknown, _options?: unknown) => undefined), unbindTooltip: vi.fn(),
       bindPopup: vi.fn((_content: unknown, _options?: unknown) => undefined), unbindPopup: vi.fn(),
-      setLatLng: vi.fn(), setLatLngs: vi.fn(), addLatLng: vi.fn(),
+      setLatLng: vi.fn(), setLatLngs: vi.fn(), addLatLng: vi.fn(), getLatLngs: vi.fn(() => [[]]),
       setIcon: vi.fn(), setStyle: vi.fn(), setZIndexOffset: vi.fn(), getElement: vi.fn(() => null),
     };
     for (const method of [layer.addTo, layer.bindTooltip, layer.unbindTooltip, layer.bindPopup, layer.unbindPopup, layer.setLatLng, layer.setLatLngs, layer.addLatLng, layer.setIcon, layer.setStyle, layer.setZIndexOffset]) method.mockReturnValue(layer);
@@ -17,7 +17,7 @@ const leaflet = vi.hoisted(() => {
   const bounds = () => ({ isValid: () => true, getSouthWest: () => [14, 121], getNorthEast: () => [14.1, 121.1], extend: vi.fn() });
   return {
     canvas: vi.fn(() => ({})), divIcon: vi.fn((options: unknown) => ({ options })),
-    polyline: vi.fn(makeLayer), circleMarker: vi.fn(makeLayer), marker: vi.fn(makeLayer), latLngBounds: vi.fn(bounds),
+    polyline: vi.fn((_points?: unknown, _options?: unknown) => makeLayer()), circleMarker: vi.fn(makeLayer), marker: vi.fn(makeLayer), latLngBounds: vi.fn(bounds),
   };
 });
 vi.mock("leaflet", () => ({ default: leaflet }));
@@ -33,6 +33,28 @@ const setup = () => {
   return { renderer, layer, map, contains };
 };
 beforeEach(() => vi.clearAllMocks());
+
+it("leaves GPS gaps disconnected during playback and seeking", () => {
+  const { renderer } = setup();
+  const points: [number, number][] = [...path, [14.03, 121.03], [14.04, 121.04]];
+  renderer.setTrip(points, null, [], [], [false, false, true, false, false]);
+  expect(leaflet.polyline.mock.calls[0][0]).toEqual([points.slice(0, 2), points.slice(2)]);
+  const truck = leaflet.marker.mock.results[0].value;
+  const traversed = leaflet.polyline.mock.results[1].value;
+  const head = leaflet.polyline.mock.results[2].value;
+  renderer.setPosition(1.5);
+  expect(truck.setLatLng).toHaveBeenLastCalledWith(points[1]);
+  expect(head.setLatLngs).toHaveBeenLastCalledWith([points[1], points[1]]);
+  renderer.setPosition(2.5);
+  expect(traversed.setLatLngs).toHaveBeenLastCalledWith([points.slice(0, 2), [points[2]]]);
+  expect(truck.setLatLng).toHaveBeenLastCalledWith([expect.closeTo(14.025, 10), expect.closeTo(121.025, 10)]);
+  renderer.setPosition(4);
+  expect(traversed.addLatLng).toHaveBeenLastCalledWith(points[4], expect.any(Array));
+  renderer.setPosition(1.5);
+  expect(traversed.setLatLngs).toHaveBeenLastCalledWith([points.slice(0, 2)]);
+  renderer.setPosition(4);
+  expect(traversed.setLatLngs).toHaveBeenLastCalledWith([points.slice(0, 2), points.slice(2)]);
+});
 
 it("reuses the trip geometry, truck and target across playback frames", () => {
   const { renderer, layer, map } = setup();

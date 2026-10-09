@@ -1,0 +1,40 @@
+.landing-page .landing-footer {
+  background-image:
+    radial-gradient(ellipse at 0% 0%, hsl(var(--primary) / 0.35), transparent 65%),
+    radial-gradient(ellipse at 100% 100%, hsl(var(--forest) / 0.24), transparent 60%);
+  box-shadow: inset 0 1px 0 hsl(var(--canopy-foreground) / 0.15);
+}
+
+.landing-page .landing-footer-logo {
+  box-shadow: 0 6px 20px -8px hsl(var(--shadow) / 0.5), inset 0 1px 0 hsl(var(--canopy-foreground));
+}
+
+.landing-page .landing-footer-divider {
+  background-image: linear-gradient(to right, hsl(var(--canopy-foreground) / 0.25), hsl(var(--canopy-foreground) / 0.1) 65%, transparent);
+}
+
+.dark .landing-page .landing-footer {
+  background-color: color-mix(in srgb, hsl(var(--canopy)) 65%, hsl(var(--background)));
+  background-image:
+    radial-gradient(ellipse at 0% 0%, hsl(var(--primary) / 0.1), transparent 65%),
+    radial-gradient(ellipse at 100% 100%, hsl(var(--forest) / 0.13), transparent 60%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-page .landing-footer-link:hover { color: hsl(var(--canopy-foreground)); text-decoration-line: underline; }
+  .landing-page .landing-footer-nav-link:hover .landing-footer-link-arrow { transform: none; opacity: 0.75; }
+}
+
+.landing-page .landing-footer-link:active { color: hsl(var(--canopy-foreground)); text-decoration-line: underline; }
+
+@media (hover: none), (pointer: coarse) {
+  .landing-page .landing-footer-link-arrow { transform: none; opacity: 0.5; }
+}
+
+@media (max-width: 639px) {
+  .landing-page .landing-footer-leaf { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .landing-footer-link-arrow { transition: none; }
+}

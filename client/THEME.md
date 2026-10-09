@@ -8,6 +8,8 @@ Use sentence case for descriptions, helper and validation messages, search place
 
 Edit the color variables in `src/index.css` to change the website palette.
 
+The public landing page scopes softer surfaces and a deeper light-mode teal in `src/features/landing/LandingPage.css`. These overrides affect backgrounds, cards, fields, muted text, and primary action states; shared action and category badge recipes keep their system roles. Resident, collector, and admin pages use the global palette.
+
 - `:root` defines the light theme and shared color tones.
 - `.dark` overrides surfaces, text, and interactive colors for dark mode.
 - `--primary` and `--primary-foreground` control main actions and their text.

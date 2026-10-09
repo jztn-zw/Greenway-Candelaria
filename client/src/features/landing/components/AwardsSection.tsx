@@ -11,7 +11,7 @@ const AwardCard = ({
   item: AwardsContent["items"][number];
   index: number;
 }) => (
-  <div className="group bg-card rounded-xl border border-border/60 p-4 sm:p-6 text-center space-y-2 sm:space-y-3 hover:border-primary/30 transition-all duration-300 h-full">
+  <div className="landing-surface group bg-card rounded-xl border border-border/60 p-4 sm:p-6 text-center space-y-2 sm:space-y-3 hover:border-primary/30 transition-all duration-300 h-full">
     <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto group-hover:bg-primary transition-colors duration-300">
       {index === 0 ? (
         <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors duration-300" />

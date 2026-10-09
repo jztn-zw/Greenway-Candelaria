@@ -1,146 +1,93 @@
-import { getManilaNow } from "@/utils/date";
-import { useSystemTime } from "@/hooks/useSystemTime";
-import { Button } from "@/components/ui/button";
-import heroBg from "@/assets/hero-bg.webp";
-import { CalendarDays,CalendarCheck,MapPin,Bell,Sparkles,LucideIcon } from "lucide-react";
-import { useScrollReveal,useStaggerReveal } from "@/hooks/useScrollReveal";
-import MobileCarousel from "@/components/common/MobileCarousel";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { CONTENT,HeroContent } from "../landingContent";
+import { ArrowDownToLine, ArrowRight, CalendarDays, Leaf, MapPin, Smartphone, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import useAuthStore from "@/store/authStore";
+import { CONTENT, type HeroContent } from "../landingContent";
 import { handleLandingNavigation } from "../utils/navigation";
+import HeroNeighborhood from "./HeroNeighborhood";
+import InstallAppButton from "./InstallAppButton";
 
-const days = [
-  { day: "Monday", type: "Biodegradable (Nabubulok)", color: "bg-primary/10 text-primary" },
-  { day: "Tuesday", type: "Non-Biodegradable (Di-Nabubulok)", color: "bg-muted text-muted-foreground" },
-  { day: "Wednesday", type: "Biodegradable (Nabubulok)", color: "bg-primary/10 text-primary" },
-  { day: "Thursday", type: "Non-Biodegradable (Di-Nabubulok)", color: "bg-muted text-muted-foreground" },
-  { day: "Friday", type: "Biodegradable (Nabubulok)", color: "bg-primary/10 text-primary" },
-  { day: "Saturday", type: "Non-Biodegradable (Di-Nabubulok)", color: "bg-muted text-muted-foreground" },
-  { day: "Sunday", type: "Biodegradable (Nabubulok)", color: "bg-primary/10 text-primary" },
-];
-
-const serviceIcons: LucideIcon[] = [CalendarCheck, MapPin, Bell];
-
-
-
-const HeroServiceCard = ({ c }: { c: { icon: LucideIcon; title: string; desc: string } }) => (
-  <div className="group bg-card rounded-xl border border-border/50 p-5 sm:p-6 lg:p-6 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-all duration-300 h-full">
-    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-      <c.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
-    </div>
-    <h3 className="gw-heading text-base sm:text-lg ">{c.title}</h3>
-    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
-  </div>
-);
+const featureIcons = [CalendarDays, Truck, Leaf];
 
 interface HeroSectionProps {
   content?: HeroContent;
 }
 
-const HeroSection = ({ content = CONTENT.hero }: HeroSectionProps) => {
-  useSystemTime();
-  const todayIndex = getManilaNow().weekdayIndex;
-  const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+export default function HeroSection({ content = CONTENT.hero }: HeroSectionProps) {
   const navigate = useNavigate();
-  const leftRef = useScrollReveal();
-  const rightRef = useScrollReveal({ rootMargin: "0px 0px -20px 0px" });
-  const cardsRef = useStaggerReveal(content.serviceCards.length);
-  const isMobile = useIsMobile();
-  const serviceCards = content.serviceCards.map((card, index) => ({
-    icon: serviceIcons[index % serviceIcons.length],
-    title: card.title,
-    desc: card.description,
-  }));
+  const brandIndex = content.headline.indexOf("GreenWay");
+  const startTracking = () => {
+    const { isAuthenticated, token } = useAuthStore.getState();
+    handleLandingNavigation(isAuthenticated && token ? content.ctaPrimaryLink : "/login", navigate);
+  };
 
   return (
-    <section id="home" className="relative overflow-x-hidden">
-      <div className="absolute inset-0">
-        <img src={heroBg} alt="" className="w-full h-full object-cover" width={1920} height={1080} />
-        <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/80 to-primary/5 dark:from-background/95 dark:via-background/90 dark:to-primary/5" />
-      </div>
+    <section id="home" className="relative isolate overflow-hidden bg-background">
+      <div className="container hero-layout">
+        <div className="hero-copy relative z-10 min-w-0">
+          <span className="inline-flex items-center rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary dark:bg-card/80 dark:text-accent-foreground sm:px-4 sm:text-sm">
+            {content.badge}
+          </span>
 
-      <div className="container relative py-10 sm:py-16 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
-          <div ref={leftRef} className="space-y-4 sm:space-y-6">
-            <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md bg-primary/10 text-primary text-ui-caption sm:text-xs font-semibold border border-primary/20">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {content.badge}
-            </span>
+          <h1 className="hero-heading gw-heading mt-6 tracking-tight lg:mt-4">
+            {brandIndex < 0 ? content.headline : <>
+              {content.headline.slice(0, brandIndex)}<span className="text-primary dark:text-accent-foreground">GreenWay</span>
+              <span className="block">{content.headline.slice(brandIndex + "GreenWay".length).trim()}</span>
+            </>}
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground dark:text-foreground/75 sm:text-lg lg:mt-4">
+            {content.subtitle}
+          </p>
 
-            <h1 className="gw-heading text-3xl sm:text-5xl lg:text-6xl leading-[1.1] tracking-tight whitespace-pre-line">
-              {content.headline}
-            </h1>
-
-            <p className="text-muted-foreground max-w-lg leading-relaxed text-sm sm:text-base">{content.subtitle}</p>
-
-            <div className="flex flex-wrap gap-2 sm:gap-3 pt-1 sm:pt-2">
-              <Button
-                variant="hero"
-                size="default"
-                className="sm:text-base sm:px-6 sm:py-3"
-                onClick={() =>
-                  handleLandingNavigation(content.ctaPrimaryLink, navigate)
-                }
-              >
-                {content.ctaPrimaryLabel}
-              </Button>
-              <Button
-                variant="hero-outline"
-                size="default"
-                className="sm:text-base sm:px-6 sm:py-3"
-                onClick={() =>
-                  handleLandingNavigation(content.ctaSecondaryLink, navigate)
-                }
-              >
-                {content.ctaSecondaryLabel}
-              </Button>
-            </div>
+          <div className="hero-actions mt-6 flex flex-wrap gap-3 sm:mt-7 lg:mt-5">
+            <Button variant="hero" className="h-12 w-full px-5 sm:h-14 sm:w-auto sm:px-6 sm:text-base lg:h-12" onClick={startTracking}>
+              <MapPin aria-hidden="true" />{content.ctaPrimaryLabel}<ArrowRight aria-hidden="true" />
+            </Button>
+            <Button variant="hero-outline" className="h-12 w-full px-6 sm:h-14 sm:w-auto sm:px-8 sm:text-base lg:h-12" onClick={() => handleLandingNavigation(content.ctaSecondaryLink, navigate)}>
+              {content.ctaSecondaryLabel}
+            </Button>
           </div>
 
-          <div ref={rightRef} className="bg-card rounded-xl border border-border/60 p-4 sm:p-6 space-y-3 sm:space-y-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-              </div>
-              Weekly Collection Schedule
+          <div className="hero-app-card mt-6 rounded-xl border border-primary/15 bg-card/95 px-4 py-3 lg:mt-4">
+            <div aria-hidden="true" className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary dark:text-accent-foreground">
+              <Smartphone className="h-8 w-8" strokeWidth={1.7} />
+              <ArrowDownToLine className="absolute h-4 w-4" strokeWidth={2.5} />
             </div>
-            <div className="space-y-1">
-              {days.map((d, i) => (
-                <div
-                  key={d.day}
-                  className={`flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors ${
-                    i === adjustedIndex
-                      ? "bg-primary text-primary-foreground font-semibold "
-                      : d.color
-                  }`}
-                >
-                  <span className="font-medium">{d.day}</span>
-                  <span className="text-ui-caption sm:text-xs">{d.type}</span>
-                </div>
-              ))}
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-foreground">Get the GreenWay App</h2>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground dark:text-foreground/75">Download the Android app to your phone.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Android APK <span aria-hidden="true">•</span> Direct Install</p>
             </div>
-            <p className="text-ui-caption sm:text-xs text-muted-foreground text-center">Current day is automatically highlighted</p>
+            <InstallAppButton className="hero-app-action h-11 px-4 dark:disabled:opacity-70" />
           </div>
+
+          <ul className="hero-highlights mt-6 border-t border-border/60 pt-5 sm:pt-6 lg:mt-4 lg:pt-4">
+            {content.serviceCards.map((feature, index) => {
+              const Icon = featureIcons[index % featureIcons.length];
+              return (
+                <li key={feature.id} className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary dark:text-accent-foreground">
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h3 className="text-sm font-semibold leading-5 text-foreground">{feature.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{feature.description}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        <div className="mt-8 sm:mt-12 lg:mt-16">
-          <MobileCarousel autoScrollInterval={3500} cardClassName="w-[75vw] shrink-0 snap-center">
-            {serviceCards.map((card) => (
-              <HeroServiceCard key={card.title} c={card} />
-            ))}
-          </MobileCarousel>
-
-          {!isMobile && (
-            <div ref={cardsRef} className="grid sm:grid-cols-3 gap-4 lg:gap-6">
-              {serviceCards.map((card) => (
-                <HeroServiceCard key={card.title} c={card} />
-              ))}
-            </div>
-          )}
+        <div className="hero-neighborhood-slot relative hidden min-w-0 lg:block">
+          <HeroNeighborhood />
+          <ul aria-label="GreenWay features" className="hero-scene-labels hidden sm:block">
+            <li className="hero-scene-label hero-scene-label--tracking"><MapPin aria-hidden="true" /><span>Real-Time Tracking</span></li>
+            <li className="hero-scene-label hero-scene-label--schedule"><CalendarDays aria-hidden="true" /><span>Collection Schedule</span></li>
+            <li className="hero-scene-label hero-scene-label--community"><Truck aria-hidden="true" /><span>Cleaner Community</span></li>
+          </ul>
         </div>
       </div>
     </section>
   );
-};
-
-export default HeroSection;
+}

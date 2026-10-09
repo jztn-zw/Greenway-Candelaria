@@ -1,0 +1,79 @@
+.landing-page .app-download-panel {
+  background-image:
+    radial-gradient(ellipse at 95% 25%, hsl(var(--primary) / 0.17), transparent 55%),
+    linear-gradient(115deg, hsl(var(--primary) / 0.025), transparent 55%, hsl(var(--primary) / 0.06));
+  box-shadow: 0 24px 60px -36px hsl(var(--shadow) / 0.35), inset 0 1px 0 hsl(var(--card) / 0.7);
+}
+
+.landing-page .app-download-preview {
+  background-image: radial-gradient(ellipse at center, hsl(var(--primary) / 0.1), transparent 65%);
+}
+
+.landing-page .app-download-orbit {
+  width: min(90%, 26rem);
+  aspect-ratio: 1;
+  box-shadow: 0 0 0 2.25rem hsl(var(--primary) / 0.035), 0 0 0 4.5rem hsl(var(--primary) / 0.02);
+}
+
+.landing-page .app-download-phone {
+  aspect-ratio: 9 / 19.5;
+  border-radius: calc(var(--radius-card) * 3);
+  background: hsl(var(--neutral-950));
+  border: 1px solid hsl(var(--neutral-500));
+  transform: rotate(-5deg);
+  box-shadow: 12px 24px 48px -20px hsl(var(--shadow) / 0.5), inset 0 0 0 2px hsl(var(--neutral-700));
+}
+
+.landing-page .app-download-phone-screen {
+  border-radius: calc(var(--radius-card) * 2.4);
+}
+
+.landing-page .app-download-phone-island {
+  background: hsl(var(--neutral-950));
+}
+
+.landing-page .app-download-phone-camera {
+  background: hsl(var(--neutral-800));
+  box-shadow: inset 0 0 0 1px hsl(var(--neutral-600) / 0.5);
+}
+
+.landing-page :is(.app-download-phone-switch, .app-download-phone-volume, .app-download-phone-power) {
+  width: 3px;
+  background: linear-gradient(to right, hsl(var(--neutral-600)), hsl(var(--neutral-900)));
+}
+
+.landing-page .app-download-phone-switch { left: -3px; top: 15%; height: 1rem; }
+.landing-page .app-download-phone-volume { left: -3px; top: 22%; height: 3rem; }
+.landing-page .app-download-phone-power { right: -3px; top: 28%; height: 2.5rem; }
+
+.landing-page .app-download-screen-placeholder {
+  background-image: radial-gradient(ellipse at top right, hsl(var(--primary) / 0.12), transparent 75%);
+}
+
+.dark .landing-page .app-download-panel {
+  background-image:
+    radial-gradient(ellipse at 95% 25%, hsl(var(--primary) / 0.11), transparent 55%),
+    linear-gradient(115deg, hsl(var(--primary) / 0.02), transparent 55%, hsl(var(--primary) / 0.045));
+  box-shadow: 0 24px 60px -36px hsl(var(--shadow) / 0.7), inset 0 1px 0 hsl(var(--border) / 0.4);
+}
+
+.dark .landing-page .app-download-preview {
+  background-image: radial-gradient(ellipse at center, hsl(var(--primary) / 0.06), transparent 65%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page .app-download-phone { animation: greenway-app-float 8.5s ease-in-out infinite; }
+}
+
+@keyframes greenway-app-float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-6px) rotate(-4deg); }
+}
+
+@media (max-width: 767px) {
+  .landing-page .app-download-phone { animation: none; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .landing-page .app-download-phone { max-width: 14rem; }
+}

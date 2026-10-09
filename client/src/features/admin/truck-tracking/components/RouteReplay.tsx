@@ -21,6 +21,7 @@ import { getManilaNow } from "@/utils/date";
 interface RouteReplayProps {
   trucks: AdminTruck[];
   onReplayPath: (path: [number, number][] | undefined) => void;
+  onReplayBreaks?: (breaks: boolean[] | undefined) => void;
   onReplayIndex: (index: number | undefined) => void;
   onReplayTargetLocation?: (target: ReplayTargetLocation | null) => void;
   onReplayCompletedTargets?: (targets: ReplayTargetLocation[]) => void;
@@ -29,7 +30,7 @@ interface RouteReplayProps {
 
 const SPEED_OPTIONS = [1, 2, 5, 10, 30, 60] as const;
 
-const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets }: RouteReplayProps) => {
+const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets }: RouteReplayProps) => {
   useSystemTime();
   const fetchAdmin = useAdminFetch();
   const [selectedTruck, setSelectedTruck] = useState("");
@@ -108,11 +109,12 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
     exportAbortRef.current?.abort();
     exportAbortRef.current = null;
     onReplayPath(undefined);
+    onReplayBreaks?.(undefined);
     onReplayIndex(undefined);
     onReplayTargetLocation?.(null);
     onReplayCompletedTargets?.([]);
     onReplaySkippedTargets?.([]);
-  }, [onReplayPath, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets]);
+  }, [onReplayPath, onReplayBreaks, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets]);
 
   useEffect(() => {
     requestVersionRef.current += 1;
@@ -125,13 +127,14 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
     setLoadMessage("");
     setLoadFailed(false);
     onReplayPath(undefined);
+    onReplayBreaks?.(undefined);
     onReplayIndex(undefined);
     onReplayTargetLocation?.(null);
     completedTargetsRef.current = [];
     onReplayCompletedTargets?.([]);
     skippedTargetsRef.current = [];
     onReplaySkippedTargets?.([]);
-  }, [selectedTruck, date, onReplayPath, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets]);
+  }, [selectedTruck, date, onReplayPath, onReplayBreaks, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets]);
 
   useEffect(() => {
     onReplayTargetLocation?.(targetLocation);
@@ -189,6 +192,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayIndex, onReplayTargetLocati
       setTrip(loadedTrip);
       updateElapsed(0);
       onReplayPath(loadedTrip.path);
+      onReplayBreaks?.(loadedTrip.breakBefore);
       setPlaying(getReplayDuration(loadedTrip) > 0);
     } catch {
       if (version !== requestVersionRef.current) return;

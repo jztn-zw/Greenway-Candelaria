@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CONTENT,TestimonialsContent } from "../landingContent";
 
 const TestimonialCard = ({ t }: { t: TestimonialsContent["items"][number] }) => (
-  <div className="group bg-card rounded-xl border border-border/60 p-4 sm:p-6 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-all duration-300 relative h-full">
+  <div className="landing-surface group bg-card rounded-xl border border-border/60 p-4 sm:p-6 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-all duration-300 relative h-full">
     <Quote className="w-6 h-6 sm:w-8 sm:h-8 text-primary/10 absolute top-3 right-3 sm:top-4 sm:right-4" />
     <div className="flex gap-0.5">
       {Array.from({ length: 5 }).map((_, index) => (

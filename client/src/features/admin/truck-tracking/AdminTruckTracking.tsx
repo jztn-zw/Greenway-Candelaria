@@ -587,6 +587,7 @@ const AdminTruckTracking = () => {
     [number, number][] | undefined
   >();
   const [replayIndex, setReplayIndex] = useState<number | undefined>();
+  const [replayBreaks, setReplayBreaks] = useState<boolean[] | undefined>();
   const [replayTargetLocation, setReplayTargetLocation] = useState<ReplayTargetLocation | null>(null);
   const [replayCompletedTargets, setReplayCompletedTargets] = useState<ReplayTargetLocation[]>([]);
   const [replaySkippedTargets, setReplaySkippedTargets] = useState<ReplayTargetLocation[]>([]);
@@ -908,6 +909,7 @@ const AdminTruckTracking = () => {
             onMarkerClick={handleMarkerClick}
             onDeselectTruck={() => setFocusedTruckId(null)}
             replayPath={replayPath}
+            replayBreaks={replayBreaks}
             replayIndex={replayIndex}
             replayTargetLocation={replayTargetLocation}
             replayCompletedTargets={replayCompletedTargets}
@@ -945,6 +947,7 @@ const AdminTruckTracking = () => {
                     onClick={() => {
                       if (tab.id === "FLEET") {
                         setReplayPath(undefined);
+                        setReplayBreaks(undefined);
                         setReplayIndex(undefined);
                         setReplayTargetLocation(null);
                         setReplayCompletedTargets([]);
@@ -1015,6 +1018,7 @@ const AdminTruckTracking = () => {
               <RouteReplay
                 trucks={trucks}
                 onReplayPath={setReplayPath}
+                onReplayBreaks={setReplayBreaks}
                 onReplayIndex={setReplayIndex}
                 onReplayTargetLocation={setReplayTargetLocation}
                 onReplayCompletedTargets={setReplayCompletedTargets}

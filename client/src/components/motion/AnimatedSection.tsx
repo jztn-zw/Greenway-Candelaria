@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "./AnimatedSection.css";
 
 interface AnimatedSectionProps {
   children: React.ReactNode;
@@ -6,25 +7,6 @@ interface AnimatedSectionProps {
   delay?: number;
   animation?: "fade-up" | "fade-in" | "scale-in" | "slide-right";
 }
-
-const animationClasses: Record<string, { initial: string; animate: string }> = {
-  "fade-up": {
-    initial: "opacity-0 translate-y-6",
-    animate: "opacity-100 translate-y-0",
-  },
-  "fade-in": {
-    initial: "opacity-0",
-    animate: "opacity-100",
-  },
-  "scale-in": {
-    initial: "opacity-0 scale-[0.97]",
-    animate: "opacity-100 scale-100",
-  },
-  "slide-right": {
-    initial: "opacity-0 -translate-x-6",
-    animate: "opacity-100 translate-x-0",
-  },
-};
 
 const AnimatedSection = ({
   children,
@@ -36,36 +18,46 @@ const AnimatedSection = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Respect reduced motion preference
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) {
+    if (isVisible) return;
+
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (motionPreference.matches || typeof IntersectionObserver === "undefined") {
       setIsVisible(true);
       return;
     }
 
+    let timer: number | undefined;
+    const reveal = () => setIsVisible(true);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay);
           observer.disconnect();
+          if (delay > 0) timer = window.setTimeout(reveal, delay);
+          else reveal();
         }
       },
-      { threshold: 0.05, rootMargin: "20px" }
+      { threshold: 0.01, rootMargin: "0px 0px 64px 0px" }
     );
+    const handleMotionChange = (event: MediaQueryListEvent) => {
+      if (event.matches) reveal();
+    };
 
     if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [delay]);
-
-  const config = animationClasses[animation];
+    motionPreference.addEventListener("change", handleMotionChange);
+    return () => {
+      observer.disconnect();
+      if (timer !== undefined) window.clearTimeout(timer);
+      motionPreference.removeEventListener("change", handleMotionChange);
+    };
+  }, [delay, isVisible]);
 
   return (
     <div
       ref={ref}
-      className={`transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        isVisible ? config.animate : config.initial
-      } ${className}`}
-      style={{ willChange: isVisible ? "auto" : "transform, opacity" }}
+      className={`gw-section-reveal ${className}`}
+      data-animation={animation}
+      data-revealed={isVisible}
+      onFocusCapture={() => setIsVisible(true)}
     >
       {children}
     </div>

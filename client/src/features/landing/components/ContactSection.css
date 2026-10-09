@@ -1,0 +1,31 @@
+.landing-page .landing-contact-panel {
+  background-image:
+    radial-gradient(ellipse at 5% 15%, hsl(var(--primary) / 0.14), transparent 65%),
+    linear-gradient(125deg, hsl(var(--primary) / 0.025), transparent 60%, hsl(var(--primary) / 0.05));
+  box-shadow: 0 20px 48px -30px hsl(var(--shadow) / 0.3), inset 0 1px 0 hsl(var(--card) / 0.7);
+}
+
+.landing-page .landing-contact-link {
+  transition: background-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-page .landing-contact-link:hover {
+    background-color: color-mix(in srgb, hsl(var(--primary)) 6%, hsl(var(--card)));
+  }
+}
+
+.landing-page .landing-contact-link:active {
+  background-color: color-mix(in srgb, hsl(var(--primary)) 6%, hsl(var(--card)));
+}
+
+.dark .landing-page .landing-contact-panel {
+  background-image:
+    radial-gradient(ellipse at 5% 15%, hsl(var(--primary) / 0.09), transparent 65%),
+    linear-gradient(125deg, hsl(var(--primary) / 0.02), transparent 60%, hsl(var(--primary) / 0.035));
+  box-shadow: 0 20px 48px -30px hsl(var(--shadow) / 0.6), inset 0 1px 0 hsl(var(--border) / 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .landing-contact-link { transition: none; }
+}

@@ -5,6 +5,44 @@ import { buildReplayTrip, formatReplayDuration, formatReplayTime, getReplayCompl
 const log = (latitude: unknown, longitude: unknown, created_at: string) => ({ latitude, longitude, created_at }) as HistoryRow;
 
 describe("full-trip GPS replay", () => {
+  it("holds the last recorded position across a GPS gap and resumes on the same timeline", () => {
+    const trip = buildReplayTrip([
+      log(14, 121, "2026-09-28T01:00:00Z"),
+      log(14.001, 121, "2026-09-28T01:00:05Z"),
+      log(14.1, 121, "2026-09-28T01:05:05Z"),
+      log(14.101, 121, "2026-09-28T01:05:10Z"),
+    ])!;
+    expect(trip.breakBefore).toEqual([false, false, true, false]);
+    const duringGap = sampleReplayTrip(trip, 155 / 310);
+    expect(duringGap).toMatchObject({ index: 1, position: 1, coords: [14.001, 121], timestamp: "2026-09-28T01:02:35.000Z" });
+    expect(sampleReplayTrip(trip, 305 / 310)).toMatchObject({ index: 2, position: 2, coords: [14.1, 121] });
+    expect(sampleReplayTrip(trip, 307.5 / 310).coords[0]).toBeCloseTo(14.1005, 10);
+    expect(trip.distanceKm).toBeCloseTo(0.22239, 5);
+    expect(trip.path).toHaveLength(4);
+  });
+
+  it("cuts gaps over 30 seconds while keeping brief delays connected", () => {
+    const trip = buildReplayTrip([
+      log(14, 121, "2026-09-28 01:00:00"),
+      log(14.001, 121, "2026-09-28T09:00:30+08:00"),
+      log(14.002, 121, "2026-09-28T01:01:01Z"),
+    ])!;
+    expect(trip.breakBefore).toEqual([false, false, true]);
+    expect(sampleReplayTrip(trip, 15 / 61).coords[0]).toBeCloseTo(14.0005, 10);
+    expect(sampleReplayTrip(trip, 60 / 61).coords).toEqual([14.001, 121]);
+    expect(sampleReplayTrip(trip, 1).coords).toEqual([14.002, 121]);
+  });
+
+  it("does not join separate recorded runs even when their timestamps are close", () => {
+    const trip = buildReplayTrip([
+      { ...log(14, 121, "2026-09-28T01:00:00Z"), route_run_id: "run-a" },
+      { ...log(14.01, 121, "2026-09-28T01:00:05Z"), route_run_id: "run-b" },
+    ])!;
+    expect(trip.breakBefore).toEqual([false, true]);
+    expect(sampleReplayTrip(trip, 0.5).coords).toEqual([14, 121]);
+    expect(trip.distanceKm).toBe(0);
+  });
+
   it("keeps all valid points in time order, including stationary records", () => {
     const trip = buildReplayTrip([
       log(14.04, 121.43, "2026-09-28T01:02:00Z"),
@@ -27,9 +65,9 @@ describe("full-trip GPS replay", () => {
   it("calculates distance before display rounding and excludes small stationary jitter", () => {
     const trip = buildReplayTrip([
       log(14, 121, "2026-09-28T01:00:00Z"),
-      log(14.00001, 121, "2026-09-28T01:01:00Z"),
-      log(14, 121, "2026-09-28T01:02:00Z"),
-      log(14.001, 121, "2026-09-28T01:03:00Z"),
+      log(14.00001, 121, "2026-09-28T01:00:05Z"),
+      log(14, 121, "2026-09-28T01:00:10Z"),
+      log(14.001, 121, "2026-09-28T01:00:15Z"),
     ])!;
     expect(trip.distanceKm).toBeCloseTo(0.111195, 5);
     expect(buildReplayTrip([log(14, 121, "2026-09-28T01:00:00Z")])?.distanceKm).toBe(0);
@@ -37,12 +75,12 @@ describe("full-trip GPS replay", () => {
 
   it("samples the full trail for video and reaches the actual last record", () => {
     const trip = buildReplayTrip([
-      log(14, 121, "2026-09-28T01:00:00Z"), log(15, 122, "2026-09-28T01:01:00Z"),
-      log(16, 123, "2026-09-28T01:02:00Z"),
+      log(14, 121, "2026-09-28T01:00:00Z"), log(15, 122, "2026-09-28T01:00:05Z"),
+      log(16, 123, "2026-09-28T01:00:10Z"),
     ])!;
     expect(sampleReplayTrip(trip, 0.25).coords).toEqual([14.5, 121.5]);
     expect(sampleReplayTrip(trip, 0.5).coords).toEqual([15, 122]);
-    expect(sampleReplayTrip(trip, 1)).toEqual({ index: 2, position: 2, coords: [16, 123], timestamp: "2026-09-28T01:02:00.000Z" });
+    expect(sampleReplayTrip(trip, 1)).toEqual({ index: 2, position: 2, coords: [16, 123], timestamp: "2026-09-28T01:00:10.000Z" });
     expect(formatReplayTime("2026-09-28T01:00:00Z")).toBe("09:00 AM");
   });
 

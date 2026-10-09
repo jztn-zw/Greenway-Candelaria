@@ -30,7 +30,7 @@ const BlogCard = ({
 }: {
   post: LandingBlogPost;
 }) => (
-  <article className="group bg-card rounded-xl border border-border/60 overflow-hidden hover:border-primary/30 transition-all duration-300 h-full">
+  <article className="landing-surface group bg-card rounded-xl border border-border/60 overflow-hidden hover:border-primary/30 transition-all duration-300 h-full">
     <div className={`h-28 sm:h-40 lg:h-48 bg-muted/50 flex items-center justify-center`}>
       <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl bg-background/60 flex items-center justify-center">
         <Calendar className="w-5 h-5 sm:w-8 sm:h-8 text-muted-foreground/60" />

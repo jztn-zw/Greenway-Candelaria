@@ -84,8 +84,8 @@ const withNormalizedCoverage = <T extends BarangayStreetRow>(street: T): T => ({
   coverage_path: normalizeCoveragePath(street.coverage_path),
 });
 
-export const fetchBarangays = async (): Promise<BarangayLocationRow[]> => {
-  const { data } = await api.get<{ data: BarangayLocationRow[] }>("/barangays");
+export const fetchBarangays = async (filters?: { status: "ACTIVE" | "INACTIVE" }): Promise<BarangayLocationRow[]> => {
+  const { data } = await api.get<{ data: BarangayLocationRow[] }>("/barangays", filters ? { params: filters } : undefined);
   return data.data ?? [];
 };
 

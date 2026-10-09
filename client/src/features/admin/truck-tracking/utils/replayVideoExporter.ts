@@ -77,7 +77,10 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
   const projectedPath = trip.path.map(plot);
   const fullTrail = new Path2D();
   fullTrail.moveTo(...projectedPath[0]);
-  for (const point of projectedPath.slice(1)) fullTrail.lineTo(...point);
+  for (let index = 1; index < projectedPath.length; index++) {
+    if (trip.breakBefore?.[index]) fullTrail.moveTo(...projectedPath[index]);
+    else fullTrail.lineTo(...projectedPath[index]);
+  }
   const travelledTrail = new Path2D();
   travelledTrail.moveTo(...projectedPath[0]);
   let travelledIndex = 0;
@@ -137,7 +140,11 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     ctx.drawImage(basemap, 0, 76);
     // Reuse projected paths; extend only the newly travelled part each frame.
     drawPath(fullTrail, palette.muted, 3);
-    while (travelledIndex < sample.index) travelledTrail.lineTo(...projectedPath[++travelledIndex]);
+    while (travelledIndex < sample.index) {
+      travelledIndex++;
+      if (trip.breakBefore?.[travelledIndex]) travelledTrail.moveTo(...projectedPath[travelledIndex]);
+      else travelledTrail.lineTo(...projectedPath[travelledIndex]);
+    }
     drawPath(travelledTrail, palette.primary, 5);
     ctx.beginPath(); ctx.moveTo(...projectedPath[sample.index]); ctx.lineTo(...plot(sample.coords)); ctx.stroke();
     drawEndpoint(trip.path[0], "Start");

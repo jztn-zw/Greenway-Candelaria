@@ -7,7 +7,7 @@ import { CONTENT,ServicesContent } from "../landingContent";
 const serviceIcons: LucideIcon[] = [CalendarClock, Truck, BellRing, BarChart3, Users, ShieldCheck];
 
 const ServiceCard = ({ s }: { s: { icon: LucideIcon; title: string; desc: string } }) => (
-  <div className="group bg-card rounded-xl border border-border/60 p-4 sm:p-5 lg:p-5 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-colors duration-150 relative overflow-hidden h-full">
+  <div className="landing-surface group bg-card rounded-xl border border-border/60 p-4 sm:p-5 lg:p-5 space-y-2.5 sm:space-y-4 hover:border-primary/30 transition-colors duration-150 relative overflow-hidden h-full">
     <div className="relative">
       <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors duration-300">
         <s.icon className="w-4 h-4 sm:w-6 sm:h-6 text-primary group-hover:text-primary-foreground transition-colors duration-300" />

@@ -37,7 +37,7 @@ const AboutSection = ({ content = CONTENT.about }: AboutSectionProps) => {
             </div>
           </div>
 
-          <div ref={rightRef} className="bg-card border border-border/60 rounded-xl p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-lg shadow-primary/3">
+          <div ref={rightRef} className="landing-surface bg-card border border-border/60 rounded-xl p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-lg shadow-primary/3">
             <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
               <span className="w-8 h-px bg-primary" />
               Our Commitment

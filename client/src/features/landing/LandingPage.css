@@ -1,0 +1,137 @@
+/* Landing-only tones. Actions and badges retain the shared semantic recipes. */
+.landing-page {
+  --background: 155 20% 93%;
+  --card: 150 24% 96%;
+  --popover: var(--card);
+  --muted: 156 18% 88%;
+  --muted-foreground: 166 14% 31%;
+  --primary: 175.34 77.444% 23%;
+  --ring: var(--primary);
+  --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, black);
+  --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, black);
+  --button-primary-soft-foreground: var(--button-primary-hover);
+  --secondary: 154 22% 88%;
+  --accent: 156 28% 89%;
+  --border: 160 18% 80%;
+  --input: 160 16% 74%;
+  --field-background: hsl(var(--card));
+  --field-placeholder: hsl(var(--muted-foreground));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .landing-page {
+  --primary: 160 61.446% 48.824%;
+  --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, white);
+  --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, white);
+  --button-primary-soft-foreground: hsl(var(--primary));
+  --background: 175 28% 8.5%;
+  --card: 169 24% 14%;
+  --muted: 169 21% 18%;
+  --muted-foreground: 160 10% 73%;
+  --secondary: 165 22% 17%;
+  --accent: 164 30% 20%;
+  --border: 162 19% 28%;
+  --input: 162 16% 36%;
+}
+
+.landing-page .landing-surface {
+  background-image: radial-gradient(ellipse at top left, hsl(var(--primary) / 0.07), transparent 70%);
+  box-shadow: 0 12px 30px -18px hsl(var(--shadow) / 0.22), inset 0 1px 0 hsl(var(--card) / 0.8);
+}
+
+.dark .landing-page .landing-surface {
+  background-image: radial-gradient(ellipse at top left, hsl(var(--primary) / 0.06), transparent 70%);
+  box-shadow: 0 12px 30px -18px hsl(var(--shadow) / 0.5), inset 0 1px 0 hsl(var(--border) / 0.4);
+}
+
+.landing-page :where(#services, #news-updates, #contact) {
+  background-image: radial-gradient(ellipse at 85% 30%, hsl(var(--primary) / 0.055), transparent 65%);
+}
+
+.dark .landing-page :where(#services, #news-updates, #contact) {
+  background-image: radial-gradient(ellipse at 85% 30%, hsl(var(--primary) / 0.035), transparent 65%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page .hero-copy > * {
+    animation: greenway-hero-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .landing-page .hero-copy > :nth-child(2) { animation-delay: 40ms; }
+  .landing-page .hero-copy > :nth-child(3) { animation-delay: 80ms; }
+  .landing-page .hero-copy > :nth-child(4) { animation-delay: 120ms; }
+  .landing-page .hero-copy > :nth-child(5) { animation-delay: 160ms; }
+  .landing-page .hero-copy > :nth-child(6) { animation-delay: 200ms; }
+
+  .landing-page .hero-neighborhood-slot {
+    animation: greenway-scene-enter 600ms ease-out 80ms backwards;
+  }
+
+  .landing-page .hero-copy > :focus-within { animation: none; }
+}
+
+@keyframes greenway-hero-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes greenway-scene-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing-page) { scroll-behavior: auto; }
+}
+
+/* Small screens retain the same surfaces, with room for readable copy and taps. */
+@media (max-width: 1023px) {
+  .landing-page .container { padding-inline: 1.5rem; }
+  .landing-page section:not(#home) > .container { max-width: 52rem; }
+}
+
+@media (max-width: 639px) {
+  .landing-page .container { padding-inline: 1rem; }
+  .landing-page section:not(#home) { padding-block: 2.5rem; }
+  .landing-page section:not(#home) h2 { font-size: 1.75rem; line-height: 1.2; }
+}
+
+.landing-page .landing-mobile-nav-link:active {
+  background-color: hsl(var(--primary) / 0.06);
+  color: hsl(var(--primary));
+}
+
+.landing-page .landing-nav-link:focus-visible::after { transform: scaleX(1); }
+.landing-page .landing-text-link:active { text-decoration-line: underline; text-decoration-color: currentColor; }
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-page .landing-nav-link:hover { color: hsl(var(--primary)); }
+  .landing-page .landing-nav-link:hover::after { transform: scaleX(1); }
+  .landing-page .landing-mobile-nav-link:hover { color: hsl(var(--primary)); }
+  .landing-page .landing-text-link:hover { text-decoration-line: underline; text-decoration-color: currentColor; }
+}
+
+/* Touch feedback uses the shared action recipes without retaining hover colors. */
+@media (hover: none), (pointer: coarse) {
+  .landing-page .gw-button:where(:not(:disabled):not([aria-disabled="true"])):hover {
+    background-color: var(--action-background);
+    color: var(--action-foreground);
+    border-color: var(--action-border);
+  }
+  .landing-page .gw-button:where(:not(:disabled):not([aria-disabled="true"])):active {
+    background-color: var(--action-active);
+    color: var(--action-foreground-hover, var(--action-foreground));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page .landing-mobile-navigation:not([hidden]) {
+    animation: greenway-menu-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes greenway-menu-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

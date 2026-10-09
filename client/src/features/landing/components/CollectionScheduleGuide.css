@@ -1,0 +1,64 @@
+.landing-page .collection-guide {
+  background-image:
+    radial-gradient(ellipse at 90% 45%, hsl(var(--primary) / 0.1), transparent 65%),
+    linear-gradient(to bottom, hsl(var(--background)), hsl(var(--primary) / 0.04) 65%, hsl(var(--background)));
+}
+
+.landing-page .collection-guide-panel {
+  border-color: hsl(var(--border) / 0.9);
+  box-shadow: 0 20px 48px -26px hsl(var(--shadow) / 0.26), inset 0 1px 0 hsl(var(--card) / 0.8);
+}
+
+.landing-page .collection-guide-panel-header {
+  background-image:
+    radial-gradient(ellipse at top right, hsl(var(--primary) / 0.19), transparent 75%),
+    linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--primary) / 0.025));
+}
+
+.landing-page .collection-guide-day {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-page .collection-guide-day[aria-pressed="false"]:hover {
+    border-color: hsl(var(--primary) / 0.4);
+    color: hsl(var(--foreground));
+  }
+}
+
+.landing-page .collection-guide-day[aria-pressed="false"]:active {
+  background-color: color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--card)));
+  border-color: hsl(var(--primary) / 0.4);
+  color: hsl(var(--foreground));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page .collection-guide-details {
+    animation: collection-guide-reveal 180ms ease-out;
+  }
+}
+
+@keyframes collection-guide-reveal {
+  from { opacity: 0.5; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .collection-guide-day { transition: none; }
+}
+
+.dark .landing-page .collection-guide {
+  background-image:
+    radial-gradient(ellipse at 90% 45%, hsl(var(--primary) / 0.07), transparent 65%),
+    linear-gradient(to bottom, hsl(var(--background)), hsl(var(--primary) / 0.025) 65%, hsl(var(--background)));
+}
+
+.dark .landing-page .collection-guide-panel {
+  box-shadow: 0 20px 48px -26px hsl(var(--shadow) / 0.65), inset 0 1px 0 hsl(var(--border) / 0.4);
+}
+
+.dark .landing-page .collection-guide-panel-header {
+  background-image:
+    radial-gradient(ellipse at top right, hsl(var(--primary) / 0.13), transparent 75%),
+    linear-gradient(135deg, hsl(var(--primary) / 0.055), hsl(var(--primary) / 0.025));
+}

@@ -1,8 +1,8 @@
 import { MapPin,Phone,Mail,Clock } from "lucide-react";
 
 const TopBar = () => (
-  <div className="bg-forest text-forest-foreground text-xs py-2 hidden md:block">
-    <div className="container flex justify-between items-center">
+  <div className="bg-forest text-forest-foreground text-xs py-2 hidden dark:border-b dark:border-border/60 dark:bg-card dark:text-foreground lg:block">
+    <div className="container flex flex-wrap justify-between items-center gap-x-6 gap-y-2">
       <div className="flex items-center gap-5">
         <span className="flex items-center gap-1.5 opacity-80">
           <Phone className="w-3 h-3" /> Hotline: 383

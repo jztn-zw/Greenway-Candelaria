@@ -66,6 +66,7 @@ interface AdminTrackingMapProps {
   onMarkerClick: (truckId: string) => void;
   onDeselectTruck?: () => void;
   replayPath?: [number, number][];
+  replayBreaks?: boolean[];
   replayIndex?: number;
   replayTargetLocation?: ReplayTargetLocation | null;
   replayCompletedTargets?: ReplayTargetLocation[];
@@ -194,6 +195,7 @@ const AdminTrackingMap = ({
   onMarkerClick,
   onDeselectTruck,
   replayPath,
+  replayBreaks,
   replayIndex,
   replayTargetLocation,
   replayCompletedTargets = EMPTY_REPLAY_TARGETS,
@@ -691,13 +693,13 @@ const AdminTrackingMap = ({
   // moves the existing truck and trail head without rebuilding the map layers.
   useEffect(() => {
     if (!isMapReady) return;
-    replayRendererRef.current?.setTrip(replayPath, replayTargetLocation ?? null, replayCompletedTargets, replaySkippedTargets);
-  }, [replayPath, replayTargetLocation, replayCompletedTargets, replaySkippedTargets, isMapReady]);
+    replayRendererRef.current?.setTrip(replayPath, replayTargetLocation ?? null, replayCompletedTargets, replaySkippedTargets, replayBreaks);
+  }, [replayPath, replayBreaks, replayTargetLocation, replayCompletedTargets, replaySkippedTargets, isMapReady]);
 
   useEffect(() => {
     if (!isMapReady) return;
     replayRendererRef.current?.setPosition(replayIndex);
-  }, [replayPath, replayIndex, isMapReady]);
+  }, [replayPath, replayBreaks, replayIndex, isMapReady]);
 
   useEffect(() => {
     if (isMapReady) replayRendererRef.current?.refreshColors();

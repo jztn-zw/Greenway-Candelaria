@@ -101,6 +101,34 @@ it("encodes the full map trip quickly while preserving the selected playback dur
   expect(encodedFrames.mock.calls.reduce((duration, [, frameDuration]) => duration + frameDuration, 0)).toBeCloseTo(2);
 });
 
+it.each([true, false])("cuts the route line in one video with GPS gaps (fast encoder: %s)", async (fast) => {
+  if (fast) {
+    vi.stubGlobal("VideoEncoder", class {});
+    vi.stubGlobal("VideoFrame", class {});
+  }
+  const trails: string[][] = [];
+  vi.stubGlobal("Path2D", class {
+    commands: string[] = [];
+    constructor(shape?: string) { if (!shape) trails.push(this.commands); }
+    moveTo() { this.commands.push("move"); }
+    lineTo() { this.commands.push("line"); }
+  });
+  const gapTrip: ReplayTrip = {
+    ...trip,
+    path: [...trip.path, [14.004, 121.003]],
+    timestamps: ["2026-09-28T01:00:00Z", "2026-09-28T01:00:05Z", "2026-09-28T01:01:55Z", "2026-09-28T01:02:00Z"],
+    times: [trip.times[0], trip.times[0] + 5000, trip.times[0] + 115000, trip.times[0] + 120000],
+    breakBefore: [false, false, true, false],
+  };
+  const work = exportReplayVideo({ truckName: "Truck", plateNumber: "", dateStr: "2026-09-28", trip: gapTrip, speed: 60 });
+  await vi.runAllTimersAsync();
+  await work;
+  expect(trails[0]).toEqual(["move", "line", "move", "line"]);
+  expect(trails[1]).toEqual(["move", "line", "move", "line"]);
+  expect(download).toHaveBeenCalledOnce();
+  expect(fillText.mock.calls.map(([text]) => text)).toContain("Replay complete");
+});
+
 it("cancels an in-progress export, releases recording resources and avoids a download", async () => {
   const controller = new AbortController();
   const result = exportReplayVideo({ truckName: "Truck 1", plateNumber: "ABC-123", dateStr: "2026-09-28", trip, speed: 60, signal: controller.signal }).then(() => null, (error: Error) => error);

@@ -6,7 +6,8 @@ const scrollToHash = (hash: string) => {
   const target = document.querySelector(hash);
   if (!target) return false;
 
-  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   if (window.location.hash !== hash) {
     window.history.replaceState(null, "", hash);
   }

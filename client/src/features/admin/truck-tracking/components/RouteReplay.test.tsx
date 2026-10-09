@@ -21,6 +21,7 @@ vi.mock("@/components/ui/slider", () => ({
 let root: Root;
 let host: HTMLDivElement;
 const onPath = vi.fn();
+const onBreaks = vi.fn();
 const onIndex = vi.fn();
 const onTargetLocation = vi.fn();
 const onCompletedTargets = vi.fn();
@@ -46,7 +47,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   vi.mocked(fetchTruckHistory).mockResolvedValue({ logs, stops: [{ stop_name: "A street" }, { stop_name: "B street" }] as never });
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
-  await act(async () => root.render(<RouteReplay trucks={trucks} onReplayPath={onPath} onReplayIndex={onIndex} onReplayTargetLocation={onTargetLocation} onReplayCompletedTargets={onCompletedTargets} onReplaySkippedTargets={onSkippedTargets} />));
+  await act(async () => root.render(<RouteReplay trucks={trucks} onReplayPath={onPath} onReplayBreaks={onBreaks} onReplayIndex={onIndex} onReplayTargetLocation={onTargetLocation} onReplayCompletedTargets={onCompletedTargets} onReplaySkippedTargets={onSkippedTargets} />));
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -237,10 +238,12 @@ it("offers faster playback and shows the recorded trip duration once", async () 
   expect(host.textContent!.match(/Recorded duration/g)).toHaveLength(1);
   await click("30×"); await tick(1000);
   expect(button("30×").getAttribute("aria-pressed")).toBe("true");
-  expect(onIndex).toHaveBeenLastCalledWith(0.5);
+  expect(onIndex).toHaveBeenLastCalledWith(0);
+  expect(host.textContent).toContain("17%");
   await click("60×"); await tick(1000);
   expect(button("60×").getAttribute("aria-pressed")).toBe("true");
-  expect(onIndex).toHaveBeenLastCalledWith(1.5);
+  expect(onIndex).toHaveBeenLastCalledWith(1);
+  expect(host.textContent).toContain("50%");
 });
 
 it("plays from a selected target's start while playing, paused, or finished", async () => {
@@ -259,7 +262,7 @@ it("plays from a selected target's start while playing, paused, or finished", as
   expect(host.textContent).toContain("Replay Time: 09:02 AM");
   expect(button("Pause")).toBeTruthy();
   await tick(3000);
-  expect(onIndex).toHaveBeenLastCalledWith(2.1);
+  expect(onIndex).toHaveBeenLastCalledWith(2);
   await click("Pause");
   await click("Play from target 2: Argao St (Ibaba) (Poblacion)");
   expect(onIndex).toHaveBeenLastCalledWith(1);
@@ -272,7 +275,30 @@ it("plays from a selected target's start while playing, paused, or finished", as
   expect(onIndex).toHaveBeenLastCalledWith(0);
   expect(onCompletedTargets).toHaveBeenLastCalledWith([]);
   expect(button("Pause")).toBeTruthy();
-  await tick(3000); expect(onIndex).toHaveBeenLastCalledWith(0.1);
+  await tick(3000); expect(onIndex).toHaveBeenLastCalledWith(0);
+});
+
+it("publishes route breaks and keeps one replay running through a GPS outage", async () => {
+  vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs: [
+    { latitude: 14, longitude: 121, created_at: "2026-09-28T01:00:00Z" },
+    { latitude: 14.001, longitude: 121, created_at: "2026-09-28T01:00:05Z" },
+    { latitude: 14.1, longitude: 121, created_at: "2026-09-28T01:05:05Z" },
+    { latitude: 14.101, longitude: 121, created_at: "2026-09-28T01:05:10Z" },
+  ] as HistoryRow[], stops: [] });
+  await load();
+  expect(onBreaks).toHaveBeenLastCalledWith([false, false, true, false]);
+  await tick(77500);
+  expect(onIndex).toHaveBeenLastCalledWith(1);
+  expect(host.textContent).toContain("50%");
+  expect(button("Pause")).toBeTruthy();
+  await tick(77500);
+  expect(onIndex).toHaveBeenLastCalledWith(3);
+  expect(host.textContent).toContain("Finished");
+  await click("Replay Again");
+  expect(onIndex).toHaveBeenLastCalledWith(0);
+  await select("two");
+  expect(onBreaks).toHaveBeenLastCalledWith(undefined);
+  expect(onPath).toHaveBeenLastCalledWith(undefined);
 });
 
 it("keeps targets visible but disables jumps with no matching GPS interval or recorded start", async () => {
