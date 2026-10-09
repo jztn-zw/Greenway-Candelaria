@@ -363,6 +363,38 @@ const getAll = async (residentId) => {
   return rows;
 };
 
+// Public landing lookup deliberately projects only recurring collection details.
+const getPublicSchedule = async ({ barangay_id, street_id }) => {
+  const [areas] = await pool.query(
+    `SELECT b.collection_service_available
+     FROM barangays b JOIN barangay_streets bs ON bs.barangay_id = b.id
+     WHERE b.id = ? AND bs.id = ? AND b.status = 'ACTIVE'`,
+    [barangay_id, street_id],
+  );
+  if (!areas.length) throw { statusCode: 404, message: "Street not found in this barangay" };
+  if (!areas[0].collection_service_available) return [];
+
+  const [rows] = await pool.query(
+    `SELECT DISTINCT r.day_of_week, r.start_time,
+       CASE r.waste_type
+         WHEN 'Biodegradable' THEN 'BIODEGRADABLE'
+         WHEN 'Non-Biodegradable' THEN 'NON_BIODEGRADABLE'
+         ELSE NULL
+       END AS waste_type
+     FROM routes r
+     WHERE r.status = 'ACTIVE' AND r.driver_id IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM route_stops rs WHERE rs.route_id = r.id
+           AND rs.barangay_id = ? AND (rs.street_id IS NULL OR rs.street_id = ?)
+       )
+     ORDER BY FIELD(r.day_of_week,
+       'MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'),
+       r.start_time, waste_type`,
+    [barangay_id, street_id],
+  );
+  return rows.map(({ day_of_week, waste_type, start_time }) => ({ day_of_week, waste_type, start_time }));
+};
+
 // ─── Reminder Settings ─────────────────────────────────────
 
 // Keep the read contract for existing clients; stored timing is no longer used.
@@ -491,6 +523,7 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
 };
 
 module.exports = {
+  getPublicSchedule,
   getEvents,
   getEventById,
   createEvent,

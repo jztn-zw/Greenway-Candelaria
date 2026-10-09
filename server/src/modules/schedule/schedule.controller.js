@@ -1,5 +1,6 @@
 const service = require("./schedule.service");
 const {
+  publicScheduleFiltersSchema,
   updateReminderSchema,
   createEventSchema,
   updateEventSchema,
@@ -58,6 +59,15 @@ const deleteEvent = async (req, res, next) => {
 
 // ─── Route-derived Resident Collection Schedule ───────────
 
+const getPublicSchedule = async (req, res, next) => {
+  try {
+    const schedule = await service.getPublicSchedule(publicScheduleFiltersSchema.parse(req.query));
+    return success(res, schedule, "Regular collection schedule fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getAll = async (req, res, next) => {
   try {
     const schedule = await service.getAll(req.user.id);
@@ -87,6 +97,7 @@ const updateReminder = async (req, res, next) => {
 };
 
 module.exports = {
+  getPublicSchedule,
   getEvents,
   getEventById,
   createEvent,

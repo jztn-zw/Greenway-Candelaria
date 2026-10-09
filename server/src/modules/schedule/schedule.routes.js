@@ -33,6 +33,7 @@ router.delete(
 );
 
 // ─── Route-derived collection schedule & reminders ─────────
+router.get("/public", controller.getPublicSchedule);
 router.get("/reminders", authenticate, authorize("ADMIN"), controller.getReminder);
 router.put("/reminders", authenticate, authorize("ADMIN"), controller.updateReminder);
 router.get("/", authenticate, authorize("RESIDENT"), controller.getAll);
