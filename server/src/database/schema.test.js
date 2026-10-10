@@ -7,7 +7,7 @@ const schema = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
 const tables = [...schema.matchAll(/CREATE TABLE\s+`?(\w+)`?\s*\([\s\S]*?\) ENGINE[^;]*;/g)];
 
 test("the baseline contains only active tables and creates referenced tables first", () => {
-  assert.equal(tables.length, 32);
+  assert.equal(tables.length, 33);
   const created = new Set();
   for (const [sql, name] of tables) {
     for (const [, parent] of sql.matchAll(/REFERENCES\s+`?(\w+)`?\s*\(/g)) {
@@ -30,6 +30,9 @@ test("the baseline retains account, tracking and route-history protections", () 
   assert.match(schema, /`profile_completed` tinyint\(1\) NOT NULL DEFAULT '1'/);
   assert.match(schema, /UNIQUE KEY `uq_barangay_street_identity`/);
   assert.match(schema, /UNIQUE KEY `uq_tracking_sample`/);
+  const pushTable = tables.find(([, name]) => name === 'mobile_push_devices')[0];
+  assert.match(pushTable, /REFERENCES `sessions` \(`id`\) ON DELETE CASCADE/);
+  assert.match(pushTable, /REFERENCES `users` \(`id`\) ON DELETE CASCADE/);
   assert.match(tables.find(([, name]) => name === "audit_logs")[0], /`user_id` varchar\(36\) DEFAULT NULL/);
   assert.doesNotMatch(tables.find(([, name]) => name === "reports")[0], /`priority`/);
   assert.match(schema, /CONSTRAINT `fk_route_runs_template`[^\n]+ON DELETE SET NULL/);

@@ -22,11 +22,26 @@ test("successful writes publish affected domains, never reads, errors, uploads o
     middleware({ method, originalUrl }, res, () => {});
     res.emit("finish");
   }
-  assert.deepEqual(sent, [["reports", "residents", "dashboard", "analytics"]]);
+  assert.deepEqual(sent, [["reports", "residents", "dashboard", "analytics", "audit"]]);
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/auth/register" }).includes("residents"));
   assert.ok(changedDomains({ method: "PUT", originalUrl: "/api/routes/run/end" }).includes("tracking"));
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/drivers/messages" }).includes("tracking"));
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/announcements/id/read" }).includes("announcements"));
+});
+
+test("successful admin account and conversation writes refresh their own domains without resident or collector broadcasts", () => {
+  const sent = [];
+  const middleware = createAdminChangesMiddleware((domains, options) => sent.push({ domains, options }));
+  for (const [originalUrl, domains] of [
+    ["/api/users/profile", ["profile", "audit"]],
+    ["/api/users/admin-settings", ["settings", "audit"]],
+    ["/api/drivers/me/messages/conversation", ["tracking", "messenger"]],
+  ]) {
+    const res = new EventEmitter(); res.statusCode = 200;
+    middleware({ method: "PUT", originalUrl, user: { id: "admin", role: "ADMIN" } }, res, () => {});
+    res.emit("finish");
+    assert.deepEqual(sent.at(-1), { domains, options: { residents: false, collectors: false } });
+  }
 });
 
 test("admin subscriptions and each delivery require current authorization; bursts contain domain names only", async (t) => {
@@ -54,11 +69,11 @@ test("admin subscriptions and each delivery require current authorization; burst
   assert.equal(admin.events[0].name, "admin:ready");
   revoked.role = null;
   emit(["reports", "resident email", "password"]);
-  emit(["reports", "dashboard"]);
+  emit(["reports", "dashboard", "audit", "profile", "settings", "messenger"]);
   t.mock.timers.tick(150);
   await new Promise(setImmediate);
   const updates = admin.events.filter((event) => event.name === "admin:data-changed");
-  assert.deepEqual(updates, [{ name: "admin:data-changed", payload: { domains: ["reports", "dashboard"] } }]);
+  assert.deepEqual(updates, [{ name: "admin:data-changed", payload: { domains: ["reports", "dashboard", "audit", "profile", "settings", "messenger"] } }]);
   assert.equal(revoked.joined, false);
   assert.equal(revoked.events.some((event) => event.name === "admin:data-changed"), false);
   assert.equal(resident.events.length, 0);
@@ -95,7 +110,7 @@ test("a saved report reaches a connected admin over Socket.IO without notificati
     assert.equal((await (await fetch(`${url}/api/reports`)).json()).total, 28);
     const changed = once("admin:data-changed");
     assert.equal((await fetch(`${url}/api/reports`, { method: "POST" })).status, 201);
-    assert.deepEqual(await changed, { domains: ["reports", "residents", "dashboard", "analytics"] });
+    assert.deepEqual(await changed, { domains: ["reports", "residents", "dashboard", "analytics", "audit"] });
     assert.equal((await (await fetch(`${url}/api/reports`)).json()).total, 29);
   } finally {
     socket.disconnect();

@@ -1,10 +1,19 @@
 # GreenWay database
 
 `schema.sql` is the complete baseline for an empty TiDB/MySQL-compatible database.
-It contains 32 active tables, their indexes, defaults and relationships. Tables
+It contains 33 active tables, their indexes, defaults and relationships. Tables
 are ordered by dependency, so foreign-key checks remain enabled during import.
 Historical SQL migrations have been consolidated into this baseline and removed.
 The baseline contains no accounts, sample content, credentials or tracking data.
+
+For existing installations, `migrations/2026-10-10-mobile-push-devices.sql` adds
+session-bound collector phone notification registrations. It was applied to the
+configured database with user authorization on 2026-10-10, after reviewing parent
+keys and verifying a checksum-protected backup of all 32 existing table schemas.
+The new columns, indexes and cascading foreign keys were verified; existing
+table schemas were unchanged. No existing records were modified. Other database
+environments still need a backed-up, authorized upgrade.
+Do not re-import the baseline into an existing database.
 
 ## Fresh installation
 

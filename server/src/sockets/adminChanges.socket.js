@@ -7,6 +7,7 @@ const ADMIN_ROLES = new Set(["ADMIN"]);
 const DOMAINS = new Set([
   "reports", "residents", "drivers", "trucks", "routes", "tracking",
   "barangays", "schedule", "posts", "announcements", "dashboard", "analytics",
+  "audit", "profile", "settings", "messenger",
 ]);
 let broadcast = () => {};
 

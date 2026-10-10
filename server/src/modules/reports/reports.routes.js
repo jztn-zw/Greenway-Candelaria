@@ -3,7 +3,7 @@ const controller = require("./reports.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 const { uploadReports } = require("../../config/cloudinary");
-const { uploadLimiter, reportCreationLimiter } = require("../../middleware/rateLimits");
+const { uploadLimiter, reportBurstLimiter, reportCreationLimiter } = require("../../middleware/rateLimits");
 
 // Resident — upload report photos to Cloudinary (must be before /:id)
 router.post(
@@ -57,7 +57,7 @@ router.get(
 );
 
 // Resident/Admin — submit a report
-router.post("/", authenticate, authorize("RESIDENT"), reportCreationLimiter, controller.create);
+router.post("/", authenticate, authorize("RESIDENT"), reportBurstLimiter, reportCreationLimiter, controller.create);
 
 // Admin — get single report
 router.get(

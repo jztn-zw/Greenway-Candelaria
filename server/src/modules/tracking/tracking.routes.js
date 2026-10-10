@@ -1,14 +1,10 @@
 const router = require("express").Router();
 const controller = require("./tracking.controller");
 const authenticate = require("../../middleware/auth");
-const rateLimit = require("express-rate-limit");
-const trackingLimiter = (limit) => rateLimit({
-  windowMs: 60000, limit, standardHeaders: "draft-7", legacyHeaders: false,
-  keyGenerator: (req) => req.user.id,
-});
-const readLimit = trackingLimiter(120);
-const pingLimit = trackingLimiter(30);
-const roadLimit = trackingLimiter(60);
+const { createLimiter } = require("../../middleware/rateLimits");
+const readLimit = createLimiter("tracking-read", { windowMs: 60_000, limit: 120 });
+const pingLimit = createLimiter("gps", { windowMs: 60_000, limit: 30 });
+const roadLimit = createLimiter("road-routing", { windowMs: 60_000, limit: 60 });
 router.use(authenticate);
 const authorize = require("../../middleware/role");
 

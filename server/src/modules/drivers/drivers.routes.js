@@ -3,12 +3,7 @@ const controller = require("./drivers.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 
-const rateLimit = require("express-rate-limit");
-const messageLimiter = rateLimit({
-  windowMs: 60_000, limit: 20, keyGenerator: (req) => req.user.id,
-  standardHeaders: "draft-7", legacyHeaders: false,
-  handler: (req, res) => res.status(429).json({ success: false, message: "Too many messages. Please wait a minute.", requestId: req.requestId }),
-});
+const { messageLimiter, breakdownLimiter, collectorStatusLimiter } = require("../../middleware/rateLimits");
 router.get("/me/messages/conversation", authenticate, authorize("DRIVER"), controller.getWebConversation);
 router.post("/me/messages/conversation", authenticate, authorize("DRIVER"), messageLimiter, controller.sendWebMessage);
 router.get("/:id/messages/conversation", authenticate, authorize("ADMIN"), controller.getWebConversation);
@@ -18,13 +13,13 @@ router.put("/:id/messages/conversation/read", authenticate, authorize("ADMIN"), 
 
 // Driver self-routes (must come before /:id)
 router.get("/me", authenticate, authorize("DRIVER"), controller.getMe);
-router.post("/me/breakdowns", authenticate, authorize("DRIVER"), messageLimiter, controller.reportBreakdown);
+router.post("/me/breakdowns", authenticate, authorize("DRIVER"), breakdownLimiter, controller.reportBreakdown);
 
 router.put(
   "/me/status",
   authenticate,
   authorize("DRIVER"),
-  messageLimiter,
+  collectorStatusLimiter,
   controller.updateMyStatus,
 );
 

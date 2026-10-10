@@ -9,6 +9,10 @@ const { success } = require("./utils/apiResponse");
 
 const app = express();
 app.disable("x-powered-by");
+// Trust only deployment-specific proxy addresses/subnets, never arbitrary XFF.
+if (process.env.TRUST_PROXY) {
+  app.set("trust proxy", process.env.TRUST_PROXY.split(",").map(value => value.trim()).filter(Boolean));
+}
 
 // Middlewares
 app.use(requestContext);
@@ -37,7 +41,7 @@ app.use(
       }
     },
     credentials: true,
-    exposedHeaders: ["X-Request-ID"],
+    exposedHeaders: ["X-Request-ID", "Retry-After", "RateLimit", "RateLimit-Policy"],
   })
 );
 app.use(express.json({ limit: "200kb" }));

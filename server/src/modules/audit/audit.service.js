@@ -1,8 +1,9 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
+const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 
 // Security events may occur before an account is identified.
-const ACTIONS_ALLOWING_ANONYMOUS_ACTOR = new Set(["FAILED_LOGIN"]);
+const ACTIONS_ALLOWING_ANONYMOUS_ACTOR = new Set(["FAILED_LOGIN", "RATE_LIMITED"]);
 
 // Strip sensitive fields from audit payload
 const sanitize = (data) => {
@@ -66,11 +67,15 @@ const insertLog = async (executor, {
 
 // Use the caller's transaction when the audit entry must commit with a change.
 const logInTransaction = (connection, entry) => insertLog(connection, entry);
-const logRequired = (entry) => insertLog(pool, entry);
+const logRequired = async (entry) => {
+  const id = await insertLog(pool, entry);
+  emitAdminDataChanged(["audit"], { residents: false, collectors: false });
+  return id;
+};
 
 const log = async (entry) => {
   try {
-    return await insertLog(pool, entry);
+    return await logRequired(entry);
   } catch (err) {
     // Non-blocking: fail-safe so business operations are not aborted
     console.error("[AuditLog] ❌ Failed to record audit log:", err.message);

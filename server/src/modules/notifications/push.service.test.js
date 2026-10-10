@@ -1,0 +1,29 @@
+const { test, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { pool } = require('../../config/db');
+const service = require('./push.service');
+after(() => pool.end());
+const token = 'ExpoPushToken[fixture-device]';
+test('registration rejects malformed tokens and non-driver devices', async () => {
+  await assert.rejects(service.register({id:'user',role:'DRIVER'}, 'session', {token:'bad',platform:'android',enabled:true}), e => e.statusCode === 400);
+  await assert.rejects(service.register({id:'user',role:'RESIDENT'}, 'session', {token,platform:'android',enabled:true}), e => e.statusCode === 403);
+});
+test('device registration binds the authenticated session and never takes a client user ID', async () => {
+  const original = pool.query, calls=[];
+  pool.query = async (sql, args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{id:'session-id'}]] : [{}]; };
+  try { await service.register({id:'driver',role:'DRIVER'}, 'credential', {token,platform:'android',enabled:false,user_id:'victim'});
+    assert.match(calls[0][0], /user_id = \?/); assert.equal(calls[0][1][0], 'driver');
+    assert.deepEqual(calls[1][1], [token,'driver','session-id','android',false]);
+  } finally { pool.query=original; }
+});
+test('push delivery rechecks driver/account/session ownership, sends private preview and removes invalid tokens', async () => {
+  const original=pool.query, fetchOriginal=global.fetch, calls=[];
+  process.env.EXPO_PUSH_ENABLED='true';
+  pool.query=async (sql,args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{token}]] : [{}]; };
+  global.fetch=async (url, options) => { const payload=JSON.parse(options.body)[0]; assert.equal(payload.data.user_id,'driver'); assert.equal(payload.body.includes('secret'),false); return {ok:true,json:async()=>({data:[{status:'error',details:{error:'DeviceNotRegistered'}}]})}; };
+  try { await service.sendDispatchAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'secret'});
+    assert.match(calls[0][0], /s.expires_at > NOW\(\)/); assert.match(calls[0][0], /u.role = 'DRIVER'/); assert.match(calls[0][0], /u.status = 'ACTIVE'/); assert.match(calls[0][0], /s.user_id = p.user_id/);
+    assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ?');
+    global.fetch=async()=>{throw Error('offline');}; await service.sendDispatchAlert({id:'notice',user_id:'driver',ref_module:'driver-messages'});
+  } finally { pool.query=original;global.fetch=fetchOriginal;delete process.env.EXPO_PUSH_ENABLED; }
+});

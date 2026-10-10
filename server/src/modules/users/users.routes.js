@@ -3,17 +3,17 @@ const controller = require("./users.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 const { uploadAvatar } = require("../../config/cloudinary");
-const { uploadLimiter } = require("../../middleware/rateLimits");
+const { uploadLimiter, profileWriteLimiter, passwordChangeLimiter, settingsWriteLimiter } = require("../../middleware/rateLimits");
 
 // Resident routes
 router.get("/profile", authenticate, controller.getProfile);
-router.put("/profile", authenticate, controller.updateProfile);
-router.put("/change-password", authenticate, controller.changePassword);
+router.put("/profile", authenticate, profileWriteLimiter, controller.updateProfile);
+router.put("/change-password", authenticate, passwordChangeLimiter, controller.changePassword);
 router.post("/avatar", authenticate, uploadLimiter, uploadAvatar.single("avatar"), controller.uploadAvatar);
 router.get("/settings", authenticate, controller.getSettings);
-router.put("/settings", authenticate, controller.updateSettings);
+router.put("/settings", authenticate, settingsWriteLimiter, controller.updateSettings);
 router.get("/admin-settings", authenticate, authorize("ADMIN"), controller.getAdminSettings);
-router.put("/admin-settings", authenticate, authorize("ADMIN"), controller.updateAdminSettings);
+router.put("/admin-settings", authenticate, authorize("ADMIN"), settingsWriteLimiter, controller.updateAdminSettings);
 
 
 // Admin routes
