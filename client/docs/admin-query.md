@@ -78,10 +78,20 @@ preferences or successful notification delivery.
   Tracking, notification, dashboard and analytics keep their existing polling.
   Hidden tabs pause this work and reconcile when visible. Reconnection reconciles
   after the server confirms the authenticated admin subscription.
-- Profile and settings are excluded from the change stream. Open post editors
-  keep their draft snapshot. Report details refresh untouched fields while keeping
+- Profile, alert settings, messenger threads and audit logs participate in the
+  change stream and visible-page fallback. Admin account changes send admin-only
+  hints; profile reads also hydrate the signed-in account shown by the layout.
+  Standalone audit writes publish only after saving; transactional audit entries
+  use the successful API response after commit. Messenger hints do not depend on
+  notification preferences. Open post editors keep their draft snapshot.
+  Older affected reads are cancelled before an admin mutation starts.
+  Report details refresh untouched fields while keeping
   unsaved responses and internal notes. Route editors retain selections and validate
   truck availability on save. Events affecting a pending mutation wait for it to finish.
+- Open announcement previews observe their own detail query, independently of
+  filters or pagination, and close after a 403/404. A loaded replay observes GPS
+  history every 60 seconds while paused; new data preserves the current recorded
+  instant. Playback and video export keep a stable snapshot until they stop.
 - Events contain domain names only. The server authenticates the admin both on
   subscription and delivery, removing revoked sessions. Residents and collectors
   cannot join this stream. Normal API authorization still controls every refetch.
@@ -93,8 +103,9 @@ a shared Socket.IO adapter/event publisher; the current setup is one API process
 
 Server authorization remains authoritative. This migration does not change route
 completion, resident notification recipients, collection schedules, or road
-geometry rules. Resident, collector, and mobile modules are not migrated here;
-the shared provider's cache reset protects session changes across web roles.
+geometry rules. Resident and collector web modules use their own query helpers;
+mobile apps keep their existing contracts. The shared provider's cache reset
+protects session changes across web roles.
 
 ## Validation
 

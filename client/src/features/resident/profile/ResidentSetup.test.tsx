@@ -1,4 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as renderUI, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import authService, { type User } from "@/services/authService";
@@ -15,7 +17,10 @@ vi.mock("@/app/layouts/resident/ResidentTopbar", () => ({ default: () => null })
 vi.mock("@/app/layouts/resident/ResidentLiveSync", () => ({ default: () => null }));
 vi.mock("@/components/motion/PageTransition", () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
 const pending = { id: "resident", email: "resident@example.test", full_name: "", username: "", role: "RESIDENT", profile_completed: false } as User;
+let client: QueryClient;
+const render = (ui: ReactNode) => renderUI(ui, { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
 beforeEach(() => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   vi.mocked(fetchBarangays).mockResolvedValue([{ id: "barangay-a", name: "Test barangay", latitude: null, longitude: null }]);
   vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street" }] });
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
@@ -23,7 +28,7 @@ beforeEach(() => {
   useAuthStore.getState().clearAuth();
   useAuthStore.setState({ user: pending, token: "fixture", isAuthenticated: true });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); client.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const fill = async () => {
   fireEvent.change(screen.getByLabelText(/^Full name$/i), { target: { value: "Test Resident" } });
   fireEvent.change(screen.getByLabelText("Username"), { target: { value: "resident" } });
@@ -35,6 +40,39 @@ const fill = async () => {
   fireEvent.click(screen.getByRole("combobox", { name: "Street" }));
   fireEvent.click(await screen.findByRole("option", { name: "Main Street" }));
 };
+it("refreshes area choices through the query cache without losing the setup draft", async () => {
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  await fill();
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [
+    { id: "street-a", name: "Renamed Street" }, { id: "street-b", name: "New Street" },
+  ] });
+  await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Renamed Street"));
+  expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
+  fireEvent.click(screen.getByRole("combobox", { name: "Street" }));
+  expect(await screen.findByRole("option", { name: "New Street" })).toBeInTheDocument();
+});
+it("reconciles missed street changes automatically while setup is open", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+    await fill();
+    vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Updated Street" }] });
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Updated Street");
+    expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
+  } finally { vi.useRealTimers(); }
+});
+it("can save without a street after all previously listed streets are removed", async () => {
+  const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...pending, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  await fill();
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [] });
+  await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Street" })).toBeDisabled());
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: null })));
+});
 it("requires setup before mounting resident features and skips it for completed accounts", async () => {
   const view = render(<MemoryRouter><ResidentLayout /></MemoryRouter>);
   expect(screen.getByRole("heading", { name: /Complete your resident profile/i })).toBeInTheDocument();

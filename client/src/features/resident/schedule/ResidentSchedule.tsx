@@ -8,7 +8,7 @@ import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { PageRetryContext } from "@/components/feedback/pageRetryContext";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { residentPageStyles } from "@/components/common/residentPageStyles";
-import { useMemo,useState } from "react";
+import { useEffect,useMemo,useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
@@ -172,7 +172,7 @@ const ResidentSchedule = () => {
   const today = getManilaNow();
   const [activeTab, setActiveTab] = useState<ViewTab>("CALENDAR");
   const [expandedWeeklyDay, setExpandedWeeklyDay] = useState(today.weekdayIndex);
-  const [selectedEventModal, setSelectedEventModal] = useState<CalendarEvent | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const [currentDate, setCurrentDate] = useState(() => new Date(today.year, today.month - 1, 1));
   const [selectedDateStr, setSelectedDateStr] = useState(() =>
@@ -187,6 +187,10 @@ const ResidentSchedule = () => {
     () => fetchCalendarEvents({ month: `${year}-${String(month + 1).padStart(2, "0")}` }));
   const scheduleQuery = useResidentQuery("schedule", ["collection"], fetchCollectionSchedule);
   const events = useMemo(() => calendarQuery.data ?? [], [calendarQuery.data]);
+  const selectedEventModal = events.find(event => event.id === selectedEventId) ?? null;
+  useEffect(() => {
+    if (calendarQuery.isSuccess && selectedEventId && !selectedEventModal) setSelectedEventId(null);
+  }, [calendarQuery.isSuccess, selectedEventId, selectedEventModal]);
   const collectionRules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
   const isLoading = calendarQuery.isLoading || scheduleQuery.isLoading;
   const calendarError = calendarQuery.isError && calendarQuery.data === undefined;
@@ -443,7 +447,7 @@ const ResidentSchedule = () => {
                         <button
                           type="button"
                           key={evt.id}
-                          onClick={() => setSelectedEventModal(evt)}
+                          onClick={() => setSelectedEventId(evt.id)}
                           className="group relative w-full rounded-xl border border-border/80 bg-background p-3.5 text-left shadow-2xs hover:border-primary/30 hover:bg-[var(--button-neutral-hover)] transition-all cursor-pointer space-y-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <div className="flex items-start gap-2 justify-between">
@@ -619,7 +623,7 @@ const ResidentSchedule = () => {
       <Dialog
         open={Boolean(selectedEventModal)}
         onOpenChange={(open) => {
-          if (!open) setSelectedEventModal(null);
+          if (!open) setSelectedEventId(null);
         }}
       >
         <DialogContent className={modalStyles.content}>
@@ -629,7 +633,7 @@ const ResidentSchedule = () => {
 
             return (
               <>
-                <FormDialogHeader title="Announcement" description="MENRO Candelaria Official Notice" icon={<Calendar />} onClose={() => setSelectedEventModal(null)} />
+                <FormDialogHeader title="Announcement" description="MENRO Candelaria Official Notice" icon={<Calendar />} onClose={() => setSelectedEventId(null)} />
                 {/* Modal Body */}
                 <div className={modalStyles.body}>
                   {/* Title, Category & Date Lockup (No container) */}
@@ -660,7 +664,7 @@ const ResidentSchedule = () => {
                 <div className={modalStyles.footer}>
                   <Button
                     type="button"
-                    onClick={() => setSelectedEventModal(null)}
+                    onClick={() => setSelectedEventId(null)}
                     className={modalStyles.primaryButton}
                   >
                     Close

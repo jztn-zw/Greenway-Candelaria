@@ -52,7 +52,7 @@ const formToPayload = (form: EditorForm) => {
   };
 };
 
-const mapFromApi = (raw: Record<string, unknown>): Announcement => {
+export const mapFromApi = (raw: Record<string, unknown>): Announcement => {
   const typeMap: Record<string, string> = {
     SCHEDULE_CHANGE: "Schedule Change",
     HOLIDAY_REMINDER: "Holiday Reminder",

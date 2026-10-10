@@ -6,10 +6,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover,PopoverContent,PopoverTrigger } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
-import { useAdminFetch } from "@/lib/adminQuery";
+import { useAdminFetch,useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { fetchTruckHistory } from "@/services/trackingService";
+import { fetchTruckHistory,type TruckHistoryData } from "@/services/trackingService";
 import { format } from "date-fns";
 import { CalendarDays,Pause,Play,RotateCcw,Video } from "lucide-react";
 import { useEffect,useMemo,useRef,useState } from "react";
@@ -39,6 +39,8 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     return new Date(year, month - 1, day);
   });
   const [trip, setTrip] = useState<ReplayTrip | null>(null);
+  const [loadedSelection, setLoadedSelection] = useState<{ truckId: string; dateStr: string } | null>(null);
+  const appliedHistoryRef = useRef<TruckHistoryData>();
   const [elapsedMs, setElapsedMs] = useState(0);
   const [playbackRevision, setPlaybackRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -66,6 +68,10 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
   const progress = canPlay ? Math.round((elapsedMs / durationMs) * 100) : 0;
   const sample = trip ? sampleReplayTrip(trip, durationMs > 0 ? elapsedMs / durationMs : 0) : null;
   const exporting = exportProgress !== null;
+  const selectionMatches = loadedSelection?.truckId === selectedTruck && loadedSelection?.dateStr === (date ? format(date, "yyyy-MM-dd") : "");
+  const historyQuery = useAdminQuery("tracking", ["history", loadedSelection?.truckId, loadedSelection?.dateStr],
+    () => fetchTruckHistory(loadedSelection!.truckId, loadedSelection!.dateStr),
+    { enabled: !!loadedSelection && selectionMatches && !playing && !exporting && !loading, refetchInterval: 60_000 });
   const exportPercent = Math.max(0, Math.min(100, exportProgress ?? 0));
   const exportStageLabel = {
     map: "Preparing map…",
@@ -121,6 +127,8 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     setPlaying(false);
     setLoading(false);
     setTrip(null);
+    setLoadedSelection(null);
+    appliedHistoryRef.current = undefined;
     setExportOpen(false);
     elapsedRef.current = 0;
     setElapsedMs(0);
@@ -135,6 +143,22 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     skippedTargetsRef.current = [];
     onReplaySkippedTargets?.([]);
   }, [selectedTruck, date, onReplayPath, onReplayBreaks, onReplayIndex, onReplayTargetLocation, onReplayCompletedTargets, onReplaySkippedTargets]);
+
+  useEffect(() => {
+    const history = historyQuery.data;
+    if (!selectionMatches || playing || exporting || loading || !history || history === appliedHistoryRef.current) return;
+    appliedHistoryRef.current = history;
+    const updated = buildReplayTrip(history.logs ?? [], history.stops ?? []);
+    const instant = trip ? trip.times[0] + elapsedRef.current : updated?.times[0] ?? 0;
+    const elapsed = updated ? Math.max(0, Math.min(getReplayDuration(updated), instant - updated.times[0])) : 0;
+    elapsedRef.current = elapsed;
+    setElapsedMs(elapsed);
+    setTrip(updated);
+    setLoadMessage(updated ? "" : "No GPS records for this truck and date. Try another date.");
+    onReplayPath(updated?.path);
+    onReplayBreaks?.(updated?.breakBefore);
+    if (!updated) onReplayIndex(undefined);
+  }, [historyQuery.data, selectionMatches, playing, exporting, loading, trip, onReplayPath, onReplayBreaks, onReplayIndex]);
 
   useEffect(() => {
     onReplayTargetLocation?.(targetLocation);
@@ -170,6 +194,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
       const value = Math.min(durationMs, clock.elapsed + (performance.now() - clock.startedAt) * speed);
       elapsedRef.current = value;
       setElapsedMs(value);
+      if (value >= durationMs) setPlaying(false);
     }, 100);
     return () => { window.clearInterval(timer); clockRef.current = null; };
   }, [playing, canPlay, finished, durationMs, speed, playbackRevision]);
@@ -182,8 +207,11 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     setLoadFailed(false);
     try {
       const dateStr = format(date, "yyyy-MM-dd");
-      const { logs, stops } = await fetchAdmin("tracking", ["history", selectedTruck, dateStr], () => fetchTruckHistory(selectedTruck, dateStr));
+      const history = await fetchAdmin("tracking", ["history", selectedTruck, dateStr], () => fetchTruckHistory(selectedTruck, dateStr));
       if (version !== requestVersionRef.current) return;
+      const { logs, stops } = history;
+      appliedHistoryRef.current = history;
+      setLoadedSelection({ truckId: selectedTruck, dateStr });
       const loadedTrip = buildReplayTrip(logs ?? [], stops ?? []);
       if (!loadedTrip) {
         setLoadMessage("No GPS records for this truck and date. Try another date.");
@@ -243,6 +271,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
         <h3 className="gw-heading text-sm text-foreground">Route Replay</h3>
         <p className="text-xs text-muted-foreground">Review the full recorded trip.</p>
       </header>
+      {trip && selectionMatches && historyQuery.isError && <DataRefreshNotice message="Couldn't refresh GPS history. Your loaded replay is preserved." onRetry={() => void historyQuery.refetch()} retrying={historyQuery.isFetching} disabled={playing || exporting} />}
       <div className="space-y-3">
         <div className="space-y-1.5">
           <label id="replay-truck-label" className="block text-xs font-medium text-foreground">Truck</label>

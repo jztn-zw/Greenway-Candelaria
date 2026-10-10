@@ -36,6 +36,7 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import {
   Collapsible,
   CollapsibleContent,
@@ -121,7 +122,7 @@ const AdminSidebar = () => {
   const [showGearMenu, setShowGearMenu] = useState(false);
   const gearMenuRef = useRef<HTMLDivElement>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = useLogout();
 
   const isActive = (path: string) =>
     path === "/admin"
@@ -154,12 +155,6 @@ const AdminSidebar = () => {
 
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setShowLogoutModal(false);
-    navigate("/", { replace: true });
   };
 
   const renderMenuItems = (items: NavItem[]) => (

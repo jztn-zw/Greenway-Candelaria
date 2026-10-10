@@ -55,6 +55,33 @@ describe("admin server state", () => {
     expect(read).toHaveBeenCalledTimes(1);
   });
 
+  it("cancels older settings reads before starting a save", async () => {
+    const key = adminKey("admin-a", "settings", "alerts");
+    client.setQueryData(key, "initial");
+    let finishRead!: (value: string) => void;
+    let finishWrite!: () => void;
+    let run!: ReturnType<typeof useAdminAction>;
+    const read = vi.fn(() => new Promise<string>(resolve => { finishRead = resolve; }));
+    const Settings = () => {
+      run = useAdminAction("settings");
+      return <span>{useAdminQuery("settings", ["alerts"], read).data}</span>;
+    };
+    await act(async () => root.render(<QueryClientProvider client={client}><Settings /></QueryClientProvider>));
+    await act(async () => { void client.refetchQueries({ queryKey: key }); });
+    let saving!: Promise<unknown>;
+    await act(async () => {
+      saving = run(() => {
+        client.setQueryData(key, "optimistic");
+        return new Promise<void>(resolve => { finishWrite = resolve; });
+      });
+    });
+    await act(async () => { finishRead("old response"); });
+    expect(client.getQueryData(key)).toBe("optimistic");
+    read.mockResolvedValue("saved");
+    await act(async () => { finishWrite(); await saving; });
+    expect(client.getQueryData(key)).toBe("saved");
+  });
+
   it("keeps dashboard loading active until its data request resolves", async () => {
     let finish!: (response: Awaited<ReturnType<typeof api.get>>) => void;
     const request = new Promise<Awaited<ReturnType<typeof api.get>>>((resolve) => { finish = resolve; });

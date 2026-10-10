@@ -38,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import { cn } from "@/lib/utils";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
 
@@ -80,7 +81,7 @@ const CollectorSidebar = () => {
   const [showGearMenu, setShowGearMenu] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const gearMenuRef = useRef<HTMLDivElement>(null);  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = useLogout();
 
   const isActive = (path: string) =>
     path === "/collector"
@@ -111,12 +112,6 @@ const CollectorSidebar = () => {
   useEffect(() => {
     if (collapsed) setShowGearMenu(false);
   }, [collapsed]);
-
-  const handleLogout = async () => {
-    await logout();
-    setShowLogoutModal(false);
-    navigate("/", { replace: true });
-  };
 
   return (
     <Sidebar collapsible="icon" className="gw-navigation-panel">

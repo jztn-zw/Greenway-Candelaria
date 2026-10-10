@@ -18,6 +18,7 @@ import { useAdminAction, useAdminResource } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import { formatManilaDateTime } from "@/utils/date";
 import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, Mail, Phone, ShieldCheck, SquarePen, User, Users } from "lucide-react";
 import { useEffect, useState, type ElementType, type ReactNode } from "react";
@@ -73,7 +74,7 @@ const AdminProfile = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = useLogout();
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const profileQuery = useAdminResource<UserProfile | null>("profile", [], fetchProfile, null);
   const { data: profile, setData: setProfile, isLoading: loading, isError: loadError, refetch: loadProfile } = profileQuery;
@@ -163,10 +164,6 @@ const AdminProfile = () => {
       setPasswordError(errorMessage(error, "Could not change your password."));
     } finally { setSavingPassword(false); }
   };
-  const handleLogout = async () => {
-    try { await logout(); } finally { navigate("/", { replace: true }); }
-  };
-
   const closePassword = () => {
     if (savingPassword) return;
     setDiscardTarget(null);

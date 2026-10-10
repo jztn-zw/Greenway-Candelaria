@@ -32,6 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LogoutConfirmModal from "@/components/dialogs/LogoutConfirmModal";
 import { profileAvatarForCurrentUser, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
 import postsService from "@/services/postsService";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,7 @@ const ResidentSidebar = () => {
   const [showGearMenu, setShowGearMenu] = useState(false);
   const gearMenuRef = useRef<HTMLDivElement>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = useLogout();
 
   const { unreadContentCount, unreadCount } = useNotifications();
   const [hasNewPost, setHasNewPost] = useState(false);
@@ -223,12 +224,6 @@ const ResidentSidebar = () => {
   const handleSettingsClick = () => setShowGearMenu((isOpen) => !isOpen);
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setShowLogoutModal(false);
-    navigate("/", { replace: true });
   };
 
   return (

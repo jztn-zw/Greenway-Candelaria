@@ -3,7 +3,6 @@ import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useState,useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { collectorKey,useCollectorAction,useCollectorQuery } from "@/lib/collectorQuery";
-import { useNavigate } from "react-router-dom";
 import {
 Calendar,
 User,
@@ -33,6 +32,7 @@ import { Dialog,DialogContent } from "@/components/ui/dialog";
 import { CollectorProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import ProfileBannerImage from "@/components/common/ProfileBannerImage";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import {
 fetchProfile,
 updateProfile,
@@ -116,8 +116,7 @@ const FieldRow = ({
 );
 
 const CollectorProfile = () => {
-  const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
+  const handleLogout = useLogout();
   const authUser = useAuthStore((s) => s.user);
   const authToken = useAuthStore((s) => s.token);
   const setUser = useAuthStore((s) => s.setUser);
@@ -280,12 +279,6 @@ const CollectorProfile = () => {
         error: errMsg,
       }));
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setLogoutOpen(false);
-    navigate("/", { replace: true });
   };
 
   const closeEdit = () => {

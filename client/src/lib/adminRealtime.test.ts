@@ -43,7 +43,7 @@ describe("admin live refresh coordination", () => {
     expect(client.getQueryState(other)?.isInvalidated).toBe(false);
   });
 
-  it("groups summary updates and ignores unknown domains and profile drafts", async () => {
+  it("groups summary updates while refreshing account data without changing other accounts", async () => {
     const read = vi.fn().mockResolvedValue(29);
     observe("dashboard", read);
     const profile = observe("profile", vi.fn().mockResolvedValue(9));
@@ -53,7 +53,20 @@ describe("admin live refresh coordination", () => {
     expect(read).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1000);
     expect(read).toHaveBeenCalledTimes(1);
-    expect(client.getQueryData(profile.key)).toBe(28);
+    expect(client.getQueryData(profile.key)).toBe(9);
+  });
+
+  it("refreshes settings, messenger and audit after their events, with fallback for missed events", async () => {
+    const reads = ["settings", "messenger", "audit"].map(domain => {
+      const read = vi.fn().mockResolvedValue(29);
+      observe(domain, read);
+      return read;
+    });
+    sync.changed(["settings", "messenger", "audit"]);
+    await vi.advanceTimersByTimeAsync(300);
+    reads.forEach(read => expect(read).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(60_000);
+    reads.forEach(read => expect(read).toHaveBeenCalledTimes(2));
   });
 
   it("waits while hidden, reconciles on return, and stops all work on disposal", async () => {

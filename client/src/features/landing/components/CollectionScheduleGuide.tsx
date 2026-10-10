@@ -2,6 +2,8 @@ import { useId, useState } from "react";
 import { ArrowUpRight, CalendarDays, Check, Leaf, Package, ShieldCheck, X } from "lucide-react";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { COLLECTION_WASTE_MAP } from "@/lib/collectionSchedule";
+import { useSystemTime } from "@/hooks/useSystemTime";
+import { getManilaNow } from "@/utils/date";
 import { CONTENT, type CollectionScheduleGuideContent } from "../landingContent";
 import "./CollectionScheduleGuide.css";
 
@@ -9,7 +11,13 @@ const stepIcons = [CalendarDays, Leaf, ShieldCheck];
 
 export default function CollectionScheduleGuide({ content = CONTENT.collectionScheduleGuide }: { content?: CollectionScheduleGuideContent }) {
   const detailsId = useId();
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const now = useSystemTime();
+  const today = now === null ? null : getManilaNow(new Date(now));
+  const dateKey = today?.dateKey ?? "";
+  const [selection, setSelection] = useState<{ dateKey: string; index: number } | null>(null);
+  // Manual choices last for this Philippine date; a new day follows today again.
+  const selectedIndex = selection?.dateKey === dateKey ? selection.index
+    : Math.max(0, content.days.findIndex(day => day.day === today?.weekday));
   const selected = content.days[selectedIndex] ?? content.days[0];
   const waste = COLLECTION_WASTE_MAP[selected.day];
   const Icon = waste.type === "biodegradable" ? Leaf : Package;
@@ -46,7 +54,7 @@ export default function CollectionScheduleGuide({ content = CONTENT.collectionSc
             <p className="mt-2 text-xs leading-5 text-muted-foreground">Choose a day to see its waste type and tips.</p>
             <div role="group" aria-label="Choose a weekday" className="mt-3 grid grid-cols-4 gap-1 min-[400px]:grid-cols-7 sm:gap-2">
               {content.days.map((day, index) => (
-                <button key={day.day} type="button" aria-label={day.day} aria-pressed={selected.day === day.day} aria-controls={detailsId} onClick={() => setSelectedIndex(index)} className={`collection-guide-day flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-0.5 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:text-sm ${selected.day === day.day ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/70 bg-card text-muted-foreground"}`}>
+                <button key={day.day} type="button" aria-label={day.day} aria-pressed={selected.day === day.day} aria-controls={detailsId} onClick={() => setSelection({ dateKey, index })} className={`collection-guide-day flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-0.5 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card sm:text-sm ${selected.day === day.day ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/70 bg-card text-muted-foreground"}`}>
                   {day.shortLabel}
                 </button>
               ))}

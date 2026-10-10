@@ -4,9 +4,10 @@ import useAuthStore from "@/store/authStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useMemo, type PropsWithChildren } from "react";
 import SystemTimeProvider from "./SystemTimeProvider";
+import { shouldRetryQuery } from "@/lib/rateLimit";
 
 let nextSessionKey = 0;
-const createSessionCache = (_token: string | null, _identity: string) => ({ queryClient: new QueryClient(), sessionKey: ++nextSessionKey });
+const createSessionCache = (_token: string | null, _identity: string) => ({ queryClient: new QueryClient({ defaultOptions: { queries: { retry: shouldRetryQuery } } }), sessionKey: ++nextSessionKey });
 
 const AppProviders = ({ children }: PropsWithChildren) => {
   const token = useAuthStore((state) => state.token);

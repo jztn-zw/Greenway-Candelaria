@@ -1,4 +1,5 @@
-import { useEffect,useState } from "react";
+import { useState } from "react";
+import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,45 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import authService from "@/services/authService";
-import { fetchBarangays,fetchBarangayStreets,type BarangayLocationRow,type BarangayStreetRow } from "@/services/barangaysService";
+import { fetchBarangays,fetchBarangayStreets } from "@/services/barangaysService";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 
 export default function ResidentSetup() {
   const navigate = useNavigate();
+  const logout = useLogout();
   const user = useAuthStore(state => state.user);
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [username, setUsername] = useState(user?.username || "");
   const [phone, setPhone] = useState(user?.phone?.replace(/^\+63/, "") || "");
   const [barangay, setBarangay] = useState("");
   const [street, setStreet] = useState("");
-  const [barangays, setBarangays] = useState<BarangayLocationRow[]>([]);
-  const [streets, setStreets] = useState<BarangayStreetRow[]>([]);
-  const [areaError, setAreaError] = useState("");
-  const [areaLoading, setAreaLoading] = useState(true);
-  const [streetError, setStreetError] = useState("");
-  const [streetLoading, setStreetLoading] = useState(false);
-  const [retry, setRetry] = useState(0);
+  // Pending accounts cannot join the full resident socket stream. Reconcile
+  // public area choices here until profile completion grants that access.
+  const areasQuery = useResidentQuery("barangays", ["locations"], fetchBarangays, { scope: "account", refetchInterval: 60_000 });
+  const streetsQuery = useResidentQuery("barangays", ["streets", barangay], () => fetchBarangayStreets(barangay),
+    { enabled: !!barangay, scope: "account", refetchInterval: 60_000 });
+  const barangays = areasQuery.data ?? [];
+  const streets = streetsQuery.data?.streets ?? [];
+  const areaLoading = areasQuery.isLoading;
+  const streetLoading = !!barangay && streetsQuery.isLoading;
+  const areaError = areasQuery.isError ? "Couldn't load barangays. Please retry." : "";
+  const streetError = streetsQuery.isError ? "Couldn't load streets. Please retry." : "";
+  const completeProfile = useResidentMutation(authService.completeResidentProfile, "profile", "settings");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    let active = true;
-    setAreaLoading(true); setAreaError("");
-    void fetchBarangays().then(rows => { if (active) setBarangays(rows); })
-      .catch(() => { if (active) setAreaError("Couldn't load barangays. Please retry."); })
-      .finally(() => { if (active) setAreaLoading(false); });
-    return () => { active = false; };
-  }, [retry]);
-  useEffect(() => {
-    let active = true;
-    setStreets([]); setStreetError("");
-    if (!barangay) { setStreetLoading(false); return () => { active = false; }; }
-    setStreetLoading(true);
-    void fetchBarangayStreets(barangay).then(result => { if (active) setStreets(result.streets); })
-      .catch(() => { if (active) setStreetError("Couldn't load streets. Please retry."); })
-      .finally(() => { if (active) setStreetLoading(false); });
-    return () => { active = false; };
-  }, [barangay, retry]);
 
   const clearError = (field: string) => setErrors(previous => ({ ...previous, [field]: "", form: "" }));
   const save = async (event: React.FormEvent) => {
@@ -55,16 +44,17 @@ export default function ResidentSetup() {
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) next.username = "Use 3–20 letters, numbers, or underscores";
     if (!phone) next.phone = "Enter your phone number";
     else if (!/^9\d{9}$/.test(phone)) next.phone = "Enter a 10-digit Philippine mobile number starting with 9";
-    if (!barangay) next.barangay_id = "Select your barangay";
-    if (streets.length && !street) next.street_id = "Select your street";
+    if (!barangay || !barangays.some(row => row.id === barangay)) next.barangay_id = "Select your barangay";
+    const selectedStreet = streets.find(row => row.id === street);
+    if (streets.length && !selectedStreet) next.street_id = "Select your street";
     setErrors(next);
     if (Object.keys(next).length) return;
     const owner = useAuthStore.getState();
     const isCurrent = () => useAuthStore.getState().user?.id === owner.user?.id && useAuthStore.getState().token === owner.token;
     setSaving(true);
     try {
-      const updated = await authService.completeResidentProfile({ full_name: fullName.trim(), username: username.trim(),
-        phone: `+63${phone}`, barangay_id: barangay, street_id: street || null });
+      const updated = await completeProfile({ full_name: fullName.trim(), username: username.trim(),
+        phone: `+63${phone}`, barangay_id: barangay, street_id: selectedStreet?.id ?? null });
       if (!isCurrent()) return;
       if (updated.id !== owner.user?.id || updated.profile_completed !== true) throw new Error("Couldn't confirm your saved profile. Please retry.");
       useAuthStore.getState().setUser(updated);
@@ -130,12 +120,12 @@ export default function ResidentSetup() {
                     {fieldError("street_id")}
                   </div>
                 </div>
-                {(areaError || streetError) && <div role="alert" className="mt-3 flex items-center justify-between gap-3 text-sm text-destructive"><span>{areaError || streetError}</span><Button variant="outline" type="button" onClick={() => setRetry(value => value + 1)}>Retry</Button></div>}
+                {(areaError || streetError) && <div role="alert" className="mt-3 flex items-center justify-between gap-3 text-sm text-destructive"><span>{areaError || streetError}</span><Button variant="outline" type="button" onClick={() => { if (areaError) void areasQuery.refetch(); if (streetError) void streetsQuery.refetch(); }}>Retry</Button></div>}
                 {barangay && !streetLoading && !streetError && !streets.length && <p className="mt-3 text-xs text-muted-foreground">No streets are listed for this barangay. You can continue with your barangay.</p>}
               </section>
             </div>
             <div className="flex flex-col-reverse gap-3 border-t border-border bg-muted/20 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-              <Button type="button" variant="destructive-ghost" size="lg" className="w-full sm:w-auto" disabled={saving} onClick={() => { void useAuthStore.getState().logout().catch(() => {}).finally(() => navigate("/login", { replace: true })); }}>Log Out</Button>
+              <Button type="button" variant="destructive-ghost" size="lg" className="w-full sm:w-auto" disabled={saving} onClick={() => { void logout().catch(() => {}); }}>Log Out</Button>
               <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={saving || areaLoading || streetLoading || Boolean(areaError || streetError)} loading={saving} loadingLabel="Saving profile…">Save and Continue<ArrowRight aria-hidden="true" /></Button>
             </div>
           </fieldset>

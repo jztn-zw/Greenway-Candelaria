@@ -1,5 +1,6 @@
 import axios,{ AxiosError } from "axios";
 import { clearAuthStorage,getAuthStorage } from "./authStorage";
+import { getRetryAfterSeconds } from "./rateLimit";
 
 const api = axios.create({
   timeout: 15000,
@@ -21,7 +22,7 @@ api.interceptors.request.use((config) => {
 // ─── Response: Normalize Errors ───────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string; requestId?: string; errors?: Array<{ field?: string; message?: string }> }>) => {
+  (error: AxiosError<{ message?: string; requestId?: string; retryAfterSeconds?: number; errors?: Array<{ field?: string; message?: string }> }>) => {
     const isAuthRoute =
       error.config?.url?.includes("/auth/login") ||
       error.config?.url?.includes("/auth/recover") ||
@@ -32,6 +33,13 @@ api.interceptors.response.use(
       error.response?.headers?.["x-request-id"] ||
       error.response?.data?.requestId ||
       "unavailable";
+
+    if (status === 429) {
+      const retryAfterSeconds = getRetryAfterSeconds(error.response?.data?.retryAfterSeconds, error.response?.headers?.["retry-after"]);
+      error.message = `Too many requests. Try again in ${retryAfterSeconds} seconds.`;
+      Object.assign(error, { retryAfterSeconds });
+      return Promise.reject(error);
+    }
 
     // Session expired → clear storage and redirect to login
     if (status === 401 && !isAuthRoute) {

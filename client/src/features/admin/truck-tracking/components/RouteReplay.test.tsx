@@ -6,7 +6,7 @@ import { exportReplayVideo } from "../utils/replayVideoExporter";
 import type { AdminTruck } from "../types";
 import RouteReplay from "./RouteReplay";
 
-vi.mock("@/lib/adminQuery", () => ({ useAdminFetch: () => (_domain: string, _key: unknown, request: () => unknown) => request() }));
+vi.mock("@/lib/adminQuery", () => ({ useAdminFetch: () => (_domain: string, _key: unknown, request: () => unknown) => request(), useAdminQuery: () => ({ data: undefined, isError: false }) }));
 vi.mock("@/services/trackingService", () => ({ fetchTruckHistory: vi.fn() }));
 vi.mock("../utils/replayVideoExporter", () => ({ exportReplayVideo: vi.fn(async () => {}), REPLAY_VIDEO_SPEEDS: [1, 2, 5, 10, 30, 60] }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));

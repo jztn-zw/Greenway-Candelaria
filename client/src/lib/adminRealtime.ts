@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-const FAST_DOMAINS = ["reports", "residents", "drivers", "trucks", "routes", "tracking", "barangays", "schedule", "posts", "announcements", "notifications"];
+const FAST_DOMAINS = ["reports", "residents", "drivers", "trucks", "routes", "tracking", "barangays", "schedule", "posts", "announcements", "notifications", "profile", "settings", "messenger"];
 const SUMMARY_DOMAINS = ["dashboard", "analytics"];
 
 

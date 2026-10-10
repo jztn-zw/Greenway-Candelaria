@@ -26,6 +26,7 @@ import { profileStyles } from "./profileStyles";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
+import useLogout from "@/hooks/useLogout";
 import { AccountRecovery } from "@/features/landing/components/AccountRecovery";
 import {
 fetchProfile,
@@ -101,7 +102,7 @@ const FieldRow = ({
 const ResidentProfile = () => {
   const navigate = useNavigate();
   // Use separate selectors — returning a new object every render causes infinite loops
-  const logout  = useAuthStore((s) => s.logout);
+  const logout = useLogout();
   const authUser = useAuthStore((s) => s.user);
   const setUser  = useAuthStore((s) => s.setUser);
 
@@ -267,7 +268,6 @@ const ResidentProfile = () => {
       setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
       toast.success("Password changed. Please log in again.");
       await logout();
-      navigate("/", { replace: true });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? "Failed to change password.";
@@ -276,12 +276,6 @@ const ResidentProfile = () => {
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
-  const handleLogout = async () => {
-    await logout();
-    setLogoutModal(false);
-    navigate("/", { replace: true });
-  };
-
   const closeEditor = (target: "profile" | "password" | "address") => {
     if (target === "profile") {
       if (editModal.saving) return;
@@ -800,7 +794,7 @@ const ResidentProfile = () => {
         description={discardTarget === "password" ? "Your entered passwords will be cleared." : "Your unsaved changes will be lost."}
         discardLabel="Discard Changes" isSaving={discardTarget === "password" ? pwModal.saving : discardTarget === "address" ? addressModal.saving : editModal.saving} />
       <ConfirmationDialog kind="dialog" open={logoutModal} onOpenChange={setLogoutModal} title="Log Out of GreenWay?"
-        description="Sign out of your current resident session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={handleLogout} pendingLabel="Logging out…" />
+        description="Sign out of your current resident session?" icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={logout} pendingLabel="Logging out…" />
     </div>
   );
 };

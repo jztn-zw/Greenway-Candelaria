@@ -3,16 +3,24 @@ import { useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import useAuthStore from "@/store/authStore";
 import { createAdminRealtime } from "@/lib/adminRealtime";
+import { useAdminQuery } from "@/lib/adminQuery";
+import { fetchProfile } from "@/services/profileService";
 
 const AdminLiveSync = () => {
   const client = useQueryClient();
+  const profile = useAdminQuery("profile", [], fetchProfile);
+  useEffect(() => {
+    const current = useAuthStore.getState().user;
+    if (profile.data && current?.role === "ADMIN" && profile.data.id === current.id)
+      useAuthStore.getState().setUser({ ...current, ...profile.data });
+  }, [profile.data]);
   const userId = useAuthStore((state) => state.user?.id);
   const role = useAuthStore((state) => state.user?.role);
   const token = useAuthStore((state) => state.token);
   useEffect(() => {
     if (!userId || !token || role !== "ADMIN") return;
     const sync = createAdminRealtime(client, userId);
-    const socket = io((import.meta.env.VITE_API_URL || window.location.origin).replace(/\/api\/?$/, ""), {
+    const socket = io((import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin).replace(/\/api\/?$/, ""), {
       auth: { token }, withCredentials: true, autoConnect: false,
     });
     socket.on("connect", () => {

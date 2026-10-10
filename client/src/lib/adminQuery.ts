@@ -37,6 +37,8 @@ export const useAdminAction = (...domains: string[]) => {
     mutationFn: (action: () => Promise<unknown>) => action(),
     retry: false,
     gcTime: 0,
+    onMutate: () => client.cancelQueries({ predicate: ({ queryKey }) =>
+      queryKey[0] === "admin" && queryKey[1] === userId && domains.includes(String(queryKey[2])) }),
     onSuccess: () => {
       const affected = new Set([...domains, "dashboard", "analytics", "audit"]);
       void client.invalidateQueries({

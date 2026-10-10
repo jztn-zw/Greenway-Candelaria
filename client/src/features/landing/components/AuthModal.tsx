@@ -16,12 +16,20 @@ import { Input } from "@/components/ui/input";
 import { InputClearButton,inputIconButtonClassName } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
 import { ArrowRight,Eye,EyeOff,Heart,Leaf,Lock,Mail,User,Users,X } from "lucide-react";
+import { useAuthCooldown } from "./useAuthCooldown";
 
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: "login" | "register";
 }
+
+const CooldownNotice = ({ action, seconds }: { action: "login" | "signup"; seconds: number }) => (
+  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning-foreground">
+    <p role="alert" className="font-medium">Too many {action} attempts.</p>
+    <p className="mt-1">Please wait <span role="timer" aria-live="off" className="font-semibold tabular-nums">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span> before trying again.</p>
+  </div>
+);
 
 // Clearable input wrapper
 const ClearableInput = ({
@@ -80,6 +88,9 @@ const AuthModal = ({
   const navigate = useNavigate();
   const [tab, setTab] = useState<"login" | "register">(defaultTab);
   const [loading, setLoading] = useState(false);
+  const submissionPending = useRef(false);
+  const loginCooldown = useAuthCooldown("login");
+  const registerCooldown = useAuthCooldown("register");
 
   // Sync tab when defaultTab prop changes (e.g. clicking Sign Up vs Login)
   const prevDefaultTab = useRef(defaultTab);
@@ -142,10 +153,11 @@ const AuthModal = ({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (submissionPending.current || registerCooldown.isBlocked()) return;
     const errs = validateRegister();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    submissionPending.current = true;
     setLoading(true);
     try {
       const registration = { email: email.trim().toLowerCase(), password, confirm_password: confirmPassword, terms_accepted: termsAccepted };
@@ -157,6 +169,7 @@ const AuthModal = ({
       resetRegisterForm();
       setErrors({});
     } catch (err: unknown) {
+      if (registerCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } };
       const message = responseError.response?.data?.message;
       const emailError = responseError.response?.data?.errors?.find(issue => issue.field === "email")?.message;
@@ -164,6 +177,7 @@ const AuthModal = ({
         ? { email: "Email already registered. Log in or use another email address." }
         : emailError ? { email: emailError } : { form: message || "Registration failed. Please try again." });
     } finally {
+      submissionPending.current = false;
       setLoading(false);
     }
   };
@@ -179,18 +193,21 @@ const AuthModal = ({
   };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (submissionPending.current || loginCooldown.isBlocked()) return;
     const errs = validateLogin();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    submissionPending.current = true;
     setLoading(true);
     try {
       await login(identifier, loginPassword, rememberMe);
       finishLogin();
     } catch (err: unknown) {
+      if (loginCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string } } };
       setErrors({ form: responseError.response?.data?.message || "Invalid credentials. Please try again." });
     } finally {
+      submissionPending.current = false;
       setLoading(false);
     }
   };
@@ -252,7 +269,8 @@ const AuthModal = ({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 sm:px-10 sm:pb-8">
               {recoveryReceipt ? <RecoveryCodeReceipt key={recoveryReceipt} code={recoveryReceipt} onContinue={() => { setRecoveryReceipt(null); setTab("login"); }} /> : recoveryOpen ? <AccountRecovery onBack={() => { setRecoveryOpen(false); setLoginPassword(""); setTab("login"); }} /> : tab === "login" ? (
                 <form onSubmit={handleLogin} noValidate className="space-y-5">
-                  {errors.form && (
+                  {loginCooldown.seconds > 0 && <CooldownNotice action="login" seconds={loginCooldown.seconds} />}
+                  {loginCooldown.seconds === 0 && errors.form && (
                     <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-2.5 font-medium">
                       {errors.form}
                     </div>
@@ -307,7 +325,7 @@ const AuthModal = ({
                     </button>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Signing in…">
+                  <Button type="submit" className="w-full" disabled={loading || loginCooldown.seconds > 0} loading={loading} loadingLabel="Signing in…">
 
                     <span>Log In to GreenWay</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -322,7 +340,8 @@ const AuthModal = ({
                 </form>
               ) : (
                 <form onSubmit={handleRegister} noValidate className="space-y-4">
-                  {errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
+                  {registerCooldown.seconds > 0 && <CooldownNotice action="signup" seconds={registerCooldown.seconds} />}
+                  {registerCooldown.seconds === 0 && errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
                   <div className="space-y-4">
                       <div className="space-y-1.5">
                         <Label htmlFor="email" className={fieldLabelClass}>Email Address</Label>
@@ -407,7 +426,7 @@ const AuthModal = ({
                   </div>
                   {errors.terms && <p className="-mt-2 text-xs text-destructive">{errors.terms}</p>}
 
-                  <Button type="submit" className="w-full" disabled={loading} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  <Button type="submit" className="w-full" disabled={loading || registerCooldown.seconds > 0} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   <p className="text-xs leading-relaxed text-muted-foreground">After login, we’ll help you set up your resident profile and collection area.</p>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Already a member?{" "}

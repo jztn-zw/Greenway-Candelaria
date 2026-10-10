@@ -4,6 +4,7 @@ import { ActionSeverity, AuditLogEntry, AuditModule } from "./types";
 const ACTION_LABELS: Record<string, string> = {
   USER_LOGIN: "User Login",
   FAILED_LOGIN: "Failed Login",
+  RATE_LIMITED: "Requests Blocked",
   CHANGE_PASSWORD: "Password Changed",
   CREATE_POST: "Created Post",
   UPDATE_POST: "Updated Post",
@@ -222,6 +223,13 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       afterValue = "Failed Login";
       break;
 
+    case "RATE_LIMITED": {
+      const policy = String(newVal.policy || "API").replace(/-/g, " ");
+      summary = `Blocked ${Number(newVal.blocked_count) || 1} requests after the ${policy === "overflow" ? "API request" : policy} limit was reached.`;
+      afterValue = getCleanValueString(newVal);
+      break;
+    }
+
     case "CHANGE_PASSWORD":
       summary = `User updated account security password.`;
       break;
@@ -386,8 +394,8 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
   return {
     id: row.id,
     timestamp: row.created_at,
-    adminName: row.user_name || "System",
-    adminRole: row.user_role || "ADMIN",
+    adminName: action === "RATE_LIMITED" && !row.user_id ? "Unknown visitor" : row.user_name || "System",
+    adminRole: action === "RATE_LIMITED" && !row.user_id ? "Visitor" : row.user_role || "ADMIN",
     actionType,
     module: moduleName,
     affectedRecord,

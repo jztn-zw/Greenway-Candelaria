@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useAnnouncements } from "./hooks/useAnnouncements";
+import { mapFromApi,useAnnouncements } from "./hooks/useAnnouncements";
+import { useAdminQuery } from "@/lib/adminQuery";
+import { fetchAnnouncementById } from "@/services/announcementsService";
 import AnnouncementKPIs from "./AnnouncementKPIs";
 import AnnouncementCard from "./AnnouncementCard";
 import AnnouncementListView from "./AnnouncementListView";
@@ -116,7 +118,14 @@ const AdminAnnouncements = () => {
   const [editorForm, setEditorForm] = useState<EditorForm>(DEFAULT_FORM);
 
   // Dialog & Action States
-  const [previewAnn, setPreviewAnn] = useState<Announcement | null>(null);
+  const [previewSelection, setPreviewAnn] = useState<Announcement | null>(null);
+  const previewQuery = useAdminQuery("announcements", ["detail", previewSelection?.id], async () =>
+    mapFromApi(await fetchAnnouncementById(previewSelection!.id) as unknown as Record<string, unknown>),
+    { enabled: !!previewSelection, staleTime: 0 });
+  const previewStatus = (previewQuery.error as { response?: { status?: number } } | null)?.response?.status;
+  const previewUnavailable = previewStatus === 403 || previewStatus === 404;
+  const previewAnn = previewUnavailable ? null : previewQuery.data ?? previewSelection;
+  useEffect(() => { if (previewUnavailable) setPreviewAnn(null); }, [previewUnavailable]);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [readReceiptTarget, setReadReceiptTarget] =
     useState<Announcement | null>(null);
@@ -536,6 +545,7 @@ const AdminAnnouncements = () => {
           } satisfies AnnouncementDetail}
           footerDetails={
             <div className="space-y-3">
+              {previewQuery.isError && <DataRefreshNotice message="Couldn't refresh this notice. Showing the last loaded version." onRetry={() => void previewQuery.refetch()} retrying={previewQuery.isFetching} />}
               <div className="rounded-xl bg-muted/40 border border-border/60 p-3 text-xs text-muted-foreground space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-foreground shrink-0">Target Audience:</span>

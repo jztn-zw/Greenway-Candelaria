@@ -2,7 +2,9 @@
 
 Resident dashboard, report submission/lookups, My Reports and report details,
 community posts/details/reactions, schedules, notifications, profile, settings,
-and tracking HTTP reads now use TanStack Query. Mobile apps are outside this change.
+and tracking HTTP reads now use TanStack Query. Resident setup also uses account-
+scoped queries for barangay/street choices and a managed profile mutation.
+Mobile apps are outside this change.
 
 ## Refresh behavior
 
@@ -36,6 +38,14 @@ and tracking HTTP reads now use TanStack Query. Mobile apps are outside this cha
 - Report forms, selected calendar dates, profile/password/address drafts and UI
   selections remain local state. Background queries do not reset them. Settings
   saves run in order and hydrate server values after pending writes finish.
+- Open calendar notices store a selected ID and display the current queried
+  event. Updated notices refresh in place; deleted or no-longer-visible notices
+  close. Edit drafts remain local state.
+- Pending setup accounts retain their existing socket restrictions. Their area
+  queries reconcile every 60 seconds and on normal query focus/reconnect without
+  clearing typed fields or changing the selected street. Removed choices must be
+  selected again before saving if street choices remain. If all streets are
+  removed, setup can continue with the barangay and no street.
 
 ## Boundaries
 

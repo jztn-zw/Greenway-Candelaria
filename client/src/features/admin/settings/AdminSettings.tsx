@@ -55,10 +55,12 @@ const AdminSettings = () => {
   const updateAlert = async (key: keyof AdminAlertSettings, checked: boolean) => {
     const previousAlerts = alerts;
     const nextAlerts = { ...alerts, [key]: checked };
-    setAlerts(nextAlerts);
     setSavingAlerts(true);
     try {
-      const updated = await runAction(() => updateAdminAlertSettings(nextAlerts));
+      const updated = await runAction(() => {
+        setAlerts(nextAlerts);
+        return updateAdminAlertSettings(nextAlerts);
+      });
       setAlerts(updated);
     } catch (error) {
       setAlerts(previousAlerts);
