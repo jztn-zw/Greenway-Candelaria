@@ -178,15 +178,17 @@ const create = async ({
   try {
     await connection.beginTransaction();
     if (truck_id) await assertTruckAssignable(connection, truck_id);
-    const [emailCheck] = await connection.query("SELECT id FROM users WHERE email = ?", [email]);
-    if (emailCheck.length) throw { statusCode: 409, message: "Email already in use" };
+    if (email) {
+      const [emailCheck] = await connection.query("SELECT id FROM users WHERE email = ?", [email]);
+      if (emailCheck.length) throw { statusCode: 409, message: "Email already in use" };
+    }
     const [usernameCheck] = await connection.query("SELECT id FROM users WHERE username = ?", [username]);
     if (usernameCheck.length) throw { statusCode: 409, message: "Username already taken" };
 
     await connection.query(
       `INSERT INTO users (id, full_name, username, email, phone, password, avatar_url, role)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'DRIVER')`,
-      [userId, full_name, username, email, phone || null, hashed, avatarUrlForAccount(userId)],
+      [userId, full_name, username, email || null, phone || null, hashed, avatarUrlForAccount(userId)],
     );
     await connection.query(
       "INSERT INTO drivers (id, user_id, truck_id) VALUES (?, ?, ?)",

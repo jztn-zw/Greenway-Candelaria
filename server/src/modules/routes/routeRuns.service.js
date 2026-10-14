@@ -199,9 +199,16 @@ const autoActivateScheduledRoutes = async () => {
     await connection.beginTransaction();
     for (const template of templates) {
       await connection.query("SELECT id FROM trucks WHERE id = ? FOR UPDATE", [template.truck_id]);
+      // Deleting a weekly template must not give its truck or collector another trip today.
+      // Use a current read after the truck lock, including runs whose template was deleted.
       const [existing] = await connection.query(
-        "SELECT id FROM route_runs WHERE route_id = ? AND run_date = ? LIMIT 1",
-        [template.id, date],
+        `SELECT id FROM route_runs WHERE run_date = ? AND (
+           route_id = ? OR ((truck_id = ? OR driver_id = ?) AND (
+             status IN ('SCHEDULED','ACTIVE','PAUSED','COMPLETED','PARTIAL')
+             OR collection_started_at IS NOT NULL
+           ))
+         ) LIMIT 1 FOR UPDATE`,
+        [date, template.id, template.truck_id, template.driver_id],
       );
       if (existing.length) continue;
       const runId = generateId();

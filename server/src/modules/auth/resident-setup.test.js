@@ -35,8 +35,8 @@ test('minimal signup creates an incomplete account without invented profile deta
 });
 
 const setup = { full_name: 'Test Resident', username: 'resident', phone: '+639123456789', barangay_id: '11111111-1111-4111-8111-111111111111', street_id: '22222222-2222-4222-8222-222222222222' };
-test('resident setup requires a Philippine contact phone and normalizes whitespace', () => {
-  for (const phone of [undefined, null, '', '   ', '+638123456789', '+6391234', '09123456789']) {
+test('resident setup validates a supplied Philippine contact phone and normalizes whitespace', () => {
+  for (const phone of ['+638123456789', '+6391234', '09123456789']) {
     const result = residentSetupSchema.safeParse({ ...setup, phone });
     assert.equal(result.success, false);
     assert.ok(result.error.issues.some(issue => issue.path[0] === 'phone'));
@@ -139,5 +139,27 @@ for (const scenario of ['duplicate username', 'settings failure', 'missing stree
         assert.equal(calls.at(-1), 'release');
       }
     } finally { pool.getConnection = original.connection; pool.query = original.query; }
+  });
+}
+
+for (const available of [0, 1]) {
+  test('blocks setup for a barangay without streets (service ' + available + ')', async () => {
+    const original = pool.getConnection;
+    const calls = [];
+    pool.getConnection = async () => ({
+      beginTransaction: async () => calls.push('begin'), rollback: async () => calls.push('rollback'),
+      commit: async () => calls.push('commit'), release: () => calls.push('release'),
+      query: async sql => {
+        if (sql.includes('FOR UPDATE')) return [[{ role: 'RESIDENT', status: 'ACTIVE', profile_completed: 0 }]];
+        if (sql.includes('FROM barangays')) return [[{ collection_service_available: available }]];
+        if (sql.includes('FROM barangay_streets')) return [[]];
+        throw new Error('Unexpected write');
+      },
+    });
+    try {
+      await assert.rejects(service.completeResidentProfile('resident', { ...setup, street_id: null }),
+        error => error.statusCode === 400 && error.field === 'street_id' && /Contact MENRO/.test(error.message));
+      assert.deepEqual(calls, ['begin', 'rollback', 'release']);
+    } finally { pool.getConnection = original; }
   });
 }

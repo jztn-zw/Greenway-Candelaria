@@ -2,13 +2,13 @@ const { z } = require("zod");
 
 const phoneSchema = z
   .string()
-  .regex(/^\d{0,11}$/, "Phone number must contain numbers only and no more than 11 digits")
+  .regex(/^(?:09\d{9})?$/, "Enter an 11-digit Philippine mobile number starting with 09.")
   .optional();
 
 const createDriverSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
   username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email"),
+  email: z.string().email("Invalid email").nullable().optional(),
   phone: phoneSchema,
   password: z.string().min(6, "Password must be at least 6 characters"),
   truck_id: z.string().optional(),

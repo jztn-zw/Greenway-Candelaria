@@ -87,7 +87,7 @@ test("starting a run captures the vehicle identity in the locked transaction", a
   pool.getConnection = async () => ({ beginTransaction: async () => {}, commit: async () => { committed = true; }, rollback: async () => {}, release: () => {}, query: async (sql, params) => {
     if (sql === "SELECT truck_id FROM route_runs WHERE id = ?") return [[{ truck_id: "truck" }]];
     if (sql.includes("SELECT rr.*, d.user_id")) return [[{ id: "run", truck_id: "truck", user_id: "collector", assigned_truck_id: "truck", truck_name: "Truck at start", driver_status: "ACTIVE", availability_status: "ACTIVE", is_today: 1, is_due: 1, status: "SCHEDULED" }]];
-    if (sql.includes("SELECT id FROM route_runs WHERE truck_id")) return [[]];
+    if (sql.includes("SELECT id FROM route_runs")) return [[]];
     if (sql.includes("truck_name_snapshot = ?")) snapshot = { sql, params };
     if (sql.includes("FROM route_run_stops rs")) return [[]];
     return [{ affectedRows: 1 }];

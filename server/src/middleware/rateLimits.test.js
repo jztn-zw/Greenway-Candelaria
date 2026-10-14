@@ -74,6 +74,21 @@ test("recovery attempts cannot consume authenticated setup or code quotas", asyn
   assert.equal((await request("/api/auth/recovery-code", { user: "setup", role: "RESIDENT" })).status, 200);
 });
 
+test("self-deactivation requires a resident session and has a separate per-account quota", async () => {
+  assert.equal((await request("/api/auth/deactivate")).status, 401);
+  for (const role of ["ADMIN", "DRIVER"]) {
+    assert.equal((await request("/api/auth/deactivate", { user: role, role })).status, 403);
+  }
+  for (let i = 0; i < 5; i++) assert.equal((await request("/api/auth/deactivate", { user: "deactivating", role: "RESIDENT" })).status, 200);
+  const before = calls.get("auth:deactivateResident");
+  const blocked = await request("/api/auth/deactivate", { user: "deactivating", role: "RESIDENT" });
+  assert.equal(blocked.status, 429);
+  assert.equal(calls.get("auth:deactivateResident"), before);
+  assert.ok(JSON.parse(blocked.body).retryAfterSeconds > 0);
+  assert.equal((await request("/api/auth/deactivate", { user: "other-resident", role: "RESIDENT" })).status, 200);
+  assert.equal((await request("/api/auth/recovery-code", { user: "deactivating", role: "RESIDENT" })).status, 200);
+});
+
 test("message spam cannot consume breakdown, status or GPS quotas", async () => {
   for (let i = 0; i < 20; i++) assert.equal((await request("/api/drivers/me/messages/conversation", { user: "collector-spam" })).status, 200);
   assert.equal((await request("/api/drivers/me/messages/conversation", { user: "collector-spam" })).status, 429);
@@ -147,15 +162,15 @@ test("expired cooldowns allow requests again", async () => {
 });
 
 test("account security and profile quotas remain separate from settings and other accounts", async () => {
-  for (const [path, method, count, user] of [
-    ["/api/auth/recovery-code", "POST", 5, "code-owner"],
-    ["/api/users/change-password", "PUT", 10, "password-owner"],
-    ["/api/users/profile", "PUT", 30, "profile-owner"],
-    ["/api/users/settings", "PUT", 60, "settings-owner"],
+  for (const [path, method, count, user, role] of [
+    ["/api/auth/recovery-code", "POST", 5, "code-owner", "DRIVER"],
+    ["/api/users/change-password", "PUT", 10, "password-owner", "RESIDENT"],
+    ["/api/users/profile", "PUT", 30, "profile-owner", "DRIVER"],
+    ["/api/users/settings", "PUT", 60, "settings-owner", "DRIVER"],
   ]) {
-    for (let i = 0; i < count; i++) assert.equal((await request(path, { user, method })).status, 200);
-    assert.equal((await request(path, { user, method })).status, 429);
-    assert.equal((await request(path, { user: `${user}-other`, method })).status, 200);
+    for (let i = 0; i < count; i++) assert.equal((await request(path, { user, method, role })).status, 200);
+    assert.equal((await request(path, { user, method, role })).status, 429);
+    assert.equal((await request(path, { user: `${user}-other`, method, role })).status, 200);
   }
   assert.equal((await request("/api/users/settings", { user: "password-owner", method: "PUT" })).status, 200);
   assert.equal((await request("/api/auth/logout", { user: "password-owner" })).status, 200);

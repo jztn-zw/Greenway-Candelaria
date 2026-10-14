@@ -1,6 +1,8 @@
 const { z } = require("zod");
 
 const updateProfileSchema = z.object({
+  email: z.preprocess(value => typeof value === "string" ? value.trim().toLowerCase() || null : value,
+    z.string().email("Enter a valid email address").max(100).nullable().optional()),
   full_name: z.string().trim().min(2).max(100).optional(),
   username: z
     .string()
@@ -50,7 +52,10 @@ const updateAdminSettingsSchema = z.object({
 
 const updateStatusSchema = z.object({
   status: z.enum(["ACTIVE", "DEACTIVATED", "BANNED"]),
-  ban_reason: z.string().optional(),
+  ban_reason: z.string().trim().max(255, "Ban reason must be 255 characters or fewer").optional(),
+}).refine((data) => data.status !== "BANNED" || Boolean(data.ban_reason), {
+  message: "A ban reason is required",
+  path: ["ban_reason"],
 });
 
 module.exports = {

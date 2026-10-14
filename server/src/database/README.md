@@ -15,6 +15,16 @@ table schemas were unchanged. No existing records were modified. Other database
 environments still need a backed-up, authorized upgrade.
 Do not re-import the baseline into an existing database.
 
+Resident self-deactivation uses `migrations/2026-10-14-resident-self-deactivation.sql`.
+It adds only the nullable `users.self_deactivated_at` marker, with no backfill or
+account-status changes. Review and back up the users table definition, check
+`INFORMATION_SCHEMA.COLUMNS`, and apply once with authorization before enabling
+the new Profile action. A fresh baseline already includes this column.
+Only resident accounts deactivated through the password-confirmed endpoint receive
+the marker and can reactivate at login. Older administrative deactivations and bans
+remain blocked. Active sign-ins remain compatible before migration; deactivation
+cannot succeed without the new column. The migration has not been applied here.
+
 ## Fresh installation
 
 1. Create or select an empty database and import `schema.sql`.

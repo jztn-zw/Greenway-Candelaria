@@ -473,7 +473,7 @@ const assertNoRouteTruckDayConflict = async (
   if (rows.length > 0) {
     throw {
       statusCode: 409,
-      message: `This truck already has a ${String(dayOfWeek).toLowerCase()} collection route`,
+      message: `This truck already has a ${String(dayOfWeek).charAt(0).toUpperCase()}${String(dayOfWeek).slice(1).toLowerCase()} schedule. Edit the existing schedule, or pause and delete it before creating a replacement.`,
     };
   }
 };
@@ -639,8 +639,8 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
     await assertCollectionReadyForStops(connection, resolvedStops);
     const effectiveTruckId = await resolveAssignedTruckId(driver_id, truck_id, connection);
 
+    await assertNoRouteTruckDayConflict(connection, day_of_week, effectiveTruckId);
     if (routeStatus === "ACTIVE") {
-      await assertNoRouteTruckDayConflict(connection, day_of_week, effectiveTruckId);
       await assertNoActiveRouteBarangayConflicts(connection, day_of_week, resolvedStops);
     }
     const [truckCheck] = await connection.query("SELECT id FROM trucks WHERE id = ?", [effectiveTruckId]);
@@ -734,13 +734,13 @@ const update = async (id, data, adminId) => {
     if (isScheduled || resolvedStops) {
       await assertCollectionReadyForStops(connection, nextStops);
     }
+    await assertNoRouteTruckDayConflict(
+      connection,
+      nextDayOfWeek,
+      resolvedTruckId || existingRoute.truck_id,
+      id,
+    );
     if (isScheduled) {
-      await assertNoRouteTruckDayConflict(
-        connection,
-        nextDayOfWeek,
-        resolvedTruckId || existingRoute.truck_id,
-        id,
-      );
       await assertNoActiveRouteBarangayConflicts(
         connection,
         nextDayOfWeek,
@@ -815,8 +815,11 @@ const update = async (id, data, adminId) => {
       await connection.query(
         `UPDATE trucks
          SET status = 'SCHEDULED'
-         WHERE id = ?`,
-        [resolvedTruckId || existingRoute.truck_id],
+         WHERE id = ? AND NOT EXISTS (
+           SELECT 1 FROM route_runs WHERE run_date = ? AND (truck_id = ? OR driver_id = ?)
+             AND (status IN ('COMPLETED','PARTIAL') OR collection_started_at IS NOT NULL)
+         )`,
+        [resolvedTruckId || existingRoute.truck_id, getManilaDateContext().date, resolvedTruckId || existingRoute.truck_id, nextDriverId],
       );
       await connection.query(
         "UPDATE routes SET collection_started_at = NULL WHERE id = ?",

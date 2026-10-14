@@ -96,9 +96,13 @@ const startRoute = async (id, userId) => {
     if (!Number(run.is_due)) fail("Collection is scheduled for later today");
     if (!["SCHEDULED", "ACTIVE"].includes(run.status)) fail("This route cannot be started");
     const [other] = await db.query(
-      "SELECT id FROM route_runs WHERE truck_id = ? AND id <> ? AND status IN ('ACTIVE','PAUSED') LIMIT 1",
-      [run.truck_id, id]);
-    if (other.length) fail("Finish the other active run before starting this route");
+      `SELECT id FROM route_runs WHERE (truck_id = ? OR driver_id = ?) AND id <> ? AND (
+         status IN ('ACTIVE','PAUSED') OR (run_date = ${todaySql} AND (
+           status IN ('COMPLETED','PARTIAL') OR collection_started_at IS NOT NULL
+         ))
+       ) LIMIT 1 FOR UPDATE`,
+      [run.truck_id, run.driver_id, id]);
+    if (other.length) fail("This truck or collector already has a started or finished collection run. Today's collection cannot be restarted.");
     if (!run.collection_started_at) {
       await db.query(`UPDATE route_runs SET status = 'ACTIVE', collection_started_at = UTC_TIMESTAMP(),
         gps_expected_since = UTC_TIMESTAMP(), truck_name_snapshot = ?,

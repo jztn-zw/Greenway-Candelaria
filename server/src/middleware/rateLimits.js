@@ -36,6 +36,7 @@ const registrationLimiter = createLimiter("registration", { windowMs: 60 * minut
 const recoveryIpLimiter = createLimiter("recovery-ip", { windowMs: 15 * minute, limit: 20, keyGenerator: ipKey });
 const recoveryLimiter = createLimiter("recovery", { windowMs: 15 * minute, limit: 5, keyGenerator: credentialKey });
 const recoveryCodeLimiter = createLimiter("recovery-code", { windowMs: 15 * minute, limit: 5 });
+const accountDeactivationLimiter = createLimiter("account-deactivation", { windowMs: 15 * minute, limit: 5 });
 const passwordChangeLimiter = createLimiter("password-change", { windowMs: 15 * minute, limit: 10 });
 const profileWriteLimiter = createLimiter("profile", { windowMs: minute, limit: 30 });
 const settingsWriteLimiter = createLimiter("settings", { windowMs: minute, limit: 60 });
@@ -48,7 +49,7 @@ const collectorStatusLimiter = createLimiter("collector-status", { windowMs: min
 
 module.exports = {
   createLimiter, loginBurstLimiter, loginIpLimiter, loginLimiter, registrationLimiter,
-  recoveryIpLimiter, recoveryLimiter, recoveryCodeLimiter, passwordChangeLimiter,
+  recoveryIpLimiter, recoveryLimiter, recoveryCodeLimiter, passwordChangeLimiter, accountDeactivationLimiter,
   profileWriteLimiter, settingsWriteLimiter, uploadLimiter, reportBurstLimiter,
   reportCreationLimiter, messageLimiter, breakdownLimiter, collectorStatusLimiter,
 };

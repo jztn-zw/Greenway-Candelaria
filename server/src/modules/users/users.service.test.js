@@ -7,6 +7,26 @@ const service = require("./users.service");
 const { changePasswordSchema, updateAdminSettingsSchema } = require("./users.schema");
 
 after(() => pool.end());
+test("resident contact changes persist without changing collection area; other roles keep their existing restrictions", async () => {
+  const original = pool.query;
+  let role = 'RESIDENT';
+  const writes = [];
+  pool.query = async (sql, params) => {
+    if (sql.startsWith('SELECT role')) return [[{ role }]];
+    if (sql.startsWith('UPDATE users')) { writes.push({ sql, params }); return [{ affectedRows: 1 }]; }
+    if (sql.includes('FROM users u')) return [[{ id: 'resident', email: null, role }]];
+    throw new Error('Unexpected contact fixture query');
+  };
+  try {
+    await service.updateProfile('resident', { email: null, phone: '' });
+    assert.equal(writes.length, 1);
+    assert.doesNotMatch(writes[0].sql, /barangay_id|street_id/);
+    assert.deepEqual(writes[0].params, [null, null, 'resident']);
+    role = 'ADMIN';
+    await assert.rejects(service.updateProfile('admin', { email: 'admin@example.test' }), error => error.statusCode === 403);
+    assert.equal(writes.length, 1);
+  } finally { pool.query = original; }
+});
 
 test("password change updates the hash and revokes sessions in one transaction", async () => {
   const original = pool.getConnection;

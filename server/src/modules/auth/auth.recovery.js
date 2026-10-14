@@ -16,12 +16,15 @@ const recoverPassword = async ({ identifier, recovery_code, new_password }) => {
     await connection.beginTransaction();
     // Lock the code owner so concurrent attempts cannot consume the same code.
     const [users] = await connection.query(
-      'SELECT id, status, deleted_at, recovery_code_hash FROM users WHERE (username = ? OR email = ?) LIMIT 1 FOR UPDATE',
+      'SELECT * FROM users WHERE (username = ? OR email = ?) LIMIT 1 FOR UPDATE',
       [identifier.trim(), identifier.trim()],
     );
     const user = users[0];
     const hash = hashRecoveryCode(recovery_code);
-    if (!isAvailable(user) || !/^[a-f0-9]{64}$/.test(user.recovery_code_hash || '') ||
+    const selfDeactivated = user && !user.deleted_at && user.role === 'RESIDENT'
+      && user.status === 'DEACTIVATED' && user.self_deactivated_at;
+    // Recovery changes credentials only. Reactivation still requires a normal login.
+    if ((!isAvailable(user) && !selfDeactivated) || !/^[a-f0-9]{64}$/.test(user.recovery_code_hash || '') ||
         !timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(user.recovery_code_hash, 'hex'))) throw unavailable();
     const next = createRecoveryCode();
     const password = await bcrypt.hash(new_password, 12);

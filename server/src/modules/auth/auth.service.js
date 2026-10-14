@@ -7,6 +7,8 @@ const SessionService = require("../sessions/sessions.service");
 const auditService = require("../audit/audit.service");
 const { createRecoveryCode, recoverPassword, replaceRecoveryCode } = require("./auth.recovery");
 const { pool } = require("../../config/db");
+const { deactivateResident } = require("./auth.deactivation");
+const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 
 const register = async ({
   full_name,
@@ -29,12 +31,12 @@ const register = async ({
   }
 
   // Check if username already exists
-  const [existingUsername] = completed ? await queryWithRetry(
+  const [existingUsername] = username ? await queryWithRetry(
     "SELECT id FROM users WHERE username = ?",
     [username],
   ) : [[]];
   if (existingUsername.length > 0) {
-    throw { statusCode: 409, message: "Username already taken" };
+    throw { statusCode: 409, message: "Username already taken", field: "username" };
   }
 
   // Hash password
@@ -81,14 +83,17 @@ const register = async ({
       completed ? 1 : 0,
     ],
   ); } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") throw { statusCode: 409, message: "Email already in use" };
+    if (error.code === "ER_DUP_ENTRY") {
+      const emailConflict = email && /email/i.test(error.sqlMessage || error.message || "");
+      throw { statusCode: 409, message: emailConflict ? "Email already in use" : "Username already taken", field: emailConflict ? "email" : "username" };
+    }
     throw error;
   }
 
   return { id, full_name: full_name || "", username: username || "", email, avatar_url: avatarUrl, role: "RESIDENT", profile_completed: completed, recovery_code: recovery.code };
 };
 
-const login = async ({ identifier, password }, req) => {
+const login = async ({ identifier, password, login_mode }, req) => {
   const loginContext = {
     ip_address: req?.ip || null,
     new_value: {
@@ -98,13 +103,17 @@ const login = async ({ identifier, password }, req) => {
   };
 
   // Find user
+  const credentialCondition = login_mode === "username" ? "u.username = ?"
+    : login_mode === "legacy-setup"
+      ? "u.email = ? AND u.role = 'RESIDENT' AND (u.username IS NULL OR u.username = '') AND u.profile_completed = 0"
+      : "(u.email = ? OR u.username = ?)"; // Older native clients retain their existing contract.
   const [users] = await queryWithRetry(
     `SELECT u.*, b.name AS barangay_name, bs.name AS street_name, bs.area AS street_area
      FROM users u
      LEFT JOIN barangays b ON b.id = u.barangay_id
      LEFT JOIN barangay_streets bs ON bs.id = u.street_id
-     WHERE (u.email = ? OR u.username = ?) AND u.deleted_at IS NULL`,
-    [identifier, identifier],
+     WHERE ${credentialCondition} AND u.deleted_at IS NULL`,
+    login_mode ? [identifier] : [identifier, identifier],
   );
 
   if (users.length === 0) {
@@ -115,13 +124,13 @@ const login = async ({ identifier, password }, req) => {
       ...loginContext,
       new_value: { ...loginContext.new_value, reason: "Invalid credentials" },
     }).catch(() => {});
-    throw { statusCode: 401, message: "Invalid email or password" };
+    throw { statusCode: 401, message: "Invalid sign-in details" };
   }
 
   const user = users[0];
 
   // Check status
-  if (user.status === "DEACTIVATED") {
+  if (user.status === "DEACTIVATED" && !(user.role === "RESIDENT" && user.self_deactivated_at)) {
     auditService.log({
       user_id: user.id,
       action: "FAILED_LOGIN",
@@ -160,7 +169,7 @@ const login = async ({ identifier, password }, req) => {
       ...loginContext,
       new_value: { ...loginContext.new_value, role: user.role, reason: "Invalid credentials" },
     }).catch(() => {});
-    throw { statusCode: 401, message: "Invalid email or password" };
+    throw { statusCode: 401, message: "Invalid sign-in details" };
   }
 
   return createLoginSession(user, req, loginContext);
@@ -171,18 +180,36 @@ const createLoginSession = async (user, req, loginContext) => {
   // A login verified before a reset must not issue a session after it commits.
   const connection = await pool.getConnection();
   let token;
+  let reactivated = false;
   try {
     await connection.beginTransaction();
     const [rows] = await connection.query(
-      "SELECT password, role, status, deleted_at, profile_completed FROM users WHERE id = ? FOR UPDATE", [user.id],
+      // Reading the optional marker through * also preserves active logins
+      // while the additive migration is being deployed.
+      "SELECT * FROM users WHERE id = ? FOR UPDATE", [user.id],
     );
     const current = rows[0];
-    if (!current || current.deleted_at || current.status !== "ACTIVE") throw { statusCode: 403, message: "Account unavailable" };
+    if (!current || current.deleted_at) throw { statusCode: 403, message: "Account unavailable" };
+    const selfReactivation = current.role === "RESIDENT" && current.status === "DEACTIVATED" && current.self_deactivated_at
+      && user.status === "DEACTIVATED" && user.role === "RESIDENT"
+      && String(user.self_deactivated_at) === String(current.self_deactivated_at);
+    if (current.status !== "ACTIVE" && !selfReactivation) throw { statusCode: 403, message: "Account unavailable" };
     if (typeof user.password === "string" && user.password !== current.password) throw { statusCode: 401, message: "Account changed. Please sign in again." };
+    if (selfReactivation) {
+      await connection.query("UPDATE users SET status = 'ACTIVE', self_deactivated_at = NULL WHERE id = ?", [user.id]);
+      await connection.query("DELETE FROM sessions WHERE user_id = ?", [user.id]);
+      await auditService.logInTransaction(connection, {
+        user_id: user.id, action: "REACTIVATE_USER", module: "users", record_id: user.id, ip_address: req?.ip || null,
+        old_value: { user_name: current.full_name, role: current.role, status: "DEACTIVATED" },
+        new_value: { user_name: current.full_name, role: current.role, status: "ACTIVE" },
+      });
+      current.status = "ACTIVE";
+      reactivated = true;
+    }
     user.role = current.role;
     user.status = current.status;
     if (current.profile_completed !== undefined) user.profile_completed = current.profile_completed;
-    token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET,
+    token = jwt.sign({ id: user.id, role: user.role, jti: generateId() }, process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await SessionService.createSession({ userId: user.id, token,
@@ -193,6 +220,8 @@ const createLoginSession = async (user, req, loginContext) => {
     await connection.rollback();
     throw error;
   } finally { connection.release(); }
+
+  if (reactivated) emitAdminDataChanged(["residents", "dashboard", "analytics", "audit"], { residents: false, collectors: false });
 
   if (user.role !== "RESIDENT") {
     auditService.log({
@@ -207,6 +236,7 @@ const createLoginSession = async (user, req, loginContext) => {
 
   return {
     token,
+    ...(reactivated ? { reactivated: true } : {}),
     // Setup may have completed since the credential lookup. Return one fresh
     // public profile instead of mixing the locked flag with the old area/name.
     user: await getMe(user.id),
@@ -291,4 +321,4 @@ const completeResidentProfile = async (userId, data) => {
   await require('./auth.setup').completeResidentProfile(userId, data);
   return getMe(userId);
 };
-module.exports = { register, login, logout, changePassword, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile };
+module.exports = { register, login, logout, changePassword, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile, deactivateResident };

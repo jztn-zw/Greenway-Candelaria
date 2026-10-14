@@ -23,7 +23,7 @@ const changedDomains = (req) => {
     case "users":
       if (["settings", "admin-settings", "change-password"].includes(action)) return [];
       return ["residents", "drivers", "trucks", "reports", "routes", "tracking"];
-    case "auth": return ["register", "resident-profile"].includes(action) ? ["residents"] : [];
+    case "auth": return ["register", "resident-profile", "deactivate"].includes(action) ? ["residents"] : [];
     default: return [];
   }
 };

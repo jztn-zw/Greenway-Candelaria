@@ -56,6 +56,12 @@ const updateProfile = async (userId, data) => {
     fields.push("phone = ?");
     params.push(data.phone || null);
   }
+  if (data.email !== undefined) {
+    const [owners] = await pool.query("SELECT role FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
+    if (owners[0]?.role !== "RESIDENT") throw { statusCode: 403, message: "Contact email changes are available for resident accounts only" };
+    fields.push("email = ?");
+    params.push(data.email || null);
+  }
   if (data.barangay_id) {
     const [barangays] = await pool.query("SELECT id FROM barangays WHERE id = ?", [
       data.barangay_id,
@@ -111,6 +117,8 @@ const updateProfile = async (userId, data) => {
       params,
     );
   } catch (error) {
+    if (error.code === "ER_DUP_ENTRY" && data.email !== undefined && /email/i.test(error.sqlMessage || error.message || ""))
+      throw { statusCode: 409, message: "Email is already in use", field: "email" };
     if (error.code === "ER_DUP_ENTRY" && data.username) {
       throw { statusCode: 409, message: "Username is already in use" };
     }
@@ -209,7 +217,7 @@ const getAll = async (filters = {}) => {
   const selectQuery = `
     SELECT 
       u.id, u.full_name, u.username, u.email, u.phone,
-      u.role, u.status, u.avatar_url, u.created_at, u.last_login_at,
+      u.role, u.status, u.profile_completed, u.avatar_url, u.created_at, u.last_login_at,
       b.name AS barangay_name,
       (SELECT COUNT(*) FROM reports r WHERE r.user_id = u.id) AS reports_count
     FROM users u
@@ -236,7 +244,7 @@ const getById = async (id) => {
   const [rows] = await pool.query(
     `SELECT 
        u.id, u.full_name, u.username, u.email, u.phone,
-       u.role, u.status, u.ban_reason, u.avatar_url,
+       u.role, u.status, u.profile_completed, u.ban_reason, u.avatar_url,
        u.two_factor, u.created_at, u.last_login_at,
        b.name AS barangay_name,
        b.id   AS barangay_id
@@ -253,46 +261,48 @@ const getById = async (id) => {
   return rows[0];
 };
 
-// ✅ Status update with complete actor and target user info in audit log
+// Keep account access, session revocation, and the audit outcome atomic.
 const updateStatus = async (id, { status, ban_reason }, adminId, ip) => {
-  if (status === "BANNED" && !ban_reason) {
-    throw {
-      statusCode: 400,
-      message: "Ban reason is required when banning a user",
-    };
+  const reason = status === "BANNED" && typeof ban_reason === "string" ? ban_reason.trim() : null;
+  if (!["ACTIVE", "DEACTIVATED", "BANNED"].includes(status)) {
+    throw { statusCode: 400, message: "Invalid account status" };
   }
-
-  // 1. Fetch old state BEFORE changing
-  const oldUser = await getById(id);
-
-  // 2. Perform the update
-  await pool.query(
-    `UPDATE users SET status = ?, ban_reason = ? WHERE id = ?`,
-    [status, ban_reason || null, id]
-  );
-
-  // 3. Invalidate sessions if not active
-  if (status !== "ACTIVE") {
-    await pool.query("DELETE FROM sessions WHERE user_id = ?", [id]);
+  if (status === "BANNED" && (!reason || reason.length > 255)) {
+    throw { statusCode: 400, message: "A ban reason of 1 to 255 characters is required" };
   }
-
-  // 4. Determine action label clearly
-  const action =
-    status === "BANNED"      ? "BAN_USER"        :
-    status === "DEACTIVATED" ? "DEACTIVATE_USER" :
-    status === "ACTIVE"      ? "UNBAN_USER"      : "UPDATE_USER_STATUS";
-
-  // 5. Write the audit log with rich target details
-  await auditService.log({
-    user_id:    adminId,
-    action,
-    module:     "users",
-    record_id:  id,
-    old_value:  { user_name: oldUser.full_name, email: oldUser.email, role: oldUser.role, status: oldUser.status, ban_reason: oldUser.ban_reason },
-    new_value:  { user_name: oldUser.full_name, email: oldUser.email, role: oldUser.role, status, ban_reason: ban_reason || null },
-    ip_address: ip,
-  });
-
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.query(
+      "SELECT id, full_name, email, role, status, ban_reason FROM users WHERE id = ? AND deleted_at IS NULL FOR UPDATE", [id],
+    );
+    const oldUser = rows[0];
+    if (!oldUser) throw { statusCode: 404, message: "User not found" };
+    if (oldUser.role === "RESIDENT") {
+      if (status === "DEACTIVATED") {
+        throw { statusCode: 400, message: "Residents manage their own account deactivation" };
+      }
+      if (oldUser.status === "DEACTIVATED") {
+        throw { statusCode: 409, message: "Deactivated resident accounts are read-only in Resident Manager" };
+      }
+    }
+    // Repeated requests preserve the first outcome and its original reason.
+    if (oldUser.status !== status) {
+      await connection.query("UPDATE users SET status = ?, ban_reason = ? WHERE id = ?", [status, reason, id]);
+      if (status !== "ACTIVE") await connection.query("DELETE FROM sessions WHERE user_id = ?", [id]);
+      const action = status === "BANNED" ? "BAN_USER" : status === "DEACTIVATED" ? "DEACTIVATE_USER" : "UNBAN_USER";
+      await auditService.logInTransaction(connection, {
+        user_id: adminId, action, module: "users", record_id: id,
+        old_value: { user_name: oldUser.full_name, email: oldUser.email, role: oldUser.role, status: oldUser.status, ban_reason: oldUser.ban_reason },
+        new_value: { user_name: oldUser.full_name, email: oldUser.email, role: oldUser.role, status, ban_reason: reason },
+        ip_address: ip,
+      });
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally { connection.release(); }
   return getById(id);
 };
 

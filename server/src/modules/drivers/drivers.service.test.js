@@ -4,9 +4,38 @@ const bcrypt = require("bcryptjs");
 const { pool } = require("../../config/db");
 const auditService = require("../audit/audit.service");
 const service = require("./drivers.service");
-const { resetDriverPasswordSchema } = require("./drivers.schema");
+const { createDriverSchema, updateDriverSchema, resetDriverPasswordSchema } = require("./drivers.schema");
 
 after(() => pool.end());
+
+test("collector contacts must use an 11-digit Philippine 09 mobile number", () => {
+  for (const phone of ["08123456789", "09123", "091234567890", "+639123456789"]) {
+    assert.equal(updateDriverSchema.safeParse({ phone }).success, false);
+  }
+  assert.equal(updateDriverSchema.safeParse({ phone: "09123456789" }).success, true);
+  assert.equal(updateDriverSchema.safeParse({}).success, true);
+});
+
+test("collector accounts accept username credentials without an email address", () => {
+  const result = createDriverSchema.safeParse({ full_name: "Test Collector", username: "collector", phone: "09123456789", password: "TestPassword123!" });
+  assert.equal(result.success, true);
+});
+
+test("creating a collector without email stores NULL and keeps username and password authentication", async () => {
+  const original = pool.query;
+  pool.query = async () => [[{ id: "collector", email: null }]];
+  try {
+    await withConnection(async (sql) => sql.startsWith("SELECT") ? [[]] : [{ affectedRows: 1 }], async (statements, state) => {
+      await service.create({ full_name: "Test Collector", username: "collector", phone: "09123456789", password: "TestPassword123!" });
+      const write = statements.find(({ sql }) => sql.startsWith("INSERT INTO users"));
+      assert.equal(write.params[2], "collector");
+      assert.equal(write.params[3], null);
+      assert.equal(await bcrypt.compare("TestPassword123!", write.params[5]), true);
+      assert.equal(statements.some(({ sql }) => sql.includes("WHERE email = ?")), false);
+      assert.equal(state.committed, true);
+    });
+  } finally { pool.query = original; }
+});
 
 const withConnection = async (query, run) => {
   const original = pool.getConnection;

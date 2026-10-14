@@ -23,7 +23,27 @@ test('push delivery rechecks driver/account/session ownership, sends private pre
   global.fetch=async (url, options) => { const payload=JSON.parse(options.body)[0]; assert.equal(payload.data.user_id,'driver'); assert.equal(payload.body.includes('secret'),false); return {ok:true,json:async()=>({data:[{status:'error',details:{error:'DeviceNotRegistered'}}]})}; };
   try { await service.sendDispatchAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'secret'});
     assert.match(calls[0][0], /s.expires_at > NOW\(\)/); assert.match(calls[0][0], /u.role = 'DRIVER'/); assert.match(calls[0][0], /u.status = 'ACTIVE'/); assert.match(calls[0][0], /s.user_id = p.user_id/);
+    assert.match(calls[0][0], /p.enabled = TRUE/);
     assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ?');
     global.fetch=async()=>{throw Error('offline');}; await service.sendDispatchAlert({id:'notice',user_id:'driver',ref_module:'driver-messages'});
   } finally { pool.query=original;global.fetch=fetchOriginal;delete process.env.EXPO_PUSH_ENABLED; }
+});
+
+test('disabled devices are excluded before sending anything to the push provider', async () => {
+  const original = pool.query, fetchOriginal = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
+  let deliveries = 0;
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async sql => {
+    assert.match(sql, /p.enabled = TRUE/);
+    return [[]];
+  };
+  global.fetch = async () => { deliveries++; throw Error('Disabled devices must not be sent to the provider'); };
+  try {
+    await service.sendDispatchAlert({ id: 'notice', user_id: 'driver', ref_module: 'driver-messages' });
+    assert.equal(deliveries, 0);
+  } finally {
+    pool.query = original; global.fetch = fetchOriginal;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;
+    else process.env.EXPO_PUSH_ENABLED = previous;
+  }
 });

@@ -86,6 +86,7 @@ CREATE TABLE `users` (
   `role` enum('RESIDENT','DRIVER','ADMIN') NOT NULL DEFAULT 'RESIDENT',
   `profile_completed` tinyint(1) NOT NULL DEFAULT '1',
   `status` enum('ACTIVE','DEACTIVATED','BANNED') DEFAULT 'ACTIVE',
+  `self_deactivated_at` datetime(3) DEFAULT NULL,
   `avatar_url` varchar(500) DEFAULT NULL,
   `barangay_id` varchar(36) DEFAULT NULL,
   `street_id` varchar(36) DEFAULT NULL,

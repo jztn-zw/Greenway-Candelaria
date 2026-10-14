@@ -27,6 +27,7 @@ test("the baseline retains account, tracking and route-history protections", () 
   assert.match(schema, /UNIQUE KEY `uq_users_single_active_admin`/);
   assert.doesNotMatch(schema, /google_subject/);
   assert.match(schema, /`recovery_code_hash` char\(64\) DEFAULT NULL/);
+  assert.match(schema, /`self_deactivated_at` datetime\(3\) DEFAULT NULL/);
   assert.match(schema, /`profile_completed` tinyint\(1\) NOT NULL DEFAULT '1'/);
   assert.match(schema, /UNIQUE KEY `uq_barangay_street_identity`/);
   assert.match(schema, /UNIQUE KEY `uq_tracking_sample`/);

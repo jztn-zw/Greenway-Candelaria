@@ -34,6 +34,24 @@ test("web history keeps total unread counts while fetching only the selected cat
     assert.equal(result.history_total, 10000); assert.equal(result.unread_content_count, 400); assert.equal(result.notifications.length, 1);
   } finally { pool.query = original; }
 });
+
+test("web history excludes archived, deleted, and superseded post alerts from unread counts", async () => {
+  const original = pool.query; const queries = [];
+  pool.query = async (sql) => {
+    queries.push(sql);
+    if (sql.includes("AS history_total")) return [[{ history_total: 0, unread_count: 0, unread_content_count: 0, recent_count: 0 }]];
+    if (sql.includes("COUNT(*) AS total")) return [[{ total: 0, server_time: "2026-10-06 16:59:00.000" }]];
+    return [[]];
+  };
+  try {
+    await service.getMyNotifications("resident", { web_category: "all" });
+    const contentCounts = queries.filter((sql) => sql.includes("AS unread_content_count"));
+    assert.equal(contentCounts.length, 1);
+    assert.match(contentCounts[0], /p\.status = 'PUBLISHED'/);
+    assert.match(contentCounts[0], /p\.deleted_at IS NULL/);
+    assert.match(contentCounts[0], /n\.created_at >= p\.published_at/);
+  } finally { pool.query = original; }
+});
 test("web pagination clamps a page whose final notification was removed", async () => {
   const original = pool.query;
   pool.query = async (sql, params) => {

@@ -280,13 +280,32 @@ const excludeExpiredAnnouncementNotifications = `
   )
 `;
 
+const excludeUnavailablePostNotifications = `
+  AND NOT (
+    (n.type = 'NEW_POST' OR n.ref_module = 'posts')
+    AND NOT EXISTS (
+      SELECT 1 FROM posts p
+      WHERE p.id = n.ref_id AND p.deleted_at IS NULL AND p.status = 'PUBLISHED'
+        AND (p.published_at IS NULL OR n.created_at >= p.published_at)
+    )
+  )
+`;
+
 // ─── Get My Notifications (Paginated) ──────────────────────
 
 const getMyNotifications = async (userId, filters = {}) => {
+  const webHistory = filters.web_category !== undefined;
+  const hideAdminCollectorMessages = webHistory ? `
+    AND NOT (n.title LIKE 'New Collector Message:%'
+      AND EXISTS (SELECT 1 FROM users notification_owner
+        WHERE notification_owner.id = n.user_id AND notification_owner.role = 'ADMIN'))
+  ` : "";
   let query = `
     SELECT n.* FROM notifications n
     WHERE n.user_id = ?
     ${excludeExpiredAnnouncementNotifications}
+    ${excludeUnavailablePostNotifications}
+    ${hideAdminCollectorMessages}
   `;
   const params = [userId];
   const countParams = [userId];
@@ -318,7 +337,6 @@ const getMyNotifications = async (userId, filters = {}) => {
     if (!categories[filters.category]) throw { statusCode: 400, message: "Invalid notification category" };
     filterQuery += categories[filters.category];
   }
-  const webHistory = filters.web_category !== undefined;
   if (webHistory && filters.web_category !== "all") {
     const adminCategory = `CASE
       WHEN n.ref_module = 'reports' OR n.type = 'REPORT_UPDATE' THEN 'reports'
@@ -368,6 +386,8 @@ const getMyNotifications = async (userId, filters = {}) => {
      FROM notifications n
      WHERE n.user_id = ?
      ${excludeExpiredAnnouncementNotifications}
+     ${excludeUnavailablePostNotifications}
+     ${hideAdminCollectorMessages}
      ${filterQuery}`;
   let countResult;
   if (webHistory) {
@@ -384,7 +404,7 @@ const getMyNotifications = async (userId, filters = {}) => {
       COALESCE(SUM(n.is_read = FALSE), 0) AS unread_count,
       COALESCE(SUM(n.is_read = FALSE AND (n.type = 'NEW_POST' OR n.ref_module = 'posts')), 0) AS unread_content_count,
       COALESCE(SUM(n.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND n.created_at <= NOW()), 0) AS recent_count
-      FROM notifications n WHERE n.user_id = ? ${excludeExpiredAnnouncementNotifications}`, [userId]);
+      FROM notifications n WHERE n.user_id = ? ${excludeExpiredAnnouncementNotifications} ${excludeUnavailablePostNotifications} ${hideAdminCollectorMessages}`, [userId]);
     summary = { history_total: Number(counts[0].history_total), unread_count: Number(counts[0].unread_count), unread_content_count: Number(counts[0].unread_content_count), recent_count: Number(counts[0].recent_count) };
   }
 
@@ -413,7 +433,8 @@ const getUnreadCount = async (userId) => {
      FROM notifications n
      WHERE n.user_id = ?
        AND n.is_read = FALSE
-     ${excludeExpiredAnnouncementNotifications}`,
+     ${excludeExpiredAnnouncementNotifications}
+     ${excludeUnavailablePostNotifications}`,
     [userId],
   );
 
