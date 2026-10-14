@@ -31,7 +31,8 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const fill = async () => {
   fireEvent.change(screen.getByLabelText(/^Full name$/i), { target: { value: "Test Resident" } });
-  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "resident" } });
+  const username = screen.queryByLabelText("Username");
+  if (username) fireEvent.change(username, { target: { value: "resident" } });
   fireEvent.change(screen.getByLabelText(/^Phone number$/i), { target: { value: "9123456789" } });
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Barangay" })).not.toBeDisabled());
   fireEvent.click(screen.getByRole("combobox", { name: "Barangay" }));
@@ -63,7 +64,7 @@ it("reconciles missed street changes automatically while setup is open", async (
     expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
   } finally { vi.useRealTimers(); }
 });
-it("can save without a street after all previously listed streets are removed", async () => {
+it("blocks setup after all previously listed streets are removed", async () => {
   const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...pending, profile_completed: true });
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
@@ -71,7 +72,15 @@ it("can save without a street after all previously listed streets are removed", 
   await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Street" })).toBeDisabled());
   fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
-  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: null })));
+  expect(screen.getByRole("button", { name: /^Save and continue$/i })).toBeDisabled();
+  expect(screen.getByText(/Contact MENRO to add your street before completing setup/)).toBeInTheDocument();
+  fireEvent.submit(screen.getByRole("form", { name: /Complete your resident profile/i }));
+  expect(save).not.toHaveBeenCalled();
+  expect(useAuthStore.getState().user?.profile_completed).toBe(false);
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street" }] });
+  await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Save and continue$/i })).not.toBeDisabled());
+  expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
 });
 it("requires setup before mounting resident features and skips it for completed accounts", async () => {
   const view = render(<MemoryRouter><ResidentLayout /></MemoryRouter>);
@@ -91,7 +100,7 @@ it("retains the draft after failure and completes only after server success", as
   expect(useAuthStore.getState().user?.profile_completed).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(useAuthStore.getState().user?.profile_completed).toBe(true));
-  expect(save).toHaveBeenLastCalledWith({ full_name: "Test Resident", username: "resident", phone: "+639123456789", barangay_id: "barangay-a", street_id: "street-a" });
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ full_name: "Test Resident", username: "resident", email: "resident@example.test", phone: "+639123456789", barangay_id: "barangay-a", street_id: "street-a" }));
 });
 it("allows selecting a saved street even when collection service is unavailable", async () => {
   vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [{ id: "street-a", name: "Main Street" }] });
@@ -103,7 +112,6 @@ it("allows selecting a saved street even when collection service is unavailable"
   await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: "street-a" })));
 });
 it.each([
-  { value: "", message: "Enter your phone number" },
   { value: "8123456789", message: "Enter a 10-digit Philippine mobile number starting with 9" },
   { value: "91234", message: "Enter a 10-digit Philippine mobile number starting with 9" },
 ])("requires a valid contact phone before saving ($value)", async ({ value, message }) => {
@@ -111,14 +119,41 @@ it.each([
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
   const phone = screen.getByLabelText(/^Phone number$/i);
-  expect(phone).toBeRequired();
-  expect(phone).toHaveAccessibleDescription(/staff can contact you.*report/);
+  expect(phone).not.toBeRequired();
   fireEvent.change(phone, { target: { value } });
   fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   expect(await screen.findByText(message)).toBeInTheDocument();
   expect(phone).toHaveAttribute("aria-invalid", "true");
   expect(save).not.toHaveBeenCalled();
   expect(useAuthStore.getState().user?.profile_completed).toBe(false);
+});
+it("shows the signup username once outside the form and saves without optional contacts", async () => {
+  const modern = { ...pending, username: "resident", email: null };
+  useAuthStore.setState({ user: modern });
+  const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...modern, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  await fill();
+  expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
+  expect(screen.getByText(/Signed in as/)).toHaveTextContent("@resident");
+  fireEvent.change(screen.getByLabelText(/^Phone number$/i), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ username: "resident", phone: null, email: null })));
+});
+it("keeps a selected avatar after a failed save and saves it with the completed profile", async () => {
+  const chosen = "/profile-avatars/avatar-7.png";
+  const save = vi.spyOn(authService, "completeResidentProfile").mockRejectedValueOnce(new Error("Couldn't save your profile. Please retry."))
+    .mockResolvedValue({ ...pending, avatar_url: chosen, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  await fill();
+  fireEvent.click(screen.getByRole("button", { name: "Choose profile avatar" }));
+  expect(screen.getByRole("group", { name: "Profile avatars" }).querySelectorAll("button")).toHaveLength(10);
+  fireEvent.click(screen.getByRole("button", { name: "Select Man with styled hair on blue avatar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
+  await screen.findByText("Couldn't save your profile. Please retry.");
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ avatar_url: chosen }));
+  fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
+  await waitFor(() => expect(useAuthStore.getState().user?.avatar_url).toBe(chosen));
 });
 it("ignores a setup response after the signed-in account changes", async () => {
   let finish!: (value: User) => void;

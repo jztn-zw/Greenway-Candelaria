@@ -36,7 +36,7 @@ export const useLiveTracking = ({ truckId, routeId, isRouteEnded, isTrackingEnab
     setLastPing(null);
     setGpsError(null);
     if (!truckId || !routeId || isRouteEnded || !isTrackingEnabled) return;
-    const next = () => { if (!cancelled) timer = setTimeout(send, 5000); };
+    const next = () => { if (!cancelled) timer = setTimeout(send, 10_000); };
     const send = () => {
       if (cancelled) return;
       if (!navigator.onLine) { setGpsError("Offline. GPS will resume with a fresh location when connected."); next(); return; }

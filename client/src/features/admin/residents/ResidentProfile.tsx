@@ -17,12 +17,11 @@ MapPin,
 CalendarDays,
 Clock,
 ShieldCheck,
-UserX,
+Ban,
 UserCheck,
 FileText,
 } from "lucide-react";
 import type { Resident } from "./types";
-import { usePendingAction } from "@/hooks/usePendingAction";
 import { adminResidentManagerStyles as styles } from "@/components/common/communityContentStyles";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +51,6 @@ interface Props {
 }
 
 const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
-  const statusAction = usePendingAction();
   return (
     <div className={styles.page}>
       <div>
@@ -89,28 +87,27 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
               <p className="text-xs text-muted-foreground mt-0.5">
                 {resident.username ? `@${resident.username}` : "Username not set"}
               </p>
+              {resident.profileCompleted === false && <Badge variant="outline" className="mt-2 text-ui-caption text-muted-foreground">Profile Incomplete</Badge>}
             </div>
           </div>
 
-          {onToggleStatus && (
+          {onToggleStatus && resident.status !== "Deactivated" && (
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                variant="outline"
+                variant={resident.status === "Active" ? "destructive-outline" : "outline"}
                 size="sm"
-                onClick={() => void statusAction.run(() => onToggleStatus(resident))}
-                loading={statusAction.isPending}
-                loadingLabel="Updating account…"
+                onClick={() => void onToggleStatus(resident)}
                 className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
               >
                 {resident.status === "Active" ? (
                   <>
-                    <UserX className="w-3.5 h-3.5 text-muted-foreground" />
-                    Deactivate
+                    <Ban className="w-3.5 h-3.5" aria-hidden="true" />
+                    Ban Resident
                   </>
                 ) : (
                   <>
                     <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                    {resident.status === "Banned" ? "Unban" : "Reactivate"}
+                    Unban Resident
                   </>
                 )}
               </Button>

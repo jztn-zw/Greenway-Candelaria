@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, SquarePen, Users } from "lucide-react";
+import { profileAvatarForAccount, profileAvatarSrc } from "@/components/common/profileAvatars";
+import { ProfileAvatarImage, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
+import { FormDialog } from "@/components/dialogs/FormDialog";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,9 +19,12 @@ export default function ResidentSetup() {
   const navigate = useNavigate();
   const logout = useLogout();
   const user = useAuthStore(state => state.user);
+  const [avatar, setAvatar] = useState(() => profileAvatarForAccount(user?.id, user?.avatar_url));
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [username, setUsername] = useState(user?.username || "");
   const [phone, setPhone] = useState(user?.phone?.replace(/^\+63/, "") || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [barangay, setBarangay] = useState("");
   const [street, setStreet] = useState("");
   // Pending accounts cannot join the full resident socket stream. Reconcile
@@ -42,11 +49,12 @@ export default function ResidentSetup() {
     const next: Record<string, string> = {};
     if (fullName.trim().length < 2 || fullName.trim().length > 100) next.full_name = "Enter your full name (2–100 characters)";
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) next.username = "Use 3–20 letters, numbers, or underscores";
-    if (!phone) next.phone = "Enter your phone number";
-    else if (!/^9\d{9}$/.test(phone)) next.phone = "Enter a 10-digit Philippine mobile number starting with 9";
+    if (phone && !/^9\d{9}$/.test(phone)) next.phone = "Enter a 10-digit Philippine mobile number starting with 9";
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = "Enter a valid email address";
     if (!barangay || !barangays.some(row => row.id === barangay)) next.barangay_id = "Select your barangay";
     const selectedStreet = streets.find(row => row.id === street);
-    if (streets.length && !selectedStreet) next.street_id = "Select your street";
+    if (barangay && !streets.length) next.street_id = "No streets are listed for this barangay. Contact MENRO to add your street before completing setup.";
+    else if (!selectedStreet) next.street_id = "Select your street";
     setErrors(next);
     if (Object.keys(next).length) return;
     const owner = useAuthStore.getState();
@@ -54,7 +62,8 @@ export default function ResidentSetup() {
     setSaving(true);
     try {
       const updated = await completeProfile({ full_name: fullName.trim(), username: username.trim(),
-        phone: `+63${phone}`, barangay_id: barangay, street_id: selectedStreet?.id ?? null });
+        avatar_url: profileAvatarSrc(avatar),
+        email: email.trim() || null, phone: phone ? `+63${phone}` : null, barangay_id: barangay, street_id: selectedStreet?.id ?? null });
       if (!isCurrent()) return;
       if (updated.id !== owner.user?.id || updated.profile_completed !== true) throw new Error("Couldn't confirm your saved profile. Please retry.");
       useAuthStore.getState().setUser(updated);
@@ -72,65 +81,85 @@ export default function ResidentSetup() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground lg:flex lg:items-center">
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:w-full lg:max-w-4xl lg:py-6">
-        <form onSubmit={save} noValidate aria-labelledby="setup-title" className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="px-5 pb-6 pt-6 sm:px-8 sm:pt-8">
-            <h1 id="setup-title" className="font-display text-ui-page font-semibold tracking-tight">Complete Your Resident Profile</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Add your details and collection area to get started.</p>
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        <form onSubmit={save} noValidate aria-labelledby="setup-title" className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
+          <div className="flex items-start gap-4 border-b border-border/60 bg-muted/20 px-5 py-5 sm:px-7 sm:py-6">
+            <button type="button" aria-label="Choose profile avatar" disabled={saving} onClick={() => setAvatarOpen(true)} className="relative size-14 shrink-0 rounded-full border border-primary/20 bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+              <ProfileAvatarImage avatarId={avatar} />
+              <span aria-hidden="true" className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border border-border/80 bg-card text-primary shadow-2xs"><SquarePen className="size-3" /></span>
+            </button>
+            <div className="min-w-0">
+              <h1 id="setup-title" className="font-display text-ui-page font-semibold leading-snug tracking-tight">Complete Your Resident Profile</h1>
+              <p className="mt-1 text-ui-label leading-relaxed text-muted-foreground">Add your name and collection area to get started.</p>
+              {user?.username && <p className="mt-2 break-words text-ui-caption text-muted-foreground">Signed in as <span className="font-medium text-foreground">@{user.username}</span></p>}
+            </div>
           </div>
           <fieldset disabled={saving} className="min-w-0">
-            <div className="space-y-6 px-5 pb-7 sm:px-8">
+            <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
               {errors.form && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
-              <section aria-labelledby="setup-personal-heading">
-                <h2 id="setup-personal-heading" className="mb-4 text-sm font-semibold">Personal Details</h2>
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor="setup-full-name">Full Name</Label>
-                    <Input id="setup-full-name" autoComplete="name" maxLength={100} value={fullName} onChange={event => { setFullName(event.target.value); clearError("full_name"); }} placeholder="Enter your full name" {...accessibility("full_name")} />
+              <section aria-label="Personal Details">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className={`space-y-2 ${user?.username ? "sm:col-span-2" : ""}`}>
+                    <Label className={formDialogStyles.label} htmlFor="setup-full-name">Full Name</Label>
+                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-full-name" autoComplete="name" maxLength={100} value={fullName} onChange={event => { setFullName(event.target.value); clearError("full_name"); }} placeholder="Enter your full name" {...accessibility("full_name")} />
                     {fieldError("full_name")}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="setup-username">Username</Label>
-                    <Input id="setup-username" autoComplete="username" maxLength={20} value={username} onChange={event => { setUsername(event.target.value); clearError("username"); }} placeholder="Choose a username" {...accessibility("username")} />
+                  {!user?.username && <div className="space-y-2">
+                    <Label className={formDialogStyles.label} htmlFor="setup-username">Username</Label>
+                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-username" autoComplete="username" maxLength={20} value={username} onChange={event => { setUsername(event.target.value); clearError("username"); }} placeholder="Choose a username" {...accessibility("username")} />
                     {fieldError("username")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="setup-phone">Phone Number</Label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input/80 px-3 text-sm text-muted-foreground">+63</span>
-                      <Input id="setup-phone" type="tel" inputMode="numeric" required maxLength={10} className="pl-16" placeholder="9XX XXX XXXX" value={phone} onChange={event => { setPhone(event.target.value.replace(/\D/g, "")); clearError("phone"); }} {...accessibility("phone")} aria-describedby={`setup-phone-help${errors.phone ? " setup-phone-error" : ""}`} />
-                    </div>
-                    {fieldError("phone")}
-                  </div>
+                  </div>}
                 </div>
-                <p id="setup-phone-help" className="mt-3 text-xs leading-relaxed text-muted-foreground">We need your phone number so staff can contact you if they need more information about a report.</p>
               </section>
-              <section aria-labelledby="setup-area-heading" className="border-t border-border pt-6">
+              <section aria-labelledby="setup-area-heading" className="border-t border-border/60 pt-5">
                 <h2 id="setup-area-heading" className="text-sm font-semibold">Collection Area</h2>
                 <p className="mb-4 mt-1 text-xs leading-relaxed text-muted-foreground">Choose your barangay and street in Candelaria.</p>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="setup-barangay">Barangay</Label>
-                    <SearchableSelect id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
+                    <Label className={formDialogStyles.label} htmlFor="setup-barangay">Barangay</Label>
+                    <SearchableSelect className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
                     {fieldError("barangay_id")}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="setup-street">Street</Label>
-                    <SearchableSelect id="setup-street" aria-label="Street" value={street} onValueChange={value => { setStreet(value); clearError("street_id"); }} options={streets.map(row => ({ value: row.id, label: row.area ? `${row.name} (${row.area})` : row.name }))} placeholder={!barangay ? "Select barangay first" : streetLoading ? "Loading streets…" : !streets.length ? "No streets listed" : "Select your street"} searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" disabled={saving || !barangay || streetLoading || !streets.length || Boolean(streetError)} {...accessibility("street_id")} />
+                    <Label className={formDialogStyles.label} htmlFor="setup-street">Street</Label>
+                    <SearchableSelect className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-street" aria-label="Street" value={street} onValueChange={value => { setStreet(value); clearError("street_id"); }} options={streets.map(row => ({ value: row.id, label: row.area ? `${row.name} (${row.area})` : row.name }))} placeholder={!barangay ? "Select barangay first" : streetLoading ? "Loading streets…" : !streets.length ? "No streets listed" : "Select your street"} searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" disabled={saving || !barangay || streetLoading || !streets.length || Boolean(streetError)} {...accessibility("street_id")} />
                     {fieldError("street_id")}
                   </div>
                 </div>
                 {(areaError || streetError) && <div role="alert" className="mt-3 flex items-center justify-between gap-3 text-sm text-destructive"><span>{areaError || streetError}</span><Button variant="outline" type="button" onClick={() => { if (areaError) void areasQuery.refetch(); if (streetError) void streetsQuery.refetch(); }}>Retry</Button></div>}
-                {barangay && !streetLoading && !streetError && !streets.length && <p className="mt-3 text-xs text-muted-foreground">No streets are listed for this barangay. You can continue with your barangay.</p>}
+                {barangay && !streetLoading && !streetError && !streets.length && <p className="mt-3 text-xs text-muted-foreground">No streets are listed for this barangay. Contact MENRO to add your street before completing setup.</p>}
+              </section>
+              <section aria-labelledby="setup-contact-heading" className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                <h2 id="setup-contact-heading" className="text-sm font-semibold">Contact Details <span className="font-normal text-muted-foreground">(Optional)</span></h2>
+                <p className="mb-4 mt-1 text-xs leading-relaxed text-muted-foreground">MENRO may use your email or phone number to ask for more details or follow up on a waste report. You can leave these blank and add them later in your profile.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className={formDialogStyles.label} htmlFor="setup-email">Email Address</Label>
+                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-email" type="email" autoComplete="email" maxLength={100} value={email} onChange={event => { setEmail(event.target.value); clearError("email"); }} placeholder="Enter your email address" {...accessibility("email")} />
+                    {fieldError("email")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={formDialogStyles.label} htmlFor="setup-phone">Phone Number</Label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input/80 px-3 text-sm text-muted-foreground">+63</span>
+                      <Input fieldSize="compact" id="setup-phone" type="tel" inputMode="numeric" maxLength={10} className="pl-16 min-h-11 sm:min-h-9" placeholder="9XX XXX XXXX" value={phone} onChange={event => { setPhone(event.target.value.replace(/\D/g, "")); clearError("phone"); }} {...accessibility("phone")} />
+                    </div>
+                    {fieldError("phone")}
+                  </div>
+                </div>
               </section>
             </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-border bg-muted/20 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-              <Button type="button" variant="destructive-ghost" size="lg" className="w-full sm:w-auto" disabled={saving} onClick={() => { void logout().catch(() => {}); }}>Log Out</Button>
-              <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={saving || areaLoading || streetLoading || Boolean(areaError || streetError)} loading={saving} loadingLabel="Saving profile…">Save and Continue<ArrowRight aria-hidden="true" /></Button>
+            <div className="flex flex-col-reverse gap-3 border-t border-border/60 bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+              <Button type="button" variant="destructive-ghost" size="sm" className="h-11 w-full sm:h-9 sm:w-auto" disabled={saving} onClick={() => { void logout().catch(() => {}); }}>Log Out</Button>
+              <Button type="submit" size="sm" className="h-11 w-full sm:h-9 sm:w-auto" disabled={saving || areaLoading || streetLoading || Boolean(areaError || streetError) || Boolean(barangay && !streets.length)} loading={saving} loadingLabel="Saving profile…">Save and Continue<ArrowRight aria-hidden="true" /></Button>
             </div>
           </fieldset>
         </form>
       </main>
+      <FormDialog open={avatarOpen} onOpenChange={setAvatarOpen} title="Choose Avatar" description="Choose a profile avatar for your account." icon={<Users />}
+        footer={<Button type="button" variant="outline" className={formDialogStyles.cancelButton} onClick={() => setAvatarOpen(false)}>Close</Button>}>
+        <ProfileAvatarPicker selected={avatar} onSelect={selected => { setAvatar(selected); setAvatarOpen(false); }} />
+      </FormDialog>
     </div>
   );
 }

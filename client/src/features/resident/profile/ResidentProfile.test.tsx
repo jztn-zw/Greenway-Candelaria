@@ -7,6 +7,7 @@ import { changePassword, updateProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import ResidentProfile from "./ResidentProfile";
 import authService from "@/services/authService";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mocks = vi.hoisted(() => ({
   profile: { id: "resident", full_name: "Test Resident", username: "test_resident", email: "resident@example.com",
@@ -42,7 +43,17 @@ afterEach(() => { act(() => root.unmount()); host.remove(); useAuthStore.getStat
 const button = (name: string) => [...document.querySelectorAll("button")].find(b => b.textContent?.trim() === name || b.getAttribute("aria-label") === name)!;
 const click = async (name: string) => { await act(async () => button(name).click()); };
 const change = (id: string, value: string) => act(() => Simulate.change(document.getElementById(id)!, { target: { value } } as never));
-const openField = async (index: number) => { await act(async () => [...document.querySelectorAll("button")].filter(b => b.textContent?.trim() === "Edit")[index].click()); };
+const openField = async (index: number) => click(`Edit ${["full name", "username", "phone number", "barangay & street"][index]}`);
+it("allows clearing an optional contact email and rejects malformed addresses", async () => {
+  await click("Edit email address");
+  change("resident-profile-field", "invalid");
+  await click("Save Changes");
+  expect(document.querySelector('[role="alert"]')).toHaveTextContent("Enter a valid email address.");
+  expect(updateProfile).not.toHaveBeenCalled();
+  change("resident-profile-field", "");
+  await click("Save Changes");
+  expect(updateProfile).toHaveBeenCalledWith({ email: "" });
+});
 
 it("offers only the ten supplied avatars and saves the selection", async () => {
   await click("Customize avatar");
@@ -51,6 +62,17 @@ it("offers only the ten supplied avatars and saves the selection", async () => {
   expect(updateProfile).toHaveBeenCalledWith({ avatar_url: "/profile-avatars/avatar-7.png" });
   expect(localStorage.getItem("greenway:resident-avatar:resident")).toBe("avatar-7");
   expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("opens password-confirmed deactivation from Profile and allows cancellation", async () => {
+  const client = new QueryClient();
+  await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentProfile /></MemoryRouter></QueryClientProvider>));
+  await click("Deactivate Account");
+  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Sign in again to reactivate your account.");
+  expect(document.getElementById("deactivation-password")).toHaveAttribute("type", "password");
+  await click("Cancel");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  client.clear();
 });
 
 it.each([0, 1, 2])("keeps resident profile field %i until discard is confirmed", async (index) => {

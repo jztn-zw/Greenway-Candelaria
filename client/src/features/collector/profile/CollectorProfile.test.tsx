@@ -6,12 +6,12 @@ import { Simulate } from "react-dom/test-utils";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import useAuthStore from "@/store/authStore";
-import { changePassword, fetchProfile, updateProfile } from "@/services/profileService";
+import { fetchProfile, updateProfile } from "@/services/profileService";
 import { fetchDriverMe } from "@/services/driverManagerService";
 import CollectorProfile from "./CollectorProfile";
 
 vi.mock("@/services/profileService", () => ({
-  fetchProfile: vi.fn(), updateProfile: vi.fn(), changePassword: vi.fn(),
+  fetchProfile: vi.fn(), updateProfile: vi.fn(),
 }));
 vi.mock("@/services/driverManagerService", () => ({
   fetchDriverMe: vi.fn(), reportTruckBreakdown: vi.fn(),
@@ -171,10 +171,16 @@ it.each([0, 1, 2])("preserves edits to collector profile field %i until discard 
   expect(document.querySelector('[role="dialog"]')).toBeNull(); expect(updateProfile).not.toHaveBeenCalled();
 });
 
-it("closes unchanged profile and empty password dialogs without a prompt", async () => {
+it("closes unchanged profile dialogs without a prompt", async () => {
   await renderProfile(); await click("Edit"); await click("Cancel");
   expect(document.querySelector('[role="dialog"]')).toBeNull();
-  await click("Change"); await click("Cancel"); expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("does not show collector email or password controls on the profile", async () => {
+  await renderProfile();
+  expect(document.body.textContent).not.toContain("Email Address");
+  expect(document.body.textContent).not.toContain("Security Password");
+  expect([...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Change")).toBe(false);
 });
 
 it("blocks profile dismissal during a save, retains failed edits, then saves successfully", async () => {
@@ -191,25 +197,6 @@ it("blocks profile dismissal during a save, retains failed edits, then saves suc
   vi.mocked(fetchProfile).mockResolvedValue({ ...profile, full_name: "Updated Collector" } as never);
   await click("Save Changes"); expect(updateProfile).toHaveBeenLastCalledWith({ full_name: "Updated Collector" });
   expect(document.querySelector('[role="dialog"]')).toBeNull(); expect(document.body.textContent).toContain("Updated Collector");
-});
-
-it("keeps password drafts and clears fields and visibility after discard", async () => {
-  await renderProfile(); await click("Change"); change("collector-current-password", "old-secret"); await click("Show current password");
-  await click("Cancel"); expect(document.body.textContent).toContain("Discard Password Changes?"); await click("Keep Editing");
-  expect(document.getElementById("collector-current-password")).toHaveValue("old-secret");
-  await click("Close dialog"); await click("Discard Changes"); await click("Change");
-  expect(document.getElementById("collector-current-password")).toHaveValue("");
-  expect(document.getElementById("collector-current-password")).toHaveAttribute("type", "password");
-  expect(changePassword).not.toHaveBeenCalled();
-});
-
-it("validates and saves a password without a discard prompt", async () => {
-  await renderProfile(); await click("Change"); await click("Update Password");
-  expect(document.querySelector('[role="alert"]')).toHaveTextContent("All fields are required");
-  change("collector-current-password", "old-secret"); change("collector-new-password", "new-secret"); change("collector-confirm-password", "new-secret");
-  vi.mocked(changePassword).mockResolvedValueOnce(undefined); await click("Update Password");
-  expect(changePassword).toHaveBeenCalledWith({ old_password: "old-secret", new_password: "new-secret" });
-  expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 
 it("asks for confirmation before logging out from the profile", async () => {
@@ -262,6 +249,24 @@ it("shows avatar saving feedback and keeps the confirmed avatar until the reques
   await act(async () => finish({ ...profile, avatar_url: "/profile-avatars/avatar-2.png" } as Awaited<ReturnType<typeof updateProfile>>));
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(useAuthStore.getState().user?.avatar_url).toBe("/profile-avatars/avatar-2.png");
+});
+
+it("keeps a confirmed avatar when its post-save refresh is cancelled or returns old data", async () => {
+  const previous = { ...profile, avatar_url: "/profile-avatars/avatar-1.png" };
+  vi.mocked(fetchProfile).mockResolvedValueOnce(previous as never);
+  await renderProfile();
+  const key = collectorKey("collector", "profile", "account");
+  const updated = { ...profile, avatar_url: "/profile-avatars/avatar-2.png" };
+  let finishRead!: (value: Awaited<ReturnType<typeof fetchProfile>>) => void;
+  vi.mocked(fetchProfile).mockImplementation(() => new Promise((resolve) => { finishRead = resolve; }));
+  vi.mocked(updateProfile).mockResolvedValueOnce(updated as never);
+  await click("Customize avatar");
+  await click("Select Woman with short hair on blue avatar");
+  expect(client.getQueryData(key)).toMatchObject(updated);
+  await act(async () => { await client.cancelQueries({ queryKey: key }); });
+  expect(client.getQueryData(key)).toMatchObject(updated);
+  await act(async () => { finishRead(previous as never); });
+  expect(client.getQueryData(key)).toMatchObject(updated);
 });
 
 it("clears avatar saving feedback after a failure and allows another attempt", async () => {

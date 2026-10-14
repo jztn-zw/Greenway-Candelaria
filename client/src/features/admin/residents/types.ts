@@ -6,6 +6,7 @@ export interface ResidentReport {
 }
 
 export interface Resident {
+  profileCompleted?: boolean;
   id: string;
   fullName: string;
   username: string;

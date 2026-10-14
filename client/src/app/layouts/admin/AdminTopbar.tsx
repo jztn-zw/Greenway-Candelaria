@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import AdminNotificationModal, { type AdminNotificationDetail } from "@/features/admin/notifications/AdminNotificationModal";
-import { getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
+import { getAdminCollectorMessageTarget, getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle } from "@/features/admin/notifications/notificationPresentation";
 import useNotifications from "@/features/admin/notifications/useAdminNotifications";
 import { NotificationRow } from "@/services/notificationsService";
 import { parseApiTimestamp } from "@/utils/date";
@@ -97,6 +97,17 @@ const AdminTopBar = () => {
   const handleNotificationClick = async (n: NotificationRow) => {
     if (!n.is_read) await markAsRead(n.id);
     setPopoverOpen(false);
+    if (n.ref_module === "driver-messages") {
+      const target = getAdminCollectorMessageTarget(n);
+      if (target) window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: target }));
+      else {
+        const { headline, message } = getAdminNotificationPresentation(n);
+        setModalNotification({ id: n.id, title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
+          message, type: n.type, created_at: n.created_at, time: formatRelativeTime(n.created_at),
+          ref_module: n.ref_module, metadata: n.metadata });
+      }
+      return;
+    }
     const destination = getAdminNotificationDestination(n);
     if (destination) navigate(destination);
     else {

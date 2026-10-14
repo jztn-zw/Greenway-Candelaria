@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   SquarePen,
   KeyRound,
-  UserX,
   UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,24 +103,15 @@ const DriverDetailView = ({
               <KeyRound className="w-3.5 h-3.5 text-muted-foreground" />
               Reset Password
             </Button>
-            <Button
+            {driver.status === "Deactivated" && <Button
               variant="outline"
               size="sm"
               onClick={() => onToggleStatus(driver)}
               className="h-9 px-3.5 rounded-xl font-medium text-xs cursor-pointer shadow-2xs gap-1.5"
             >
-              {driver.status === "Active" ? (
-                <>
-                  <UserX className="w-3.5 h-3.5 text-muted-foreground" />
-                  Deactivate
-                </>
-              ) : (
-                <>
-                  <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                  Reactivate
-                </>
-              )}
-            </Button>
+              <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+              Reactivate
+            </Button>}
           </div>
         </div>
 

@@ -145,6 +145,7 @@ export interface WasteReport {
   description: string;
   submittedAt: string;
   submitterName: string;
+  submitterId?: string;
   submitterEmail?: string;
   photos: ReportPhoto[];
   status: ReportStatus;

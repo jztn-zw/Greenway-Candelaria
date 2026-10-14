@@ -24,11 +24,11 @@ beforeEach(() => {
 afterEach(() => { cleanup(); api.defaults.adapter = originalAdapter; sessionStorage.clear(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 const open = (tab: "login" | "register" = "login") => render(<MemoryRouter><AuthModal open onOpenChange={() => {}} defaultTab={tab} /></MemoryRouter>);
 const fillLogin = () => {
-  fireEvent.change(screen.getByLabelText(/^Username or email$/i), { target: { value: "fixture-user" } });
+  fireEvent.change(screen.getByLabelText(/^Username$/i), { target: { value: "fixture-user" } });
   fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: "FixturePassword1!" } });
 };
 const fillRegister = () => {
-  fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: "fixture@example.test" } });
+  fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "fixture_user" } });
   fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: "FixturePassword1!" } });
   fireEvent.change(screen.getByLabelText(/^Confirm password$/i), { target: { value: "FixturePassword1!" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I agree/i }));
@@ -41,7 +41,7 @@ it("counts down login inline, blocks button and Enter submissions, and keeps the
   expect(screen.getByText(/Too many login attempts/i)).toBeInTheDocument();
   expect(screen.getByRole("timer")).toHaveTextContent("0:03");
   expect(button).toBeDisabled();
-  expect(screen.getByLabelText(/^Username or email$/i)).toHaveValue("fixture-user");
+  expect(screen.getByLabelText(/^Username$/i)).toHaveValue("fixture-user");
   expect(screen.getByLabelText(/^Password$/i)).toHaveValue("FixturePassword1!");
   await act(async () => { fireEvent.submit(button.closest("form")!); });
   expect(requests).toBe(1);
@@ -60,7 +60,7 @@ it("signup has its own cooldown and keeps registration details", async () => {
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Create My Account/i })); });
   expect(screen.getByText(/Too many signup attempts/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Create My Account/i })).toBeDisabled();
-  expect(screen.getByLabelText(/Email address/i)).toHaveValue("fixture@example.test");
+  expect(screen.getByLabelText(/Username/i)).toHaveValue("fixture_user");
   expect(screen.getByLabelText(/^Password$/i)).toHaveValue("FixturePassword1!");
   fireEvent.click(screen.getByRole("button", { name: /^Log In$/i }));
   expect(screen.getByRole("button", { name: /Log In to GreenWay/i })).toBeEnabled();

@@ -60,6 +60,7 @@ import { useEffect,useLayoutEffect,useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { mapResidentDetails,mapResidentListRow } from "./residentManager.utils";
 import ResidentProfileView from "./ResidentProfile";
+import ResidentBanDialog from "./ResidentBanDialog";
 import type { Resident } from "./types";
 
 const ITEMS_PER_PAGE = 10;
@@ -92,6 +93,7 @@ const AdminResidents = () => {
     Array<{ id: string; name: string }>
   >([]);
   const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
+  const [statusTarget, setStatusTarget] = useState<Resident | null>(null);
   const [viewingResident, setViewingResident] = useState<Resident | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const residentProfileId = searchParams.get("residentId");
@@ -135,27 +137,20 @@ const AdminResidents = () => {
     setSearchParams((current) => { const next = new URLSearchParams(current); next.delete("residentId"); next.delete("residentName"); return next; });
   }, [detailQuery.error, setSearchParams]);
 
-  const toggleStatus = async (resident: Resident) => {
-    try {
-      const newStatus = resident.status === "Active" ? "DEACTIVATED" : "ACTIVE";
-      await updateResidentStatus(resident.id, newStatus);
-      const action = newStatus === "DEACTIVATED"
-        ? "deactivated"
-        : resident.status === "Banned" ? "unbanned" : "reactivated";
-      toast.success(`${resident.fullName} ${action}`);
-      if (viewingResident && viewingResident.id === resident.id) {
-        setViewingResident({
-          ...viewingResident,
-          status: newStatus === "ACTIVE" ? "Active" : "Deactivated",
-          banReason: newStatus === "ACTIVE" ? null : viewingResident.banReason,
-        });
-      }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update resident status.",
-      );
-    }
+  const openStatusConfirmation = (resident: Resident) => {
+    if (resident.status !== "Deactivated") setStatusTarget(resident);
   };
+  const confirmStatusChange = async (resident: Resident, reason?: string) => {
+    const newStatus = resident.status === "Banned" ? "ACTIVE" : "BANNED";
+    const updated = await updateResidentStatus(resident.id, newStatus, reason);
+    const patch = { status: updated.status === "BANNED" ? "Banned" as const : "Active" as const, banReason: updated.ban_reason };
+    setResidents((previous) => previous.map((item) => item.id === resident.id ? { ...item, ...patch } : item));
+    setViewingResident((previous) => previous?.id === resident.id ? { ...previous, ...patch } : previous);
+    toast.success(`${resident.fullName} ${newStatus === "BANNED" ? "banned" : "unbanned"}`);
+  };
+  const statusDialog = statusTarget && <ResidentBanDialog
+    key={`${statusTarget.id}:${statusTarget.status}`} resident={statusTarget}
+    onClose={() => setStatusTarget(null)} onConfirm={confirmStatusChange} />;
 
   const deleteResident = async () => {
     if (!deleteTarget) return;
@@ -187,10 +182,10 @@ const AdminResidents = () => {
 
   if (residentProfileId && viewingResident?.id === residentProfileId) {
     return (
-      <ResidentProfileView
+      <><ResidentProfileView
         resident={viewingResident}
-        onToggleStatus={toggleStatus}
-      />
+        onToggleStatus={openStatusConfirmation}
+      />{statusDialog}</>
     );
   }
 
@@ -391,6 +386,7 @@ const AdminResidents = () => {
                             <span className="resident-manager-resident-name font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors text-left truncate block">
                               {r.fullName}
                             </span>
+                            {r.profileCompleted === false && <Badge variant="outline" className="mt-1 text-ui-caption text-muted-foreground">Profile Incomplete</Badge>}
                             <span className="resident-manager-inline-username text-ui-caption text-muted-foreground md:hidden truncate block mt-0.5">
                               {r.username ? `@${r.username}` : "Username not set"}
                             </span>
@@ -488,17 +484,17 @@ const AdminResidents = () => {
                               <Eye className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                               View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => void toggleStatus(r)}
-                              className="text-xs cursor-pointer gap-2"
+                            {r.status !== "Deactivated" && <DropdownMenuItem
+                              onClick={() => openStatusConfirmation(r)}
+                              className={`text-xs cursor-pointer gap-2 ${r.status === "Active" ? "text-destructive focus:bg-destructive/10 focus:text-destructive" : ""}`}
                             >
                               {r.status === "Active" ? (
-                                <UserX className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                <Ban className="size-3.5 shrink-0 text-destructive" aria-hidden="true" />
                               ) : (
                                 <UserCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                               )}
-                              {r.status === "Active" ? "Deactivate" : r.status === "Banned" ? "Unban" : "Reactivate"}
-                            </DropdownMenuItem>
+                              {r.status === "Active" ? "Ban Resident" : "Unban Resident"}
+                            </DropdownMenuItem>}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(r)}
@@ -528,6 +524,7 @@ const AdminResidents = () => {
         )}
       </div>
 
+      {statusDialog}
       {/* ── Delete Resident Confirmation Modal ── */}
       <ConfirmationDialog
         kind="dialog"

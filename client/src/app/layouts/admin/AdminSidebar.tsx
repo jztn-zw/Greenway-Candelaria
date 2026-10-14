@@ -93,14 +93,14 @@ const navGroups: NavGroup[] = [
     collapsible: true,
     items: [
       { title: "Waste Reports", url: "/admin/reports", icon: AlertTriangle },
-      { title: "Truck Tracking", url: "/admin/tracking", icon: Navigation },
+      { title: "Live Truck Tracking", url: "/admin/tracking", icon: Navigation },
     ],
   },
   {
     label: "ANALYTICS",
     collapsible: true,
     items: [
-      { title: "Analytics Dashboard", url: "/admin/analytics", icon: BarChart3 },
+      { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
       { title: "Audit Logs", url: "/admin/audit-logs", icon: ClipboardList },
     ],
   },

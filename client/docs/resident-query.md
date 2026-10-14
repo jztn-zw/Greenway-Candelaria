@@ -49,6 +49,18 @@ Mobile apps are outside this change.
 
 ## Boundaries
 
+Resident Profile offers password-confirmed self-deactivation. It waits for pending
+resident mutations, cancels account reads, and clears local authentication only
+after the server commits status, session revocation, and audit history together.
+No second logout request runs against the revoked session. Failure keeps the dialog
+and password open; rate limiting displays a live inline countdown. A late response
+cannot clear a newer login. Normal password login reactivates only residents with
+the server's self-deactivation marker, and issues a new session. Recovery codes can
+reset such an account's password without reactivating it; login completes the return.
+Bans and older administrative deactivations remain blocked. Stored preferences,
+reports, and history remain intact. Apply the reviewed database marker migration
+before using this action on an existing installation; see the server database README.
+
 Query keys include role and resident ID. Area-dependent reads also include barangay
 and street. The profile and its owner-only report totals use account scope, so a
 saved address change updates the profile in place without restarting its initial

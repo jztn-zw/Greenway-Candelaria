@@ -15,7 +15,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it.each([
   { tab: "login" as const, id: "identifier", value: "resident" },
-  { tab: "register" as const, id: "email", value: "resident@example.com" },
+  { tab: "register" as const, id: "reg-username", value: "resident" },
 ])("clears $id without submitting or closing the form and restores input focus", async ({ tab, id, value }) => {
   const close = vi.fn();
   render(<MemoryRouter><AuthModal open onOpenChange={close} defaultTab={tab} /></MemoryRouter>);

@@ -36,7 +36,8 @@ const mapResidentReportRow = (row: ResidentReportRow): ResidentReport => ({
 
 export const mapResidentListRow = (row: ResidentListRow): Resident => ({
   id: row.id,
-  fullName: row.full_name || "Profile not completed",
+  fullName: row.full_name || row.username || "Resident Account",
+  profileCompleted: row.profile_completed === undefined ? Boolean(row.full_name) : Boolean(row.profile_completed),
   username: row.username || "",
   avatarUrl: row.avatar_url,
   email: row.email,
@@ -53,7 +54,8 @@ export const mapResidentDetails = (
   reports: ResidentReportRow[],
 ): Resident => ({
   id: details.id,
-  fullName: details.full_name || "Profile not completed",
+  fullName: details.full_name || details.username || "Resident Account",
+  profileCompleted: details.profile_completed === undefined ? Boolean(details.full_name) : Boolean(details.profile_completed),
   username: details.username || "",
   avatarUrl: details.avatar_url,
   email: details.email,

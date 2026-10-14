@@ -5,7 +5,7 @@ export interface DriverApiRow {
   user_id: string;
   full_name: string;
   username: string;
-  email: string;
+  email: string | null;
   avatar_url?: string | null;
   phone?: string | null;
   account_status?: string;
@@ -45,7 +45,7 @@ export const fetchDrivers = async (): Promise<DriverApiRow[]> => {
 export const createDriver = async (payload: {
   full_name: string;
   username: string;
-  email: string;
+  email?: string | null;
   phone?: string;
   password: string;
   truck_id?: string | null;
@@ -134,7 +134,7 @@ export interface DriverMeData {
   user_id: string;
   full_name: string;
   username: string;
-  email: string;
+  email: string | null;
   phone?: string | null;
   account_status: string;
   avatar_url?: string | null;

@@ -10,7 +10,6 @@ import {
   Eye,
   SquarePen,
   KeyRound,
-  UserX,
   UserCheck,
   Trash2,
 } from "lucide-react";
@@ -157,14 +156,10 @@ const DriverCardGrid = ({
                           <KeyRound className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                           Reset Password
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onToggleStatus(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
-                          {d.status === "Active" ? (
-                            <UserX className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                          ) : (
-                            <UserCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                          )}
-                          {d.status === "Active" ? "Deactivate" : "Reactivate"}
-                        </DropdownMenuItem>
+                        {d.status === "Deactivated" && <DropdownMenuItem onClick={() => onToggleStatus(d)} className="text-xs cursor-pointer focus:bg-muted focus:text-foreground gap-2">
+                          <UserCheck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          Reactivate
+                        </DropdownMenuItem>}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(d)}

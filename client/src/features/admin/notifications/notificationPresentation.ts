@@ -23,6 +23,14 @@ export const getAdminNotificationMetadata = (notification: Pick<NotificationRow,
   }
 };
 
+export const getAdminCollectorMessageTarget = (notification: NotificationRow) => {
+  if (notification.ref_module !== "driver-messages") return null;
+  const metadata = getAdminNotificationMetadata(notification);
+  const driverId = typeof metadata.driver_id === "string" ? metadata.driver_id.trim() : "";
+  const messageId = typeof metadata.message_id === "string" ? metadata.message_id.trim() : "";
+  return driverId ? { driverId, messageId: messageId || undefined } : null;
+};
+
 /** One headline/message contract for the admin feed, bell menu, and detail dialog. */
 export const getAdminNotificationPresentation = (notification: NotificationRow) => {
   const cleanedTitle = (notification.title || "").replace(/🚨|⚠️|⚠/g, "").trim();

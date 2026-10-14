@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { adminKey } from "@/lib/adminQuery";
 import useAuthStore from "@/store/authStore";
-import { deleteRoute, updateRoute } from "@/services/routesService";
+import { createRoute, deleteRoute, updateRoute } from "@/services/routesService";
 import { useRoutes, type RouteData } from "./useRoutes";
+import { toast } from "@/lib/toast";
 
 vi.mock("@/lib/adminQuery", async (original) => ({
   ...await original<typeof import("@/lib/adminQuery")>(),
@@ -27,6 +28,16 @@ beforeEach(() => {
   act(() => root.render(<QueryClientProvider client={client}><Harness /></QueryClientProvider>));
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
+
+it("shows success only after a draft save has finished", async () => {
+  let finish!: () => void;
+  vi.mocked(createRoute).mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve({ id: "saved", day_of_week: "THURSDAY", truck_id: "chosen-truck", truck_name: "Truck 2", truck_plate: "ABC", driver_id: "chosen-collector", driver_name: "Collector", start_time: "06:00", status: "ACTIVE", stops: [] }); }));
+  let operation!: ReturnType<typeof actions.createNew>;
+  act(() => { operation = actions.createNew({ day: "Thursday", truckId: "chosen-truck", driverId: "chosen-collector", startTime: "06:00", selectedBarangayId: "", barangays: [] }); });
+  expect(toast.success).not.toHaveBeenCalled();
+  await act(async () => { finish(); await operation; });
+  expect(toast.success).toHaveBeenCalledExactlyOnceWith("Route created successfully");
+});
 
 it.each(["success", "failure"])("keeps route status until the real update settles (%s)", async (result) => {
   let resolve!: () => void; let reject!: (error: Error) => void;

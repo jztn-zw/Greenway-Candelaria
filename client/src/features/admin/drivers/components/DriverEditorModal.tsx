@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { X, UserPlus, UserCheck } from "lucide-react";
+import { X, UserPlus, UserCheck, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
 import type { Driver, Truck } from "../types";
@@ -24,7 +24,6 @@ interface DriverEditorModalProps {
   isSaving?: boolean;
   onSave: (data: {
     fullName: string;
-    email?: string;
     username?: string;
     password?: string;
     contactNumber: string;
@@ -43,12 +42,12 @@ const DriverEditorModal = ({
   onSave,
 }: DriverEditorModalProps) => {
   const [formName, setFormName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
   const [formUsername, setFormUsername] = useState("");
   const [formPassword, setFormPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formContact, setFormContact] = useState("");
   const [formTruckId, setFormTruckId] = useState<string>("none");
-  const [errors, setErrors] = useState<Partial<Record<"name" | "contact" | "email" | "username" | "password" | "form", string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<"name" | "contact" | "username" | "password" | "form", string>>>({});
 
   const clearError = (field: keyof typeof errors) => setErrors((current) => {
     if (!current[field]) return current;
@@ -69,9 +68,9 @@ const DriverEditorModal = ({
 
   const resetForm = () => {
     setFormName("");
-    setFormEmail("");
     setFormUsername("");
     setFormPassword("");
+    setShowPassword(false);
     setFormContact("");
     setFormTruckId("none");
     setErrors({});
@@ -82,9 +81,9 @@ const DriverEditorModal = ({
 
     if (editingDriver) {
       setFormName(editingDriver.fullName);
-      setFormEmail(editingDriver.email);
       setFormUsername(editingDriver.username);
       setFormPassword("");
+      setShowPassword(false);
       setFormContact(editingDriver.contactNumber);
       setFormTruckId(editingDriver.truckId || "none");
       return;
@@ -107,12 +106,11 @@ const DriverEditorModal = ({
     return (
       formName.trim() !== "" ||
       formContact.trim() !== "" ||
-      formEmail.trim() !== "" ||
       formUsername.trim() !== "" ||
       formPassword !== "" ||
       formTruckId !== "none"
     );
-  }, [editingDriver, formName, formContact, formEmail, formUsername, formPassword, formTruckId]);
+  }, [editingDriver, formName, formContact, formUsername, formPassword, formTruckId]);
 
   const handleOpenChange = (v: boolean) => {
     if (!v) resetForm();
@@ -132,9 +130,8 @@ const DriverEditorModal = ({
     const nextErrors: typeof errors = {};
     if (!formName.trim()) nextErrors.name = "Enter the collector's full name.";
     if (!formContact.trim()) nextErrors.contact = "Enter a contact number.";
+    else if (!/^09\d{9}$/.test(formContact)) nextErrors.contact = "Enter an 11-digit Philippine mobile number starting with 09.";
     if (!isEditing) {
-      if (!formEmail.trim()) nextErrors.email = "Enter an email address.";
-      else if (!/^\S+@\S+\.\S+$/.test(formEmail.trim())) nextErrors.email = "Enter a valid email address.";
       if (formUsername.trim().length < 3) nextErrors.username = "Username must be at least 3 characters.";
       if (formPassword.length < 6) nextErrors.password = "Password must be at least 6 characters.";
     }
@@ -144,7 +141,7 @@ const DriverEditorModal = ({
     }
     try {
       await onSave({
-        fullName: formName.trim(), email: formEmail.trim() || undefined, username: formUsername.trim() || undefined,
+        fullName: formName.trim(), username: formUsername.trim() || undefined,
         password: formPassword, contactNumber: formContact.trim(), truckId: formTruckId === "none" ? null : formTruckId,
       });
       handleOpenChange(false);
@@ -248,28 +245,6 @@ const DriverEditorModal = ({
                 </div>
               </div>
 
-              {/* Row 2: Email Address */}
-              <div className="space-y-1.5">
-                <Label htmlFor="driver-email" className="text-xs font-medium text-foreground">
-                  Email Address
-                </Label>
-                <Input
-                  id="driver-email"
-                  type="email"
-                  value={formEmail}
-                  onChange={(e) => { setFormEmail(e.target.value); clearError("email"); }}
-                  placeholder="collector@greenway.ph"
-                  disabled={isEditing}
-                  aria-invalid={Boolean(errors.email)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3 disabled:opacity-60", errors.email ? "border-destructive" : "border-border/80")}
-                />
-                {errors.email && <p className="text-ui-caption font-medium text-destructive">{errors.email}</p>}
-                {isEditing && (
-                  <p className="text-ui-caption text-muted-foreground">
-                    Email address cannot be changed once registered.
-                  </p>
-                )}
-              </div>
-
               {/* Row 3: Username & Password (Create Mode only) */}
               {!isEditing && (
                 <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -291,33 +266,35 @@ const DriverEditorModal = ({
                     <Label htmlFor="driver-password" className="text-xs font-medium text-foreground">
                       Initial Password
                     </Label>
+                    <div className="relative">
                     <Input
                       id="driver-password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
                       value={formPassword}
                       onChange={(e) => { setFormPassword(e.target.value); clearError("password"); }}
                       placeholder="At least 6 characters"
-                      aria-invalid={Boolean(errors.password)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.password ? "border-destructive" : "border-border/80")}
+                      aria-invalid={Boolean(errors.password)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs pl-3 pr-11", errors.password ? "border-destructive" : "border-border/80")}
                     />
+                    <Button type="button" variant="ghost" size="icon" className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2"
+                      aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}
+                      disabled={isSaving} onClick={() => setShowPassword((visible) => !visible)}>
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </Button>
+                    </div>
                     {errors.password && <p className="text-ui-caption font-medium text-destructive">{errors.password}</p>}
                   </div>
                 </div>
               )}
 
               {/* Row 4: Assigned Truck */}
-              <div className="space-y-1.5">
+              {isEditing && <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">Assigned Truck</Label>
-                {availableTrucks.length === 0 && !isEditing ? (
-                  <p className="text-xs text-muted-foreground bg-muted/20 rounded-lg px-3 py-2.5 border border-border/60">
-                    All operational trucks are currently assigned.
-                  </p>
-                ) : (
                   <SearchableSelect value={formTruckId} onValueChange={setFormTruckId}
                     options={[{ value: "none", label: "No Truck Assigned" }, ...availableTrucks.map((t) => ({ value: t.id, label: `${t.name} — ${t.model} (${t.plateNumber})` }))]}
                     placeholder="Select a truck" aria-label="Assigned Truck" searchPlaceholder="Search by truck name or plate…" compactSearchPlaceholder="Truck name or plate…" fieldSize="compact"
                     className="h-9 text-xs rounded-xl bg-background border-border/80 shadow-2xs px-3" />
-                )}
-              </div>
+              </div>}
             </div>
 
             {/* Modal Footer (Pinned / Sticky) */}

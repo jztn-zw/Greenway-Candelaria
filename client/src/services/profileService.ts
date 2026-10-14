@@ -20,6 +20,7 @@ export interface UserProfile {
 }
 
 export interface UpdateProfilePayload {
+  email?: string | null;
   full_name?: string;
   username?: string;
   phone?: string;

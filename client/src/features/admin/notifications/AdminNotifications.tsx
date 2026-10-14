@@ -24,7 +24,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-import { getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
+import { getAdminCollectorMessageTarget, getAdminNotificationDestination, getAdminNotificationPresentation, getNotificationIconAndStyle, type AdminCategory } from "./notificationPresentation";
 
 const tabs: FilterPillItem<AdminCategory>[] = [
   { id: "all", label: "All" },
@@ -75,6 +75,25 @@ const AdminNotifications: React.FC = () => {
       await markAsRead(n.id);
     }
 
+    if (n.ref_module === "driver-messages") {
+      const target = getAdminCollectorMessageTarget(n);
+      if (target) window.dispatchEvent(new CustomEvent("admin:open-messages", { detail: target }));
+      else {
+        const { headline, message } = getAdminNotificationPresentation(n);
+        setModalNotification({
+          id: n.id,
+          title: [headline.prefix, headline.connector, headline.highlight].filter(Boolean).join(" "),
+          message,
+          created_at: n.created_at,
+          time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
+          type: n.type,
+          ref_module: n.ref_module,
+          metadata: n.metadata,
+        });
+        setModalOpen(true);
+      }
+      return;
+    }
     const destination = getAdminNotificationDestination(n);
     if (destination) {
       navigate(destination);

@@ -3,6 +3,7 @@ import api from "@/lib/api";
 export type ResidentAccountStatus = "ACTIVE" | "DEACTIVATED" | "BANNED";
 
 export interface ResidentListRow {
+  profile_completed?: boolean | number;
   id: string;
   full_name: string | null;
   username: string | null;
@@ -28,6 +29,7 @@ export interface ResidentListResponse {
 }
 
 export interface ResidentDetailsRow {
+  profile_completed?: boolean | number;
   id: string;
   full_name: string | null;
   username: string | null;
@@ -88,7 +90,7 @@ export const fetchResidentById = async (
 
 export const updateResidentStatus = async (
   id: string,
-  status: ResidentAccountStatus,
+  status: "ACTIVE" | "BANNED",
   ban_reason?: string,
 ): Promise<ResidentDetailsRow> => {
   const { data } = await api.put<{ data: ResidentDetailsRow }>(`/users/${id}/status`, {

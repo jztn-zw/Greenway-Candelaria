@@ -9,7 +9,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   hasHydrated: boolean;
-  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (identifier: string, password: string, rememberMe?: boolean, legacySetup?: boolean) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   ensureSession: (force?: boolean) => Promise<boolean>;
   setUser: (user: User) => void;
@@ -52,8 +52,8 @@ const useAuthStore = create<AuthState>()(
       isLoading: false,
       hasHydrated: false,
 
-      login: async (identifier, password, rememberMe = true) => {
-        await authenticate(() => authService.login({ identifier, password }), rememberMe);
+      login: async (identifier, password, rememberMe = true, legacySetup = false) => {
+        return authenticate(() => authService.login({ identifier: identifier.trim(), password, login_mode: legacySetup ? "legacy-setup" : "username" }), rememberMe);
       },
 
       logout: async () => {

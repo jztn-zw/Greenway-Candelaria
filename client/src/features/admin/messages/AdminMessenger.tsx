@@ -34,8 +34,8 @@ export const AdminMessenger = ({ drivers, trigger, onOpenChange, collectorNotice
   }, [linkedDriver, linkedMessage]);
   useEffect(() => {
     const handler = (event: Event) => {
-      const id = (event as CustomEvent<{ driverId?: string }>).detail?.driverId;
-      if (id) { setDriverId(id); setTargetId(undefined); setOpen(true); }
+      const detail = (event as CustomEvent<{ driverId?: string; messageId?: string }>).detail;
+      if (detail?.driverId) { setDriverId(detail.driverId); setTargetId(detail.messageId); setOpen(true); }
     };
     window.addEventListener("admin:open-messages", handler);
     return () => window.removeEventListener("admin:open-messages", handler);

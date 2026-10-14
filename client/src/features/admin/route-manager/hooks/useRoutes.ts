@@ -151,7 +151,7 @@ export const useRoutes = () => {
   const deleteRoute = useAdminMutation(apideleteRoute, "routes", "tracking", "drivers", "trucks", "schedule");
   const { data: routes, setData: setRoutes, isLoading, isFetching: isRefreshing, dataUpdatedAt, error: queryError, refetch: loadRoutes } =
     useAdminResource<RouteData[]>("routes", ["list"], async () => (await fetchRoutes()).map(mapRoute), []);
-  const [savingAction, setSavingAction] = useState<"route" | "duplicate" | null>(null);
+  const [savingAction, setSavingAction] = useState<"route" | null>(null);
   const error = queryError?.message ?? null;
 
 
@@ -240,40 +240,6 @@ export const useRoutes = () => {
     }
   }, [setRoutes, updateRoute]);
 
-  // ── Duplicate ─────────────────────────────────────────────────────────────────
-
-  const duplicate = useCallback(
-    async (route: RouteData, targetDay: Day): Promise<RouteData | null> => {
-      try {
-        setSavingAction("duplicate");
-        const raw = await createRoute({
-          truck_id: route.truckId,
-          driver_id: route.driverId ?? undefined,
-          day_of_week: DAY_REVERSE[targetDay],
-          start_time: route.startTime,
-          waste_type: WASTE_MAP[targetDay].label,
-          stops: route.stops.map((s) => ({
-            barangay_id: s.barangayId,
-            street_id: s.streetId ?? undefined,
-            stop_order: s.stopOrder,
-          })),
-        });
-        const mapped = mapRoute(raw);
-        setRoutes((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
-        toast.success(`Route duplicated to ${targetDay}`);
-        return mapped;
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to duplicate route.",
-        );
-        return null;
-      } finally {
-        setSavingAction(null);
-      }
-    },
-    [createRoute, setRoutes],
-  );
-
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   const remove = useCallback(async (id: string): Promise<boolean> => {
@@ -295,7 +261,6 @@ export const useRoutes = () => {
     isLoading,
     isSaving: savingAction !== null,
     isSavingRoute: savingAction === "route",
-    isDuplicating: savingAction === "duplicate",
     error,
     isRefreshing,
     hasLoadedData: dataUpdatedAt > 0,
@@ -303,7 +268,6 @@ export const useRoutes = () => {
     createNew,
     updateExisting,
     toggleActive,
-    duplicate,
     remove,
   };
 };

@@ -89,7 +89,10 @@ export const useResidentResource = <T,>(domain: string, parts: QueryKey, queryFn
   const scope = options.scope === "account" ? "account" : `${user?.barangay_id ?? ""}:${user?.street_id ?? ""}`;
   const serializedKey = hashKey(residentKey(userId, domain, scope, ...parts));
   const setData = useCallback((update: SetStateAction<T>) => {
-    client.setQueryData<T>(JSON.parse(serializedKey), (previous) =>
+    const queryKey: QueryKey = JSON.parse(serializedKey);
+    // Cancel the old read before committing newer profile, post, or GPS data.
+    void client.cancelQueries({ queryKey, exact: true });
+    client.setQueryData<T>(queryKey, (previous) =>
       typeof update === "function" ? (update as (previous: T) => T)(previous ?? initialRef.current) : update);
   }, [client, serializedKey]);
   return { ...query, data: query.data ?? initialRef.current, setData };

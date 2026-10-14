@@ -72,7 +72,11 @@ export const useAdminResource = <T,>(domain: string, parts: QueryKey, queryFn: (
   const userId = useAuthStore((state) => state.user?.id);
   const serializedKey = hashKey(adminKey(userId, domain, ...parts));
   const setData = useCallback((update: SetStateAction<T>) => {
-    client.setQueryData<T>(JSON.parse(serializedKey), (previous) =>
+    const queryKey: QueryKey = JSON.parse(serializedKey);
+    // Finish cancellation before the cache write so a later refresh cannot
+    // roll a confirmed change back to its snapshot from before the save.
+    void client.cancelQueries({ queryKey, exact: true });
+    client.setQueryData<T>(queryKey, (previous) =>
       typeof update === "function" ? (update as (previous: T) => T)(previous ?? initialRef.current) : update);
   }, [client, serializedKey]);
   return { ...query, data: query.data ?? initial, setData };

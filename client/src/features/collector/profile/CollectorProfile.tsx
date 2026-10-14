@@ -6,12 +6,8 @@ import { collectorKey,useCollectorAction,useCollectorQuery } from "@/lib/collect
 import {
 Calendar,
 User,
-Mail,
 Phone,
-Lock,
 Truck,
-Eye,
-EyeOff,
 Wrench,
 Users,
 ChevronRight,
@@ -36,7 +32,6 @@ import useLogout from "@/hooks/useLogout";
 import {
 fetchProfile,
 updateProfile,
-changePassword,
 UserProfile,
 } from "@/services/profileService";
 import {
@@ -59,16 +54,12 @@ const FieldRow = ({
   value,
   placeholder,
   icon: Icon,
-  masked,
-  isEmail,
   onEdit,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   icon: React.ElementType;
-  masked?: boolean;
-  isEmail?: boolean;
   onEdit?: () => void;
 }) => (
   <div className={styles.row}>
@@ -81,9 +72,7 @@ const FieldRow = ({
           {label}
         </p>
         <p className={styles.value}>
-          {masked ? (
-            "••••••••"
-          ) : value ? (
+          {value ? (
             value
           ) : (
             <span className="text-muted-foreground/60 font-normal italic">
@@ -93,23 +82,17 @@ const FieldRow = ({
         </p>
       </div>
     </div>
-    {isEmail ? (
-      <span className={styles.registeredEmail} title="Registered Email">
-        <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
-        <span aria-hidden="true" className="admin-profile-email-label">Registered Email</span>
-        <span className="sr-only">Registered Email</span>
-      </span>
-    ) : onEdit ? (
+    {onEdit ? (
       <Button
         type="button"
         variant="primary-outline"
         size="sm"
         onClick={onEdit}
-        aria-label={`${masked ? "Change" : "Edit"} ${label.toLowerCase()}`}
+        aria-label={`Edit ${label.toLowerCase()}`}
         className={styles.fieldAction}
       >
-        {!masked && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}
-        <span>{masked ? "Change" : "Edit"}</span>
+        <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />
+        <span>Edit</span>
       </Button>
     ) : null}
   </div>
@@ -154,30 +137,9 @@ const CollectorProfile = () => {
     error: "",
   });
 
-  // Password modal
-  const [pwModal, setPwModal] = useState<{
-    open: boolean;
-    oldPw: string;
-    newPw: string;
-    confirmPw: string;
-    showOld: boolean;
-    showNew: boolean;
-    saving: boolean;
-    error: string;
-  }>({
-    open: false,
-    oldPw: "",
-    newPw: "",
-    confirmPw: "",
-    showOld: false,
-    showNew: false,
-    saving: false,
-    error: "",
-  });
-
   const [breakdownModal, setBreakdownModal] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [discardTarget, setDiscardTarget] = useState<"profile" | "password" | null>(null);
+  const [discardTarget, setDiscardTarget] = useState<"profile" | null>(null);
 
   const avatarAccountId = profile?.id || driverData?.user_id || authUser?.id;
   useEffect(() => {
@@ -186,7 +148,8 @@ const CollectorProfile = () => {
     const selected = profileAvatarIdFromUrl(profile?.avatar_url);
     setAvatarId(selected ?? (isProfileAvatarId(saved) ? saved : profileAvatarForAccount(avatarAccountId, profile?.avatar_url)));
     if (!selected && !profile?.avatar_url && isProfileAvatarId(saved)) {
-      void updateProfile({ avatar_url: profileAvatarSrc(saved) }).then((updated) => {
+      void updateProfile({ avatar_url: profileAvatarSrc(saved) }).then(async (updated) => {
+        await client.cancelQueries({ queryKey: collectorKey(authUser?.id, "profile", "account"), exact: true });
         client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
         const current = useAuthStore.getState().user;
         if (current?.id === updated.id) setUser({ ...current, ...updated });
@@ -207,6 +170,7 @@ const CollectorProfile = () => {
       };
       await runProfileAction(async () => {
         const updated = await updateProfile(payload);
+        await client.cancelQueries({ queryKey: collectorKey(authUser?.id, "profile", "account"), exact: true });
         client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
         const current = useAuthStore.getState();
         if (current.user && current.user.id === authUser?.id && current.token === authToken) setUser({ ...current.user, ...payload });
@@ -230,57 +194,6 @@ const CollectorProfile = () => {
     }
   };
 
-  const handleSavePassword = async () => {
-    if (pwModal.saving) return;
-    if (!pwModal.oldPw || !pwModal.newPw || !pwModal.confirmPw) {
-      setPwModal((m) => ({ ...m, error: "All fields are required" }));
-      return;
-    }
-    if (pwModal.newPw.length < 8) {
-      setPwModal((m) => ({
-        ...m,
-        error: "New password must be at least 8 characters",
-      }));
-      return;
-    }
-    if (pwModal.newPw !== pwModal.confirmPw) {
-      setPwModal((m) => ({ ...m, error: "Passwords do not match" }));
-      return;
-    }
-    try {
-      setPwModal((m) => ({ ...m, saving: true, error: "" }));
-      await runProfileAction(() => changePassword({
-        old_password: pwModal.oldPw,
-        new_password: pwModal.newPw,
-      }));
-      toast.success("Password changed successfully");
-      setDiscardTarget(null);
-      setPwModal({
-        open: false,
-        oldPw: "",
-        newPw: "",
-        confirmPw: "",
-        showOld: false,
-        showNew: false,
-        saving: false,
-        error: "",
-      });
-    } catch (err: unknown) {
-      const errMsg =
-        typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
-        typeof (err as { response: { data: { message?: string } } }).response?.data?.message === "string"
-          ? (err as { response: { data: { message: string } } }).response.data.message
-          : "Failed to update password";
-      setPwModal((m) => ({
-        ...m,
-        saving: false,
-        error: errMsg,
-      }));
-    }
-  };
-
   const closeEdit = () => {
     if (editModal.saving) return;
     setDiscardTarget(null);
@@ -291,17 +204,6 @@ const CollectorProfile = () => {
     if (editModal.value !== editModal.initialValue) setDiscardTarget("profile");
     else closeEdit();
   };
-  const closePassword = () => {
-    if (pwModal.saving) return;
-    setDiscardTarget(null);
-    setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
-  };
-  const requestClosePassword = () => {
-    if (pwModal.saving) return;
-    if (pwModal.oldPw || pwModal.newPw || pwModal.confirmPw) setDiscardTarget("password");
-    else closePassword();
-  };
-
   if (isLoading) return <CollectorProfileSkeleton />;
 
   if (!profile && !driverData) {
@@ -309,7 +211,6 @@ const CollectorProfile = () => {
   }
 
   const displayName = profile?.full_name || driverData?.full_name || authUser?.full_name || "Collector";
-  const displayEmail = profile?.email || driverData?.email || authUser?.email || "";
   const displayPhone = profile?.phone || driverData?.phone || "";
   const displayUsername = profile?.username || driverData?.username || authUser?.username || "—";
   const hasAssignedTruck = Boolean(driverData?.truck_id);
@@ -326,6 +227,7 @@ const CollectorProfile = () => {
     setSavingAvatarId(selectedId);
     try {
       const updated = await runProfileAction(() => updateProfile({ avatar_url: profileAvatarSrc(selectedId) }));
+      await client.cancelQueries({ queryKey: collectorKey(authUser?.id, "profile", "account"), exact: true });
       client.setQueryData(collectorKey(authUser?.id, "profile", "account"), updated);
       if (authUser) setUser({ ...authUser, ...updated });
       localStorage.setItem(`greenway:collector-avatar:${avatarAccountId}`, selectedId);
@@ -509,13 +411,6 @@ const CollectorProfile = () => {
               }
             />
             <FieldRow
-              label="Email Address"
-              value={displayEmail}
-              icon={Mail}
-              isEmail={Boolean(displayEmail)}
-              placeholder="Email unavailable"
-            />
-            <FieldRow
               label="Phone Number"
               value={displayPhone}
               icon={Phone}
@@ -530,22 +425,6 @@ const CollectorProfile = () => {
                   saving: false,
                   error: "",
                 })
-              }
-            />
-            <FieldRow
-              label="Security Password"
-              value=""
-              icon={Lock}
-              masked
-              onEdit={() =>
-                setPwModal((m) => ({
-                  ...m,
-                  open: true,
-                  oldPw: "",
-                  newPw: "",
-                  confirmPw: "",
-                  error: "",
-                }))
               }
             />
           </div>
@@ -654,140 +533,12 @@ const CollectorProfile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Change Password Modal ── */}
-      <Dialog
-        open={pwModal.open}
-        onOpenChange={(open) => { if (!open) requestClosePassword(); }}
-      >
-        <DialogContent className={`${modalStyles.content} ${styles.dialog}`}>
-          <CollectorModalHeader title="Change Password" description="Enter your current and new password." icon={<Lock />} onClose={requestClosePassword} disabled={pwModal.saving} />
-
-          <div className={modalStyles.body}>
-            <div className="space-y-1.5">
-              <Label htmlFor="collector-current-password" className={modalStyles.label}>
-                Current Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="collector-current-password"
-                  disabled={pwModal.saving}
-                  autoComplete="current-password"
-                  type={pwModal.showOld ? "text" : "password"}
-                  value={pwModal.oldPw}
-                  onChange={(e) =>
-                    setPwModal((m) => ({ ...m, oldPw: e.target.value, error: "" }))
-                  }
-                  className={`${modalStyles.input} pr-10`}
-                />
-                <button
-                  type="button"
-                  aria-label={pwModal.showOld ? "Hide current password" : "Show current password"}
-                  disabled={pwModal.saving}
-                  onClick={() =>
-                    setPwModal((m) => ({ ...m, showOld: !m.showOld }))
-                  }
-                  className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                >
-                  {pwModal.showOld ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="collector-new-password" className={modalStyles.label}>
-                New Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="collector-new-password"
-                  disabled={pwModal.saving}
-                  autoComplete="new-password"
-                  type={pwModal.showNew ? "text" : "password"}
-                  value={pwModal.newPw}
-                  onChange={(e) =>
-                    setPwModal((m) => ({ ...m, newPw: e.target.value, error: "" }))
-                  }
-                  className={`${modalStyles.input} pr-10`}
-                />
-                <button
-                  type="button"
-                  aria-label={pwModal.showNew ? "Hide new password" : "Show new password"}
-                  disabled={pwModal.saving}
-                  onClick={() =>
-                    setPwModal((m) => ({ ...m, showNew: !m.showNew }))
-                  }
-                  className="gw-action-ghost absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                >
-                  {pwModal.showNew ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="collector-confirm-password" className={modalStyles.label}>
-                Confirm New Password
-              </Label>
-              <Input
-                id="collector-confirm-password"
-                disabled={pwModal.saving}
-                autoComplete="new-password"
-                type="password"
-                value={pwModal.confirmPw}
-                onChange={(e) =>
-                  setPwModal((m) => ({
-                    ...m,
-                    confirmPw: e.target.value,
-                    error: "",
-                  }))
-                }
-                className={modalStyles.input}
-              />
-            </div>
-
-            {pwModal.error && (
-              <p role="alert" className="text-xs text-destructive font-medium">
-                {pwModal.error}
-              </p>
-            )}
-          </div>
-          <div className={modalStyles.footer}>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={requestClosePassword}
-              disabled={pwModal.saving}
-              className={modalStyles.cancelButton}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSavePassword}
-              disabled={pwModal.saving}
-              className={modalStyles.primaryButton}
-              loading={pwModal.saving}
-              loadingLabel="Updating password…"
-            >
-              Update Password
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <UnsavedChangesDialog
         isOpen={discardTarget !== null} onClose={() => setDiscardTarget(null)}
-        onDiscard={() => { if (discardTarget === "password") closePassword(); else closeEdit(); }}
-        title={discardTarget === "password" ? "Discard Password Changes?" : "Discard Profile Changes?"}
-        description={discardTarget === "password" ? "Your entered passwords will be cleared." : "Your unsaved profile changes will be lost."}
-        discardLabel="Discard Changes" isSaving={discardTarget === "password" ? pwModal.saving : editModal.saving}
+        onDiscard={closeEdit}
+        title="Discard Profile Changes?"
+        description="Your unsaved profile changes will be lost."
+        discardLabel="Discard Changes" isSaving={editModal.saving}
       />
       <CollectorLogoutDialog open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={handleLogout} />
 

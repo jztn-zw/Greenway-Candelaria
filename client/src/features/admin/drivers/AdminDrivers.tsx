@@ -232,7 +232,6 @@ const AdminDrivers = () => {
 
   const handleSaveDriver = async (data: {
     fullName: string;
-    email?: string;
     username?: string;
     password?: string;
     contactNumber: string;
@@ -241,14 +240,13 @@ const AdminDrivers = () => {
     setIsSavingDriver(true);
     try {
       if (!editingDriver) {
-        if (!data.email || !data.username || !data.password) {
-          throw new Error("Email, username, and password are required.");
+        if (!data.username || !data.password) {
+          throw new Error("Username and password are required.");
         }
 
         await createDriver({
           full_name: data.fullName,
           username: data.username,
-          email: data.email,
           phone: data.contactNumber,
           password: data.password,
           ...(data.truckId ? { truck_id: data.truckId } : {}),
@@ -278,13 +276,9 @@ const AdminDrivers = () => {
   };
 
   const toggleDriverStatus = async (d: Driver) => {
-    const nextStatus = d.status === "Active" ? "DEACTIVATED" : "ACTIVE";
-
-    await updateDriverAccountStatus(d.id, nextStatus);
-
-    toast.success(
-      `${d.fullName} ${nextStatus === "ACTIVE" ? "reactivated" : "deactivated"}`,
-    );
+    if (d.status !== "Deactivated") return;
+    await updateDriverAccountStatus(d.id, "ACTIVE");
+    toast.success(`${d.fullName} reactivated`);
   };
 
   const deleteDriver = async () => {

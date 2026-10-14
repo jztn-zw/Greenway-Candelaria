@@ -62,7 +62,7 @@ export const AccountRecovery = ({ mode = "reset", onBack }: { mode?: "reset" | "
     <p className="text-sm text-muted-foreground">{generate ? "Confirm your GreenWay password to create a new recovery code. Any previous code will stop working." : "Use the recovery code you saved when creating your account."}</p>
     {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {!generate && <>
-      <div className="space-y-1.5"><Label htmlFor="recovery-identifier">Username or Email</Label><Input id="recovery-identifier" autoComplete="username" value={identifier} disabled={pending} onChange={event => setIdentifier(event.target.value)} /></div>
+      <div className="space-y-1.5"><Label htmlFor="recovery-identifier">Username</Label><Input id="recovery-identifier" autoComplete="username" placeholder="Enter your username" value={identifier} disabled={pending} onChange={event => setIdentifier(event.target.value)} /><p className="text-xs text-muted-foreground">For an unfinished signup without a username, use your original signup email.</p></div>
       <div className="space-y-1.5"><Label htmlFor="recovery-code">Recovery Code</Label><Input id="recovery-code" autoComplete="off" spellCheck={false} value={code} disabled={pending} onChange={event => setCode(event.target.value)} /></div>
     </>}
     <div className="space-y-1.5"><Label htmlFor="recovery-password">{generate ? "Current Password" : "New Password"}</Label><Input id="recovery-password" type="password" autoComplete={generate ? "current-password" : "new-password"} value={password} disabled={pending} onChange={event => setPassword(event.target.value)} /></div>

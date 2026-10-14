@@ -33,6 +33,7 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_USER: "Updated Account",
   DEACTIVATE_USER: "Deactivated Account",
   ACTIVATE_USER: "Activated Account",
+  REACTIVATE_USER: "Reactivated Account",
   BAN_USER: "Banned Account",
   UNBAN_USER: "Unbanned Account",
   DELETE_USER: "Deleted Account",
@@ -90,6 +91,7 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
   const isPositive =
     action === "UNBAN_USER" ||
     action === "ACTIVATE_USER" ||
+    action === "REACTIVATE_USER" ||
     action === "PUBLISH_POST";
 
   const isCritical =
@@ -201,6 +203,14 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
       const role = formatStatus(newVal.role || oldVal.role || "User");
       summary = `Unbanned and restored ${role} account for "${name}".`;
       beforeValue = "Banned";
+      afterValue = "Active";
+      break;
+    }
+
+    case "REACTIVATE_USER": {
+      const name = newVal.user_name || oldVal.user_name || "Resident";
+      summary = `Reactivated resident account for "${name}".`;
+      beforeValue = "Deactivated";
       afterValue = "Active";
       break;
     }
@@ -395,7 +405,9 @@ export const formatAuditEntry = (row: AuditLogRow): AuditLogEntry => {
     id: row.id,
     timestamp: row.created_at,
     adminName: action === "RATE_LIMITED" && !row.user_id ? "Unknown visitor" : row.user_name || "System",
-    adminRole: action === "RATE_LIMITED" && !row.user_id ? "Visitor" : row.user_role || "ADMIN",
+    adminRole: action === "RATE_LIMITED" && !row.user_id
+      ? "Visitor"
+      : row.user_role === "DRIVER" ? "COLLECTOR" : row.user_role || "ADMIN",
     actionType,
     module: moduleName,
     affectedRecord,

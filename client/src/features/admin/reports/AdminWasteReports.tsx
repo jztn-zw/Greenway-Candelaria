@@ -46,6 +46,7 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   description: r.description,
   submittedAt: r.created_at,
   submitterName: r.reporter_name || "Resident",
+  submitterId: r.user_id || undefined,
   submitterEmail: r.reporter_email || undefined,
   photos: (r.photos || []).map((p) => ({
     id: p.id,

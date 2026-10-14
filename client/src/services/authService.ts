@@ -3,15 +3,17 @@ import api from "@/lib/api";
 import { getAuthStorage } from "@/lib/authStorage";
 
 export interface RegisterData {
-  email: string;
+  username: string;
   password: string;
   confirm_password: string;
   terms_accepted: boolean;
 }
 export interface ResidentSetupData {
+  avatar_url?: string;
   full_name: string;
-  username: string;
-  phone: string;
+  username?: string;
+  email?: string | null;
+  phone?: string | null;
   barangay_id: string;
   street_id?: string | null;
 }
@@ -19,6 +21,7 @@ export interface ResidentSetupData {
 export interface LoginData {
   identifier: string;
   password: string;
+  login_mode?: "username" | "legacy-setup";
 }
 
 export interface User {
@@ -41,6 +44,7 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+  reactivated?: boolean;
 }
 
 const authService = {
@@ -58,14 +62,18 @@ const authService = {
   },
   register: async (data: RegisterData) => {
     const response = await api.post("/auth/register", data);
-    return response.data as { data: { email: string; recovery_code: string } };
+    return response.data as { data: { username: string; recovery_code: string } };
   },
 
   login: async (data: LoginData): Promise<AuthResponse> => {
     const response = await api.post("/auth/login", data);
-    const { token, user } = response.data.data;
+    const { token, user, reactivated } = response.data.data;
 
-    return { token, user };
+    return { token, user, ...(reactivated ? { reactivated: true } : {}) };
+  },
+
+  deactivateAccount: async (password: string): Promise<void> => {
+    await api.post("/auth/deactivate", { password });
   },
 
   logout: async () => {

@@ -1,4 +1,3 @@
-import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React,{ useState,useMemo,useEffect } from "react";
 import {
 Dialog,
@@ -100,9 +99,9 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
   const waste = WASTE_MAP[form.day];
   const isBio = waste.type === "biodegradable";
 
-  // Auto-derive driver and truck from selected truck
-  const assignedDriver = form.truckId
-    ? drivers.find((d) => d.truck_id === form.truckId) ?? null
+  // The collector's existing vehicle assignment supplies the route truck.
+  const assignedDriver = form.driverId
+    ? drivers.find((d) => d.id === form.driverId && d.truck_id === form.truckId) ?? null
     : null;
   const selectedTruck = form.truckId
     ? trucks.find((t) => t.id === form.truckId) ?? null
@@ -149,10 +148,10 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors: FormErrors = {};
-    if (!form.truckId) {
+    if (!form.truckId || !assignedDriver) {
       nextErrors.truck = trucks.length === 0
         ? `No truck is available for ${form.day}. Choose another day.`
-        : "Select a truck for this collection route.";
+        : "Select a collector with an available assigned truck.";
     }
     if (form.barangays.length === 0) {
       nextErrors.stops = "Add at least one street collection stop.";
@@ -298,6 +297,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 {/* ── LEFT COLUMN: Input Configuration ── */}
                 <div className="min-w-0 space-y-4">
                   {/* Step 1: Schedule & Assignment Card */}
+                  <p className="text-xs leading-relaxed text-muted-foreground">If today's collection has already ended, schedule changes apply from the next occurrence of the selected day.</p>
                   <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-4 shadow-2xs">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                       <h3 className="gw-heading text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -382,96 +382,40 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                     {/* Truck & Driver Assignment Row */}
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1.5">
-                        <div className="flex flex-wrap items-center justify-between gap-1.5">
-                          <Label className="text-xs font-medium text-foreground">
-                            Assigned Collection Truck
-                          </Label>
-                          {trucks.length > 0 && (
-                            <span className="text-ui-caption text-muted-foreground font-medium">
-                              {trucks.length} truck{trucks.length > 1 ? "s" : ""} available on {form.day}
-                            </span>
-                          )}
-                        </div>
-
+                        <Label htmlFor="route-collector" className="text-xs font-medium text-foreground">Assigned Collector</Label>
                         <SearchableSelect
+                          id="route-collector" value={form.driverId}
                           aria-invalid={Boolean(errors.truck)}
-                          aria-describedby={errors.truck ? "route-truck-error" : undefined}
-                          value={form.truckId}
-                          onValueChange={(val) => {
-                            const driver = drivers.find((d) => d.truck_id === val);
-                            setForm((prev) => ({
-                              ...prev,
-                              truckId: val,
-                              driverId: driver?.id ?? "",
-                            }));
-                            setErrors((current) => ({
-                              ...current,
-                              truck: undefined,
-                              form: undefined,
-                            }));
+                          aria-describedby={errors.truck ? "route-assignment-error" : undefined}
+                          onValueChange={(value) => {
+                            const collector = drivers.find((driver) => driver.id === value);
+                            const truckId = collector?.truck_id;
+                            if (!collector || !truckId) return;
+                            setForm((previous) => ({ ...previous, driverId: collector.id, truckId }));
+                            setErrors((current) => ({ ...current, truck: undefined, form: undefined }));
                           }}
-                          disabled={isLoadingTrucks || trucks.length === 0}
-                          options={trucks.map((truck) => ({
-                            value: truck.id,
-                            label: `${truck.name} (${truck.plate_number})`,
-                            keywords: truck.plate_number,
+                          options={drivers.filter((driver) => trucks.some((truck) => truck.id === driver.truck_id)).map((driver) => ({
+                            value: driver.id, label: driver.full_name, keywords: driver.truck_name ?? "",
                           }))}
-                          placeholder={isLoadingTrucks ? "Loading trucks..." : "Select a collection truck"}
-                          searchPlaceholder="Search by truck name or plate…" compactSearchPlaceholder="Truck name or plate…"
-                          leadingIcon={<TruckIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-                          className={cn(
-                            "h-9 rounded-xl text-xs",
-                            errors.truck && "border-destructive/70",
-                          )}
+                          disabled={isLoadingTrucks || trucks.length === 0}
+                          placeholder="Select a collector" searchPlaceholder="Search by collector name…" compactSearchPlaceholder="Collector name…"
+                          emptyMessage="No collectors with an available assigned truck."
+                          leadingIcon={<User className="size-3.5 shrink-0 text-muted-foreground" />}
+                          className="h-9 rounded-xl text-xs"
                         />
-                        {errors.truck && (
-                          <p id="route-truck-error" className="text-ui-caption font-medium text-destructive">
-                            {errors.truck}
-                          </p>
-                        )}
+                        <p className="text-ui-caption text-muted-foreground">The collector's truck is assigned automatically from Collector Manager.</p>
+                        {trucks.length === 0 && !isLoadingTrucks && <p role="status" className="text-ui-caption text-warning-foreground">No collectors have an available truck on {form.day}. Choose another day or edit an existing schedule.</p>}
+                        {errors.truck && <p id="route-assignment-error" className="text-ui-caption text-destructive">{errors.truck}</p>}
                       </div>
-
-                      {/* Unified Driver & Truck Status Card */}
-                      {form.truckId ? (
-                        assignedDriver ? (
-                          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                <User className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-foreground truncate">
-                                  {assignedDriver.full_name}
-                                </p>
-                                <p className="text-ui-overline text-muted-foreground truncate">
-                                  Assigned Collector
-                                </p>
-                              </div>
-                            </div>
-                            <span className={"inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-ui-overline font-bold border shrink-0 " + getStatusBadgeStyle("Collector Linked").className}>
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              Collector Linked
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/25 bg-amber-500/10">
-                            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
-                                No collector is currently assigned to this truck
-                              </p>
-                              <p className="text-ui-caption text-amber-700/90 dark:text-amber-300/90 mt-0.5">
-                                You can save this route as unassigned, but operations require linking a driver in Collector Manager.
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      ) : (
-                        <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-dashed border-border/80 bg-muted/20 text-muted-foreground text-xs">
-                          <TruckIcon className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
-                          <span>Select a truck above to automatically link its registered driver.</span>
+                      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border/80 bg-muted/20 p-3">
+                        <TruckIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <p className="text-ui-caption text-muted-foreground">Assigned Truck</p>
+                          <p className="break-words text-xs font-medium text-foreground">
+                            {selectedTruck ? `${selectedTruck.name} (${selectedTruck.plate_number})` : "Select a collector to automatically assign their truck."}
+                          </p>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
 
@@ -673,7 +617,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 {!form.truckId ? (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                    <span>Select a collection truck to continue</span>
+                    <span>Select a collector to continue</span>
                   </div>
                 ) : trucks.length === 0 ? (
                   <div className="flex items-center gap-1.5 text-destructive">
@@ -702,7 +646,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 ) : (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Info className="w-3.5 h-3.5 text-warning-foreground shrink-0" />
-                    <span>Ready to save as an unassigned route</span>
+                    <span>Select a collector with an available truck</span>
                   </div>
                 )}
               </div>
@@ -728,11 +672,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                   <>
                       <Save className="w-3.5 h-3.5" />
                       <span>
-                        {isCreating
-                          ? assignedDriver || !form.truckId
-                            ? "Create Route"
-                            : "Create Unassigned Route"
-                          : "Save Changes"}
+                        {isCreating ? "Create Route" : "Save Changes"}
                       </span>
                     </>
                 </Button>

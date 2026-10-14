@@ -284,7 +284,12 @@ const AdminTrackingMap = ({
 
   // The parent supplies the selected truck's scheduled stop order. This map
   // only renders that target; it never changes the collector's queue.
-  const scheduledStops = passedAutoRoutedStops ?? rawStops;
+  const scheduledStops = useMemo(() => {
+    const stops = passedAutoRoutedStops ?? rawStops;
+    return activeTruck?.status === "scheduled"
+      ? stops.map(stop => ({ ...stop, status: "not-yet" as const }))
+      : stops;
+  }, [passedAutoRoutedStops, rawStops, activeTruck?.status]);
   const activeStop = passedActiveStop !== undefined
     ? passedActiveStop
     : (scheduledStops.find((s) => s.status === "in-progress") ?? null);
@@ -518,7 +523,7 @@ const AdminTrackingMap = ({
     if (isReplayMode) return;
 
     visibleTrucks.forEach((truck) => {
-      const isNear = truck.barangaysAway !== null && truck.barangaysAway <= 3;
+      const isNear = truck.status === "on-the-way" && truck.barangaysAway !== null && truck.barangaysAway <= 3;
       const isFocused = (focusedTruckId ?? activeTruck?.id) === truck.id;
       const isLive = truck.status === "on-the-way";
       const isPaused = truck.status === "paused";

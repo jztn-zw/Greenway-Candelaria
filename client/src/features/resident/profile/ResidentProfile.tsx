@@ -28,6 +28,7 @@ import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
 import { AccountRecovery } from "@/features/landing/components/AccountRecovery";
+import ResidentDeactivationDialog from "./ResidentDeactivationDialog";
 import {
 fetchProfile,
 updateProfile,
@@ -44,13 +45,12 @@ import { formatManilaDateTime } from "@/utils/date";
 
 // ─── Editable field row ───────────────────────────────────────────────────────
 const FieldRow = ({
-  label, value, icon: Icon, masked, isEmail, placeholder, onEdit,
+  label, value, icon: Icon, masked, placeholder, onEdit,
 }: {
   label: string;
   value: string;
   icon: React.ElementType;
   masked?: boolean;
-  isEmail?: boolean;
   placeholder?: string;
   onEdit: () => void;
 }) => (
@@ -76,13 +76,6 @@ const FieldRow = ({
         </p>
       </div>
     </div>
-    {isEmail ? (
-      <span className="inline-flex h-8 shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground" title="Registered Email">
-        <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
-        <span className="resident-profile-email-label" aria-hidden="true">Registered</span>
-        <span className="sr-only">Registered Email</span>
-      </span>
-    ) : (
       <Button
         type="button"
         variant="primary-outline"
@@ -94,7 +87,6 @@ const FieldRow = ({
         {!masked && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}
         {masked ? "Change" : "Edit"}
       </Button>
-    )}
   </div>
 );
 
@@ -118,6 +110,7 @@ const ResidentProfile = () => {
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarModal, setAvatarModal] = useState(false);
   const [recoveryModal, setRecoveryModal] = useState(false);
+  const [deactivationOpen, setDeactivationOpen] = useState(false);
   const [savingAvatarId, setSavingAvatarId] = useState<ProfileAvatarId | null>(null);
   const savingAvatar = savingAvatarId !== null;
 
@@ -220,14 +213,19 @@ const ResidentProfile = () => {
 
   const handleEditSave = async () => {
     if (editModal.saving) return;
-    if (!editModal.value.trim()) {
+    if (!editModal.value.trim() && !["Email Address", "Phone Number"].includes(editModal.field)) {
       setEditModal((p) => ({ ...p, error: "This field cannot be empty." }));
+      return;
+    }
+    if (editModal.field === "Email Address" && editModal.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editModal.value.trim())) {
+      setEditModal(previous => ({ ...previous, error: "Enter a valid email address." }));
       return;
     }
     const fieldMap: Record<string, string> = {
       "Full Name": "full_name",
       "Username": "username",
       "Phone Number": "phone",
+      "Email Address": "email",
     };
     const key = fieldMap[editModal.field];
     if (!key) return;
@@ -472,10 +470,7 @@ const ResidentProfile = () => {
             value={profile.email ?? ""}
             placeholder="No email address added"
             icon={Mail}
-            isEmail={Boolean(profile.email)}
-            onEdit={() =>
-              toast.info("Contact MENRO to change your registered email address.")
-            }
+            onEdit={() => openEdit("Email Address", profile.email ?? "")}
           />
           <FieldRow
             label="Phone Number"
@@ -513,6 +508,7 @@ const ResidentProfile = () => {
       <FormDialog open={recoveryModal} onOpenChange={setRecoveryModal} title="Recovery Code" description="Keep your code somewhere private." icon={<ShieldCheck />}>
         {recoveryModal && <AccountRecovery mode="generate" onBack={() => setRecoveryModal(false)} />}
       </FormDialog>
+      {deactivationOpen && <ResidentDeactivationDialog onClose={() => setDeactivationOpen(false)} />}
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
       <section className={profileStyles.panel} aria-labelledby="resident-profile-impact-title">
         <div className={profileStyles.sectionHeader}>
@@ -667,30 +663,17 @@ const ResidentProfile = () => {
 
       {/* ── Actions ──────────────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className={profileStyles.hero}>
-          <button
-            type="button"
-            onClick={() => setLogoutModal(true)}
-            className={profileStyles.logout}
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className={profileStyles.fieldIcon}>
-                <LogOut className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
-                  Log Out
-                </p>
-                <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                  Sign out of your session on this device
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors ml-4">
-              <span className="hidden lg:inline text-xs font-medium">Sign Out</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </button>
+        <div className={`${profileStyles.hero} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Account Actions</p>
+            <p className="mt-1 text-xs text-muted-foreground">Manage your session or account access.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <Button type="button" variant="destructive-ghost" className="h-11 sm:h-10" onClick={() => setLogoutModal(true)}>
+              <LogOut aria-hidden="true" />Sign Out
+            </Button>
+            <Button type="button" variant="destructive-outline" className="h-11 sm:h-10" onClick={() => setDeactivationOpen(true)}>Deactivate Account</Button>
+          </div>
         </div>
 
         <div className={profileStyles.privacy}>
@@ -749,7 +732,7 @@ const ResidentProfile = () => {
       >
         <div className="space-y-1.5">
           <Label htmlFor="resident-profile-field" className={modalStyles.label}>{editModal.field}</Label>
-          <Input id="resident-profile-field" value={editModal.value} disabled={editModal.saving} autoFocus aria-invalid={Boolean(editModal.error)}
+          <Input id="resident-profile-field" type={editModal.field === "Email Address" ? "email" : "text"} value={editModal.value} disabled={editModal.saving} autoFocus aria-invalid={Boolean(editModal.error)}
             onChange={(e) => setEditModal((p) => ({ ...p, value: e.target.value, error: "" }))}
             placeholder={`Enter your ${editModal.field.toLowerCase()}`} className={modalStyles.input}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleEditSave(); } }} />

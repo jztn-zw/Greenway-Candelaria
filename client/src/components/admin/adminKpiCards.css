@@ -5,8 +5,6 @@
 .admin-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: hsl(var(--border) / 0.7);
 }
 
 .admin-kpi-card {
@@ -16,6 +14,16 @@
   gap: 0.75rem;
   padding: 0.75rem;
   overflow-wrap: anywhere;
+  border-block-start: 1px solid hsl(var(--border) / 0.7);
+  border-inline-start: 1px solid hsl(var(--border) / 0.7);
+}
+
+.admin-kpi-card:nth-child(-n + 2) {
+  border-block-start: 0;
+}
+
+.admin-kpi-card:nth-child(2n + 1) {
+  border-inline-start: 0;
 }
 
 .admin-kpi-icon {
@@ -60,6 +68,18 @@
   .admin-kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .admin-kpi-card:nth-child(-n + 4) {
+    border-block-start: 0;
+  }
+
+  .admin-kpi-card:nth-child(2n + 1) {
+    border-inline-start: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  .admin-kpi-card:nth-child(4n + 1) {
+    border-inline-start: 0;
+  }
 }
 
 @media (min-width: 640px) {
@@ -78,10 +98,18 @@
 /* Three metrics share the same card recipe without leaving an empty column. */
 .admin-kpi-grid:has(> :last-child:nth-child(3)) > :last-child {
   grid-column: 1 / -1;
+  border-inline-start: 0;
 }
 @container admin-kpi (min-width: 37.5rem) {
   .admin-kpi-grid:has(> :last-child:nth-child(3)) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .admin-kpi-grid:has(> :last-child:nth-child(3)) > .admin-kpi-card {
+    border-block-start: 0;
+    border-inline-start: 1px solid hsl(var(--border) / 0.7);
+  }
+  .admin-kpi-grid:has(> :last-child:nth-child(3)) > :first-child {
+    border-inline-start: 0;
   }
   .admin-kpi-grid:has(> :last-child:nth-child(3)) > :last-child {
     grid-column: auto;

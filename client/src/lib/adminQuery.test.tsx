@@ -10,7 +10,7 @@ import AdminCollectionCalendar from "@/features/admin/dashboard/components/Admin
 import { useAdminDashboard } from "@/features/admin/dashboard/components/useAdminDashboard";
 import AdminPosts from "@/features/admin/posts/AdminPosts";
 import postsService from "@/services/postsService";
-import { adminKey, useAdminAction, useAdminQuery } from "./adminQuery";
+import { adminKey, useAdminAction, useAdminQuery, useAdminResource } from "./adminQuery";
 
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
 vi.mock("@/components/ui/toaster", () => ({ Toaster: () => null }));
@@ -80,6 +80,34 @@ describe("admin server state", () => {
     read.mockResolvedValue("saved");
     await act(async () => { finishWrite(); await saving; });
     expect(client.getQueryData(key)).toBe("saved");
+  });
+
+  it.each(["paused", "deleted"])("preserves a saved %s route when a background refresh is cancelled", async (change) => {
+    const key = adminKey("admin-a", "routes", "list");
+    const previous = [{ id: "route-a", active: true }];
+    const saved = change === "deleted" ? [] : [{ id: "route-a", active: false }];
+    client.setQueryData(key, previous);
+    let finishRead!: (routes: typeof previous) => void;
+    const read = vi.fn(() => new Promise<typeof previous>((resolve) => { finishRead = resolve; }));
+    let save!: () => Promise<void>;
+    const Routes = () => {
+      const run = useAdminAction("routes");
+      const resource = useAdminResource("routes", ["list"], read, []);
+      save = async () => {
+        await run(async () => undefined);
+        resource.setData(saved);
+      };
+      return <span>{JSON.stringify(resource.data)}</span>;
+    };
+    await act(async () => root.render(<QueryClientProvider client={client}><Routes /></QueryClientProvider>));
+    await act(async () => { await save(); });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(client.getQueryData(key)).toEqual(saved);
+    await act(async () => { await client.cancelQueries({ queryKey: key }); });
+    expect(client.getQueryData(key)).toEqual(saved);
+    await act(async () => { finishRead(previous); });
+    expect(client.getQueryData(key)).toEqual(saved);
+    expect(host.textContent).toBe(JSON.stringify(saved));
   });
 
   it("keeps dashboard loading active until its data request resolves", async () => {

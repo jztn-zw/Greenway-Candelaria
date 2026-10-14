@@ -26,6 +26,13 @@ dialogs, map rendering, and replay playback remain component state.
 
 ## Cache and update rules
 
+Duplicating a route opens a local draft with copied stops and start time, and blank
+truck/collector assignments. Continuing to the editor does not create a route or show
+a success toast. Saving uses the normal create mutation; cancellation discards the
+draft. Selecting a collector automatically fills their existing linked truck as
+read-only information; there is no separate truck selector. Occupied trucks
+remain unavailable for the chosen day.
+
 - Keys include the authenticated admin ID, domain, filters, page, and detail ID.
   Changing filters selects a different cache entry. An older response cannot
   replace the entry for the current filters.

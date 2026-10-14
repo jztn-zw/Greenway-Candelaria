@@ -22,6 +22,28 @@ describe("resident server state", () => {
   });
   const render = (node: React.ReactNode) => act(async () => root.render(<QueryClientProvider client={client}>{node}</QueryClientProvider>));
 
+  it.each(["profile", "posts"])("preserves confirmed %s data when a background refresh is cancelled", async (domain) => {
+    const scope = domain === "profile" ? "account" : "b1:s1";
+    const key = residentKey("resident-a", domain, scope, "detail");
+    client.setQueryData(key, "previous");
+    let finishRead!: (value: string) => void;
+    const read = vi.fn(() => new Promise<string>((resolve) => { finishRead = resolve; }));
+    let save!: () => Promise<void>;
+    const View = () => {
+      const run = useResidentAction(domain);
+      const resource = useResidentResource(domain, ["detail"], read, "", { scope: domain === "profile" ? "account" : "address" });
+      save = async () => { await run(async () => undefined); resource.setData("saved"); };
+      return <span>{resource.data}</span>;
+    };
+    await render(<View />);
+    await act(async () => { await save(); });
+    expect(read).toHaveBeenCalledTimes(1);
+    await act(async () => { await client.cancelQueries({ queryKey: key }); });
+    expect(client.getQueryData(key)).toBe("saved");
+    await act(async () => { finishRead("previous"); });
+    expect(host.textContent).toBe("saved");
+  });
+
   it("deduplicates readers and preserves an unfinished form when server data changes", async () => {
     const read = vi.fn().mockResolvedValue(28);
     let edit!: (value: string) => void;

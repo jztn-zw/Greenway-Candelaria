@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import ReportDetailPanel from "./ReportDetailPanel";
 import type { WasteReport } from "./types";
 
@@ -21,11 +22,15 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
 const render = (value: WasteReport, isLoading = false) => act(async () => root.render(
-  <QueryClientProvider client={client}><ReportDetailPanel report={value} isLoading={isLoading} onAddNote={vi.fn()} onUpdateStatus={vi.fn()} /></QueryClientProvider>,
+  <QueryClientProvider client={client}><MemoryRouter><ReportDetailPanel report={value} isLoading={isLoading} onAddNote={vi.fn()} onUpdateStatus={vi.fn()} /></MemoryRouter></QueryClientProvider>,
 ));
 const textarea = (placeholder: string) => host.querySelector<HTMLTextAreaElement>(`textarea[placeholder="${placeholder}"]`)!;
 const edit = (input: HTMLTextAreaElement, value: string) => act(() => {
   input.value = value; Simulate.change(input);
+});
+it("links the report owner directly to their resident profile", async () => {
+  await render({ ...report, submitterId: "resident-a" });
+  expect(host.querySelector('a')).toHaveAttribute("href", "/admin/residents?residentId=resident-a");
 });
 
 it("preserves unsaved response and note when another admin updates the same report", async () => {

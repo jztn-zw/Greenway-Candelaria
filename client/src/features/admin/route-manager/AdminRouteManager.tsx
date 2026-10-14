@@ -49,17 +49,29 @@ import RouteTable from "./components/RouteTable";
 type ViewMode = "DAY_VIEW" | "TABLE_VIEW";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
+const routeForm = (route: RouteData): RouteForm => ({
+  day: route.day,
+  truckId: route.truckId,
+  driverId: route.driverId ?? "",
+  startTime: route.startTime,
+  selectedBarangayId: route.stops[0]?.barangayId ?? "",
+  barangays: route.stops.slice().sort((a, b) => a.stopOrder - b.stopOrder).map((stop) => ({
+    id: stop.streetId ?? stop.barangayId,
+    name: stop.stopName,
+    barangayId: stop.barangayId,
+    coveragePath: stop.coveragePath,
+  })),
+});
+
 const AdminRouteManager: React.FC = () => {
   // ── Data hooks ──
   const {
     routes,
     isLoading,
     isSavingRoute,
-    isDuplicating,
     createNew,
     updateExisting,
     toggleActive,
-    duplicate,
     remove,
     error,
     isRefreshing,
@@ -163,22 +175,7 @@ const AdminRouteManager: React.FC = () => {
   const startEdit = (route: RouteData) => {
     setIsCreating(false);
     setSelectedRouteId(route.id);
-    setForm({
-      day: route.day,
-      truckId: route.truckId,
-      driverId: route.driverId ?? "",
-      startTime: route.startTime,
-      selectedBarangayId: route.stops[0]?.barangayId ?? "",
-      barangays: route.stops
-        .slice()
-        .sort((a, b) => a.stopOrder - b.stopOrder)
-        .map((s) => ({
-          id: s.streetId ?? s.barangayId,
-          name: s.stopName,
-          barangayId: s.barangayId,
-          coveragePath: s.coveragePath,
-        })),
-    });
+    setForm(routeForm(route));
     setIsEditorOpen(true);
   };
 
@@ -279,11 +276,11 @@ const AdminRouteManager: React.FC = () => {
 
   // ── CRUD handlers ──
   const handleSave = async () => {
-    if (!form.truckId || form.barangays.length === 0) {
+    if (!form.driverId || !form.truckId || form.barangays.length === 0) {
       throw new Error("Complete the required route details before saving.");
     }
     if (!availableTrucks.some((truck) => truck.id === form.truckId)) {
-      throw new Error("This truck is no longer available for the selected day. Please select another truck.");
+      throw new Error("This collector's truck is no longer available for the selected day. Choose another collector or day.");
     }
     if (isCreating) {
       const result = await createNew(form);
@@ -298,13 +295,14 @@ const AdminRouteManager: React.FC = () => {
     }
   };
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = () => {
     if (!duplicatingRoute) return;
-    const result = await duplicate(duplicatingRoute, duplicateTargetDay);
-    if (result) {
-      setDuplicateDialogOpen(false);
-      startEdit(result);
-    }
+    setSelectedRouteId(null);
+    setIsCreating(true);
+    setForm({ ...routeForm(duplicatingRoute), day: duplicateTargetDay, truckId: "", driverId: "" });
+    setDuplicateDialogOpen(false);
+    setIsDetailOpen(false);
+    setIsEditorOpen(true);
   };
 
   const handleDelete = async (route: RouteData) => {
@@ -598,7 +596,6 @@ const AdminRouteManager: React.FC = () => {
         targetDay={duplicateTargetDay}
         sourceDay={duplicatingRoute?.day ?? null}
         setTargetDay={setDuplicateTargetDay}
-        isSaving={isDuplicating}
         onDuplicate={handleDuplicate}
       />
 

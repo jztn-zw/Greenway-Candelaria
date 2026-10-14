@@ -4,6 +4,7 @@ import { WasteReportDetailBodySkeleton } from "@/components/loading/PageLoadingS
 import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -463,6 +464,7 @@ const ReportDetailPanel = ({
                   {report.submitterEmail}
                 </span>
               )}
+              {report.submitterId && <Link className="gw-action-link mt-1.5 inline-block text-xs font-medium" to={`/admin/residents?residentId=${encodeURIComponent(report.submitterId)}`}>View Resident Profile</Link>}
             </div>
           </div>
         </div>

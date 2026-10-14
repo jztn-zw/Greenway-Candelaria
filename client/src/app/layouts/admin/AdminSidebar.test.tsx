@@ -50,8 +50,8 @@ it.each([
   ["Resident Manager", "/admin/residents"],
   ["Collector Manager", "/admin/drivers"],
   ["Waste Reports", "/admin/reports"],
-  ["Truck Tracking", "/admin/tracking"],
-  ["Analytics Dashboard", "/admin/analytics"],
+  ["Live Truck Tracking", "/admin/tracking"],
+  ["Analytics", "/admin/analytics"],
   ["Audit Logs", "/admin/audit-logs"],
 ])("closes the mobile sidebar when selecting %s, including the current page", (name, path) => {
   renderSidebar(path);

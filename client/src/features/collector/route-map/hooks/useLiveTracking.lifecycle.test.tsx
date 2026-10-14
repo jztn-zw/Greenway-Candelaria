@@ -32,13 +32,18 @@ const options = { truckId: "truck", routeId: "run", isRouteEnded: false, isTrack
 
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.useFakeTimers();
+  // The server clock advances with performance.now(), independently of Date.now().
+  // Preserve its origin when installing fake timers so trusted time stays continuous.
+  const origin = performance.now();
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance'] });
+  const elapsed = performance.now.bind(performance);
+  vi.spyOn(performance, 'now').mockImplementation(() => origin + elapsed());
   vi.clearAllMocks();
   ping.mockResolvedValue(undefined);
   Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
   Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: getPosition } });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("web GPS lifecycle", () => {
   it("preserves a GPS sample's measured age while correcting a wrong device clock", async () => {
@@ -84,7 +89,9 @@ describe("web GPS lifecycle", () => {
     await act(async () => vi.advanceTimersByTime(15000));
     expect(getPosition).toHaveBeenCalledTimes(1);
     await act(async () => finish());
-    await act(async () => vi.advanceTimersByTime(5000));
+    await act(async () => vi.advanceTimersByTime(9999));
+    expect(getPosition).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTime(1));
     expect(getPosition).toHaveBeenCalledTimes(2);
   });
   it("shows location permission failure without inventing a truck position", async () => {

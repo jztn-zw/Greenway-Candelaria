@@ -38,6 +38,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
   const nearBottom = useRef(true);
   const previousLast = useRef<string>();
   const scrolledTarget = useRef<string>();
+  const [highlightedTargetId, setHighlightedTargetId] = useState(targetId);
   useLayoutEffect(() => {
     if (composerRef.current) resizeComposer(composerRef.current);
   }, [draft, admin]);
@@ -58,6 +59,12 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
+    setHighlightedTargetId(targetId);
+    if (!targetId) return;
+    const timer = window.setTimeout(() => setHighlightedTargetId(undefined), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [targetId]);
+  useEffect(() => {
     const last = messages[messages.length - 1]?.id;
     const target = targetId ? [...(scrollRef.current?.querySelectorAll<HTMLElement>("[data-message-id]") ?? [])].find((element) => element.dataset.messageId === targetId) : null;
     if (target && scrolledTarget.current !== targetId) { target.scrollIntoView({ block: "nearest" }); scrolledTarget.current = targetId; }
@@ -69,11 +76,13 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
     const root = scrollRef.current;
     const observer = new IntersectionObserver((entries) => {
       if (document.visibilityState !== "visible" || !document.hasFocus()) return;
-      for (const entry of entries) if (entry.isIntersecting && entry.intersectionRatio >= 0.75) {
+      // Long message bubbles may never fit 75% inside the conversation viewport.
+      // Mark them read once a meaningful portion is visible instead.
+      for (const entry of entries) if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
         const id = (entry.target as HTMLElement).dataset.messageId;
         if (id) void markVisibleRead(id);
       }
-    }, { root, threshold: 0.75 });
+    }, { root, threshold: 0.2 });
     const observe = () => {
       observer.disconnect();
       root.querySelectorAll('[data-unread="true"]').forEach((element) => observer.observe(element));
@@ -124,7 +133,7 @@ export const ConversationPanel = ({ conversation, admin = false, targetId }: { c
       ))}
       {messages.map((message) => {
         const own = admin ? message.sender_role === "ADMIN" : message.sender_role === "DRIVER";
-        return <div key={message.id} data-message-id={message.id} data-unread={!own && !message.is_read} className={cn("flex min-w-0 items-end gap-2", message.id === targetId && "rounded-xl ring-2 ring-primary", own ? "justify-end" : "justify-start")}>
+        return <div key={message.id} data-message-id={message.id} data-unread={!own && !message.is_read} className={cn("flex min-w-0 items-end gap-2", message.id === highlightedTargetId && "rounded-xl ring-2 ring-primary", own ? "justify-end" : "justify-start")}>
               {!own && <Avatar aria-hidden="true" className="mb-6 size-6"><AvatarImage src={profileAvatarImageSrc(profileAvatarForAccount(message.sender_id, message.sender_avatar_url))} alt="" className="object-cover object-center" /><AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">{message.sender_name.trim().split(/\s+/).slice(0, 2).map((name) => Array.from(name)[0] ?? "").join("").toUpperCase() || "M"}</AvatarFallback></Avatar>}
               <div className={cn("min-w-0", own ? "max-w-[88%]" : "max-w-[calc(100%-2rem)]")}>
                 {own ? <span className="sr-only">You</span> : <p className="mb-1 px-3 break-words text-[11px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{message.sender_name}</p>}

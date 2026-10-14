@@ -17,6 +17,6 @@ it("shows summarized blocked attempts without claiming the anonymous actor is an
 });
 it("retains authenticated actor details for a rate-limit summary", () => {
   const result = formatAuditEntry({ ...row, user_id: "collector", user_role: "DRIVER", user_name: "Fixture Collector" });
-  expect(result.adminRole).toBe("DRIVER");
+  expect(result.adminRole).toBe("COLLECTOR");
   expect(result.adminName).toBe("Fixture Collector");
 });

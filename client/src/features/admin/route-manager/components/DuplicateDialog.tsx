@@ -18,7 +18,6 @@ interface DuplicateDialogProps {
   targetDay: Day;
   sourceDay: Day | null;
   setTargetDay: (day: Day) => void;
-  isSaving: boolean;
   onDuplicate: () => void;
 }
 
@@ -28,7 +27,6 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
   targetDay,
   sourceDay,
   setTargetDay,
-  isSaving,
   onDuplicate,
 }) => (
   <ConfirmationDialog
@@ -38,15 +36,15 @@ export const DuplicateDialog: React.FC<DuplicateDialogProps> = ({
     title="Duplicate Collection Route"
     description="Copy this route sequence to another operating day."
     icon={<Copy />}
-    confirmLabel="Duplicate Route"
-    isPending={isSaving}
-    pendingLabel="Duplicating..."
+    confirmLabel="Continue to Editor"
+    confirmDisabled={targetDay === sourceDay}
     onConfirm={onDuplicate}
   >
     <div className="space-y-3.5">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Choose a target day. The route will be cloned with the same vehicle, driver, start time, and ordered barangay sequence.
+          Copy the start time and ordered collection stops to a new draft. Choose the truck and collector in the editor, then save to create the route.
         </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">If today's collection has already ended, this plan applies from the next occurrence of the selected day.</p>
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-foreground">

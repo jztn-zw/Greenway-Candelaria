@@ -15,8 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { InputClearButton,inputIconButtonClassName } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
-import { ArrowRight,Eye,EyeOff,Heart,Leaf,Lock,Mail,User,Users,X } from "lucide-react";
+import { ArrowRight,Eye,EyeOff,Heart,Leaf,Lock,User,Users,X } from "lucide-react";
 import { useAuthCooldown } from "./useAuthCooldown";
+import { toast } from "@/lib/toast";
 
 interface AuthModalProps {
   open: boolean;
@@ -102,7 +103,8 @@ const AuthModal = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Register fields
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [legacySetup, setLegacySetup] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -125,7 +127,7 @@ const AuthModal = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetRegisterForm = () => {
-    setEmail("");
+    setUsername("");
     setTermsAccepted(false);
     setPassword("");
     setConfirmPassword("");
@@ -134,8 +136,7 @@ const AuthModal = ({
 
   const validateRegister = () => {
     const errs: Record<string, string> = {};
-    if (!email.trim()) errs.email = "Email is required";
-    else if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = "Enter a valid email address";
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) errs.username = "Use 3–20 letters, numbers, or underscores";
     if (!password) errs.password = "Password is required";
     else if (password.length < 8) errs.password = "Password must be at least 8 characters";
     if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
@@ -146,7 +147,8 @@ const AuthModal = ({
 
   const validateLogin = () => {
     const errs: Record<string, string> = {};
-    if (!identifier.trim()) errs.identifier = "Username or email is required";
+    if (legacySetup ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim()) : !/^[^\s@]{1,50}$/.test(identifier.trim()))
+      errs.identifier = legacySetup ? "Enter your earlier signup email" : "Enter your username";
     if (!loginPassword) errs.loginPassword = "Password is required";
     return errs;
   };
@@ -160,9 +162,10 @@ const AuthModal = ({
     submissionPending.current = true;
     setLoading(true);
     try {
-      const registration = { email: email.trim().toLowerCase(), password, confirm_password: confirmPassword, terms_accepted: termsAccepted };
+      const registration = { username: username.trim(), password, confirm_password: confirmPassword, terms_accepted: termsAccepted };
       const result = await authService.register(registration);
-      setIdentifier(registration.email);
+      setIdentifier(registration.username);
+      setLegacySetup(false);
       setLoginPassword("");
       if (result.data.recovery_code) setRecoveryReceipt(result.data.recovery_code);
       setTab("login");
@@ -172,10 +175,10 @@ const AuthModal = ({
       if (registerCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } };
       const message = responseError.response?.data?.message;
-      const emailError = responseError.response?.data?.errors?.find(issue => issue.field === "email")?.message;
-      setErrors(message === "Email already in use"
-        ? { email: "Email already registered. Log in or use another email address." }
-        : emailError ? { email: emailError } : { form: message || "Registration failed. Please try again." });
+      const usernameError = responseError.response?.data?.errors?.find(issue => issue.field === "username")?.message;
+      setErrors(message === "Username already taken"
+        ? { username: "Username already taken. Choose another username." }
+        : usernameError ? { username: usernameError } : { form: message || "Registration failed. Please try again." });
     } finally {
       submissionPending.current = false;
       setLoading(false);
@@ -200,8 +203,9 @@ const AuthModal = ({
     submissionPending.current = true;
     setLoading(true);
     try {
-      await login(identifier, loginPassword, rememberMe);
+      const result = await login(identifier.trim(), loginPassword, rememberMe, legacySetup);
       finishLogin();
+      if (result?.reactivated) toast.success("Welcome back! Your account has been reactivated.");
     } catch (err: unknown) {
       if (loginCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string } } };
@@ -260,7 +264,7 @@ const AuthModal = ({
               </DialogTitle>
               <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {recoveryReceipt ? "Keep this code safe before you continue." : recoveryOpen ? "Recover your account using your saved code." : tab === "login"
-                  ? "Use your email or username and GreenWay password."
+                  ? legacySetup ? "Finish an earlier signup that used email before usernames were required." : "Use your username and GreenWay password."
                   : "Create your login. Complete your resident profile after signing in."}
               </DialogDescription>
             </div>
@@ -277,7 +281,7 @@ const AuthModal = ({
                   )}
                   <div className="space-y-1.5">
                     <Label htmlFor="identifier" className={fieldLabelClass}>
-                      Username or Email
+                      {legacySetup ? "Earlier Signup Email" : "Username"}
                     </Label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -285,7 +289,7 @@ const AuthModal = ({
                         id="identifier"
                         aria-invalid={Boolean(errors.identifier)}
                         autoComplete="username"
-                        placeholder="Enter your username or email"
+                        placeholder={legacySetup ? "Enter your signup email" : "Enter your username"}
                         value={identifier}
                         onChange={(e) => { setIdentifier(e.target.value); setErrors((prev) => { const { identifier, ...rest } = prev; return rest; }); }}
                         className={`pl-10 ${fieldClass} ${errors.identifier ? "border-destructive" : ""}`}
@@ -331,6 +335,9 @@ const AuthModal = ({
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
+                  <button type="button" disabled={loading} onClick={() => { setLegacySetup(!legacySetup); setIdentifier(""); setLoginPassword(""); setErrors({}); }} className="gw-action-link block w-full text-center text-xs">
+                    {legacySetup ? "Back to Username Login" : "Finish an Earlier Email Signup"}
+                  </button>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
@@ -344,21 +351,21 @@ const AuthModal = ({
                   {registerCooldown.seconds === 0 && errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
                   <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <Label htmlFor="email" className={fieldLabelClass}>Email Address</Label>
+                        <Label htmlFor="reg-username" className={fieldLabelClass}>Username</Label>
                         <div className="relative">
-                          <Mail className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <ClearableInput
-                            id="email"
-                            aria-invalid={Boolean(errors.email)}
-                            aria-describedby={errors.email ? "email-error" : undefined}
-                            type="email"
-                            placeholder="juan@email.com"
-                            value={email}
-                            onChange={(e) => { setEmail(e.target.value); setErrors((prev) => { const { email, ...rest } = prev; return rest; }); }}
-                            className={`pl-10 ${fieldClass} ${errors.email ? "border-destructive" : ""}`}
+                            id="reg-username"
+                            aria-invalid={Boolean(errors.username)}
+                            aria-describedby={errors.username ? "username-error" : undefined}
+                            autoComplete="username" maxLength={20} spellCheck={false}
+                            placeholder="Choose your username"
+                            value={username}
+                            onChange={(e) => { setUsername(e.target.value); setErrors((prev) => { const { username, ...rest } = prev; return rest; }); }}
+                            className={`pl-10 ${fieldClass} ${errors.username ? "border-destructive" : ""}`}
                           />
                         </div>
-                        {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive mt-0.5">{errors.email}</p>}
+                        {errors.username && <p id="username-error" role="alert" className="text-xs text-destructive mt-0.5">{errors.username}</p>}
                       </div>
 
                       <div className="space-y-1.5">
@@ -428,6 +435,9 @@ const AuthModal = ({
 
                   <Button type="submit" className="w-full" disabled={loading || registerCooldown.seconds > 0} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   <p className="text-xs leading-relaxed text-muted-foreground">After login, we’ll help you set up your resident profile and collection area.</p>
+                  <button type="button" disabled={loading} onClick={() => { setLegacySetup(!legacySetup); setIdentifier(""); setLoginPassword(""); setErrors({}); }} className="gw-action-link block w-full text-center text-xs">
+                    {legacySetup ? "Back to Username Login" : "Finish an Earlier Email Signup"}
+                  </button>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Already a member?{" "}
                     <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">

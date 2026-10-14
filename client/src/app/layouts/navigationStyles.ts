@@ -40,4 +40,4 @@ export const navigationStyles = {
 } as const;
 
 export const navigationSectionTitle = (label: string) =>
-  label.charAt(0) + label.slice(1).toLowerCase();
+  label.toLowerCase().replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
