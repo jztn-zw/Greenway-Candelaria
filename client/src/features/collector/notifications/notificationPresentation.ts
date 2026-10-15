@@ -7,6 +7,10 @@ export const getCollectorNotificationPresentation = (notification: NotificationR
   const title = getCollectorNotificationTitle(notification);
   const message = notification.body?.trim() || "";
 
+  if (notification.ref_module === "schedule") {
+    return { headline: { prefix: "MENRO Candelaria", connector: "added a schedule:", highlight: title || "Calendar Schedule" }, message };
+  }
+
   if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT" ||
       notification.ref_module === "posts" || notification.type === "NEW_POST") {
     return getResidentNotificationPresentation(notification);

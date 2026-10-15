@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({ clearAll: vi.fn(), markAsRead: vi.fn(), fetchR
 vi.mock("./useResidentNotifications", () => ({ default: () => ({ notifications: mocks.notifications, total: mocks.notifications.length, historyTotal: mocks.notifications.length, offset: 0, unreadCount: 1, isLoading: mocks.isLoading, error: null, fetchNotifications: vi.fn(), markAsRead: mocks.markAsRead, markAllAsRead: vi.fn(), clearAll: mocks.clearAll }) }));
 vi.mock("@/lib/residentQuery", () => ({ useResidentFetch: () => mocks.fetchResident }));
 vi.mock("../announcements/ResidentAnnouncementModal", () => ({ default: ({ open, announcementId }: { open: boolean; announcementId?: string }) => open ? <div role="dialog">Announcement {announcementId}</div> : null }));
-const Location = () => <output data-testid="location">{useLocation().pathname}</output>;
+const Location = () => { const location = useLocation(); return <output data-testid="location">{location.pathname}{location.search}</output>; };
 const notice = (overrides: Partial<NotificationRow> = {}): NotificationRow => ({ id: "notice", user_id: "resident", type: "SYSTEM", title: "Notice", body: "Details", is_read: false, created_at: "2026-09-28 00:00:00", ...overrides });
 const render = async (entry = "/resident/notifications") => {
   await act(async () => root.render(<MemoryRouter initialEntries={[entry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentNotifications /><Location /></MemoryRouter>));
@@ -68,6 +68,22 @@ it("opens the announcement shell immediately and leaves fetching/read tracking t
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Announcement announcement-1");
   expect(mocks.fetchResident).not.toHaveBeenCalled();
   expect(mocks.markAsRead).not.toHaveBeenCalled();
+});
+
+it("opens a schedule notification on its exact resident calendar date", async () => {
+  mocks.notifications = [notice({ type: "ANNOUNCEMENT", ref_module: "schedule", ref_id: "event-1", title: "Barangay clean-up", body: "Scheduled for 2099-01-01.", metadata: { event_date: "2099-01-01" } })];
+  await render();
+  await act(async () => host.querySelector<HTMLButtonElement>(".resident-notification-row")!.click());
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent("/resident/schedule?date=2099-01-01");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(mocks.markAsRead).toHaveBeenCalledExactlyOnceWith("notice");
+});
+
+it("uses the scheduled date in the notification message if date metadata is missing", async () => {
+  mocks.notifications = [notice({ type: "ANNOUNCEMENT", ref_module: "schedule", body: "Scheduled for 2099-01-01." })];
+  await render();
+  await act(async () => host.querySelector<HTMLButtonElement>(".resident-notification-row")!.click());
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent("/resident/schedule?date=2099-01-01");
 });
 
 it("opens an announcement deep link before notification history has loaded", async () => {

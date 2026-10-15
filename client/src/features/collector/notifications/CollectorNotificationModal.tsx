@@ -35,7 +35,8 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
   const destination = getCollectorNotificationDestination(notification);
   const { headline, message } = getCollectorNotificationPresentation(notification);
 
-  const config = typeConfig[notification.ref_module === "announcements" ? "ANNOUNCEMENT" : notification.ref_module === "posts" ? "NEW_POST" : notification.type] || {
+  const config = notification.ref_module === "schedule" ? { icon: CalendarClock, accent: "text-primary", label: "MENRO Schedule" }
+    : typeConfig[notification.ref_module === "announcements" ? "ANNOUNCEMENT" : notification.ref_module === "posts" ? "NEW_POST" : notification.type] || {
     icon: Bell,
     accent: "text-primary",
     label: "Notification",
@@ -56,7 +57,7 @@ const CollectorNotificationModal = ({ notification, open, onOpenChange }: Props)
           <div className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-muted/20 border border-border/60 rounded-md p-3.5 max-h-[38vh] overflow-y-auto scrollbar-thin">{message}</div>
         </div>
         <div className={styles.footer}>
-          {(notification.ref_module === "driver-messages" || destination) && <Button type="button" variant="outline" className={styles.cancelButton} onClick={() => { if (openCollectorNotification(notification, navigate)) onOpenChange(false); }}>{notification.ref_module === "driver-messages" ? "Open Messages" : "Open Related Page"}</Button>}
+          {(notification.ref_module === "driver-messages" || destination) && <Button type="button" variant="outline" className={styles.cancelButton} onClick={() => { if (openCollectorNotification(notification, navigate)) onOpenChange(false); }}>{notification.ref_module === "driver-messages" ? "Open Messages" : notification.ref_module === "schedule" ? "Open Calendar" : "Open Related Page"}</Button>}
           <Button type="button" onClick={() => onOpenChange(false)} className={styles.primaryButton}>Close</Button>
         </div>
       </DialogContent>

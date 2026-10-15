@@ -3,6 +3,7 @@ export type NotificationType =
   | "truck-near"
   | "collection-done"
   | "schedule-change"
+  | "schedule-event"
   | "system-announcement"
   | "announcement"
   | "system"

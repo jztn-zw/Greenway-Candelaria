@@ -88,6 +88,14 @@ it("leaves deactivated residents read-only and provides no reactivate or ban con
   expect(updateResidentStatus).not.toHaveBeenCalled();
 });
 
+it("keeps legacy deactivated residents in All without a deactivated filter chip", async () => {
+  account.status = "DEACTIVATED";
+  await render(false);
+  expect(host.textContent).toContain("Test Resident");
+  expect(host.textContent).toContain("Deactivated");
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Deactivated")).toBe(false);
+});
+
 it("shows the deleted account count separately from legacy deactivated accounts", async () => {
   await render(false);
   expect(host.textContent).toContain("Deleted Accounts");

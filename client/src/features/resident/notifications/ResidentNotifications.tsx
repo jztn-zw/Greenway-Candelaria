@@ -4,7 +4,7 @@ import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterP
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { notificationStyles } from "./notificationStyles";
-import { getResidentNotificationPresentation } from "./notificationPresentation";
+import { getResidentNotificationPresentation, getResidentScheduleNotificationDate } from "./notificationPresentation";
 import { useResidentFetch } from "@/lib/residentQuery";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
@@ -113,6 +113,13 @@ const isActiveTruckNearAlert = async (notification: NotificationRow, fetchReside
 const getNotificationIconAndStyle = (n: NotificationRow) => {
   const metadata = getMetadata(n);
   const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "schedule") {
+    return {
+      Icon: CalendarDays,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
 
   if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
     return {
@@ -247,7 +254,7 @@ const ResidentNotifications = () => {
   const handleClick = async (n: NotificationRow) => {
     const sequence = ++clickSequence.current;
     setCheckingNotificationId(null);
-    const isAnnouncement = n.type === "ANNOUNCEMENT" || n.ref_module === "announcements";
+    const isAnnouncement = n.ref_module === "announcements" || (n.type === "ANNOUNCEMENT" && n.ref_module !== "schedule");
     // Opening details does not depend on the background read receipt. The
     // announcement modal owns its own notification read tracking.
     if (!n.is_read && !isAnnouncement) {
@@ -262,7 +269,7 @@ const ResidentNotifications = () => {
         message,
         created_at: n.created_at,
         time: formatRelativeTime(n.created_at, { dateOptions: { month: "short", day: "numeric", year: "numeric" } }),
-        type: modalTypeByNotificationType[n.type],
+        type: n.ref_module === "schedule" ? "schedule-event" : modalTypeByNotificationType[n.type],
         read: true,
       });
       setModalOpen(true);
@@ -283,6 +290,9 @@ const ResidentNotifications = () => {
       } else {
         openNotificationDetails();
       }
+    } else if (n.ref_module === "schedule") {
+      const eventDate = getResidentScheduleNotificationDate(n);
+      navigate(eventDate ? `/resident/schedule?date=${eventDate}` : "/resident/schedule");
     } else if (n.type === "COLLECTION_REMINDER") {
       openNotificationDetails();
     } else if (isAnnouncement) {

@@ -7,6 +7,7 @@ import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
 Popover,
 PopoverContent,
@@ -33,6 +34,7 @@ interface EventModalProps {
   onClose: () => void;
   event: CalendarEvent | null;
   defaultDate: string;
+  barangayOptions: Array<{ id: string; name: string }>;
   onSubmit: (payload: CreateEventPayload) => Promise<void>;
 }
 
@@ -43,6 +45,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   onClose,
   event,
   defaultDate,
+  barangayOptions,
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
@@ -65,6 +68,8 @@ export const EventModal: React.FC<EventModalProps> = ({
     return undefined;
   }, [endDate]);
   const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
+  const [barangayId, setBarangayId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const todayDate = calendarDateKey(getManilaCalendarDate());
@@ -82,6 +87,9 @@ export const EventModal: React.FC<EventModalProps> = ({
       }
       setEndDate(event.end_date ? event.end_date.split("T")[0] : "");
       setDescription(event.description || "");
+      const isPublicEvent = event.event_type === "COMMUNITY_EVENT" && event.visibility === "PUBLIC";
+      setVisibility(isPublicEvent ? "PUBLIC" : "PRIVATE");
+      setBarangayId(isPublicEvent ? event.barangay_id || "" : "");
     } else {
       setTitle("");
       setEventDate(defaultDate);
@@ -93,6 +101,8 @@ export const EventModal: React.FC<EventModalProps> = ({
       }
       setEndDate("");
       setDescription("");
+      setVisibility("PRIVATE");
+      setBarangayId("");
     }
     setErrors({});
   }, [event, defaultDate, isOpen]);
@@ -124,9 +134,9 @@ export const EventModal: React.FC<EventModalProps> = ({
         description: description.trim() || null,
         event_date: eventDate,
         end_date: endDate || null,
-        event_type: "PRIVATE_EVENT",
-        visibility: "PRIVATE",
-        barangay_id: null,
+        event_type: visibility === "PUBLIC" ? "COMMUNITY_EVENT" : "PRIVATE_EVENT",
+        visibility,
+        barangay_id: visibility === "PUBLIC" ? barangayId || null : null,
       };
 
       await onSubmit(payload);
@@ -145,19 +155,24 @@ export const EventModal: React.FC<EventModalProps> = ({
     if (event) {
       const origDate = typeof event.event_date === "string" ? event.event_date.split("T")[0] : "";
       const origEndDate = event.end_date ? event.end_date.split("T")[0] : "";
+      const originalVisibility = event.event_type === "COMMUNITY_EVENT" && event.visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE";
       return (
         title !== event.title ||
         eventDate !== origDate ||
         endDate !== origEndDate ||
-        description !== (event.description || "")
+        description !== (event.description || "") ||
+        visibility !== originalVisibility ||
+        (visibility === "PUBLIC" ? barangayId : "") !== (originalVisibility === "PUBLIC" ? event.barangay_id || "" : "")
       );
     }
     return (
       title.trim() !== "" ||
       description.trim() !== "" ||
-      endDate !== ""
+      endDate !== "" ||
+      visibility !== "PRIVATE" ||
+      barangayId !== ""
     );
-  }, [event, title, eventDate, endDate, description]);
+  }, [event, title, eventDate, endDate, description, visibility, barangayId]);
 
   const handleRequestClose = () => {
     if (isDirty) {
@@ -202,8 +217,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                   </DialogTitle>
                   <DialogDescription className="text-ui-label text-muted-foreground leading-relaxed break-words mt-0.5">
                     {isEditing
-                      ? "Modify this internal MENRO schedule."
-                      : "Register a task, meeting, or internal MENRO activity."}
+                      ? "Update this MENRO or resident calendar event."
+                      : "Add an internal activity or a resident calendar event."}
                   </DialogDescription>
                 </div>
               </div>
@@ -237,6 +252,39 @@ export const EventModal: React.FC<EventModalProps> = ({
                 maxLength={255}
               />
               {errors.title && <p id="event-title-error" className="text-ui-caption font-medium text-destructive">{errors.title}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Audience</Label>
+              <Select value={visibility} onValueChange={(value: "PRIVATE" | "PUBLIC") => {
+                setVisibility(value);
+                if (value === "PRIVATE") setBarangayId("");
+              }}>
+                <SelectTrigger aria-label="Event audience" className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 shadow-2xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-border shadow-md">
+                  <SelectItem value="PRIVATE" className="text-xs font-medium">MENRO only</SelectItem>
+                  <SelectItem value="PUBLIC" className="text-xs font-medium">Residents</SelectItem>
+                </SelectContent>
+              </Select>
+              {visibility === "PUBLIC" && (
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-medium text-foreground">Resident Area</Label>
+                  <Select value={barangayId || "all"} onValueChange={(value) => setBarangayId(value === "all" ? "" : value)}>
+                    <SelectTrigger aria-label="Resident area" className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 shadow-2xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border shadow-md">
+                      <SelectItem value="all" className="text-xs font-medium">All Barangays</SelectItem>
+                      {barangayOptions.map((barangay) => (
+                        <SelectItem key={barangay.id} value={barangay.id} className="text-xs font-medium">{barangay.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-ui-caption text-muted-foreground">Choose a barangay to limit who can see this event.</p>
+                </div>
+              )}
             </div>
 
             {/* Start and optional end date */}

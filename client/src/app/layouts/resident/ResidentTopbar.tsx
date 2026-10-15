@@ -20,7 +20,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import useNotifications from "@/features/resident/notifications/useResidentNotifications";
-import { getResidentNotificationPresentation } from "@/features/resident/notifications/notificationPresentation";
+import { getResidentNotificationPresentation, getResidentScheduleNotificationDate } from "@/features/resident/notifications/notificationPresentation";
 import NotificationModal from "@/features/resident/notifications/NotificationModal";
 import type { ResidentNotification } from "@/features/resident/notifications/types";
 import { NotificationRow } from "@/services/notificationsService";
@@ -51,6 +51,13 @@ const isWithinLast24Hours = (value: string, now: number | null) => {
 const getNotificationIconAndStyle = (n: NotificationRow) => {
   const metadata = getMetadata(n);
   const category = String(metadata.category || "").toUpperCase();
+
+  if (n.ref_module === "schedule") {
+    return {
+      Icon: CalendarDays,
+      style: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    };
+  }
 
   if (n.ref_module === "announcements" || n.type === "ANNOUNCEMENT") {
     return {
@@ -159,6 +166,9 @@ const ResidentTopBar = () => {
       navigate(`/resident/my-reports?report=${n.ref_id}`);
     } else if (n.ref_module === "tracking") {
       navigate("/resident/schedule");
+    } else if (n.ref_module === "schedule") {
+      const eventDate = getResidentScheduleNotificationDate(n);
+      navigate(eventDate ? `/resident/schedule?date=${eventDate}` : "/resident/schedule");
     } else if (n.type === "COLLECTION_REMINDER") {
       const { headline, message } = getResidentNotificationPresentation(n);
       setSelectedReminder({

@@ -41,9 +41,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TimePicker } from "@/components/ui/time-picker";
 import {
   Announcement,
+  ACTIVE_ANNOUNCEMENT_TYPES,
   EditorForm,
   AnnouncementType,
   AnnouncementStatus,
+  isActiveAnnouncementType,
   TargetAudience,
 } from "./types";
 
@@ -117,11 +119,6 @@ const AnnouncementEditor = ({
     expiry.setHours(23, 59, 59, 0);
     return fromManilaCalendarDate(expiry).toISOString();
   };
-  const toDateInputValue = (value?: string) => {
-    const date = value ? parseStoredDate(value) : toManilaCalendarDate();
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  };
-
   const isDirty = useMemo(() => {
     if (editingAnnouncement) {
       return (
@@ -191,10 +188,6 @@ const AnnouncementEditor = ({
       } else if (scheduledAt && !Number.isNaN(scheduledAt.getTime()) && expiryAt <= scheduledAt) {
         nextErrors.expiryDate = "Expiry must be after the broadcast time.";
       }
-    }
-
-    if (candidate.showOnResidentCalendar && !candidate.calendarDate) {
-      nextErrors.calendarDate = "Choose the resident calendar date.";
     }
 
     setErrors(nextErrors);
@@ -341,7 +334,7 @@ const AnnouncementEditor = ({
                   setForm((p) => ({ ...p, title: e.target.value }));
                   clearError("title");
                 }}
-                placeholder="e.g. Special Holiday Waste Collection Schedule"
+                placeholder="Enter a clear announcement title"
                 aria-invalid={Boolean(errors.title)}
                 className={cn("h-9 rounded-xl bg-background border text-xs px-3.5 focus-visible:ring-primary/20 shadow-2xs", errors.title ? "border-destructive focus-visible:ring-destructive/20" : "border-border/80")}
               />
@@ -385,28 +378,23 @@ const AnnouncementEditor = ({
                 </Label>
                 <Select
                   value={form.type}
-                  onValueChange={(v) =>
-                    setForm((p) => ({
-                      ...p,
-                      type: v as AnnouncementType,
-                      showOnResidentCalendar: ["Schedule Change", "Holiday Reminder", "Community Event"].includes(v)
-                        ? p.showOnResidentCalendar
-                        : false,
-                    }))
-                  }
+                  onValueChange={(v) => setForm((p) => ({
+                    ...p,
+                    type: v as AnnouncementType,
+                    showOnResidentCalendar: p.type === v && p.showOnResidentCalendar,
+                    calendarDate: p.type === v ? p.calendarDate : "",
+                  }))}
                 >
                   <SelectTrigger className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 focus:ring-primary/20 shadow-2xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-border shadow-md">
-                    {[
-                      "Schedule Change",
-                      "Holiday Reminder",
-                      "Community Event",
-                      "Emergency Advisory",
-                      "General Notice",
-                      "System Maintenance",
-                    ].map((t) => (
+                    {editingAnnouncement && !isActiveAnnouncementType(form.type) && (
+                      <SelectItem value={form.type} disabled className="text-xs font-medium">
+                        {form.type} (existing notice)
+                      </SelectItem>
+                    )}
+                    {ACTIVE_ANNOUNCEMENT_TYPES.map((t) => (
                       <SelectItem key={t} value={t} className="text-xs font-medium">
                         {t}
                       </SelectItem>
@@ -579,63 +567,11 @@ const AnnouncementEditor = ({
               </div>
             )}
 
-            {/* Resident calendar is available only for date-based announcement types. */}
-            {["Schedule Change", "Holiday Reminder", "Community Event"].includes(form.type) && <div className="rounded-xl border border-border/70 bg-muted/25 p-4 space-y-3.5">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <Checkbox
-                  checked={form.showOnResidentCalendar}
-                  onCheckedChange={(checked) => setForm((p) => ({
-                    ...p,
-                    showOnResidentCalendar: checked === true,
-                    calendarDate: checked === true ? p.calendarDate || toDateInputValue(p.scheduledDate) : p.calendarDate,
-                  }))}
-                  className="rounded-sm border-border"
-                />
-                <span className="text-xs font-semibold text-foreground">Show as an event on the resident calendar</span>
-              </label>
-              {form.showOnResidentCalendar && (
-                <div className="space-y-1.5 border-t border-border/60 pt-3">
-                  <Label className="text-xs font-medium text-foreground/90">Event Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FieldButton
-                        aria-invalid={Boolean(errors.calendarDate)}
-                        className={cn(
-                          "font-medium",
-                          !form.calendarDate && "text-muted-foreground",
-                        )}
-                      >
-                        <span className="flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4 text-primary" />
-                          {form.calendarDate
-                            ? format(parseStoredDate(form.calendarDate), "MMMM d, yyyy")
-                            : "Choose Event Date"}
-                        </span>
-                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                      </FieldButton>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto rounded-xl border border-border p-0 shadow-md" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={form.calendarDate ? parseStoredDate(form.calendarDate) : undefined}
-                        onSelect={(date) => {
-                          if (!date) return;
-                          setForm((p) => ({
-                            ...p,
-                            calendarDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
-                          }));
-                          clearError("calendarDate");
-                        }}
-                        initialFocus
-                        className="p-3"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {errors.calendarDate && <p className="text-ui-caption font-medium text-destructive">{errors.calendarDate}</p>}
-                  <p className="text-ui-caption leading-relaxed text-muted-foreground">Defaults to the announcement’s scheduled date. Change it only if the event is on another day.</p>
-                </div>
-              )}
-            </div>}
+            {editingAnnouncement?.calendarEventId && form.showOnResidentCalendar && !isActiveAnnouncementType(form.type) && (
+              <p className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                This older calendar entry stays linked to this notice. Create new resident calendar events in Schedule Manager.
+              </p>
+            )}
 
             {/* Publishing Status */}
             <div className="space-y-1.5">

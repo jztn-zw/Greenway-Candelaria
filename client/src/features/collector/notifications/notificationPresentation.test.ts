@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { MessageSquare, Megaphone, Newspaper, Truck } from "lucide-react";
+import { CalendarClock, MessageSquare, Megaphone, Newspaper, Truck } from "lucide-react";
 import type { NotificationRow } from "@/services/notificationsService";
 import { getCollectorNotificationPresentation } from "./notificationPresentation";
 import { getCollectorNotificationVisual } from "./notificationRouting";
@@ -24,6 +24,13 @@ it("formats known dispatch messages while preserving custom dispatch titles", ()
     headline: { prefix: "Dispatch", connector: "sent a message", highlight: "" }, message: row.body,
   });
   expect(getCollectorNotificationPresentation({ ...row, ref_module: "driver-messages", title: "Urgent route instructions" }).headline.prefix).toBe("Urgent route instructions");
+});
+
+it("presents MENRO schedule alerts with their calendar destination and visual", () => {
+  expect(getCollectorNotificationPresentation({ ...row, ref_module: "schedule", title: "MENRO briefing" })).toEqual({
+    headline: { prefix: "MENRO Candelaria", connector: "added a schedule:", highlight: "MENRO briefing" }, message: row.body,
+  });
+  expect(getCollectorNotificationVisual({ ...row, ref_module: "schedule" }).Icon).toBe(CalendarClock);
 });
 
 it.each(["SYSTEM", "COLLECTION_REMINDER", "COLLECTION_DONE", "MISSED_COLLECTION", "TRUCK_IS_NEAR", "REPORT_UPDATE"] as const)("preserves original %s route and system messages", (type) => {

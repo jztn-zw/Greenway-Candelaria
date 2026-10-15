@@ -1372,15 +1372,7 @@ export const RouteManagerPageSkeleton = ({ viewMode = "DAY_VIEW" }: { viewMode?:
         actionsClassName="admin-module-header-actions"
         actions={<Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">Create route</span></Skeleton>} />
 
-      <div className={routeStyles.stats}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={routeStyles.stat}>
-            <div className="flex min-w-0 items-center justify-between gap-2"><Skeleton className="h-4 w-24 max-w-full" /><Skeleton className="size-8 shrink-0 rounded-lg" /></div>
-            <Skeleton className="h-8 sm:h-9 w-16" />
-            <Skeleton className="h-4 w-32 max-w-full" />
-          </div>
-        ))}
-      </div>
+      <AdminKpiSkeleton count={4} />
 
       <section className={`${routeStyles.toolbar} admin-toolbar`}>
         <div className={`${routeStyles.primary} admin-toolbar-primary`}>

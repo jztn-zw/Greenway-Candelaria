@@ -127,7 +127,7 @@ it("keeps colors stable and indexes spanning events only within the displayed mo
 
 it("allows admin to save corrected instructions on an ongoing event without changing its start", async () => {
   const onSubmit = vi.fn().mockResolvedValue(undefined);
-  await act(async () => root.render(<EventModal isOpen event={sample} defaultDate="2026-09-27" onClose={() => {}} onSubmit={onSubmit} />));
+  await act(async () => root.render(<EventModal isOpen event={sample} defaultDate="2026-09-27" barangayOptions={[]} onClose={() => {}} onSubmit={onSubmit} />));
   const form = document.body.querySelector("form")!;
   await act(async () => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ event_date: "2026-09-25", end_date: "2026-09-30" }));

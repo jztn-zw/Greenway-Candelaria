@@ -1,6 +1,10 @@
 import { getSystemNow } from "@/lib/serverClock";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 export type AnnouncementType = "Schedule Change" | "Holiday Reminder" | "Community Event" | "Emergency Advisory" | "General Notice" | "System Maintenance";
+export const ACTIVE_ANNOUNCEMENT_TYPES = ["Emergency Advisory", "General Notice", "System Maintenance"] as const;
+export type ActiveAnnouncementType = (typeof ACTIVE_ANNOUNCEMENT_TYPES)[number];
+export const isActiveAnnouncementType = (type: AnnouncementType): type is ActiveAnnouncementType =>
+  ACTIVE_ANNOUNCEMENT_TYPES.some((activeType) => activeType === type);
 export type AnnouncementStatus = "Draft" | "Scheduled" | "Active" | "Archived";
 export type TargetAudience = "All Residents" | "Specific Barangays";
 

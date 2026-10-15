@@ -85,7 +85,6 @@ const AdminResidents = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalResidentsCount, setTotalResidentsCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
-  const [deactivatedCount, setDeactivatedCount] = useState(0);
   const [deletedCount, setDeletedCount] = useState(0);
   const [bannedCount, setBannedCount] = useState(0);
   const [hasLoadedList, setHasLoadedList] = useState(false);
@@ -107,7 +106,7 @@ const AdminResidents = () => {
   }));
   const countQuery = useAdminQuery("residents", ["counts"], () => Promise.all([
     fetchResidents({ page: 1, limit: 1 }), fetchResidents({ page: 1, limit: 1, status: "ACTIVE" }),
-    fetchResidents({ page: 1, limit: 1, status: "DEACTIVATED" }), fetchResidents({ page: 1, limit: 1, status: "BANNED" }),
+    fetchResidents({ page: 1, limit: 1, status: "BANNED" }),
     fetchDeletedResidentCount(),
   ]));
   const barangaysQuery = useAdminQuery("barangays", ["admin-options"], fetchBarangaysAdmin);
@@ -128,9 +127,9 @@ const AdminResidents = () => {
   useEffect(() => {
     setKpiLoading(countQuery.isLoading); setKpiError(countQuery.isError);
     if (!countQuery.data) return;
-    const [all, active, deactivated, banned, deleted] = countQuery.data;
+    const [all, active, banned, deleted] = countQuery.data;
     setTotalResidentsCount(Number(all.pagination?.total || 0)); setActiveCount(Number(active.pagination?.total || 0));
-    setDeactivatedCount(Number(deactivated.pagination?.total || 0)); setBannedCount(Number(banned.pagination?.total || 0));
+    setBannedCount(Number(banned.pagination?.total || 0));
     setDeletedCount(deleted);
   }, [countQuery.data, countQuery.isLoading, countQuery.isError]);
   useEffect(() => { setBarangayOptions((barangaysQuery.data ?? []).map(({ id, name }) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))); }, [barangaysQuery.data]);
@@ -205,7 +204,6 @@ const AdminResidents = () => {
   const STATUS_TABS: FilterPillItem[] = [
     { id: "all", label: "All Residents", count: kpiError || kpiLoading ? undefined : totalResidentsCount },
     { id: "ACTIVE", label: "Active", count: kpiError || kpiLoading ? undefined : activeCount },
-    { id: "DEACTIVATED", label: "Deactivated", count: kpiError || kpiLoading ? undefined : deactivatedCount },
     { id: "BANNED", label: "Banned", count: kpiError || kpiLoading ? undefined : bannedCount },
   ];
 
@@ -417,7 +415,7 @@ const AdminResidents = () => {
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-1.5 text-foreground/90 truncate">
                             <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                            <span className="truncate">{r.email || "No email added"}</span>
+                            <span className="truncate">{r.email || (r.phone === "N/A" ? "No email or phone added" : "No email added")}</span>
                           </div>
                           {r.phone !== "N/A" && (
                             <div className="flex items-center gap-1.5 text-muted-foreground text-ui-caption">

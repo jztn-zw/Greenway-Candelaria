@@ -17,7 +17,7 @@ export const ScheduleKPIs: React.FC<ScheduleKPIsProps> = ({ events }) => {
     {
       title: "Total Schedules",
       value: total,
-      description: "All internal activities",
+      description: "MENRO and resident events",
       icon: CalendarDays,
       tone: "neutral" as const,
     },

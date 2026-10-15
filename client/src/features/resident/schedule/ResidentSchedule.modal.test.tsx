@@ -42,3 +42,14 @@ it("opens a schedule notice from a focusable button and closes with Escape or th
     expect(document.querySelector('[role="dialog"]')).toBeNull();
   } finally { act(() => root.unmount()); host.remove(); state.removed = false; }
 });
+
+it("selects the exact date from a schedule notification calendar link", async () => {
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const host = document.createElement("div"); document.body.appendChild(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<MemoryRouter initialEntries={["/resident/schedule?date=2099-01-01"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentSchedule /></MemoryRouter>));
+    const day = host.querySelector<HTMLButtonElement>('[aria-label="Thursday, January 1, 2099"]');
+    expect(day).toHaveAttribute("aria-pressed", "true");
+    expect(host.querySelector("h3")).toHaveTextContent("Thursday, Jan 1, 2099");
+  } finally { act(() => root.unmount()); host.remove(); }
+});

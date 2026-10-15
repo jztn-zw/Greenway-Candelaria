@@ -33,7 +33,7 @@ import ResidentAnnouncementModal, {
 } from "@/features/resident/announcements/ResidentAnnouncementModal";
 import PaginationControls from "@/components/common/PaginationControls";
 import { AnnouncementsContentSkeleton, AnnouncementsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
-import { Announcement, EditorForm, isAnnouncementExpired } from "./types";
+import { ACTIVE_ANNOUNCEMENT_TYPES, Announcement, EditorForm, isAnnouncementExpired } from "./types";
 
 const ITEMS_PER_PAGE_GRID = 6;
 const ITEMS_PER_PAGE_TABLE = 10;
@@ -290,12 +290,9 @@ const AdminAnnouncements = () => {
                       </SelectTrigger>
                       <SelectContent align="start" className="rounded-xl border border-border">
                         <SelectItem value="all" className="text-xs">All Types</SelectItem>
-                        <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
-                        <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
-                        <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
-                        <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
-                        <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
-                        <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
+                        {ACTIVE_ANNOUNCEMENT_TYPES.map((type) => (
+                          <SelectItem key={type} value={type} className="text-xs">{type}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </AdminFilterField>
@@ -360,12 +357,9 @@ const AdminAnnouncements = () => {
               </SelectTrigger>
               <SelectContent align="start" className="rounded-xl border border-border">
                 <SelectItem value="all" className="text-xs">All Types</SelectItem>
-                <SelectItem value="Schedule Change" className="text-xs">Schedule Change</SelectItem>
-                <SelectItem value="Holiday Reminder" className="text-xs">Holiday Reminder</SelectItem>
-                <SelectItem value="Community Event" className="text-xs">Community Event</SelectItem>
-                <SelectItem value="Emergency Advisory" className="text-xs">Emergency Advisory</SelectItem>
-                <SelectItem value="General Notice" className="text-xs">General Notice</SelectItem>
-                <SelectItem value="System Maintenance" className="text-xs">System Maintenance</SelectItem>
+                {ACTIVE_ANNOUNCEMENT_TYPES.map((type) => (
+                  <SelectItem key={type} value={type} className="text-xs">{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

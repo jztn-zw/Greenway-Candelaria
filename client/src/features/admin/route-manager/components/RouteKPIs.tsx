@@ -1,8 +1,5 @@
-import KpiValue from "@/components/common/KpiValue";
-import React from "react";
-import { cn } from "@/lib/utils";
-import { Route,CircleCheck,PauseCircle,MapPin } from "lucide-react";
-import { adminRouteStyles as routeStyles } from "@/components/common/communityContentStyles";
+import { AdminKpiCard, AdminKpiGrid, type AdminKpiTone } from "@/components/admin/AdminKpiCards";
+import { Route, CircleCheck, PauseCircle, MapPin, type LucideIcon } from "lucide-react";
 
 interface RouteKPIsProps {
   totalRoutes: number;
@@ -11,25 +8,25 @@ interface RouteKPIsProps {
   totalBarangays: number;
 }
 
-export const RouteKPIs: React.FC<RouteKPIsProps> = ({
+export const RouteKPIs = ({
   totalRoutes,
   activeRoutes,
   coveredBarangays,
   totalBarangays,
-}) => {
+}: RouteKPIsProps) => {
   const inactiveRoutes = Math.max(0, totalRoutes - activeRoutes);
   const coveragePct =
     totalBarangays > 0
       ? Math.round((coveredBarangays / totalBarangays) * 100)
       : 0;
 
-  const kpis = [
+  const kpis: { title: string; value: number | string; description: string; icon: LucideIcon; tone: AdminKpiTone }[] = [
     {
       title: "Total Routes",
       value: totalRoutes,
       description: "Saved collection routes",
       icon: Route,
-      tone: "bg-muted/70 text-muted-foreground",
+      tone: "neutral",
     },
     {
       title: "Enabled Routes",
@@ -39,7 +36,7 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
           ? `${Math.round((activeRoutes / totalRoutes) * 100)}% active operations`
           : "0 active",
       icon: CircleCheck,
-      tone: "bg-success/10 text-success-foreground",
+      tone: "success",
     },
     {
       title: "Paused Routes",
@@ -49,7 +46,7 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
           ? `${Math.round((inactiveRoutes / totalRoutes) * 100)}% inactive`
           : "0 paused",
       icon: PauseCircle,
-      tone: "bg-warning/10 text-warning-foreground",
+      tone: "warning",
     },
     {
       title: "Barangays Covered",
@@ -59,27 +56,23 @@ export const RouteKPIs: React.FC<RouteKPIsProps> = ({
           : `${coveredBarangays}`,
       description: `${coveragePct}% municipal coverage`,
       icon: MapPin,
-      tone: "bg-info/10 text-info-foreground",
+      tone: "info",
     },
   ];
 
   return (
-    <div className={routeStyles.stats}>
+    <AdminKpiGrid>
       {kpis.map((kpi) => (
-        <div key={kpi.title} className={routeStyles.stat}>
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <span className="text-ui-caption font-medium text-muted-foreground break-words">{kpi.title}</span>
-            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", kpi.tone)}>
-              <kpi.icon className="size-4" aria-hidden="true" />
-            </span>
-          </div>
-          <div className="gw-stat-value text-2xl sm:text-3xl text-foreground tracking-tight tabular-nums"><KpiValue value={kpi.value} /></div>
-          <div className="text-ui-caption text-muted-foreground font-medium break-words">
-            {kpi.description}
-          </div>
-        </div>
+        <AdminKpiCard
+          key={kpi.title}
+          label={kpi.title}
+          value={kpi.value}
+          description={kpi.description}
+          icon={kpi.icon}
+          tone={kpi.tone}
+        />
       ))}
-    </div>
+    </AdminKpiGrid>
   );
 };
 

@@ -1,4 +1,5 @@
 import type { NotificationRow } from "@/services/notificationsService";
+import { isValidDateOnly } from "@/utils/date";
 
 const cleanTitle = (title: string) => title.replace(/🚨|⚠️|⚠/g, "").trim();
 
@@ -13,11 +14,32 @@ const getMetadata = (notification: NotificationRow): Record<string, unknown> => 
   }
 };
 
+/** Reads a safe calendar date from a schedule notification for its deep link. */
+export const getResidentScheduleNotificationDate = (notification: NotificationRow): string | null => {
+  if (notification.ref_module !== "schedule") return null;
+
+  const metadataDate = getMetadata(notification).event_date;
+  const metadataDateKey = typeof metadataDate === "string"
+    ? metadataDate.match(/^(\d{4}-\d{2}-\d{2})(?:$|[T\s])/)?.[1]
+    : undefined;
+  if (isValidDateOnly(metadataDateKey)) return metadataDateKey;
+
+  const messageDateKey = notification.body?.match(/\bScheduled for\s+(\d{4}-\d{2}-\d{2})\b/i)?.[1];
+  return isValidDateOnly(messageDateKey) ? messageDateKey : null;
+};
+
 /** One title/message contract for the resident feed, bell menu, and detail dialog. */
 export const getResidentNotificationPresentation = (notification: NotificationRow) => {
   const title = cleanTitle(notification.title || "");
   const message = notification.body?.trim() || "";
   const metadata = getMetadata(notification);
+
+  if (notification.ref_module === "schedule") {
+    return {
+      headline: { prefix: "MENRO Candelaria", connector: "added a calendar event:", highlight: title || "Calendar Schedule" },
+      message,
+    };
+  }
 
   if (notification.ref_module === "announcements" || notification.type === "ANNOUNCEMENT") {
     return {

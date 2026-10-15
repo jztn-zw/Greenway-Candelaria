@@ -1,7 +1,7 @@
 import { FormDialog } from "@/components/dialogs/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
 import { Button } from "@/components/ui/button";
-import { CalendarClock,Truck,CheckCircle2,AlertTriangle,Megaphone,CircleAlert,Bell } from "lucide-react";
+import { CalendarClock,CalendarDays,Truck,CheckCircle2,AlertTriangle,Megaphone,CircleAlert,Bell } from "lucide-react";
 import type { ResidentNotification } from "./types";
 import { useNotificationTime } from "@/hooks/useNotificationTime";
 
@@ -17,6 +17,7 @@ const typeConfig: Record<string, { icon: React.ElementType; accent: string; labe
   "truck-near": { icon: Truck, accent: "text-primary", label: "Truck Alert" },
   "collection-done": { icon: CheckCircle2, accent: "text-leaf", label: "Collection Complete" },
   "schedule-change": { icon: AlertTriangle, accent: "text-earth-dark", label: "Schedule Change" },
+  "schedule-event": { icon: CalendarDays, accent: "text-primary", label: "Calendar Schedule" },
   "system-announcement": { icon: Megaphone, accent: "text-primary", label: "MENRO Announcement" },
   "announcement": { icon: Megaphone, accent: "text-primary", label: "MENRO Announcement" },
   "system": { icon: Bell, accent: "text-primary", label: "System Notification" },
@@ -39,7 +40,7 @@ const NotificationModal = ({ notification, open, onOpenChange, onViewSchedule }:
     <FormDialog open={open} onOpenChange={onOpenChange} title="Notification" description={config.label} icon={<Icon className={config.accent} />}
       footer={
         <>
-          {notification.type === "collection-reminder" && onViewSchedule && (
+          {(notification.type === "collection-reminder" || notification.type === "schedule-event") && onViewSchedule && (
             <Button type="button" variant="outline" onClick={onViewSchedule} className={modalStyles.cancelButton}>View Schedule</Button>
           )}
           <Button type="button" onClick={() => onOpenChange(false)} className={modalStyles.primaryButton}>Close</Button>

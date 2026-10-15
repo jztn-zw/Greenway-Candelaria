@@ -11,7 +11,7 @@ import {
   fetchBarangayList,
 } from "@/services/announcementsService";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Announcement, AnnouncementStatus, EditorForm } from "../types";
+import { Announcement, AnnouncementStatus, EditorForm, isActiveAnnouncementType } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -281,6 +281,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
       const payload = formToPayload({
         ...ann,
         title: `${ann.title} (Copy)`,
+        type: isActiveAnnouncementType(ann.type) ? ann.type : "General Notice",
         status: "Draft",
         // Announcement cards keep names for display and IDs for requests.
         // The API requires IDs when this is a barangay-targeted announcement.

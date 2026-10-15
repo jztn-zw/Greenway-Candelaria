@@ -11,6 +11,7 @@ import { adminCommunityStyles as managerStyles,adminScheduleStyles as scheduleSt
 
 import { useAdminMutation,useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
+import { fetchBarangaysAdmin } from "@/services/barangaysService";
 import {
 createCalendarEvent as apicreateCalendarEvent,
 deleteCalendarEvent as apideleteCalendarEvent,
@@ -32,8 +33,15 @@ const AdminCollectionSchedule: React.FC = () => {
   const createCalendarEvent = useAdminMutation(apicreateCalendarEvent, "schedule");
   const updateCalendarEvent = useAdminMutation(apiupdateCalendarEvent, "schedule");
   const deleteCalendarEvent = useAdminMutation(apideleteCalendarEvent, "schedule");
-  const eventsQuery = useAdminQuery("schedule", ["private-events"], () => fetchCalendarEvents({ event_type: "PRIVATE_EVENT", visibility: "PRIVATE" }));
-  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+  const eventsQuery = useAdminQuery("schedule", ["manager-events"], () => fetchCalendarEvents());
+  const barangaysQuery = useAdminQuery("barangays", ["admin-options"], fetchBarangaysAdmin);
+  const barangayOptions = useMemo(() => (barangaysQuery.data ?? [])
+    .filter((barangay) => barangay.status === "ACTIVE")
+    .map(({ id, name }) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name)), [barangaysQuery.data]);
+  const events = useMemo(() => (eventsQuery.data ?? []).filter((event) =>
+    !event.announcement_id && (event.event_type === "PRIVATE_EVENT" || event.event_type === "COMMUNITY_EVENT")
+  ), [eventsQuery.data]);
   const isLoading = eventsQuery.isLoading;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,7 +99,7 @@ const AdminCollectionSchedule: React.FC = () => {
       toast.success("Schedule event updated successfully");
     } else {
       await createCalendarEvent(payload);
-      toast.success("New schedule event added to MENRO calendar");
+      toast.success("New schedule event added to the calendar");
     }
   };
 
@@ -115,7 +123,7 @@ const AdminCollectionSchedule: React.FC = () => {
   if (isLoading) {
     return <AdminScheduleSkeleton currentDate={currentDate} />;
   }
-  if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the internal schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
+  if (eventsQuery.error && eventsQuery.data === undefined && !isModalOpen) return <PageErrorState kind="unavailable" description="We couldn't load the schedule. Please try again." onRetry={() => void eventsQuery.refetch()} retrying={eventsQuery.isFetching} homeHref="/admin" />;
 
   return (
     <div className={scheduleStyles.page}>
@@ -123,14 +131,14 @@ const AdminCollectionSchedule: React.FC = () => {
       <ResidentPageHeader
         className="admin-module-header"
         title="Schedule Manager"
-        description="Plan MENRO activities. Manage resident collection days in Route Manager."
+        description="Manage MENRO activities and resident calendar events. Manage collection days in Route Manager."
         actionsClassName="admin-module-header-actions"
         actions={<Button
           onClick={handleOpenCreate}
           className={`${managerStyles.action} shrink-0`}
         >
           <Plus className="w-4 h-4" />
-          <span>New Internal Schedule</span>
+          <span>New Schedule / Event</span>
         </Button>}
       />
 
@@ -139,15 +147,15 @@ const AdminCollectionSchedule: React.FC = () => {
       {/* Schedule summary */}
       <ScheduleKPIs events={events} />
 
-      <section className={scheduleStyles.workspace} aria-labelledby="internal-calendar-title">
+      <section className={scheduleStyles.workspace} aria-labelledby="schedule-calendar-title">
         <div className={scheduleStyles.workspaceHeader}>
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <CalendarDays className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 id="internal-calendar-title" className="gw-heading text-sm text-foreground">Internal Calendar</h2>
-              <p className="mt-0.5 text-ui-caption text-muted-foreground">Select a date to view its activities.</p>
+              <h2 id="schedule-calendar-title" className="gw-heading text-sm text-foreground">Schedule Calendar</h2>
+              <p className="mt-0.5 text-ui-caption text-muted-foreground">View MENRO activities and events shared with residents.</p>
             </div>
           </div>
           <div className={scheduleStyles.toolbar}>
@@ -212,6 +220,7 @@ const AdminCollectionSchedule: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         event={editingEvent}
         defaultDate={selectedDateStr}
+        barangayOptions={barangayOptions}
         onSubmit={handleSubmitEvent}
       />
 

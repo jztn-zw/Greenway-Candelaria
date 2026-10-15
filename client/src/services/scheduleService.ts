@@ -17,6 +17,7 @@ export interface CalendarEvent {
   location?: string | null;
   barangay_id?: string | null;
   barangay_name?: string | null;
+  announcement_id?: string | null;
   status: EventStatus;
   created_by?: string;
   creator_name?: string;

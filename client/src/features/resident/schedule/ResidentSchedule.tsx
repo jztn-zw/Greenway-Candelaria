@@ -27,7 +27,7 @@ ChevronRight,
 Check,
 X as CloseIcon
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { ResidentScheduleSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
@@ -38,7 +38,7 @@ fetchCollectionSchedule,
 } from "@/services/scheduleService";
 import { SegmentedControl } from "@/components/common";
 import useAuthStore from "@/store/authStore";
-import { formatDateOnly,getManilaNow } from "@/utils/date";
+import { formatDateOnly,getManilaNow,isValidDateOnly } from "@/utils/date";
 
 const toDateString = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -166,6 +166,9 @@ type ViewTab = "CALENDAR" | "WEEKLY_GUIDE";
 const ResidentSchedule = () => {
   useSystemTime();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedDate = searchParams.get("date");
+  const requestedDateIsValid = isValidDateOnly(requestedDate);
   const user = useAuthStore((s) => s.user);
   const barangayName = user?.barangay_name || "Candelaria";
 
@@ -174,10 +177,19 @@ const ResidentSchedule = () => {
   const [expandedWeeklyDay, setExpandedWeeklyDay] = useState(today.weekdayIndex);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  const [currentDate, setCurrentDate] = useState(() => new Date(today.year, today.month - 1, 1));
+  const [currentDate, setCurrentDate] = useState(() => requestedDateIsValid
+    ? new Date(Number(requestedDate.slice(0, 4)), Number(requestedDate.slice(5, 7)) - 1, 1)
+    : new Date(today.year, today.month - 1, 1));
   const [selectedDateStr, setSelectedDateStr] = useState(() =>
-    today.dateKey,
+    requestedDateIsValid ? requestedDate : today.dateKey,
   );
+
+  useEffect(() => {
+    if (!requestedDateIsValid) return;
+    const [year, month] = requestedDate.split("-").map(Number);
+    setCurrentDate(new Date(year, month - 1, 1));
+    setSelectedDateStr(requestedDate);
+  }, [requestedDate, requestedDateIsValid]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();

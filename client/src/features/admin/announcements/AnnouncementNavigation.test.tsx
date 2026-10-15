@@ -35,6 +35,19 @@ it("keeps Cancel disabled during saving", () => {
   expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
 });
 
+it("offers only announcement notice types and no resident-calendar controls for new notices", () => {
+  render(<AnnouncementEditor open onOpenChange={vi.fn()} editingAnnouncement={null} form={form}
+    setForm={vi.fn()} onSave={vi.fn()} isSaving={false} barangayOptions={[]} />);
+  fireEvent.click(screen.getAllByRole("combobox")[1]);
+  expect(screen.getByRole("option", { name: "Emergency Advisory" })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "General Notice" })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "System Maintenance" })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Schedule Change" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Holiday Reminder" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Community Event" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Show as an event on the resident calendar")).not.toBeInTheDocument();
+});
+
 it("opens a compact announcement preview once and keeps read analytics separate", () => {
   const ann: Announcement = {
     id: "notice-42", title: "Collection schedule", body: "Prepare your bins.", type: "General Notice", status: "Active",

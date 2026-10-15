@@ -75,6 +75,18 @@ it.each([
   await act(async () => finishRead());
 });
 
+it("opens a schedule notification on its exact resident calendar date", async () => {
+  let finishRead!: () => void;
+  mocks.markAsRead.mockImplementationOnce(() => new Promise<void>(resolve => { finishRead = resolve; }));
+  mocks.notifications = [notice({ type: "ANNOUNCEMENT", ref_module: "schedule", ref_id: "event-1", metadata: { event_date: "2099-01-01" } })];
+  await openMenu();
+  await act(async () => document.querySelector<HTMLButtonElement>(".gw-topbar-notification-row")!.click());
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent("/resident/schedule?date=2099-01-01");
+  expect(document.querySelector(".gw-topbar-notification-panel")).toBeNull();
+  expect(mocks.markAsRead).toHaveBeenCalledExactlyOnceWith("notification-1");
+  await act(async () => finishRead());
+});
+
 it("opens a collection reminder immediately while its read receipt is pending", async () => {
   let finishRead!: () => void;
   mocks.markAsRead.mockImplementationOnce(() => new Promise<void>(resolve => { finishRead = resolve; }));

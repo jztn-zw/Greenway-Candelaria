@@ -10,6 +10,10 @@ it("preserves meaningful titles and complete emoji characters", () => {
 it("handles malformed and non-object metadata safely", () => {
   for (const metadata of ["null", "[]", "broken", "42"]) expect(getCollectorNotificationDestination({ ...row, metadata })).toBeNull();
 });
+
+it("opens schedule notifications in the collector calendar", () => {
+  expect(getCollectorNotificationDestination({ ...row, ref_module: "schedule" })).toBe("/collector/schedule");
+});
 it("does not open today's map for an old route alert or a deleted template", () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-27T00:00:00Z"));
   expect(getCollectorNotificationDestination({ ...row, ref_module: "routes", metadata: { destination: "route-map", collection_date: "2026-09-26" } })).toBeNull();

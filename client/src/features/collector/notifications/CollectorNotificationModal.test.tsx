@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import CollectorNotificationModal from "./CollectorNotificationModal";
 import type { NotificationRow } from "@/services/notificationsService";
@@ -14,7 +14,8 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); });
-const render = async () => { await act(async () => root.render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><CollectorNotificationModal notification={notification} open onOpenChange={() => {}} /></MemoryRouter>)); };
+const Location = () => { const location = useLocation(); return <output data-testid="location">{location.pathname}</output>; };
+const render = async (row = notification) => { await act(async () => root.render(<MemoryRouter initialEntries={["/collector/notifications"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><CollectorNotificationModal notification={row} open onOpenChange={() => {}} /><Location /></MemoryRouter>)); };
 it("uses the API type and original body for notification details", async () => {
   await render(); const dialog = document.querySelector('[role="dialog"]');
   expect(dialog?.textContent).toContain("Collection Completed"); expect(dialog?.textContent).toContain(notification.body);
@@ -22,4 +23,11 @@ it("uses the API type and original body for notification details", async () => {
 it("hides open details immediately when they belong to the previous account", async () => {
   await render(); auth.id = "collector-B"; await render();
   expect(document.querySelector('[role="dialog"]')).toBeNull(); expect(document.body.textContent).not.toContain(notification.body);
+});
+it("labels schedule notifications and opens the collector calendar", async () => {
+  await render({ ...notification, type: "SYSTEM", ref_module: "schedule" });
+  const dialog = document.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("MENRO Schedule");
+  await act(async () => [...dialog.querySelectorAll("button")].find(button => button.textContent?.trim() === "Open Calendar")!.click());
+  expect(host.querySelector('[data-testid="location"]')).toHaveTextContent("/collector/schedule");
 });
