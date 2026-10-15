@@ -1,11 +1,8 @@
 import { getCategoryBadgeColors,getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import React from "react";
-import {
-Dialog,
-DialogContent,
-DialogTitle,
-DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog } from "@/components/ui/dialog";
+import { FormDialogHeader } from "@/components/dialogs/FormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +14,6 @@ SquarePen,
 Trash2,
 User,
 Info,
-X,
 } from "lucide-react";
 import { CalendarEvent,EventType,EventStatus } from "@/services/scheduleService";
 
@@ -90,34 +86,13 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-1.5rem)] sm:max-w-lg p-3 sm:p-6 rounded-2xl border border-border/80 shadow-2xl bg-background text-left [&>button:last-child]:hidden max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 text-left sm:max-w-lg [&>button:last-child]:hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-              <CalendarDays className="w-4 h-4" />
-            </div>
-            <div>
-              <DialogTitle className="gw-heading text-base text-foreground tracking-tight">
-                Schedule Details
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Full overview of the scheduled event and visibility status.
-              </DialogDescription>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
-            title="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        <FormDialogHeader title="Schedule Details" description="Full overview of the scheduled event and visibility status."
+          icon={<CalendarDays />} onClose={onClose} closeLabel="Close schedule details" />
 
         {/* Content */}
-        <div className="space-y-4 py-3">
+        <div className="gw-modal-body min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
           {/* Status & Title Card */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -184,7 +159,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between pt-3.5 border-t border-border/60 gap-2">
+        <div className="gw-modal-footer flex shrink-0 flex-wrap items-center justify-between border-t border-border/60 gap-2">
           <Button
             type="button"
             variant="destructive-outline"

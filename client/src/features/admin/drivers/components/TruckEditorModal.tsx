@@ -2,12 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -17,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { X, Truck as TruckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import type { Truck, TruckOperationalStatus } from "../types";
 import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
@@ -151,7 +147,7 @@ const TruckEditorModal = ({
         </div>
 
         {/* Form Body - Balanced 2-Column Grid */}
-        <div className="collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+        <div className="gw-modal-body collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
           {/* Row 1: Name & Model */}
           <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">

@@ -19,6 +19,8 @@ export interface MyReportStatusHistory {
 }
 
 export interface MyReportRow {
+  is_duplicate?: boolean | number;
+  is_false?: boolean | number;
   id: string;
   reference_number: string;
   barangay_id: string;
@@ -194,6 +196,7 @@ export interface AdminReportItem {
   barangay_name: string;
   barangay_zone: string | null;
   reporter_name: string | null;
+  reporter_username?: string | null;
   reporter_email: string | null;
   violation_type: string;
   landmark: string | null;

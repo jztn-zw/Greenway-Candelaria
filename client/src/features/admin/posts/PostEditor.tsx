@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { UnsavedChangesDialog } from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { useAdminMutation } from "@/lib/adminQuery";
 import postsService from "@/services/postsService";
 import {

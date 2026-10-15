@@ -57,6 +57,7 @@ export const createDriver = async (payload: {
 export const updateDriver = async (
   driverId: string,
   payload: {
+    username?: string;
     full_name?: string;
     phone?: string;
     truck_id?: string | null;

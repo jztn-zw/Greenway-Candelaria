@@ -6,7 +6,7 @@ import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { SearchInput } from "@/components/common/SearchInput";
 import { adminCommunityStyles as postStyles } from "@/components/common/communityContentStyles";
 import { FilterPillTabs, type FilterPillItem } from "@/components/common/FilterPillTabs";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";

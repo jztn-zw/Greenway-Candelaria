@@ -1,14 +1,10 @@
 import React,{ useState,useMemo,useEffect } from "react";
-import {
-Dialog,
-DialogContent,
-DialogTitle,
-DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TimePicker } from "@/components/ui/time-picker";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { Label } from "@/components/ui/label";
 import {
 Select,
@@ -292,7 +288,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
             </div>
 
             {/* ── Modal Content (Scrollable Split Body) ── */}
-            <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 scrollbar-thin">
+            <div className="gw-modal-body min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 scrollbar-thin">
               <div className="admin-route-editor-grid grid min-w-0 grid-cols-1 gap-4 items-start">
                 {/* ── LEFT COLUMN: Input Configuration ── */}
                 <div className="min-w-0 space-y-4">

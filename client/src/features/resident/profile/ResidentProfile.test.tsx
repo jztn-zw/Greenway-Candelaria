@@ -64,12 +64,12 @@ it("offers only the ten supplied avatars and saves the selection", async () => {
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 
-it("opens password-confirmed deactivation from Profile and allows cancellation", async () => {
+it("opens password-confirmed deletion from Profile and allows cancellation", async () => {
   const client = new QueryClient();
   await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentProfile /></MemoryRouter></QueryClientProvider>));
-  await click("Deactivate Account");
-  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("Sign in again to reactivate your account.");
-  expect(document.getElementById("deactivation-password")).toHaveAttribute("type", "password");
+  await click("Delete Account");
+  expect(document.querySelector('[role="dialog"]')).toHaveTextContent("This cannot be undone.");
+  expect(document.getElementById("deletion-password")).toHaveAttribute("type", "password");
   await click("Cancel");
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   client.clear();

@@ -2,16 +2,12 @@ import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { X, UserPlus, UserCheck, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import type { Driver, Truck } from "../types";
 import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
@@ -98,6 +94,7 @@ const DriverEditorModal = ({
     if (editingDriver) {
       return (
         formName !== editingDriver.fullName ||
+        formUsername !== editingDriver.username ||
         formContact !== editingDriver.contactNumber ||
         formTruckId !== (editingDriver.truckId || "none") ||
         formPassword !== ""
@@ -135,6 +132,7 @@ const DriverEditorModal = ({
       if (formUsername.trim().length < 3) nextErrors.username = "Username must be at least 3 characters.";
       if (formPassword.length < 6) nextErrors.password = "Password must be at least 6 characters.";
     }
+    if (isEditing && !/^[^\s@]{3,50}$/.test(formUsername.trim())) nextErrors.username = "Use 3–50 characters without spaces or @.";
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
@@ -146,7 +144,9 @@ const DriverEditorModal = ({
       });
       handleOpenChange(false);
     } catch (error) {
-      setErrors({ form: error instanceof Error ? error.message : "Unable to save this collector. Please try again." });
+      const response = (error as { response?: { data?: { message?: string } } }).response?.data;
+      const message = response?.message || (error instanceof Error ? error.message : "Unable to save this collector. Please try again.");
+      setErrors(message === "Username already taken" ? { username: "Username already taken. Choose another username." } : { form: message });
     }
   };
 
@@ -207,10 +207,17 @@ const DriverEditorModal = ({
             </div>
 
             {/* Scrollable Form Body */}
-            <div className="collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
-              {/* Row 1: Full Name & Contact */}
+            <div className="gw-modal-body collector-manager-modal-body min-h-0 px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+              {/* Account identifier and contact */}
               <div className="collector-manager-modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                {isEditing ? <div className="space-y-1.5">
+                  <Label htmlFor="driver-username" className="text-xs font-medium text-foreground">Username</Label>
+                  <Input id="driver-username" value={formUsername} maxLength={50} autoComplete="off" spellCheck={false}
+                    onChange={(event) => { setFormUsername(event.target.value); clearError("username"); }}
+                    placeholder="Enter the collector's username" aria-invalid={Boolean(errors.username)} aria-describedby={errors.username ? "driver-username-error" : undefined}
+                    className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.username ? "border-destructive" : "border-border/80")} />
+                  {errors.username && <p id="driver-username-error" role="alert" className="text-ui-caption font-medium text-destructive">{errors.username}</p>}
+                </div> : <div className="space-y-1.5">
                    <Label htmlFor="driver-name" className="text-xs font-medium text-foreground">
                     Full Name
                   </Label>
@@ -222,7 +229,7 @@ const DriverEditorModal = ({
                      aria-invalid={Boolean(errors.name)} className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.name ? "border-destructive" : "border-border/80")}
                    />
                    {errors.name && <p className="text-ui-caption font-medium text-destructive">{errors.name}</p>}
-                </div>
+                </div>}
 
                 <div className="space-y-1.5">
                    <Label htmlFor="driver-contact" className="text-xs font-medium text-foreground">
@@ -288,6 +295,14 @@ const DriverEditorModal = ({
               )}
 
               {/* Row 4: Assigned Truck */}
+              {isEditing && <div className="space-y-1.5">
+                <Label htmlFor="driver-name" className="text-xs font-medium text-foreground">Full Name</Label>
+                <Input id="driver-name" value={formName}
+                  onChange={(event) => { setFormName(event.target.value); clearError("name"); }}
+                  placeholder="e.g. Roberto Navarro" aria-invalid={Boolean(errors.name)}
+                  className={cn("h-9 text-xs rounded-xl bg-background shadow-2xs px-3", errors.name ? "border-destructive" : "border-border/80")} />
+                {errors.name && <p className="text-ui-caption font-medium text-destructive">{errors.name}</p>}
+              </div>}
               {isEditing && <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">Assigned Truck</Label>
                   <SearchableSelect value={formTruckId} onValueChange={setFormTruckId}

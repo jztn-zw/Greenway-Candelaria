@@ -1,6 +1,6 @@
 import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import {

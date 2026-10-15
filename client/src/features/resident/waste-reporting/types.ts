@@ -81,6 +81,8 @@ export interface PhotoAnnotation {
 }
 
 export interface SubmittedReport {
+  isDuplicate?: boolean;
+  isInvalid?: boolean;
   id: string;
   referenceNumber: string;
   violationType: ViolationType;

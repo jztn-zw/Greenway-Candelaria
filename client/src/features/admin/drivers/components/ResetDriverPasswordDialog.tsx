@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminModal } from "@/components/admin/AdminModal";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminMutation } from "@/lib/adminQuery";
@@ -52,18 +53,15 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open && !isSaving) onClose(); }}>
-      <DialogContent className="w-[92vw] max-h-[90dvh] overflow-y-auto sm:max-w-md rounded-2xl border border-border/80 bg-background p-4 sm:p-6">
-        <DialogHeader className="gw-modal-header border-b border-border/60 pb-4 pr-8 text-left bg-card">
-          <DialogTitle className="gw-heading flex items-center gap-2.5 text-base ">
-            <KeyRound className="h-5 w-5 text-primary" /> Reset Collector Password
-          </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm leading-relaxed">
-            Set a new password for {driver.fullName}. Their current sessions will be signed out after you save it.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={(event) => void submit(event)} className="space-y-4 pt-1">
+    <AdminModal open onOpenChange={(open) => { if (!open) onClose(); }} pending={isSaving}
+      title="Reset Collector Password" icon={<KeyRound />} closeLabel="Close password reset"
+      description={<>Set a new password for {driver.fullName}. Their current sessions will be signed out after you save it.</>}
+      footer={<>
+        <Button type="button" variant="outline" disabled={isSaving} onClick={onClose} className={formDialogStyles.cancelButton}>Cancel</Button>
+        <Button type="submit" form="collector-reset-password-form" disabled={isSaving} className={formDialogStyles.primaryButton} loading={isSaving} loadingLabel="Saving password…">Save Password</Button>
+      </>}
+    >
+        <form id="collector-reset-password-form" onSubmit={(event) => void submit(event)} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="collector-new-password" className="text-xs font-medium">New Password</Label>
             <div className="relative">
@@ -106,16 +104,8 @@ const ResetDriverPasswordDialog = ({ driver, onClose }: Props) => {
 
           {error ? <p role="alert" className="text-xs text-destructive">{error}</p> : null}
 
-          <div className="flex flex-wrap justify-end gap-2.5 border-t border-border/60 pt-4">
-            <Button type="button" variant="outline" disabled={isSaving} onClick={onClose} className="h-9 rounded-lg px-4 text-xs font-medium">Cancel</Button>
-            <Button type="submit" disabled={isSaving} className="h-9 gap-1.5 rounded-lg px-5 text-xs font-semibold" loading={isSaving} loadingLabel="Saving password…">
-
-              Save Password
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdminModal>
   );
 };
 

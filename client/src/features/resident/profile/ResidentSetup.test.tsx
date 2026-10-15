@@ -139,6 +139,17 @@ it("shows the signup username once outside the form and saves without optional c
   fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ username: "resident", phone: null, email: null })));
 });
+it("clears populated text fields with the shared clear controls", () => {
+  useAuthStore.setState({ user: { ...pending, full_name: "Test Resident", username: "resident", email: "resident@example.test", phone: "+639123456789" } });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Clear full name" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear email address" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear phone number" }));
+  expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("");
+  expect(screen.getByLabelText(/^Email address$/i)).toHaveValue("");
+  expect(screen.getByLabelText(/^Phone number$/i)).toHaveValue("");
+  expect(screen.getByText("+63")).toBeInTheDocument();
+});
 it("keeps a selected avatar after a failed save and saves it with the completed profile", async () => {
   const chosen = "/profile-avatars/avatar-7.png";
   const save = vi.spyOn(authService, "completeResidentProfile").mockRejectedValueOnce(new Error("Couldn't save your profile. Please retry."))

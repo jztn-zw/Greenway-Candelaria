@@ -32,6 +32,7 @@ import PaginationControls from "@/components/common/PaginationControls";
 import { WasteReportRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import {
 WasteReport,
+getReportStatusLabel,
 statusBadgeStyles,
 violationBadgeStyles,
 safeFormatDate,
@@ -134,7 +135,7 @@ const ReportListTable = ({
                         {report.referenceNumber}
                       </button>
                       <Badge variant="outline" className={`${styles.mobileStatus} ${styles.statusBadge} whitespace-nowrap ${sc.badge}`}>
-                        {report.status}
+                        {getReportStatusLabel(report)}
                       </Badge>
                     </div>
                     <div className={styles.compact}>
@@ -197,7 +198,7 @@ const ReportListTable = ({
                       variant="outline"
                       className={`${styles.statusBadge} ${sc.badge}`}
                     >
-                      {report.status}
+                      {getReportStatusLabel(report)}
                     </Badge>
                   </TableCell>
 

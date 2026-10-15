@@ -81,6 +81,14 @@ export const fetchResidents = async (
   return data.data;
 };
 
+export const fetchDeletedResidentCount = async (): Promise<number> => {
+  const { data } = await api.get<{ data: number }>("/users/deleted-resident-count");
+  if (!Number.isFinite(data.data) || data.data < 0) {
+    throw new Error("Invalid deleted resident count from server.");
+  }
+  return data.data;
+};
+
 export const fetchResidentById = async (
   id: string,
 ): Promise<ResidentDetailsRow> => {

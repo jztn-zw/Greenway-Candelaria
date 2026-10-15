@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminReportItem, AdminReportsResponse } from "@/services/reportsService";
-import { fetchAdminReportById, fetchAdminReports, updateAdminReportStatus } from "@/services/reportsService";
+import { addAdminReportNote, fetchAdminReportById, fetchAdminReports, updateAdminReportStatus } from "@/services/reportsService";
 import AdminWasteReports from "./AdminWasteReports";
 
 vi.mock("@/services/reportsService", () => ({
@@ -38,14 +38,17 @@ vi.mock("./ReportListTable", () => ({
   ),
 }));
 vi.mock("./ReportDetailPanel", () => ({
-  default: ({ report, onUpdateStatus, onClose }: {
-    report: { id: string };
+  default: ({ report, onUpdateStatus, onAddNote, onClose }: {
+    report: { id: string; internalNotes?: Array<{ id: string; text: string }> };
     onUpdateStatus: (status: string) => Promise<void>;
+    onAddNote: (note: string) => Promise<void>;
     onClose: () => void;
   }) => (
     <div>
       <span data-testid="report-detail">{report.id}</span>
+      {(report.internalNotes ?? []).map((note) => <span key={note.id}>{note.text}</span>)}
       <button onClick={() => void onUpdateStatus("UNDER_REVIEW")}>Update status</button>
+      <button onClick={() => { void onAddNote("Collection was confirmed."); }}>Add note</button>
       <button onClick={onClose}>Close detail</button>
     </div>
   ),
@@ -148,7 +151,6 @@ describe("AdminWasteReports detail selection", () => {
     await clickButton(host, "Update status");
     expect(updateAdminReportStatus).toHaveBeenCalledWith("B", {
       status: "UNDER_REVIEW",
-      admin_response: undefined,
     });
   });
 
@@ -164,6 +166,29 @@ describe("AdminWasteReports detail selection", () => {
     await act(async () => resolveDetail(report("A")));
 
     expect(host.querySelector('[data-testid="report-detail"]')).toBeNull();
+  });
+
+  it("updates the selected report from the saved note without refetching its details", async () => {
+    vi.mocked(fetchAdminReportById).mockResolvedValue({
+      ...report("A"),
+      internal_notes: [],
+    });
+    vi.mocked(addAdminReportNote).mockResolvedValue({
+      id: "note-1",
+      report_id: "A",
+      note: "Collection was confirmed.",
+      created_by: "admin-test",
+      created_by_name: "MENRO",
+      created_at: "2026-10-15T10:00:00Z",
+    });
+
+    await renderDashboard();
+    await clickButton(host, "Select A");
+    await clickButton(host, "Add note");
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+
+    expect(host.textContent).toContain("Collection was confirmed.");
+    expect(fetchAdminReportById).toHaveBeenCalledTimes(1);
   });
 
   it("ignores an older list response after a filter changes", async () => {

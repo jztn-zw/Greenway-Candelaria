@@ -1,13 +1,9 @@
 import React,{ useState,useEffect,useMemo } from "react";
-import {
-Dialog,
-DialogContent,
-DialogTitle,
-DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FieldButton } from "@/components/ui/field-button";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -222,7 +218,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             </div>
 
           {/* Form Fields (Scrollable Body) */}
-          <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+          <div className="gw-modal-body min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">

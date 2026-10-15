@@ -1,7 +1,7 @@
 import { useSystemTime } from "@/hooks/useSystemTime";
 import { Button } from "@/components/ui/button";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
-import { FormDialog } from "@/components/dialogs/FormDialog";
+import { AdminModal as FormDialog } from "@/components/admin/AdminModal";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover,PopoverContent,PopoverTrigger } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";

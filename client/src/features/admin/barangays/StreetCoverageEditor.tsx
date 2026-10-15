@@ -6,14 +6,9 @@ import { isAxiosError } from "axios";
 import { AlertTriangle, ArrowDownUp, CheckCircle2, Info, MapPin, Minus, MousePointer2, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getStreetCoverageRoadPath } from "@/services/roadRoutingService";
 
 export type CoveragePoint = [number, number];
@@ -325,7 +320,7 @@ const StreetCoverageEditor = ({
           </div>
         </DialogHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4 scrollbar-thin sm:px-5">
+        <div className="gw-modal-body flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4 scrollbar-thin sm:px-5">
           {error && (
             <div role="alert" className="flex shrink-0 gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3.5">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />

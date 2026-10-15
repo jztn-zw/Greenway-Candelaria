@@ -28,11 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent, DialogTitle, DialogDescription
-} from "@/components/ui/dialog";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 
 import {
   Popover,
@@ -331,7 +329,7 @@ const AnnouncementEditor = ({
           </div>
 
           {/* ── Scrollable Form Body ── */}
-          <div className="min-h-0 min-w-0 overflow-y-auto px-3 py-4 sm:px-5 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
+          <div className="gw-modal-body min-h-0 min-w-0 overflow-y-auto px-3 py-4 sm:px-5 space-y-3.5 flex-1 overscroll-contain scrollbar-thin">
             {/* Notice Title */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">

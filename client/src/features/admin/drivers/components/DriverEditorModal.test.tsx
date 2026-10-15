@@ -3,6 +3,19 @@ import { afterEach, expect, it, vi } from "vitest";
 import DriverEditorModal from "./DriverEditorModal";
 
 afterEach(cleanup);
+it("allows editing a collector username and preserves the draft after a duplicate error", async () => {
+  const save = vi.fn().mockRejectedValue(new Error("Username already taken"));
+  const driver = { id: "driver-1", userId: "user-1", fullName: "Test Collector", username: "collector", email: "", avatarUrl: null, contactNumber: "09123456789", truckId: null, status: "Active" as const, lastLogin: "", dateAdded: "", activityLog: [] };
+  render(<DriverEditorModal open onOpenChange={vi.fn()} editingDriver={driver} trucks={[]} drivers={[driver]} onSave={save} />);
+  expect(screen.getByLabelText("Username")).toHaveValue("collector");
+  expect(screen.queryByLabelText("Initial Password")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "collector.new" } });
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save Changes" })));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ username: "collector.new" }));
+  expect(screen.getByLabelText("Username")).toHaveValue("collector.new");
+  expect(screen.getByLabelText("Username")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByText("Username already taken. Choose another username.")).toBeInTheDocument();
+});
 it("rejects contacts outside the Philippine 09 mobile format", async () => {
   const save = vi.fn();
   render(<DriverEditorModal open onOpenChange={vi.fn()} editingDriver={null} trucks={[]} drivers={[]} onSave={save} />);

@@ -49,17 +49,20 @@ Mobile apps are outside this change.
 
 ## Boundaries
 
-Resident Profile offers password-confirmed self-deactivation. It waits for pending
+Resident Profile offers password-confirmed account deletion. It waits for pending
 resident mutations, cancels account reads, and clears local authentication only
-after the server commits status, session revocation, and audit history together.
+after the server commits the deleted account, session revocation, and audit history together.
 No second logout request runs against the revoked session. Failure keeps the dialog
 and password open; rate limiting displays a live inline countdown. A late response
-cannot clear a newer login. Normal password login reactivates only residents with
-the server's self-deactivation marker, and issues a new session. Recovery codes can
-reset such an account's password without reactivating it; login completes the return.
-Bans and older administrative deactivations remain blocked. Stored preferences,
-reports, and history remain intact. Apply the reviewed database marker migration
-before using this action on an existing installation; see the server database README.
+cannot clear a newer login. The server removes profile/contact details, credentials,
+notification inbox and preferences while keeping the user ID for municipal history.
+Reports remain attributed to “Deleted Resident”; login and recovery cannot restore
+the deleted account. No schema migration is required. Previously self-deactivated
+accounts retain their legacy login compatibility, but the self-deactivation endpoint
+is retired. Banned accounts remain blocked. See the server database README for retention.
+Settings reads/creation, settings writes, and profile-to-settings area sync recheck
+the active account under the same server row lock as deletion. An older request
+from another device cannot repopulate a deleted profile or recreate its settings.
 
 Query keys include role and resident ID. Area-dependent reads also include barangay
 and street. The profile and its owner-only report totals use account scope, so a

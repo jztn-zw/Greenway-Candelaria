@@ -2,12 +2,8 @@ import KpiValue from "@/components/common/KpiValue";
 import { SearchInput } from "@/components/common/SearchInput";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -120,7 +116,7 @@ const ReadReceiptModal = ({ announcement, open, onOpenChange }: Props) => {
         </div>
 
         {/* ── Scrollable Body ── */}
-        <div className="min-h-0 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
+        <div className="gw-modal-body min-h-0 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
           {isLoading && !analytics ? <ReadAnalyticsSkeleton /> : loadError && !analytics ? <PageErrorState kind="unavailable" variant="section" title="Read Analytics Couldn't Load" onRetry={() => void query.refetch()} retrying={query.isFetching} /> : <>
           {loadError && <DataRefreshNotice message="Couldn't refresh read analytics. Showing the last loaded results, which may be outdated." onRetry={() => void query.refetch()} retrying={query.isFetching} />}
           {/* ── Executive Summary Metrics ── */}

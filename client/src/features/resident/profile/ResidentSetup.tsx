@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef,useState } from "react";
 import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, SquarePen, Users } from "lucide-react";
@@ -8,12 +8,31 @@ import { FormDialog } from "@/components/dialogs/FormDialog";
 import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputClearButton } from "@/components/common/InputClearButton";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import authService from "@/services/authService";
 import { fetchBarangays,fetchBarangayStreets } from "@/services/barangaysService";
 import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
+
+type ClearableSetupInputProps = Omit<React.ComponentProps<typeof Input>, "value"> & {
+  value: string;
+  clearLabel: string;
+  onClear: () => void;
+};
+
+const ClearableSetupInput = ({ value, clearLabel, onClear, className, ...props }: ClearableSetupInputProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="relative">
+      <Input ref={inputRef} {...props} value={value} className={`${className ?? ""} ${value ? "pr-8" : ""}`} />
+      {value && !props.disabled && !props.readOnly && (
+        <InputClearButton label={clearLabel} onClick={() => { onClear(); inputRef.current?.focus(); }} />
+      )}
+    </div>
+  );
+};
 
 export default function ResidentSetup() {
   const navigate = useNavigate();
@@ -101,12 +120,12 @@ export default function ResidentSetup() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className={`space-y-2 ${user?.username ? "sm:col-span-2" : ""}`}>
                     <Label className={formDialogStyles.label} htmlFor="setup-full-name">Full Name</Label>
-                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-full-name" autoComplete="name" maxLength={100} value={fullName} onChange={event => { setFullName(event.target.value); clearError("full_name"); }} placeholder="Enter your full name" {...accessibility("full_name")} />
+                    <ClearableSetupInput className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-full-name" autoComplete="name" maxLength={100} value={fullName} onChange={event => { setFullName(event.target.value); clearError("full_name"); }} onClear={() => { setFullName(""); clearError("full_name"); }} clearLabel="Clear full name" placeholder="Enter your full name" {...accessibility("full_name")} />
                     {fieldError("full_name")}
                   </div>
                   {!user?.username && <div className="space-y-2">
                     <Label className={formDialogStyles.label} htmlFor="setup-username">Username</Label>
-                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-username" autoComplete="username" maxLength={20} value={username} onChange={event => { setUsername(event.target.value); clearError("username"); }} placeholder="Choose a username" {...accessibility("username")} />
+                    <ClearableSetupInput className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-username" autoComplete="username" maxLength={20} value={username} onChange={event => { setUsername(event.target.value); clearError("username"); }} onClear={() => { setUsername(""); clearError("username"); }} clearLabel="Clear username" placeholder="Choose a username" {...accessibility("username")} />
                     {fieldError("username")}
                   </div>}
                 </div>
@@ -135,14 +154,14 @@ export default function ResidentSetup() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label className={formDialogStyles.label} htmlFor="setup-email">Email Address</Label>
-                    <Input className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-email" type="email" autoComplete="email" maxLength={100} value={email} onChange={event => { setEmail(event.target.value); clearError("email"); }} placeholder="Enter your email address" {...accessibility("email")} />
+                    <ClearableSetupInput className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-email" type="email" autoComplete="email" maxLength={100} value={email} onChange={event => { setEmail(event.target.value); clearError("email"); }} onClear={() => { setEmail(""); clearError("email"); }} clearLabel="Clear email address" placeholder="Enter your email address" {...accessibility("email")} />
                     {fieldError("email")}
                   </div>
                   <div className="space-y-2">
                     <Label className={formDialogStyles.label} htmlFor="setup-phone">Phone Number</Label>
                     <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input/80 px-3 text-sm text-muted-foreground">+63</span>
-                      <Input fieldSize="compact" id="setup-phone" type="tel" inputMode="numeric" maxLength={10} className="pl-16 min-h-11 sm:min-h-9" placeholder="9XX XXX XXXX" value={phone} onChange={event => { setPhone(event.target.value.replace(/\D/g, "")); clearError("phone"); }} {...accessibility("phone")} />
+                      <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center border-r border-input/80 px-3 text-sm text-muted-foreground">+63</span>
+                      <ClearableSetupInput fieldSize="compact" id="setup-phone" type="tel" inputMode="numeric" maxLength={10} className="pl-16 min-h-11 sm:min-h-9" placeholder="9XX XXX XXXX" value={phone} onChange={event => { setPhone(event.target.value.replace(/\D/g, "")); clearError("phone"); }} onClear={() => { setPhone(""); clearError("phone"); }} clearLabel="Clear phone number" {...accessibility("phone")} />
                     </div>
                     {fieldError("phone")}
                   </div>

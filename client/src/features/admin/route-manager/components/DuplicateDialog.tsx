@@ -1,4 +1,4 @@
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import React from "react";
 
 import {

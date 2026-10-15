@@ -11,7 +11,6 @@ import ViolationTypeSelector from "./ViolationTypeSelector";
 import LocationSection from "./LocationSection";
 import DescriptionSection from "./DescriptionSection";
 import PhotoUploadSection from "./PhotoUploadSection";
-import DuplicateWarning from "./DuplicateWarning";
 import SuccessScreen from "./SuccessScreen";
 import ReviewModal from "./ReviewModal";
 import { compressReportImages } from "./imageCompression";
@@ -136,7 +135,6 @@ const ResidentSubmitReport = () => {
   const similarQuery = useResidentQuery("reports", ["similar", form.barangayId, form.violationType],
     () => checkSimilarReport(form.barangayId, VIOLATION_TYPE_MAP[form.violationType!]),
     { enabled: !!form.barangayId && !!form.violationType });
-  const hasSimilarReport = similarQuery.data ?? false;
 
   const [submitted, setSubmitted] = useState(false);  const [referenceNumber, setReferenceNumber] = useState("");
 
@@ -304,11 +302,6 @@ const ResidentSubmitReport = () => {
               showStreetError={showValidation && !form.streetOrLandmark.trim()}
             />
           </div>
-          {hasSimilarReport && (
-            <div className={reportStyles.section}>
-              <DuplicateWarning barangay={form.barangayName} />
-            </div>
-          )}
           {similarQuery.isError && (
             <div className={reportStyles.section}>
               <DataRefreshNotice

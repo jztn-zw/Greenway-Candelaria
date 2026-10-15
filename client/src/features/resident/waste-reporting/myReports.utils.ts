@@ -110,6 +110,8 @@ const statusLabel = (status: string) => {
 };
 
 export const mapMyReport = (report: MyReportRow): SubmittedReport => ({
+  isDuplicate: Boolean(report.is_duplicate),
+  isInvalid: Boolean(report.is_false),
   id: report.id,
   referenceNumber: report.reference_number,
   violationType: VIOLATION_TYPE_REVERSE_MAP[report.violation_type] ?? "other",
@@ -128,3 +130,5 @@ export const mapMyReport = (report: MyReportRow): SubmittedReport => ({
     label: statusLabel(historyEntry.status),
   })),
 });
+
+export const getReportStatusConfig = (report: SubmittedReport) => REPORT_STATUS_CONFIG[report.status];

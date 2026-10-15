@@ -8,7 +8,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useAdminFetch, useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
+import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
   addAdminReportNote as apiaddAdminReportNote,
@@ -17,6 +17,7 @@ import {
   updateAdminReportStatus as apiupdateAdminReportStatus,
   fetchAdminReportById,
   fetchAdminReports,
+  type AdminReportNote,
   type AdminReportItem,
   type AdminReportsKPIs,
   type AdminReportsParams,
@@ -46,8 +47,8 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   description: r.description,
   submittedAt: r.created_at,
   submitterName: r.reporter_name || "Resident",
+  submitterUsername: r.reporter_username || undefined,
   submitterId: r.user_id || undefined,
-  submitterEmail: r.reporter_email || undefined,
   photos: (r.photos || []).map((p) => ({
     id: p.id,
     url: p.url,
@@ -59,7 +60,6 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
     timestamp: h.created_at,
     adminName: h.changed_by_name || "System",
   })),
-  officialResponse: r.admin_response || undefined,
   internalNotes: (r.internal_notes || []).map((n) => ({
     id: n.id,
     text: n.note,
@@ -79,7 +79,7 @@ const pageDescription = "Manage and dispatch waste reports across Candelaria.";
 
 const AdminWasteReports = () => {
   const updateAdminReportStatus = useAdminMutation(apiupdateAdminReportStatus, "reports", "residents", "notifications");
-  const addAdminReportNote = useAdminMutation(apiaddAdminReportNote, "reports", "residents", "notifications");
+  const addAdminReportNote = useAdminMutation(apiaddAdminReportNote, "audit");
   const flagAdminReport = useAdminMutation(apiflagAdminReport, "reports", "residents", "notifications");
   const deleteReport = useAdminMutation(apideleteReport, "reports", "residents", "notifications");
   const [searchParams] = useSearchParams();
@@ -138,7 +138,6 @@ const AdminWasteReports = () => {
     return params;
   }, [appliedSearch, statusFilter, violationFilter, barangayFilter, sortBy, dateRange]);
 
-  const fetchAdmin = useAdminFetch();
   const reportParams = buildReportParams(page, 10);
   const listQuery = useAdminQuery("reports", ["list", reportParams], () => fetchAdminReports(reportParams));
   const hasLoadedRef = useRef(false);
@@ -203,17 +202,13 @@ const AdminWasteReports = () => {
   };
 
   // Status & Official Response update
-  const handleUpdateStatus = async (
-    status: string,
-    officialResponse?: string,
-  ) => {
+  const handleUpdateStatus = async (status: string) => {
     if (!selectedId) return;
     const reportId = selectedId;
     const detailVersion = detailVersionRef.current;
     try {
       const updated = await updateAdminReportStatus(reportId, {
         status,
-        admin_response: officialResponse,
       });
       const mapped = mapAdminReport(updated);
       if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
@@ -248,22 +243,24 @@ const AdminWasteReports = () => {
     if (!selectedId) return;
     const reportId = selectedId;
     const detailVersion = detailVersionRef.current;
-    try {
-      await addAdminReportNote(reportId, note);
-      // Re-fetch detail to get full populated note list
-      if (detailVersion === detailVersionRef.current) {
-        const full = await fetchAdmin("reports", ["detail", reportId], () => fetchAdminReportById(reportId));
-        if (detailVersion === detailVersionRef.current) {
-          setSelectedReport(mapAdminReport(full));
-        }
-      }
-      toast.success("Internal note added successfully");
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to add internal note",
-      );
-      throw err;
-    }
+    const savedNote: AdminReportNote = await addAdminReportNote(reportId, note);
+    if (detailVersion !== detailVersionRef.current) return;
+    setSelectedReport((current) => {
+      if (!current || current.id !== reportId) return current;
+      if (current.internalNotes.some((item) => item.id === savedNote.id)) return current;
+      return {
+        ...current,
+        internalNotes: [
+          ...current.internalNotes,
+          {
+            id: savedNote.id,
+            text: savedNote.note,
+            timestamp: savedNote.created_at,
+            adminName: savedNote.created_by_name || "Admin",
+          },
+        ],
+      };
+    });
   };
 
   // Flag duplicate / false report

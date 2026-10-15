@@ -64,7 +64,7 @@ export const ConfirmationDialog = ({
           <Description className="break-words text-ui-label leading-relaxed text-muted-foreground sm:text-ui-label">{description}</Description>
         </div>
         {children && <div className="mt-4 space-y-3 text-ui-label leading-relaxed text-muted-foreground">{children}</div>}
-        <div className="mt-5 flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-border/60 pt-4">
+        <div className="gw-modal-footer mt-5 flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-border/60 pt-4">
           <Cancel variant={cancelVariant} type="button" disabled={pending} onClick={() => { if (onCancel) onCancel(); else handleOpenChange(false); }} className="h-9 rounded-lg px-4 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{cancelLabel}</Cancel>
           <Action variant={variant} type="button" disabled={pending || confirmDisabled} onClick={(event) => {
             event.preventDefault();

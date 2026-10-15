@@ -3,7 +3,7 @@ import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilt
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
@@ -41,6 +41,7 @@ updateResidentStatus as apiupdateResidentStatus,
 fetchResidentById,
 fetchResidentReports,
 fetchResidents,
+fetchDeletedResidentCount,
 type ResidentAccountStatus,
 } from "@/services/residentManagerService";
 import {
@@ -85,6 +86,7 @@ const AdminResidents = () => {
   const [totalResidentsCount, setTotalResidentsCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [deactivatedCount, setDeactivatedCount] = useState(0);
+  const [deletedCount, setDeletedCount] = useState(0);
   const [bannedCount, setBannedCount] = useState(0);
   const [hasLoadedList, setHasLoadedList] = useState(false);
   const [kpiError, setKpiError] = useState(false);
@@ -106,6 +108,7 @@ const AdminResidents = () => {
   const countQuery = useAdminQuery("residents", ["counts"], () => Promise.all([
     fetchResidents({ page: 1, limit: 1 }), fetchResidents({ page: 1, limit: 1, status: "ACTIVE" }),
     fetchResidents({ page: 1, limit: 1, status: "DEACTIVATED" }), fetchResidents({ page: 1, limit: 1, status: "BANNED" }),
+    fetchDeletedResidentCount(),
   ]));
   const barangaysQuery = useAdminQuery("barangays", ["admin-options"], fetchBarangaysAdmin);
   const detailQuery = useAdminQuery("residents", ["detail", residentProfileId], async () => {
@@ -125,9 +128,10 @@ const AdminResidents = () => {
   useEffect(() => {
     setKpiLoading(countQuery.isLoading); setKpiError(countQuery.isError);
     if (!countQuery.data) return;
-    const [all, active, deactivated, banned] = countQuery.data;
+    const [all, active, deactivated, banned, deleted] = countQuery.data;
     setTotalResidentsCount(Number(all.pagination?.total || 0)); setActiveCount(Number(active.pagination?.total || 0));
     setDeactivatedCount(Number(deactivated.pagination?.total || 0)); setBannedCount(Number(banned.pagination?.total || 0));
+    setDeletedCount(deleted);
   }, [countQuery.data, countQuery.isLoading, countQuery.isError]);
   useEffect(() => { setBarangayOptions((barangaysQuery.data ?? []).map(({ id, name }) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))); }, [barangaysQuery.data]);
   useLayoutEffect(() => { setViewingResident(residentProfileId ? detailQuery.data ?? null : null); }, [residentProfileId, detailQuery.data]);
@@ -234,11 +238,11 @@ const AdminResidents = () => {
             subtitle: "Accounts marked active",
           },
           {
-            label: "Deactivated Accounts",
-            value: kpiError || kpiLoading ? "—" : deactivatedCount,
+            label: "Deleted Accounts",
+            value: kpiError || kpiLoading ? "—" : deletedCount,
             tone: "warning" as const,
             icon: UserX,
-            subtitle: "Accounts marked deactivated",
+            subtitle: "Accounts removed from the directory",
           },
           {
             label: "Banned Accounts",

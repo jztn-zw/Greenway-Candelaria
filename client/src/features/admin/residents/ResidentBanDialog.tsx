@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Ban, UserCheck } from "lucide-react";
 import { profileAvatarForAccount, profileAvatarImageSrc } from "@/components/common/profileAvatars";
-import { FormDialog } from "@/components/dialogs/FormDialog";
+import { AdminModal as FormDialog } from "@/components/admin/AdminModal";
 import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ export default function ResidentBanDialog({ resident, onClose, onConfirm }: Prop
   };
   return (
     <FormDialog
+      tone={banning ? "danger" : "default"}
       open onOpenChange={(open) => { if (!open) onClose(); }} pending={saving}
       className="z-[100]"
       title={banning ? "Ban Resident" : "Unban Resident"}

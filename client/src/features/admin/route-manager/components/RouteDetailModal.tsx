@@ -1,12 +1,8 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import React,{ useState } from "react";
-import {
-Dialog,
-DialogContent,
-DialogTitle,
-DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -87,7 +83,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
           </div>
 
           {/* Body Content (Scrollable Body) */}
-          <div className="min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
+          <div className="gw-modal-body min-h-0 min-w-0 px-3 sm:px-5 py-4 overflow-y-auto flex-1 space-y-3.5 scrollbar-thin">
             {/* Overview Bento Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {/* Waste Type */}

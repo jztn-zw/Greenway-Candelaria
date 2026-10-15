@@ -55,9 +55,9 @@ it("opens and closes the contact information dialog", () => {
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-it("keeps account deactivation out of Settings", () => {
+it("keeps account deletion out of Settings", () => {
   render(<ResidentSettings />);
-  expect(screen.queryByRole("button", { name: "Deactivate Account" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Delete Account" })).toBeNull();
 });
 
 it("shows an inert skeleton while settings load", () => {

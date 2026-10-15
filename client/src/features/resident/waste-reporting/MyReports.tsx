@@ -54,7 +54,7 @@ deleteReport,
 import {
 mapMyReport,
 REPORT_FILTER_TABS,
-REPORT_STATUS_CONFIG,
+getReportStatusConfig,
 getViolationStyle,
 type ReportFilterTab,
 type ReportSortOption,
@@ -350,7 +350,7 @@ const MyReports = () => {
       ) : (
         <div className={myReportsStyles.list}>
           {reports.map((report) => {
-            const statusConf = REPORT_STATUS_CONFIG[report.status];
+            const statusConf = getReportStatusConfig(report);
             const vStyle = getViolationStyle(report.violationType);
             const previewText = cleanDescriptionPreview(report.description);
             return (
@@ -554,7 +554,7 @@ const ReportDetail = ({
     (v) => v.value === report.violationType,
   );
   const vStyle = getViolationStyle(report.violationType);
-  const statusConf = REPORT_STATUS_CONFIG[report.status];
+  const statusConf = getReportStatusConfig(report);
   const steps: ReportStatus[] = [
     "submitted",
     "under-review",
@@ -788,7 +788,7 @@ const ReportDetail = ({
                         : "font-normal text-muted-foreground",
                     )}
                   >
-                    {label}
+                    {label === "Resolved" && report.status === "resolved" ? statusConf.label : label}
                   </span>
                 ))}
               </div>

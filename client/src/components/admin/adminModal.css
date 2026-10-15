@@ -1,0 +1,108 @@
+.admin-modal[data-state] {
+  max-height: calc(100dvh - 2rem);
+}
+
+.admin-modal .gw-modal-header {
+  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+}
+
+.admin-modal .gw-modal-body {
+  padding: 1.25rem;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+
+.admin-modal .gw-modal-footer {
+  padding: 1rem 1.25rem;
+  gap: 0.625rem;
+}
+
+.admin-modal-confirmation .gw-modal-footer {
+  padding: 1rem 0 0;
+}
+
+.admin-modal .gw-modal-header > button {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
+.admin-modal .gw-modal-header:not(:has(> button)) {
+  padding-right: 3.5rem;
+}
+
+.admin-modal-danger .gw-modal-icon {
+  border-color: hsl(var(--destructive) / 0.2);
+  background: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+}
+
+.admin-modal-warning .gw-modal-icon {
+  border-color: hsl(var(--warning) / 0.2);
+  background: hsl(var(--warning) / 0.1);
+  color: hsl(var(--warning-foreground));
+}
+
+.admin-modal .admin-modal-notice {
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: var(--radius);
+  background: hsl(var(--muted) / 0.35);
+  padding: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-size: var(--font-size-label);
+  line-height: 1.6;
+}
+
+@media (max-width: 639px) {
+  .admin-modal[data-state] {
+    width: calc(100% - 2rem);
+    max-width: calc(100% - 2rem);
+  }
+
+  .admin-modal .gw-modal-header,
+  .admin-modal .gw-modal-body,
+  .admin-modal .gw-modal-footer {
+    padding: 1rem;
+  }
+
+  .admin-modal-confirmation .gw-modal-footer {
+    padding: 1rem 0 0;
+  }
+
+  .admin-modal .gw-modal-body .gw-field {
+    min-height: 2.75rem;
+  }
+
+  .admin-modal .gw-modal-header > button,
+  .admin-modal .gw-modal-close {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .admin-modal .gw-modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .admin-modal .gw-modal-footer > button,
+  .admin-modal .gw-modal-footer > div > button {
+    flex: 1 1 8rem;
+    min-width: 0;
+    height: auto;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.75rem;
+    white-space: normal;
+  }
+
+  .admin-modal .gw-modal-footer > div:has(> button) {
+    flex: 1 1 100%;
+  }
+
+  .admin-modal .gw-modal-footer > div > button {
+    flex-basis: 0;
+  }
+
+  .admin-modal .gw-modal-header:not(:has(> button)) {
+    padding-right: 4rem;
+  }
+}

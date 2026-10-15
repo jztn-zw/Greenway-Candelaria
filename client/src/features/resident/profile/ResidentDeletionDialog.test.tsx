@@ -4,9 +4,9 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import authService from "@/services/authService";
 import useAuthStore from "@/store/authStore";
-import ResidentDeactivationDialog from "./ResidentDeactivationDialog";
+import ResidentDeletionDialog from "./ResidentDeletionDialog";
 
-vi.mock("@/services/authService", () => ({ default: { deactivateAccount: vi.fn(), logout: vi.fn() } }));
+vi.mock("@/services/authService", () => ({ default: { deleteAccount: vi.fn(), logout: vi.fn() } }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn() } }));
 const Location = () => <span data-testid="location">{useLocation().pathname}</span>;
 let client: QueryClient;
@@ -16,23 +16,23 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 });
 afterEach(() => { cleanup(); client.clear(); vi.useRealTimers(); });
-const open = () => render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/resident/profile"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Location /><ResidentDeactivationDialog onClose={vi.fn()} /></MemoryRouter></QueryClientProvider>);
-const confirm = () => screen.getByRole("button", { name: "Deactivate Account" });
+const open = () => render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/resident/profile"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Location /><ResidentDeletionDialog onClose={vi.fn()} /></MemoryRouter></QueryClientProvider>);
+const confirm = () => screen.getByRole("button", { name: "Delete Account" });
 const password = () => screen.getByLabelText("Current Password");
 const type = () => fireEvent.change(password(), { target: { value: " password " } });
 
 it("requires a password and preserves the exact value before clearing the session on success", async () => {
-  vi.mocked(authService.deactivateAccount).mockResolvedValue(undefined);
+  vi.mocked(authService.deleteAccount).mockResolvedValue(undefined);
   open(); expect(confirm()).toBeDisabled(); type();
   await act(async () => fireEvent.click(confirm()));
-  expect(authService.deactivateAccount).toHaveBeenCalledExactlyOnceWith(" password ");
+  expect(authService.deleteAccount).toHaveBeenCalledExactlyOnceWith(" password ");
   expect(authService.logout).not.toHaveBeenCalled();
   expect(useAuthStore.getState().token).toBeNull();
   expect(screen.getByTestId("location")).toHaveTextContent(/^\/$/);
 });
 
 it("keeps the password and session after a failed confirmation", async () => {
-  vi.mocked(authService.deactivateAccount).mockRejectedValue(new Error("Current password is incorrect"));
+  vi.mocked(authService.deleteAccount).mockRejectedValue(new Error("Current password is incorrect"));
   open(); type(); await act(async () => fireEvent.click(confirm()));
   expect(screen.getByRole("alert")).toHaveTextContent("Current password is incorrect");
   expect(password()).toHaveValue(" password ");
@@ -40,9 +40,9 @@ it("keeps the password and session after a failed confirmation", async () => {
   expect(screen.getByTestId("location")).toHaveTextContent("/resident/profile");
 });
 
-it("does not clear a newer login when an older deactivation finishes", async () => {
+it("does not clear a newer login when an older deletion finishes", async () => {
   let finish!: () => void;
-  vi.mocked(authService.deactivateAccount).mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+  vi.mocked(authService.deleteAccount).mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
   open(); type(); await act(async () => fireEvent.click(confirm()));
   await act(async () => {
     useAuthStore.setState({ user: { id: "other", role: "RESIDENT" } as never, token: "new-session" });
@@ -53,7 +53,7 @@ it("does not clear a newer login when an older deactivation finishes", async () 
 
 it("counts down inline after rate limiting and permits retry after expiry", async () => {
   vi.useFakeTimers();
-  vi.mocked(authService.deactivateAccount).mockRejectedValue({ response: { status: 429, data: { retryAfterSeconds: 2 } } });
+  vi.mocked(authService.deleteAccount).mockRejectedValue({ response: { status: 429, data: { retryAfterSeconds: 2 } } });
   open(); type(); await act(async () => fireEvent.click(confirm()));
   expect(confirm()).toBeDisabled(); expect(screen.getByRole("timer")).toHaveTextContent("0:02");
   await act(async () => vi.advanceTimersByTime(1000));
@@ -63,7 +63,7 @@ it("counts down inline after rate limiting and permits retry after expiry", asyn
   expect(useAuthStore.getState().token).toBe("old-session");
 });
 
-it("waits for a pending settings save before allowing deactivation", async () => {
+it("waits for a pending settings save before allowing deletion", async () => {
   let finish!: () => void;
   const mutation = client.getMutationCache().build(client, {
     meta: { residentUserId: "resident" },
@@ -74,6 +74,6 @@ it("waits for a pending settings save before allowing deactivation", async () =>
   type();
   expect(confirm()).toBeDisabled();
   expect(screen.getByRole("status")).toHaveTextContent("Please wait for your changes to finish saving.");
-  expect(authService.deactivateAccount).not.toHaveBeenCalled();
+  expect(authService.deleteAccount).not.toHaveBeenCalled();
   await act(async () => { finish(); await saving; });
 });

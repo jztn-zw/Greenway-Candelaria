@@ -28,7 +28,7 @@ import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
 import { AccountRecovery } from "@/features/landing/components/AccountRecovery";
-import ResidentDeactivationDialog from "./ResidentDeactivationDialog";
+import ResidentDeletionDialog from "./ResidentDeletionDialog";
 import {
 fetchProfile,
 updateProfile,
@@ -110,7 +110,7 @@ const ResidentProfile = () => {
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>(DEFAULT_PROFILE_AVATAR_ID);
   const [avatarModal, setAvatarModal] = useState(false);
   const [recoveryModal, setRecoveryModal] = useState(false);
-  const [deactivationOpen, setDeactivationOpen] = useState(false);
+  const [deletionOpen, setDeletionOpen] = useState(false);
   const [savingAvatarId, setSavingAvatarId] = useState<ProfileAvatarId | null>(null);
   const savingAvatar = savingAvatarId !== null;
 
@@ -508,7 +508,7 @@ const ResidentProfile = () => {
       <FormDialog open={recoveryModal} onOpenChange={setRecoveryModal} title="Recovery Code" description="Keep your code somewhere private." icon={<ShieldCheck />}>
         {recoveryModal && <AccountRecovery mode="generate" onBack={() => setRecoveryModal(false)} />}
       </FormDialog>
-      {deactivationOpen && <ResidentDeactivationDialog onClose={() => setDeactivationOpen(false)} />}
+      {deletionOpen && <ResidentDeletionDialog onClose={() => setDeletionOpen(false)} />}
       {/* ── Community Impact & Reports ───────────────────────────────────────── */}
       <section className={profileStyles.panel} aria-labelledby="resident-profile-impact-title">
         <div className={profileStyles.sectionHeader}>
@@ -672,7 +672,7 @@ const ResidentProfile = () => {
             <Button type="button" variant="destructive-ghost" className="h-11 sm:h-10" onClick={() => setLogoutModal(true)}>
               <LogOut aria-hidden="true" />Sign Out
             </Button>
-            <Button type="button" variant="destructive-outline" className="h-11 sm:h-10" onClick={() => setDeactivationOpen(true)}>Deactivate Account</Button>
+            <Button type="button" variant="destructive-outline" className="h-11 sm:h-10" onClick={() => setDeletionOpen(true)}>Delete Account</Button>
           </div>
         </div>
 

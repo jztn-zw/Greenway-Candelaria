@@ -1,5 +1,5 @@
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { FormDialogHeader } from "@/components/dialogs/FormDialog";
 import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { AdminProfileSkeleton } from "@/components/loading/PageLoadingSkeletons";
@@ -11,7 +11,8 @@ import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { ProfileAvatarControl, ProfileAvatarPicker } from "@/components/common/ProfileAvatarPicker";
 import { DEFAULT_PROFILE_AVATAR_ID, isProfileAvatarId, profileAvatarForAccount, profileAvatarIdFromUrl, profileAvatarSrc, type ProfileAvatarId } from "@/components/common/profileAvatars";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminAction, useAdminResource } from "@/lib/adminQuery";

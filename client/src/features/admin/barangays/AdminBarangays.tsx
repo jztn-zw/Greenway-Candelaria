@@ -2,12 +2,12 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 import { SearchInput } from "@/components/common/SearchInput";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { PageRetryContext } from "@/components/feedback/pageRetryContext";
-import { FormDialog } from "@/components/dialogs/FormDialog";
-import UnsavedChangesDialog from "@/components/dialogs/UnsavedChangesDialog";
+import { AdminModal as FormDialog } from "@/components/admin/AdminModal";
+import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { BarangayManagerPageSkeleton, BarangayStreetRowsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 import { Button } from "@/components/ui/button";

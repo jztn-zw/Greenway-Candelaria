@@ -12,15 +12,17 @@ export interface UnsavedChangesDialogProps {
   keepEditingLabel?: string;
   saveLabel?: string;
   isSaving?: boolean;
+  className?: string;
 }
 
 export const UnsavedChangesDialog = ({
   isOpen, onClose, onDiscard, onSave, title = "Unsaved Changes?",
   description = "You have unsaved changes in this form. If you close now, your edits will be discarded.",
   discardLabel = "Discard Changes", keepEditingLabel = "Keep Editing",
-  saveLabel = "Save Changes", isSaving = false,
+  saveLabel = "Save Changes", isSaving = false, className,
 }: UnsavedChangesDialogProps) => (
   <ConfirmationDialog
+    className={className}
     kind="dialog"
     open={isOpen}
     onOpenChange={(open) => { if (!open) onClose(); }}

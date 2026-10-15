@@ -3,17 +3,14 @@ import { SearchInput } from "@/components/common/SearchInput";
 import { WasteReportDetailBodySkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { adminWasteReportStyles as styles } from "@/components/common/communityContentStyles";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog, AdminModal, AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { formDialogStyles } from "@/components/dialogs/formDialogStyles";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -32,7 +29,7 @@ interface ReportDetailPanelProps {
   report: WasteReport | null;
   isLoading?: boolean;
   onClose?: () => void;
-  onUpdateStatus?: (status: string, officialResponse?: string) => Promise<void>;
+  onUpdateStatus?: (status: string) => Promise<void>;
   onAddNote?: (note: string) => Promise<void>;
   onFlagReport?: (payload: {
     is_false?: boolean;
@@ -51,6 +48,7 @@ interface ReportDetailPanelProps {
 }
 
 const statusOrder: ReportStatus[] = ["Submitted", "Under Review", "Dispatched", "Resolved"];
+const invalidReasons = ["Insufficient evidence", "Outside service area", "No issue found", "Other"];
 
 const ReportDetailPanel = ({
   report,
@@ -67,41 +65,37 @@ const ReportDetailPanel = ({
   hasNext = false,
 }: ReportDetailPanelProps) => {
   const fetchAdmin = useAdminFetch();
-  const [officialResponse, setOfficialResponse] = useState(report?.officialResponse || "");
   const [internalNote, setInternalNote] = useState("");  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isSavingResponse, setIsSavingResponse] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
   const [flagType, setFlagType] = useState<"duplicate" | "false" | null>(null);
   const [flagReason, setFlagReason] = useState("");
+  const [invalidReason, setInvalidReason] = useState("");
   const [duplicateReference, setDuplicateReference] = useState("");
-  const [resolveOnFlag, setResolveOnFlag] = useState(false);
   const [selectedDuplicateCandidate, setSelectedDuplicateCandidate] = useState<AdminReportItem | null>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<AdminReportItem[]>([]);
   const [isSearchingDuplicates, setIsSearchingDuplicates] = useState(false);
+  const [hasSearchedDuplicates, setHasSearchedDuplicates] = useState(false);
+  const [duplicateSearchFailed, setDuplicateSearchFailed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const reportId = report?.id;
-  const reportStatus = report?.status;
-  const reportResponse = report?.officialResponse;
-
-  const previousReport = useRef({ id: reportId, response: reportResponse || "" });
+  const previousReportId = useRef(reportId);
   useEffect(() => {
-    if (!reportId || !reportStatus) return;
-    const previous = previousReport.current;
-    if (previous.id !== reportId) {      setOfficialResponse(reportResponse || "");
+    if (previousReportId.current !== reportId) {
       setInternalNote("");
-    } else {
-      // Refresh an untouched response without overwriting the draft.      setOfficialResponse((current) => current === previous.response ? reportResponse || "" : current);
+      previousReportId.current = reportId;
     }
-    previousReport.current = { id: reportId, response: reportResponse || "" };
-  }, [reportId, reportStatus, reportResponse]);
+  }, [reportId]);
 
   useEffect(() => {
     if (flagType !== "duplicate" || duplicateReference.trim().length < 2) {
       setDuplicateMatches([]);
+      setIsSearchingDuplicates(false);
+      setHasSearchedDuplicates(false);
+      setDuplicateSearchFailed(false);
       return;
     }
     // Don't re-trigger search if the reference matches the currently selected candidate
@@ -110,37 +104,49 @@ const ReportDetailPanel = ({
       selectedDuplicateCandidate.reference_number.toLowerCase() === duplicateReference.trim().toLowerCase()
     ) {
       setDuplicateMatches([]);
+      setIsSearchingDuplicates(false);
+      setHasSearchedDuplicates(false);
+      setDuplicateSearchFailed(false);
       return;
     }
     let active = true;
+    const searchTerm = duplicateReference.trim();
+    setDuplicateMatches([]);
+    setIsSearchingDuplicates(true);
+    setHasSearchedDuplicates(false);
+    setDuplicateSearchFailed(false);
     const timer = window.setTimeout(async () => {
-      setIsSearchingDuplicates(true);
       try {
         const params = {
-          search: duplicateReference.trim(),
+          search: searchTerm,
           barangay_id: report?.barangayId,
-          limit: 8,
+          limit: 50,
           sort: "date-desc",
         };
         const result = await fetchAdmin("reports", ["duplicate-search", params], () => fetchAdminReports(params));
         if (active) {
-          setDuplicateMatches(
-            result.reports.filter(
+          const normalizedTerm = searchTerm.toLowerCase();
+          setDuplicateMatches(result.reports.filter(
               (candidate) =>
                 candidate.id !== report?.id &&
+                candidate.reference_number.toLowerCase().includes(normalizedTerm) &&
                 candidate.status !== "RESOLVED" &&
                 !candidate.is_duplicate &&
                 !candidate.is_false &&
                 candidate.barangay_id === report?.barangayId,
-            ),
-          );
+            ).slice(0, 8));
+          setHasSearchedDuplicates(true);
         }
       } catch {
-        if (active) setDuplicateMatches([]);
+        if (active) {
+          setDuplicateMatches([]);
+          setDuplicateSearchFailed(true);
+          setHasSearchedDuplicates(true);
+        }
       } finally {
         if (active) setIsSearchingDuplicates(false);
       }
-    }, 250);
+    }, 200);
     return () => {
       active = false;
       window.clearTimeout(timer);
@@ -170,7 +176,8 @@ const ReportDetailPanel = ({
     setIsUpdatingStatus(true);
     try {
       const backendStatus = STATUS_LABEL_TO_BACKEND[newStatus] || "SUBMITTED";
-      await onUpdateStatus(backendStatus, officialResponse.trim() || undefined);      toast.success(`Status updated to ${newStatus}`);
+      await onUpdateStatus(backendStatus);
+      toast.success(`Status updated to ${newStatus}`);
       return true;
     } catch {
       toast.error("Failed to update status");
@@ -186,20 +193,6 @@ const ReportDetailPanel = ({
       return;
     }
     void handleStatusSubmit(newStatus);
-  };
-
-  const handleResponseSubmit = async () => {
-    if (!onUpdateStatus || isSavingResponse) return;
-    setIsSavingResponse(true);
-    try {
-      const backendStatus = STATUS_LABEL_TO_BACKEND[report.status] || "SUBMITTED";
-      await onUpdateStatus(backendStatus, officialResponse.trim());
-      toast.success("Official response saved");
-    } catch {
-      toast.error("Failed to save response");
-    } finally {
-      setIsSavingResponse(false);
-    }
   };
 
   const handleNoteSubmit = async () => {
@@ -221,7 +214,7 @@ const ReportDetailPanel = ({
     setIsFlagging(true);
     try {
       await onFlagReport(payload);
-      toast.success("Report flag updated");
+      toast.success(payload.is_false ? "Report closed as invalid" : payload.is_duplicate ? "Duplicate report closed" : "Report flag updated");
       return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update flag");
@@ -236,13 +229,14 @@ const ReportDetailPanel = ({
     setFlagReason(type === "duplicate" ? report.duplicateReason || "" : report.falseReason || "");
     setDuplicateReference(type === "duplicate" ? report.duplicateOfReference || "" : "");
     setSelectedDuplicateCandidate(null);
-    setResolveOnFlag(type === "false");
+    setInvalidReason(report.falseReason ? (invalidReasons.includes(report.falseReason) ? report.falseReason : "Other") : "");
     onFlagDialogOpenChange?.(true);
   };
 
   const handleFlagSubmit = async () => {
     if (!flagType) return;
-    if (!flagReason.trim()) {
+    const reason = flagType === "false" && invalidReason !== "Other" ? invalidReason : flagReason.trim();
+    if (flagType === "false" && !reason) {
       toast.error("Please provide a review reason explaining this decision.");
       return;
     }
@@ -256,13 +250,12 @@ const ReportDetailPanel = ({
         ? {
             is_duplicate: true,
             duplicate_of_reference: duplicateReference.trim(),
-            duplicate_reason: flagReason.trim(),
-            resolve: resolveOnFlag,
+            resolve: true,
           }
         : {
             is_false: true,
-            false_reason: flagReason.trim(),
-            resolve: resolveOnFlag,
+            false_reason: reason,
+            resolve: true,
           };
 
     const saved = await handleFlag(payload);
@@ -321,7 +314,7 @@ const ReportDetailPanel = ({
                   variant="outline"
                   className={"text-ui-overline font-medium px-2 py-0.5 rounded-md " + badgeStyles.error.className}
                 >
-                  Invalid / False
+                  Invalid Report
                 </Badge>
               )}
             </div>
@@ -456,15 +449,21 @@ const ReportDetailPanel = ({
               <span className="text-ui-overline uppercase font-semibold tracking-wider text-muted-foreground block">
                 Reporter Information
               </span>
-              <span className="font-semibold text-foreground block mt-0.5 text-xs">
+              <span className="font-semibold text-foreground block mt-0.5 text-sm break-words">
                 {report.submitterName}
               </span>
-              {report.submitterEmail && (
-                <span className="text-ui-caption text-muted-foreground block mt-0.5 truncate">
-                  {report.submitterEmail}
-                </span>
+              <span className="text-ui-caption text-muted-foreground block mt-0.5 [overflow-wrap:anywhere]">
+                {report.submitterUsername ? `@${report.submitterUsername}` : "Username not set"}
+              </span>
+              {report.submitterId && (
+                <Link
+                  className="gw-action-link mt-2 inline-flex min-h-8 items-center gap-1 rounded-md text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  to={`/admin/residents?residentId=${encodeURIComponent(report.submitterId)}`}
+                >
+                  View Resident Profile
+                  <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+                </Link>
               )}
-              {report.submitterId && <Link className="gw-action-link mt-1.5 inline-block text-xs font-medium" to={`/admin/residents?residentId=${encodeURIComponent(report.submitterId)}`}>View Resident Profile</Link>}
             </div>
           </div>
         </div>
@@ -514,40 +513,6 @@ const ReportDetailPanel = ({
               <p className="text-xs text-muted-foreground">No photos attached to this report.</p>
             </div>
           )}
-        </div>
-
-        {/* ── Official Response to Resident ── */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-foreground">
-              Official Resident Response
-            </span>
-            <span className="text-ui-caption text-muted-foreground font-medium">
-              Visible to Resident
-            </span>
-          </div>
-
-          <Textarea
-            placeholder="Type official notification message to be sent to the resident..."
-            value={officialResponse}
-            onChange={(e) => setOfficialResponse(e.target.value)}
-            className="text-xs min-h-[80px] bg-muted/20 border border-border/70 rounded-xl p-3.5 resize-none leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20 shadow-2xs"
-          />
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              onClick={handleResponseSubmit}
-              disabled={isSavingResponse || !officialResponse.trim() || (!!report.officialResponse && officialResponse.trim() === report.officialResponse)}
-              className="h-8 text-xs px-3.5 rounded-xl font-semibold cursor-pointer shadow-xs disabled:opacity-40"
-              loading={isSavingResponse}
-              loadingLabel="Saving response…"
-            >
-
-              {report.officialResponse && officialResponse.trim() === report.officialResponse
-                ? "Saved"
-                : "Save Response"}
-            </Button>
-          </div>
         </div>
 
         {/* ── Internal Staff Notes ── */}
@@ -607,7 +572,7 @@ const ReportDetailPanel = ({
             <Button
               variant={report.isDuplicate ? "warning-outline" : "outline"}
               size="sm"
-              disabled={isLoading || isFlagging}
+              disabled={isLoading || isFlagging || report.status === "Resolved"}
               onClick={() => openFlagDialog("duplicate")}
               className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
@@ -619,16 +584,16 @@ const ReportDetailPanel = ({
             <Button
               variant={report.isFalseReport ? "destructive-outline" : "outline"}
               size="sm"
-              disabled={isLoading || isFlagging}
+              disabled={isLoading || isFlagging || report.status === "Resolved"}
               onClick={() => openFlagDialog("false")}
               className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
-              {report.isFalseReport ? "Edit Flag" : "Flag as False"}
+              {report.isFalseReport ? "Invalid Report" : "Mark Invalid"}
             </Button>
           )}
 
           {/* Quick Clear button if flagged */}
-          {(report.isDuplicate || report.isFalseReport) && (
+          {(report.isDuplicate || report.isFalseReport) && report.status !== "Resolved" && (
             <Button
               variant="outline"
               size="sm"
@@ -683,8 +648,15 @@ const ReportDetailPanel = ({
       </Dialog>
 
       {/* ── Simple Flag Modal (Duplicate & False Report) ── */}
-      <Dialog
+      <AdminModal
         open={!!flagType}
+        pending={isFlagging}
+        className="z-[200]"
+        title={flagType === "duplicate" ? "Flag as Duplicate" : "Mark as Invalid Report"}
+        description={<>Report {report.referenceNumber} • {report.barangay}</>}
+        icon={flagType === "duplicate" ? <Copy /> : <AlertOctagon />}
+        tone={flagType === "duplicate" ? "warning" : "danger"}
+        closeLabel="Close report review"
         onOpenChange={(open) => {
           if (!open) {
             setFlagType(null);
@@ -692,33 +664,18 @@ const ReportDetailPanel = ({
           }
           onFlagDialogOpenChange?.(open);
         }}
+        footer={<>
+          <Button type="button" variant="outline" disabled={isFlagging} className={formDialogStyles.cancelButton}
+            onClick={() => { setFlagType(null); setSelectedDuplicateCandidate(null); onFlagDialogOpenChange?.(false); }}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleFlagSubmit} disabled={isFlagging}
+            variant={flagType === "false" ? "destructive" : "warning"} className={formDialogStyles.primaryButton}
+            loading={isFlagging} loadingLabel={flagType === "duplicate" ? "Flagging duplicate…" : "Flagging report…"}>
+            {flagType === "duplicate" ? "Close Duplicate & Notify" : "Close Report & Notify"}
+          </Button>
+        </>}
       >
-        <DialogContent className="z-[200] w-[calc(100%-1.5rem)] max-h-[90dvh] overflow-y-auto sm:max-w-md rounded-2xl p-4 sm:p-6 bg-background border border-border/80 shadow-2xl [&>button:last-child]:hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
-            <div>
-              <DialogTitle className="gw-heading text-base text-foreground">
-                {flagType === "duplicate" ? "Flag as Duplicate" : "Mark as Invalid Report"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Report {report.referenceNumber} • {report.barangay}
-              </DialogDescription>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setFlagType(null);
-                setSelectedDuplicateCandidate(null);
-                onFlagDialogOpenChange?.(false);
-              }}
-              className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Form */}
-          <div className="space-y-4 py-4">
             {/* If Duplicate: Clean Reference Search */}
             {flagType === "duplicate" && (
               <div className="space-y-1.5 relative">
@@ -731,11 +688,15 @@ const ReportDetailPanel = ({
                   )}
                 </label>
                 <SearchInput
+                  id="duplicate-report-search"
                   aria-label="Original report reference"
                   placeholder="Search by report reference…" compactPlaceholder="Report reference…"
                   value={duplicateReference}
                   onChange={(value) => {
                     setDuplicateReference(value);
+                    setDuplicateMatches([]);
+                    setHasSearchedDuplicates(false);
+                    setDuplicateSearchFailed(false);
                     if (selectedDuplicateCandidate && value !== selectedDuplicateCandidate.reference_number) {
                       setSelectedDuplicateCandidate(null);
                     }
@@ -744,135 +705,71 @@ const ReportDetailPanel = ({
                   loading={isSearchingDuplicates}
                 />
 
-                {/* Dropdown Suggestions */}
+                {duplicateReference.trim().length < 2 && !selectedDuplicateCandidate && (
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Type at least 2 characters to find matching reports in this barangay.
+                  </p>
+                )}
+
                 {duplicateMatches.length > 0 && (
-                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-36 overflow-y-auto rounded-xl border border-border/80 bg-popover shadow-lg divide-y divide-border/60">
-                    {duplicateMatches.map((candidate) => (
-                      <button
-                        key={candidate.id}
-                        type="button"
-                        onClick={() => {
-                          setDuplicateReference(candidate.reference_number);
-                          setSelectedDuplicateCandidate(candidate);
-                          setDuplicateMatches([]);
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-[var(--button-neutral-hover)] transition-colors flex items-center justify-between text-xs cursor-pointer"
-                      >
-                        <span className="tabular-nums font-semibold text-foreground">
-                          {candidate.reference_number}
-                        </span>
-                        <span className="text-ui-caption text-muted-foreground truncate max-w-[180px]">
-                          {candidate.violation_type.replace(/_/g, " ")}
-                        </span>
-                      </button>
-                    ))}
+                  <div className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-xl border border-border/80 bg-popover shadow-lg">
+                    <p className="sticky top-0 z-10 bg-popover px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                      Matching reports in {report.barangay}
+                    </p>
+                    <div id="duplicate-report-matches" role="group" aria-label="Matching original reports" className="max-h-52 overflow-y-auto divide-y divide-border/60">
+                      {duplicateMatches.map((candidate) => (
+                        <button
+                          key={candidate.id}
+                          type="button"
+                          aria-label={`${candidate.reference_number}, ${candidate.violation_type.replace(/_/g, " ")}${candidate.landmark ? `, ${candidate.landmark}` : ""}`}
+                          onClick={() => {
+                            setDuplicateReference(candidate.reference_number);
+                            setSelectedDuplicateCandidate(candidate);
+                            setDuplicateMatches([]);
+                          }}
+                          className="w-full px-3 py-2.5 text-left hover:bg-[var(--button-neutral-hover)] focus-visible:bg-[var(--button-neutral-hover)] focus-visible:outline-none transition-colors text-xs cursor-pointer"
+                        >
+                          <span className="block min-w-0">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="tabular-nums font-semibold text-foreground">{candidate.reference_number}</span>
+                              <span className="shrink-0 rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                                {candidate.status.toLowerCase().replace(/_/g, " ")}
+                              </span>
+                            </span>
+                            <span className="mt-0.5 block truncate text-[11px] capitalize text-muted-foreground">
+                              {candidate.violation_type.replace(/_/g, " ")}
+                              {candidate.landmark ? ` · ${candidate.landmark}` : ""}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {hasSearchedDuplicates && !isSearchingDuplicates && duplicateMatches.length === 0 && !selectedDuplicateCandidate && (
+                  <div id="duplicate-report-matches" role="status" className="absolute left-0 right-0 z-50 mt-1 rounded-xl border border-border/80 bg-popover px-3 py-2.5 text-xs text-muted-foreground shadow-lg">
+                    {duplicateSearchFailed
+                      ? "Could not load matching reports. Try searching again."
+                      : `No matching open reports found in ${report.barangay}.`}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Reason */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Reason</label>
-              <Textarea
-                value={flagReason}
-                onChange={(e) => setFlagReason(e.target.value)}
-                placeholder={
-                  flagType === "duplicate"
-                    ? "Explain why this is duplicate..."
-                    : "Explain why this report could not be verified or is invalid..."
-                }
-                className="min-h-[80px] rounded-xl text-xs resize-none"
-              />
-            </div>
-
-            {/* Resolve & Notify Circle Check Card */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setResolveOnFlag(!resolveOnFlag)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setResolveOnFlag(!resolveOnFlag);
-                }
-              }}
-              className={cn(
-                "group flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none",
-                resolveOnFlag
-                  ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
-                  : "bg-muted/30 border-border/70 hover:bg-muted/50 hover:border-primary/40",
-              )}
-            >
-              <div
-                className={cn(
-                  "mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all border",
-                  resolveOnFlag
-                    ? "bg-primary border-primary text-primary-foreground shadow-xs scale-100"
-                    : "border-border/80 bg-background/60 group-hover:border-primary/60 group-hover:bg-primary/5",
-                )}
-              >
-                {resolveOnFlag && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-              </div>
-
-              <div className="space-y-0.5 min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-foreground">
-                    {flagType === "duplicate" ? "Resolve & Notify Resident" : "Close as Resolved & Notify"}
-                  </span>
-                  {resolveOnFlag && (
-                    <span className="text-ui-overline px-1.5 py-0.2 rounded-md font-semibold bg-primary/20 text-primary">
-                      Will Resolve
-                    </span>
-                  )}
-                </div>
-                <p className="text-ui-caption text-muted-foreground leading-relaxed">
-                  {flagType === "duplicate"
-                    ? resolveOnFlag
-                      ? "Close this duplicate report and send an update to the resident."
-                      : "Keep under review. Record flag for staff without notifying resident."
-                    : resolveOnFlag
-                      ? "Close this report and send the review outcome to the resident."
-                      : "Keep under review. Record flag for staff without notifying resident."}
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-2 pt-3.5 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setFlagType(null);
-                setSelectedDuplicateCandidate(null);
-                onFlagDialogOpenChange?.(false);
-              }}
-              disabled={isFlagging}
-              className="rounded-xl h-9 text-xs px-4 cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleFlagSubmit}
-              disabled={isFlagging}
-              variant={flagType === "false" ? "destructive" : "warning"}
-              className={"rounded-xl h-9 text-xs px-4 font-semibold cursor-pointer"}
-              loading={isFlagging}
-              loadingLabel={flagType === "duplicate" ? "Flagging duplicate…" : "Flagging report…"}
-            >
-              {flagType === "duplicate" ? (
-                "Flag as Duplicate"
-              ) : (
-                "Mark Invalid"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            {flagType === "false" && <div className="space-y-1.5">
+              <label htmlFor="flag-reason" className="text-xs font-medium text-foreground">Reason</label>
+              <Select value={invalidReason} onValueChange={(value) => { setInvalidReason(value); setFlagReason(""); }}>
+                <SelectTrigger id="flag-reason" fieldSize="compact"><SelectValue placeholder="Select a review reason" /></SelectTrigger>
+                <SelectContent>{invalidReasons.map(reason => <SelectItem key={reason} value={reason}>{reason}</SelectItem>)}</SelectContent>
+              </Select>
+              {invalidReason === "Other" && <Textarea aria-label="Other review reason" value={flagReason} onChange={event => setFlagReason(event.target.value)} maxLength={250} placeholder="Briefly explain the review outcome…" className="min-h-[80px] text-xs resize-none" />}
+            </div>}
+            <p className="admin-modal-notice">
+              {flagType === "duplicate"
+                ? "This duplicate will be closed and its resident notified. The original report will keep its current status."
+                : "This report will be closed as invalid. The resident will receive your review reason."}
+            </p>
+      </AdminModal>
 
       <ConfirmationDialog
         kind="dialog"

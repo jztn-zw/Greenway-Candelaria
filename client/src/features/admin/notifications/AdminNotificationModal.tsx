@@ -2,13 +2,8 @@ import React from "react";
 import { useNotificationTime } from "@/hooks/useNotificationTime";
 import { getAdminNotificationMetadata } from "./notificationPresentation";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   CalendarClock,
   Truck,
@@ -121,7 +116,7 @@ const AdminNotificationModal: React.FC<AdminNotificationModalProps> = ({
           </button>
         </DialogHeader>
 
-        <div className="px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
+        <div className="gw-modal-body min-h-0 px-5 py-4 space-y-3 text-left overflow-y-auto max-h-[calc(85vh-130px)] scrollbar-thin">
           <div className="space-y-1">
             <h3 className="gw-heading text-sm text-foreground leading-relaxed tracking-tight break-words [overflow-wrap:anywhere]">{notification.title}</h3>
             {notification.time && (

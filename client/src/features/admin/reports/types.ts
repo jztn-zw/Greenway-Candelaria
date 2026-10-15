@@ -145,12 +145,11 @@ export interface WasteReport {
   description: string;
   submittedAt: string;
   submitterName: string;
+  submitterUsername?: string;
   submitterId?: string;
-  submitterEmail?: string;
   photos: ReportPhoto[];
   status: ReportStatus;
   statusHistory: StatusHistoryEntry[];
-  officialResponse?: string;
   internalNotes: InternalNote[];
   isDuplicate: boolean;
   duplicateOfId?: string;
@@ -159,3 +158,5 @@ export interface WasteReport {
   falseReason?: string;
   isFalseReport: boolean;
 }
+
+export const getReportStatusLabel = (report: Pick<WasteReport, "status">) => report.status;

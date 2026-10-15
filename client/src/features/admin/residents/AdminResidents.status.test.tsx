@@ -5,11 +5,11 @@ import { QueryClient, QueryClientProvider, notifyManager } from "@tanstack/react
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import useAuthStore from "@/store/authStore";
-import { fetchResidents, fetchResidentById, fetchResidentReports, updateResidentStatus, type ResidentDetailsRow } from "@/services/residentManagerService";
+import { fetchResidents, fetchDeletedResidentCount, fetchResidentById, fetchResidentReports, updateResidentStatus, type ResidentDetailsRow } from "@/services/residentManagerService";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
 import AdminResidents from "./AdminResidents";
 
-vi.mock("@/services/residentManagerService", () => ({ fetchResidents: vi.fn(), fetchResidentById: vi.fn(), fetchResidentReports: vi.fn(), updateResidentStatus: vi.fn(), deleteResident: vi.fn() }));
+vi.mock("@/services/residentManagerService", () => ({ fetchResidents: vi.fn(), fetchDeletedResidentCount: vi.fn(), fetchResidentById: vi.fn(), fetchResidentReports: vi.fn(), updateResidentStatus: vi.fn(), deleteResident: vi.fn() }));
 vi.mock("@/services/barangaysService", () => ({ fetchBarangaysAdmin: vi.fn() }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -25,6 +25,7 @@ beforeEach(() => {
     const rows = !filters.status || filters.status === account.status ? [{ ...account }] : [];
     return { data: rows, pagination: { total: rows.length, total_pages: 1, page: 1, limit: 10 } } as never;
   });
+  vi.mocked(fetchDeletedResidentCount).mockResolvedValue(2);
   vi.mocked(fetchResidentById).mockImplementation(async () => ({ ...account }));
   vi.mocked(fetchResidentReports).mockResolvedValue([]);
   vi.mocked(fetchBarangaysAdmin).mockResolvedValue([]);
@@ -85,6 +86,14 @@ it("leaves deactivated residents read-only and provides no reactivate or ban con
   expect(host.textContent).toContain("Account Deactivated");
   expect([...host.querySelectorAll("button")].some((button) => /Ban|Reactivate|Deactivate/.test(button.textContent || ""))).toBe(false);
   expect(updateResidentStatus).not.toHaveBeenCalled();
+});
+
+it("shows the deleted account count separately from legacy deactivated accounts", async () => {
+  await render(false);
+  expect(host.textContent).toContain("Deleted Accounts");
+  expect(host.textContent).toContain("Accounts removed from the directory");
+  expect(host.textContent).not.toContain("Deactivated Accounts");
+  expect(fetchDeletedResidentCount).toHaveBeenCalledOnce();
 });
 
 it("opens the same ban confirmation from the directory action menu", async () => {

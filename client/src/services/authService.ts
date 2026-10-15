@@ -21,7 +21,7 @@ export interface ResidentSetupData {
 export interface LoginData {
   identifier: string;
   password: string;
-  login_mode?: "username" | "legacy-setup";
+  login_mode: "username";
 }
 
 export interface User {
@@ -52,7 +52,7 @@ const authService = {
     const response = await api.put("/auth/resident-profile", data);
     return response.data.data;
   },
-  recoverPassword: async (data: { identifier: string; recovery_code: string; new_password: string; confirm_password: string }): Promise<{ recovery_code: string }> => {
+  recoverPassword: async (data: { recovery_code: string; new_password: string; confirm_password: string }): Promise<{ recovery_code: string }> => {
     const response = await api.post("/auth/recover", data);
     return response.data.data;
   },
@@ -72,8 +72,8 @@ const authService = {
     return { token, user, ...(reactivated ? { reactivated: true } : {}) };
   },
 
-  deactivateAccount: async (password: string): Promise<void> => {
-    await api.post("/auth/deactivate", { password });
+  deleteAccount: async (password: string): Promise<void> => {
+    await api.post("/auth/delete-account", { password });
   },
 
   logout: async () => {

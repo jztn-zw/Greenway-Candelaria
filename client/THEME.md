@@ -33,6 +33,8 @@ Route history uses the system's global typography sizes: page titles stay 24px/3
 
 Use global radius tokens through named utilities such as `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-modal`, and `rounded-full`. Match each component's existing radius recipe, including loading skeletons. Do not introduce custom radius values or arbitrary pixel-radius classes for individual pages or components.
 
+Admin dialogs use `AdminModal` from `src/components/admin/AdminModal.tsx` for forms, `AdminConfirmationDialog` for confirmations and `AdminUnsavedChangesDialog` for discard prompts. They reuse the shared Radix dialogs, with consistent header/body/footer spacing, semantic icons, viewport limits and mobile touch targets. Use `pending` on forms to protect an in-flight save. Complex editors can use `AdminModalContent` with `gw-modal-header`, `gw-modal-body` and `gw-modal-footer` sections, retaining their existing forms and unsaved-change handling. Keep field and button variants semantic; use `tone="danger"` or `tone="warning"` when the form needs a matching header icon.
+
 Toast titles and text descriptions must not contain emojis. Preserve existing message wording and punctuation, and use the shared `@/lib/toast` helper across web roles.
 
 DOM and SVG colors can use `hsl(var(--primary))`. Canvas renderers must use `readThemeColor` from `src/lib/themeColors.ts` to resolve the current CSS color before drawing. Keep third-party logo colors and external basemap artwork intact.

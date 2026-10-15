@@ -104,7 +104,6 @@ const AuthModal = ({
 
   // Register fields
   const [username, setUsername] = useState("");
-  const [legacySetup, setLegacySetup] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -141,14 +140,12 @@ const AuthModal = ({
     else if (password.length < 8) errs.password = "Password must be at least 8 characters";
     if (!confirmPassword) errs.confirmPassword = "Please confirm your password";
     else if (confirmPassword !== password) errs.confirmPassword = "Passwords do not match";
-    if (!termsAccepted) errs.terms = "Please accept the Terms and Privacy Policy";
     return errs;
   };
 
   const validateLogin = () => {
     const errs: Record<string, string> = {};
-    if (legacySetup ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim()) : !/^[^\s@]{1,50}$/.test(identifier.trim()))
-      errs.identifier = legacySetup ? "Enter your earlier signup email" : "Enter your username";
+    if (!/^[^\s@]{1,50}$/.test(identifier.trim())) errs.identifier = "Enter your username";
     if (!loginPassword) errs.loginPassword = "Password is required";
     return errs;
   };
@@ -165,7 +162,6 @@ const AuthModal = ({
       const registration = { username: username.trim(), password, confirm_password: confirmPassword, terms_accepted: termsAccepted };
       const result = await authService.register(registration);
       setIdentifier(registration.username);
-      setLegacySetup(false);
       setLoginPassword("");
       if (result.data.recovery_code) setRecoveryReceipt(result.data.recovery_code);
       setTab("login");
@@ -203,13 +199,13 @@ const AuthModal = ({
     submissionPending.current = true;
     setLoading(true);
     try {
-      const result = await login(identifier.trim(), loginPassword, rememberMe, legacySetup);
+      const result = await login(identifier.trim(), loginPassword, rememberMe);
       finishLogin();
       if (result?.reactivated) toast.success("Welcome back! Your account has been reactivated.");
     } catch (err: unknown) {
       if (loginCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string } } };
-      setErrors({ form: responseError.response?.data?.message || "Invalid credentials. Please try again." });
+      setErrors({ form: responseError.response?.data?.message || "Invalid username or password" });
     } finally {
       submissionPending.current = false;
       setLoading(false);
@@ -262,11 +258,13 @@ const AuthModal = ({
                 {recoveryReceipt ? "Save Your Recovery Code" : recoveryOpen ? "Reset Your Password" : tab === "login" ? "Welcome Back" : "Create an Account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
-              <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {recoveryReceipt ? "Keep this code safe before you continue." : recoveryOpen ? "Recover your account using your saved code." : tab === "login"
-                  ? legacySetup ? "Finish an earlier signup that used email before usernames were required." : "Use your username and GreenWay password."
-                  : "Create your login. Complete your resident profile after signing in."}
-              </DialogDescription>
+              {!recoveryReceipt && (
+                <DialogDescription className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {recoveryOpen ? "Recover your account using your saved code." : tab === "login"
+                    ? "Use your username and GreenWay password."
+                    : "Create your login. Complete your resident profile after signing in."}
+                </DialogDescription>
+              )}
             </div>
 
             {/* Scrollable form area */}
@@ -281,7 +279,7 @@ const AuthModal = ({
                   )}
                   <div className="space-y-1.5">
                     <Label htmlFor="identifier" className={fieldLabelClass}>
-                      {legacySetup ? "Earlier Signup Email" : "Username"}
+                      Username
                     </Label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -289,7 +287,7 @@ const AuthModal = ({
                         id="identifier"
                         aria-invalid={Boolean(errors.identifier)}
                         autoComplete="username"
-                        placeholder={legacySetup ? "Enter your signup email" : "Enter your username"}
+                        placeholder="Enter your username"
                         value={identifier}
                         onChange={(e) => { setIdentifier(e.target.value); setErrors((prev) => { const { identifier, ...rest } = prev; return rest; }); }}
                         className={`pl-10 ${fieldClass} ${errors.identifier ? "border-destructive" : ""}`}
@@ -335,9 +333,6 @@ const AuthModal = ({
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
-                  <button type="button" disabled={loading} onClick={() => { setLegacySetup(!legacySetup); setIdentifier(""); setLoginPassword(""); setErrors({}); }} className="gw-action-link block w-full text-center text-xs">
-                    {legacySetup ? "Back to Username Login" : "Finish an Earlier Email Signup"}
-                  </button>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("register"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">
@@ -423,7 +418,6 @@ const AuthModal = ({
                       checked={termsAccepted}
                       onCheckedChange={(checked) => {
                         setTermsAccepted(checked === true);
-                        setErrors((prev) => { const { terms, ...rest } = prev; return rest; });
                       }}
                       className="mt-0.5"
                     />
@@ -431,13 +425,7 @@ const AuthModal = ({
                       I agree to the <span className="font-semibold text-primary">Terms</span> and <span className="font-semibold text-primary">Privacy Policy</span>.
                     </Label>
                   </div>
-                  {errors.terms && <p className="-mt-2 text-xs text-destructive">{errors.terms}</p>}
-
-                  <Button type="submit" className="w-full" disabled={loading || registerCooldown.seconds > 0} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
-                  <p className="text-xs leading-relaxed text-muted-foreground">After login, we’ll help you set up your resident profile and collection area.</p>
-                  <button type="button" disabled={loading} onClick={() => { setLegacySetup(!legacySetup); setIdentifier(""); setLoginPassword(""); setErrors({}); }} className="gw-action-link block w-full text-center text-xs">
-                    {legacySetup ? "Back to Username Login" : "Finish an Earlier Email Signup"}
-                  </button>
+                  <Button type="submit" className="w-full" disabled={loading || registerCooldown.seconds > 0 || !termsAccepted} loading={loading} loadingLabel="Creating account…">Create My Account <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   <p className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
                     Already a member?{" "}
                     <button type="button" disabled={loading} onClick={() => { setLoginPassword(""); setTab("login"); setErrors({}); }} className="gw-action-link font-semibold transition-colors hover:underline">

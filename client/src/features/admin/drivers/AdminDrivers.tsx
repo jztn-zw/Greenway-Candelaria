@@ -3,7 +3,7 @@ import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { Users, UserCheck, Truck, Link2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
 
-import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { PageRetryContext } from "@/components/feedback/pageRetryContext";
@@ -256,6 +256,7 @@ const AdminDrivers = () => {
       }
 
       await updateDriver(editingDriver.id, {
+        username: data.username,
         full_name: data.fullName,
         phone: data.contactNumber,
         truck_id: data.truckId,
