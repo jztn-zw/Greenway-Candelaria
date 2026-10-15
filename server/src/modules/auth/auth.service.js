@@ -125,7 +125,22 @@ const login = async ({ identifier, password }, req) => {
 
   const user = users[0];
 
-  // Check status
+  // Verify the password before exposing account status to avoid username probing.
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    auditService.log({
+      user_id: user.id,
+      action: "FAILED_LOGIN",
+      module: "auth",
+      record_id: user.id,
+      ...loginContext,
+      new_value: { ...loginContext.new_value, role: user.role, reason: "Invalid credentials" },
+    }).catch(() => {});
+    throw { statusCode: 401, message: "Invalid username or password" };
+  }
+
+  // Keep account-management notes private; only a verified account owner sees
+  // a status message, and the admin's ban reason stays in the back office.
   if (user.status === "DEACTIVATED" && !(user.role === "RESIDENT" && user.self_deactivated_at)) {
     auditService.log({
       user_id: user.id,
@@ -148,24 +163,8 @@ const login = async ({ identifier, password }, req) => {
     }).catch(() => {});
     throw {
       statusCode: 403,
-      // Keep account-management notes private; the admin can still see the
-      // reason in the back office, but it must not be exposed at login.
-      message: "Account unavailable",
+      message: "Your account is currently restricted. Please contact MENRO for assistance.",
     };
-  }
-
-  // Verify password
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    auditService.log({
-      user_id: user.id,
-      action: "FAILED_LOGIN",
-      module: "auth",
-      record_id: user.id,
-      ...loginContext,
-      new_value: { ...loginContext.new_value, role: user.role, reason: "Invalid credentials" },
-    }).catch(() => {});
-    throw { statusCode: 401, message: "Invalid username or password" };
   }
 
   return createLoginSession(user, req, loginContext);

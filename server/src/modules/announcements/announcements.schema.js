@@ -5,11 +5,8 @@ const createAnnouncementSchema = z.object({
   body: z.string().trim().min(1, "Body is required").max(65535, "Body is too long"),
   type: z.enum([
     "GENERAL_NOTICE",
-    "SCHEDULE_CHANGE",
-    "HOLIDAY_REMINDER",
     "EMERGENCY_ADVISORY",
     "SYSTEM_MAINTENANCE",
-    "COMMUNITY_EVENT",
   ]),
   status: z
     .enum(["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"])
@@ -44,11 +41,8 @@ const createAnnouncementSchema = z.object({
       ctx.addIssue({ code: "custom", path: ["expires_at"], message: "Expiry must be after the broadcast time" });
     }
   }
-  if (data.show_on_calendar && !data.calendar_date) {
-    ctx.addIssue({ code: "custom", path: ["calendar_date"], message: "Select the resident calendar date" });
-  }
-  if (data.show_on_calendar && !["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"].includes(data.type)) {
-    ctx.addIssue({ code: "custom", path: ["show_on_calendar"], message: "Only event and schedule-related announcements can appear on the resident calendar" });
+  if (data.show_on_calendar) {
+    ctx.addIssue({ code: "custom", path: ["show_on_calendar"], message: "Calendar events are managed in Schedule Manager" });
   }
 });
 

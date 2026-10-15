@@ -32,7 +32,7 @@ const createEventSchema = z.object({
   end_date: calendarDateSchema.optional().nullable(),
   start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Invalid time format (HH:MM)").optional().nullable(),
   end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Invalid time format (HH:MM)").optional().nullable(),
-  event_type: z.enum(["PRIVATE_EVENT", "COMMUNITY_EVENT", "COLLECTION_SCHEDULE"], {
+  event_type: z.enum(["PRIVATE_EVENT", "COMMUNITY_EVENT"], {
     errorMap: () => ({ message: "Invalid event category" }),
   }),
   visibility: z.enum(["PRIVATE", "PUBLIC"], {

@@ -481,6 +481,14 @@ const update = async (id, data, actorId) => {
     await connection.query("SELECT id FROM announcements WHERE id = ? FOR UPDATE", [id]);
     existing = await getById(id, null, connection);
 
+    const legacyCalendarTypes = ["SCHEDULE_CHANGE", "HOLIDAY_REMINDER", "COMMUNITY_EVENT"];
+    if (data.type && legacyCalendarTypes.includes(data.type) && data.type !== existing.type) {
+      throw { statusCode: 400, message: "This announcement type is no longer available. Manage resident calendar events in Schedule Manager." };
+    }
+    if (data.show_on_calendar === true && !existing.calendar_event_id) {
+      throw { statusCode: 400, message: "New resident calendar events are managed in Schedule Manager." };
+    }
+
     const effectiveStatus = data.status ?? existing.status;
     const effectiveTargetAll = data.target_all ?? Boolean(existing.target_all);
     const effectiveBarangayIds = data.barangay_ids ?? existing.barangays.map((barangay) => barangay.id);

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../../config/db");
+const auditService = require("../audit/audit.service");
 const service = require("./auth.service");
 process.env.JWT_SECRET = "fixture-only-secret";
 const { createHash } = require("node:crypto");
@@ -75,4 +76,21 @@ test("an old-password login cannot issue a session after recovery commits", asyn
     await rejected;
     assert.equal(sessions, 0);
   } finally { resume(); pool.query = original.query; bcrypt.compare = original.compare; }
+});
+
+test("banned login reveals the restriction only after the correct password", async () => {
+  const original = { query: pool.query, log: auditService.log };
+  const account = { id: "resident", role: "RESIDENT", status: "BANNED", password: await bcrypt.hash("Password123!", 4) };
+  pool.query = async () => [[account]];
+  auditService.log = async () => {};
+  try {
+    await assert.rejects(
+      service.login({ identifier: "resident", password: "WrongPassword123!" }),
+      error => error.statusCode === 401 && error.message === "Invalid username or password",
+    );
+    await assert.rejects(
+      service.login({ identifier: "resident", password: "Password123!" }),
+      error => error.statusCode === 403 && error.message === "Your account is currently restricted. Please contact MENRO for assistance.",
+    );
+  } finally { pool.query = original.query; auditService.log = original.log; }
 });

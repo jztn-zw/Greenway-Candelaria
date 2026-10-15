@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { pool } = require("../../config/db");
 const auditService = require("../audit/audit.service");
-const { notifyAllResidents, sendToMany, emitStoredNotifications } = require("../notifications/notifications.service");
+const notificationService = require("../notifications/notifications.service");
 
 // ─── Centralized Calendar Events ───────────────────────────
 
@@ -35,8 +35,11 @@ const validateEventDetails = async (event, originalStartDate = null) => {
   if (event.event_type === "PRIVATE_EVENT" && event.visibility !== "PRIVATE") {
     throw { statusCode: 400, message: "Private events must remain private" };
   }
-  if (event.event_type !== "PRIVATE_EVENT" && event.visibility !== "PUBLIC") {
-    throw { statusCode: 400, message: "Community and collection events must be public" };
+  if (event.event_type === "COMMUNITY_EVENT" && event.visibility !== "PUBLIC") {
+    throw { statusCode: 400, message: "Community events must be public" };
+  }
+  if (!["PRIVATE_EVENT", "COMMUNITY_EVENT"].includes(event.event_type)) {
+    throw { statusCode: 400, message: "Only MENRO and community events can be managed here" };
   }
 
   if (event.barangay_id) {
@@ -65,7 +68,7 @@ const projectCalendarEvent = (event, user, view) => {
  * Get all calendar events with strict role-based visibility:
  * - ADMIN: Can view all (PRIVATE_EVENT, COMMUNITY_EVENT, COLLECTION_SCHEDULE)
  * - DRIVER: Can read the internal private schedules created in Schedule Manager
- * - RESIDENT / GUEST: Can ONLY view published public announcement events
+ * - RESIDENT / GUEST: Can view active public announcements and public community events for their area
  */
 const getEvents = async (filters = {}, user = null) => {
   const today = getCurrentAppDate();
@@ -79,11 +82,13 @@ const getEvents = async (filters = {}, user = null) => {
   if (isCollector) {
     conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
   } else if (!isAdmin) {
-    // Residents and guests can only see active public announcements targeted to them.
-    conditions.push("s.visibility = 'PUBLIC'");
-    // Resident calendar content is deliberately published from announcements,
-    // never directly from MENRO's internal Schedule Manager.
-    conditions.push(`s.announcement_id IS NOT NULL AND EXISTS (
+    // Manager-created events are public only when scoped to everyone or the
+    // resident's barangay. Legacy announcement-linked events keep their own
+    // active, expiry, and audience checks.
+    conditions.push(`s.visibility = 'PUBLIC' AND (
+      (s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL
+        AND (s.barangay_id IS NULL OR s.barangay_id = ?))
+      OR (s.announcement_id IS NOT NULL AND EXISTS (
       SELECT 1 FROM announcements a
       WHERE a.id = s.announcement_id
         AND a.status = 'ACTIVE'
@@ -92,8 +97,9 @@ const getEvents = async (filters = {}, user = null) => {
           SELECT 1 FROM announcement_barangays ab
           WHERE ab.announcement_id = a.id AND ab.barangay_id = ?
         ))
+      ))
     )`);
-    params.push(user?.barangay_id || "");
+    params.push(user?.barangay_id || "", user?.barangay_id || "");
   }
 
   if (filters.month) {
@@ -165,8 +171,10 @@ const getEventById = async (id, user = null) => {
   if (isCollector) {
     conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
   } else if (!isAdmin) {
-    conditions.push("s.visibility = 'PUBLIC'");
-    conditions.push(`s.announcement_id IS NOT NULL AND EXISTS (
+    conditions.push(`s.visibility = 'PUBLIC' AND (
+      (s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL
+        AND (s.barangay_id IS NULL OR s.barangay_id = ?))
+      OR (s.announcement_id IS NOT NULL AND EXISTS (
       SELECT 1 FROM announcements a
       WHERE a.id = s.announcement_id
         AND a.status = 'ACTIVE'
@@ -175,8 +183,9 @@ const getEventById = async (id, user = null) => {
           SELECT 1 FROM announcement_barangays ab
           WHERE ab.announcement_id = a.id AND ab.barangay_id = ?
         ))
+      ))
     )`);
-    params.push(user?.barangay_id || "");
+    params.push(user?.barangay_id || "", user?.barangay_id || "");
   }
 
   const query = `
@@ -220,44 +229,75 @@ const createEvent = async (data, user) => {
     description = null,
     event_date,
     end_date = null,
+    event_type = "PRIVATE_EVENT",
+    visibility = "PRIVATE",
+    barangay_id = null,
   } = data;
 
   await validateEventDetails({
     event_date,
     end_date,
-    event_type: "PRIVATE_EVENT",
-    visibility: "PRIVATE",
-    barangay_id: null,
+    event_type,
+    visibility,
+    barangay_id,
   });
 
-  await pool.query(
-    `INSERT INTO schedules (
-      id, title, description, event_date, end_date, start_time, end_time,
-      event_type, visibility, location, barangay_id, status, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-       id,
+  const connection = await pool.getConnection();
+  let delivery = { notifications: [] };
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      `INSERT INTO schedules (
+        id, title, description, event_date, end_date, start_time, end_time,
+        event_type, visibility, location, barangay_id, status, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, title, description, event_date, end_date, null, null, event_type, visibility, null, barangay_id, "UPCOMING", user.id],
+    );
+
+    const dateRange = end_date && end_date !== event_date ? ` to ${end_date}` : "";
+    const notificationBody = `Scheduled for ${event_date}${dateRange}${description ? ` — ${description}` : ""}`;
+    const notification = {
       title,
-       description,
-       event_date,
-       end_date,
-       null,
-       null,
-      "PRIVATE_EVENT",
-      "PRIVATE",
-      null,
-      null,
-      "UPCOMING",
-      user.id,
-    ],
-  );
+      body: notificationBody,
+      ref_id: id,
+      ref_module: "schedule",
+      metadata: { category: "SCHEDULE_EVENT", event_type, event_date, end_date, barangay_id },
+      db: connection,
+      emit: false,
+    };
+
+    if (event_type === "COMMUNITY_EVENT") {
+      const residentNotice = { ...notification, type: "ANNOUNCEMENT" };
+      delivery = barangay_id
+        ? await notificationService.notifyBarangayResidents({ ...residentNotice, barangay_id })
+        : await notificationService.notifyAllResidents(residentNotice);
+    } else {
+      const [collectors] = await connection.query(
+        "SELECT id FROM users WHERE role = 'DRIVER' AND status = 'ACTIVE' AND deleted_at IS NULL",
+      );
+      delivery = await notificationService.sendToMany({
+        ...notification,
+        user_ids: collectors.map((collector) => collector.id),
+        type: "SYSTEM",
+      });
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  notificationService.emitStoredNotifications(delivery.notifications);
 
   auditService.log({
     user_id: user.id,
     action: "CREATE_CALENDAR_EVENT",
     module: "schedule",
     record_id: id,
-    new_value: { title, event_date, end_date, event_type: "PRIVATE_EVENT", visibility: "PRIVATE" },
+    new_value: { title, event_date, end_date, event_type, visibility, barangay_id },
   }).catch(() => {});
 
   return getEventById(id, user);
@@ -265,16 +305,20 @@ const createEvent = async (data, user) => {
 
 const updateEvent = async (id, data, user) => {
   const existing = await getEventById(id, user);
-  if (existing.event_type !== "PRIVATE_EVENT" || existing.announcement_id) {
-    throw { statusCode: 403, message: "Resident calendar entries are managed from Announcements." };
+  if (existing.announcement_id || !["PRIVATE_EVENT", "COMMUNITY_EVENT"].includes(existing.event_type)) {
+    throw { statusCode: 403, message: "This calendar entry is managed by its source module." };
   }
+
+  const eventType = data.event_type ?? existing.event_type;
+  const visibility = data.visibility ?? existing.visibility;
+  const barangayId = data.barangay_id === undefined ? existing.barangay_id ?? null : data.barangay_id;
 
   await validateEventDetails({
     event_date: data.event_date === undefined ? existing.event_date : data.event_date,
     end_date: data.end_date === undefined ? existing.end_date : data.end_date,
-    event_type: "PRIVATE_EVENT",
-    visibility: "PRIVATE",
-    barangay_id: null,
+    event_type: eventType,
+    visibility,
+    barangay_id: barangayId,
   }, existing.event_date);
 
   const allowedFields = [
@@ -282,6 +326,9 @@ const updateEvent = async (id, data, user) => {
     "description",
     "event_date",
     "end_date",
+    "event_type",
+    "visibility",
+    "barangay_id",
   ];
 
   const updates = [];
@@ -316,8 +363,8 @@ const updateEvent = async (id, data, user) => {
 
 const deleteEvent = async (id, user) => {
   const existing = await getEventById(id, user);
-  if (existing.event_type !== "PRIVATE_EVENT" || existing.announcement_id) {
-    throw { statusCode: 403, message: "Resident calendar entries are managed from Announcements." };
+  if (existing.announcement_id || !["PRIVATE_EVENT", "COMMUNITY_EVENT"].includes(existing.event_type)) {
+    throw { statusCode: 403, message: "This calendar entry is managed by its source module." };
   }
 
   await pool.query(
@@ -489,7 +536,7 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
             [crypto.randomUUID(), route.id, collectionDate, timing.hours],
           );
           const wasteLabel = route.waste_type ? `${route.waste_type.toLowerCase()} waste` : "segregated waste";
-          const delivery = await sendToMany({
+          const delivery = await notificationService.sendToMany({
             user_ids: recipients.map((resident) => resident.id),
             type: "COLLECTION_REMINDER",
             title: "Collection reminder",
@@ -506,7 +553,7 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
             emit: false,
           });
           await connection.commit();
-          emitStoredNotifications(delivery.notifications);
+          notificationService.emitStoredNotifications(delivery.notifications);
           delivered += delivery.sent;
         } catch (error) {
           await connection.rollback();
