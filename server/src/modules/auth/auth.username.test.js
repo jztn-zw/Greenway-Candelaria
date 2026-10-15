@@ -45,9 +45,10 @@ test('setup accepts only the existing profile avatars', () => {
   for (const avatar_url of ['/profile-avatars/avatar-11.png', 'https://example.test/photo.png', '/other.png'])
     assert.equal(residentSetupSchema.safeParse({ ...setup, avatar_url }).success, false);
 });
-test('updated username login rejects email while a separate transition accepts it', () => {
+test('login accepts usernames only, including requests marked as username mode', () => {
   assert.equal(loginSchema.safeParse({ identifier: 'resident@example.test', password: 'Password123!', login_mode: 'username' }).success, false);
-  assert.equal(loginSchema.safeParse({ identifier: 'resident@example.test', password: 'Password123!', login_mode: 'legacy-setup' }).success, true);
+  assert.equal(loginSchema.safeParse({ identifier: 'resident@example.test', password: 'Password123!', login_mode: 'legacy-setup' }).success, false);
+  assert.equal(loginSchema.safeParse({ identifier: 'resident_name', password: 'Password123!', login_mode: 'username' }).success, true);
 });
 test('setup preserves the signup username and saves optional contacts atomically', async () => {
   const original = pool.getConnection;
@@ -75,16 +76,19 @@ test('setup preserves the signup username and saves optional contacts atomically
     assert.deepEqual(calls, ['rollback']);
   } finally { pool.getConnection = original; }
 });
-test('username mode queries only usernames; email transition is restricted to unfinished residents without a username', async () => {
+test('login service queries only usernames, even for a legacy email request', async () => {
   const original = pool.query;
   const queries = [];
   pool.query = async (sql, params) => { queries.push({ sql, params }); return [[]]; };
   try {
-    for (const login_mode of ['username', 'legacy-setup'])
-      await assert.rejects(service.login({ identifier: login_mode === 'username' ? 'resident' : 'old@example.test', password: 'Password123!', login_mode }), error => error.statusCode === 401);
-    const username = queries.find(query => query.sql.includes('WHERE u.username'));
-    assert.ok(username); assert.equal(username.params.length, 1);
-    const transition = queries.find(query => query.sql.includes('WHERE u.email'));
-    assert.match(transition.sql, /u.role = 'RESIDENT'/); assert.match(transition.sql, /u.username IS NULL/); assert.match(transition.sql, /u.profile_completed = 0/);
+    for (const identifier of ['resident', 'old@example.test'])
+      await assert.rejects(service.login({ identifier, password: 'Password123!', login_mode: identifier.includes('@') ? 'legacy-setup' : 'username' }), error => error.statusCode === 401);
+    const lookups = queries.filter(query => query.sql.trimStart().startsWith('SELECT'));
+    assert.equal(lookups.length, 2);
+    for (const query of lookups) {
+      assert.match(query.sql, /WHERE u\.username = \?/);
+      assert.equal(query.params.length, 1);
+      assert.ok(!query.sql.includes('u.email ='));
+    }
   } finally { pool.query = original; }
 });

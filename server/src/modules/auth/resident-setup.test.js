@@ -96,11 +96,11 @@ test('login returns the completed profile when setup commits after credential lo
   process.env.JWT_SECRET = 'setup-login-fixture';
   const password = await bcrypt.hash('Password123!', 4);
   const current = { id: 'resident', role: 'RESIDENT', status: 'ACTIVE', password, profile_completed: 1, full_name: 'Test Resident', username: 'resident', barangay_id: setup.barangay_id, street_id: setup.street_id };
-  pool.query = async sql => [[sql.includes('(u.email =') ? { ...current, profile_completed: 0, full_name: null, username: null, barangay_id: null, street_id: null } : current]];
+  pool.query = async () => [[current]];
   pool.getConnection = async () => ({ beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {},
     query: async sql => sql.startsWith('SELECT') ? [[current]] : [{ affectedRows: 1 }] });
   try {
-    const result = await service.login({ identifier: 'resident@example.test', password: 'Password123!' });
+    const result = await service.login({ identifier: 'resident', password: 'Password123!' });
     assert.equal(result.user.profile_completed, true);
     assert.equal(result.user.full_name, 'Test Resident');
     assert.equal(result.user.street_id, setup.street_id);

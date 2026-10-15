@@ -115,6 +115,20 @@ test("admin alert preferences save in one upsert and preserve other settings", a
   }
 });
 
+test("deleted resident count includes only resident tombstones", async () => {
+  const original = pool.query;
+  let statement = "";
+  pool.query = async (sql) => {
+    statement = sql;
+    return [[{ total: 4 }]];
+  };
+  try {
+    assert.equal(await service.getDeletedResidentCount(), 4);
+    assert.match(statement, /role = 'RESIDENT'/);
+    assert.match(statement, /deleted_at IS NOT NULL/);
+  } finally { pool.query = original; }
+});
+
 test("profile password and admin preference schemas reject unsafe input", () => {
   assert.equal(changePasswordSchema.safeParse({ old_password: "old", new_password: "é".repeat(40) }).success, false);
   assert.equal(updateAdminSettingsSchema.safeParse({}).success, false);
@@ -125,8 +139,10 @@ test("profile password and admin preference schemas reject unsafe input", () => 
 for (const next of ["barangay-new", null, "barangay-old"]) {
   test(`settings address change to ${next} preserves only a street in the same barangay`, async () => {
     const original = pool.query;
+    const originalConnection = pool.getConnection;
     const resident = { barangay_id: "barangay-old", street_id: "street-old" };
     pool.query = async (sql, params) => {
+      if (sql.includes("FROM users") && sql.includes("FOR UPDATE")) return [[{ id: "resident" }]];
       if (sql.includes("FROM barangays")) return [[{ id: next }]];
       if (sql.startsWith("UPDATE users SET")) {
         if (sql.includes("street_id")) {
@@ -141,10 +157,67 @@ for (const next of ["barangay-new", null, "barangay-old"]) {
       if (sql.includes("FROM user_settings")) return [[{ user_id: "resident", primary_barangay_id: next }]];
       throw new Error(`Unexpected query: ${sql}`);
     };
+    pool.getConnection = async () => ({ query: pool.query, beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {} });
     try {
       await service.updateUserSettings("resident", { primary_barangay_id: next });
       assert.equal(resident.street_id, next === "barangay-old" ? "street-old" : null);
       assert.equal(resident.barangay_id, next);
-    } finally { pool.query = original; }
+    } finally { pool.query = original; pool.getConnection = originalConnection; }
   });
 }
+
+for (const operation of ["read", "write", "profile"]) {
+  test(`late ${operation} cannot restore a deleted resident's area or settings`, async () => {
+    const original = { query: pool.query, connection: pool.getConnection };
+    const statements = [];
+    const query = async (sql) => {
+      statements.push(sql);
+      if (sql.includes("FROM users") && sql.includes("FOR UPDATE")) return [[]];
+      if (sql.includes("FROM barangays")) return [[{ id: "barangay" }]];
+      if (sql.includes("FROM user_settings")) return [[]];
+      if (sql.includes("FROM users u")) return [[]];
+      return [{ affectedRows: 0 }];
+    };
+    pool.query = query;
+    pool.getConnection = async () => ({ query, beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {} });
+    try {
+      const request = operation === "read" ? service.getUserSettings("deleted")
+        : operation === "write" ? service.updateUserSettings("deleted", { primary_barangay_id: "barangay" })
+        : service.updateProfile("deleted", { barangay_id: "barangay" });
+      await assert.rejects(request, error => error.statusCode === 403);
+      assert.equal(statements.some(sql => /^(INSERT INTO|UPDATE) user_settings/.test(sql.trimStart())), false);
+      for (const sql of statements.filter(sql => sql.startsWith("UPDATE users"))) assert.match(sql, /deleted_at IS NULL/);
+    } finally { pool.query = original.query; pool.getConnection = original.connection; }
+  });
+}
+
+test("a settings request waiting behind deletion rechecks the account after acquiring its lock", async () => {
+  const original = { query: pool.query, connection: pool.getConnection };
+  let releaseLock;
+  let lockRequested;
+  let deleted = false;
+  const writes = [];
+  const waiting = new Promise(resolve => { lockRequested = resolve; });
+  const lock = new Promise(resolve => { releaseLock = resolve; });
+  const query = async sql => {
+    if (sql.includes("FROM users") && sql.includes("FOR UPDATE")) {
+      lockRequested();
+      await lock;
+      return [deleted ? [] : [{ id: "resident" }]];
+    }
+    writes.push(sql);
+    return [[]];
+  };
+  pool.query = query;
+  pool.getConnection = async () => ({ query, beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {} });
+  try {
+    const request = service.updateUserSettings("resident", { primary_barangay_id: "barangay" });
+    const denied = assert.rejects(request, error => error.statusCode === 403);
+    await waiting;
+    assert.deepEqual(writes, []);
+    deleted = true;
+    releaseLock();
+    await denied;
+    assert.deepEqual(writes, []);
+  } finally { releaseLock(); pool.query = original.query; pool.getConnection = original.connection; }
+});

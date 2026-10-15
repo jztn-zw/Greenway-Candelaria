@@ -70,7 +70,7 @@ test("an old-password login cannot issue a session after recovery commits", asyn
     const login = service.login({ identifier: 'resident', password: 'OldPassword123!' });
     const rejected = assert.rejects(login, error => error.statusCode === 401);
     await comparing;
-    await service.recoverPassword({ identifier: 'resident', recovery_code: code, new_password: 'NewPassword123!' });
+    await service.recoverPassword({ recovery_code: code, new_password: 'NewPassword123!' });
     resume();
     await rejected;
     assert.equal(sessions, 0);

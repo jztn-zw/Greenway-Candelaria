@@ -7,7 +7,7 @@ const SessionService = require("../sessions/sessions.service");
 const auditService = require("../audit/audit.service");
 const { createRecoveryCode, recoverPassword, replaceRecoveryCode } = require("./auth.recovery");
 const { pool } = require("../../config/db");
-const { deactivateResident } = require("./auth.deactivation");
+const { deleteResident } = require("./auth.deletion");
 const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
 
 const register = async ({
@@ -93,7 +93,7 @@ const register = async ({
   return { id, full_name: full_name || "", username: username || "", email, avatar_url: avatarUrl, role: "RESIDENT", profile_completed: completed, recovery_code: recovery.code };
 };
 
-const login = async ({ identifier, password, login_mode }, req) => {
+const login = async ({ identifier, password }, req) => {
   const loginContext = {
     ip_address: req?.ip || null,
     new_value: {
@@ -103,17 +103,13 @@ const login = async ({ identifier, password, login_mode }, req) => {
   };
 
   // Find user
-  const credentialCondition = login_mode === "username" ? "u.username = ?"
-    : login_mode === "legacy-setup"
-      ? "u.email = ? AND u.role = 'RESIDENT' AND (u.username IS NULL OR u.username = '') AND u.profile_completed = 0"
-      : "(u.email = ? OR u.username = ?)"; // Older native clients retain their existing contract.
   const [users] = await queryWithRetry(
     `SELECT u.*, b.name AS barangay_name, bs.name AS street_name, bs.area AS street_area
      FROM users u
      LEFT JOIN barangays b ON b.id = u.barangay_id
      LEFT JOIN barangay_streets bs ON bs.id = u.street_id
-     WHERE ${credentialCondition} AND u.deleted_at IS NULL`,
-    login_mode ? [identifier] : [identifier, identifier],
+     WHERE u.username = ? AND u.deleted_at IS NULL`,
+    [identifier],
   );
 
   if (users.length === 0) {
@@ -124,7 +120,7 @@ const login = async ({ identifier, password, login_mode }, req) => {
       ...loginContext,
       new_value: { ...loginContext.new_value, reason: "Invalid credentials" },
     }).catch(() => {});
-    throw { statusCode: 401, message: "Invalid sign-in details" };
+    throw { statusCode: 401, message: "Invalid username or password" };
   }
 
   const user = users[0];
@@ -137,7 +133,7 @@ const login = async ({ identifier, password, login_mode }, req) => {
       module: "auth",
       record_id: user.id,
       ...loginContext,
-      new_value: { ...loginContext.new_value, role: user.role, reason: "Account deactivated" },
+      new_value: { ...loginContext.new_value, role: user.role, reason: "Account deleted" },
     }).catch(() => {});
     throw { statusCode: 403, message: "Account is deactivated" };
   }
@@ -169,7 +165,7 @@ const login = async ({ identifier, password, login_mode }, req) => {
       ...loginContext,
       new_value: { ...loginContext.new_value, role: user.role, reason: "Invalid credentials" },
     }).catch(() => {});
-    throw { statusCode: 401, message: "Invalid sign-in details" };
+    throw { statusCode: 401, message: "Invalid username or password" };
   }
 
   return createLoginSession(user, req, loginContext);
@@ -321,4 +317,4 @@ const completeResidentProfile = async (userId, data) => {
   await require('./auth.setup').completeResidentProfile(userId, data);
   return getMe(userId);
 };
-module.exports = { register, login, logout, changePassword, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile, deactivateResident };
+module.exports = { register, login, logout, changePassword, getMe, recoverPassword, replaceRecoveryCode, completeResidentProfile, deleteResident };

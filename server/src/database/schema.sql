@@ -100,6 +100,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`),
+  KEY `idx_users_recovery_code_hash` (`recovery_code_hash`),
   UNIQUE KEY `uq_users_single_active_admin` (`single_active_admin`),
   KEY `fk_user_barangay` (`barangay_id`),
   KEY `fk_user_street` (`street_id`),

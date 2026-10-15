@@ -68,25 +68,26 @@ test("login failures use normalized IP/account pairs and a structured cooldown",
 });
 
 test("recovery attempts cannot consume authenticated setup or code quotas", async () => {
-  for (let i = 0; i < 5; i++) assert.equal((await request("/api/auth/recover", { identifier: "recover-fixture" })).status, 200);
-  assert.equal((await request("/api/auth/recover", { identifier: "recover-fixture" })).status, 429);
+  limits.recoveryLimiter.resetKey("127.0.0.1");
+  for (let i = 0; i < 5; i++) assert.equal((await request("/api/auth/recover", { identifier: `ignored-${i}`, recovery_code: `fixture-code-${i}` })).status, 200);
+  assert.equal((await request("/api/auth/recover", { identifier: "another-ignored-identity", recovery_code: "another-code" })).status, 429);
   assert.equal((await request("/api/auth/resident-profile", { user: "setup", role: "RESIDENT", method: "PUT" })).status, 200);
   assert.equal((await request("/api/auth/recovery-code", { user: "setup", role: "RESIDENT" })).status, 200);
 });
 
-test("self-deactivation requires a resident session and has a separate per-account quota", async () => {
-  assert.equal((await request("/api/auth/deactivate")).status, 401);
+test("self-deletion requires a resident session and has a separate per-account quota", async () => {
+  assert.equal((await request("/api/auth/delete-account")).status, 401);
   for (const role of ["ADMIN", "DRIVER"]) {
-    assert.equal((await request("/api/auth/deactivate", { user: role, role })).status, 403);
+    assert.equal((await request("/api/auth/delete-account", { user: role, role })).status, 403);
   }
-  for (let i = 0; i < 5; i++) assert.equal((await request("/api/auth/deactivate", { user: "deactivating", role: "RESIDENT" })).status, 200);
-  const before = calls.get("auth:deactivateResident");
-  const blocked = await request("/api/auth/deactivate", { user: "deactivating", role: "RESIDENT" });
+  for (let i = 0; i < 5; i++) assert.equal((await request("/api/auth/delete-account", { user: "deleting", role: "RESIDENT" })).status, 200);
+  const before = calls.get("auth:deleteResident");
+  const blocked = await request("/api/auth/delete-account", { user: "deleting", role: "RESIDENT" });
   assert.equal(blocked.status, 429);
-  assert.equal(calls.get("auth:deactivateResident"), before);
+  assert.equal(calls.get("auth:deleteResident"), before);
   assert.ok(JSON.parse(blocked.body).retryAfterSeconds > 0);
-  assert.equal((await request("/api/auth/deactivate", { user: "other-resident", role: "RESIDENT" })).status, 200);
-  assert.equal((await request("/api/auth/recovery-code", { user: "deactivating", role: "RESIDENT" })).status, 200);
+  assert.equal((await request("/api/auth/delete-account", { user: "other-resident", role: "RESIDENT" })).status, 200);
+  assert.equal((await request("/api/auth/recovery-code", { user: "deleting", role: "RESIDENT" })).status, 200);
 });
 
 test("message spam cannot consume breakdown, status or GPS quotas", async () => {

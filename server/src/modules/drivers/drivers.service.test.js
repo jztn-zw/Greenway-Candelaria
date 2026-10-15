@@ -8,6 +8,38 @@ const { createDriverSchema, updateDriverSchema, resetDriverPasswordSchema } = re
 
 after(() => pool.end());
 
+test("collector username edits reject names that cannot be used for username login", () => {
+  assert.equal(updateDriverSchema.parse({ username: " collector.new " }).username, "collector.new");
+  for (const username of ["", "ab", "collector name", "collector@example.test", "a".repeat(51)]) {
+    assert.equal(updateDriverSchema.safeParse({ username }).success, false);
+  }
+});
+
+test("collector username edits roll back when another account owns the name", async () => {
+  await withConnection(async sql => {
+    if (sql.includes("SELECT d.user_id")) return [[{ user_id: "user-1", truck_id: null }]];
+    if (sql.includes("WHERE username")) return [[{ id: "other-user" }]];
+    return [{ affectedRows: 1 }];
+  }, async (statements, state) => {
+    await assert.rejects(service.update("driver-1", { username: "taken" }, "admin-1"), error => error.statusCode === 409 && error.message === "Username already taken");
+    assert.equal(state.rolledBack, true);
+    assert.equal(statements.some(({ sql }) => sql.startsWith("UPDATE")), false);
+  });
+});
+
+test("collector username edits translate a concurrent unique-key conflict and roll back", async () => {
+  await withConnection(async sql => {
+    if (sql.includes("SELECT d.user_id")) return [[{ user_id: "user-1", truck_id: null }]];
+    if (sql.includes("WHERE username")) return [[]];
+    if (sql.startsWith("UPDATE users")) throw { code: "ER_DUP_ENTRY" };
+    return [{ affectedRows: 1 }];
+  }, async (_, state) => {
+    await assert.rejects(service.update("driver-1", { username: "taken" }, "admin-1"), error => error.statusCode === 409 && error.message === "Username already taken");
+    assert.equal(state.rolledBack, true);
+    assert.equal(state.committed, false);
+  });
+});
+
 test("collector contacts must use an 11-digit Philippine 09 mobile number", () => {
   for (const phone of ["08123456789", "09123", "091234567890", "+639123456789"]) {
     assert.equal(updateDriverSchema.safeParse({ phone }).success, false);

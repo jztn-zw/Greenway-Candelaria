@@ -3,6 +3,23 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../config/db");
 const auditService = require("../audit/audit.service");
 
+// Serialize settings creation and area writes with account deletion. A request
+// authenticated on another device may still be waiting when deletion commits.
+const withActiveAccount = async (userId, operation) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [owners] = await connection.query(
+      "SELECT id FROM users WHERE id = ? AND deleted_at IS NULL AND status = 'ACTIVE' FOR UPDATE", [userId],
+    );
+    if (!owners.length) throw { statusCode: 403, message: "Account unavailable" };
+    const result = await operation(connection);
+    await connection.commit();
+    return result;
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
+};
+
 const getProfile = async (userId) => {
   const [users] = await pool.query(
     `SELECT 
@@ -126,12 +143,12 @@ const updateProfile = async (userId, data) => {
   }
 
   if (data.barangay_id) {
-    await pool.query(
+    await withActiveAccount(userId, (connection) => connection.query(
       `INSERT INTO user_settings (id, user_id, primary_barangay_id)
        VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE primary_barangay_id = VALUES(primary_barangay_id)`,
       [uuidv4(), userId, data.barangay_id],
-    );
+    ));
   }
 
   return getProfile(userId);
@@ -238,6 +255,13 @@ const getAll = async (filters = {}) => {
       total_pages: Math.ceil(total / limit),
     },
   };
+};
+
+const getDeletedResidentCount = async () => {
+  const [[{ total }]] = await pool.query(
+    "SELECT COUNT(*) AS total FROM users WHERE role = 'RESIDENT' AND deleted_at IS NOT NULL",
+  );
+  return Number(total || 0);
 };
 
 const getById = async (id) => {
@@ -352,9 +376,9 @@ const getReportHistory = async (userId) => {
 };
 
 // ─── User Settings ────────────────────────────────────────────────────────────
-const getUserSettings = async (userId) => {
+const readUserSettings = async (connection, userId) => {
   // Try to fetch existing settings
-  const [rows] = await pool.query(
+  const [rows] = await connection.query(
     "SELECT * FROM user_settings WHERE user_id = ?",
     [userId],
   );
@@ -363,19 +387,21 @@ const getUserSettings = async (userId) => {
 
   // Auto-create default settings row for new users
   const id = uuidv4();
-  await pool.query(
+  await connection.query(
     `INSERT INTO user_settings (id, user_id) VALUES (?, ?)`,
     [id, userId],
   );
 
-  const [newRows] = await pool.query(
+  const [newRows] = await connection.query(
     "SELECT * FROM user_settings WHERE user_id = ?",
     [userId],
   );
   return { ...newRows[0], reminder_timing: "3h" };
 };
 
-const updateUserSettings = async (userId, data) => {
+const getUserSettings = (userId) => withActiveAccount(userId, (connection) => readUserSettings(connection, userId));
+
+const updateUserSettings = (userId, data) => withActiveAccount(userId, async (connection) => {
   const allowed = [
     "notif_collection_reminders",
     "notif_truck_near",
@@ -402,7 +428,7 @@ const updateUserSettings = async (userId, data) => {
   // Sync primary_barangay_id → users.barangay_id
   if (data.primary_barangay_id !== undefined) {
     if (data.primary_barangay_id) {
-      const [barangays] = await pool.query("SELECT id FROM barangays WHERE id = ?", [
+      const [barangays] = await connection.query("SELECT id FROM barangays WHERE id = ?", [
         data.primary_barangay_id,
       ]);
       if (barangays.length === 0) {
@@ -412,7 +438,7 @@ const updateUserSettings = async (userId, data) => {
     // Evaluate the previous barangay before assigning the new one. Re-saving
     // the same barangay keeps its street; changing or clearing it cannot leave
     // an address pointing to a street in another barangay.
-    await pool.query("UPDATE users SET street_id = CASE WHEN barangay_id <=> ? THEN street_id ELSE NULL END, barangay_id = ? WHERE id = ?", [
+    await connection.query("UPDATE users SET street_id = CASE WHEN barangay_id <=> ? THEN street_id ELSE NULL END, barangay_id = ? WHERE id = ? AND deleted_at IS NULL", [
       data.primary_barangay_id || null,
       data.primary_barangay_id || null,
       userId,
@@ -420,15 +446,16 @@ const updateUserSettings = async (userId, data) => {
   }
 
   if (fields.length > 0) {
+    await readUserSettings(connection, userId);
     params.push(userId);
-    await pool.query(
+    await connection.query(
       `UPDATE user_settings SET ${fields.join(", ")} WHERE user_id = ?`,
       params,
     );
   }
 
-  return getUserSettings(userId);
-};
+  return readUserSettings(connection, userId);
+});
 
 const adminPreferenceColumns = [
   "notif_admin_reports",
@@ -462,6 +489,7 @@ module.exports = {
   updateProfile,
   changePassword,
   getAll,
+  getDeletedResidentCount,
   getById,
   updateStatus,
   softDelete,

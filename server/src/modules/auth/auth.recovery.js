@@ -10,17 +10,19 @@ const createRecoveryCode = () => {
 const unavailable = () => ({ statusCode: 401, message: 'Account or recovery code could not be verified.' });
 const isAvailable = user => user && user.status === 'ACTIVE' && !user.deleted_at;
 
-const recoverPassword = async ({ identifier, recovery_code, new_password }) => {
+const recoverPassword = async ({ recovery_code, new_password }) => {
+  const hash = hashRecoveryCode(recovery_code);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     // Lock the code owner so concurrent attempts cannot consume the same code.
     const [users] = await connection.query(
-      'SELECT * FROM users WHERE (username = ? OR email = ?) LIMIT 1 FOR UPDATE',
-      [identifier.trim(), identifier.trim()],
+      // * tolerates installations without the retired self-deactivation marker.
+      'SELECT * FROM users WHERE recovery_code_hash = ? LIMIT 2 FOR UPDATE',
+      [hash],
     );
+    if (users.length !== 1) throw unavailable();
     const user = users[0];
-    const hash = hashRecoveryCode(recovery_code);
     const selfDeactivated = user && !user.deleted_at && user.role === 'RESIDENT'
       && user.status === 'DEACTIVATED' && user.self_deactivated_at;
     // Recovery changes credentials only. Reactivation still requires a normal login.

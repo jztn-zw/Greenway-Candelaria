@@ -50,23 +50,19 @@ const residentSetupSchema = z.object({
 }).strict();
 
 const loginSchema = z.object({
-  identifier: z.string().trim().min(1, "Username is required").max(100),
+  identifier: z.string().trim().min(1, "Username is required").max(50).regex(/^[^\s@]+$/, "Enter your username"),
   password: z.string().min(1, "Password is required"),
-  login_mode: z.enum(["username", "legacy-setup"]).optional(),
-}).superRefine((data, context) => {
-  if (data.login_mode === "username" && !/^[^\s@]{1,50}$/.test(data.identifier))
-    context.addIssue({ code: "custom", path: ["identifier"], message: "Enter your username" });
-  if (data.login_mode === "legacy-setup" && !z.string().email().safeParse(data.identifier).success)
-    context.addIssue({ code: "custom", path: ["identifier"], message: "Enter the email used for your earlier signup" });
+  login_mode: z.literal("username").optional(),
 });
 
 const recoverySchema = z.object({
-  identifier: z.string().trim().min(1).max(100),
-  recovery_code: z.string().trim().min(1).max(100),
+  recovery_code: z.string().trim().min(1).max(100)
+    .transform(value => value.replace(/[\s-]/g, '').toUpperCase())
+    .pipe(z.string().regex(/^[A-F0-9]{32}$/, "Enter a valid recovery code")),
   new_password: z.string().min(8).refine(value => Buffer.byteLength(value, "utf8") <= 72, "New password must be at most 72 bytes"),
   confirm_password: z.string().min(8).max(255),
 }).refine(data => data.new_password === data.confirm_password, { message: "Passwords do not match", path: ["confirm_password"] });
 const recoveryCodeSchema = z.object({ password: z.string().min(1).max(255) });
-const deactivationSchema = z.object({ password: z.string().min(1, "Enter your current password").max(255) }).strict();
+const accountDeletionSchema = z.object({ password: z.string().min(1, "Enter your current password").max(255) }).strict();
 
-module.exports = { registerSchema, residentSetupSchema, loginSchema, recoverySchema, recoveryCodeSchema, deactivationSchema };
+module.exports = { registerSchema, residentSetupSchema, loginSchema, recoverySchema, recoveryCodeSchema, accountDeletionSchema };

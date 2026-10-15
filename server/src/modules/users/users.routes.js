@@ -25,6 +25,13 @@ router.get(
 );
 
 router.get(
+  "/deleted-resident-count",
+  authenticate,
+  authorize("ADMIN"),
+  controller.getDeletedResidentCount,
+);
+
+router.get(
   "/:id",
   authenticate,
   authorize("ADMIN"),

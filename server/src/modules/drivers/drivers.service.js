@@ -256,10 +256,20 @@ const update = async (id, data, adminUserId, ipAddress = null) => {
 
     const userFields = [];
     const userParams = [];
+    if (data.username !== undefined) {
+      const [existing] = await connection.query("SELECT id FROM users WHERE username = ? AND id <> ? LIMIT 1", [data.username, drivers[0].user_id]);
+      if (existing.length) throw { statusCode: 409, message: "Username already taken" };
+      userFields.push("username = ?"); userParams.push(data.username);
+    }
     if (data.full_name !== undefined) { userFields.push("full_name = ?"); userParams.push(data.full_name); }
     if (data.phone !== undefined) { userFields.push("phone = ?"); userParams.push(data.phone); }
     if (userFields.length) {
-      await connection.query(`UPDATE users SET ${userFields.join(", ")} WHERE id = ?`, [...userParams, drivers[0].user_id]);
+      try {
+        await connection.query(`UPDATE users SET ${userFields.join(", ")} WHERE id = ?`, [...userParams, drivers[0].user_id]);
+      } catch (error) {
+        if (error.code === "ER_DUP_ENTRY" && data.username !== undefined) throw { statusCode: 409, message: "Username already taken" };
+        throw error;
+      }
     }
 
     const driverFields = [];

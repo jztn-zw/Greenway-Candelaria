@@ -14,14 +14,14 @@ test("retired OAuth endpoints cannot issue challenges, link identities or create
   const server = app.listen(0, "127.0.0.1");
   await new Promise((resolve) => server.once("listening", resolve));
   try {
-    for (const endpoint of ["/google/challenge", "/google", "/google/register"]) {
+    for (const endpoint of ["/google/challenge", "/google", "/google/register", "/deactivate"]) {
       const response = await fetch(`http://127.0.0.1:${server.address().port}/auth${endpoint}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
       });
       assert.equal(response.status, 404, endpoint);
     }
     const routes = router.stack.filter((layer) => layer.route).map((layer) => layer.route.path);
-    for (const endpoint of ["/login", "/register", "/recover", "/recovery-code", "/logout", "/me", "/resident-profile"]) {
+    for (const endpoint of ["/login", "/register", "/recover", "/recovery-code", "/logout", "/me", "/resident-profile", "/delete-account"]) {
       assert.ok(routes.includes(endpoint), `${endpoint} remains supported`);
     }
   } finally {

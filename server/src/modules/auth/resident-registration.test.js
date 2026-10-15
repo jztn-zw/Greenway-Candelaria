@@ -20,7 +20,7 @@ test('regular signup accepts missing contacts and rejects invalid provided email
 
 test('recovery enforces the existing password change byte limit', () => {
   const password = 'é'.repeat(40);
-  assert.equal(recoverySchema.safeParse({ identifier: 'resident', recovery_code: code, new_password: password, confirm_password: password }).success, false);
+  assert.equal(recoverySchema.safeParse({ recovery_code: code, new_password: password, confirm_password: password }).success, false);
 });
 
 test('signup stores NULL email, a hashed recovery code, and allows shared contact phones', async () => {
@@ -52,7 +52,7 @@ const withRecoveryDb = async (flags, run) => {
     beginTransaction: async () => { snapshot = { user: { ...state.user }, sessions: state.sessions }; },
     query: async (sql, params) => {
       state.calls.push({ sql, params });
-      if (sql.startsWith('SELECT')) return [flags.missing ? [] : [state.user]];
+      if (sql.startsWith('SELECT')) return [flags.missing || params[0] !== state.user.recovery_code_hash ? [] : flags.duplicate ? [state.user, { ...state.user, id: 'other' }] : [state.user]];
       if (sql.startsWith('UPDATE users')) { state.user.password = params[0]; state.user.recovery_code_hash = params[1]; return [{ affectedRows: 1 }]; }
       if (sql.startsWith('DELETE FROM sessions')) { if (flags.failRevoke) throw new Error('fixture failure'); state.sessions = 0; return [{ affectedRows: 2 }]; }
       throw new Error('Unexpected SQL');
@@ -66,21 +66,22 @@ const withRecoveryDb = async (flags, run) => {
 
 test('recovery changes password, rotates the code and revokes every session atomically', async () => {
   await withRecoveryDb({}, async state => {
-    const result = await service.recoverPassword({ identifier: 'resident', recovery_code: code.toLowerCase(), new_password: 'NewPassword123!' });
+    const result = await service.recoverPassword({ recovery_code: code.toLowerCase(), new_password: 'NewPassword123!' });
     assert.equal(await bcrypt.compare('NewPassword123!', state.user.password), true);
     assert.equal(state.sessions, 0);
     assert.ok(state.committed && state.released);
-    assert.match(state.calls[0].sql, /FOR UPDATE/);
+    assert.match(state.calls[0].sql, /WHERE recovery_code_hash = \? LIMIT 2 FOR UPDATE/);
+    assert.deepEqual(state.calls[0].params, [codeHash]);
     assert.notEqual(result.recovery_code, code);
     assert.equal(Object.hasOwn(result, 'token'), false);
-    await assert.rejects(service.recoverPassword({ identifier: 'resident', recovery_code: code, new_password: 'NextPassword123!' }), error => error.statusCode === 401);
+    await assert.rejects(service.recoverPassword({ recovery_code: code, new_password: 'NextPassword123!' }), error => error.statusCode === 401);
   });
 });
 
 test('recovery rejects wrong codes and unavailable accounts without mutations', async () => {
-  for (const flags of [{ missing: true }, { recovery_code_hash: null }, { recovery_code_hash: '0'.repeat(64) }, { status: 'BANNED' }, { status: 'DEACTIVATED' }, { deleted_at: '2026-01-01' }]) {
+  for (const flags of [{ missing: true }, { duplicate: true }, { recovery_code_hash: null }, { recovery_code_hash: '0'.repeat(64) }, { status: 'BANNED' }, { status: 'DEACTIVATED' }, { deleted_at: '2026-01-01' }]) {
     await withRecoveryDb(flags, async state => {
-      await assert.rejects(service.recoverPassword({ identifier: 'resident', recovery_code: code, new_password: 'NewPassword123!' }), error => error.statusCode === 401);
+      await assert.rejects(service.recoverPassword({ recovery_code: code, new_password: 'NewPassword123!' }), error => error.statusCode === 401);
       assert.equal(state.calls.filter(call => !call.sql.startsWith('SELECT')).length, 0);
       assert.ok(state.rolledBack && state.released);
     });
@@ -97,7 +98,7 @@ test('public recovery validates confirmation, rejects form posts and does not ca
   await new Promise(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}/auth`;
   try {
-    const result = await fetch(`${base}/recover`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: 'resident', recovery_code: code, new_password: 'NewPassword123!', confirm_password: 'DifferentPassword!' }) });
+    const result = await fetch(`${base}/recover`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recovery_code: code, new_password: 'NewPassword123!', confirm_password: 'DifferentPassword!' }) });
     assert.equal(result.status, 400);
     assert.equal(result.headers.get('cache-control'), 'no-store');
     const form = await fetch(`${base}/recover`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'identifier=resident' });
@@ -109,7 +110,7 @@ test('public recovery validates confirmation, rejects form posts and does not ca
 
 test('failed session revocation rolls password and code back', async () => {
   await withRecoveryDb({ failRevoke: true }, async state => {
-    await assert.rejects(service.recoverPassword({ identifier: 'resident', recovery_code: code, new_password: 'NewPassword123!' }));
+    await assert.rejects(service.recoverPassword({ recovery_code: code, new_password: 'NewPassword123!' }));
     assert.equal(state.user.password, undefined);
     assert.equal(state.user.recovery_code_hash, codeHash);
     assert.equal(state.sessions, 2);
@@ -129,4 +130,13 @@ test('replacing a recovery code requires the authenticated account password', as
     assert.ok(updated);
     assert.match(result.recovery_code, /^[A-F0-9-]{39}$/);
   } finally { pool.query = original; }
+});
+
+test('recovery needs only a valid code and matching passwords', () => {
+  const payload = { recovery_code: code.toLowerCase(), new_password: 'NewPassword123!', confirm_password: 'NewPassword123!' };
+  const parsed = recoverySchema.safeParse(payload);
+  assert.equal(parsed.success, true);
+  assert.equal(Object.hasOwn(parsed.data, 'identifier'), false);
+  for (const recovery_code of ['old-code', '', '0000', 'G'.repeat(32)])
+    assert.equal(recoverySchema.safeParse({ ...payload, recovery_code }).success, false);
 });

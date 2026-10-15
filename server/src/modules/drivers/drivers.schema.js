@@ -15,6 +15,7 @@ const createDriverSchema = z.object({
 });
 
 const updateDriverSchema = z.object({
+  username: z.string().trim().min(3, "Username must be at least 3 characters").max(50).regex(/^[^\s@]+$/, "Use a username without spaces or @").optional(),
   full_name: z.string().min(1).optional(),
   phone: phoneSchema,
   truck_id: z.string().nullable().optional(),

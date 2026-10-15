@@ -24,6 +24,7 @@ test("successful writes publish affected domains, never reads, errors, uploads o
   }
   assert.deepEqual(sent, [["reports", "residents", "dashboard", "analytics", "audit"]]);
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/auth/register" }).includes("residents"));
+  assert.deepEqual(changedDomains({ method: "POST", originalUrl: "/api/auth/delete-account" }), ["residents", "reports"]);
   assert.ok(changedDomains({ method: "PUT", originalUrl: "/api/routes/run/end" }).includes("tracking"));
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/drivers/messages" }).includes("tracking"));
   assert.ok(changedDomains({ method: "POST", originalUrl: "/api/announcements/id/read" }).includes("announcements"));

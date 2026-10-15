@@ -3,7 +3,7 @@ const controller = require("./auth.controller");
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/role");
 const { loginBurstLimiter, loginIpLimiter, loginLimiter, registrationLimiter, recoveryIpLimiter,
-  recoveryLimiter, recoveryCodeLimiter, profileWriteLimiter, accountDeactivationLimiter } = require("../../middleware/rateLimits");
+  recoveryLimiter, recoveryCodeLimiter, profileWriteLimiter, accountDeletionLimiter } = require("../../middleware/rateLimits");
 const authJsonOnly = (req, res, next) => {
   // Credential exchanges use JSON, never cross-site HTML form submissions.
   if (!req.is("application/json")) return res.status(415).json({ message: "JSON required" });
@@ -16,7 +16,7 @@ router.post("/login", loginBurstLimiter, loginIpLimiter, loginLimiter, controlle
 router.post("/recover", recoveryIpLimiter, recoveryLimiter, authJsonOnly, controller.recoverPassword);
 router.post("/recovery-code", authenticate, recoveryCodeLimiter, authJsonOnly, controller.replaceRecoveryCode);
 router.post("/logout", authenticate, controller.logout);
-router.post("/deactivate", authenticate, authorize("RESIDENT"), accountDeactivationLimiter, authJsonOnly, controller.deactivateResident);
+router.post("/delete-account", authenticate, authorize("RESIDENT"), accountDeletionLimiter, authJsonOnly, controller.deleteResident);
 router.get("/me", authenticate, controller.getMe);
 router.put("/resident-profile", authenticate, profileWriteLimiter, authJsonOnly, controller.completeResidentProfile);
 

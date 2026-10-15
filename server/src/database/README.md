@@ -15,15 +15,22 @@ table schemas were unchanged. No existing records were modified. Other database
 environments still need a backed-up, authorized upgrade.
 Do not re-import the baseline into an existing database.
 
-Resident self-deactivation uses `migrations/2026-10-14-resident-self-deactivation.sql`.
-It adds only the nullable `users.self_deactivated_at` marker, with no backfill or
-account-status changes. Review and back up the users table definition, check
-`INFORMATION_SCHEMA.COLUMNS`, and apply once with authorization before enabling
-the new Profile action. A fresh baseline already includes this column.
-Only resident accounts deactivated through the password-confirmed endpoint receive
-the marker and can reactivate at login. Older administrative deactivations and bans
-remain blocked. Active sign-ins remain compatible before migration; deactivation
-cannot succeed without the new column. The migration has not been applied here.
+Resident Profile now uses password-confirmed account deletion through
+`POST /api/auth/delete-account`. No schema change is needed: the transaction sets
+`users.deleted_at`, removes profile/contact/area details, replaces the password with
+an unknowable random hash, clears the recovery code, and removes sessions, inbox
+notifications and settings. The user ID remains as an anonymized “Deleted Resident”
+for reports, report photos/status history and audit references. Existing municipal
+records (including report contents and historical audit snapshots) are retained;
+this is account deletion, not a purge of every historical mention of the person.
+Deleted accounts cannot log in, recover, or be reactivated. A new signup creates a
+different identity and does not inherit the old account's reports.
+
+The former `/api/auth/deactivate` endpoint is retired. The optional
+`users.self_deactivated_at` marker and its unapplied 2026-10-14 migration are retained
+only for legacy installations; normal login still supports previously self-deactivated
+residents, while bans and administrative deactivations remain blocked. Do not apply
+that migration for account deletion. No database records were changed by this work.
 
 ## Fresh installation
 
@@ -35,6 +42,16 @@ cannot succeed without the new column. The migration has not been applied here.
 Importing the baseline into an existing database is not an upgrade procedure.
 Compare its structure with the baseline, back up the database and obtain explicit
 authorization before changing existing records or applying destructive DDL.
+
+## Recovery-code lookup
+
+Code-only password recovery uses the non-unique `users.idx_users_recovery_code_hash`
+index in the baseline. Existing databases can review
+`migrations/2026-10-15-recovery-code-lookup.sql`. Back up the users definition and
+check `INFORMATION_SCHEMA.STATISTICS` before an authorised, one-time application.
+The migration adds only an index, with no record changes. Recovery rejects
+ambiguous hashes rather than choosing an arbitrary owner. This migration has not
+been applied by the code change.
 
 ## Authorized reset
 

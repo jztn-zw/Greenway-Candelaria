@@ -59,6 +59,15 @@ const getAll = async (req, res, next) => {
   }
 };
 
+const getDeletedResidentCount = async (_req, res, next) => {
+  try {
+    const count = await service.getDeletedResidentCount();
+    return success(res, count, "Deleted resident count fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const user = await service.getById(req.params.id);
@@ -168,6 +177,7 @@ module.exports = {
   changePassword,
   uploadAvatar,
   getAll,
+  getDeletedResidentCount,
   getById,
   updateStatus,
   softDelete,

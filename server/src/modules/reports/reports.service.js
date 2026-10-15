@@ -75,6 +75,7 @@ const getById = async (id, db = pool) => {
        b.name        AS barangay_name,
        NULL          AS barangay_zone,
        u.full_name   AS reporter_name,
+       u.username    AS reporter_username,
        u.email       AS reporter_email,
        original.reference_number AS duplicate_of_reference
      FROM reports r
@@ -135,6 +136,7 @@ const getAll = async (filters = {}) => {
       b.name      AS barangay_name,
       NULL        AS barangay_zone,
       u.full_name AS reporter_name,
+      u.username  AS reporter_username,
       u.email     AS reporter_email,
       original.reference_number AS duplicate_of_reference
     FROM reports r
@@ -516,9 +518,12 @@ const create = async (userId, data) => {
   }
 };
 
-// Call while holding the original report's row lock. Both status updates and
-// flag-based resolutions use this path so linked reports and history commit
-// together.
+const linkedClosureResponse = (duplicate, original) => original.is_false
+  ? `Your report ${duplicate.reference_number} has been closed because linked report ${original.reference_number} was closed as invalid. Review reason: ${original.false_reason}.`
+  : `Your report ${duplicate.reference_number} was resolved because linked report ${original.reference_number} has been resolved.`;
+
+// Call while holding the original report's row lock so linked closures and
+// their history commit together.
 const resolveLinkedDuplicates = async (conn, original, adminId) => {
   const [duplicates] = await conn.query(
     `SELECT id, user_id, reference_number, status
@@ -532,7 +537,7 @@ const resolveLinkedDuplicates = async (conn, original, adminId) => {
   );
 
   for (const duplicate of duplicates) {
-    const response = `Your report ${duplicate.reference_number} was resolved because linked report ${original.reference_number} has been resolved.`;
+    const response = linkedClosureResponse(duplicate, original);
     await conn.query(
       "UPDATE reports SET status = 'RESOLVED', admin_response = ? WHERE id = ?",
       [response, duplicate.id],
@@ -549,7 +554,7 @@ const resolveLinkedDuplicates = async (conn, original, adminId) => {
 
 const notifyResolvedDuplicates = (duplicates, original, adminId) => {
   for (const duplicate of duplicates) {
-    const response = `Your report ${duplicate.reference_number} was resolved because linked report ${original.reference_number} has been resolved.`;
+    const response = linkedClosureResponse(duplicate, original);
     auditService.log({
       user_id: adminId,
       action: "RESOLVE_DUPLICATE_REPORT",
@@ -563,7 +568,7 @@ const notifyResolvedDuplicates = (duplicates, original, adminId) => {
       sendToUser({
         user_id: duplicate.user_id,
         type: "REPORT_UPDATE",
-        title: `Report Resolved: ${duplicate.reference_number}`,
+        title: original.is_false ? `Report Closed: ${duplicate.reference_number}` : `Report Resolved: ${duplicate.reference_number}`,
         body: response,
         ref_id: duplicate.id,
         ref_module: "reports",
@@ -702,14 +707,16 @@ const updateStatus = async (id, adminId, { status, admin_response }) => {
 // ─── Flag Report ───────────────────────────────────────────
 
 const flagReport = async (id, adminId, data) => {
+  // Closing an invalid or duplicate report always notifies its owner.
+  if (data.is_false === true || data.is_duplicate === true) data = { ...data, resolve: true };
   if (data.is_false === true && data.is_duplicate === true) {
     throw { statusCode: 400, message: "A report cannot be both false and duplicate" };
   }
   if (data.is_false === true && !data.false_reason) {
-    throw { statusCode: 400, message: "A reason is required when flagging a false report" };
+    throw { statusCode: 400, message: "A review reason is required to close an invalid report" };
   }
-  if (data.is_duplicate === true && (!data.duplicate_reason || !data.duplicate_of_reference)) {
-    throw { statusCode: 400, message: "An original report and reason are required when flagging a duplicate" };
+  if (data.is_duplicate === true && !data.duplicate_of_reference?.trim()) {
+    throw { statusCode: 400, message: "An original report reference is required when closing a duplicate" };
   }
   if (data.resolve && data.is_false !== true && data.is_duplicate !== true) {
     throw { statusCode: 400, message: "Resolution requires a false or duplicate report flag" };
@@ -746,6 +753,9 @@ const flagReport = async (id, adminId, data) => {
     );
     if (lockedReports.length === 0) throw { statusCode: 404, message: "Report not found" };
     existing = lockedReports[0];
+    if (existing.status === "RESOLVED" && (data.is_false !== undefined || data.is_duplicate !== undefined)) {
+      throw { statusCode: 409, message: "This report is already closed. Its review outcome cannot be changed." };
+    }
 
     if (original) {
       if (original.barangay_id !== existing.barangay_id) {
@@ -754,9 +764,7 @@ const flagReport = async (id, adminId, data) => {
       if (original.is_duplicate || original.is_false) {
         throw { statusCode: 400, message: "The original report cannot be false or another duplicate" };
       }
-      if (original.status === "RESOLVED" && existing.status !== "RESOLVED" && !data.resolve) {
-        throw { statusCode: 400, message: "A duplicate of a resolved report must also be resolved" };
-      }
+      data = { ...data, duplicate_reason: `Duplicate of ${original.reference_number}.` };
     }
 
     const changes = new Map();
@@ -793,8 +801,8 @@ const flagReport = async (id, adminId, data) => {
 
     if (data.resolve) {
       const response = data.is_duplicate
-        ? `This report is a duplicate of ${original.reference_number} and is already being handled.`
-        : `We reviewed your report ${existing.reference_number} but could not verify the issue using the available information, so it has been closed. Reason: ${data.false_reason}. If the issue is still happening, you may submit a new report with clearer photos, location details, or landmarks.`;
+        ? `Your report ${existing.reference_number} has been closed as a duplicate of ${original.reference_number}. ${original.status === "RESOLVED" ? "The original report has already been resolved." : `The issue is being handled through report ${original.reference_number}.`}`
+        : `Your report ${existing.reference_number} has been closed as invalid. Review reason: ${data.false_reason}. If the issue still needs attention, you may submit a new report with clearer photos and location details.`;
       set("status", "RESOLVED");
       set("admin_response", response);
     }
@@ -812,7 +820,7 @@ const flagReport = async (id, adminId, data) => {
           [generateId(), id, adminId],
         );
       }
-      duplicates = await resolveLinkedDuplicates(conn, existing, adminId);
+      duplicates = await resolveLinkedDuplicates(conn, data.is_false ? { ...existing, is_false: true, false_reason: data.false_reason } : existing, adminId);
     }
 
     await conn.commit();
@@ -840,9 +848,9 @@ const flagReport = async (id, adminId, data) => {
       user_id: updatedReport.user_id,
       type: "REPORT_UPDATE",
       title: data.is_false
-        ? `Report review completed: ${updatedReport.reference_number}`
-        : `Report Resolved: ${updatedReport.reference_number}`,
-      body: updatedReport.admin_response || "Your report has been reviewed and resolved.",
+        ? `Report Closed — Invalid Report: ${updatedReport.reference_number}`
+        : `Report Closed — Duplicate Report: ${updatedReport.reference_number}`,
+      body: updatedReport.admin_response || (data.is_false ? "Your report has been closed as invalid." : "Your report has been reviewed and resolved."),
       ref_id: updatedReport.id,
       ref_module: "reports",
     }).catch(() => {});
@@ -853,35 +861,50 @@ const flagReport = async (id, adminId, data) => {
 // ─── Add Note ──────────────────────────────────────────────
 
 const addNote = async (reportId, adminId, note) => {
-  const existing = await getById(reportId);
-
+  const conn = await pool.getConnection();
   const noteId = generateId();
+  let referenceNumber;
+  try {
+    await conn.beginTransaction();
+    const [reports] = await conn.query(
+      "SELECT reference_number FROM reports WHERE id = ? AND deleted_at IS NULL FOR UPDATE",
+      [reportId],
+    );
+    if (reports.length === 0) throw { statusCode: 404, message: "Report not found" };
+    referenceNumber = reports[0].reference_number;
 
-  await pool.query(
-    `INSERT INTO report_notes (id, report_id, note, created_by)
-     VALUES (?, ?, ?, ?)`,
-    [noteId, reportId, note, adminId],
-  );
+    await conn.query(
+      `INSERT INTO report_notes (id, report_id, note, created_by)
+       VALUES (?, ?, ?, ?)`,
+      [noteId, reportId, note, adminId],
+    );
 
-  auditService.log({
-    user_id: adminId,
-    action: "ADD_REPORT_NOTE",
-    module: "reports",
-    record_id: reportId,
-    new_value: { note, reference_number: existing.reference_number },
-  }).catch(() => {});
+    const [rows] = await conn.query(
+      `SELECT
+         n.*,
+         u.full_name AS created_by_name
+       FROM report_notes n
+       LEFT JOIN users u ON u.id = n.created_by
+       WHERE n.id = ?`,
+      [noteId],
+    );
+    if (rows.length === 0) throw new Error("Could not load the saved internal note");
 
-  const [rows] = await pool.query(
-    `SELECT
-       n.*,
-       u.full_name AS created_by_name
-     FROM report_notes n
-     JOIN users u ON u.id = n.created_by
-     WHERE n.id = ?`,
-    [noteId],
-  );
-
-  return rows[0];
+    await conn.commit();
+    auditService.log({
+      user_id: adminId,
+      action: "ADD_REPORT_NOTE",
+      module: "reports",
+      record_id: reportId,
+      new_value: { note, reference_number: referenceNumber },
+    }).catch(() => {});
+    return rows[0];
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 };
 
 // ─── Get Notes ─────────────────────────────────────────────
