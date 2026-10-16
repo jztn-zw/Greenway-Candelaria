@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
 Popover,
 PopoverContent,
@@ -271,17 +272,22 @@ export const EventModal: React.FC<EventModalProps> = ({
               {visibility === "PUBLIC" && (
                 <div className="space-y-1.5 pt-1">
                   <Label className="text-xs font-medium text-foreground">Resident Area</Label>
-                  <Select value={barangayId || "all"} onValueChange={(value) => setBarangayId(value === "all" ? "" : value)}>
-                    <SelectTrigger aria-label="Resident area" className="h-9 w-full rounded-xl bg-background border border-border/80 text-xs px-3 shadow-2xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-border shadow-md">
-                      <SelectItem value="all" className="text-xs font-medium">All Barangays</SelectItem>
-                      {barangayOptions.map((barangay) => (
-                        <SelectItem key={barangay.id} value={barangay.id} className="text-xs font-medium">{barangay.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    aria-label="Resident area"
+                    fieldSize="compact"
+                    value={barangayId || "all"}
+                    onValueChange={(value) => setBarangayId(value === "all" ? "" : value)}
+                    options={[
+                      { value: "all", label: "All Barangays" },
+                      ...barangayOptions.map((barangay) => ({ value: barangay.id, label: barangay.name })),
+                    ]}
+                    placeholder="All Barangays"
+                    searchPlaceholder="Search by barangay name…"
+                    compactSearchPlaceholder="Barangay name…"
+                    emptyMessage="No barangays found."
+                    className="h-9 w-full rounded-xl text-xs"
+                    contentClassName="rounded-xl"
+                  />
                   <p className="text-ui-caption text-muted-foreground">Choose a barangay to limit who can see this event.</p>
                 </div>
               )}

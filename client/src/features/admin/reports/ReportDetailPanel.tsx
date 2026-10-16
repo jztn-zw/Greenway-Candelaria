@@ -576,7 +576,7 @@ const ReportDetailPanel = ({
               onClick={() => openFlagDialog("duplicate")}
               className={"h-8 text-xs px-3 rounded-xl cursor-pointer font-semibold"}
             >
-              {report.isDuplicate ? "Edit Duplicate" : "Flag Duplicate"}
+              {report.isDuplicate ? "Duplicate Report" : "Flag Duplicate"}
             </Button>
           )}
 

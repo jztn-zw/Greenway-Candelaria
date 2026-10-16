@@ -140,7 +140,7 @@ it("shows matching original reports while typing and lets the admin select one",
 it("keeps a closed duplicate labeled Resolved and prevents changing its final flag", async () => {
   await render({ ...report, status: "Resolved", isDuplicate: true, duplicateOfReference: "RPT-ORIGINAL" });
   expect(screen.getAllByText("Resolved").length).toBeGreaterThan(0);
-  expect(screen.getByRole("button", { name: "Edit Duplicate" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Duplicate Report" })).toBeDisabled();
   expect(screen.queryByRole("button", { name: "Clear Flag" })).not.toBeInTheDocument();
 });
 

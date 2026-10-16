@@ -471,12 +471,12 @@ const AuthModal = ({
               <div>
                 <div className="grid grid-cols-2 gap-4 border-t border-forest-foreground/15 pt-5">
                   <div>
-                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">12k+</p>
-                    <p className="text-ui-caption text-forest-foreground/70">Active Residents</p>
+                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">Calendar</p>
+                    <p className="text-ui-caption text-forest-foreground/70">Collection schedule</p>
                   </div>
                   <div className="border-l border-forest-foreground/15 pl-4">
-                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">98%</p>
-                    <p className="text-ui-caption text-forest-foreground/70">Collection rate</p>
+                    <p className="gw-stat-value text-2xl tracking-[-0.04em]">Reports</p>
+                    <p className="text-ui-caption text-forest-foreground/70">Waste concerns for MENRO</p>
                   </div>
                 </div>
                 <p className="mt-6 text-ui-caption text-forest-foreground/65">© {getManilaNow().year} GreenWay</p>
