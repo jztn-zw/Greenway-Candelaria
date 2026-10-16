@@ -7,6 +7,26 @@ const notificationService = require("../notifications/notifications.service");
 
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "Asia/Manila";
 
+const formatCalendarDate = (value) => {
+  const dateKey = String(value || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return dateKey;
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== dateKey) return dateKey;
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
+
+const collectorScheduleNotificationBody = (eventDate, endDate, description) => {
+  const start = formatCalendarDate(eventDate);
+  const end = endDate && endDate !== eventDate ? ` through ${formatCalendarDate(endDate)}` : "";
+  const details = typeof description === "string" ? description.trim() : "";
+  return `Scheduled for ${start}${end}.${details ? `\n\nDetails: ${details}` : ""}`;
+};
+
 const getCurrentAppDate = () => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: APP_TIME_ZONE,
@@ -277,6 +297,7 @@ const createEvent = async (data, user) => {
       );
       delivery = await notificationService.sendToMany({
         ...notification,
+        body: collectorScheduleNotificationBody(event_date, end_date, description),
         user_ids: collectors.map((collector) => collector.id),
         type: "SYSTEM",
       });

@@ -1,6 +1,6 @@
 const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
-const { sendDispatchAlert } = require('./push.service');
+const { sendCollectorPushAlert } = require('./push.service');
 const {
   emitNotificationToUser,
   emitNotificationToBarangay,
@@ -91,7 +91,7 @@ const sendToUser = async ({
   };
 
   emitNotificationToUser(user_id, payload);
-  void sendDispatchAlert(payload);
+  void sendCollectorPushAlert(payload);
 
   return id;
 };
@@ -161,7 +161,7 @@ const sendToMany = async ({
 const emitStoredNotifications = (notifications = []) => {
   notifications.forEach((notification) => {
     emitNotificationToUser(notification.user_id, notification);
-    void sendDispatchAlert(notification);
+    void sendCollectorPushAlert(notification);
   });
 };
 

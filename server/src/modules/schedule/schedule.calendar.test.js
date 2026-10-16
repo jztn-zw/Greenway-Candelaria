@@ -220,7 +220,7 @@ test("creating a private MENRO schedule notifies active collectors through the s
   audit.log = async () => {};
   notifications.emitStoredNotifications = (rows) => { events.push("emit"); emitted.push(...rows); };
   try {
-    await service.createEvent({ title: "MENRO briefing", event_date: "2099-01-01" }, { id: "admin-1", role: "ADMIN" });
+    await service.createEvent({ title: "MENRO briefing", event_date: "2099-01-01", end_date: "2099-01-03", description: "Review route updates." }, { id: "admin-1", role: "ADMIN" });
     const recipientQuery = events.find((entry) => typeof entry === "object" && entry.sql.includes("SELECT id FROM users WHERE role = 'DRIVER'"));
     assert.ok(recipientQuery, "active collectors should be selected for the private MENRO schedule");
     assert.match(recipientQuery.sql, /status = 'ACTIVE'/);
@@ -228,6 +228,7 @@ test("creating a private MENRO schedule notifies active collectors through the s
     assert.deepEqual(insert.params[0].map((row) => row[1]), ["collector-1", "collector-2"]);
     assert.equal(insert.params[0][0][2], "SYSTEM");
     assert.equal(insert.params[0][0][6], "schedule");
+    assert.equal(insert.params[0][0][4], "Scheduled for January 1, 2099 through January 3, 2099.\n\nDetails: Review route updates.");
     assert.ok(events.indexOf("commit") < events.indexOf("emit"));
     assert.equal(emitted.length, 2);
   } finally {

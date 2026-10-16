@@ -2,6 +2,12 @@ const { pool } = require('../../config/db');
 const hashSessionToken = require('../../utils/hashSessionToken');
 const validToken = value => typeof value === 'string' && /^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]{1,200}\]$/.test(value);
 const fail = (message, statusCode = 400) => { throw { statusCode, message }; };
+const formatScheduleDate = value => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+};
 
 async function sessionId(user, token) {
   if (user.role !== 'DRIVER') fail('Mobile push is available to collectors only', 403);
@@ -37,20 +43,31 @@ async function removeInvalid(result, token) {
   if (result?.details?.error === 'DeviceNotRegistered') await pool.query('DELETE FROM mobile_push_devices WHERE token = ?', [token]);
 }
 
-// Best-effort alerts supplement the durable inbox. Provider errors must never
-// roll back or fail an already committed dispatch message.
-async function sendDispatchAlert(notification) {
-  if (process.env.EXPO_PUSH_ENABLED !== 'true' || notification.ref_module !== 'driver-messages') return;
+// Best-effort push supplements the durable inbox. Provider errors must never
+// roll back or fail an already committed notification.
+async function sendCollectorPushAlert(notification) {
+  const isSchedule = notification.ref_module === 'schedule';
+  if (process.env.EXPO_PUSH_ENABLED !== 'true' || (!isSchedule && notification.ref_module !== 'driver-messages')) return;
   try {
     const [devices] = await pool.query(`SELECT p.token FROM mobile_push_devices p
       JOIN sessions s ON s.id = p.session_id AND s.user_id = p.user_id AND s.expires_at > NOW()
       JOIN users u ON u.id = p.user_id AND u.role = 'DRIVER' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
       WHERE p.user_id = ? AND p.enabled = TRUE ORDER BY p.updated_at DESC LIMIT 20`, [notification.user_id]);
     if (!devices.length) return;
+    const scheduleTitle = String(notification.title || 'MENRO calendar schedule').trim();
+    const startDate = isSchedule ? formatScheduleDate(notification.metadata?.event_date) : null;
+    const endDate = isSchedule && notification.metadata?.end_date !== notification.metadata?.event_date
+      ? formatScheduleDate(notification.metadata?.end_date) : null;
+    const eventDate = startDate ? `${startDate}${endDate ? ` through ${endDate}` : ''}` : null;
     const tickets = await expoRequest('send', devices.map(device => ({
-      to: device.token, title: 'New dispatch message', body: 'Open GreenWay to read your new message from dispatch.',
-      sound: 'default', priority: 'high', channelId: 'dispatch-messages', ttl: 3600,
-      data: { user_id: notification.user_id, notification_id: notification.id, destination: 'messages' },
+      to: device.token,
+      title: isSchedule ? 'New MENRO Calendar Schedule' : 'New dispatch message',
+      body: isSchedule ? `${scheduleTitle}${eventDate ? ` — ${eventDate}` : ''}` : 'Open GreenWay to read your new message from dispatch.',
+      sound: 'default', priority: 'high', channelId: isSchedule ? 'menro-calendar' : 'dispatch-messages', ttl: 3600,
+      data: isSchedule ? {
+        user_id: notification.user_id, notification_id: notification.id, ref_module: 'schedule',
+        destination: 'notifications', notification_title: scheduleTitle, notification_body: notification.body || '',
+      } : { user_id: notification.user_id, notification_id: notification.id, destination: 'messages' },
     })));
     const receipts = new Map();
     for (const [index, ticket] of (Array.isArray(tickets) ? tickets : []).entries()) {
@@ -69,4 +86,4 @@ async function sendDispatchAlert(notification) {
     }
   } catch { console.warn('Mobile push delivery failed; notification remains in inbox.'); }
 }
-module.exports = { register, unregister, sendDispatchAlert };
+module.exports = { register, unregister, sendCollectorPushAlert };
