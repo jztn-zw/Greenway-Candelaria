@@ -12,7 +12,12 @@ Recognized messaging preview crawlers receive Open Graph and Twitter image/title
 metadata in the initial HTML. There is no separate article interface. Preview
 metadata remains public for published posts, while readers enter the portal's
 login flow. The first image is the preferred preview image. The receiving app
-controls the final card layout.
+controls the final card layout. Public Cloudinary post images use a 1200 × 630
+JPEG preview padded with white to preserve the entire artwork, with explicit
+image dimensions, type and secure URL metadata. Other HTTPS image hosts retain
+their original image URLs. Deploy the client function for this to take effect;
+refresh an existing Facebook/Messenger card with Meta's Sharing Debugger and
+share again. Older messages may retain the previously cached card.
 
 Only published, non-deleted posts expose preview metadata. The preview fetches as an
 anonymous reader, ignores browser credentials, and does not increment views.
@@ -71,6 +76,12 @@ Read-only device verification:
 ```powershell
 adb shell pm get-app-links com.greenway.candelaria.resident
 ```
+
+For the current Android user, also check `adb shell pm get-app-links --user cur
+com.greenway.candelaria.resident`. A verified domain can still be disabled in
+that user's selection. Enable GreenWay's supported link in Android Settings →
+Apps → GreenWay Resident → Open by default when that happens. Rebuilding is not
+needed when the installed app already has the verified HTTPS intent filter.
 
 ## Automated checks
 
