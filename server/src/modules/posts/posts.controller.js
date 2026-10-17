@@ -39,6 +39,21 @@ const getById = async (req, res, next) => {
   }
 };
 
+// Preview crawlers read anonymously and must not add post views.
+const getPublicPreview = async (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const post = await service.getById(req.params.id);
+    if (post.status !== "PUBLISHED" || post.deleted_at) {
+      throw { statusCode: 404, message: "Post not found" };
+    }
+    const { id, title, body, category, author_name, images, status } = post;
+    return success(res, { id, title, body, category, author_name, images, status });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const uploadImage = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -137,6 +152,7 @@ const unlikePost = async (req, res, next) => {
 };
 
 module.exports = {
+  getPublicPreview,
   getAll,
   getById,
   create,

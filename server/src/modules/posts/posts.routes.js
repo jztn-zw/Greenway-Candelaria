@@ -24,6 +24,7 @@ router.delete(
 
 // ─── Public ───────────────────────────────────────────────
 router.get("/", optionalAuth, controller.getAll);
+router.get("/preview/:id", controller.getPublicPreview);
 router.get("/:id", optionalAuth, controller.getById);
 
 // ─── Admin CRUD ───────────────────────────────────────────
