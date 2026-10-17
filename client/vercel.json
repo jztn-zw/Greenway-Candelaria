@@ -1,6 +1,14 @@
 {
   "rewrites": [
-    { "source": "/posts/:id", "destination": "https://greenway-candelaria.onrender.com/posts/:id" },
+    { "source": "/.well-known/assetlinks.json", "destination": "/assetlinks.json" },
+    { "source": "/posts/:id", "destination": "/api/post-preview?id=:id" },
+    { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/.well-known/assetlinks.json", "headers": [
+      { "key": "Content-Type", "value": "application/json" },
+      { "key": "Cache-Control", "value": "public, max-age=300" }
+    ] }
   ]
 }
