@@ -13,6 +13,16 @@ const safeImages = (images = []) => images.filter(value => {
   catch { return false; }
 });
 
+function shareImage(image) {
+  const url = new URL(image);
+  const optimized = url.hostname === "res.cloudinary.com" && /^\/[^/]+\/image\/upload\/(?:v\d+\/)?greenway\/posts\//.test(url.pathname);
+  if (optimized) {
+    // Pad the full post image rather than cropping away its text or artwork.
+    url.pathname = url.pathname.replace("/image/upload/", "/image/upload/c_pad,w_1200,h_630,b_white,f_jpg,q_85/");
+  }
+  return { url: optimized ? url.href : image, optimized };
+}
+
 const page = (title, content, metadata = "") => `<!doctype html>
 <html lang="en" prefix="og: https://ogp.me/ns#"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,7 +32,7 @@ const page = (title, content, metadata = "") => `<!doctype html>
 function renderPost(post, origin) {
   const title = String(post.title || "Community update").replace(/\s+/g, " ").trim();
   const description = String(post.body || "").replace(/\s+/g, " ").trim().slice(0, 200);
-  const images = safeImages(post.images);
+  const images = safeImages(post.images).map(shareImage);
   const url = `${origin}/posts/${encodeURIComponent(post.id)}`;
   const metadata = `
 <link rel="canonical" href="${escapeHtml(url)}">
@@ -32,11 +42,14 @@ function renderPost(post, origin) {
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(url)}">
-${images.map(image => `<meta property="og:image" content="${escapeHtml(image)}"><meta property="og:image:alt" content="${escapeHtml(title)}">`).join("\n")}
+${images.map(image => `<meta property="og:image" content="${escapeHtml(image.url)}">
+<meta property="og:image:secure_url" content="${escapeHtml(image.url)}">
+${image.optimized ? '<meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' : ""}
+<meta property="og:image:alt" content="${escapeHtml(title)}">`).join("\n")}
 <meta name="twitter:card" content="${images.length ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-${images[0] ? `<meta name="twitter:image" content="${escapeHtml(images[0])}">` : ""}`;
+${images[0] ? `<meta name="twitter:image" content="${escapeHtml(images[0].url)}">` : ""}`;
   return page(title, `<p><a href="/resident/contents?post=${encodeURIComponent(post.id)}">Open this post in GreenWay</a></p>`, metadata);
 }
 

@@ -29,6 +29,17 @@ test("browser clicks go straight to the existing GreenWay post route without an 
   assert.equal(response.headers["Cache-Control"], "no-store");
 });
 
+test("Cloudinary post images use a bounded JPEG preview with explicit image metadata", async () => {
+  const response = await request(async () => ({ ...published, images: ["https://res.cloudinary.com/demo/image/upload/v123/greenway/posts/photo.png"] }));
+  const image = "https://res.cloudinary.com/demo/image/upload/c_pad,w_1200,h_630,b_white,f_jpg,q_85/v123/greenway/posts/photo.png";
+  assert.ok(response.html.includes(`property="og:image" content="${image}"`));
+  assert.ok(response.html.includes(`property="og:image:secure_url" content="${image}"`));
+  assert.match(response.html, /property="og:image:type" content="image\/jpeg"/);
+  assert.match(response.html, /property="og:image:width" content="1200"/);
+  assert.match(response.html, /property="og:image:height" content="630"/);
+  assert.ok(response.html.includes(`name="twitter:image" content="${image}"`));
+});
+
 test("unpublished, deleted and missing posts never expose preview content", async () => {
   for (const post of [null, { ...published, deleted_at: "2026-10-01" }, ...["DRAFT", "ARCHIVED", "SCHEDULED"].map(status => ({ ...published, status }))]) {
     const response = await request(async () => post);
