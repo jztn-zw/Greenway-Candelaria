@@ -2,12 +2,19 @@
 
 Resident Share sends `<EXPO_PUBLIC_SITE_URL>/posts/<encoded post ID>`, defaulting
 to `https://greenway-candelaria.vercel.app/posts/<encoded post ID>`.
-Vercel returns an article page with Open Graph and Twitter
-image/title metadata in the initial HTML. Readers do not need to sign in.
-The first post image is the preferred preview image; the article includes all
-post images and the full body. The receiving app controls the final card layout.
+Browser visitors are redirected to the existing GreenWay portal at
+`/resident/contents?post=<ID>`. Signed-out visitors see the existing login modal;
+after a resident signs in, the portal opens that post. Admin and collector
+accounts retain their own role destinations. The same `/posts/<ID>` URL is used
+by the resident web Share action and the Android app.
 
-Only published, non-deleted posts are available. The route always fetches as an
+Recognized messaging preview crawlers receive Open Graph and Twitter image/title
+metadata in the initial HTML. There is no separate article interface. Preview
+metadata remains public for published posts, while readers enter the portal's
+login flow. The first image is the preferred preview image. The receiving app
+controls the final card layout.
+
+Only published, non-deleted posts expose preview metadata. The preview fetches as an
 anonymous reader, ignores browser credentials, and does not increment views.
 Draft, scheduled, archived and missing posts return 404 without preview content.
 Database failures return a generic 503 page. Tests use fixtures, not live records.
@@ -28,9 +35,10 @@ API origin. For a custom website domain, set `PUBLIC_SITE_ORIGIN` on Vercel and
 from the resident app continue using `EXPO_PUBLIC_SERVER_HOST`.
 
 The server and preview images must be publicly reachable over HTTPS for remote
-preview generation. No new Android native module or rebuild is required for link
-sharing. The resident app's earlier file-system dependency fix still requires
-its own rebuild if that has not already been installed.
+preview generation. The website redirect change requires a client deployment.
+If the Android build was installed before the HTTPS intent filter was added,
+rebuild/install it once with `npx expo run:android --device` from `residentapp/`
+to enable opening verified website links in the app.
 
 After deployment, check a real published URL in a browser and in the target
 messaging app. Preview services can cache older cards; server-side `no-store`
@@ -42,7 +50,7 @@ previews cannot be recalled when a post is archived.
 The Android manifest and Expo config claim only HTTPS `/posts/` links on
 `greenway-candelaria.vercel.app`. The `app/posts/[id].tsx` route forwards them
 to Post Details. Other website pages stay in the browser. If Android does not
-open the app, the same HTTPS link still serves the website article.
+open the app, the same HTTPS link enters the existing website login/post flow.
 
 Vercel serves `client/public/assetlinks.json` at
 `/.well-known/assetlinks.json` as JSON before the SPA fallback. Its fingerprint
