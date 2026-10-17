@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import AdminLayout from "@/app/layouts/admin/AdminLayout";
 import CollectorLayout from "@/app/layouts/collector/CollectorLayout";
 import ResidentLayout from "@/app/layouts/resident/ResidentLayout";
@@ -36,10 +36,16 @@ import MyReports from "@/features/resident/waste-reporting/MyReports";
 import ResidentSubmitReport from "@/features/resident/waste-reporting/ResidentSubmitReport";
 import NotFound from "./NotFound";
 
+function SharedPostRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/resident/contents?post=${encodeURIComponent(id)}` : "/resident/contents"} replace />;
+}
+
 const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage />} />
+      <Route path="/posts/:id" element={<SharedPostRedirect />} />
       <Route path="/resident" element={<ProtectedRoute allowedRoles={["RESIDENT"]}><ResidentLayout /></ProtectedRoute>}>
         <Route index element={<ResidentDashboard />} />
         <Route path="contents" element={<ResidentContents />} />

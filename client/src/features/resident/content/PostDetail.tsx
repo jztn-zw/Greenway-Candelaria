@@ -96,7 +96,7 @@ const PostDetail = ({
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/resident/contents?post=${post.id}`;
+    const url = `${window.location.origin}/posts/${encodeURIComponent(post.id)}`;
 
     try {
       if (!navigator.clipboard?.writeText) {

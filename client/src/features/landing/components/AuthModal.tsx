@@ -3,7 +3,7 @@ import authService from "@/services/authService";
 import { AccountRecovery,RecoveryCodeReceipt } from "./AccountRecovery";
 import useAuthStore from "@/store/authStore";
 import { useState,useRef,useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
 Dialog,
 DialogContent,
@@ -87,6 +87,7 @@ const AuthModal = ({
   defaultTab = "login",
 }: AuthModalProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [tab, setTab] = useState<"login" | "register">(defaultTab);
   const [loading, setLoading] = useState(false);
   const submissionPending = useRef(false);
@@ -188,7 +189,10 @@ const AuthModal = ({
     onOpenChange(false);
     if (user?.role === "ADMIN") navigate("/admin");
     else if (user?.role === "DRIVER") navigate("/collector");
-    else navigate("/resident");
+    else {
+      const post = new URLSearchParams(location.search).get("post");
+      navigate(post ? `/resident/contents?post=${encodeURIComponent(post)}` : "/resident");
+    }
   };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import ProtectedRoute from "@/app/routes/ProtectedRoute";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import api from "@/lib/api";
 import useAuthStore from "@/store/authStore";
@@ -15,6 +16,28 @@ vi.mock("@/services/barangaysService", () => ({
 
 const originalAdapter = api.defaults.adapter;
 let registrations: Record<string, unknown>[];
+
+it("opens login and returns a signed-out reader to the shared post after signing in", async () => {
+  useAuthStore.setState({ hasHydrated: true });
+  function LocationProbe() {
+    const location = useLocation();
+    return <output data-testid="route">{location.pathname}{location.search}</output>;
+  }
+  render(<MemoryRouter initialEntries={["/resident/contents?post=shared-post"]}>
+    <LocationProbe />
+    <Routes>
+      <Route path="/resident/contents" element={<ProtectedRoute allowedRoles={["RESIDENT"]}><p>Shared post opened</p></ProtectedRoute>} />
+      <Route path="/login" element={<AuthModal open onOpenChange={() => {}} />} />
+    </Routes>
+  </MemoryRouter>);
+  await screen.findByRole("button", { name: "Log In to GreenWay" });
+  expect(screen.getByTestId("route")).toHaveTextContent("/login?post=shared-post");
+  fireEvent.change(screen.getByLabelText(/^Username$/i), { target: { value: "resident" } });
+  fireEvent.change(screen.getByLabelText("Password", { exact: true }), { target: { value: "FixturePassword1!" } });
+  fireEvent.click(screen.getByRole("button", { name: "Log In to GreenWay" }));
+  await screen.findByText("Shared post opened");
+  expect(screen.getByTestId("route")).toHaveTextContent("/resident/contents?post=shared-post");
+});
 it("rejects email sign-in and submits a username", async () => {
   let request: Record<string, unknown> | undefined;
   api.defaults.adapter = async config => { request = JSON.parse(config.data); throw new Error("fixture failure"); };

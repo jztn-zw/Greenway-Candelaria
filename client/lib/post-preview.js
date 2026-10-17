@@ -17,14 +17,7 @@ const page = (title, content, metadata = "") => `<!doctype html>
 <html lang="en" prefix="og: https://ogp.me/ns#"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)} · GreenWay</title>${metadata}
-<style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7f5;color:#19372a;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.65}
-header,main,footer{max-width:760px;margin:auto;padding:24px}header{font-size:20px;font-weight:750;color:#087d45}header span{display:block;font-size:12px;font-weight:500;color:#64796f}
-article{background:#fff;border:1px solid #dde9e1;border-radius:24px;overflow:hidden}.photo{display:block;width:100%;max-height:560px;object-fit:contain;background:#edf4ef}.content{padding:28px}
-h1{font-size:clamp(24px,5vw,36px);line-height:1.2;letter-spacing:-.6px;margin:14px 0}p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 18px}.meta{font-size:13px;color:#64796f}.category{display:inline-block;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:650;color:#087d45;background:#e4f5ec}
-.button{display:inline-block;margin-top:10px;padding:12px 20px;border-radius:14px;color:white;background:#087d45;text-decoration:none;font-weight:650}.button:focus-visible{outline:3px solid #65b68b;outline-offset:4px}.gallery{display:grid;gap:12px;margin-top:24px}.gallery img{border-radius:14px}footer{font-size:12px;color:#64796f;text-align:center}
-@media(max-width:480px){header,main,footer{padding:16px}.content{padding:20px}}
-</style></head><body><header>GreenWay<span>Community updates · Candelaria</span></header><main>${content}</main><footer>Working together for a cleaner Candelaria.</footer></body></html>`;
+</head><body>${content}</body></html>`;
 
 function renderPost(post, origin) {
   const title = String(post.title || "Community update").replace(/\s+/g, " ").trim();
@@ -44,23 +37,14 @@ ${images.map(image => `<meta property="og:image" content="${escapeHtml(image)}">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
 ${images[0] ? `<meta name="twitter:image" content="${escapeHtml(images[0])}">` : ""}`;
-  const category = { WASTE_TIP: "Waste Tip", EVENT: "Event", ANNOUNCEMENT: "Announcement" }[post.category] || "Community update";
-  const photo = (image, index) => `<img class="photo" src="${escapeHtml(image)}" alt="${escapeHtml(title)}${index ? ` — photo ${index + 1}` : ""}"${index ? ' loading="lazy"' : ""}>`;
-  const content = `<article>${images[0] ? photo(images[0], 0) : ""}<div class="content">
-<span class="category">${escapeHtml(category)}</span><h1>${escapeHtml(title)}</h1>
-${post.author_name ? `<p class="meta">${escapeHtml(post.author_name)}</p>` : ""}
-${String(post.body || "").split(/\n\s*\n/).map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join("")}
-${images.length > 1 ? `<div class="gallery">${images.slice(1).map((image, i) => photo(image, i + 1)).join("")}</div>` : ""}
-<a class="button" href="greenway-resident://post-details?id=${encodeURIComponent(post.id)}">Open in GreenWay</a>
-</div></article>`;
-  return page(title, content, metadata);
+  return page(title, `<p><a href="/resident/contents?post=${encodeURIComponent(post.id)}">Open this post in GreenWay</a></p>`, metadata);
 }
 
 export function createPostPreviewHandler({ getPost, getOrigin = publicOrigin }) {
   return async (req, res) => {
     const headers = {
       "Cache-Control": "no-store",
-      "Content-Security-Policy": "default-src 'none'; img-src https:; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+      "Content-Security-Policy": "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
       "Referrer-Policy": "no-referrer",
     };
     for (const [name, value] of Object.entries(headers)) res.setHeader(name, value);
@@ -69,6 +53,14 @@ export function createPostPreviewHandler({ getPost, getOrigin = publicOrigin }) 
       // Always fetch anonymously, even if the browser sends an administrator token.
       const id = req.query?.id;
       if (typeof id !== "string" || !/^[a-zA-Z0-9-]{1,128}$/.test(id)) throw { statusCode: 404 };
+      // People enter the existing signed-in portal. Only preview crawlers get metadata HTML.
+      const browserNavigation = req.headers?.["sec-fetch-mode"] === "navigate";
+      const crawler = !browserNavigation && /facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|viber|pinterestbot/i.test(req.headers?.["user-agent"] || "");
+      if (!crawler) {
+        res.statusCode = 302;
+        res.setHeader("Location", `/resident/contents?post=${encodeURIComponent(id)}`);
+        return res.end();
+      }
       const post = await getPost(id);
       if (!post || post.status !== "PUBLISHED" || post.deleted_at) throw { statusCode: 404 };
       return res.end(renderPost(post, getOrigin()));

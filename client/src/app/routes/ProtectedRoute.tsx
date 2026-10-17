@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const location = useLocation();
   const { hasHydrated, user, isLoading, ensureSession } = useAuthStore();
   const [isVerified, setIsVerified] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
@@ -36,6 +37,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!isAllowed || !user) {
+    const post = location.pathname === "/resident/contents" ? new URLSearchParams(location.search).get("post") : null;
+    if (post) return <Navigate to={`/login?post=${encodeURIComponent(post)}`} replace />;
     return <Navigate to="/login" replace />;
   }
 
