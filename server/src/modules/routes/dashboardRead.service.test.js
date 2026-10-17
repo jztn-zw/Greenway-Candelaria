@@ -7,6 +7,29 @@ const driverController = require("../drivers/drivers.controller");
 
 after(() => pool.end());
 
+test("resident route progress includes whole-run counts while stop details stay area-scoped", async () => {
+  const original = pool.query;
+  pool.query = async (sql, params) => {
+    assert.match(sql, /summary.route_run_id = rr.id AND summary.status = 'DONE'/);
+    assert.match(sql, /summary.route_run_id = rr.id AND summary.status = 'MISSED'/);
+    assert.match(sql, /resident.barangay_id = rrs.barangay_id/);
+    assert.match(sql, /rrs.street_id IS NULL OR rrs.street_id = resident.street_id/);
+    assert.equal(params[1], "resident-1");
+    return [[{ run_id: "run-1", run_status: "ACTIVE", driver_id: "private-driver",
+      driver_name: "Private name", stop_id: "own-stop", stop_status: "NOT_STARTED",
+      route_total_stops: "8", route_collected_stops: "3", route_missed_stops: "1" }]];
+  };
+  try {
+    const [run] = await routeRuns.getAllRoutesToday({ id: "resident-1", role: "RESIDENT" });
+    assert.deepEqual(run.route_progress, { total: 8, collected: 3, missed: 1 });
+    assert.equal(run.total_stops, 1);
+    assert.equal(run.completed_stops, 0);
+    assert.deepEqual(run.stops.map(stop => stop.id), ["own-stop"]);
+    assert.equal(run.driver_name, null);
+    assert.equal(run.driver_id, null);
+  } finally { pool.query = original; }
+});
+
 test("dashboard finished-run reads remain scoped to the driver and tracking defaults stay open-only", async () => {
   const original = pool.query;
   const calls = [];

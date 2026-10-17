@@ -52,6 +52,10 @@ app.get("/health", (req, res) => {
 });
 
 // Routes
+// Public article HTML for readers and social preview crawlers.
+app.get("/posts/:id", require("./modules/posts/posts.preview").createPostPreviewHandler({
+  getPost: id => require("./modules/posts/posts.service").getById(id),
+}));
 app.get("/api/time", async (req, res, next) => {
   try {
     const [rows] = await pool.query("SELECT UTC_TIMESTAMP(3) AS server_time");

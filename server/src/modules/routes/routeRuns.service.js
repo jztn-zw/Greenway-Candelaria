@@ -105,6 +105,11 @@ const formatRuns = (rows) => {
         paused_at: row.paused_at, total_paused_seconds: Number(row.total_paused_seconds) || 0,
         run_date: row.run_date,
         stops: [], total_stops: 0, completed_stops: 0,
+        ...(row.route_total_stops !== undefined ? { route_progress: {
+          total: Number(row.route_total_stops),
+          collected: Number(row.route_collected_stops),
+          missed: Number(row.route_missed_stops),
+        } } : {}),
       });
     }
     const run = runs.get(row.run_id);
@@ -162,13 +167,18 @@ const getAllRoutesToday = async (viewer) => {
   const { date } = getTodayContext();
   const isResident = String(viewer?.role || "").toUpperCase() === "RESIDENT";
   const isDriver = viewer?.role === "DRIVER";
+  // Only aggregate counts leave the full run; stop details remain resident-scoped.
+  const rowsQuery = isResident ? runRowsQuery.replace("SELECT", `SELECT
+    (SELECT COUNT(*) FROM route_run_stops summary WHERE summary.route_run_id = rr.id) AS route_total_stops,
+    (SELECT COUNT(*) FROM route_run_stops summary WHERE summary.route_run_id = rr.id AND summary.status = 'DONE') AS route_collected_stops,
+    (SELECT COUNT(*) FROM route_run_stops summary WHERE summary.route_run_id = rr.id AND summary.status = 'MISSED') AS route_missed_stops,`) : runRowsQuery;
   const residentClause = isResident
     ? ` AND rr.driver_id IS NOT NULL
        AND EXISTS (SELECT 1 FROM users resident WHERE resident.id = ?
          AND resident.barangay_id = rrs.barangay_id
          AND (rrs.street_id IS NULL OR rrs.street_id = resident.street_id))`
     : isDriver ? " AND d.user_id = ?" : "";
-  const [rows] = await pool.query(`${runRowsQuery}
+  const [rows] = await pool.query(`${rowsQuery}
     WHERE rr.run_date = ?${residentClause}
     ORDER BY rr.scheduled_start_time ASC, rr.id ASC, rrs.stop_order ASC`, isResident || isDriver ? [date, viewer.id] : [date]);
   const runs = formatRuns(rows);
