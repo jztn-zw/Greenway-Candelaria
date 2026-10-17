@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/posts/:id", "destination": "https://greenway-candelaria.onrender.com/posts/:id" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
