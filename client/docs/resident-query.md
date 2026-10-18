@@ -82,13 +82,22 @@ does not encrypt them or protect them from another person with access to the bro
 
 Initial failures show the existing error UI; background failures retain the last
 successful data where possible. Deleted/inaccessible report and post details are
-not kept visible after a 403/404. Refreshing does not create new notifications or
-change notification delivery preferences.
+not kept visible after a 403/404. Ordinary refreshes do not change delivery
+preferences. After the announcement initialization-marker migration, a completed
+resident's first inbox or unread-count read performs one atomic catch-up for
+eligible active notices broadcast before signup. The durable marker prevents
+subsequent reads from restoring cleared alerts. Existing records/read receipts,
+barangay targeting and disabled announcement preferences are respected. This
+server behavior is shared with the Resident app; no web UI change is needed.
 
 ## Operations and limits
 
-Restart the API process to register the resident socket channel. No schema change
-or new dependency is needed. These emitters assume one API process; multi-process
+Restart the API process to register the resident socket channel. The socket/query
+integration itself needs no new dependency or schema change. Announcement catch-up
+additionally requires `server/src/database/migrations/2026-10-18-resident-announcement-inbox.sql`
+on existing databases. It was applied to the configured database with user approval
+on 2026-10-18; other environments still require the migration.
+These emitters assume one API process; multi-process
 deployment requires shared Socket.IO delivery/pub-sub. Direct database edits have
 no event and are discovered by the fallback reads. An offline browser cannot receive
 updates until it reconnects.
