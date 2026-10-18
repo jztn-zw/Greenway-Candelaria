@@ -7,7 +7,7 @@ Historical SQL migrations have been consolidated into this baseline and removed.
 The baseline contains no accounts, sample content, credentials or tracking data.
 
 For existing installations, `migrations/2026-10-10-mobile-push-devices.sql` adds
-session-bound collector phone notification registrations. It was applied to the
+session-bound collector and resident phone notification registrations. It was applied to the
 configured database with user authorization on 2026-10-10, after reviewing parent
 keys and verifying a checksum-protected backup of all 32 existing table schemas.
 The new columns, indexes and cascading foreign keys were verified; existing
@@ -33,6 +33,19 @@ residents, while bans and administrative deactivations remain blocked. Do not ap
 that migration for account deletion. No database records were changed by this work.
 
 ## Fresh installation
+
+Resident announcement catch-up uses the nullable `users.announcement_inbox_initialized_at`
+marker. Review `migrations/2026-10-18-resident-announcement-inbox.sql`, back up the
+users definition, and check INFORMATION_SCHEMA before applying the additive column
+to an existing database. The configured database was migrated with user approval
+on 2026-10-18 after a schema-only backup; the nullable `DATETIME(3)` column was verified.
+Before the column exists, ordinary notification reads continue without catch-up.
+Afterward, a completed active resident's next inbox/unread-count request atomically
+adds eligible, unexpired announcements broadcast before their signup. Targeting,
+announcement preferences, existing notifications and read receipts are respected.
+The marker prevents later refreshes from restoring cleared catch-up notifications;
+missing alerts broadcast after signup are deliberately left alone. Catch-up sends
+an owner-only refresh hint, without replaying historical phone push alerts.
 
 1. Create or select an empty database and import `schema.sql`.
 2. Provision one admin privately with a bcrypt password hash, role `ADMIN`, status

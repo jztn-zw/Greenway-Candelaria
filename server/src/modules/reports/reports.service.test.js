@@ -8,6 +8,30 @@ const service = require("./reports.service");
 
 after(() => { mock.restoreAll(); return pool.end(); });
 
+test("resident history pages search location/type fields while retaining owner and status scope", async () => {
+  const originalQuery = pool.query;
+  const statements = [];
+  pool.query = async (sql, params) => {
+    statements.push({ sql, params });
+    if (sql.startsWith("SELECT COUNT")) return [[{ total: 31 }]];
+    if (sql.includes("FROM reports r")) return [[{ id: "older-fixture-report" }]];
+    return [[]];
+  };
+  try {
+    const result = await service.getMyReports("fixture-resident", { page: 2, limit: 15, status: "RESOLVED", search: "Argao" });
+    assert.equal(result.page, 2); assert.equal(result.totalPages, 3); assert.equal(result.total, 31);
+    assert.equal(result.reports[0].id, "older-fixture-report");
+    for (const statement of statements.filter(({ sql }) => sql.includes("FROM reports r"))) {
+      assert.match(statement.sql, /r.user_id = \?/); assert.match(statement.sql, /r.deleted_at IS NULL/);
+      assert.match(statement.sql, /r.violation_type LIKE/); assert.match(statement.sql, /r.landmark LIKE/);
+      assert.match(statement.sql, /search_barangay.name LIKE/);
+      assert.deepEqual(statement.params.slice(0, 2), ["fixture-resident", "RESOLVED"]);
+      assert.deepEqual(statement.params.slice(2, 7), Array(5).fill("%Argao%"));
+    }
+    assert.deepEqual(statements.find(({ sql }) => sql.includes("LIMIT ? OFFSET ?")).params.slice(-2), [15, 15]);
+  } finally { pool.query = originalQuery; }
+});
+
 const current = { id: "report-1", reference_number: "RPT-1", barangay_id: "barangay-1", status: "SUBMITTED", is_false: false, is_duplicate: false, user_id: null };
 const linked = { id: "report-2", reference_number: "RPT-2", status: "SUBMITTED", user_id: null };
 

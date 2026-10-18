@@ -283,11 +283,11 @@ const getMyReports = async (userId, filters = {}) => {
     params.push(status);
   }
 
-  // Search — reference number or description
+  // Search the same owner-visible fields on every page, including mobile history.
   if (filters.search && filters.search.trim() !== "") {
-    where.push("(r.reference_number LIKE ? OR r.description LIKE ?)");
+    where.push("(r.reference_number LIKE ? OR r.description LIKE ? OR r.violation_type LIKE ? OR r.landmark LIKE ? OR EXISTS (SELECT 1 FROM barangays search_barangay WHERE search_barangay.id = r.barangay_id AND search_barangay.name LIKE ?))");
     const term = "%" + filters.search.trim() + "%";
-    params.push(term, term);
+    params.push(term, term, term, term, term);
   }
 
   const whereClause = "WHERE " + where.join(" AND ");

@@ -6,11 +6,11 @@ const authorize = require("../../middleware/role");
 // ⚠️ Specific routes MUST come before /:id
 const push = require('./push.service');
 const { success } = require('../../utils/apiResponse');
-router.put('/push-device', authenticate, authorize('DRIVER'), async (req, res, next) => {
+router.put('/push-device', authenticate, authorize('DRIVER', 'RESIDENT'), async (req, res, next) => {
   try { return success(res, await push.register(req.user, req.token, req.body), 'Mobile notification settings saved'); }
   catch (err) { next(err); }
 });
-router.delete('/push-device', authenticate, authorize('DRIVER'), async (req, res, next) => {
+router.delete('/push-device', authenticate, authorize('DRIVER', 'RESIDENT'), async (req, res, next) => {
   try { return success(res, await push.unregister(req.user, req.token, req.body), 'Mobile device removed'); }
   catch (err) { next(err); }
 });

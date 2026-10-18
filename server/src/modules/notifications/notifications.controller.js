@@ -1,9 +1,11 @@
 const service = require("./notifications.service");
 const { sendNotificationSchema } = require("./notifications.schema");
 const { success } = require("../../utils/apiResponse");
+const { initializeResidentAnnouncements } = require('../announcements/announcementInbox.service');
 
 const getMyNotifications = async (req, res, next) => {
   try {
+    await initializeResidentAnnouncements(req.user);
     const notifications = await service.getMyNotifications(
       req.user.id,
       req.query,
@@ -16,6 +18,7 @@ const getMyNotifications = async (req, res, next) => {
 
 const getUnreadCount = async (req, res, next) => {
   try {
+    await initializeResidentAnnouncements(req.user);
     const count = await service.getUnreadCount(req.user.id);
     return success(res, count, "Unread count fetched");
   } catch (err) {

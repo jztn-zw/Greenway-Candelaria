@@ -96,6 +96,7 @@ CREATE TABLE `users` (
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `last_login_at` datetime DEFAULT NULL,
+  `announcement_inbox_initialized_at` datetime(3) DEFAULT NULL,
   `single_active_admin` tinyint GENERATED ALWAYS AS (IF(`role` = 'ADMIN' AND `deleted_at` IS NULL, 1, NULL)) VIRTUAL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),

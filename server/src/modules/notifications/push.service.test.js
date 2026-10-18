@@ -4,27 +4,36 @@ const { pool } = require('../../config/db');
 const service = require('./push.service');
 after(() => pool.end());
 const token = 'ExpoPushToken[fixture-device]';
-test('registration rejects malformed tokens and non-driver devices', async () => {
+test('registration rejects malformed tokens and unsupported account roles', async () => {
   await assert.rejects(service.register({id:'user',role:'DRIVER'}, 'session', {token:'bad',platform:'android',enabled:true}), e => e.statusCode === 400);
-  await assert.rejects(service.register({id:'user',role:'RESIDENT'}, 'session', {token,platform:'android',enabled:true}), e => e.statusCode === 403);
+  await assert.rejects(service.register({id:'user',role:'ADMIN'}, 'session', {token,platform:'android',enabled:true}), e => e.statusCode === 403);
 });
-test('device registration binds the authenticated session and never takes a client user ID', async () => {
+test('driver and resident device registrations bind the authenticated session and never take a client user ID', async () => {
   const original = pool.query, calls=[];
   pool.query = async (sql, args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{id:'session-id'}]] : [{}]; };
-  try { await service.register({id:'driver',role:'DRIVER'}, 'credential', {token,platform:'android',enabled:false,user_id:'victim'});
-    assert.match(calls[0][0], /user_id = \?/); assert.equal(calls[0][1][0], 'driver');
-    assert.deepEqual(calls[1][1], [token,'driver','session-id','android',false]);
+  try {
+    for (const role of ['DRIVER','RESIDENT']) {
+      const userId = role.toLowerCase();
+      await service.register({id:userId,role}, 'credential', {token,platform:'android',enabled:false,user_id:'victim'});
+    }
+    assert.equal(calls.length, 4);
+    for (const [index, role] of ['DRIVER','RESIDENT'].entries()) {
+      const userId = role.toLowerCase();
+      assert.match(calls[index * 2][0], /user_id = \?/); assert.equal(calls[index * 2][1][0], userId);
+      assert.deepEqual(calls[index * 2 + 1][1], [token,userId,'session-id','android',false]);
+    }
   } finally { pool.query=original; }
 });
 test('dispatch push delivery rechecks driver/account/session ownership and sends private previews', async () => {
   const original=pool.query, fetchOriginal=global.fetch, calls=[];
   process.env.EXPO_PUSH_ENABLED='true';
-  pool.query=async (sql,args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{token}]] : [{}]; };
+  pool.query=async (sql,args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{token,user_id:'driver',session_id:'session-id',role:'DRIVER'}]] : [{}]; };
   global.fetch=async (url, options) => { const payload=JSON.parse(options.body)[0]; assert.equal(payload.data.user_id,'driver'); assert.equal(payload.body.includes('secret'),false); return {ok:true,json:async()=>({data:[{status:'error',details:{error:'DeviceNotRegistered'}}]})}; };
   try { await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'secret'});
     assert.match(calls[0][0], /s.expires_at > NOW\(\)/); assert.match(calls[0][0], /u.role = 'DRIVER'/); assert.match(calls[0][0], /u.status = 'ACTIVE'/); assert.match(calls[0][0], /s.user_id = p.user_id/);
     assert.match(calls[0][0], /p.enabled = TRUE/);
-    assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ?');
+    assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ? AND user_id = ? AND session_id = ?');
+    assert.deepEqual(calls[1][1],[token,'driver','session-id']);
     global.fetch=async()=>{throw Error('offline');}; await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages'});
   } finally { pool.query=original;global.fetch=fetchOriginal;delete process.env.EXPO_PUSH_ENABLED; }
 });
