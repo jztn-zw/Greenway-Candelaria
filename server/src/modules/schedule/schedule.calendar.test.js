@@ -33,11 +33,14 @@ test("collector web reads are month-bounded and omit metadata without changing e
     assert.equal(results[0].title, event.title);
     for (const key of ["created_by", "creator_name", "created_at", "updated_at"]) assert.equal(key in results[0], false);
     assert.match(queries[0].sql, /s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'/);
+    assert.match(queries[0].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL/);
     assert.match(queries[0].sql, /COALESCE\(s.end_date, s.event_date\) >= CONCAT\(\?, '-01'\)/);
     assert.equal(queries[0].sql.includes("CURDATE()"), false);
     assert.deepEqual(queries[0].params, ["2026-09-27", "2026-09-27", "2026-09", "2026-09", "2026-09-27", "2026-09-27", "ONGOING"]);
     const existing = await service.getEvents({}, { role: "DRIVER" });
     assert.equal(existing[0].created_by, "admin-1");
+    await service.getEventById(event.id, { role: "DRIVER" });
+    assert.match(queries[2].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL/);
   } finally { pool.query = original; }
 });
 
@@ -111,7 +114,7 @@ test("admins can create and edit barangay-scoped public community events", async
   pool.getConnection = async () => ({
     beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {},
     query: async (sql, params) => {
-      if (sql.includes("SELECT u.id FROM users u")) return [[]];
+      if (sql.includes("SELECT u.id FROM users u") || sql.includes("SELECT id FROM users WHERE role = 'DRIVER'")) return [[]];
       writes.push({ sql, params });
       return [{ affectedRows: 1 }];
     },
@@ -167,7 +170,18 @@ test("creating a public schedule stores and emits an announcement-style notifica
   const emitted = [];
   const communityEvent = { ...event, title: "Barangay clean-up", event_date: "2099-01-01", event_type: "COMMUNITY_EVENT", visibility: "PUBLIC", barangay_id: "b1", announcement_id: null };
   pool.query = async (sql) => sql.includes("FROM barangays WHERE id = ?") ? [[{ id: "b1" }]] : [[communityEvent]];
-  pool.getConnection = async () => makeNotificationConnection(events, [{ id: "resident-1" }]);
+  pool.getConnection = async () => {
+    const connection = makeNotificationConnection(events, [{ id: "resident-1" }]);
+    const query = connection.query.bind(connection);
+    connection.query = async (sql, params) => {
+      if (sql.includes("SELECT id FROM users WHERE role = 'DRIVER'")) {
+        events.push({ sql, params });
+        return [[{ id: "collector-1" }]];
+      }
+      return query(sql, params);
+    };
+    return connection;
+  };
   audit.log = async () => {};
   notifications.emitStoredNotifications = (rows) => { events.push("emit"); emitted.push(...rows); };
   try {
@@ -187,6 +201,7 @@ test("creating a public schedule stores and emits an announcement-style notifica
     assert.equal(insert.params[0][0][4], "Scheduled for 2099-01-01");
     assert.ok(events.indexOf("commit") < events.indexOf("emit"));
     assert.equal(emitted[0].user_id, "resident-1");
+    assert.ok(emitted.some(row => row.user_id === "collector-1" && row.type === "SYSTEM"));
   } finally {
     pool.query = originals.query; pool.getConnection = originals.getConnection; audit.log = originals.log; notifications.emitStoredNotifications = originals.emit;
   }

@@ -87,7 +87,7 @@ const projectCalendarEvent = (event, user, view) => {
 /**
  * Get all calendar events with strict role-based visibility:
  * - ADMIN: Can view all (PRIVATE_EVENT, COMMUNITY_EVENT, COLLECTION_SCHEDULE)
- * - DRIVER: Can read the internal private schedules created in Schedule Manager
+ * - DRIVER: Can read MENRO private and shared community schedules
  * - RESIDENT / GUEST: Can view active public announcements and public community events for their area
  */
 const getEvents = async (filters = {}, user = null) => {
@@ -97,10 +97,10 @@ const getEvents = async (filters = {}, user = null) => {
   const conditions = ["s.deleted_at IS NULL"];
   const params = [];
 
-  // Collectors need the dispatch calendar created in Schedule Manager, but
-  // remain read-only and cannot access resident-facing announcement records.
+  // Collectors are MENRO staff and share community schedules, while remaining
+  // read-only and excluded from resident announcement-linked calendar records.
   if (isCollector) {
-    conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
+    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL))");
   } else if (!isAdmin) {
     // Manager-created events are public only when scoped to everyone or the
     // resident's barangay. Legacy announcement-linked events keep their own
@@ -189,7 +189,7 @@ const getEventById = async (id, user = null) => {
   const params = [id];
 
   if (isCollector) {
-    conditions.push("s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'");
+    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL))");
   } else if (!isAdmin) {
     conditions.push(`s.visibility = 'PUBLIC' AND (
       (s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL
@@ -291,17 +291,17 @@ const createEvent = async (data, user) => {
       delivery = barangay_id
         ? await notificationService.notifyBarangayResidents({ ...residentNotice, barangay_id })
         : await notificationService.notifyAllResidents(residentNotice);
-    } else {
-      const [collectors] = await connection.query(
-        "SELECT id FROM users WHERE role = 'DRIVER' AND status = 'ACTIVE' AND deleted_at IS NULL",
-      );
-      delivery = await notificationService.sendToMany({
-        ...notification,
-        body: collectorScheduleNotificationBody(event_date, end_date, description),
-        user_ids: collectors.map((collector) => collector.id),
-        type: "SYSTEM",
-      });
     }
+    const [collectors] = await connection.query(
+      "SELECT id FROM users WHERE role = 'DRIVER' AND status = 'ACTIVE' AND deleted_at IS NULL",
+    );
+    const collectorDelivery = await notificationService.sendToMany({
+      ...notification,
+      body: collectorScheduleNotificationBody(event_date, end_date, description),
+      user_ids: collectors.map((collector) => collector.id),
+      type: "SYSTEM",
+    });
+    delivery.notifications.push(...collectorDelivery.notifications);
 
     await connection.commit();
   } catch (error) {
