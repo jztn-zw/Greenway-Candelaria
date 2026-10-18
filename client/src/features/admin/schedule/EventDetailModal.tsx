@@ -112,7 +112,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               </Badge>
 
               <span className="text-ui-caption text-muted-foreground ml-auto">
-                {event.visibility === "PRIVATE" ? "Hidden from Residents" : "Public on Resident Portal"}
+                {event.visibility === "PRIVATE" ? "MENRO Only" : event.visibility === "SHARED" ? "MENRO & Residents" : "Residents Only"}
               </span>
             </div>
 

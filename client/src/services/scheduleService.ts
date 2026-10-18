@@ -1,7 +1,7 @@
 ﻿import api from "@/lib/api";
 
 export type EventType = "PRIVATE_EVENT" | "COMMUNITY_EVENT" | "COLLECTION_SCHEDULE";
-export type EventVisibility = "PRIVATE" | "PUBLIC";
+export type EventVisibility = "PRIVATE" | "PUBLIC" | "SHARED";
 export type EventStatus = "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
 export interface CalendarEvent {

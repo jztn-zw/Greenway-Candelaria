@@ -11,7 +11,7 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
 });
 
-it("creates a resident-facing event scoped to the selected barangay", async () => {
+it.each([["Residents Only", "PUBLIC"], ["MENRO & Residents", "SHARED"]])("creates a %s event scoped to the selected barangay", async (audience, visibility) => {
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   render(<EventModal isOpen onClose={vi.fn()} event={null} defaultDate="2099-01-01"
     barangayOptions={[
@@ -21,7 +21,7 @@ it("creates a resident-facing event scoped to the selected barangay", async () =
 
   fireEvent.change(screen.getByPlaceholderText("e.g. Monthly staff review"), { target: { value: "Community clean-up" } });
   fireEvent.click(screen.getByRole("combobox", { name: "Event audience" }));
-  fireEvent.click(screen.getByRole("option", { name: "MENRO & Residents" }));
+  fireEvent.click(screen.getByRole("option", { name: audience }));
   fireEvent.click(screen.getByRole("combobox", { name: "Resident area" }));
   fireEvent.change(screen.getByPlaceholderText("Search by barangay name…"), { target: { value: "Buenavista" } });
   fireEvent.click(screen.getByRole("option", { name: "Buenavista East" }));
@@ -30,7 +30,7 @@ it("creates a resident-facing event scoped to the selected barangay", async () =
   await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
     title: "Community clean-up",
     event_type: "COMMUNITY_EVENT",
-    visibility: "PUBLIC",
+    visibility,
     barangay_id: "barangay-1",
   })));
 });

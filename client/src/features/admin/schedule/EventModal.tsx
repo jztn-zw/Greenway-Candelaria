@@ -69,7 +69,7 @@ export const EventModal: React.FC<EventModalProps> = ({
     return undefined;
   }, [endDate]);
   const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
+  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC" | "SHARED">("PRIVATE");
   const [barangayId, setBarangayId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -88,8 +88,8 @@ export const EventModal: React.FC<EventModalProps> = ({
       }
       setEndDate(event.end_date ? event.end_date.split("T")[0] : "");
       setDescription(event.description || "");
-      const isPublicEvent = event.event_type === "COMMUNITY_EVENT" && event.visibility === "PUBLIC";
-      setVisibility(isPublicEvent ? "PUBLIC" : "PRIVATE");
+      const isPublicEvent = event.event_type === "COMMUNITY_EVENT" && event.visibility !== "PRIVATE";
+      setVisibility(isPublicEvent ? event.visibility : "PRIVATE");
       setBarangayId(isPublicEvent ? event.barangay_id || "" : "");
     } else {
       setTitle("");
@@ -135,9 +135,9 @@ export const EventModal: React.FC<EventModalProps> = ({
         description: description.trim() || null,
         event_date: eventDate,
         end_date: endDate || null,
-        event_type: visibility === "PUBLIC" ? "COMMUNITY_EVENT" : "PRIVATE_EVENT",
+        event_type: visibility !== "PRIVATE" ? "COMMUNITY_EVENT" : "PRIVATE_EVENT",
         visibility,
-        barangay_id: visibility === "PUBLIC" ? barangayId || null : null,
+        barangay_id: visibility !== "PRIVATE" ? barangayId || null : null,
       };
 
       await onSubmit(payload);
@@ -156,14 +156,14 @@ export const EventModal: React.FC<EventModalProps> = ({
     if (event) {
       const origDate = typeof event.event_date === "string" ? event.event_date.split("T")[0] : "";
       const origEndDate = event.end_date ? event.end_date.split("T")[0] : "";
-      const originalVisibility = event.event_type === "COMMUNITY_EVENT" && event.visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE";
+      const originalVisibility = event.event_type === "COMMUNITY_EVENT" && event.visibility !== "PRIVATE" ? event.visibility : "PRIVATE";
       return (
         title !== event.title ||
         eventDate !== origDate ||
         endDate !== origEndDate ||
         description !== (event.description || "") ||
         visibility !== originalVisibility ||
-        (visibility === "PUBLIC" ? barangayId : "") !== (originalVisibility === "PUBLIC" ? event.barangay_id || "" : "")
+        (visibility !== "PRIVATE" ? barangayId : "") !== (originalVisibility !== "PRIVATE" ? event.barangay_id || "" : "")
       );
     }
     return (
@@ -257,7 +257,7 @@ export const EventModal: React.FC<EventModalProps> = ({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">Audience</Label>
-              <Select value={visibility} onValueChange={(value: "PRIVATE" | "PUBLIC") => {
+              <Select value={visibility} onValueChange={(value: "PRIVATE" | "PUBLIC" | "SHARED") => {
                 setVisibility(value);
                 if (value === "PRIVATE") setBarangayId("");
               }}>
@@ -265,11 +265,12 @@ export const EventModal: React.FC<EventModalProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border border-border shadow-md">
-                  <SelectItem value="PRIVATE" className="text-xs font-medium">MENRO only</SelectItem>
-                  <SelectItem value="PUBLIC" className="text-xs font-medium">MENRO &amp; Residents</SelectItem>
+                  <SelectItem value="PRIVATE" className="text-xs font-medium">MENRO Only</SelectItem>
+                  <SelectItem value="PUBLIC" className="text-xs font-medium">Residents Only</SelectItem>
+                  <SelectItem value="SHARED" className="text-xs font-medium">MENRO &amp; Residents</SelectItem>
                 </SelectContent>
               </Select>
-              {visibility === "PUBLIC" && (
+              {visibility !== "PRIVATE" && (
                 <div className="space-y-1.5 pt-1">
                   <Label className="text-xs font-medium text-foreground">Resident Area</Label>
                   <SearchableSelect
