@@ -21,7 +21,7 @@ it("creates a resident-facing event scoped to the selected barangay", async () =
 
   fireEvent.change(screen.getByPlaceholderText("e.g. Monthly staff review"), { target: { value: "Community clean-up" } });
   fireEvent.click(screen.getByRole("combobox", { name: "Event audience" }));
-  fireEvent.click(screen.getByRole("option", { name: "Residents" }));
+  fireEvent.click(screen.getByRole("option", { name: "MENRO & Residents" }));
   fireEvent.click(screen.getByRole("combobox", { name: "Resident area" }));
   fireEvent.change(screen.getByPlaceholderText("Search by barangay name…"), { target: { value: "Buenavista" } });
   fireEvent.click(screen.getByRole("option", { name: "Buenavista East" }));

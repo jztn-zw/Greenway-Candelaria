@@ -53,7 +53,7 @@ it("separates loading, empty, and failed requests without claiming there are no 
 
 it("shows the shared admin event read-only, preserving its range and Manila date", async () => {
   await render();
-  expect(fetchCalendarEvents).toHaveBeenCalledWith({ view: "collector", month: "2026-09", event_type: "PRIVATE_EVENT", visibility: "PRIVATE" });
+  expect(fetchCalendarEvents).toHaveBeenCalledWith({ view: "collector", month: "2026-09" });
   expect(dateButton(27).getAttribute("aria-current")).toBe("date");
   expect(dateButton(27).getAttribute("aria-pressed")).toBe("true");
   const aside = host.querySelector("aside")!;

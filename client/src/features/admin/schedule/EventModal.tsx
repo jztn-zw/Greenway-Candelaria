@@ -266,7 +266,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border border-border shadow-md">
                   <SelectItem value="PRIVATE" className="text-xs font-medium">MENRO only</SelectItem>
-                  <SelectItem value="PUBLIC" className="text-xs font-medium">Residents</SelectItem>
+                  <SelectItem value="PUBLIC" className="text-xs font-medium">MENRO &amp; Residents</SelectItem>
                 </SelectContent>
               </Select>
               {visibility === "PUBLIC" && (

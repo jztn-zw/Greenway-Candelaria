@@ -19,7 +19,7 @@ const CollectorSchedule = () => {
   const [currentDate, setCurrentDate] = useState(getManilaCalendarDate);
   const [selectedDateStr, setSelectedDateStr] = useState(() => calendarDateKey(getManilaCalendarDate()));
   const monthKey = calendarDateKey(currentDate).slice(0, 7);
-  const schedule = useCollectorQuery("schedule", [monthKey], () => fetchCalendarEvents({ view: "collector", month: monthKey, event_type: "PRIVATE_EVENT", visibility: "PRIVATE" }));
+  const schedule = useCollectorQuery("schedule", [monthKey], () => fetchCalendarEvents({ view: "collector", month: monthKey }));
   const isLoading = schedule.isLoading;
   const [hasSettledInitialLoad, setHasSettledInitialLoad] = useState(false);
   useEffect(() => {
