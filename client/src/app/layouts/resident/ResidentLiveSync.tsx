@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import useAuthStore from "@/store/authStore";
 import { createResidentRealtime } from "@/lib/adminRealtime";
+import { createResidentBrowserDelivery } from "@/services/residentBrowserNotifications";
 
 const ResidentLiveSync = () => {
   const client = useQueryClient();
@@ -22,6 +23,10 @@ const ResidentLiveSync = () => {
   useEffect(() => {
     if (!userId || !token || role !== "RESIDENT") return;
     const sync = createResidentRealtime(client, userId);
+    const browser = createResidentBrowserDelivery(userId, () => {
+      const current = useAuthStore.getState();
+      return current.user?.id === userId && current.user?.role === "RESIDENT" && current.token === token;
+    });
     const socket = io((import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin).replace(/\/api\/?$/, ""), {
       auth: { token }, withCredentials: true, autoConnect: false,
     });
@@ -37,7 +42,11 @@ const ResidentLiveSync = () => {
       if (Array.isArray(domains) && domains.some((domain) => domain === "routes" || domain === "barangays")) sync.changed(["tracking"]);
     });
     const refreshNotifications = () => sync.changed(["notifications"]);
-    socket.on("notification:new", refreshNotifications);
+    socket.on("notification:new", (row: unknown) => {
+      // Inbox refresh is independent of browser permission and category preferences.
+      refreshNotifications();
+      void browser.deliver(row);
+    });
     socket.on("notification:remove_ref", refreshNotifications);
     socket.on("notification:update_ref", refreshNotifications);
     const onVisible = () => { if (!document.hidden) sync.reconcile(); };
@@ -47,6 +56,7 @@ const ResidentLiveSync = () => {
       clearTimeout(connectTimer);
       document.removeEventListener("visibilitychange", onVisible);
       sync.dispose();
+      browser.dispose();
       socket.disconnect();
     };
   }, [client, userId, role, token, scope, barangayId]);

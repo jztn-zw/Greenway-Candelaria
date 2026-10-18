@@ -99,6 +99,21 @@ announcement recipient reconciliation never filter by those phone preferences.
 The push sender checks preferences separately, together with current account,
 session and device authorization. Admin and collector preference rules are unchanged.
 
+Resident web Settings manages browser notifications separately. Those opt-in
+preferences are stored per resident account in the current browser; web toggles
+never write the server's phone-push flags. Browser permission is requested only
+from the explicit enable switch. Native browser alerts supplement authorized
+`notification:new` events while GreenWay is open, including background tabs.
+The display-only service worker supports notification clicks; it does not cache
+application responses, subscribe to background Web Push, or receive new alerts
+after the site is closed. HTTPS (or localhost) and browser notification support
+are required. Clearing site storage resets browser preferences. Phone push stays
+account-backed and is managed in the Resident mobile app. Both channels always
+retain the authorized inbox, unread counts, realtime reconciliation and existing
+read/delete actions. Display errors, blocked permission and disabled browser
+categories never prevent inbox refresh. Generic previews omit notification bodies;
+delivery rechecks the owner/session and closes displayed previews on cleanup.
+
 ## Operations and limits
 
 Restart the API process to register the resident socket channel. The socket/query

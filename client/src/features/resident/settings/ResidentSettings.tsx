@@ -1,20 +1,15 @@
 import { FormDialog } from "@/components/dialogs/FormDialog";
-import PageErrorState from "@/components/feedback/PageErrorState";
-import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
-import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
-import { useState,useEffect,useRef } from "react";
+import { useState } from "react";
+import { useBrowserNotificationSettings } from "@/hooks/useBrowserNotificationSettings";
 import {
-Bell,BellRing,Calendar,Shield,HelpCircle,
+Bell,BellRing,Shield,HelpCircle,
 Mail,ChevronRight,
 Sun,Moon,FileText,Truck,Megaphone,
 BookOpen,Lock
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { SettingsSkeleton } from "@/components/loading/PageLoadingSkeletons";
-import { fetchUserSettings,updateUserSettings,UpdateSettingsPayload } from "@/services/settingsService";
-import { toast } from "@/lib/toast";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { setThemeMode } from "@/lib/theme";
 import { MUNICIPAL_CONTACT } from "@/config/municipalContact";
@@ -69,6 +64,7 @@ interface ToggleRowProps {
   icon: React.ElementType;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
+  disabled?: boolean;
 }
 
 const ToggleRow = ({
@@ -77,6 +73,7 @@ const ToggleRow = ({
   icon: Icon,
   checked,
   onCheckedChange,
+  disabled,
 }: ToggleRowProps) => (
   <div className={settingsStyles.toggleRow}>
     <div className={settingsStyles.rowContent}>
@@ -90,7 +87,7 @@ const ToggleRow = ({
         )}
       </div>
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={label} className="shrink-0" />
+    <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={label} className="shrink-0" />
   </div>
 );
 
@@ -138,21 +135,8 @@ const ActionRow = ({
 
 /* ─── Main Component ─── */
 const ResidentSettings = () => {
-  const settingsQuery = useResidentQuery("settings", ["me"], fetchUserSettings);
-  const saveSetting = useResidentMutation(updateUserSettings, "settings");
-  const isLoading = settingsQuery.isLoading;
-  const pendingWrites = useRef(0);
-
-  // ── Notification toggles (consolidated) ──
-  const [notifs, setNotifs] = useState({
-    collectionAlerts: true,   // truck near + completed + skipped
-    reportUpdates: true,      // report status changes
-    newsAnnouncements: true,  // tips, community posts, announcements
-  });
-
-  const [collectionPrefs, setCollectionPrefs] = useState({
-    reminderOn: true,
-  });
+  const browser = useBrowserNotificationSettings();
+  const browserEnabled = browser.settings.enabled && browser.permission === "granted";
 
   // ── Modals ──
   const [privacyModal, setPrivacyModal] = useState(false);
@@ -166,72 +150,29 @@ const ResidentSettings = () => {
     setThemeMode(isDark ? "dark" : "light");
   };
 
-  // Hydrate saved values only while there are no local writes in flight.
-  useEffect(() => {
-    const settings = settingsQuery.data;
-    if (!settings || pendingWrites.current) return;
-    setNotifs({
-      collectionAlerts: Boolean(settings.notif_collection_reminders || settings.notif_truck_near || settings.notif_collection_done || settings.notif_collection_skipped),
-      reportUpdates: Boolean(settings.notif_report_updates),
-      newsAnnouncements: Boolean(settings.notif_new_content || settings.notif_announcements),
-    });
-    setCollectionPrefs({ reminderOn: Boolean(settings.reminder_on) });
-  }, [settingsQuery.data, settingsQuery.dataUpdatedAt]);
-
-  const saveSettings = async (patch: UpdateSettingsPayload) => {
-    pendingWrites.current += 1;
-    try { await saveSetting(patch); }
-    catch { toast.error("Failed to save setting. Please try again."); }
-    finally {
-      pendingWrites.current -= 1;
-      if (!pendingWrites.current) void settingsQuery.refetch();
-    }
-  };
-
-  // ── Notification toggle helper ──
-  const toggleNotif = (key: keyof typeof notifs, value: boolean) => {
-    setNotifs((prev) => ({ ...prev, [key]: value }));
-    // Each consolidated key maps to multiple backend fields
-    const payloads: Record<keyof typeof notifs, UpdateSettingsPayload> = {
-      collectionAlerts: {
-        notif_collection_reminders: value,
-        notif_truck_near: value,
-        notif_collection_done: value,
-        notif_collection_skipped: value,
-      },
-      reportUpdates: { notif_report_updates: value },
-      newsAnnouncements: {
-        notif_new_content: value,
-        notif_announcements: value,
-      },
-    };
-    saveSettings(payloads[key]);
-  };
-
-  if (isLoading) {
-    return <SettingsSkeleton />;
-  }
-  if (settingsQuery.isError && settingsQuery.data === undefined) return <PageErrorState kind="unavailable" description="We couldn't load your saved settings. Please try again." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} homeHref="/resident" />;
-
   return (
     <div className={settingsStyles.page}>
       {/* ── Page Header ── */}
       <ResidentPageHeader
         title="Settings"
-        description="Manage collection reminders, notification alerts, and display preferences"
+        description="Manage browser notifications and display preferences"
       />
 
-      {settingsQuery.isError && <DataRefreshNotice message="Couldn't refresh settings. Showing your last loaded preferences." onRetry={() => void settingsQuery.refetch()} retrying={settingsQuery.isFetching} />}
-
-      {/* ── 1. Collection Reminders ── */}
+      {/* Browser alerts are independent of phone push and the always-available inbox. */}
       <Section
-        title="Collection Reminders"
-        subtitle="Choose when to receive scheduled pickup alerts"
-        icon={Calendar}
+        title="Browser Notifications"
+        subtitle="Alerts in this browser while GreenWay is open, including background tabs. All updates always appear in your app and website inbox."
+        icon={Bell}
         iconStyle="bg-primary/10 text-primary border-primary/20"
       >
         <div className="space-y-1">
-          {/* Collection Day Reminder Toggle */}
+          <ToggleRow label="Browser Notifications" icon={Bell}
+            description="Enable alerts for this account in this browser. Phone push settings are managed in the mobile app."
+            checked={browserEnabled} onCheckedChange={value => { void browser.update("enabled", value); }}
+            disabled={browser.busy || browser.permission === "unsupported"} />
+          {browser.permission === "unsupported" && <p role="status" className="text-xs text-muted-foreground py-2">Browser notifications need HTTPS and a supported browser.</p>}
+          {browser.permission === "denied" && <p role="status" className="text-xs text-muted-foreground py-2">Notifications are blocked. Allow them in your browser’s site settings to enable alerts.</p>}
+          {!!browser.error && <p role="alert" className="text-xs text-destructive py-2">{browser.error}</p>}
           <div className={settingsStyles.toggleRow}>
             <div className={settingsStyles.rowContent}>
               <div className={`${settingsStyles.icon} bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20`}>
@@ -240,53 +181,42 @@ const ResidentSettings = () => {
               <div className="min-w-0 flex-1">
                 <p className={settingsStyles.rowLabel}>Collection Day Reminder</p>
                 <p className={settingsStyles.rowDescription}>
-                  Receive an automated alert 3 hours before scheduled municipal waste pickups
+                  Show collection reminders in this browser while GreenWay is open
                 </p>
               </div>
             </div>
             <Switch
               aria-label="Collection Day Reminder"
-              checked={collectionPrefs.reminderOn}
-              onCheckedChange={(v) => {
-                setCollectionPrefs((p) => ({ ...p, reminderOn: v }));
-                saveSettings({ reminder_on: v });
-                toast.success(v ? "Collection reminder enabled" : "Collection reminder disabled");
-              }}
+              checked={browser.settings.reminders}
+              disabled={!browserEnabled || browser.busy}
+              onCheckedChange={value => { void browser.update("reminders", value); }}
               className="shrink-0"
             />
           </div>
 
-        </div>
-      </Section>
-
-      {/* ── 2. Notification Alerts ── */}
-      <Section
-        title="Phone Notification Alerts"
-        subtitle="Control phone push alerts. All updates still appear in your app and website inbox."
-        icon={Bell}
-        iconStyle="bg-primary/10 text-primary border-primary/20"
-      >
-        <div className="space-y-1">
         <ToggleRow
             label="Live Truck Alerts"
             icon={Truck}
             description="Real-time alerts when the truck is near, collection is done, or pickup was skipped"
-            checked={notifs.collectionAlerts}
-            onCheckedChange={(v) => toggleNotif("collectionAlerts", v)}
+            checked={browser.settings.collection}
+            disabled={!browserEnabled || browser.busy}
+            onCheckedChange={value => { void browser.update("collection", value); }}
           />
           <ToggleRow
             label="Report Updates"
             icon={FileText}
             description="Status changes whenever MENRO reviews or resolves your submitted reports"
-            checked={notifs.reportUpdates}
-            onCheckedChange={(v) => toggleNotif("reportUpdates", v)}
+            checked={browser.settings.reports}
+            disabled={!browserEnabled || browser.busy}
+            onCheckedChange={value => { void browser.update("reports", value); }}
           />
           <ToggleRow
             label="News & Announcements"
             icon={Megaphone}
             description="Eco tips, community posts, and official municipal advisories"
-            checked={notifs.newsAnnouncements}
-            onCheckedChange={(v) => toggleNotif("newsAnnouncements", v)}
+            checked={browser.settings.community}
+            disabled={!browserEnabled || browser.busy}
+            onCheckedChange={value => { void browser.update("community", value); }}
           />
         </div>
 
