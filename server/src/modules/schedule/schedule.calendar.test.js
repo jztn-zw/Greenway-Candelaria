@@ -33,14 +33,14 @@ test("collector web reads are month-bounded and omit metadata without changing e
     assert.equal(results[0].title, event.title);
     for (const key of ["created_by", "creator_name", "created_at", "updated_at"]) assert.equal(key in results[0], false);
     assert.match(queries[0].sql, /s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE'/);
-    assert.match(queries[0].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL/);
+    assert.match(queries[0].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'SHARED' AND s.announcement_id IS NULL/);
     assert.match(queries[0].sql, /COALESCE\(s.end_date, s.event_date\) >= CONCAT\(\?, '-01'\)/);
     assert.equal(queries[0].sql.includes("CURDATE()"), false);
     assert.deepEqual(queries[0].params, ["2026-09-27", "2026-09-27", "2026-09", "2026-09", "2026-09-27", "2026-09-27", "ONGOING"]);
     const existing = await service.getEvents({}, { role: "DRIVER" });
     assert.equal(existing[0].created_by, "admin-1");
     await service.getEventById(event.id, { role: "DRIVER" });
-    assert.match(queries[2].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL/);
+    assert.match(queries[2].sql, /s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'SHARED' AND s.announcement_id IS NULL/);
   } finally { pool.query = original; }
 });
 
@@ -49,7 +49,7 @@ test("resident and guest reads cannot expose internal events through list or det
   const queries = [];
   pool.query = async (sql, params) => {
     queries.push({ sql, params });
-    assert.match(sql, /s.visibility = 'PUBLIC'/);
+    assert.match(sql, /s.visibility IN \('PUBLIC', 'SHARED'\)/);
     assert.match(sql, /s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL/);
     assert.match(sql, /s.barangay_id IS NULL OR s.barangay_id = \?/);
     assert.match(sql, /s.announcement_id IS NOT NULL AND EXISTS/);
@@ -164,7 +164,7 @@ const makeNotificationConnection = (events, recipients, failNotificationInsert =
   },
 });
 
-test("creating a public schedule stores and emits an announcement-style notification for its barangay after commit", async () => {
+for (const visibility of ["PUBLIC", "SHARED"]) test(`creating a ${visibility} schedule notifies the correct resident and MENRO audience after commit`, async () => {
   const originals = { query: pool.query, getConnection: pool.getConnection, log: audit.log, emit: notifications.emitStoredNotifications };
   const events = [];
   const emitted = [];
@@ -185,7 +185,7 @@ test("creating a public schedule stores and emits an announcement-style notifica
   audit.log = async () => {};
   notifications.emitStoredNotifications = (rows) => { events.push("emit"); emitted.push(...rows); };
   try {
-    await service.createEvent({ title: communityEvent.title, event_date: communityEvent.event_date, event_type: "COMMUNITY_EVENT", visibility: "PUBLIC", barangay_id: "b1" }, { id: "admin-1", role: "ADMIN" });
+    await service.createEvent({ title: communityEvent.title, event_date: communityEvent.event_date, event_type: "COMMUNITY_EVENT", visibility, barangay_id: "b1" }, { id: "admin-1", role: "ADMIN" });
     const scheduleInsert = events.find((entry) => typeof entry === "object" && entry.sql.includes("INSERT INTO schedules"));
     const residentQuery = events.find((entry) => typeof entry === "object" && entry.sql.includes("SELECT u.id FROM users u"));
     const insert = events.find((entry) => typeof entry === "object" && entry.sql.includes("INSERT INTO notifications"));
@@ -201,7 +201,7 @@ test("creating a public schedule stores and emits an announcement-style notifica
     assert.equal(insert.params[0][0][4], "Scheduled for 2099-01-01");
     assert.ok(events.indexOf("commit") < events.indexOf("emit"));
     assert.equal(emitted[0].user_id, "resident-1");
-    assert.ok(emitted.some(row => row.user_id === "collector-1" && row.type === "SYSTEM"));
+    assert.equal(emitted.some(row => row.user_id === "collector-1" && row.type === "SYSTEM"), visibility === "SHARED");
   } finally {
     pool.query = originals.query; pool.getConnection = originals.getConnection; audit.log = originals.log; notifications.emitStoredNotifications = originals.emit;
   }

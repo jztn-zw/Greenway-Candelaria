@@ -15,6 +15,12 @@ table schemas were unchanged. No existing records were modified. Other database
 environments still need a backed-up, authorized upgrade.
 Do not re-import the baseline into an existing database.
 
+Calendar audiences use PRIVATE (MENRO, including collectors), PUBLIC (residents),
+and SHARED (MENRO and residents). Admins manage every audience. Existing databases
+need the reviewed, backed-up `migrations/2026-10-19-calendar-shared-audience.sql`
+before shared events can be saved. This migration has not been applied by this
+code change. Existing rows retain their visibility; no notification backfill runs.
+
 Resident Profile now uses password-confirmed account deletion through
 `POST /api/auth/delete-account`. No schema change is needed: the transaction sets
 `users.deleted_at`, removes profile/contact/area details, replaces the password with

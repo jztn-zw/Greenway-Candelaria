@@ -6,7 +6,7 @@ const optionalAuth = require("../../middleware/optionalAuth");
 
 // ─── Centralized Calendar Events ───────────────────────────
 
-// Read events (Strict backend visibility: Admins see all, Residents see only PUBLIC)
+// Read events (Strict backend visibility: Admins see all, Residents see PUBLIC and SHARED)
 router.get("/events", optionalAuth, controller.getEvents);
 router.get("/events/:id", optionalAuth, controller.getEventById);
 

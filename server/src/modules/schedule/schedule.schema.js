@@ -20,7 +20,7 @@ const eventFiltersSchema = z.object({
   month: z.string().regex(/^[1-9]\d{3}-(0[1-9]|1[0-2])$/, "Invalid month (YYYY-MM)").optional(),
   year: z.coerce.string().regex(/^[1-9]\d{3}$/, "Invalid year").optional(),
   event_type: z.enum(["PRIVATE_EVENT", "COMMUNITY_EVENT", "COLLECTION_SCHEDULE"]).optional(),
-  visibility: z.enum(["PRIVATE", "PUBLIC"]).optional(),
+  visibility: z.enum(["PRIVATE", "PUBLIC", "SHARED"]).optional(),
   status: z.enum(["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"]).optional(),
   barangay_id: z.string().max(36).optional(),
 });
@@ -35,7 +35,7 @@ const createEventSchema = z.object({
   event_type: z.enum(["PRIVATE_EVENT", "COMMUNITY_EVENT"], {
     errorMap: () => ({ message: "Invalid event category" }),
   }),
-  visibility: z.enum(["PRIVATE", "PUBLIC"], {
+  visibility: z.enum(["PRIVATE", "PUBLIC", "SHARED"], {
     errorMap: () => ({ message: "Invalid visibility mode" }),
   }),
   location: z.string().trim().max(255).optional().nullable(),

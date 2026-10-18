@@ -55,7 +55,7 @@ const validateEventDetails = async (event, originalStartDate = null) => {
   if (event.event_type === "PRIVATE_EVENT" && event.visibility !== "PRIVATE") {
     throw { statusCode: 400, message: "Private events must remain private" };
   }
-  if (event.event_type === "COMMUNITY_EVENT" && event.visibility !== "PUBLIC") {
+  if (event.event_type === "COMMUNITY_EVENT" && !["PUBLIC", "SHARED"].includes(event.visibility)) {
     throw { statusCode: 400, message: "Community events must be public" };
   }
   if (!["PRIVATE_EVENT", "COMMUNITY_EVENT"].includes(event.event_type)) {
@@ -100,12 +100,12 @@ const getEvents = async (filters = {}, user = null) => {
   // Collectors are MENRO staff and share community schedules, while remaining
   // read-only and excluded from resident announcement-linked calendar records.
   if (isCollector) {
-    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL))");
+    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'SHARED' AND s.announcement_id IS NULL))");
   } else if (!isAdmin) {
     // Manager-created events are public only when scoped to everyone or the
     // resident's barangay. Legacy announcement-linked events keep their own
     // active, expiry, and audience checks.
-    conditions.push(`s.visibility = 'PUBLIC' AND (
+    conditions.push(`s.visibility IN ('PUBLIC', 'SHARED') AND (
       (s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL
         AND (s.barangay_id IS NULL OR s.barangay_id = ?))
       OR (s.announcement_id IS NOT NULL AND EXISTS (
@@ -189,9 +189,9 @@ const getEventById = async (id, user = null) => {
   const params = [id];
 
   if (isCollector) {
-    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'PUBLIC' AND s.announcement_id IS NULL))");
+    conditions.push("((s.event_type = 'PRIVATE_EVENT' AND s.visibility = 'PRIVATE') OR (s.event_type = 'COMMUNITY_EVENT' AND s.visibility = 'SHARED' AND s.announcement_id IS NULL))");
   } else if (!isAdmin) {
-    conditions.push(`s.visibility = 'PUBLIC' AND (
+    conditions.push(`s.visibility IN ('PUBLIC', 'SHARED') AND (
       (s.event_type = 'COMMUNITY_EVENT' AND s.announcement_id IS NULL
         AND (s.barangay_id IS NULL OR s.barangay_id = ?))
       OR (s.announcement_id IS NOT NULL AND EXISTS (
@@ -292,16 +292,18 @@ const createEvent = async (data, user) => {
         ? await notificationService.notifyBarangayResidents({ ...residentNotice, barangay_id })
         : await notificationService.notifyAllResidents(residentNotice);
     }
-    const [collectors] = await connection.query(
-      "SELECT id FROM users WHERE role = 'DRIVER' AND status = 'ACTIVE' AND deleted_at IS NULL",
-    );
-    const collectorDelivery = await notificationService.sendToMany({
-      ...notification,
-      body: collectorScheduleNotificationBody(event_date, end_date, description),
-      user_ids: collectors.map((collector) => collector.id),
-      type: "SYSTEM",
-    });
-    delivery.notifications.push(...collectorDelivery.notifications);
+    if (visibility !== "PUBLIC") {
+      const [collectors] = await connection.query(
+        "SELECT id FROM users WHERE role = 'DRIVER' AND status = 'ACTIVE' AND deleted_at IS NULL",
+      );
+      const collectorDelivery = await notificationService.sendToMany({
+        ...notification,
+        body: collectorScheduleNotificationBody(event_date, end_date, description),
+        user_ids: collectors.map((collector) => collector.id),
+        type: "SYSTEM",
+      });
+      delivery.notifications.push(...collectorDelivery.notifications);
+    }
 
     await connection.commit();
   } catch (error) {

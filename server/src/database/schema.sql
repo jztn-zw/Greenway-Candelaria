@@ -353,7 +353,7 @@ CREATE TABLE `schedules` (
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
   `event_type` enum('PRIVATE_EVENT','COMMUNITY_EVENT','COLLECTION_SCHEDULE') NOT NULL DEFAULT 'PRIVATE_EVENT',
-  `visibility` enum('PRIVATE','PUBLIC') NOT NULL DEFAULT 'PRIVATE',
+  `visibility` enum('PRIVATE','PUBLIC','SHARED') NOT NULL DEFAULT 'PRIVATE',
   `location` varchar(255) DEFAULT NULL,
   `barangay_id` varchar(36) DEFAULT NULL,
   `status` enum('UPCOMING','ONGOING','COMPLETED','CANCELLED') NOT NULL DEFAULT 'UPCOMING',
