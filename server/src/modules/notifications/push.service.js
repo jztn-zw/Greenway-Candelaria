@@ -67,9 +67,13 @@ async function sendMobilePushAlert(notification) {
   if (process.env.EXPO_PUSH_ENABLED !== 'true' || (!driverEligible && !residentEligible)) return;
   try {
     const preferenceColumn = Object.hasOwn(residentPreferences, notification.type) ? residentPreferences[notification.type] : null;
+    // General system pushes also stop when the resident turns every phone alert off.
+    const anyResidentAlert = Object.values(residentPreferences).map(column => column === 'notif_collection_reminders'
+      ? '(COALESCE(settings.notif_collection_reminders, TRUE) = TRUE AND COALESCE(settings.reminder_on, TRUE) = TRUE)'
+      : `COALESCE(settings.${column}, TRUE) = TRUE`).join(' OR ');
     const preferenceFilter = preferenceColumn
       ? ` AND (u.role <> 'RESIDENT' OR COALESCE(settings.${preferenceColumn}, TRUE) = TRUE${notification.type === 'COLLECTION_REMINDER' ? ' AND COALESCE(settings.reminder_on, TRUE) = TRUE' : ''})`
-      : '';
+      : ` AND (u.role <> 'RESIDENT' OR (${anyResidentAlert}))`;
     const [devices] = await pool.query(`SELECT p.token, p.user_id, p.session_id, u.role FROM mobile_push_devices p
       JOIN sessions s ON s.id = p.session_id AND s.user_id = p.user_id AND s.expires_at > NOW()
       JOIN users u ON u.id = p.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL

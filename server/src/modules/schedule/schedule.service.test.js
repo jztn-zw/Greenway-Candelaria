@@ -24,7 +24,9 @@ test("collection scheduler uses 3 hours and does not filter residents by old tim
     beginTransaction: async () => {}, rollback: async () => {}, release: () => {},
     query: async (sql, params) => {
       assert.equal(sql.includes("s.reminder_timing"), false);
-      assert.match(sql, /notif_collection_reminders/);
+      assert.doesNotMatch(sql, /user_settings|notif_collection_reminders|reminder_on/);
+      assert.match(sql, /rs\.barangay_id = u\.barangay_id/);
+      assert.match(sql, /rs\.street_id = u\.street_id/);
       assert.deepEqual(params, ["r1"]);
       recipientsChecked += 1;
       return [[]];

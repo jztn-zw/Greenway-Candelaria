@@ -84,3 +84,43 @@ test('disabled devices are excluded before sending anything to the push provider
     else process.env.EXPO_PUSH_ENABLED = previous;
   }
 });
+
+test('resident phone preferences suppress pushes only and enabled alerts retain private previews', async () => {
+  const original = pool.query, fetchOriginal = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  let enabled = false, deliveries = 0, expectedField, expectedType;
+  const preferences = { ANNOUNCEMENT: 'notif_announcements', NEW_POST: 'notif_new_content',
+    COLLECTION_REMINDER: 'notif_collection_reminders', TRUCK_IS_NEAR: 'notif_truck_near',
+    COLLECTION_DONE: 'notif_collection_done', MISSED_COLLECTION: 'notif_collection_skipped', REPORT_UPDATE: 'notif_report_updates', SYSTEM: 'notif_announcements' };
+  pool.query = async (sql, params) => {
+    assert.match(sql, new RegExp(`COALESCE\\(settings\\.${expectedField}, TRUE\\) = TRUE`));
+    assert.match(sql, /s.expires_at > NOW\(\)/); assert.match(sql, /u.status = 'ACTIVE'/);
+    assert.match(sql, /p.enabled = TRUE/); assert.equal(params[0], 'resident');
+    if (expectedType === 'SYSTEM' || expectedType === 'COLLECTION_REMINDER') assert.match(sql, /COALESCE\(settings.reminder_on, TRUE\)/);
+    return [enabled ? [{ token, user_id: 'resident', session_id: 'session-id', role: 'RESIDENT' }] : []];
+  };
+  global.fetch = async (_url, options) => {
+    deliveries++;
+    const payload = JSON.parse(options.body)[0];
+    assert.equal(payload.data.notification_id, 'notice');
+    assert.equal(payload.body.includes('private report'), false);
+    return { ok: true, json: async () => ({ data: [{ status: 'error' }] }) };
+  };
+  try {
+    for (const [type, field] of Object.entries(preferences)) {
+      expectedField = field;
+      expectedType = type;
+      enabled = false;
+      const before = deliveries;
+      await service.sendMobilePushAlert({ id: 'notice', user_id: 'resident', type, body: 'private report' });
+      assert.equal(deliveries, before);
+      enabled = true;
+      await service.sendMobilePushAlert({ id: 'notice', user_id: 'resident', type, body: 'private report' });
+      assert.equal(deliveries, before + 1);
+    }
+  } finally {
+    pool.query = original; global.fetch = fetchOriginal;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;
+    else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});

@@ -22,13 +22,9 @@ async function initializeResidentAnnouncements(viewer) {
       await connection.rollback();
       return { sent: 0 };
     }
-    const [settings] = await connection.query(
-      'SELECT COALESCE(notif_announcements, TRUE) AS enabled FROM user_settings WHERE user_id = ?', [viewer.id],
-    );
-    if (settings.length === 0 || Boolean(settings[0].enabled)) {
-      // Only notices broadcast before signup were missed by the original delivery.
-      // Later missing alerts may have been deliberately deleted and stay deleted.
-      const [announcements] = await connection.query(
+    // Only notices broadcast before signup were missed by the original delivery.
+    // Later missing alerts may have been deliberately deleted and stay deleted.
+    const [announcements] = await connection.query(
         `SELECT a.id, a.title, a.body, a.type FROM announcements a
          WHERE a.status = 'ACTIVE' AND (a.expires_at IS NULL OR a.expires_at > NOW())
            AND COALESCE(a.sent_at, a.created_at) < ?
@@ -41,15 +37,14 @@ async function initializeResidentAnnouncements(viewer) {
              WHERE r.user_id = ? AND r.announcement_id = a.id)
          ORDER BY a.id FOR UPDATE`,
         [user.created_at, user.barangay_id, viewer.id, viewer.id],
-      );
-      for (const announcement of announcements) {
-        const result = await notifications.sendToMany({
-          user_ids: [viewer.id], type: 'ANNOUNCEMENT', title: announcement.title, body: announcement.body,
-          ref_id: announcement.id, ref_module: 'announcements', metadata: { category: announcement.type, catch_up: true },
-          db: connection, emit: false,
-        });
-        sent += result.sent;
-      }
+    );
+    for (const announcement of announcements) {
+      const result = await notifications.sendToMany({
+        user_ids: [viewer.id], type: 'ANNOUNCEMENT', title: announcement.title, body: announcement.body,
+        ref_id: announcement.id, ref_module: 'announcements', metadata: { category: announcement.type, catch_up: true },
+        db: connection, emit: false,
+      });
+      sent += result.sent;
     }
     await connection.query('UPDATE users SET announcement_inbox_initialized_at = UTC_TIMESTAMP(3) WHERE id = ?', [viewer.id]);
     await connection.commit();

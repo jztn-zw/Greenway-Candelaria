@@ -42,7 +42,8 @@ on 2026-10-18 after a schema-only backup; the nullable `DATETIME(3)` column was 
 Before the column exists, ordinary notification reads continue without catch-up.
 Afterward, a completed active resident's next inbox/unread-count request atomically
 adds eligible, unexpired announcements broadcast before their signup. Targeting,
-announcement preferences, existing notifications and read receipts are respected.
+existing notifications and read receipts are respected. Resident notification
+preferences control phone pushes only; they do not suppress inbox catch-up.
 The marker prevents later refreshes from restoring cleared catch-up notifications;
 missing alerts broadcast after signup are deliberately left alone. Catch-up sends
 an owner-only refresh hint, without replaying historical phone push alerts.

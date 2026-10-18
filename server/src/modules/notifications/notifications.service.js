@@ -18,43 +18,6 @@ const NOTIFICATION_TYPES = new Set([
   "SYSTEM",
 ]);
 
-const getPreferenceColumn = (type) => {
-  const preferenceColumns = {
-    ANNOUNCEMENT: "notif_announcements",
-    NEW_POST: "notif_new_content",
-    COLLECTION_REMINDER: "notif_collection_reminders",
-    TRUCK_IS_NEAR: "notif_truck_near",
-    COLLECTION_DONE: "notif_collection_done",
-    MISSED_COLLECTION: "notif_collection_skipped",
-    REPORT_UPDATE: "notif_report_updates",
-  };
-
-  return preferenceColumns[type] || null;
-};
-
-const isNotificationEnabledForUser = async (userId, type, db = pool) => {
-  const preferenceColumn = getPreferenceColumn(type);
-  if (!preferenceColumn) return true;
-
-  const [rows] = await db.query(
-    `SELECT
-       u.role,
-       COALESCE(s.${preferenceColumn}, TRUE) AS enabled,
-       COALESCE(s.reminder_on, TRUE) AS reminder_on
-       FROM users u
-       LEFT JOIN user_settings s ON s.user_id = u.id
-      WHERE u.id = ?`,
-    [userId],
-  );
-
-  // Notification preferences apply to the resident web portal only. Accounts
-  // without a settings record preserve the existing default-enabled behavior.
-  return rows.length === 0 || rows[0].role !== "RESIDENT" || (
-    Boolean(rows[0].enabled) &&
-    (type !== "COLLECTION_REMINDER" || Boolean(rows[0].reminder_on))
-  );
-};
-
 // ─── Single User Notification ──────────────────────────────
 
 const sendToUser = async ({
@@ -66,8 +29,7 @@ const sendToUser = async ({
   ref_module = null,
   metadata = null,
 }) => {
-  if (!(await isNotificationEnabledForUser(user_id, type))) return null;
-
+  // Resident preferences control phone push only; keep the durable inbox intact.
   const id = generateId();
 
   await pool.query(
@@ -177,12 +139,8 @@ const notifyAllResidents = async ({
   db = pool,
   emit = true,
 }) => {
-  const preferenceColumn = getPreferenceColumn(type);
-  const preferenceFilter = preferenceColumn
-    ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE${type === "COLLECTION_REMINDER" ? " AND COALESCE(s.reminder_on, TRUE) = TRUE" : ""}`
-    : "";
   const [residents] = await db.query(
-    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
+    "SELECT u.id FROM users u WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL",
   );
   const userIds = residents.map((r) => r.id);
   return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata, db, emit });
@@ -202,32 +160,26 @@ const notifyBarangayResidents = async ({
   db = pool,
   emit = true,
 }) => {
-  const preferenceColumn = getPreferenceColumn(type);
-  const preferenceFilter = preferenceColumn ? ` AND COALESCE(s.${preferenceColumn}, TRUE) = TRUE${type === "COLLECTION_REMINDER" ? " AND COALESCE(s.reminder_on, TRUE) = TRUE" : ""}` : "";
   const streetFilter = street_id ? " AND u.street_id = ?" : "";
   const params = street_id ? [barangay_id, street_id] : [barangay_id];
   const [residents] = await db.query(
-    `SELECT u.id FROM users u LEFT JOIN user_settings s ON s.user_id = u.id WHERE u.barangay_id = ?${streetFilter} AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL${preferenceFilter}`,
+    `SELECT u.id FROM users u WHERE u.barangay_id = ?${streetFilter} AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL`,
     params,
   );
   const userIds = residents.map((r) => r.id);
   return sendToMany({ user_ids: userIds, type, title, body, ref_id, ref_module, metadata, db, emit });
 };
 
-const filterNotificationEnabledUserIds = async (userIds, type, db = pool) => {
+const filterActiveNotificationUserIds = async (userIds, db = pool) => {
   const uniqueUserIds = [...new Set((userIds || []).filter(Boolean))];
   if (uniqueUserIds.length === 0) return [];
-  const preferenceColumn = getPreferenceColumn(type);
-  if (!preferenceColumn) return uniqueUserIds;
 
   const [rows] = await db.query(
     `SELECT u.id
      FROM users u
-     LEFT JOIN user_settings s ON s.user_id = u.id
      WHERE u.id IN (?)
        AND u.status = 'ACTIVE'
-       AND u.deleted_at IS NULL
-       AND (u.role <> 'RESIDENT' OR COALESCE(s.${preferenceColumn}, TRUE) = TRUE)`,
+       AND u.deleted_at IS NULL`,
     [uniqueUserIds],
   );
   return rows.map((row) => row.id);
@@ -507,7 +459,7 @@ module.exports = {
   notifyBarangayResidents,
   notifyAdmins,
   emitStoredNotifications,
-  filterNotificationEnabledUserIds,
+  filterActiveNotificationUserIds,
   getMyNotifications,
   getUnreadCount,
   markAsRead,

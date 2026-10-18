@@ -6,7 +6,7 @@ const {
   notifyBarangayResidents,
   sendToMany,
   emitStoredNotifications,
-  filterNotificationEnabledUserIds,
+  filterActiveNotificationUserIds,
 } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
 const {
@@ -430,7 +430,7 @@ const reconcileActiveRecipients = async (existing, updated, db) => {
   const newTargetSet = new Set(newTargetIds);
   const removedUserIds = existingRecipientIds.filter((userId) => !newTargetSet.has(userId));
   const newlyTargetedIds = newTargetIds.filter((userId) => !oldTargetIds.has(userId));
-  const enabledNewUserIds = await filterNotificationEnabledUserIds(newlyTargetedIds, "ANNOUNCEMENT", db);
+  const activeNewUserIds = await filterActiveNotificationUserIds(newlyTargetedIds, db);
 
   if (removedUserIds.length > 0) {
     await db.query(
@@ -455,7 +455,7 @@ const reconcileActiveRecipients = async (existing, updated, db) => {
   }
 
   const delivery = await sendToMany({
-    user_ids: enabledNewUserIds,
+    user_ids: activeNewUserIds,
     type: "ANNOUNCEMENT",
     title: updated.title,
     body: updated.body,
@@ -720,12 +720,11 @@ const resendToUnread = async (id, actorId) => {
     [id],
   );
 
-  const enabledUserIds = await filterNotificationEnabledUserIds(
+  const activeUserIds = await filterActiveNotificationUserIds(
     recipients.map((recipient) => recipient.user_id),
-    "ANNOUNCEMENT",
   );
   const result = await sendToMany({
-    user_ids: enabledUserIds,
+    user_ids: activeUserIds,
     type: "ANNOUNCEMENT",
     title: announcement.title,
     body: announcement.body,

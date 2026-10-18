@@ -52,9 +52,9 @@ test('repeat initialization cannot restore a subsequently deleted notification',
   const f = fixture(); await f.run(); f.deliveries.length = 0; await f.run();
   assert.equal(f.deliveries.length, 0); assert.equal(f.hints.length, 1);
 });
-test('disabled preferences finish initialization without creating notifications', async () => {
+test('disabled phone alerts still receive the one-time announcement inbox catch-up', async () => {
   const f = fixture({ enabled: 0 }); await f.run();
-  assert.equal(f.deliveries.length, 0); assert.ok(f.calls.includes('marker')); assert.equal(f.hints.length, 0);
+  assert.equal(f.deliveries.length, 1); assert.ok(f.calls.includes('marker')); assert.equal(f.hints.length, 1);
 });
 test('failed delivery rolls back without stamping completion or emitting a hint', async () => {
   const f = fixture({ fail: true }); await assert.rejects(f.run(), /Fixture delivery failed/);

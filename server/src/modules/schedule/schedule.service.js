@@ -536,10 +536,7 @@ const dispatchDueCollectionReminders = async (now = new Date()) => {
           await connection.beginTransaction();
           const [recipients] = await connection.query(
             `SELECT u.id FROM users u
-             LEFT JOIN user_settings s ON s.user_id = u.id
              WHERE u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
-               AND COALESCE(s.reminder_on, TRUE) = TRUE
-               AND COALESCE(s.notif_collection_reminders, TRUE) = TRUE
                AND EXISTS (
                  SELECT 1 FROM route_stops rs
                  WHERE rs.route_id = ? AND rs.barangay_id = u.barangay_id

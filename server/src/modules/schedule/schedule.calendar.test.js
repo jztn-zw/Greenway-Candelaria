@@ -177,7 +177,7 @@ test("creating a public schedule stores and emits an announcement-style notifica
     const insert = events.find((entry) => typeof entry === "object" && entry.sql.includes("INSERT INTO notifications"));
     assert.match(residentQuery.sql, /u\.barangay_id = \?/);
     assert.match(residentQuery.sql, /u\.role = 'RESIDENT' AND u\.status = 'ACTIVE'/);
-    assert.match(residentQuery.sql, /s\.notif_announcements/);
+    assert.doesNotMatch(residentQuery.sql, /user_settings|notif_announcements/);
     assert.deepEqual(residentQuery.params, ["b1"]);
     assert.ok(insert, "the schedule should be stored as an in-app notification");
     assert.deepEqual(insert.params[0].map((row) => row[1]), ["resident-1"]);
