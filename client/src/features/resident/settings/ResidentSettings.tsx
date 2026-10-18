@@ -261,8 +261,8 @@ const ResidentSettings = () => {
 
       {/* ── 2. Notification Alerts ── */}
       <Section
-        title="Notification Alerts"
-        subtitle="Control the notifications shown in your resident web portal"
+        title="Phone Notification Alerts"
+        subtitle="Control phone push alerts. All updates still appear in your app and website inbox."
         icon={Bell}
         iconStyle="bg-primary/10 text-primary border-primary/20"
       >

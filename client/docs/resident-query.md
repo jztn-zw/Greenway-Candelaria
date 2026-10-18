@@ -87,8 +87,17 @@ preferences. After the announcement initialization-marker migration, a completed
 resident's first inbox or unread-count read performs one atomic catch-up for
 eligible active notices broadcast before signup. The durable marker prevents
 subsequent reads from restoring cleared alerts. Existing records/read receipts,
-barangay targeting and disabled announcement preferences are respected. This
-server behavior is shared with the Resident app; no web UI change is needed.
+barangay targeting and account authorization are respected. Phone alert switches
+do not suppress the durable inbox. This
+server behavior is shared with the Resident app.
+
+Resident notification preferences are saved to the account so the API can suppress
+phone push delivery while the app is closed. Turning off a category or all phone
+alerts keeps authorized collection, report, post and announcement inbox records,
+unread counts and socket updates. Broadcast selection, schedule reminders and
+announcement recipient reconciliation never filter by those phone preferences.
+The push sender checks preferences separately, together with current account,
+session and device authorization. Admin and collector preference rules are unchanged.
 
 ## Operations and limits
 
