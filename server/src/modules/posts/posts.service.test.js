@@ -89,6 +89,18 @@ test("post search and pagination bind the remaining search fields correctly", as
   });
 });
 
+test("newest resident updates use bounded pagination and stable date ties without featured priority", async () => {
+  await withDatabase(async ({ queries }) => {
+    const page = await posts.getAll({ sort: "newest", page: 1, limit: 3, status: "DRAFT", all: true }, "resident", "RESIDENT");
+    assert.equal(page.limit, 3);
+    const list = queries.find(({ sql }) => sql.includes("LIMIT ? OFFSET ?"));
+    assert.match(list.sql, /p\.status = 'PUBLISHED'/);
+    assert.match(list.sql, /ORDER BY COALESCE\(p\.published_at, p\.created_at\) DESC, p\.id ASC/);
+    assert.deepEqual(list.params, ["resident", 3, 0]);
+    assert.equal(queries.some(({ sql }) => sql.includes("AS total_posts")), false);
+  });
+});
+
 test("creating and editing posts preserves the trusted author without an attribution column", async () => {
   await withDatabase(async () => {
     const created = await posts.create("publishing-admin", createPostSchema.parse({ title: "New guide", body: "Recycle.", category: "WASTE_TIP" }));

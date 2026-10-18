@@ -219,7 +219,9 @@ const getAll = async (filters = {}, userId = null, userRole = null) => {
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(50, Math.max(1, requestedLimit))
     : 10;
-  const sortOrder = filters.sort === "oldest"
+  const sortOrder = filters.sort === "newest"
+    ? "COALESCE(p.published_at, p.created_at) DESC"
+    : filters.sort === "oldest"
     ? "COALESCE(p.published_at, p.created_at) ASC"
     : filters.sort === "most-reacted"
       ? "like_count DESC, COALESCE(p.published_at, p.created_at) DESC"
@@ -227,7 +229,7 @@ const getAll = async (filters = {}, userId = null, userRole = null) => {
         ? "p.view_count DESC, COALESCE(p.published_at, p.created_at) DESC"
         : "p.is_featured DESC, COALESCE(p.published_at, p.created_at) DESC";
 
-  query += ` WHERE ${conditions.join(" AND ")} ORDER BY ${sortOrder}`;
+  query += ` WHERE ${conditions.join(" AND ")} ORDER BY ${sortOrder}, p.id ASC`;
   params.push(...whereParams);
 
   if (usePagination) {
