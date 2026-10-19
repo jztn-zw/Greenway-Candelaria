@@ -317,23 +317,19 @@ const getMyReports = async (userId, filters = {}) => {
   // Batch-fetch photos + history for this page only
   const reportIds = reports.map((r) => r.id);
   if (reportIds.length > 0) {
-    const [allPhotos] = await pool.query(
-      "SELECT * FROM report_photos WHERE report_id IN (?) ORDER BY created_at ASC",
-      [reportIds],
-    );
+    const [[allPhotos], [allHistory]] = await Promise.all([
+      pool.query("SELECT * FROM report_photos WHERE report_id IN (?) ORDER BY created_at ASC", [reportIds]),
+      pool.query("SELECT h.*, u.full_name AS changed_by_name " +
+        "FROM report_status_history h " +
+        "LEFT JOIN users u ON u.id = h.changed_by " +
+        "WHERE h.report_id IN (?) ORDER BY h.created_at ASC", [reportIds]),
+    ]);
     const photosByReport = {};
     for (const p of allPhotos) {
       if (!photosByReport[p.report_id]) photosByReport[p.report_id] = [];
       photosByReport[p.report_id].push(p);
     }
 
-    const [allHistory] = await pool.query(
-      "SELECT h.*, u.full_name AS changed_by_name " +
-      "FROM report_status_history h " +
-      "LEFT JOIN users u ON u.id = h.changed_by " +
-      "WHERE h.report_id IN (?) ORDER BY h.created_at ASC",
-      [reportIds],
-    );
     const historyByReport = {};
     for (const h of allHistory) {
       if (!historyByReport[h.report_id]) historyByReport[h.report_id] = [];
@@ -376,19 +372,14 @@ const getMyReportById = async (reportId, userId) => {
     throw { statusCode: 403, message: "You do not have access to this report" };
   }
 
-  const [photos] = await pool.query(
-    "SELECT * FROM report_photos WHERE report_id = ? ORDER BY created_at ASC",
-    [reportId],
-  );
+  const [[photos], [history]] = await Promise.all([
+    pool.query("SELECT * FROM report_photos WHERE report_id = ? ORDER BY created_at ASC", [reportId]),
+    pool.query("SELECT h.*, u.full_name AS changed_by_name " +
+      "FROM report_status_history h " +
+      "LEFT JOIN users u ON u.id = h.changed_by " +
+      "WHERE h.report_id = ? ORDER BY h.created_at ASC", [reportId]),
+  ]);
   report.photos = photos;
-
-  const [history] = await pool.query(
-    "SELECT h.*, u.full_name AS changed_by_name " +
-    "FROM report_status_history h " +
-    "LEFT JOIN users u ON u.id = h.changed_by " +
-    "WHERE h.report_id = ? ORDER BY h.created_at ASC",
-    [reportId],
-  );
   report.status_history = history;
 
   return report;

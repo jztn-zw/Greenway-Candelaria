@@ -8,6 +8,42 @@ const service = require("./reports.service");
 
 after(() => { mock.restoreAll(); return pool.end(); });
 
+test('resident report page overlaps photo/history reads after counting and clamping its owner-scoped page', async () => {
+  const original = pool.query, started = [];
+  let photosDone, historyDone;
+  const photos = new Promise(resolve => { photosDone = resolve; }), history = new Promise(resolve => { historyDone = resolve; });
+  pool.query = async (sql, params) => {
+    if (sql.startsWith('SELECT COUNT')) return [[{ total: 1 }]];
+    if (sql.includes('FROM reports r')) { assert.deepEqual(params, ['resident', 15, 0]); return [[{ id: 'mine' }]]; }
+    started.push(sql); assert.deepEqual(params, [['mine']]);
+    return sql.includes('report_photos') ? photos : history;
+  };
+  const pending = service.getMyReports('resident', { page: 9, limit: 15 });
+  try { await new Promise(setImmediate); assert.equal(started.length, 2); }
+  finally { photosDone([[{ id: 'photo', report_id: 'mine' }]]); historyDone([[{ id: 'history', report_id: 'mine' }]]); await pending; pool.query = original; }
+  const page = await pending;
+  assert.equal(page.page, 1); assert.equal(page.totalPages, 1); assert.equal(page.reports[0].photos[0].id, 'photo'); assert.equal(page.reports[0].status_history[0].id, 'history');
+});
+
+test('resident report details authorize ownership before overlapping child reads', async () => {
+  const original = pool.query, started = [];
+  let photosDone, historyDone;
+  const photos = new Promise(resolve => { photosDone = resolve; }), history = new Promise(resolve => { historyDone = resolve; });
+  pool.query = async (sql, params) => {
+    if (sql.includes('FROM reports r')) return [[{ id: params[0], user_id: params[0] === 'mine' ? 'resident' : 'someone-else' }]];
+    started.push(sql); assert.deepEqual(params, ['mine']);
+    return sql.includes('report_photos') ? photos : history;
+  };
+  let pending;
+  try {
+    await assert.rejects(service.getMyReportById('other', 'resident'), error => error.statusCode === 403);
+    assert.equal(started.length, 0);
+    pending = service.getMyReportById('mine', 'resident');
+    await new Promise(setImmediate); assert.equal(started.length, 2);
+  } finally { photosDone([[{ id: 'photo' }]]); historyDone([[{ id: 'history' }]]); await pending; pool.query = original; }
+  const report = await pending; assert.equal(report.photos[0].id, 'photo'); assert.equal(report.status_history[0].id, 'history');
+});
+
 test("resident history pages search location/type fields while retaining owner and status scope", async () => {
   const originalQuery = pool.query;
   const statements = [];

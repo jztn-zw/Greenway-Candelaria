@@ -7,6 +7,47 @@ const { createPostSchema, updatePostSchema } = require("./posts.schema");
 
 after(() => pool.end());
 
+test('authorized post detail starts its independent images, tags and reaction reads together', async () => {
+  const original = pool.query, started = new Set(), waiting = new Map();
+  const values = { images: [[{ url: 'https://fixture.invalid/photo.jpg' }]], tags: [[{ tag: 'recycling' }]], liked: [[{ id: 'like' }]] };
+  for (const key of Object.keys(values)) { let resolve; const promise = new Promise(done => { resolve = done; }); waiting.set(key, { promise, resolve }); }
+  pool.query = async (sql, params) => {
+    if (sql.includes('WHERE p.id = ?')) return [[{ id: 'post', status: 'PUBLISHED', created_by: 'admin' }]];
+    assert.deepEqual(params, sql.includes('post_likes') ? ['post', 'resident'] : ['post']);
+    const key = sql.includes('post_images') ? 'images' : sql.includes('post_tags') ? 'tags' : 'liked';
+    started.add(key); return waiting.get(key).promise;
+  };
+  const pending = posts.getById('post', 'resident', 'RESIDENT');
+  try {
+    await new Promise(setImmediate);
+    assert.deepEqual([...started].sort(), ['images', 'liked', 'tags']);
+  } finally { for (const [key, value] of waiting) value.resolve(values[key]); await pending; pool.query = original; }
+  const result = await pending;
+  assert.deepEqual(result.images, ['https://fixture.invalid/photo.jpg']); assert.deepEqual(result.tags, ['recycling']); assert.equal(result.is_liked, true);
+});
+
+test('post page image and tag reads overlap while hidden post details reject before child reads', async () => {
+  const original = pool.query, started = [];
+  let imagesDone, tagsDone;
+  const images = new Promise(resolve => { imagesDone = resolve; }), tags = new Promise(resolve => { tagsDone = resolve; });
+  pool.query = async (sql, params) => {
+    if (sql.includes('scheduled_at <= NOW()')) return [[]];
+    if (sql.includes('WHERE p.id = ?')) return [[{ id: 'hidden', status: 'DRAFT', created_by: 'other' }]];
+    if (sql.includes('COUNT(*) AS total')) return [[{ total: 1 }]];
+    if (sql.includes('FROM posts p')) return [[{ id: 'post', is_liked: 0 }]];
+    started.push(sql); assert.deepEqual(params, ['post']);
+    return sql.includes('post_images') ? images : tags;
+  };
+  const pending = posts.getAll({ page: 1, limit: 3, sort: 'newest' }, 'resident', 'RESIDENT');
+  try {
+    await new Promise(setImmediate); assert.equal(started.length, 2);
+    await assert.rejects(posts.getById('hidden', 'resident', 'RESIDENT'), error => error.statusCode === 404);
+    assert.equal(started.length, 2);
+  } finally { imagesDone([[{ post_id: 'post', url: 'image' }]]); tagsDone([[{ post_id: 'post', tag: 'tip' }]]); await pending; pool.query = original; }
+  const page = await pending;
+  assert.equal(page.total, 1); assert.equal(page.page, 1); assert.deepEqual(page.posts[0].images, ['image']); assert.deepEqual(page.posts[0].tags, ['tip']);
+});
+
 // Model the posts table after the source column has been removed. Reject SQL
 // that refers to it or supplies a different number of values than placeholders.
 const withDatabase = async (run) => {

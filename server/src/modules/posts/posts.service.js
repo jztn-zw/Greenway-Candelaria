@@ -61,30 +61,15 @@ const getById = async (id, userId = null, userRole = null, bypassStatusCheck = f
     throw { statusCode: 404, message: "Post not found" };
   }
 
-  // Attach images
-  const [imageRows] = await pool.query(
-    "SELECT url FROM post_images WHERE post_id = ? ORDER BY stop_order ASC",
-    [id],
-  );
+  // These independent reads start only after the post's visibility is checked.
+  const [[imageRows], [tags], [liked]] = await Promise.all([
+    pool.query("SELECT url FROM post_images WHERE post_id = ? ORDER BY stop_order ASC", [id]),
+    pool.query("SELECT tag FROM post_tags WHERE post_id = ?", [id]),
+    userId ? pool.query("SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?", [id, userId]) : Promise.resolve([[]]),
+  ]);
   post.images = imageRows.map((img) => img.url);
-
-  // Attach tags
-  const [tags] = await pool.query(
-    "SELECT tag FROM post_tags WHERE post_id = ?",
-    [id],
-  );
   post.tags = tags.map((t) => t.tag);
-
-  if (userId) {
-    const [liked] = await pool.query(
-      "SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?",
-      [id, userId],
-    );
-    post.is_liked = liked.length > 0;
-
-  } else {
-    post.is_liked = false;
-  }
+  post.is_liked = liked.length > 0;
 
   return post;
 };
@@ -245,14 +230,10 @@ const getAll = async (filters = {}, userId = null, userRole = null) => {
 
   if (postIds.length > 0) {
     const placeholders = postIds.map(() => "?").join(",");
-    const [imageRows] = await pool.query(
-      `SELECT post_id, url FROM post_images WHERE post_id IN (${placeholders}) ORDER BY post_id, stop_order ASC`,
-      postIds,
-    );
-    const [tagRows] = await pool.query(
-      `SELECT post_id, tag FROM post_tags WHERE post_id IN (${placeholders}) ORDER BY post_id, created_at ASC`,
-      postIds,
-    );
+    const [[imageRows], [tagRows]] = await Promise.all([
+      pool.query(`SELECT post_id, url FROM post_images WHERE post_id IN (${placeholders}) ORDER BY post_id, stop_order ASC`, postIds),
+      pool.query(`SELECT post_id, tag FROM post_tags WHERE post_id IN (${placeholders}) ORDER BY post_id, created_at ASC`, postIds),
+    ]);
     for (const image of imageRows) {
       imagesByPost.set(image.post_id, [...(imagesByPost.get(image.post_id) || []), image.url]);
     }
