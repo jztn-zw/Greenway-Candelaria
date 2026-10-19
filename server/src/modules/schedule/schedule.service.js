@@ -24,7 +24,7 @@ const collectorScheduleNotificationBody = (eventDate, endDate, description) => {
   const start = formatCalendarDate(eventDate);
   const end = endDate && endDate !== eventDate ? ` through ${formatCalendarDate(endDate)}` : "";
   const details = typeof description === "string" ? description.trim() : "";
-  return `Scheduled for ${start}${end}.${details ? `\n\nDetails: ${details}` : ""}`;
+  return `Scheduled for ${start}${end}.${details ? `\n${details}` : ""}`;
 };
 
 const getCurrentAppDate = () => {

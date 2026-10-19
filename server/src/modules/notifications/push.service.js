@@ -1,5 +1,10 @@
 const { pool } = require('../../config/db');
 const hashSessionToken = require('../../utils/hashSessionToken');
+const { mobileNotificationPresentation } = require('./mobileNotificationPresentation');
+const preview = (value, limit) => {
+  const characters = Array.from(value);
+  return characters.slice(0, limit).join('') + (characters.length > limit ? '…' : '');
+};
 const validToken = value => typeof value === 'string' && /^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]{1,200}\]$/.test(value);
 const fail = (message, statusCode = 400) => { throw { statusCode, message }; };
 const residentPushTypes = new Set(['COLLECTION_REMINDER', 'TRUCK_IS_NEAR', 'COLLECTION_DONE', 'REPORT_UPDATE', 'NEW_POST', 'ANNOUNCEMENT', 'MISSED_COLLECTION', 'SYSTEM']);
@@ -9,18 +14,6 @@ const residentPreferences = {
   COLLECTION_DONE: 'notif_collection_done', MISSED_COLLECTION: 'notif_collection_skipped',
   REPORT_UPDATE: 'notif_report_updates',
 };
-const residentTitles = {
-  REPORT_UPDATE: 'Report update', NEW_POST: 'Community update', ANNOUNCEMENT: 'Community announcement',
-  COLLECTION_REMINDER: 'Collection reminder', TRUCK_IS_NEAR: 'Collection update',
-  COLLECTION_DONE: 'Collection update', MISSED_COLLECTION: 'Collection update', SYSTEM: 'GreenWay update',
-};
-const formatScheduleDate = value => {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
-  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
-};
-
 async function sessionId(user, token) {
   if (!['DRIVER', 'RESIDENT'].includes(user.role)) fail('Mobile push is unavailable for this account', 403);
   const [rows] = await pool.query('SELECT id FROM sessions WHERE user_id = ? AND token IN (?, ?) AND expires_at > NOW()', [user.id, hashSessionToken(token), token]);
@@ -88,21 +81,11 @@ async function sendMobilePushAlert(notification) {
         AND ((u.role = 'DRIVER' AND ? = 1) OR (u.role = 'RESIDENT' AND ? = 1))${preferenceFilter}
       ORDER BY p.updated_at DESC LIMIT 20`, [notification.user_id, Number(driverEligible), Number(residentEligible)]);
     if (!devices.length) return;
-    const scheduleTitle = String(notification.title || 'MENRO calendar schedule').trim();
-    const startDate = isSchedule ? formatScheduleDate(notification.metadata?.event_date) : null;
-    const endDate = isSchedule && notification.metadata?.end_date !== notification.metadata?.event_date
-      ? formatScheduleDate(notification.metadata?.end_date) : null;
-    const eventDate = startDate ? `${startDate}${endDate ? ` through ${endDate}` : ''}` : null;
-    const messageCharacters = isDriverMessage ? Array.from(String(notification.body || '').trim()) : [];
-    const messagePreview = messageCharacters.slice(0, 240).join('') + (messageCharacters.length > 240 ? '…' : '');
     const tickets = await expoRequest('send', devices.map(device => {
       const resident = device.role === 'RESIDENT';
-      const title = resident
-        ? (Object.hasOwn(residentTitles, notification.type) ? residentTitles[notification.type] : 'GreenWay update')
-        : isSchedule ? 'New MENRO Calendar Schedule' : 'New dispatch message';
-      const body = resident
-        ? 'Open GreenWay Resident to view this update.'
-        : isSchedule ? `${scheduleTitle}${eventDate ? ` — ${eventDate}` : ''}` : messagePreview || 'Open GreenWay to read your new message from dispatch.';
+      const copy = mobileNotificationPresentation(notification, resident ? 'RESIDENT' : 'DRIVER');
+      // Bound Unicode previews so long inbox messages fit the provider payload.
+      const title = preview(copy.title, 160), body = preview(copy.message, 240);
       return {
         to: device.token, title, body, sound: 'default', priority: 'high',
         channelId: resident ? 'resident-alerts' : isSchedule ? 'menro-calendar' : 'dispatch-messages', ttl: 3600,
@@ -110,7 +93,8 @@ async function sendMobilePushAlert(notification) {
           ? { notification_id: notification.id, destination: 'notifications' }
           : isSchedule ? {
             user_id: notification.user_id, notification_id: notification.id, ref_module: 'schedule',
-            destination: 'notifications', notification_title: scheduleTitle, notification_body: notification.body || '',
+            destination: 'notifications', notification_title: preview(String(notification.title || '').trim(), 160),
+            notification_body: preview(String(notification.body || '').trim(), 240),
           } : { user_id: notification.user_id, notification_id: notification.id, destination: 'messages' },
       };
     }));

@@ -243,7 +243,7 @@ test("creating a private MENRO schedule notifies active collectors through the s
     assert.deepEqual(insert.params[0].map((row) => row[1]), ["collector-1", "collector-2"]);
     assert.equal(insert.params[0][0][2], "SYSTEM");
     assert.equal(insert.params[0][0][6], "schedule");
-    assert.equal(insert.params[0][0][4], "Scheduled for January 1, 2099 through January 3, 2099.\n\nDetails: Review route updates.");
+    assert.equal(insert.params[0][0][4], "Scheduled for January 1, 2099 through January 3, 2099.\nReview route updates.");
     assert.ok(events.indexOf("commit") < events.indexOf("emit"));
     assert.equal(emitted.length, 2);
   } finally {

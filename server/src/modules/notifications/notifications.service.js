@@ -350,23 +350,25 @@ const getMyNotifications = async (userId, filters = {}) => {
      ${excludeUnavailablePostNotifications}
      ${hideAdminCollectorMessages}
      ${filterQuery}`;
-  let countResult;
-  if (webHistory) {
-    [countResult] = await pool.query(countSql, countParams);
-    const total = Number(countResult[0].total);
-    if (offset >= total) offset = Math.max(0, (Math.ceil(total / limit) - 1) * limit);
-    params[params.length - 1] = offset;
-  }
-  const [rows] = await pool.query(query, params);
-  if (!countResult) [countResult] = await pool.query(countSql, countParams);
-  let summary;
-  if (webHistory) {
-    const [counts] = await pool.query(`SELECT COUNT(*) AS history_total,
+  const summarySql = `SELECT COUNT(*) AS history_total,
       COALESCE(SUM(n.is_read = FALSE), 0) AS unread_count,
       COALESCE(SUM(n.is_read = FALSE AND (n.type = 'NEW_POST' OR n.ref_module = 'posts')), 0) AS unread_content_count,
       COALESCE(SUM(n.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND n.created_at <= NOW()), 0) AS recent_count
-      FROM notifications n WHERE n.user_id = ? ${excludeExpiredAnnouncementNotifications} ${excludeUnavailablePostNotifications} ${hideAdminCollectorMessages}`, [userId]);
+      FROM notifications n WHERE n.user_id = ? ${excludeExpiredAnnouncementNotifications} ${excludeUnavailablePostNotifications} ${hideAdminCollectorMessages}`;
+  let countResult, rows, summary;
+  if (webHistory) {
+    // Counts are independent; rows still need the total to clamp a deleted page.
+    let counts;
+    [[countResult], [counts]] = await Promise.all([
+      pool.query(countSql, countParams), pool.query(summarySql, [userId]),
+    ]);
+    const total = Number(countResult[0].total);
+    if (offset >= total) offset = Math.max(0, (Math.ceil(total / limit) - 1) * limit);
+    params[params.length - 1] = offset;
+    [rows] = await pool.query(query, params);
     summary = { history_total: Number(counts[0].history_total), unread_count: Number(counts[0].unread_count), unread_content_count: Number(counts[0].unread_content_count), recent_count: Number(counts[0].recent_count) };
+  } else {
+    [[rows], [countResult]] = await Promise.all([pool.query(query, params), pool.query(countSql, countParams)]);
   }
 
   const paged = filters.category !== undefined;

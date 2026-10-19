@@ -162,3 +162,24 @@ test("the read endpoint preserves the post scope and uses the authenticated owne
     assert.equal(queried, true);
   } finally { pool.query = original; }
 });
+
+
+test('independent inbox counts overlap while the row query still waits for page clamping', async () => {
+  const original = pool.query, started = []; let countDone, summaryDone;
+  pool.query = (sql, params) => {
+    if (sql.includes('AS history_total')) { started.push('summary'); return new Promise(resolve => { summaryDone = () => resolve([[{ history_total: 16, unread_count: 2 }]]); }); }
+    if (sql.includes('COUNT(*) AS total')) { started.push('count'); return new Promise(resolve => { countDone = () => resolve([[{ total: 16 }]]); }); }
+    started.push('rows'); assert.equal(params.at(-1), 15); return Promise.resolve([[{ id: 'last' }]]);
+  };
+  try {
+    const pending = service.getMyNotifications('fixture', { web_category: 'all', limit: 15, offset: 45 });
+    await Promise.resolve();
+    const overlapped = started.includes('count') && started.includes('summary') && !started.includes('rows');
+    countDone(); await Promise.resolve(); await Promise.resolve();
+    // Always release the mocked reads, including on the pre-fix sequential flow.
+    for (let i = 0; i < 8 && !summaryDone; i++) await Promise.resolve();
+    summaryDone?.();
+    const result = await pending;
+    assert.equal(overlapped, true); assert.equal(result.offset, 15); assert.equal(result.unread_count, 2);
+  } finally { pool.query = original; }
+});
