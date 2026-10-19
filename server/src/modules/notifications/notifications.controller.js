@@ -37,7 +37,8 @@ const markAsRead = async (req, res, next) => {
 
 const markAllAsRead = async (req, res, next) => {
   try {
-    const result = await service.markAllAsRead(req.user.id, req.body?.category, req.body?.post_id);
+    const result = await service.markAllAsRead(req.user.id, req.body?.category, req.body?.post_id,
+      req.user.role === 'DRIVER' && req.body?.exclude_messages === true);
     return success(res, result, "All notifications marked as read");
   } catch (err) {
     next(err);

@@ -315,6 +315,10 @@ const getMyNotifications = async (userId, filters = {}) => {
       "resident:reports": "n.type = 'REPORT_UPDATE'",
       "resident:content": "n.type = 'NEW_POST'",
       "resident:announcements": "n.type = 'ANNOUNCEMENT'",
+      "resident:official-announcements": "n.type = 'ANNOUNCEMENT' AND COALESCE(n.ref_module, '') <> 'schedule'",
+      "resident:calendar": "n.ref_module = 'schedule'",
+      "collector:calendar": "n.ref_module = 'schedule'",
+      "collector:dispatch": "n.ref_module IN ('drivers','trucks','truck-breakdowns')",
     };
     if (!Object.hasOwn(categories, filters.web_category)) throw { statusCode: 400, message: "Invalid notification category" };
     filterQuery += ` AND ${categories[filters.web_category]}`;
@@ -426,13 +430,13 @@ const markAsRead = async (id, userId) => {
 
 // ─── Mark All as Read ──────────────────────────────────────
 
-const markAllAsRead = async (userId, category, postId) => {
+const markAllAsRead = async (userId, category, postId, excludeMessages = false) => {
   if (category !== undefined && category !== "content") throw { statusCode: 400, message: "Invalid notification category" };
   if (postId !== undefined && (category !== "content" || typeof postId !== "string" || !postId.trim())) {
     throw { statusCode: 400, message: "Invalid post notification scope" };
   }
   await pool.query(
-    `UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE${category === "content" ? " AND (type = 'NEW_POST' OR ref_module = 'posts')" : ""}${postId !== undefined ? " AND ref_id = ?" : ""}`,
+    `UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE${excludeMessages ? " AND COALESCE(ref_module, '') <> 'driver-messages'" : ""}${category === "content" ? " AND (type = 'NEW_POST' OR ref_module = 'posts')" : ""}${postId !== undefined ? " AND ref_id = ?" : ""}`,
     postId !== undefined ? [userId, postId] : [userId],
   );
 
@@ -451,7 +455,7 @@ const deleteOne = async (id, userId) => {
     throw { statusCode: 404, message: "Notification not found" };
   }
 
-  await pool.query("DELETE FROM notifications WHERE id = ?", [id]);
+  await pool.query("DELETE FROM notifications WHERE id = ? AND user_id = ?", [id, userId]);
 
   return { message: "Notification deleted" };
 };
