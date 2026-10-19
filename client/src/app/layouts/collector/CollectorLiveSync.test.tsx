@@ -42,6 +42,21 @@ it("messages from another account are ignored; own dispatch messages refresh not
   await act(async () => { socket.listeners.get("notification:new")!({ user_id: "collector", ref_module: "driver-messages" }); await vi.advanceTimersByTimeAsync(300); });
   expect(messages.read).toHaveBeenCalledTimes(1); expect(notices.read).toHaveBeenCalledTimes(1); expect(schedule.read).not.toHaveBeenCalled();
 });
+it("private chat and read hints refresh the conversation independently of notification delivery", async () => {
+  const messages = observe("messenger"); const schedule = observe("schedule"); const routes = observe("routes");
+  await mount();
+  await act(async () => {
+    socket.listeners.get("collector:data-changed")!({ domains: ["messenger"], ownerId: "other" });
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(messages.read).not.toHaveBeenCalled();
+  await act(async () => {
+    socket.listeners.get("collector:data-changed")!({ domains: ["messenger"], ownerId: "collector" });
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(messages.read).toHaveBeenCalledTimes(1);
+  expect(schedule.read).not.toHaveBeenCalled(); expect(routes.read).not.toHaveBeenCalled();
+});
 it("hidden tabs defer fallback reads and reconcile when visible", async () => {
   const notices = observe("notifications"); await mount(); visible = false;
   await act(async () => { await vi.advanceTimersByTimeAsync(60_300); }); expect(notices.read).not.toHaveBeenCalled();

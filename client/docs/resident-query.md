@@ -6,6 +6,11 @@ and tracking HTTP reads now use TanStack Query. Resident setup also uses account
 scoped queries for barangay/street choices and a managed profile mutation.
 Mobile apps are outside this change.
 
+The Resident mobile app now also consumes this existing data channel for report,
+community, calendar and route/collection refreshes. Private deliveries include
+`ownerId`; mobile checks it before refreshing owner data. Shared HTTP visibility
+and server session reauthorization still control every read and delivery.
+
 ## Refresh behavior
 
 - Successful report creation, status/response changes, flag resolution, linked
@@ -83,13 +88,13 @@ does not encrypt them or protect them from another person with access to the bro
 Initial failures show the existing error UI; background failures retain the last
 successful data where possible. Deleted/inaccessible report and post details are
 not kept visible after a 403/404. Ordinary refreshes do not change delivery
-preferences. After the announcement initialization-marker migration, a completed
-resident's first inbox or unread-count read performs one atomic catch-up for
-eligible active notices broadcast before signup. The durable marker prevents
-subsequent reads from restoring cleared alerts. Existing records/read receipts,
-barangay targeting and account authorization are respected. Phone alert switches
-do not suppress the durable inbox. This
-server behavior is shared with the Resident app.
+preferences. A resident's first inbox or unread-count read initializes the
+announcement marker without replaying announcements published before signup.
+Historical rows tagged `metadata.catch_up = true` are excluded from resident
+inbox pages and counts; stored records and read receipts are preserved. New
+announcement delivery still respects barangay targeting and account authorization.
+Phone alert switches do not suppress the durable inbox. This server behavior is
+shared with the Resident app, which also filters incoming inbox rows by owner ID.
 
 Resident notification preferences are saved to the account so the API can suppress
 phone push delivery while the app is closed. Turning off a category or all phone

@@ -99,6 +99,11 @@ preferences or successful notification delivery.
   filters or pagination, and close after a 403/404. A loaded replay observes GPS
   history every 60 seconds while paused; new data preserves the current recorded
   instant. Playback and video export keep a stable snapshot until they stop.
+- Dispatch conversation saves and collector/admin read confirmations also publish
+  private collector hints after saving. The collector web client accepts only its
+  matching owner ID and refreshes chat even when notification alerts are disabled.
+  Collector receipt writes refresh admin messenger/tracking caches without waking
+  unrelated dashboards or assignments. The mobile Driver uses the same channel.
 - Events contain domain names only. The server authenticates the admin both on
   subscription and delivery, removing revoked sessions. Residents and collectors
   cannot join this stream. Normal API authorization still controls every refetch.

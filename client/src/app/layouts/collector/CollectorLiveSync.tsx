@@ -15,10 +15,11 @@ const CollectorLiveSync = () => {
     const socket = io((import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin).replace(/\/api\/?$/, ""), { auth: { token }, withCredentials: true, autoConnect: false });
     socket.on("connect", () => { socket.emit("notifications:join_user"); socket.emit("collector:subscribe"); });
     socket.on("collector:ready", sync.reconcile);
-    socket.on("collector:data-changed", (payload: { domains?: string[] }) => {
+    socket.on("collector:data-changed", (payload: { domains?: string[]; ownerId?: string } | null) => {
       const domains = payload?.domains;
       if (!Array.isArray(domains)) return;
       if (domains.includes("schedule")) sync.changed(["schedule"]);
+      if (domains.includes("messenger") && payload?.ownerId === userId) sync.changed(["messenger"]);
       if (domains.some((domain) => ["routes", "drivers", "trucks", "barangays"].includes(domain))) sync.changed(["profile", "routes", "history"]);
     });
     socket.on("notification:new", (row: NotificationRow) => {
