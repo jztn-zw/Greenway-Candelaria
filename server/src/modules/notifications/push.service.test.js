@@ -4,6 +4,51 @@ const { pool } = require('../../config/db');
 const service = require('./push.service');
 after(() => pool.end());
 const token = 'ExpoPushToken[fixture-device]';
+
+test('provider rejections report a safe error code without exposing device or notification content', async () => {
+  const originalQuery = pool.query, originalFetch = global.fetch, originalWarn = console.warn;
+  const previous = process.env.EXPO_PUSH_ENABLED, warnings = [];
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async () => [[{ token, user_id: 'resident', session_id: 'session-id', role: 'RESIDENT' }]];
+  console.warn = (...args) => warnings.push(args.join(' '));
+  try {
+    for (const [error, expected] of [['InvalidCredentials', 'InvalidCredentials'], [token, 'UnknownProviderError']]) {
+      global.fetch = async () => ({ ok: true, json: async () => ({ data: [{ status: 'error',
+        message: `Private message for ${token}`, details: { error } }] }) });
+      await service.sendMobilePushAlert({ id: 'private-id', user_id: 'resident', type: 'ANNOUNCEMENT', body: 'Private notification' });
+      assert.match(warnings.at(-1) || '', new RegExp(`ticket rejected \\(${expected}\\)`));
+    }
+    assert.equal(warnings.some(line => /fixture-device|private-id|Private message|Private notification/.test(line)), false);
+  } finally {
+    pool.query = originalQuery; global.fetch = originalFetch; console.warn = originalWarn;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;
+    else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});
+
+test('delayed receipt credential failures are visible without deleting a valid registration', async () => {
+  const originalQuery = pool.query, originalFetch = global.fetch, originalWarn = console.warn, originalTimeout = global.setTimeout;
+  const previous = process.env.EXPO_PUSH_ENABLED, warnings = [];
+  let checkReceipts, writes = 0;
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async sql => { if (!sql.startsWith('SELECT')) writes++; return [[{ token, user_id: 'driver', session_id: 'session-id', role: 'DRIVER' }]]; };
+  console.warn = (...args) => warnings.push(args.join(' '));
+  global.setTimeout = callback => { checkReceipts = callback; return { unref() {} }; };
+  global.fetch = async url => ({ ok: true, json: async () => url.endsWith('/send')
+    ? { data: [{ status: 'ok', id: 'fixture-receipt' }] }
+    : { data: { 'fixture-receipt': { status: 'error', details: { error: 'MismatchSenderId' }, message: token } } } });
+  try {
+    await service.sendMobilePushAlert({ id: 'notice', user_id: 'driver', ref_module: 'driver-messages' });
+    await checkReceipts();
+    assert.match(warnings.join(' '), /receipt rejected \(MismatchSenderId\)/);
+    assert.equal(warnings.join(' ').includes(token), false);
+    assert.equal(writes, 0);
+  } finally {
+    pool.query = originalQuery; global.fetch = originalFetch; console.warn = originalWarn; global.setTimeout = originalTimeout;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;
+    else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});
 test('registration rejects malformed tokens and unsupported account roles', async () => {
   await assert.rejects(service.register({id:'user',role:'DRIVER'}, 'session', {token:'bad',platform:'android',enabled:true}), e => e.statusCode === 400);
   await assert.rejects(service.register({id:'user',role:'ADMIN'}, 'session', {token,platform:'android',enabled:true}), e => e.statusCode === 403);

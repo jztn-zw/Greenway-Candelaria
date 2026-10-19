@@ -51,7 +51,13 @@ async function expoRequest(path, payload) {
   if (!response.ok) throw new Error('Push provider unavailable');
   return (await response.json()).data;
 }
-async function removeInvalid(result, device) {
+const providerErrorCodes = new Set(['DeviceNotRegistered', 'MessageTooBig', 'MessageRateExceeded', 'MismatchSenderId', 'InvalidCredentials']);
+async function removeInvalid(result, device, stage = 'ticket') {
+  if (result?.status === 'error') {
+    // Provider messages can contain tokens or private payloads. Log only known codes.
+    const code = providerErrorCodes.has(result.details?.error) ? result.details.error : 'UnknownProviderError';
+    console.warn(`Mobile push ${stage} rejected (${code}); notification remains in inbox.`);
+  }
   if (result?.details?.error === 'DeviceNotRegistered') {
     await pool.query('DELETE FROM mobile_push_devices WHERE token = ? AND user_id = ? AND session_id = ?', [device.token, device.user_id, device.session_id]);
   }
@@ -118,7 +124,7 @@ async function sendMobilePushAlert(notification) {
       const timer = setTimeout(async () => {
         try {
           const results = await expoRequest('getReceipts', { ids: [...receipts.keys()] });
-          for (const [id, result] of Object.entries(results || {})) if (receipts.has(id)) await removeInvalid(result, receipts.get(id));
+          for (const [id, result] of Object.entries(results || {})) if (receipts.has(id)) await removeInvalid(result, receipts.get(id), 'receipt');
         } catch { console.warn('Mobile push receipt check failed; notification remains in inbox.'); }
       }, 15 * 60 * 1000);
       timer.unref();
