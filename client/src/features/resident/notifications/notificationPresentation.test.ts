@@ -64,7 +64,7 @@ describe("resident notification presentation", () => {
     expect(getResidentNotificationPresentation(notification({
       type: "ANNOUNCEMENT", ref_module: "schedule", title: "Barangay clean-up", body: "Scheduled for 2099-01-01.",
     }))).toEqual({
-      headline: { prefix: "MENRO Candelaria", connector: "added a calendar event:", highlight: "Barangay clean-up" },
+      headline: { prefix: "MENRO Candelaria", connector: "added a new calendar event:", highlight: "Barangay clean-up" },
       message: "Scheduled for 2099-01-01.",
     });
   });

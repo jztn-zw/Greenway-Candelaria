@@ -14,6 +14,21 @@ const getMetadata = (notification: NotificationRow): Record<string, unknown> => 
   }
 };
 
+export const formatScheduleNotificationMessage = (message: string) => {
+  const match = message.match(/^Scheduled for (\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?(?:\s+—\s+([\s\S]*))?$/i);
+  if (!match) return message.replace(/\r?\n\s*Details:\s*/i, '\n');
+  const formatDate = (value: string) => {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return "";
+    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" }).format(date);
+  };
+  const start = formatDate(match[1]);
+  const end = match[2] ? formatDate(match[2]) : "";
+  if (!start || (match[2] && !end)) return message;
+  const details = match[3]?.trim();
+  return `Scheduled for ${start}${end ? ` through ${end}` : ""}.${details ? `\n${details}` : ""}`;
+};
+
 /** Reads a safe calendar date from a schedule notification for its deep link. */
 export const getResidentScheduleNotificationDate = (notification: NotificationRow): string | null => {
   if (notification.ref_module !== "schedule") return null;
@@ -36,8 +51,8 @@ export const getResidentNotificationPresentation = (notification: NotificationRo
 
   if (notification.ref_module === "schedule") {
     return {
-      headline: { prefix: "MENRO Candelaria", connector: "added a calendar event:", highlight: title || "Calendar Schedule" },
-      message,
+      headline: { prefix: "MENRO Candelaria", connector: "added a new calendar event:", highlight: title || "Calendar Schedule" },
+      message: formatScheduleNotificationMessage(message),
     };
   }
 

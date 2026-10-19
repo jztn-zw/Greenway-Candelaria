@@ -31,7 +31,7 @@ it("presents MENRO schedule alerts with their calendar destination and visual", 
     headline: { prefix: "MENRO Candelaria", connector: "added a new calendar event:", highlight: "MENRO briefing" }, message: row.body,
   });
   expect(getCollectorNotificationPresentation({ ...row, ref_module: "schedule", body: "Scheduled for 2026-10-18 to 2026-10-20 — Route planning." }).message)
-    .toBe("Scheduled for October 18, 2026 through October 20, 2026.\n\nDetails: Route planning.");
+    .toBe("Scheduled for October 18, 2026 through October 20, 2026.\nRoute planning.");
   expect(getCollectorNotificationVisual({ ...row, ref_module: "schedule" }).Icon).toBe(CalendarClock);
 });
 
