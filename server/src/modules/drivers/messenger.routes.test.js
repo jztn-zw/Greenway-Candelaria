@@ -11,7 +11,7 @@ require.cache[authPath].exports = (req, res, next) => {
 };
 const messenger = require("./messenger.service");
 const calls = [];
-messenger.findDriver = async (...args) => { calls.push(args); return { id: args[1] || "own-driver", user_id: args[0] }; };
+messenger.findDriver = async (...args) => { calls.push(args); return { id: args[1] || "own-driver", user_id: args[1] ? "selected-collector" : args[0] }; };
 messenger.getConversation = async () => ({ items: [], target: null, nextCursor: null, unreadCount: 0 });
 messenger.sendMessage = async () => ({ id: "saved", message: "Hello" });
 messenger.getAdminUnread = async () => ({ unreadCount: 2, byDriver: [] });
@@ -48,7 +48,7 @@ test("admin read receipts resolve the selected collector and authenticated admin
   assert.equal(summary.status, 200); assert.equal((await summary.json()).data.unreadCount, 2);
   const response = await request("/drivers/driver/messages/conversation/read", "ADMIN", { method: "PUT", headers: { "x-test-user": "admin" }, body: JSON.stringify({ ids: ["message"], user_id: "other-admin" }) });
   assert.equal(response.status, 200); assert.deepEqual(calls, [["admin", "driver"]]);
-  assert.deepEqual(reads, [["driver", "admin", ["message"]]]);
+  assert.deepEqual(reads, [["driver", "admin", ["message"], "selected-collector"]]);
 });
 test("admin send requests select the named collector without requiring route data", async () => {
   calls.length = 0;

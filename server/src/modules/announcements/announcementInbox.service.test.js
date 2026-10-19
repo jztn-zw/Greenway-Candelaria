@@ -21,7 +21,10 @@ function fixture({ enabled = 1, initialized = null, locked = {}, fail = false } 
         assert.deepEqual([...params], [user.created_at, 'area', 'resident', 'resident']);
         return [[{ id: 'notice', title: 'Notice', body: 'Body', type: 'GENERAL_NOTICE' }]];
       }
-      if (sql.startsWith('UPDATE users')) { calls.push('marker'); user.announcement_inbox_initialized_at = 'initialized'; return [{}]; }
+      if (sql.startsWith('UPDATE users')) {
+        if (fail) throw Error('Fixture initialization failed');
+        calls.push('marker'); user.announcement_inbox_initialized_at = 'initialized'; return [{}];
+      }
       throw Error('Unexpected query');
     },
   };
@@ -41,23 +44,22 @@ function fixture({ enabled = 1, initialized = null, locked = {}, fail = false } 
   return { run: (value = viewer) => module.exports.initializeResidentAnnouncements(value), viewer, user, calls, deliveries, hints };
 }
 
-test('catch-up saves eligible pre-signup notices and commits before the owner-only hint', async () => {
+test('first inbox read initializes without replaying old announcements or sending alerts', async () => {
   const f = fixture(); await f.run();
   assert.deepEqual(f.calls, ['begin', 'marker', 'commit', 'release']);
-  assert.deepEqual([...f.deliveries[0].user_ids], ['resident']);
-  assert.equal(f.deliveries[0].ref_module, 'announcements');
-  assert.deepEqual(f.hints, [{ domains: ['notifications'], owner: 'resident' }]);
+  assert.equal(f.deliveries.length, 0);
+  assert.equal(f.hints.length, 0);
 });
 test('repeat initialization cannot restore a subsequently deleted notification', async () => {
   const f = fixture(); await f.run(); f.deliveries.length = 0; await f.run();
-  assert.equal(f.deliveries.length, 0); assert.equal(f.hints.length, 1);
+  assert.equal(f.deliveries.length, 0); assert.equal(f.hints.length, 0);
 });
-test('disabled phone alerts still receive the one-time announcement inbox catch-up', async () => {
+test('phone preferences do not cause historical announcement replay', async () => {
   const f = fixture({ enabled: 0 }); await f.run();
-  assert.equal(f.deliveries.length, 1); assert.ok(f.calls.includes('marker')); assert.equal(f.hints.length, 1);
+  assert.equal(f.deliveries.length, 0); assert.ok(f.calls.includes('marker')); assert.equal(f.hints.length, 0);
 });
-test('failed delivery rolls back without stamping completion or emitting a hint', async () => {
-  const f = fixture({ fail: true }); await assert.rejects(f.run(), /Fixture delivery failed/);
+test('failed initialization rolls back without stamping completion or emitting a hint', async () => {
+  const f = fixture({ fail: true }); await assert.rejects(f.run(), /Fixture initialization failed/);
   assert.deepEqual(f.calls, ['begin', 'rollback', 'release']); assert.equal(f.hints.length, 0);
 });
 test('unmigrated, incomplete and nonresident requests do not initialize an inbox', async () => {

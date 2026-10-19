@@ -4,6 +4,29 @@ const { pool } = require("../../config/db");
 const service = require("./notifications.service");
 after(() => pool.end());
 
+test('resident catch-up announcements are excluded consistently from history and badge counts', async () => {
+  const original = pool.query;
+  const queries = [];
+  pool.query = async (sql) => {
+    queries.push(sql);
+    if (sql.includes('AS history_total')) return [[{ history_total: 0, unread_count: 0, unread_content_count: 0, recent_count: 0 }]];
+    if (sql.includes('COUNT(*) AS total')) return [[{ total: 0 }]];
+    if (sql.includes('COUNT(*) AS count')) return [[{ count: 0 }]];
+    return [[]];
+  };
+  try {
+    await service.getMyNotifications('resident', { web_category: 'all' });
+    await service.getMyNotifications('resident', {});
+    await service.getUnreadCount('resident');
+    assert.ok(queries.length >= 5);
+    for (const sql of queries) {
+      assert.match(sql, /JSON_EXTRACT\(n.metadata, '\$\.catch_up'\)/);
+      assert.match(sql, /inbox_owner.role = 'RESIDENT'/);
+      assert.match(sql, /COALESCE\(JSON_UNQUOTE/);
+    }
+  } finally { pool.query = original; }
+});
+
 test("notification history returns the database UTC clock even when the history is empty", async () => {
   const original = pool.query;
   pool.query = async (sql) => {

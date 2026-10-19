@@ -87,6 +87,8 @@ async function sendMobilePushAlert(notification) {
     const endDate = isSchedule && notification.metadata?.end_date !== notification.metadata?.event_date
       ? formatScheduleDate(notification.metadata?.end_date) : null;
     const eventDate = startDate ? `${startDate}${endDate ? ` through ${endDate}` : ''}` : null;
+    const messageCharacters = isDriverMessage ? Array.from(String(notification.body || '').trim()) : [];
+    const messagePreview = messageCharacters.slice(0, 240).join('') + (messageCharacters.length > 240 ? '…' : '');
     const tickets = await expoRequest('send', devices.map(device => {
       const resident = device.role === 'RESIDENT';
       const title = resident
@@ -94,7 +96,7 @@ async function sendMobilePushAlert(notification) {
         : isSchedule ? 'New MENRO Calendar Schedule' : 'New dispatch message';
       const body = resident
         ? 'Open GreenWay Resident to view this update.'
-        : isSchedule ? `${scheduleTitle}${eventDate ? ` — ${eventDate}` : ''}` : 'Open GreenWay to read your new message from dispatch.';
+        : isSchedule ? `${scheduleTitle}${eventDate ? ` — ${eventDate}` : ''}` : messagePreview || 'Open GreenWay to read your new message from dispatch.';
       return {
         to: device.token, title, body, sound: 'default', priority: 'high',
         channelId: resident ? 'resident-alerts' : isSchedule ? 'menro-calendar' : 'dispatch-messages', ttl: 3600,

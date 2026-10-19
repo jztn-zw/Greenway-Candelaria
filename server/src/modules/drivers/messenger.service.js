@@ -1,6 +1,7 @@
 const { createHash } = require("node:crypto");
 const { pool } = require("../../config/db");
 const { notifyAdmins, sendToMany, emitStoredNotifications } = require("../notifications/notifications.service");
+const { emitCollectorConversationChanged } = require("../../sockets/collectorChanges.socket");
 
 const fail = (message, statusCode = 400) => { throw { statusCode, message }; };
 const optionalId = (value) => {
@@ -33,6 +34,23 @@ const getConversation = async (driverId, query = {}, viewerRole = "DRIVER") => {
   const limit = messageLimit(query.limit);
   const cursor = readCursor(query.cursor);
   const targetId = optionalId(query.message_id);
+  let receiptIds = [];
+  if (query.receipt_ids !== undefined) {
+    if (typeof query.receipt_ids !== "string" || !query.receipt_ids || query.receipt_ids.length > 6500) fail("Invalid receipt references");
+    receiptIds = query.receipt_ids.split(",");
+    if (receiptIds.length > 100) fail("At most 100 receipt references are allowed");
+    receiptIds.forEach(optionalId);
+    receiptIds = [...new Set(receiptIds)];
+  }
+  if (query.receipts_only !== undefined && query.receipts_only !== "1") fail("Invalid receipt lookup");
+  const readReceipts = async () => {
+    const [rows] = await pool.query("SELECT id FROM driver_messages WHERE driver_id = ? AND id IN (?) AND is_read = TRUE", [driverId, receiptIds]);
+    return rows.map(row => row.id);
+  };
+  if (query.receipts_only === "1") {
+    if (!receiptIds.length) fail("Receipt references are required");
+    return { items: [], nextCursor: null, unreadCount: 0, readIds: await readReceipts() };
+  }
   const params = [driverId];
   if (cursor) params.push(cursor.time, cursor.time, cursor.id);
   params.push(limit + 1);
@@ -57,6 +75,7 @@ const getConversation = async (driverId, query = {}, viewerRole = "DRIVER") => {
   }
   return { items: window.reverse().map(normalize), target: target ? normalize(target) : null,
     unreadCount: Number(counts.unread_count),
+    ...(receiptIds.length ? { readIds: await readReceipts() } : {}),
     nextCursor: hasMore ? Buffer.from(JSON.stringify({ time: last.created_at, id: last.id })).toString("base64url") : null };
 };
 
@@ -78,6 +97,7 @@ const sendMessage = async (sender, driver, input) => {
   const connection = await pool.getConnection();
   let delivery = { notifications: [] };
   let saved;
+  let changed = false;
   try {
     await connection.beginTransaction();
     // Serialize writes per conversation, including concurrent retries.
@@ -92,6 +112,7 @@ const sendMessage = async (sender, driver, input) => {
         if (!runs.length) fail("The selected route is not assigned to this collector");
       }
       await connection.query("INSERT INTO driver_messages (id, driver_id, sent_by, route_id, message, is_read) VALUES (?, ?, ?, ?, ?, FALSE)", [id, driver.id, sender.id, routeId ?? null, message]);
+      changed = true;
       const metadata = { destination: "messages", driver_id: driver.id, message_id: id, route_id: routeId ?? null };
       delivery = sender.role === "DRIVER"
         ? await notifyAdmins({ category: "driver_messages", type: "SYSTEM", title: `New Collector Message: ${sender.full_name || "Collector"}`, body: message,
@@ -105,6 +126,7 @@ const sendMessage = async (sender, driver, input) => {
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
   emitStoredNotifications(delivery.notifications);
+  if (changed) emitCollectorConversationChanged(driver.user_id);
   return saved;
 };
 
@@ -120,7 +142,7 @@ const getAdminUnread = async () => {
   const byDriver = rows.map((row) => ({ driverId: row.driver_id, unreadCount: Number(row.unread_count) }));
   return { unreadCount: byDriver.reduce((total, driver) => total + driver.unreadCount, 0), byDriver };
 };
-const markAdminRead = async (driverId, adminId, ids) => {
+const markAdminRead = async (driverId, adminId, ids, collectorUserId) => {
   if (!Array.isArray(ids) || !ids.length || ids.length > 301 || ids.some((id) => typeof id !== "string" || !id || id.length > 64)) fail("Invalid message IDs");
   const conn = await pool.getConnection();
   try {
@@ -137,6 +159,7 @@ const markAdminRead = async (driverId, adminId, ids) => {
     await conn.commit();
   } catch (error) { await conn.rollback(); throw error; }
   finally { conn.release(); }
+  emitCollectorConversationChanged(collectorUserId);
   return { read: true };
 };
 module.exports = { getConversation, findDriver, sendMessage, messageLimit, optionalId, getAdminUnread, markAdminRead };

@@ -6,6 +6,27 @@ after(() => pool.end());
 const withQuery = async (query, run) => { const original = pool.query; pool.query = query; try { await run(); } finally { pool.query = original; } };
 const row = (id, time = "2026-09-28 01:00:00") => ({ id, created_at: time, sender_role: "ADMIN", sender_name: "Admin", message: "Dispatch", is_read: 0 });
 
+test("bounded retained-message receipt checks return only confirmed IDs in this conversation", async () => {
+  await withQuery(async (sql, params) => {
+    if (/SELECT id FROM driver_messages/.test(sql)) {
+      assert.match(sql, /driver_id = \?/); assert.match(sql, /is_read = TRUE/);
+      assert.deepEqual(params, ["driver", ["old-message", "foreign"]]);
+      return [[{ id: "old-message" }]];
+    }
+    throw Error("Receipt-only checks must not download chat history or counts");
+  }, async () => {
+    const page = await messenger.getConversation("driver", { receipt_ids: "old-message,foreign", receipts_only: "1" });
+    assert.deepEqual(page.readIds, ["old-message"]); assert.deepEqual(page.items, []);
+  });
+});
+test("receipt references are bounded and validated before database access", async () => {
+  await withQuery(async () => { throw Error("No DB read expected"); }, async () => {
+    for (const receipt_ids of [["message"], "", "a".repeat(65), Array.from({ length: 101 }, (_, i) => "id-" + i).join(",")]) {
+      await assert.rejects(messenger.getConversation("driver", { receipt_ids, receipts_only: "1" }), error => error.statusCode === 400);
+    }
+  });
+});
+
 test("conversation pages are bounded, stable, minimal, and count all unread messages", async () => {
   const queries = [];
   await withQuery(async (sql, params) => {

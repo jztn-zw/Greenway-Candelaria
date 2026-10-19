@@ -253,6 +253,6 @@ module.exports.getAdminUnreadMessages = async (req, res, next) => {
 module.exports.markAdminConversationRead = async (req, res, next) => {
   try {
     const driver = await messenger.findDriver(req.user.id, req.params.id);
-    return success(res, await messenger.markAdminRead(driver.id, req.user.id, req.body?.ids), "Messages marked as read");
+    return success(res, await messenger.markAdminRead(driver.id, req.user.id, req.body?.ids, driver.user_id), "Messages marked as read");
   } catch (error) { next(error); }
 };

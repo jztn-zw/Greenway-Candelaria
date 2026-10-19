@@ -16,10 +16,14 @@ environments still need a backed-up, authorized upgrade.
 Do not re-import the baseline into an existing database.
 
 Calendar audiences use PRIVATE (MENRO, including collectors), PUBLIC (residents),
-and SHARED (MENRO and residents). Admins manage every audience. Existing databases
-need the reviewed, backed-up `migrations/2026-10-19-calendar-shared-audience.sql`
-before shared events can be saved. This migration has not been applied by this
-code change. Existing rows retain their visibility; no notification backfill runs.
+and SHARED (MENRO and residents). Admins manage every audience. The configured
+database was migrated on 2026-10-19 with user authorization after a checksummed
+schema-only backup of `schedules` at
+`backups/calendar-shared-audience-schedules-2026-10-19T13-03-18-009Z.sql`.
+The `visibility` enum was verified with all three values; all 21 existing rows
+(12 PRIVATE, 9 PUBLIC) were preserved. Existing rows retain their visibility;
+no notification backfill runs. Other database environments still need the
+reviewed migration and an authorized, backed-up upgrade.
 
 Resident Profile now uses password-confirmed account deletion through
 `POST /api/auth/delete-account`. No schema change is needed: the transaction sets
@@ -46,13 +50,12 @@ users definition, and check INFORMATION_SCHEMA before applying the additive colu
 to an existing database. The configured database was migrated with user approval
 on 2026-10-18 after a schema-only backup; the nullable `DATETIME(3)` column was verified.
 Before the column exists, ordinary notification reads continue without catch-up.
-Afterward, a completed active resident's next inbox/unread-count request atomically
-adds eligible, unexpired announcements broadcast before their signup. Targeting,
-existing notifications and read receipts are respected. Resident notification
-preferences control phone pushes only; they do not suppress inbox catch-up.
-The marker prevents later refreshes from restoring cleared catch-up notifications;
-missing alerts broadcast after signup are deliberately left alone. Catch-up sends
-an owner-only refresh hint, without replaying historical phone push alerts.
+As of 2026-10-19, a completed active resident's next inbox/unread-count request
+initializes this marker without replaying historical announcements. Earlier rows
+tagged `metadata.catch_up = true` are excluded from resident inbox pages and counts,
+while stored records and read receipts remain intact. Future broadcasts retain
+their existing targeting and delivery. No additional migration or record cleanup
+is required for this behavior change; it is shared by the website and Resident app.
 
 1. Create or select an empty database and import `schema.sql`.
 2. Provision one admin privately with a bcrypt password hash, role `ADMIN`, status

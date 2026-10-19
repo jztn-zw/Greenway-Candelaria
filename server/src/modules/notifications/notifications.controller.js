@@ -19,7 +19,7 @@ const getMyNotifications = async (req, res, next) => {
 const getUnreadCount = async (req, res, next) => {
   try {
     await initializeResidentAnnouncements(req.user);
-    const count = await service.getUnreadCount(req.user.id);
+    const count = await service.getUnreadCount(req.user.id, req.query);
     return success(res, count, "Unread count fetched");
   } catch (err) {
     next(err);

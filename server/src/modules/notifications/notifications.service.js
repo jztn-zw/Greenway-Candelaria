@@ -210,6 +210,11 @@ const notifyAdmins = async ({ type, title, body, ref_id, ref_module, category, m
 const excludeExpiredAnnouncementNotifications = `
   AND NOT (
     n.ref_module = 'announcements'
+    AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(n.metadata, '$.catch_up')), 'false') = 'true'
+    AND EXISTS (SELECT 1 FROM users inbox_owner WHERE inbox_owner.id = n.user_id AND inbox_owner.role = 'RESIDENT')
+  )
+  AND NOT (
+    n.ref_module = 'announcements'
     AND EXISTS (
       SELECT 1
       FROM announcements a
@@ -245,6 +250,10 @@ const excludeUnavailablePostNotifications = `
 
 // ─── Get My Notifications (Paginated) ──────────────────────
 
+// Mobile collectors keep conversations in Messenger; other inboxes opt in separately.
+const excludeChatFilter = (filters) => filters.exclude_messages === 'true'
+  ? " AND COALESCE(n.ref_module, '') <> 'driver-messages'" : '';
+
 const getMyNotifications = async (userId, filters = {}) => {
   const webHistory = filters.web_category !== undefined;
   const hideAdminCollectorMessages = webHistory ? `
@@ -261,7 +270,7 @@ const getMyNotifications = async (userId, filters = {}) => {
   `;
   const params = [userId];
   const countParams = [userId];
-  let filterQuery = "";
+  let filterQuery = excludeChatFilter(filters);
 
   if (filters.type) {
     const type = String(filters.type).toUpperCase();
@@ -379,14 +388,15 @@ const getMyNotifications = async (userId, filters = {}) => {
 
 // ─── Get Unread Count ──────────────────────────────────────
 
-const getUnreadCount = async (userId) => {
+const getUnreadCount = async (userId, filters = {}) => {
   const [rows] = await pool.query(
     `SELECT COUNT(*) AS count
      FROM notifications n
      WHERE n.user_id = ?
        AND n.is_read = FALSE
      ${excludeExpiredAnnouncementNotifications}
-     ${excludeUnavailablePostNotifications}`,
+     ${excludeUnavailablePostNotifications}
+     ${excludeChatFilter(filters)}`,
     [userId],
   );
 

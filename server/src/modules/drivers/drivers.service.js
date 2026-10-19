@@ -5,6 +5,7 @@ const generateId = require("../../utils/generateId");
 const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const auditService = require("../audit/audit.service");
 const { sendToMany, emitStoredNotifications, notifyAdmins } = require("../notifications/notifications.service");
+const { emitCollectorConversationChanged } = require("../../sockets/collectorChanges.socket");
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -392,6 +393,7 @@ const updateStatusMsg = async (userId, status_msg, route_id) => {
     route_id: route_id ?? null,
     message: status_msg,
   });
+  emitCollectorConversationChanged(userId);
 
   return getByUserId(userId);
 };
@@ -432,6 +434,7 @@ const reportBreakdown = async (userId, report) => {
     connection.release();
   }
   emitStoredNotifications(delivery.notifications);
+  emitCollectorConversationChanged(userId);
   return { reported: true };
 };
 
@@ -461,6 +464,7 @@ const sendAdminMessageToDriver = async (
   } catch (error) { await connection.rollback(); throw error; }
   finally { connection.release(); }
   emitStoredNotifications(delivery.notifications);
+  emitCollectorConversationChanged(driverUserId);
   return { message: "Message saved", driver_id: driver.id, message_id: messageId };
 };
 
@@ -557,6 +561,7 @@ const markMyMessagesAsRead = async (userId, routeId, ids) => {
     [driver.id, userId, ...(routeId ? [routeId] : []), ...(ids ? [ids] : [])],
   );
 
+  if (result.affectedRows) emitCollectorConversationChanged(userId);
   return { read: result.affectedRows ?? 0 };
 };
 

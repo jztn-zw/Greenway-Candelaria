@@ -24,12 +24,12 @@ test('driver and resident device registrations bind the authenticated session an
     }
   } finally { pool.query=original; }
 });
-test('dispatch push delivery rechecks driver/account/session ownership and sends private previews', async () => {
+test('dispatch push delivery rechecks ownership and includes the message preview for the driver', async () => {
   const original=pool.query, fetchOriginal=global.fetch, calls=[];
   process.env.EXPO_PUSH_ENABLED='true';
   pool.query=async (sql,args) => { calls.push([sql,args]); return sql.startsWith('SELECT') ? [[{token,user_id:'driver',session_id:'session-id',role:'DRIVER'}]] : [{}]; };
-  global.fetch=async (url, options) => { const payload=JSON.parse(options.body)[0]; assert.equal(payload.data.user_id,'driver'); assert.equal(payload.body.includes('secret'),false); return {ok:true,json:async()=>({data:[{status:'error',details:{error:'DeviceNotRegistered'}}]})}; };
-  try { await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'secret'});
+  global.fetch=async (url, options) => { const payload=JSON.parse(options.body)[0]; assert.equal(payload.data.user_id,'driver'); assert.equal(payload.body,'Please check your next stop.'); assert.equal(payload.data.destination, 'messages'); return {ok:true,json:async()=>({data:[{status:'error',details:{error:'DeviceNotRegistered'}}]})}; };
+  try { await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'Please check your next stop.'});
     assert.match(calls[0][0], /s.expires_at > NOW\(\)/); assert.match(calls[0][0], /u.role = 'DRIVER'/); assert.match(calls[0][0], /u.status = 'ACTIVE'/); assert.match(calls[0][0], /s.user_id = p.user_id/);
     assert.match(calls[0][0], /p.enabled = TRUE/);
     assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ? AND user_id = ? AND session_id = ?');
@@ -59,6 +59,34 @@ test('a new MENRO calendar schedule sends an actionable push to enabled collecto
     assert.deepEqual(sent.data, { user_id: 'driver', notification_id: 'schedule-notice',
       ref_module: 'schedule', destination: 'notifications', notification_title: 'Team briefing',
       notification_body: 'Scheduled for October 18, 2026.' });
+  } finally {
+    pool.query = original; global.fetch = fetchOriginal;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;
+    else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});
+test('dispatch phone previews are bounded without splitting emoji and retain a fallback for empty messages', async () => {
+  const original = pool.query, fetchOriginal = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
+  let sent;
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async () => [[{ token, user_id: 'driver', session_id: 'session-id', role: 'DRIVER' }]];
+  global.fetch = async (_url, options) => {
+    sent = JSON.parse(options.body)[0];
+    return { ok: true, json: async () => ({ data: [{ status: 'error' }] }) };
+  };
+  try {
+    for (const [body, expected] of [
+      ['Please check your next stop.', 'Please check your next stop.'],
+      ['🚛'.repeat(241), '🚛'.repeat(240) + '…'],
+      ['', 'Open GreenWay to read your new message from dispatch.'],
+    ]) {
+      await service.sendCollectorPushAlert({ id: 'notice', user_id: 'driver', ref_module: 'driver-messages', body });
+      assert.equal(sent.body, expected);
+      assert.equal(sent.data.destination, 'messages');
+      assert.equal(sent.data.user_id, 'driver');
+      assert.equal(sent.priority, 'high');
+      assert.equal(sent.channelId, 'dispatch-messages');
+    }
   } finally {
     pool.query = original; global.fetch = fetchOriginal;
     if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED;

@@ -19,7 +19,10 @@ const createResidentChangeChannel = (io, authenticate = authenticateSocketUser) 
         if (user?.role !== "RESIDENT") { await socket.leave("resident:data"); continue; }
         const domains = new Set(changes.flatMap(([owner, values]) =>
           owner === "public" || owner === String(user.id) ? [...values] : []));
-        if (domains.size) socket.emit("resident:data-changed", { domains: [...domains] });
+        if (domains.size) socket.emit("resident:data-changed", {
+          domains: [...domains],
+          ...(changes.some(([owner]) => owner === String(user.id)) ? { ownerId: user.id } : {}),
+        });
       }
     } catch (error) {
       console.error("[ResidentChanges] Delivery failed:", error.message);

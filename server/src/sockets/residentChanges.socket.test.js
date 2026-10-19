@@ -27,7 +27,7 @@ test("private report changes reach only the owner; public hints contain no recor
   publish(["posts", "schedule"]);
   t.mock.timers.tick(150); await new Promise(setImmediate);
   const updates = (socket) => socket.events.filter((event) => event.name === "resident:data-changed");
-  assert.deepEqual(updates(owner), [{ name: "resident:data-changed", payload: { domains: ["reports", "profile", "posts", "schedule"] } }]);
+  assert.deepEqual(updates(owner), [{ name: "resident:data-changed", payload: { domains: ["reports", "profile", "posts", "schedule"], ownerId: "owner" } }]);
   assert.deepEqual(updates(other), [{ name: "resident:data-changed", payload: { domains: ["posts", "schedule"] } }]);
   assert.deepEqual(updates(admin), []); assert.deepEqual(updates(revoked), []);
   assert.equal(revoked.joined, false);
@@ -51,7 +51,7 @@ test("a real resident socket receives report changes without relying on notifica
     const ready = once("resident:ready"); socket.connect(); await ready;
     const changed = once("resident:data-changed");
     publish(["reports"], "owner");
-    assert.deepEqual(await changed, { domains: ["reports"] });
+    assert.deepEqual(await changed, { domains: ["reports"], ownerId: "owner" });
   } finally {
     socket.disconnect(); server.closeAllConnections(); await new Promise((resolve) => io.close(resolve));
   }

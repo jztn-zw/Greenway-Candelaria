@@ -32,6 +32,22 @@ test("rejects malformed cursors and unsupported categories", async () => {
   await assert.rejects(service.getMyNotifications("collector", { category: "all", cursor: "invalid" }), (error) => error.statusCode === 400);
   await assert.rejects(service.getMyNotifications("collector", { category: "secret" }), (error) => error.statusCode === 400);
 });
+test("collector phone inbox excludes chat consistently from its list and unread count without changing other clients", async () => {
+  const queries = [];
+  await withQuery(async (sql) => {
+    queries.push(sql);
+    return sql.includes("COUNT(*)") ? [[{ total: 0, count: 0 }]] : [[]];
+  }, async () => {
+    await service.getMyNotifications("collector", { exclude_messages: "true" });
+    await service.getUnreadCount("collector", { exclude_messages: "true" });
+    assert.equal(queries.length, 3);
+    for (const sql of queries) assert.match(sql, /COALESCE\(n.ref_module, ''\) <> 'driver-messages'/);
+    queries.length = 0;
+    await service.getMyNotifications("collector");
+    await service.getUnreadCount("collector");
+    for (const sql of queries) assert.doesNotMatch(sql, /COALESCE\(n.ref_module, ''\) <> 'driver-messages'/);
+  });
+});
 test("notification clear is restricted to the authenticated recipient", async () => {
   await withQuery(async (sql, params) => { assert.equal(sql, "DELETE FROM notifications WHERE user_id = ?"); assert.deepEqual(params, ["collector"]); return [{ affectedRows: 1 }]; }, () => service.clearAll("collector"));
 });

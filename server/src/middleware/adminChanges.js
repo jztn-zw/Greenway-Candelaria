@@ -15,8 +15,8 @@ const changedDomains = (req) => {
     case "routes": return ["routes", "tracking", "drivers", "trucks", "schedule"];
     case "barangays": return ["barangays", "routes", "tracking", "schedule", "residents"];
     case "drivers":
-      if (segments.includes("messages")) return ["tracking"];
-      return ["drivers", "trucks", "routes", "tracking"];
+      if (segments.includes("messages")) return ["tracking", "messenger"];
+      return ["drivers", "trucks", "routes", "tracking", ...(["status", "breakdowns"].some(value => segments.includes(value)) ? ["messenger"] : [])];
     case "trucks": return ["drivers", "trucks", "routes", "tracking"];
     case "schedule": return ["schedule"];
     case "tracking": return req.method === "DELETE" ? ["tracking"] : []; // GPS has its own live feed.
@@ -53,7 +53,10 @@ const createAdminChangesMiddleware = (emit = emitAdminDataChanged) => (req, res,
   });
   // Web conversation writes change messaging only. Do not refresh resident,
   // dashboard, analytics, or assignment data for a chat message.
-  if (["POST", "PUT"].includes(req.method) && /^\/api\/drivers\/(?:me|[^/]+)\/messages\/conversation(?:\/read)?(?:\?|$)/.test(req.originalUrl)) {
+  if (["POST", "PUT"].includes(req.method) && (
+    /^\/api\/drivers\/(?:me|[^/]+)\/messages\/conversation(?:\/read)?(?:\?|$)/.test(req.originalUrl)
+    || /^\/api\/drivers\/me\/messages\/read(?:\?|$)/.test(req.originalUrl)
+  )) {
     res.once("finish", () => {
       if (res.statusCode >= 200 && res.statusCode < 300) emit(["tracking", "messenger"], { residents: false, collectors: false });
     });

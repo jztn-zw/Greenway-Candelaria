@@ -39,3 +39,31 @@ test("collector subscriptions and each delivery require current authorization; b
 
 
 after(() => pool.end());
+
+test("private messenger hints reach only the current owner, without relying on notification alerts", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let connect;
+  const sockets = [];
+  const publish = createCollectorChangeChannel({
+    on: (_, handler) => { connect = handler; },
+    in: () => ({ fetchSockets: async () => sockets.filter(socket => socket.joined) }),
+  }, async socket => socket.user);
+  const make = id => ({ user: { id, role: "DRIVER" }, joined: false, handlers: {}, events: [],
+    on(name, callback) { this.handlers[name] = callback; },
+    async join() { this.joined = true; }, async leave() { this.joined = false; },
+    emit(name, payload) { this.events.push({ name, payload }); },
+  });
+  const owner = make("owner"), other = make("other"), revoked = make("revoked");
+  for (const socket of [owner, other, revoked]) {
+    sockets.push(socket); connect(socket); await socket.handlers["collector:subscribe"]();
+  }
+  revoked.user = null;
+  publish(["messenger", "password"], "owner");
+  publish(["messenger"]); // Never turn private domains into role-wide broadcasts.
+  publish(["schedule"]);
+  t.mock.timers.tick(150); await new Promise(setImmediate);
+  const updates = socket => socket.events.filter(event => event.name === "collector:data-changed");
+  assert.deepEqual(updates(owner), [{ name: "collector:data-changed", payload: { domains: ["schedule", "messenger"], ownerId: "owner" } }]);
+  assert.deepEqual(updates(other), [{ name: "collector:data-changed", payload: { domains: ["schedule"] } }]);
+  assert.deepEqual(updates(revoked), []); assert.equal(revoked.joined, false);
+});
