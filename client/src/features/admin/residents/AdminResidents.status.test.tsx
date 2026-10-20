@@ -20,7 +20,7 @@ beforeEach(() => {
   notifyManager.setScheduler(queueMicrotask);
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   useAuthStore.setState({ user: { id: "admin", role: "ADMIN" } as never, token: "test-session" });
-  account = { id: "resident", full_name: "Test Resident", username: "test_resident", role: "RESIDENT", status: "ACTIVE", email: "resident@example.com", phone: null, avatar_url: null, barangay_name: "Poblacion", created_at: "2026-10-01 00:00:00", ban_reason: null } as ResidentDetailsRow;
+  account = { id: "resident", full_name: "Test Resident", username: "test_resident", role: "RESIDENT", status: "ACTIVE", email: "resident@example.com", phone: null, avatar_url: null, barangay_name: "Poblacion", street_name: "Mabini Street", created_at: "2026-10-01 00:00:00", ban_reason: null } as ResidentDetailsRow;
   vi.mocked(fetchResidents).mockImplementation(async (filters = {}) => {
     const rows = !filters.status || filters.status === account.status ? [{ ...account }] : [];
     return { data: rows, pagination: { total: rows.length, total_pages: 1, page: 1, limit: 10 } } as never;
@@ -52,6 +52,12 @@ const click = async (name: string, scope: ParentNode = document) => { await act(
 const dialog = () => document.querySelector('[role="dialog"]')!;
 const reason = () => document.getElementById("resident-ban-reason") as HTMLTextAreaElement;
 const typeReason = (value: string) => act(() => { Simulate.change(reason(), { target: { value } } as never); });
+
+it("shows the resident's barangay and street in the profile", async () => {
+  await render();
+  expect(host.textContent).toContain("Barangay Poblacion");
+  expect(host.textContent).toContain("Mabini Street");
+});
 
 it("requires a reason and explicit confirmation before banning from the resident profile", async () => {
   await render();

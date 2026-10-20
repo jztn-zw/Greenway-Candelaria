@@ -74,7 +74,7 @@ const mapAdminReport = (r: AdminReportItem): WasteReport => ({
   isFalseReport: Boolean(r.is_false),
 });
 
-const pageTitle = "Waste Reports";
+const pageTitle = "Waste Reports Management";
 const pageDescription = "Manage and dispatch waste reports across Candelaria.";
 
 const AdminWasteReports = () => {

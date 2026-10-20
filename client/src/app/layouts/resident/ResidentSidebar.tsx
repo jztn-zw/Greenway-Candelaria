@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileText,
   Truck,
+  CalendarDays,
   AlertTriangle,
   ClipboardList,
   Bell,
@@ -167,7 +168,8 @@ const ResidentSidebar = () => {
             icon: FileText,
             showDot: hasNewPost,
           },
-          { title: "Collection Tracking", url: "/resident/tracking", icon: Truck },
+          { title: "Collection Schedule", url: "/resident/schedule", icon: CalendarDays },
+          { title: "Live Collection Tracking", url: "/resident/tracking", icon: Truck },
         ],
       },
       {

@@ -25,8 +25,11 @@ const Location = () => {
   const location = useLocation();
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 };
-const openMenu = async () => {
-  await act(async () => root.render(<MemoryRouter initialEntries={["/resident"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentTopbar /><Location /></MemoryRouter>));
+const renderTopbar = async (path = "/resident") => {
+  await act(async () => root.render(<MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ResidentTopbar /><Location /></MemoryRouter>));
+};
+const openMenu = async (path = "/resident") => {
+  await renderTopbar(path);
   await act(async () => host.querySelector<HTMLButtonElement>('button[title="Notifications"]')!.click());
 };
 
@@ -39,6 +42,15 @@ beforeEach(() => {
   root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it.each([
+  ["/resident", "Resident Dashboard"],
+  ["/resident/tracking", "Live Collection Tracking"],
+  ["/resident/contents", "Community Posts"],
+])("shows the requested topbar title for %s", async (path, title) => {
+  await renderTopbar(path);
+  expect(host.querySelector('nav[aria-label="Breadcrumb"]')).toHaveTextContent(title);
+});
 
 it.each(["2020-01-01T00:00:00Z", "2030-01-01T00:00:00Z"])("uses trusted Philippine time and keeps labels ticking when the device clock is %s", async (deviceTime) => {
   let elapsed = performance.now();

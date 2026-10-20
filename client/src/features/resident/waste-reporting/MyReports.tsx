@@ -7,6 +7,7 @@ import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { ReportResponseMessage } from "./ReportResponseMessage";
 import { myReportsStyles } from "./myReportsStyles";
 import { reportDetailStyles } from "./reportDetailStyles";
 import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
@@ -416,9 +417,7 @@ const MyReports = () => {
                       <p className="text-ui-overline uppercase tracking-wider font-bold text-foreground/90">
                         MENRO Response
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                        {report.adminResponse}
-                      </p>
+                      <ReportResponseMessage className="mt-1 text-xs leading-5 text-muted-foreground" message={report.adminResponse} />
                     </div>
                   </div>
                 )}
@@ -852,9 +851,7 @@ const ReportDetail = ({
                 MENRO Official Response
               </span>
             </div>
-            <p className={reportDetailStyles.response}>
-              {report.adminResponse}
-            </p>
+            <ReportResponseMessage className={reportDetailStyles.response} message={report.adminResponse} />
           </div>
         )}
       </div>

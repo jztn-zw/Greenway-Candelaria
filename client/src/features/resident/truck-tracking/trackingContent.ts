@@ -1,5 +1,5 @@
 export const trackingPageContent = {
-  title: "Collection Tracking",
+  title: "Live Collection Tracking",
   description: "Follow your collection truck and today’s schedule.",
 } as const;
 

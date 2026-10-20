@@ -48,7 +48,7 @@ it("offers only announcement notice types and no resident-calendar controls for 
   expect(screen.queryByText("Show as an event on the resident calendar")).not.toBeInTheDocument();
 });
 
-it("opens a compact announcement preview once and keeps read analytics separate", () => {
+it("opens the announcement preview from the title and actions menu, separate from analytics", async () => {
   const ann: Announcement = {
     id: "notice-42", title: "Collection schedule", body: "Prepare your bins.", type: "General Notice", status: "Active",
     targetAudience: "All Residents", targetBarangays: [], targetBarangayIds: [], targetPreset: null,
@@ -68,4 +68,9 @@ it("opens a compact announcement preview once and keeps read analytics separate"
   fireEvent.click(screen.getByRole("button", { name: `View read analytics for ${ann.title}` }));
   expect(onReadReceipt).toHaveBeenCalledWith(ann);
   expect(onPreview).toHaveBeenCalledOnce();
+
+  fireEvent.keyDown(screen.getByRole("button", { name: `Actions for ${ann.title}` }), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name: "View" }));
+  expect(onPreview).toHaveBeenCalledTimes(2);
+  expect(onPreview).toHaveBeenLastCalledWith(ann);
 });

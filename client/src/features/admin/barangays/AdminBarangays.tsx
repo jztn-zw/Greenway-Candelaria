@@ -303,7 +303,7 @@ const AdminBarangays = () => {
       {/* ── Page Header ── */}
       <ResidentPageHeader
         className="admin-module-header"
-        title="Barangay Manager"
+        title="Barangay Management"
         description="Manage municipal barangays, street records, and collection service availability."
       />
 

@@ -130,7 +130,7 @@ const AdminCollectionSchedule: React.FC = () => {
       {/* ── Page Header ── */}
       <ResidentPageHeader
         className="admin-module-header"
-        title="Schedule Manager"
+        title="Event Management"
         description="Manage MENRO activities and resident calendar events. Manage collection days in Route Manager."
         actionsClassName="admin-module-header-actions"
         actions={<Button
@@ -154,7 +154,7 @@ const AdminCollectionSchedule: React.FC = () => {
               <CalendarDays className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 id="schedule-calendar-title" className="gw-heading text-sm text-foreground">Schedule Calendar</h2>
+              <h2 id="schedule-calendar-title" className="gw-heading text-sm text-foreground">Event Calendar</h2>
               <p className="mt-0.5 text-ui-caption text-muted-foreground">View MENRO activities and events shared with residents.</p>
             </div>
           </div>

@@ -115,12 +115,12 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 };
 
 const RESIDENT_PAGE_TITLES: Record<string, string> = {
-  "/resident": "Dashboard",
+  "/resident": "Resident Dashboard",
   "/resident/schedule": "Collection Schedule",
-  "/resident/tracking": "Collection Tracking",
+  "/resident/tracking": "Live Collection Tracking",
   "/resident/my-reports": "My Reports",
   "/resident/report": "Submit Report",
-  "/resident/contents": "Community Updates",
+  "/resident/contents": "Community Posts",
   "/resident/notifications": "Notifications",
   "/resident/profile": "Profile & Account",
   "/resident/settings": "Settings",
@@ -128,7 +128,7 @@ const RESIDENT_PAGE_TITLES: Record<string, string> = {
 
 const getResidentPageTitle = (pathname: string) => {
   if (RESIDENT_PAGE_TITLES[pathname]) return RESIDENT_PAGE_TITLES[pathname];
-  if (pathname.startsWith("/resident/contents")) return "Community Updates";
+  if (pathname.startsWith("/resident/contents")) return "Community Posts";
   if (pathname.startsWith("/resident/my-reports")) return "My Reports";
   return "Resident Portal";
 };
@@ -231,10 +231,10 @@ const ResidentTopBar = () => {
             <>
               <Link
                 to="/resident/contents"
-                aria-label="Back to Community Updates"
+                aria-label="Back to Community Posts"
                 className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Community Updates
+                Community Posts
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span aria-current="page" className={navigationStyles.currentPage}>

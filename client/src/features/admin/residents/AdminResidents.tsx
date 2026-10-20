@@ -212,7 +212,7 @@ const AdminResidents = () => {
       {/* ── Page Header ── */}
       <ResidentPageHeader
         className="admin-module-header"
-        title="Resident Manager"
+        title="Resident Management"
         description="View and manage all registered resident accounts across Candelaria."
       />
 

@@ -797,7 +797,7 @@ export const AdminScheduleSkeleton = ({ currentDate, variant = "admin" }: { curr
     <div role="status" aria-busy="true" className="resident-page admin-community admin-schedule mx-auto min-w-0 w-full max-w-[1600px] pb-10">
       <span className="sr-only">{variant === "collector" ? "Loading schedule…" : "Loading internal schedules…"}</span>
       <div aria-hidden="true" className="space-y-4 sm:space-y-6">
-        <ResidentPageHeaderSkeleton className="admin-module-header" title={variant === "collector" ? "MENRO Calendar" : "Schedule Manager"} description={variant === "collector" ? "View MENRO events scheduled for this month." : "Plan MENRO activities. Manage resident collection days in Route Manager."}
+        <ResidentPageHeaderSkeleton className="admin-module-header" title={variant === "collector" ? "MENRO Calendar" : "Schedule Management"} description={variant === "collector" ? "View MENRO events scheduled for this month." : "Plan MENRO activities. Manage resident collection days in Route Manager."}
         actionsClassName="admin-module-header-actions"
         actions={variant === "admin" ? <Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">New Internal Schedule</span></Skeleton> : undefined} />
 
@@ -1471,7 +1471,7 @@ export const BarangayManagerPageSkeleton = () => (
   <div role="status" aria-busy="true" className={barangayStyles.page}>
     <span className="sr-only">Loading barangays…</span>
     <div aria-hidden="true" className="space-y-4 sm:space-y-6">
-      <ResidentPageHeaderSkeleton className="admin-module-header" title="Barangay Manager" description="Manage municipal barangays, street records, and collection service availability." />
+      <ResidentPageHeaderSkeleton className="admin-module-header" title="Barangay Management" description="Manage municipal barangays, street records, and collection service availability." />
 
       <AdminKpiSkeleton />
 
@@ -1553,7 +1553,7 @@ export const ResidentManagerPageSkeleton = () => (
   <div role="status" aria-busy="true" className={residentManagerStyles.page}>
     <span className="sr-only">Loading resident accounts…</span>
     <div aria-hidden="true" className="pointer-events-none space-y-4 sm:space-y-6">
-      <ResidentPageHeaderSkeleton className="admin-module-header" title="Resident Manager" description="View and manage all registered resident accounts across Candelaria." />
+      <ResidentPageHeaderSkeleton className="admin-module-header" title="Resident Management" description="View and manage all registered resident accounts across Candelaria." />
 
       <AdminKpiSkeleton />
 
@@ -1815,7 +1815,7 @@ export const CollectorManagerPageSkeleton = ({ activeTab = "drivers" }: { active
   <div role="status" aria-busy="true" className={collectorManagerStyles.page}>
     <span className="sr-only">Loading collectors and trucks…</span>
     <div aria-hidden="true" className="pointer-events-none space-y-6 sm:space-y-7">
-      <ResidentPageHeaderSkeleton className="admin-module-header" title="Collector Manager" description="Manage municipal waste collector personnel, truck assignments, and truck statuses."
+      <ResidentPageHeaderSkeleton className="admin-module-header" title="Collector Management" description="Manage municipal waste collector personnel, truck assignments, and truck statuses."
         actionsClassName="admin-module-header-actions"
         actions={<Skeleton className={`${collectorManagerStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">{activeTab === "drivers" ? "Add Collector" : "Add Truck"}</span></Skeleton>} />
 
@@ -2286,7 +2286,7 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
 );
 
 export const ResidentContentsSkeleton = () => (
-  <div role="status" aria-label="Loading Community Updates" className={contentStyles.page}>
+  <div role="status" aria-label="Loading Community Posts" className={contentStyles.page}>
     <ResidentPageHeaderSkeleton titleClassName="w-56" descriptionClassName="w-96" />
     <div className={contentStyles.stack}>
     <div className="space-y-3">
@@ -2348,7 +2348,7 @@ const TrackingTextSkeleton = ({ className, children }: { className?: string; chi
 );
 
 export const ResidentTrackingSkeleton = ({ residentArea }: { residentArea?: string } = {}) => (
-  <div role="status" aria-label="Loading collection tracking" className={trackingStyles.page}>
+  <div role="status" aria-label="Loading live collection tracking" className={trackingStyles.page}>
     <ResidentPageHeaderSkeleton />
     <div className={trackingStyles.stack}>
       <div className={trackingStyles.schedule}>

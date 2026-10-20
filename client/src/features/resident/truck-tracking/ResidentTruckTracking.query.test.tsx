@@ -60,6 +60,7 @@ describe("resident tracking queries and GPS", () => {
     await act(async () => { finish([{ truck_id: "truck-a", last_ping: "2026-09-27T11:59:00Z" }]); });
     expect(client.getQueryData(key)).toEqual(fresh);
     expect(host.textContent).toContain("Tracking Map");
+    expect(host.querySelector("h1")).toHaveTextContent("Live Collection Tracking");
   });
 
   it("renders a failed live request without a repeated state-update loop", async () => {

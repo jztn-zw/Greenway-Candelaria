@@ -44,6 +44,7 @@ export interface ResidentDetailsRow {
   last_login_at: string | null;
   barangay_name: string | null;
   barangay_id: string | null;
+  street_name: string | null;
 }
 
 export interface ResidentReportRow {

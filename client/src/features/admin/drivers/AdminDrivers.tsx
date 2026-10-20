@@ -446,7 +446,7 @@ const AdminDrivers = () => {
       {/* ── Executive Page Header ── */}
       <ResidentPageHeader
         className="admin-module-header"
-        title="Collector Manager"
+        title="Collector Management"
         description="Manage municipal waste collector personnel, truck assignments, and truck statuses."
         actionsClassName="admin-module-header-actions"
         actions={<Button

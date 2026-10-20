@@ -44,15 +44,16 @@ it.each([
   ["Dashboard", "/admin"],
   ["Community Posts", "/admin/posts"],
   ["Announcements", "/admin/announcements"],
-  ["Schedule Manager", "/admin/schedule"],
+  ["Event Management", "/admin/schedule"],
   ["Route Manager", "/admin/routes"],
-  ["Barangay Manager", "/admin/barangays"],
-  ["Resident Manager", "/admin/residents"],
-  ["Collector Manager", "/admin/drivers"],
-  ["Waste Reports Manager", "/admin/reports"],
+  ["Barangay Management", "/admin/barangays"],
+  ["Resident Management", "/admin/residents"],
+  ["Collector Management", "/admin/drivers"],
+  ["Waste Reports Management", "/admin/reports"],
   ["Live Truck Tracking", "/admin/tracking"],
   ["Analytics", "/admin/analytics"],
   ["Audit Logs", "/admin/audit-logs"],
+  ["Notifications", "/admin/notifications"],
 ])("closes the mobile sidebar when selecting %s, including the current page", (name, path) => {
   renderSidebar(path);
   fireEvent.click(screen.getByRole("link", { name }));
@@ -69,7 +70,7 @@ it("closes the mobile sidebar when selecting the dashboard logo", () => {
 
 it("navigates to another module and closes the mobile sidebar", () => {
   renderSidebar();
-  fireEvent.click(screen.getByRole("link", { name: "Waste Reports Manager" }));
+  fireEvent.click(screen.getByRole("link", { name: "Waste Reports Management" }));
   expect(screen.getByTestId("mobile-state")).toHaveTextContent("false");
   expect(screen.getByTestId("pathname")).toHaveTextContent("/admin/reports");
 });
@@ -95,7 +96,7 @@ it("keeps the sidebar open while expanding groups and opening the account menu",
 it("keeps desktop navigation expanded", () => {
   viewport.isMobile = false;
   renderSidebar();
-  fireEvent.click(screen.getByRole("link", { name: "Waste Reports Manager" }));
+  fireEvent.click(screen.getByRole("link", { name: "Waste Reports Management" }));
   expect(screen.getByTestId("pathname")).toHaveTextContent("/admin/reports");
   expect(screen.getByTestId("desktop-state")).toHaveTextContent("expanded");
 });

@@ -141,11 +141,16 @@ const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
           <div className="space-y-1.5">
             <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
-              Barangay
+              Barangay & Street
             </span>
-            <p className="text-xs sm:text-sm font-medium text-foreground">
-              {resident.barangay === "Unassigned" ? "Unassigned" : `Barangay ${resident.barangay}`}
-            </p>
+            <div className="space-y-0.5">
+              <p className="text-xs sm:text-sm font-medium text-foreground">
+                {resident.barangay === "Unassigned" ? "Unassigned" : `Barangay ${resident.barangay}`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {resident.street || "Street not assigned"}
+              </p>
+            </div>
           </div>
 
           {/* Layer 2: Activity & Verification */}

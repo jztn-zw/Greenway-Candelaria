@@ -21,6 +21,7 @@ import {
 Copy,
 SquarePen,
 MoreVertical,
+Eye,
 Power,
 Route as RouteIcon,
 Trash2,
@@ -211,6 +212,14 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/80 p-1">
                           <DropdownMenuItem
+                            onClick={() => onView(route)}
+                            className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
+                          >
+                            <Eye aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="my-1" />
+                          <DropdownMenuItem
                             onClick={() => onEdit(route)}
                             className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
@@ -230,20 +239,20 @@ export const RouteTable: React.FC<RouteTableProps> = ({
                             className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2"
                           >
                             <Power aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            {route.active ? "Disable Schedule" : "Enable Schedule"}
+                            {route.active ? "Disable Route" : "Enable Route"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="my-1" />
                           <DropdownMenuItem
                             onClick={() => onDelete(route)}
                             disabled={route.active || isDeleting}
-                            aria-label={route.active ? "Delete route (disable schedule first)" : "Delete route"}
+                            aria-label={route.active ? "Delete route (disable route first)" : "Delete route"}
                             className="gap-2.5 text-xs font-medium cursor-pointer rounded-lg px-2.5 py-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
                           >
                             <Trash2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                             <span>Delete</span>
                             {route.active && (
                               <span className="ml-auto whitespace-nowrap text-ui-overline text-muted-foreground font-normal">
-                                Disable First
+                                Disable Route First
                               </span>
                             )}
                           </DropdownMenuItem>

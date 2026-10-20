@@ -61,6 +61,7 @@ export const mapResidentDetails = (
   email: details.email,
   phone: details.phone || "N/A",
   barangay: details.barangay_name || "Unassigned",
+  street: details.street_name ?? null,
   dateRegistered: formatResidentDate(details.created_at),
   lastLogin: formatResidentDate(details.last_login_at),
   status: mapResidentStatus(details.status),

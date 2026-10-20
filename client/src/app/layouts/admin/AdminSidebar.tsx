@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Navigation,
   CalendarDays,
+  Bell,
   MapPinned
 } from "lucide-react";
 import { NavLink } from "@/components/common/NavLink";
@@ -75,24 +76,24 @@ const navGroups: NavGroup[] = [
     label: "COLLECTION OPERATIONS",
     collapsible: true,
     items: [
-      { title: "Schedule Manager", url: "/admin/schedule", icon: CalendarDays },
+      { title: "Event Management", url: "/admin/schedule", icon: CalendarDays },
       { title: "Route Manager", url: "/admin/routes", icon: Route },
-      { title: "Barangay Manager", url: "/admin/barangays", icon: MapPinned },
+      { title: "Barangay Management", url: "/admin/barangays", icon: MapPinned },
     ],
   },
   {
     label: "ACCOUNT MANAGEMENT",
     collapsible: true,
     items: [
-      { title: "Resident Manager", url: "/admin/residents", icon: Users },
-      { title: "Collector Manager", url: "/admin/drivers", icon: Truck },
+      { title: "Resident Management", url: "/admin/residents", icon: Users },
+      { title: "Collector Management", url: "/admin/drivers", icon: Truck },
     ],
   },
   {
     label: "OPERATIONS",
     collapsible: true,
     items: [
-      { title: "Waste Reports Manager", url: "/admin/reports", icon: AlertTriangle },
+      { title: "Waste Reports Management", url: "/admin/reports", icon: AlertTriangle },
       { title: "Live Truck Tracking", url: "/admin/tracking", icon: Navigation },
     ],
   },
@@ -103,6 +104,11 @@ const navGroups: NavGroup[] = [
       { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
       { title: "Audit Logs", url: "/admin/audit-logs", icon: ClipboardList },
     ],
+  },
+  {
+    label: "NOTIFICATIONS",
+    collapsible: true,
+    items: [{ title: "Notifications", url: "/admin/notifications", icon: Bell }],
   },
 ];
 

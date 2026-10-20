@@ -29,7 +29,7 @@ import {
 import { getCollectorNotificationPresentation } from "@/features/collector/notifications/notificationPresentation";
 
 const COLLECTOR_PAGE_TITLES: Record<string, string> = {
-  "/collector": "Driver Dashboard",
+  "/collector": "Collector Dashboard",
   "/collector/route-map": "Live Route Tracking",
   "/collector/schedule": "MENRO Calendar",
   "/collector/route-history": "Route History",

@@ -14,6 +14,7 @@ export interface Resident {
   email: string | null;
   phone: string;
   barangay: string;
+  street?: string | null;
   dateRegistered: string;
   lastLogin: string;
   status: "Active" | "Deactivated" | "Banned";

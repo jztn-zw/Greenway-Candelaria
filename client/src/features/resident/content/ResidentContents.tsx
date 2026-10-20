@@ -201,7 +201,7 @@ const ResidentContents = () => {
     <div className={contentStyles.page}>
       {/* ── Top Header ── */}
       <ResidentPageHeader
-        title="Community Updates"
+        title="Community Posts"
         description="Official MENRO guidelines, collection updates, and eco tips."
       />
 

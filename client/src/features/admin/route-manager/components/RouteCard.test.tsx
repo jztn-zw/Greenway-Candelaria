@@ -24,6 +24,10 @@ it("opens the focused route with the keyboard without treating action-menu keys 
     const menu = host.querySelector<HTMLButtonElement>('[aria-label="Route actions"]')!;
     await act(async () => menu.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })));
     expect(onView).not.toHaveBeenCalled();
+    const viewAction = document.body.querySelector<HTMLElement>('[role="menuitem"]');
+    expect(viewAction?.textContent).toContain("View");
+    await act(async () => viewAction?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onView).toHaveBeenCalledExactlyOnceWith(route);
   } finally {
     await act(async () => root.unmount());
     host.remove();

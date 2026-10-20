@@ -14,6 +14,7 @@ import {
   ArchiveRestore,
   RotateCcw,
   MoreHorizontal,
+  Eye,
   Users,
   BarChart3,
   Globe,
@@ -402,6 +403,13 @@ const AnnouncementCard = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border/80 p-1 shadow-md">
+              <DropdownMenuItem
+                onClick={() => onPreview(ann)}
+                className="text-xs font-medium cursor-pointer rounded-lg px-2.5 py-1.5 gap-2"
+              >
+                <Eye className="size-3.5 shrink-0" /> View
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1" />
               {renderMenuItems()}
             </DropdownMenuContent>
           </DropdownMenu>
