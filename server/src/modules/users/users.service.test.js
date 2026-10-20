@@ -7,6 +7,21 @@ const service = require("./users.service");
 const { changePasswordSchema, updateAdminSettingsSchema } = require("./users.schema");
 
 after(() => pool.end());
+test("admin resident details include the assigned street name", async () => {
+  const original = pool.query;
+  let statement = "";
+  pool.query = async (sql) => {
+    statement = sql;
+    return [[{ id: "resident", barangay_name: "Poblacion", street_name: "Mabini Street" }]];
+  };
+  try {
+    const resident = await service.getById("resident");
+    assert.equal(resident.street_name, "Mabini Street");
+    assert.match(statement, /bs\.name AS street_name/);
+    assert.match(statement, /LEFT JOIN barangay_streets bs ON u\.street_id = bs\.id/);
+  } finally { pool.query = original; }
+});
+
 test("resident contact changes persist without changing collection area; other roles keep their existing restrictions", async () => {
   const original = pool.query;
   let role = 'RESIDENT';

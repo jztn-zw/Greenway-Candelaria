@@ -271,9 +271,11 @@ const getById = async (id) => {
        u.role, u.status, u.profile_completed, u.ban_reason, u.avatar_url,
        u.two_factor, u.created_at, u.last_login_at,
        b.name AS barangay_name,
-       b.id   AS barangay_id
+       b.id   AS barangay_id,
+       bs.name AS street_name
      FROM users u
      LEFT JOIN barangays b ON u.barangay_id = b.id
+     LEFT JOIN barangay_streets bs ON u.street_id = bs.id
      WHERE u.id = ? AND u.deleted_at IS NULL`,
     [id],
   );
