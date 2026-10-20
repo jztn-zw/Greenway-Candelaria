@@ -125,7 +125,7 @@ const getManagerOverview = async () => {
 const getManagerStreets = async (barangayId) => {
   const barangay = await getById(barangayId);
   const [streets] = await pool.query(
-    `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path,
+    `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, bs.coverage_edit,
             (SELECT COUNT(*) FROM users u WHERE u.street_id = bs.id
               AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL) AS active_resident_count,
             (SELECT COUNT(*) FROM users u WHERE u.street_id = bs.id) AS account_link_count,
@@ -303,8 +303,25 @@ const normalizeCoveragePath = (value) => {
   return normalized;
 };
 
-const updateStreetCoverage = async (barangayId, streetId, coveragePath) => {
+const normalizeCoverageEdit = (value, path) => {
+  if (value == null) return null; // Older clients save geometry without editing metadata.
+  if (!path || typeof value !== "object" || value.mode !== "ROAD") {
+    throw { statusCode: 400, message: "Invalid coverage drawing mode" };
+  }
+  const points = normalizeCoveragePath(value.points);
+  if (!points || points.length > 100) {
+    throw { statusCode: 400, message: "Choose 2 to 100 coverage pins" };
+  }
+  const near = (a, b) => Math.abs(a[0] - b[0]) <= 0.00001 && Math.abs(a[1] - b[1]) <= 0.00001;
+  if (!near(points[0], path[0]) || !near(points.at(-1), path.at(-1))) {
+    throw { statusCode: 400, message: "Coverage pins must match the saved path" };
+  }
+  return { mode: value.mode, points };
+};
+
+const updateStreetCoverage = async (barangayId, streetId, coveragePath, coverageEdit) => {
   const normalizedPath = normalizeCoveragePath(coveragePath);
+  const normalizedEdit = normalizeCoverageEdit(coverageEdit, normalizedPath);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -335,8 +352,8 @@ const updateStreetCoverage = async (barangayId, streetId, coveragePath) => {
 
     const serializedPath = normalizedPath === null ? null : JSON.stringify(normalizedPath);
     await connection.query(
-      "UPDATE barangay_streets SET coverage_path = ? WHERE id = ? AND barangay_id = ?",
-      [serializedPath, streetId, barangayId],
+      "UPDATE barangay_streets SET coverage_path = ?, coverage_edit = ? WHERE id = ? AND barangay_id = ?",
+      [serializedPath, normalizedEdit === null ? null : JSON.stringify(normalizedEdit), streetId, barangayId],
     );
     // Only upcoming runs follow edits. Started and completed runs keep their own route snapshot.
     await connection.query(
@@ -347,7 +364,7 @@ const updateStreetCoverage = async (barangayId, streetId, coveragePath) => {
       [serializedPath, streetId, getLocalDate()],
     );
     await connection.commit();
-    return { id: streetId, barangay_id: barangayId, coverage_path: normalizedPath };
+    return { id: streetId, barangay_id: barangayId, coverage_path: normalizedPath, coverage_edit: normalizedEdit };
   } catch (err) {
     await connection.rollback();
     throw err;

@@ -91,6 +91,7 @@ const updateStreetCoverage = async (req, res, next) => {
       req.params.id,
       req.params.streetId,
       req.body?.coverage_path,
+      req.body?.coverage_edit,
     );
     await auditChange(req, "UPDATE_STREET_COVERAGE", req.params.streetId, result);
     return success(res, result, "Street coverage saved successfully");

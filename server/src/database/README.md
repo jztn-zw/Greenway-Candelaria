@@ -1,5 +1,26 @@
 # GreenWay database
 
+## Push registration recovery upgrade
+
+`migrations/2026-10-20-push-registration-recovery.sql` adds three nullable fields to
+`mobile_push_devices`: `registration_version` distinguishes renewals even within
+the same second; `last_error` retains a provider-rejected token so updated
+apps can renew native FCM/APNs registration; `native_token_hash` distinguishes
+native enrollment changes from routine checks without storing raw native tokens.
+It changes no inbox, account, route
+or GPS data. Apply before deploying the matching push service.
+
+`node scripts/migrate-push-recovery.cjs` previews missing fields and row count.
+After explicit approval, `--apply` saves and checksum-verifies the existing table
+definition under ignored `backups/`, adds only missing compatible fields, and
+verifies fields and row counts. Never import the baseline over an existing database.
+The configured database was upgraded with explicit user approval on 2026-10-20.
+The table definition was backed up and checksum-verified under
+`backups/push-recovery-2026-10-20T13-52-21.833Z/` before the additive change.
+All three nullable fields were verified, and all 16 existing registrations were
+preserved. Other database environments still require an authorized, backed-up
+upgrade before deploying the matching API.
+
 `schema.sql` is the complete baseline for an empty TiDB/MySQL-compatible database.
 It contains 33 active tables, their indexes, defaults and relationships. Tables
 are ordered by dependency, so foreign-key checks remain enabled during import.
@@ -14,6 +35,23 @@ The new columns, indexes and cascading foreign keys were verified; existing
 table schemas were unchanged. No existing records were modified. Other database
 environments still need a backed-up, authorized upgrade.
 Do not re-import the baseline into an existing database.
+
+Street coverage editing stores `{ mode, points }` separately in the nullable
+`barangay_streets.coverage_edit` JSON column. Tracking and route run snapshots
+continue to use the full `coverage_path` array. Existing geometry is not converted
+or rerouted; legacy paths show estimated editing controls until saved again.
+The configured database was migrated with user approval on 2026-10-20 after a
+checksummed schema-only backup at
+`backups/street-coverage-edit-schema-2026-10-20T13-33-17-507Z.sql`. The nullable JSON
+column was verified; checksums of all original fields on the 25 street records
+matched before and after. Existing metadata remains NULL, with no path backfill.
+Other environments must review `migrations/2026-10-20-street-coverage-edit.sql`,
+back up the street table definition and verify INFORMATION_SCHEMA before an
+authorized upgrade. The editor accepts only road-snapped coverage. Coverage uses
+mapped street geometry in both directions, ignoring one-way and turn restrictions
+because it describes street location, not a vehicle itinerary. Truck driving
+directions keep their existing OSRM rules. Previously saved geometry is preserved;
+future edits always match mapped roads. There is no manual drawing option.
 
 Calendar audiences use PRIVATE (MENRO, including collectors), PUBLIC (residents),
 and SHARED (MENRO and residents). Admins manage every audience. The configured

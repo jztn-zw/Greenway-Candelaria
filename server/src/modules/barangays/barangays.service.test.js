@@ -63,6 +63,47 @@ const withFakeConnection = async (query, action) => {
   }
 };
 
+test("coverage keeps two editable pins separately from detailed road geometry", async () => {
+  await withFakeConnection(async () => [[{ id: "exists" }]], async (statements) => {
+    const points = [[13.9, 121.4], [13.91, 121.41]];
+    const path = [points[0], [13.905, 121.405], points[1]];
+    const edit = { mode: "ROAD", points };
+    const result = await service.updateStreetCoverage("barangay-1", "street-1", path, edit);
+    assert.deepEqual(result.coverage_edit, edit);
+    const write = statements.find(row => row.sql.includes("UPDATE barangay_streets"));
+    assert.match(write.sql, /coverage_edit = \?/);
+    assert.deepEqual(JSON.parse(write.params[1]), edit);
+    assert.deepEqual(JSON.parse(write.params[0]), path);
+  });
+});
+
+test("coverage rejects inconsistent manual drawings and invalid editing metadata before writing", async () => {
+  await withFakeConnection(async () => { throw new Error("Validation must happen before any database query"); }, async () => {
+  const path = [[13.9, 121.4], [13.91, 121.41]];
+  for (const edit of [
+    { mode: "INVALID", points: path },
+    { mode: "ROAD", points: [path[0]] },
+    { mode: "ROAD", points: [[13.8, 121.4], path[1]] },
+    { mode: "MANUAL", points: [path[0], [13.905, 121.4], path[1]] },
+  ]) {
+    await assert.rejects(service.updateStreetCoverage("b", "s", path, edit), { statusCode: 400 });
+  }
+  });
+});
+
+test("road coverage and clearing persist editing metadata atomically", async () => {
+  await withFakeConnection(async (sql) => sql.includes("FROM route_stops") || sql.includes("FROM route_run_stops") ? [[]] : [[{ id: "exists" }]], async (statements) => {
+    const path = [[13.9, 121.4], [13.91, 121.41]];
+    const edit = { mode: "ROAD", points: path };
+    assert.deepEqual((await service.updateStreetCoverage("b", "s", path, edit)).coverage_edit, edit);
+    statements.length = 0;
+    assert.equal((await service.updateStreetCoverage("b", "s", null, null)).coverage_edit, null);
+    const write = statements.find(row => row.sql.includes("UPDATE barangay_streets"));
+    assert.equal(write.params[0], null);
+    assert.equal(write.params[1], null);
+  });
+});
+
 test("coverage edits refresh scheduled runs but leave started run history untouched", async () => {
   await withFakeConnection(async (sql) => {
     if (sql.includes("FROM barangays WHERE")) return [[{ id: "barangay-1" }]];

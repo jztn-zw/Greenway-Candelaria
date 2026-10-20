@@ -10,6 +10,19 @@ The migration preserves existing GPS history and adds an indexed latest-location
 
 Optional server settings:
 
+Street coverage editing uses `COVERAGE_MAP_URL` (default:
+`https://api.openstreetmap.org/api/0.6/map.json`) to read a small area of mapped
+OSM roads. It snaps pins within 50 metres and connects road segments in either
+direction, independent of one-way/turn rules. It preserves actual OSM node
+connections, so crossing roads at different levels are not joined artificially.
+This is location coverage only. Truck navigation and ETA still use
+`ROUTING_BASE_URL` with the existing driving profile. No manual/off-road coverage
+option is offered. Map data is cached for ten minutes across nearby edits;
+requests share pending loads, allow four concurrent regions and time out after
+20 seconds (the editor allows 25). Errors preserve the draft and never substitute
+a straight line. The provider receives the bounding box of the selected street
+area; configure a compatible JSON map endpoint if needed.
+
 - `ROUTING_BASE_URL`: an OSRM driving-route endpoint, ending in `/route/v1/driving`. The current deployment and example use `https://router.project-osrm.org/route/v1/driving` to restore road-following routes. The backend sends route coordinates to that public provider; requests contain no account names, tokens, or driver identifiers. Use a self-hosted endpoint to keep routing private. Leaving it empty uses a local straight-line distance/travel estimate. Browser routing requests go through the authenticated backend.
 - `TRACKING_RETENTION_DAYS`: an explicitly chosen integer of at least 7. When set, the monitor removes at most 5,000 older GPS records per hourly cleanup pass. Leaving it unset preserves history; it does not enable automatic deletion. Review retention and backup requirements before setting it.
 

@@ -65,7 +65,8 @@ test('driver and resident device registrations bind the authenticated session an
     for (const [index, role] of ['DRIVER','RESIDENT'].entries()) {
       const userId = role.toLowerCase();
       assert.match(calls[index * 2][0], /user_id = \?/); assert.equal(calls[index * 2][1][0], userId);
-      assert.deepEqual(calls[index * 2 + 1][1], [token,userId,'session-id','android',false]);
+      assert.deepEqual(calls[index * 2 + 1][1].slice(0,5), [token,userId,'session-id','android',false]);
+      assert.match(calls[index * 2 + 1][1][5], /^[a-f0-9-]{36}$/);
     }
   } finally { pool.query=original; }
 });
@@ -77,8 +78,8 @@ test('dispatch push delivery rechecks ownership and includes the message preview
   try { await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages',body:'Please check your next stop.'});
     assert.match(calls[0][0], /s.expires_at > NOW\(\)/); assert.match(calls[0][0], /u.role = 'DRIVER'/); assert.match(calls[0][0], /u.status = 'ACTIVE'/); assert.match(calls[0][0], /s.user_id = p.user_id/);
     assert.match(calls[0][0], /p.enabled = TRUE/);
-    assert.equal(calls[1][0],'DELETE FROM mobile_push_devices WHERE token = ? AND user_id = ? AND session_id = ?');
-    assert.deepEqual(calls[1][1],[token,'driver','session-id']);
+    assert.match(calls[1][0],/^UPDATE mobile_push_devices SET last_error = \?, registration_version = COALESCE/);
+    assert.deepEqual(calls[1][1].slice(2),[token,'driver','session-id',undefined]);
     global.fetch=async()=>{throw Error('offline');}; await service.sendCollectorPushAlert({id:'notice',user_id:'driver',ref_module:'driver-messages'});
   } finally { pool.query=original;global.fetch=fetchOriginal;delete process.env.EXPO_PUSH_ENABLED; }
 });
