@@ -10,6 +10,7 @@ import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/
 import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
 import { Dialog, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getStreetCoverageRoadPath } from "@/services/roadRoutingService";
+import type { CoverageEdit } from "@/services/barangaysService";
 
 export type CoveragePoint = [number, number];
 
@@ -18,9 +19,10 @@ interface StreetCoverageEditorProps {
   streetName: string;
   barangayName: string;
   initialPath: CoveragePoint[] | null;
+  initialEdit?: CoverageEdit | null;
   center: CoveragePoint | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (path: CoveragePoint[] | null) => Promise<void>;
+  onSave: (path: CoveragePoint[] | null, edit?: CoverageEdit | null) => Promise<void>;
 }
 
 const DEFAULT_CENTER: CoveragePoint = [13.931, 121.424];
@@ -85,6 +87,7 @@ const StreetCoverageEditor = ({
   streetName,
   barangayName,
   initialPath,
+  initialEdit,
   center,
   onOpenChange,
   onSave,
@@ -94,8 +97,11 @@ const StreetCoverageEditor = ({
   const pointsLayerRef = useRef<L.LayerGroup | null>(null);
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const initial = useMemo(() => ({ points: editablePoints(initialPath ?? []), path: initialPath ?? [] }), [initialPath]);
+  const initial = useMemo(() => ({ points: initialEdit?.points ?? editablePoints(initialPath ?? []), path: initialPath ?? [] }), [initialPath, initialEdit]);
   const [points, setPoints] = useState<CoveragePoint[]>(initial.points);
+  const [insertAfter, setInsertAfter] = useState<number | null>(null);
+  const insertAfterRef = useRef<number | null>(null);
+  const lastInsertionRef = useRef<number | null>(null);
   const [retry, setRetry] = useState(0);
   const [matched, setMatched] = useState({ points: initial.points, path: initial.path, attempt: 0, error: null as RoadMatchingFailure | null, roadMatched: false });
   const [saving, setSaving] = useState(false);
@@ -106,8 +112,8 @@ const StreetCoverageEditor = ({
   const routing = points.length >= 2 && !matchIsCurrent;
   const routeError = matchIsCurrent ? matched.error : null;
   const geometry = matchIsCurrent ? matched.path : EMPTY_PATH;
-  const hasChanges = !pathsEqual(points, initial.points) &&
-    (points.length === 1 || Boolean(routeError) || !matchIsCurrent || !pathsEqual(geometry, initial.path));
+  const hasChanges = !pathsEqual(points, initial.points) ||
+    (matchIsCurrent && matched.roadMatched && !pathsEqual(geometry, initial.path));
   const hasDistinctPoints = points.length >= 2 && points.some((point) => point[0] !== points[0][0] || point[1] !== points[0][1]);
   const canSave = hasChanges && !saving && !routing && !routeError &&
     (points.length === 0 || (hasDistinctPoints && geometry.length >= 2 && geometry.length <= 500));
@@ -119,11 +125,14 @@ const StreetCoverageEditor = ({
     : routeError ? "You can still move or add points to adjust the path."
     : !hasChanges ? "No changes to save. Move, add, or remove a point to edit the path."
     : !hasDistinctPoints ? "Choose at least two different points for the street path."
-    : "Points follow the collection order. Drag a number to adjust.";
+    : "Points follow the coverage order. Drag a number to adjust.";
 
   useEffect(() => {
     setPoints(initial.points);
     setMatched({ points: initial.points, path: initial.path, attempt: 0, error: null, roadMatched: false });
+    setInsertAfter(null);
+    insertAfterRef.current = null;
+    lastInsertionRef.current = null;
     setRetry(0);
     setError("");
     setShowDiscardConfirm(false);
@@ -180,9 +189,15 @@ const StreetCoverageEditor = ({
 
     const addPoint = (event: L.LeafletMouseEvent) => {
       if (savingRef.current) return;
-      setPoints((current) => current.length >= MAX_MARKED_POINTS
-        ? current
-        : [...current, [event.latlng.lat, event.latlng.lng]]);
+      const after = insertAfterRef.current;
+      lastInsertionRef.current = after === null ? null : after + 1;
+      setPoints((current) => {
+        if (current.length >= MAX_MARKED_POINTS) return current;
+        const index = after === null ? current.length : Math.min(after + 1, current.length);
+        return [...current.slice(0, index), [event.latlng.lat, event.latlng.lng] as CoveragePoint, ...current.slice(index)];
+      });
+      setInsertAfter(null);
+      insertAfterRef.current = null;
       setError("");
     };
     map.on("click", addPoint);
@@ -238,6 +253,7 @@ const StreetCoverageEditor = ({
       marker.on("click", (event) => L.DomEvent.stopPropagation(event));
       marker.on("dragend", () => {
         if (savingRef.current) return;
+        lastInsertionRef.current = null;
         const moved = marker.getLatLng();
         setPoints((current) => current.map((coordinate, pointIndex) =>
           pointIndex === index ? [moved.lat, moved.lng] : coordinate,
@@ -248,16 +264,23 @@ const StreetCoverageEditor = ({
   }, [mapReady, points, geometry, saving]);
 
   const undoPoint = useCallback(() => {
-    setPoints((current) => current.slice(0, -1));
+    setInsertAfter(null); insertAfterRef.current = null;
+    const inserted = lastInsertionRef.current;
+    lastInsertionRef.current = null;
+    setPoints((current) => inserted === null ? current.slice(0, -1) : current.filter((_, index) => index !== inserted));
     setError("");
   }, []);
 
   const reversePath = useCallback(() => {
+    setInsertAfter(null); insertAfterRef.current = null;
+    lastInsertionRef.current = null;
     setPoints((current) => current.slice().reverse());
     setError("");
   }, []);
 
   const clearPath = useCallback(() => {
+    setInsertAfter(null); insertAfterRef.current = null;
+    lastInsertionRef.current = null;
     setPoints([]);
     setError("");
   }, []);
@@ -290,7 +313,8 @@ const StreetCoverageEditor = ({
     savingRef.current = true;
     setError("");
     try {
-      await onSave(points.length ? geometry : null);
+      if (points.length) await onSave(geometry, { mode: "ROAD", points });
+      else await onSave(null);
       onOpenChange(false);
     } catch (saveError) {
       setError(isAxiosError(saveError) && (!saveError.response || saveError.response.status >= 500)
@@ -321,6 +345,8 @@ const StreetCoverageEditor = ({
         </DialogHeader>
 
         <div className="gw-modal-body flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4 scrollbar-thin sm:px-5">
+          <p className="shrink-0 text-xs leading-5 text-muted-foreground">Click near a street to snap your pins onto real roads. Coverage can follow either direction, including one-way streets.</p>
+          {!!initial.path.length && !initialEdit && <p className="shrink-0 text-xs leading-5 text-muted-foreground">This older path has no saved pin list. Its shape is preserved; displayed pins are estimated editing points.</p>}
           {error && (
             <div role="alert" className="flex shrink-0 gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3.5">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
@@ -355,6 +381,16 @@ const StreetCoverageEditor = ({
             </div>
           </div>
 
+          {points.length >= 2 && <div className="shrink-0 space-y-2">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <p className="text-muted-foreground">{insertAfter === null ? "Insert a guide pin between existing points:" : `Click the map to insert after pin ${insertAfter + 1}.`}</p>
+              {insertAfter !== null && <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => { setInsertAfter(null); insertAfterRef.current = null; }}>Cancel Insert</Button>}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Insert a coverage pin">
+              {points.slice(0, -1).map((_, index) => <Button key={index} type="button" size="sm" className="shrink-0" variant={insertAfter === index ? "default" : "outline"} aria-pressed={insertAfter === index} aria-label={`Insert after pin ${index + 1}`} disabled={saving || points.length >= MAX_MARKED_POINTS} onClick={() => { setInsertAfter(index); insertAfterRef.current = index; }}>After {index + 1}</Button>)}
+            </div>
+          </div>}
+
           <div className="street-coverage-map relative isolate min-h-[14rem] flex-1 overflow-hidden rounded-xl border border-border/80 bg-muted/20 shadow-2xs">
             <div ref={setMapContainer} className="h-full w-full" aria-label={`Map for ${streetName} street coverage`} />
             {!mapReady && (
@@ -364,7 +400,7 @@ const StreetCoverageEditor = ({
             )}
             <div className="pointer-events-none absolute left-2.5 top-2.5 z-[400] flex max-w-[calc(100%-4.5rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-background/95 px-2.5 py-2 text-ui-overline font-medium leading-4 text-foreground shadow-sm sm:left-3 sm:top-3 sm:text-ui-caption">
               <MousePointer2 className="size-3.5 shrink-0 text-primary" />
-              {points.length >= MAX_MARKED_POINTS ? "Point limit reached · drag to adjust" : "Click in collection order · drag to adjust"}
+              {points.length >= MAX_MARKED_POINTS ? "Point limit reached · drag to adjust" : insertAfter !== null ? `Click to insert after pin ${insertAfter + 1}` : "Click in coverage order · drag to adjust"}
             </div>
             <div className="absolute right-2.5 top-2.5 z-[400] flex flex-col overflow-hidden rounded-xl border border-border/80 bg-background/95 p-0.5 shadow-sm sm:right-3 sm:top-3">
               <button

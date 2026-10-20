@@ -130,9 +130,9 @@ export const getStreetCoverageRoadPath = async (points: [number, number][], sign
     coordinates: [number, number][];
     snappedPoints: [number, number][];
     source: string;
-  } }>("/tracking/street-coverage-route", { points }, { signal, timeout: 8000 });
+  } }>("/tracking/street-coverage-route", { points }, { signal, timeout: 25000 });
   const result = response.data.data;
-  if (result?.source !== "osrm" || !Array.isArray(result.coordinates) || result.coordinates.length < 2 ||
+  if (result?.source !== "osm-coverage" || !Array.isArray(result.coordinates) || result.coordinates.length < 2 ||
       !Array.isArray(result.snappedPoints) || result.snappedPoints.length !== points.length ||
       !result.coordinates.every(validPoint) || !result.snappedPoints.every(validPoint)) {
     throw new Error("Road matching is unavailable. Please try again.");

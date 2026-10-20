@@ -173,13 +173,45 @@ describe("street coverage road matching", () => {
     // asynchronous and should not consume a matching test's deadline.
     ({ default: Editor } = await vi.importActual<typeof import("./StreetCoverageEditor")>("./StreetCoverageEditor"));
   });
-  const openCoverage = async (save = vi.fn(), initialPath: [number, number][] | null = null, onOpenChange = vi.fn()) => {
+  const openCoverage = async (save = vi.fn(), initialPath: [number, number][] | null = null, onOpenChange = vi.fn(), initialEdit?: import("@/services/barangaysService").CoverageEdit) => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    await act(async () => root.render(<Editor open streetName="Test street" barangayName="Poblacion" initialPath={initialPath} center={points[0]} onOpenChange={onOpenChange} onSave={save} />));
+    await act(async () => root.render(<Editor open streetName="Test street" barangayName="Poblacion" initialPath={initialPath} initialEdit={initialEdit} center={points[0]} onOpenChange={onOpenChange} onSave={save} />));
     return save;
   };
   const mark = (point: [number, number]) => act(() => mocks.mapHandlers.get("click")!({ latlng: { lat: point[0], lng: point[1] } }));
   const finishMatching = () => act(async () => { await vi.advanceTimersByTimeAsync(300); });
+
+  it("reopens a detailed road shape with exactly its two saved pins", async () => {
+    const detailed: [number, number][] = Array.from({ length: 30 }, (_, i) => [13.931 + i * 0.00001, 121.424]);
+    const savedPins = [detailed[0], detailed.at(-1)!];
+    await openCoverage(vi.fn(), detailed, vi.fn(), { mode: "ROAD", points: savedPins });
+    expect(mocks.markers.map(marker => marker.coordinate)).toEqual(savedPins);
+    expect(mocks.lines).toContainEqual(detailed);
+    expect(mocks.road).not.toHaveBeenCalled();
+    expect(button("Save Path")).toBeDisabled();
+  });
+
+  it("inserts a guide pin between existing pins instead of appending it", async () => {
+    await openCoverage(vi.fn(), road, vi.fn(), { mode: "ROAD", points });
+    const middle: [number, number] = [13.932, 121.425];
+    const ordered = [points[0], middle, points[1]];
+    mocks.road.mockResolvedValue({ coordinates: ordered, snappedPoints: ordered, source: "osm-coverage" });
+    await click("Insert after pin 1"); mark(middle); await finishMatching();
+    expect(mocks.road.mock.calls[0][0]).toEqual(ordered);
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
+    await click("Undo"); await finishMatching();
+    expect(mocks.road.mock.calls[1][0]).toEqual(points);
+  });
+
+  it("offers only road-snapped coverage and does not require vehicle-access approval", async () => {
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
+    const save = await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
+    expect(button("Manual Coverage")).toBeUndefined();
+    expect(document.querySelector('[role="checkbox"]')).toBeNull();
+    expect(document.body.textContent).toContain("including one-way streets");
+    await click("Save Path");
+    expect(save).toHaveBeenCalledWith(road, { mode: "ROAD", points });
+  });
 
   it.each(["Cancel", "Close", "Escape", "outside"])("confirms before closing an unfinished path with %s", async (method) => {
     const close = vi.fn();
@@ -287,23 +319,23 @@ describe("street coverage road matching", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it("disables saving when road matching returns the existing geometry", async () => {
-    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: [...road, road[road.length - 1]], source: "osrm" });
+  it("saves changed editing pins even when the road geometry is unchanged", async () => {
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: [...road, road[road.length - 1]], source: "osm-coverage" });
     const save = await openCoverage(vi.fn(), road);
     mark(road[road.length - 1]);
     await finishMatching();
-    expect(button("Save Path")).toBeDisabled();
+    expect(button("Save Path")).not.toBeDisabled();
     await click("Save Path");
-    expect(save).not.toHaveBeenCalled();
+    expect(save).toHaveBeenCalledWith(road, { mode: "ROAD", points: [...road, road[road.length - 1]] });
   });
 
   it("disables saving after reversing twice restores the original collection order", async () => {
-    mocks.road.mockResolvedValue({ coordinates: road.slice().reverse(), snappedPoints: points.slice().reverse(), source: "osrm" });
-    const save = await openCoverage(vi.fn(), points);
+    mocks.road.mockResolvedValue({ coordinates: road.slice().reverse(), snappedPoints: points.slice().reverse(), source: "osm-coverage" });
+    const save = await openCoverage(vi.fn(), road, vi.fn(), { mode: "ROAD", points });
     await click("Reverse");
     await finishMatching();
     expect(button("Save Path")).not.toBeDisabled();
-    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
     await click("Reverse");
     await finishMatching();
     expect(button("Save Path")).toBeDisabled();
@@ -312,14 +344,14 @@ describe("street coverage road matching", () => {
   });
 
   it("draws and saves the road shape rather than a line between clicks", async () => {
-    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
     const save = await openCoverage(); mark(points[0]); mark(points[1]);
     expect(document.body.textContent).toContain("Matching roads…");
     expect(button("Save Path")).toBeDisabled();
     await finishMatching();
     expect(mocks.lines).toContainEqual(road);
     await click("Save Path");
-    expect(save).toHaveBeenCalledWith(road);
+    expect(save).toHaveBeenCalledWith(road, { mode: "ROAD", points });
     expect(mocks.road).toHaveBeenCalledTimes(1);
   });
 
@@ -329,7 +361,7 @@ describe("street coverage road matching", () => {
     const save = await openCoverage(); mark(points[0]); mark(points[1]); await finishMatching();
     const signal = mocks.road.mock.calls[0][1] as AbortSignal;
     await click("Clear");
-    await act(async () => finish({ coordinates: road, snappedPoints: points, source: "osrm" }));
+    await act(async () => finish({ coordinates: road, snappedPoints: points, source: "osm-coverage" }));
     expect(signal.aborted).toBe(true);
     expect(document.body.textContent).toContain("No path saved");
     expect(mocks.lines).toHaveLength(0);
@@ -347,14 +379,14 @@ describe("street coverage road matching", () => {
     expect(mocks.lines).toHaveLength(0);
     expect(button("Save Path")).toBeDisabled();
     expect(save).not.toHaveBeenCalled();
-    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
     await click("Try Again");
     expect(button("Save Path")).toBeDisabled();
     await finishMatching();
     expect(mocks.road.mock.calls[1][0]).toEqual(points);
     expect(document.querySelector('[role="alert"]')).toBeNull();
     await click("Save Path");
-    expect(save).toHaveBeenCalledWith(road);
+    expect(save).toHaveBeenCalledWith(road, { mode: "ROAD", points });
   });
 
   it.each([
@@ -372,7 +404,7 @@ describe("street coverage road matching", () => {
 
   it("keeps the matched path after a failed save and lets the user save again", async () => {
     const save = vi.fn().mockRejectedValueOnce(Object.assign(new Error("Something Went Wrong"), { isAxiosError: true, response: { status: 503 } })).mockResolvedValueOnce(undefined);
-    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: road, snappedPoints: points, source: "osm-coverage" });
     await openCoverage(save); mark(points[0]); mark(points[1]); await finishMatching();
     await click("Save Path");
     expect(document.querySelector('[role="alert"]')).toHaveTextContent("Path wasn't saved");
@@ -381,7 +413,7 @@ describe("street coverage road matching", () => {
     expect(button("Save Path")).not.toBeDisabled();
     await click("Save Path");
     expect(save).toHaveBeenCalledTimes(2);
-    expect(save).toHaveBeenLastCalledWith(road);
+    expect(save).toHaveBeenLastCalledWith(road, { mode: "ROAD", points });
     expect(document.querySelector('[role="alert"]')).toBeNull();
   });
 
@@ -390,17 +422,17 @@ describe("street coverage road matching", () => {
     expect(mocks.road).not.toHaveBeenCalled(); expect(mocks.lines).toContainEqual(road);
     const moved: [number, number] = [13.9311, 121.4241];
     const updatedRoad = [moved, ...road.slice(1)];
-    mocks.road.mockResolvedValue({ coordinates: updatedRoad, snappedPoints: updatedRoad, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: updatedRoad, snappedPoints: updatedRoad, source: "osm-coverage" });
     const marker = mocks.markers[0]; marker.coordinate = moved;
     act(() => marker.handlers.get("dragend")!()); await finishMatching();
     expect(mocks.road.mock.calls[0][0][0]).toEqual(moved);
-    await click("Save Path"); expect(save).toHaveBeenCalledWith(updatedRoad);
+    await click("Save Path"); expect(save).toHaveBeenCalledWith(updatedRoad, { mode: "ROAD", points: updatedRoad });
   });
 
   it("respects reversed collection order and disables saving after undo leaves one point", async () => {
     const reversed = points.slice().reverse();
     const reversedRoad = road.slice().reverse();
-    mocks.road.mockResolvedValue({ coordinates: reversedRoad, snappedPoints: reversed, source: "osrm" });
+    mocks.road.mockResolvedValue({ coordinates: reversedRoad, snappedPoints: reversed, source: "osm-coverage" });
     await openCoverage(vi.fn(), points);
     await click("Reverse"); await finishMatching();
     expect(mocks.road.mock.calls[0][0]).toEqual(reversed);

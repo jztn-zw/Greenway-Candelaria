@@ -30,6 +30,7 @@ import {
   fetchManagedStreets,
   type BarangayManagerRow,
   type ManagedStreet,
+  type CoverageEdit,
 } from "@/services/barangaysService";
 import { MapPin, MapPinned, SquarePen, Plus, Route, Search, Trash2, Truck } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -263,15 +264,15 @@ const AdminBarangays = () => {
     }
   };
 
-  const saveStreetCoverage = async (path: CoveragePoint[] | null) => {
+  const saveStreetCoverage = async (path: CoveragePoint[] | null, edit?: CoverageEdit | null) => {
     if (!coverageStreet) return;
     const barangayId = coverageStreet.barangay_id;
     if (!barangayId) return;
     setIsSavingCoverage(true);
     try {
-      await updateBarangayStreetCoverage(barangayId, coverageStreet.id, path);
+      await updateBarangayStreetCoverage(barangayId, coverageStreet.id, path, edit ?? null);
       setStreets((current) => current.map((street) =>
-        street.id === coverageStreet.id ? { ...street, coverage_path: path } : street,
+        street.id === coverageStreet.id ? { ...street, coverage_path: path, coverage_edit: edit ?? null } : street,
       ));
       const pathDelta = Number(Boolean(path?.length)) - Number(Boolean(coverageStreet.coverage_path?.length));
       if (pathDelta) {
@@ -560,7 +561,7 @@ const AdminBarangays = () => {
                                     size="icon"
                                     className={"h-8 w-8 rounded-lg cursor-pointer"}
                                     title={street.coverage_path?.length
-                                      ? `Edit coverage path (${street.coverage_path.length} points)`
+                                      ? `Edit coverage path${street.coverage_edit ? ` (${street.coverage_edit.points.length} pins)` : ""}`
                                       : `Draw coverage path for ${street.name}`}
                                     aria-label={`${street.coverage_path?.length ? "Edit" : "Draw"} coverage path for ${displayName}`}
                                     onClick={() => setCoverageStreet(street)}
@@ -661,6 +662,7 @@ const AdminBarangays = () => {
             : coverageStreet.name}
           barangayName={selectedBarangay.name}
           initialPath={coverageStreet.coverage_path ?? null}
+          initialEdit={coverageStreet.coverage_edit ?? null}
           center={
             selectedBarangay.latitude !== null && selectedBarangay.longitude !== null
               ? [Number(selectedBarangay.latitude), Number(selectedBarangay.longitude)]

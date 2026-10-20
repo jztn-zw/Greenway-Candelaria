@@ -18,6 +18,11 @@ export interface BarangayAdminRow {
   notes?: string | null;
 }
 
+export interface CoverageEdit {
+  mode: "ROAD";
+  points: [number, number][];
+}
+
 export interface BarangayStreetRow {
   id: string;
   barangay_id?: string;
@@ -26,6 +31,7 @@ export interface BarangayStreetRow {
   latitude?: number | null;
   longitude?: number | null;
   coverage_path?: [number, number][] | null;
+  coverage_edit?: CoverageEdit | null;
 }
 
 export interface BarangayStreetsResponse {
@@ -79,9 +85,19 @@ const normalizeCoveragePath = (value: unknown): [number, number][] | null => {
   }
 };
 
+const normalizeCoverageEdit = (value: unknown): CoverageEdit | null => {
+  try {
+    const edit = typeof value === "string" ? JSON.parse(value) : value;
+    if (!edit || edit.mode !== "ROAD") return null;
+    const points = normalizeCoveragePath(edit.points);
+    return points && points.length <= 100 ? { mode: edit.mode, points } : null;
+  } catch { return null; }
+};
+
 const withNormalizedCoverage = <T extends BarangayStreetRow>(street: T): T => ({
   ...street,
   coverage_path: normalizeCoveragePath(street.coverage_path),
+  coverage_edit: normalizeCoverageEdit(street.coverage_edit),
 });
 
 export const fetchBarangays = async (filters?: { status: "ACTIVE" | "INACTIVE" }): Promise<BarangayLocationRow[]> => {
@@ -136,9 +152,11 @@ export const updateBarangayStreetCoverage = async (
   barangayId: string,
   streetId: string,
   coveragePath: [number, number][] | null,
+  coverageEdit: CoverageEdit | null = null,
 ): Promise<void> => {
   await api.put(`/barangays/${barangayId}/streets/${streetId}/coverage`, {
     coverage_path: coveragePath,
+    coverage_edit: coverageEdit,
   });
 };
 
