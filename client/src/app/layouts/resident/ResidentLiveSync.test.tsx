@@ -25,6 +25,14 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); vi.unstubAllGlobals(); });
 const mount = () => render(<QueryClientProvider client={client}><ResidentLiveSync /></QueryClientProvider>);
 const notice = { id: "notification-a", user_id: "resident-a", type: "REPORT_UPDATE" };
+it('saved read state refreshes only the owner inbox without showing another browser alert', async () => {
+  mount();
+  await act(async () => mocks.listeners.get('notification:changed')?.({ user_id: 'other' }));
+  expect(mocks.changed).not.toHaveBeenCalled();
+  await act(async () => mocks.listeners.get('notification:changed')?.({ user_id: 'resident-a' }));
+  expect(mocks.changed).toHaveBeenCalledWith(['notifications']);
+  expect(notices).toHaveLength(0);
+});
 
 it("the inbox refreshes even when browser alerts or a category are off", async () => {
   mount();

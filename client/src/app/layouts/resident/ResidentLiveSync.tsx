@@ -48,6 +48,9 @@ const ResidentLiveSync = () => {
       void browser.deliver(row);
     });
     socket.on("notification:remove_ref", refreshNotifications);
+    socket.on("notification:changed", (payload: { user_id?: unknown } | null) => {
+      if (payload?.user_id === userId) refreshNotifications();
+    });
     socket.on("notification:update_ref", refreshNotifications);
     const onVisible = () => { if (!document.hidden) sync.reconcile(); };
     document.addEventListener("visibilitychange", onVisible);

@@ -29,6 +29,9 @@ const CollectorLiveSync = () => {
       if (["routes", "tracking", "trucks", "drivers"].includes(row.ref_module ?? "")) sync.changed(["profile", "routes", "history"]);
     });
     socket.on("notification:remove_ref", () => sync.changed(["notifications"]));
+    socket.on("notification:changed", (payload: { user_id?: unknown } | null) => {
+      if (payload?.user_id === userId) sync.changed(["notifications"]);
+    });
     socket.on("notification:update_ref", () => sync.changed(["notifications"]));
     const visible = () => { if (!document.hidden) sync.reconcile(); };
     document.addEventListener("visibilitychange", visible);

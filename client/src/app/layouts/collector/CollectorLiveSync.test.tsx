@@ -26,6 +26,21 @@ const observe = (domain: string) => {
   cleanups.push(observer.subscribe(() => {})); return { key, read };
 };
 const mount = async () => { await act(async () => root.render(<QueryClientProvider client={client}><CollectorLiveSync /></QueryClientProvider>)); };
+it("another session's saved notification state refreshes only the same owner's inbox", async () => {
+  const notices = observe("notifications"), messages = observe("messenger");
+  await mount();
+  await act(async () => {
+    socket.listeners.get("notification:changed")?.({ user_id: "other" });
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(notices.read).not.toHaveBeenCalled();
+  await act(async () => {
+    socket.listeners.get("notification:changed")?.({ user_id: "collector" });
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(notices.read).toHaveBeenCalledTimes(1);
+  expect(messages.read).not.toHaveBeenCalled();
+});
 it("admin schedule events refresh only the relevant collector cache", async () => {
   const schedule = observe("schedule"); const messages = observe("messenger");
   const other = ["resident", "resident", "schedule"]; client.setQueryData(other, 9);
