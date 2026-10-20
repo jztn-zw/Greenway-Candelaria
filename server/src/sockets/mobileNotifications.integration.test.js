@@ -81,6 +81,11 @@ test("mobile notification and data subscriptions use real authorized role channe
       channel.emitNotificationReferenceRemovedToUser(userId, "schedule", "fixture");
       await removed;
       assert.equal(changes, 4, "connect, own arrival, edit and removal reconcile the inbox");
+      const stateChanged = once('notification:changed');
+      channel.emitNotificationStateChanged(userId);
+      await stateChanged;
+      assert.equal(changes, 5, 'saved read/delete changes reconcile the other session without a new alert');
+      assert.deepEqual(rows, ['own']);
       const dataEvent = once(role === "RESIDENT" ? "resident:data-changed" : "collector:data-changed");
       if (role === "RESIDENT") {
         residentChannel.emitResidentDataChanged(["reports"], userId);

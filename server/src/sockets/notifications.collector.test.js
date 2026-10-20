@@ -6,6 +6,20 @@ const originalAuth = auth.authenticateSocketUser;
 auth.authenticateSocketUser = async (socket) => socket.user ?? null;
 const channel = require("./notifications.socket");
 after(() => { auth.authenticateSocketUser = originalAuth; return pool.end(); });
+test("state changes reach only the current owner, including multiple sessions", async () => {
+  const emitted = [], left = [];
+  const sockets = ['owner', 'owner', 'other', null].map((id, index) => ({
+    user: id ? { id } : null, emit: (...args) => emitted.push([index, ...args]),
+    leave: async room => left.push([index, room]),
+  }));
+  channel.registerNotificationsSocket({ on() {}, in: room => {
+    assert.equal(room, 'user:owner'); return { fetchSockets: async () => sockets };
+  } });
+  channel.emitNotificationStateChanged('owner');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(emitted, [0, 1].map(index => [index, 'notification:changed', { user_id: 'owner' }]));
+  assert.deepEqual(left, [[2, 'user:owner'], [3, 'user:owner']]);
+});
 test("reference removals reach only authenticated recipients, never a global broadcast", async () => {
   const emitted = [];
   const recipient = { user: { id: "recipient" }, emit: (...args) => emitted.push(args), leave: async () => {} };

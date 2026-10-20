@@ -6,6 +6,7 @@ const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const auditService = require("../audit/audit.service");
 const { sendToMany, emitStoredNotifications, notifyAdmins } = require("../notifications/notifications.service");
 const { emitCollectorConversationChanged } = require("../../sockets/collectorChanges.socket");
+const { emitNotificationStateChanged } = require('../../sockets/notifications.socket');
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -550,18 +551,31 @@ const markMyMessagesAsRead = async (userId, routeId, ids) => {
   if (ids && ids.length === 0) return { read: 0 };
   const driver = await getByUserId(userId);
 
-  const [result] = await pool.query(
-    `UPDATE driver_messages
-     SET is_read = TRUE
-     WHERE driver_id = ?
-        AND sent_by <> ?
-        AND is_read = FALSE
-        ${routeId ? "AND route_id = ?" : ""}
-        ${ids ? "AND id IN (?)" : ""}`,
-    [driver.id, userId, ...(routeId ? [routeId] : []), ...(ids ? [ids] : [])],
-  );
-
+  const connection = await pool.getConnection();
+  let result, receipts;
+  try {
+    await connection.beginTransaction();
+    [result] = await connection.query(
+      `UPDATE driver_messages SET is_read = TRUE
+       WHERE driver_id = ? AND sent_by <> ? AND is_read = FALSE
+         ${routeId ? 'AND route_id = ?' : ''} ${ids ? 'AND id IN (?)' : ''}`,
+      [driver.id, userId, ...(routeId ? [routeId] : []), ...(ids ? [ids] : [])],
+    );
+    // Repair a previously missed linked receipt too, without reading hidden bubbles.
+    [receipts] = await connection.query(
+      `UPDATE notifications n JOIN driver_messages dm
+         ON JSON_UNQUOTE(JSON_EXTRACT(n.metadata, '$.message_id')) = dm.id
+       SET n.is_read = TRUE
+       WHERE n.user_id = ? AND n.ref_module = 'driver-messages' AND n.is_read = FALSE
+         AND dm.driver_id = ? AND dm.sent_by <> ? AND dm.is_read = TRUE
+         ${routeId ? 'AND dm.route_id = ?' : ''} ${ids ? 'AND dm.id IN (?)' : ''}`,
+      [userId, driver.id, userId, ...(routeId ? [routeId] : []), ...(ids ? [ids] : [])],
+    );
+    await connection.commit();
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
   if (result.affectedRows) emitCollectorConversationChanged(userId);
+  if (receipts.affectedRows) emitNotificationStateChanged(userId);
   return { read: result.affectedRows ?? 0 };
 };
 

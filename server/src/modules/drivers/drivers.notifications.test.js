@@ -19,11 +19,24 @@ test("a selected older notification message is included and remains ownership sc
   }, async () => { assert.deepEqual((await service.getMyMessages("user", undefined, 300, "collector", "old")).map((row) => row.id), ["old", "301"]); });
 });
 test("web read action marks only displayed messages belonging to this collector", async () => {
-  await withQuery(async (sql, params) => {
-    if (sql.includes("FROM drivers d")) return [[{ id: "driver" }]];
-    assert.match(sql, /WHERE driver_id = \?/); assert.match(sql, /AND id IN \(\?\)/); assert.deepEqual(params, ["driver", "user", ["visible"]]);
-    return [{ affectedRows: 1 }];
-  }, async () => { assert.deepEqual(await service.markMyMessagesAsRead("user", undefined, ["visible"]), { read: 1 }); });
+  const original = pool.getConnection; let committed = false;
+  pool.getConnection = async () => ({ beginTransaction: async () => {}, release() {}, rollback: async () => {},
+    commit: async () => { committed = true; }, query: async (sql, params) => {
+      if (sql.includes('UPDATE notifications')) {
+        assert.match(sql, /n.user_id = \?/); assert.match(sql, /dm.driver_id = \?/);
+        assert.match(sql, /dm.id IN \(\?\)/); assert.deepEqual(params, ['user', 'driver', 'user', ['visible']]);
+      } else {
+        assert.match(sql, /WHERE driver_id = \?/); assert.match(sql, /AND id IN \(\?\)/); assert.deepEqual(params, ["driver", "user", ["visible"]]);
+      }
+      return [{ affectedRows: 1 }];
+    },
+  });
+  try {
+    await withQuery(async () => [[{ id: 'driver' }]], async () => {
+      assert.deepEqual(await service.markMyMessagesAsRead('user', undefined, ['visible']), { read: 1 });
+      assert.equal(committed, true);
+    });
+  } finally { pool.getConnection = original; }
 });
 test("failed notification insert rolls back the dispatch message", async () => {
   const original = pool.getConnection; let rollback = false; let commit = false; const writes = [];

@@ -84,6 +84,56 @@ test('dispatch push delivery rechecks ownership and includes the message preview
   } finally { pool.query=original;global.fetch=fetchOriginal;delete process.env.EXPO_PUSH_ENABLED; }
 });
 
+test('collector route and assignment updates use phone push without becoming chat messages', async () => {
+  const original = pool.query, originalFetch = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
+  const sent = [], eligibility = [];
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async (sql, args) => {
+    eligibility.push(args[1]);
+    return [[{ token, user_id: 'driver', role: 'DRIVER' }]];
+  };
+  global.fetch = async (_url, options) => {
+    sent.push(JSON.parse(options.body)[0]);
+    return { ok: true, json: async () => ({ data: [{ status: 'error' }] }) };
+  };
+  try {
+    const modules = ['routes', 'drivers', 'trucks', 'truck-breakdowns', 'tracking'];
+    for (const ref_module of modules) await service.sendMobilePushAlert({
+      id: 'notice', user_id: 'driver', type: 'SYSTEM', ref_module, title: 'Assignment updated', body: 'Review your assignment.',
+    });
+    assert.equal(sent.length, modules.length);
+    assert.deepEqual(eligibility, modules.map(() => 1));
+    sent.forEach((payload, index) => {
+      assert.equal(payload.data.destination, 'notifications');
+      assert.equal(payload.data.ref_module, modules[index]);
+      assert.equal(payload.channelId, 'dispatch-messages');
+      assert.ok(payload.title); assert.ok(payload.body);
+    });
+  } finally { pool.query = original; global.fetch = originalFetch;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED; else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});
+
+test('all valid saved notification types qualify for their collector owner, including generic admin notices', async () => {
+  const original = pool.query, originalFetch = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
+  const eligibility = [], sent = [];
+  process.env.EXPO_PUSH_ENABLED = 'true';
+  pool.query = async (_sql, args) => { eligibility.push(args[1]); return [[{ token, user_id: 'driver', role: 'DRIVER' }]]; };
+  global.fetch = async (_url, options) => {
+    sent.push(JSON.parse(options.body)[0]);
+    return { ok: true, json: async () => ({ data: [{ status: 'error' }] }) };
+  };
+  const types = ['COLLECTION_REMINDER', 'TRUCK_IS_NEAR', 'COLLECTION_DONE', 'REPORT_UPDATE', 'NEW_POST', 'ANNOUNCEMENT', 'MISSED_COLLECTION', 'SYSTEM'];
+  try {
+    for (const type of types) await service.sendMobilePushAlert({ id: 'notice', user_id: 'driver', type, title: 'Authorized notice', body: 'Your update.' });
+    assert.deepEqual(eligibility, types.map(() => 1));
+    assert.equal(sent.length, types.length);
+    assert.ok(sent.every(payload => payload.data.user_id === 'driver' && payload.data.destination === 'notifications'));
+  } finally { pool.query = original; global.fetch = originalFetch;
+    if (previous === undefined) delete process.env.EXPO_PUSH_ENABLED; else process.env.EXPO_PUSH_ENABLED = previous;
+  }
+});
+
 test('a new MENRO calendar schedule sends an actionable push to enabled collector devices', async () => {
   const original = pool.query, fetchOriginal = global.fetch, previous = process.env.EXPO_PUSH_ENABLED;
   let sent;

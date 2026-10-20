@@ -9,7 +9,7 @@ const preview = (value, limit) => {
 };
 const validToken = value => typeof value === 'string' && /^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]{1,200}\]$/.test(value);
 const fail = (message, statusCode = 400) => { throw { statusCode, message }; };
-const residentPushTypes = new Set(['COLLECTION_REMINDER', 'TRUCK_IS_NEAR', 'COLLECTION_DONE', 'REPORT_UPDATE', 'NEW_POST', 'ANNOUNCEMENT', 'MISSED_COLLECTION', 'SYSTEM']);
+const mobilePushTypes = new Set(['COLLECTION_REMINDER', 'TRUCK_IS_NEAR', 'COLLECTION_DONE', 'REPORT_UPDATE', 'NEW_POST', 'ANNOUNCEMENT', 'MISSED_COLLECTION', 'SYSTEM']);
 const residentPreferences = {
   ANNOUNCEMENT: 'notif_announcements', NEW_POST: 'notif_new_content',
   COLLECTION_REMINDER: 'notif_collection_reminders', TRUCK_IS_NEAR: 'notif_truck_near',
@@ -83,8 +83,9 @@ async function removeInvalid(result, device, stage = 'ticket') {
 async function eligibleDevices(notification) {
   const isSchedule = notification.ref_module === 'schedule';
   const isDriverMessage = notification.ref_module === 'driver-messages';
-  const driverEligible = isSchedule || isDriverMessage;
-  const residentEligible = residentPushTypes.has(notification.type);
+  const residentEligible = mobilePushTypes.has(notification.type);
+  // The saved owner remains the audience; the app supports the website's types.
+  const driverEligible = residentEligible || isSchedule || isDriverMessage;
   if (process.env.EXPO_PUSH_ENABLED !== 'true' || (!driverEligible && !residentEligible)) return [];
   const preferenceColumn = Object.hasOwn(residentPreferences, notification.type) ? residentPreferences[notification.type] : null;
   // General system pushes also stop when the resident turns every phone alert off.
@@ -152,7 +153,10 @@ async function deliverMobilePush(notification) {
                 user_id: notification.user_id, notification_id: notification.id, ref_module: 'schedule',
                 destination: 'notifications', notification_title: preview(String(notification.title || '').trim(), 160),
                 notification_body: preview(String(notification.body || '').trim(), 240),
-              } : { user_id: notification.user_id, notification_id: notification.id, destination: 'messages' },
+              } : { user_id: notification.user_id, notification_id: notification.id,
+                destination: notification.ref_module === 'driver-messages' ? 'messages' : 'notifications',
+                ...(notification.ref_module !== 'driver-messages' ? { ref_module: notification.ref_module } : {}),
+              },
           };
         }));
       } catch (error) {

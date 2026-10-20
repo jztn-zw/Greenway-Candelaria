@@ -98,6 +98,10 @@ const emitAuthorized = async (room, event, payload, allowed) => {
 };
 const emitNotificationToUser = (userId, notification) =>
   void emitAuthorized(`user:${userId}`, "notification:new", notification, (user) => user.id === userId);
+// State-only hint: other sessions refetch their inbox without showing a new alert.
+const emitNotificationStateChanged = (userId) => {
+  if (userId) void emitAuthorized(`user:${userId}`, "notification:changed", { user_id: userId }, (user) => user.id === userId);
+};
 const emitNotificationToBarangay = (barangayId, notification) =>
   void emitAuthorized(`barangay:${barangayId}`, "notification:new", notification, (user) =>
     user.barangay_id === barangayId && (!notification.metadata?.street_id || user.street_id === notification.metadata.street_id));
@@ -145,6 +149,7 @@ module.exports = {
   registerNotificationsSocket,
   getIO,
   emitNotificationToUser,
+  emitNotificationStateChanged,
   emitNotificationToBarangay,
   emitNotificationToAdmins,
   emitNotificationReferenceRemoved,

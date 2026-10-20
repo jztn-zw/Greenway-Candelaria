@@ -3,11 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function fixture(failCommit = false, readCount = 1) {
-  const events = [], module = { exports: {} }; let committed = false;
-  const query = async (sql) => {
+function fixture(failCommit = false, readCount = 1, receiptCount = readCount) {
+  const events = [], notificationEvents = [], statements = [], module = { exports: {} }; let committed = false;
+  const query = async (sql, params) => {
+    statements.push({ sql, params });
     if (sql.includes("FROM drivers d")) return [[{ id: "driver", user_id: "collector", truck_id: "truck" }]];
     if (sql.includes("FROM route_runs")) return [[{ id: "run" }]];
+    if (sql.includes('UPDATE notifications')) return [{ affectedRows: receiptCount }];
     return [{ affectedRows: readCount }];
   };
   const connection = { query, beginTransaction: async () => {}, release() {},
@@ -20,11 +22,12 @@ function fixture(failCommit = false, readCount = 1) {
         notifyAdmins: async () => ({ notifications: [] }), sendToMany: async () => ({ notifications: [] }), emitStoredNotifications() {},
       };
       if (name.endsWith("/collectorChanges.socket")) return { emitCollectorConversationChanged: owner => events.push({ owner, committed }) };
+      if (name.endsWith("/notifications.socket")) return { emitNotificationStateChanged: owner => notificationEvents.push({ owner, committed }) };
       if (["bcryptjs", "../routes/routeRuns.service", "../../utils/profileAvatar", "../audit/audit.service"].includes(name)) return {};
       throw Error(name);
     },
   });
-  return { service: module.exports, events };
+  return { service: module.exports, events, notificationEvents, statements };
 }
 test("legacy dispatch and breakdown messages publish only after commit", async () => {
   for (const action of ["dispatch", "breakdown"]) {
@@ -40,7 +43,31 @@ test("legacy dispatch and breakdown messages publish only after commit", async (
 });
 test("legacy read hints use the authenticated collector and skip unchanged receipts", async () => {
   const f = fixture(); await f.service.markMyMessagesAsRead("collector", undefined, ["message"]);
-  assert.deepEqual(f.events, [{ owner: "collector", committed: false }]); // Existing read is one atomic UPDATE.
+  assert.deepEqual(f.events, [{ owner: "collector", committed: true }]);
+  assert.deepEqual(f.notificationEvents, [{ owner: "collector", committed: true }]);
+  const receipt = f.statements.find(({ sql }) => /UPDATE notifications/.test(sql));
+  assert.ok(receipt, 'viewed messages and their notification flags are saved together');
+  assert.match(receipt.sql, /n.user_id = \?/);
+  assert.match(receipt.sql, /dm.driver_id = \?/);
+  assert.match(receipt.sql, /dm.id IN \(\?\)/);
+  assert.deepEqual(JSON.parse(JSON.stringify(receipt.params)), ['collector', 'driver', 'collector', ['message']]);
   const unchanged = fixture(false, 0); await unchanged.service.markMyMessagesAsRead("collector", undefined, ["message"]);
   assert.deepEqual(unchanged.events, []);
+});
+test('failed message-read commit rolls back both flags without publishing either hint', async () => {
+  const f = fixture(true);
+  await assert.rejects(f.service.markMyMessagesAsRead('collector', undefined, ['message']), /commit failed/);
+  assert.deepEqual(f.events, ['rollback']);
+  assert.deepEqual(f.notificationEvents, []);
+});
+test('an already-read visible message repairs its linked notification without another message read', async () => {
+  const f = fixture(false, 0, 1);
+  const result = await f.service.markMyMessagesAsRead('collector', 'run', ['message']);
+  assert.equal(result.read, 0);
+  assert.deepEqual(f.events, []);
+  assert.deepEqual(f.notificationEvents, [{ owner: 'collector', committed: true }]);
+  const receipt = f.statements.find(({ sql }) => /UPDATE notifications/.test(sql));
+  assert.match(receipt.sql, /dm.route_id = \?/);
+  assert.match(receipt.sql, /dm.is_read = TRUE/);
+  assert.deepEqual(JSON.parse(JSON.stringify(receipt.params)), ['collector', 'driver', 'collector', 'run', ['message']]);
 });

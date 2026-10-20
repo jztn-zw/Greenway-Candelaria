@@ -5,6 +5,7 @@ const {
   emitNotificationToUser,
   emitNotificationToBarangay,
   emitNotificationToAdmins,
+  emitNotificationStateChanged,
 } = require("../../sockets/notifications.socket");
 
 const NOTIFICATION_TYPES = new Set([
@@ -421,10 +422,10 @@ const markAsRead = async (id, userId) => {
     throw { statusCode: 404, message: "Notification not found" };
   }
 
-  await pool.query("UPDATE notifications SET is_read = TRUE WHERE id = ?", [
-    id,
+  await pool.query("UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?", [
+    id, userId,
   ]);
-
+  emitNotificationStateChanged(userId);
   return { read: true };
 };
 
@@ -440,6 +441,7 @@ const markAllAsRead = async (userId, category, postId, excludeMessages = false) 
     postId !== undefined ? [userId, postId] : [userId],
   );
 
+  emitNotificationStateChanged(userId);
   return { read: true };
 };
 
@@ -456,7 +458,7 @@ const deleteOne = async (id, userId) => {
   }
 
   await pool.query("DELETE FROM notifications WHERE id = ? AND user_id = ?", [id, userId]);
-
+  emitNotificationStateChanged(userId);
   return { message: "Notification deleted" };
 };
 
@@ -464,7 +466,7 @@ const deleteOne = async (id, userId) => {
 
 const clearAll = async (userId) => {
   await pool.query("DELETE FROM notifications WHERE user_id = ?", [userId]);
-
+  emitNotificationStateChanged(userId);
   return { message: "All notifications cleared" };
 };
 
