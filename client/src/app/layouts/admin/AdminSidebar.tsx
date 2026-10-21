@@ -77,7 +77,7 @@ const navGroups: NavGroup[] = [
     collapsible: true,
     items: [
       { title: "Event Management", url: "/admin/schedule", icon: CalendarDays },
-      { title: "Route Manager", url: "/admin/routes", icon: Route },
+      { title: "Route Management", url: "/admin/routes", icon: Route },
       { title: "Barangay Management", url: "/admin/barangays", icon: MapPinned },
     ],
   },

@@ -45,7 +45,7 @@ it.each([
   ["Community Posts", "/admin/posts"],
   ["Announcements", "/admin/announcements"],
   ["Event Management", "/admin/schedule"],
-  ["Route Manager", "/admin/routes"],
+  ["Route Management", "/admin/routes"],
   ["Barangay Management", "/admin/barangays"],
   ["Resident Management", "/admin/residents"],
   ["Collector Management", "/admin/drivers"],

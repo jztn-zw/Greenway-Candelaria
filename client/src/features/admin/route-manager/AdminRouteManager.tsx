@@ -382,7 +382,7 @@ const AdminRouteManager: React.FC = () => {
       {/* ── Page Header (Unboxed Canvas) ── */}
       <ResidentPageHeader
         className="admin-module-header"
-        title="Route Manager"
+        title="Route Management"
         description="Plan collection days, assign trucks, and verify every barangay stop."
         actionsClassName="admin-module-header-actions"
         actions={<Button
