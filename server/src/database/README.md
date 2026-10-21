@@ -155,6 +155,18 @@ The full pre-reset backup passed checksum, restore, row-count and content checks
 The temporary verification database was removed. Fifteen read-only backend
 feature checks passed against the empty baseline.
 
+On 2026-10-21, an authorized data-only reset preserved all 25 barangays, all 25
+streets (including their coverage geometry and editing pins), and the existing
+active `admin` account and credentials. The user confirmed that all API instances
+and workers were stopped. A full backup of all 33 current tables at
+`backups/database-reset-preserve-areas-2026-10-21T02-16-23-596Z/` passed checksum,
+restore, per-table row-count and content checks in a temporary database; the
+temporary database was removed. Other records were deleted in foreign-key order
+inside one transaction, with constraints enabled and no schema rebuild. Retained
+records matched their original content hashes before commit and after commit.
+Final verification found one admin, one default admin settings row, 25 barangays,
+25 streets, and zero records in every other table. All sessions were cleared.
+
 ## Removed storage
 
 - `collection_schedule`, `collection_schedule_reminder_log`, `reminder_settings`:
