@@ -16,11 +16,11 @@ export function BackButton({ onBack, label = "Back", className, disabled }: Back
       variant="ghost"
       onClick={onBack}
       aria-label={label}
+      title={label}
       disabled={disabled}
-      className={cn("group/back mb-3 h-8 max-w-full justify-start gap-1.5 px-2 text-xs [&_svg]:size-3.5", className)}
+      className={cn("group/back mb-3", className, "size-11 shrink-0 justify-center rounded-lg border border-border/80 p-0 sm:size-9 [&_svg]:size-4")}
     >
       <ArrowLeft aria-hidden="true" className="motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out motion-safe:group-hover/back:-translate-x-0.5 motion-safe:group-focus-visible/back:-translate-x-0.5 motion-safe:group-active/back:-translate-x-1" />
-      <span className="min-w-0 truncate">Back</span>
     </Button>
   );
 }

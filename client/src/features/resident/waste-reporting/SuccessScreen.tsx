@@ -3,6 +3,8 @@ import { CheckCircle2,Copy,Check,ArrowRight,Bell,PlusCircle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
+import { BackButton } from "@/components/common/BackButton";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 
 interface SuccessScreenProps {
   referenceNumber: string;
@@ -53,13 +55,16 @@ const SuccessScreen = ({ referenceNumber, onSubmitAnother }: SuccessScreenProps)
             </div>
           </div>
 
-          <div className="space-y-1">
-            <h2 id="report-submitted-heading" className="gw-heading text-xl text-foreground tracking-tight md:text-2xl">
+          <div className="flex items-center gap-3 text-left">
+            <BackButton onBack={onSubmitAnother} label="Back to Report an Issue" className="mb-0" />
+            <div className="min-w-0 flex-1 space-y-1">
+            <h1 id="report-submitted-heading" className={residentPageStyles.title}>
               Report Submitted
-            </h2>
-            <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground md:max-w-sm md:text-sm">
+            </h1>
+            <p className={`${residentPageStyles.description} mx-auto max-w-xs md:max-w-sm`}>
               Your report has been received and forwarded to MENRO Candelaria officers.
             </p>
+            </div>
           </div>
         </div>
 

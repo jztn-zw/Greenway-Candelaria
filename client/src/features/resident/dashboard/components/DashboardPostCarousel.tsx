@@ -1,3 +1,4 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import { useResidentQuery } from "@/lib/residentQuery";
 import PageErrorState from "@/components/feedback/PageErrorState";
@@ -146,7 +147,7 @@ const DashboardPostCarousel = () => {
             </div>
             <div className={dashboardStyles.updateBody}>
               <p className={dashboardStyles.updateTitle}>{post.title}</p>
-              <p className={dashboardStyles.updateExcerpt}>{post.body}</p>
+              <p className={dashboardStyles.updateExcerpt}><PostBodyText text={post.body} /></p>
             </div>
           </div>
 

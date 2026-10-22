@@ -2,11 +2,6 @@
   container: admin-dashboard / inline-size;
 }
 
-.admin-dashboard .admin-dashboard-title {
-  font-size: 1.5rem;
-  line-height: 1.25;
-}
-
 .admin-dashboard .admin-dashboard-kpi:nth-child(odd) {
   border-right: 1px solid hsl(var(--border) / 0.7);
 }
@@ -124,10 +119,6 @@
 }
 
 @container admin-dashboard (min-width: 62.5rem) {
-  .admin-dashboard .admin-dashboard-title {
-    font-size: 1.875rem;
-  }
-
   .admin-dashboard > :not([hidden]) ~ :not([hidden]),
   .admin-dashboard .admin-dashboard-loading > :not([hidden]) ~ :not([hidden]) {
     margin-top: 1.5rem;

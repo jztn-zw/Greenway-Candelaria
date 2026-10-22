@@ -8,11 +8,14 @@ import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminQuery } from "@/lib/adminQuery";
+import { Button } from "@/components/ui/button";
+import { getSystemDate } from "@/lib/serverClock";
+import { toast } from "@/lib/toast";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
-import { MapPin } from "lucide-react";
+import { Download, MapPin } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
 import { AnalyticsDataProvider } from "./AnalyticsDataContext";
-import AnalyticsSectionNav, { sections } from "./AnalyticsSectionNav";
+import AnalyticsSectionNav, { sections, type AnalyticsSectionId } from "./AnalyticsSectionNav";
 import AnalyticsSummaryKPIs from "./AnalyticsSummaryKPIs";
 import SectionBarangayCompliance from "./SectionBarangayCompliance";
 import SectionCollectionPerformance from "./SectionCollectionPerformance";
@@ -59,9 +62,10 @@ const formatRange = (from: string, to: string) => {
 };
 
 const AdminAnalyticsDashboard: React.FC = () => {
-  const [activeSection, setActiveSection] = useState(sections[0].id);
+  const [activeSection, setActiveSection] = useState<AnalyticsSectionId>(sections[0].id);
   const [datePreset, setDatePreset] = useState<DatePreset>("last-8-weeks");
   const [barangayId, setBarangayId] = useState("all");
+  const [exporting, setExporting] = useState(false);
   const { data: barangayRows = [] } = useAdminQuery("barangays", ["admin-options"], fetchBarangaysAdmin);
   const barangays = useMemo(() => barangayRows.filter((row) => row.status === "ACTIVE").sort((a, b) => a.name.localeCompare(b.name)), [barangayRows]);
   const barangayOptions = useMemo(
@@ -76,6 +80,25 @@ const AdminAnalyticsDashboard: React.FC = () => {
   const lastDataRef = useRef(data);
   if (data) lastDataRef.current = data;
   const visibleData = data ?? lastDataRef.current;
+
+  const exportReport = async () => {
+    if (!data || isFetching || error || exporting) return;
+    const snapshot = data;
+    const section = activeSection;
+    const barangayLabel = barangayOptions.find(option => option.value === barangayId)?.label;
+    if (!barangayLabel) return;
+    setExporting(true);
+    try {
+      const generatedAt = getSystemDate();
+      const { downloadAnalyticsPdf } = await import("./analytics.pdf");
+      await downloadAnalyticsPdf(snapshot, { barangayLabel, generatedAt, section });
+      toast.success("Analytics PDF exported");
+    } catch {
+      toast.error("Could not export analytics", { description: "Please try again. If the problem continues, reload the page." });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (!visibleData && !error) {
     return <AnalyticsDashboardSkeleton title={pageTitle} description={pageDescription} />;
@@ -95,6 +118,16 @@ const AdminAnalyticsDashboard: React.FC = () => {
         className="admin-module-header"
         title={pageTitle}
         description={pageDescription}
+        actionsClassName="w-full sm:w-auto"
+        actions={(
+          <Button variant="outline" size="sm" className="h-11 w-full sm:h-9 sm:w-auto"
+            loading={exporting} loadingLabel="Exporting…"
+            disabled={!data || isFetching || Boolean(error) || !barangayOptions.some(option => option.value === barangayId)}
+            title={activeSection === "overview" ? "Export all analytics sections for the selected period and barangay" : `Export ${sections.find(section => section.id === activeSection)?.label} for the selected period and barangay`}
+            onClick={() => void exportReport()}>
+            <Download aria-hidden="true" /> Export PDF
+          </Button>
+        )}
       />
 
         {error && <DataRefreshNotice message="Couldn't update analytics. Showing the previous results, which may be outdated or differ from your filters." onRetry={() => void refetch()} retrying={isFetching} />}

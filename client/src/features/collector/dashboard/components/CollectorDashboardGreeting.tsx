@@ -1,3 +1,5 @@
+import { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 import { useSystemTime } from "@/hooks/useSystemTime";
 import { getSystemDate } from "@/lib/serverClock";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
@@ -35,16 +37,16 @@ const CollectorDashboardGreeting = ({
         {/* Left: Driver and Command Context */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="gw-heading text-xl sm:text-2xl md:text-3xl text-foreground tracking-tight break-words [overflow-wrap:anywhere]">
+            <ResidentPageTitle className="break-words">
               {text}, <span className="text-primary">{firstName}</span>
-            </h1>
+            </ResidentPageTitle>
             {truckPlate && (
               <span className="tabular-nums text-ui-caption sm:text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/60">
                 {truckPlate}
               </span>
             )}
           </div>
-          <p className="text-ui-caption sm:text-xs text-muted-foreground mt-0.5 font-medium">
+          <p className={residentPageStyles.description}>
             Candelaria municipal collection operations
           </p>
         </div>

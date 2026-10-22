@@ -4,6 +4,8 @@
 
 .resident-page-title {
   font-size: var(--font-size-page);
+  line-height: 1.25;
+  letter-spacing: var(--font-tracking-page);
   overflow-wrap: anywhere;
 }
 
@@ -46,18 +48,17 @@
     margin-bottom: 1.25rem;
   }
 
-  .resident-page-title {
-    font-size: var(--font-size-page-lg);
-  }
-
-  .resident-page-description {
-    font-size: 0.875rem;
-  }
-
   .resident-page .resident-page-header-wide {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* Typography follows one viewport breakpoint across every panel and skeleton.
+   Header layout can still respond to the space available in its container. */
+@media (min-width: 640px) {
+  .resident-page-title { font-size: var(--font-size-page-lg); }
+  .resident-page-description { font-size: 0.875rem; }
 }
 
 @container (min-width: 56.25rem) {

@@ -1,10 +1,11 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useResidentResource,useResidentMutation } from "@/lib/residentQuery";
 import { useState,useEffect,useRef } from "react";
 import { PostActions,PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
-import { ResidentPageTitle } from "@/components/common/ResidentPageHeader";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
 import { toast } from "@/lib/toast";
 import postsService from "@/services/postsService";
@@ -124,7 +125,7 @@ const PostDetail = ({
       ref={contentRef}
       className={`${contentStyles.detailPage} animate-in fade-in duration-300`}
     >
-      <BackButton onBack={onBack} label="Back to Updates" />
+      <ResidentPageHeader backButton={<BackButton onBack={onBack} label="Back to Updates" className="mb-0" />} title="Post Details" description="Read this community post and updates from MENRO." />
       <div className="space-y-6 md:space-y-7 lg:space-y-8">
         {/* ── Main Post (Unboxed Natural Layout) ── */}
         <article className={contentStyles.detailArticle}>
@@ -193,9 +194,9 @@ const PostDetail = ({
 
         {/* ── Post Header Info ── */}
         <div className={contentStyles.detailHeader}>
-          <ResidentPageTitle className={contentStyles.detailTitle}>
+          <h2 className={contentStyles.detailTitle}>
             {post.title}
-          </ResidentPageTitle>
+          </h2>
 
           <PostMetadata date={dateInfo.formatted} author={post.author_name} />
         </div>
@@ -216,7 +217,7 @@ const PostDetail = ({
         <div className={contentStyles.detailBody}>
           {post.body.split("\n\n").map((paragraph, idx) => (
             <p key={idx}>
-              {paragraph}
+              <PostBodyText text={paragraph} />
             </p>
           ))}
         </div>

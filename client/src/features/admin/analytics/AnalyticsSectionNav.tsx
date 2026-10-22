@@ -9,11 +9,13 @@ const sections = [
   { id: "resident-engagement", label: "Residents" },
   { id: "truck-driver", label: "Driver Operations" },
   { id: "barangay-compliance", label: "Barangay Coverage" },
-];
+] as const;
+
+export type AnalyticsSectionId = (typeof sections)[number]["id"];
 
 interface Props {
-  activeSection: string;
-  onSectionChange: (id: string) => void;
+  activeSection: AnalyticsSectionId;
+  onSectionChange: (id: AnalyticsSectionId) => void;
 }
 
 const AnalyticsSectionNav: React.FC<Props> = ({ activeSection, onSectionChange }) => {
@@ -45,7 +47,7 @@ const AnalyticsSectionNav: React.FC<Props> = ({ activeSection, onSectionChange }
     isDraggingRef.current = false;
   };
 
-  const handleTabClick = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleTabClick = (id: AnalyticsSectionId, e: React.MouseEvent<HTMLButtonElement>) => {
     if (hasDraggedRef.current) return;
     onSectionChange(id);
     e.currentTarget.scrollIntoView({

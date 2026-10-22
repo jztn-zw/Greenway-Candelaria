@@ -19,7 +19,6 @@ CheckCircle2,
 AlertTriangle,
 Truck,
 Calendar,
-Route,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageErrorState from "@/components/feedback/PageErrorState";
@@ -187,14 +186,16 @@ const CollectorRouteHistory = () => {
 
     return (
       <div className="resident-page collector-history-page collector-history-detail w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-5 pb-8">
-        <BackButton onBack={backToHistory} label="Back to Route History" className="mb-0 h-11 w-fit sm:h-9" />
         {/* Route Run Header Card */}
         <section aria-label="Route summary" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route aria-hidden="true" className="size-5" /></div>
+            <BackButton onBack={backToHistory} label="Back to Route History" className="mb-0" />
+            <div className="min-w-0 flex-1">
             <ResidentPageTitle className="min-w-0 flex-1">
               {r.routeName}
             </ResidentPageTitle>
+            <p className="resident-page-description mt-1 leading-relaxed text-muted-foreground">Review the collection results, completed stops, and skip reasons for this route.</p>
+            </div>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className={collectorBadgeClassName + " " + detailBadge.cls}>

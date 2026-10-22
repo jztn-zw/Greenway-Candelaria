@@ -1,3 +1,4 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import React,{ useState,useEffect,useMemo } from "react";
 import { Heart,Calendar,User } from "lucide-react";
@@ -109,7 +110,7 @@ export const PostCard: React.FC<PostCardProps> = ({
           </h3>
 
           <p className="break-words text-sm text-muted-foreground leading-relaxed line-clamp-2">
-            {post.body}
+            <PostBodyText text={post.body} />
           </p>
         </div>
 

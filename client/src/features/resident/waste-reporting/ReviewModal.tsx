@@ -1,4 +1,5 @@
 import LoadingImage from "@/components/common/LoadingImage";
+import { BackButton } from "@/components/common/BackButton";
 import { FormDialogHeader } from "@/components/dialogs/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
 import React,{ useEffect,useRef,useState } from "react";
@@ -12,7 +13,6 @@ Send,
 MapPin,
 FileText,
 Camera,
-ArrowLeft,
 ShieldCheck,
 Navigation,
 Trash2,
@@ -181,24 +181,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
         {/* Modal Footer */}
         <div className={modalStyles.footer}>
-          <div className="grid w-full min-w-0 grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-              className={`${modalStyles.cancelButton} min-w-0 gap-1.5 px-2 text-[11px] [&_svg]:size-3`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="truncate">Back</span>
-            </Button>
+          <div className="flex w-full min-w-0 gap-2">
+            <BackButton onBack={() => onOpenChange(false)} label="Back" disabled={isSubmitting} className="mb-0" />
             <Button
               type="button"
               onClick={onSubmit}
               disabled={isSubmitting}
               loading={isSubmitting}
               loadingLabel={submissionLabel}
-              className={`${modalStyles.primaryButton} min-w-0 px-2 text-[11px] [&_svg]:size-3`}
+              className={`${modalStyles.primaryButton} min-w-0 flex-1 px-2 text-[11px] [&_svg]:size-3`}
             >
               <Send className="w-4 h-4" />
               <span className="truncate">Submit Report</span>

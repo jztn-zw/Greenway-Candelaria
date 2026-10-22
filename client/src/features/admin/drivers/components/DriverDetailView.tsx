@@ -1,3 +1,5 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { BackButton } from "@/components/common/BackButton";
 import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import { profileAvatarForAccount, profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import {
@@ -23,6 +25,7 @@ import { useState } from "react";
 import CollectionRunDetails from "./CollectionRunDetails";
 
 interface DriverDetailViewProps {
+  onBack?: () => void;
   driver: Driver;
   trucks: TruckType[];
   isActivityLoading?: boolean;
@@ -35,6 +38,7 @@ interface DriverDetailViewProps {
 }
 
 const DriverDetailView = ({
+  onBack,
   driver,
   trucks,
   isActivityLoading = false,
@@ -50,14 +54,7 @@ const DriverDetailView = ({
 
   return (
     <div className={styles.detailPage}>
-      <div>
-        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
-          Collector Profile
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Detailed collector account information, truck assignment, and collection history.
-        </p>
-      </div>
+      <ResidentPageHeader backButton={onBack && <BackButton onBack={onBack} label="Back to Collector Management" className="mb-0" />} className="mb-0" title="Collector Profile" description="Detailed collector account information, truck assignment, and collection history." />
 
       {/* ── Collector Profile Overview Card ── */}
       <div className={styles.profileCard}>

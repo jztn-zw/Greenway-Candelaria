@@ -1,3 +1,5 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { BackButton } from "@/components/common/BackButton";
 import {
   Truck as TruckIcon,
   User,
@@ -14,6 +16,7 @@ import { Truck, Driver, truckStatusStyles } from "../types";
 import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 
 interface TruckDetailViewProps {
+  onBack?: () => void;
   truck: Truck;
   drivers: Driver[];
   onEdit: (t: Truck) => void;
@@ -21,6 +24,7 @@ interface TruckDetailViewProps {
 }
 
 const TruckDetailView = ({
+  onBack,
   truck,
   drivers,
   onEdit,
@@ -30,14 +34,7 @@ const TruckDetailView = ({
 
   return (
     <div className={styles.detailPage}>
-      <div>
-        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
-          Truck Details
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Vehicle specifications, operational availability, and assigned driver.
-        </p>
-      </div>
+      <ResidentPageHeader backButton={onBack && <BackButton onBack={onBack} label="Back to Truck Management" className="mb-0" />} className="mb-0" title="Truck Details" description="Vehicle specifications, operational availability, and assigned driver." />
 
       {/* ── Truck Profile Overview Card ── */}
       <div className={styles.profileCard}>

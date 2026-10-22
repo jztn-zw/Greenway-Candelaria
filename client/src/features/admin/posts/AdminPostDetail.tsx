@@ -1,8 +1,10 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
 import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
 import { BackButton } from "@/components/common/BackButton";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
 import {
   Archive,
@@ -84,7 +86,7 @@ const AdminPostDetail = ({
       ref={contentRef}
       className={`${contentStyles.detailPage} animate-in fade-in duration-300`}
     >
-      <BackButton onBack={onBack} label={isPreview ? "Back to editor" : "Back to posts"} />
+      <ResidentPageHeader backButton={<BackButton onBack={onBack} label={isPreview ? "Back to editor" : "Back to posts"} className="mb-0" />} title={isPreview ? "Post Preview" : "Post Details"} description={isPreview ? "Review how this post will appear before saving." : "Review this community post and its publication details."} />
       {/* ── Main Post Article ── */}
       <article className={contentStyles.detailArticle}>
         <div className={contentStyles.detailImage}>
@@ -167,9 +169,9 @@ const AdminPostDetail = ({
             </div>
           )}
           <div className="flex min-w-0 items-start justify-between gap-2">
-            <h1 className={`${contentStyles.detailTitle} flex-1`}>
+            <h2 className={`${contentStyles.detailTitle} flex-1`}>
               {post.title}
-            </h1>
+            </h2>
 
             {/* 3 Vertical Dots Dropdown (Admin actions) */}
             {!isPreview && (
@@ -282,7 +284,7 @@ const AdminPostDetail = ({
         <div className={contentStyles.detailBody}>
           {post.body.split("\n\n").map((para, idx) => (
             <p key={idx}>
-              {para}
+              <PostBodyText text={para} />
             </p>
           ))}
         </div>

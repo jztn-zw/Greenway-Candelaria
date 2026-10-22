@@ -2,6 +2,22 @@
 
 ## UI capitalization
 
+Secondary pages use a page-specific header and the shared `BackButton` beside
+the title/subtitle group in the same row, never on a separate row above it. Back
+controls show only an arrow in a square (44px on mobile, 36px from 640px), with
+the destination preserved in their accessible name and hover title. Loading
+states keep the same back control and header geometry. Keep breadcrumbs as
+breadcrumbs, and retain the standard close action on dialogs and drawers.
+
+Panel page headers share `residentPageStyles.title` and `.description`, including
+dashboard greetings, profile details and editors. Titles are 24px with a 30px
+line height below 640px, and 30px with a 37.5px line height from 640px. Subtitles
+use sentence case at 12px/14px with the same breakpoint and relaxed line height.
+Keep section and modal headings at their existing hierarchy. Header skeletons
+reuse the same typography and actual title/description text so wrapping matches;
+dynamic greeting placeholders use the same title line height. Header layout may
+respond to container width, but font size follows viewport width in every panel.
+
 Use title case for page and section headings, field labels, short actions, table headers, KPI labels, and status badges. Keep articles, conjunctions, and short prepositions lowercase within titles (for example, "Reports by Barangay"). Capitalize action particles such as "Log Out" and "Zoom In".
 
 Use sentence case for descriptions, helper and validation messages, search placeholders, loading messages, and FAQ questions. Preserve GreenWay, MENRO, GPS, AM/PM, measurement units, proper names, and user-entered content. Change display copy only; keep identifiers and API values unchanged.

@@ -1,4 +1,5 @@
 import { toast } from "@/lib/toast";
+import { BackButton } from "@/components/common/BackButton";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect,useRef,useState } from "react";
 import authService from "@/services/authService";
@@ -100,9 +101,7 @@ export const AccountRecovery = ({ mode = "reset", onBack }: { mode?: "reset" | "
   </div>;
   return <form noValidate onSubmit={submit} className="space-y-4">
     {generate && <p className="text-sm text-muted-foreground">Confirm your GreenWay password to create a new recovery code. Any previous code will stop working.</p>}
-    {!generate && <button type="button" disabled={pending} onClick={onBack} className="gw-action-link text-sm font-semibold transition-colors hover:underline">
-      Back to Login
-    </button>}
+    {!generate && <BackButton onBack={onBack} label="Back to Login" disabled={pending} className="mb-0" />}
     {errors.form && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{errors.form}</p>}
     {!generate && <>
       <div className="space-y-1.5">

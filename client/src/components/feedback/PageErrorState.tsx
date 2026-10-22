@@ -85,8 +85,8 @@ const PageErrorState = ({
             <RetryButton onRetry={onRetry} retrying={retrying} className="w-full sm:w-auto" />
           )}
           {homeHref && (
-            <Button asChild variant={onRetry ? "outline" : "default"} size={showRetry ? "sm" : "default"} className="w-full gap-2 rounded-lg font-semibold sm:w-auto">
-              <Link to={homeHref}><ArrowLeft className="size-4" />{homeLabel}</Link>
+            <Button asChild variant={onRetry ? "outline" : "default"} className="size-11 shrink-0 rounded-lg p-0 sm:size-9">
+              <Link to={homeHref} aria-label={homeLabel} title={homeLabel}><ArrowLeft aria-hidden="true" className="size-4" /></Link>
             </Button>
           )}
         </div>}

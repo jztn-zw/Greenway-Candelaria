@@ -375,7 +375,7 @@ const AdminDrivers = () => {
   };
 
   if (isLoading && (selectedDriverId || selectedTruckId)) {
-    return <CollectorManagerProfileSkeleton kind={selectedTruckId ? "truck" : "collector"} />;
+    return <CollectorManagerProfileSkeleton kind={selectedTruckId ? "truck" : "collector"} onBack={selectedTruckId ? closeTruckProfile : closeDriverProfile} />;
   }
 
   if (selectedDriver) {
@@ -384,6 +384,7 @@ const AdminDrivers = () => {
         <DriverDetailView
           key={selectedDriver.id}
           driver={selectedDriver}
+          onBack={closeDriverProfile}
           trucks={trucks}
           isActivityLoading={isActivityLoading}
           isActivityRefreshing={activityQuery.isFetching}
@@ -423,6 +424,7 @@ const AdminDrivers = () => {
     return (
       <TruckDetailView
         truck={selectedTruck}
+        onBack={closeTruckProfile}
         drivers={drivers}
         onEdit={openTruckEditorFromDetail}
         onToggleStatus={(truck) => {

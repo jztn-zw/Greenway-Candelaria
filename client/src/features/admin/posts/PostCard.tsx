@@ -1,3 +1,4 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import { formatManilaDateTime } from "@/utils/date";
 import { useState, useEffect, useMemo } from "react";
@@ -137,7 +138,7 @@ const PostCard = ({
           {post.title}
         </h3>
         <p className="break-words [overflow-wrap:anywhere] text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1">
-          {post.body}
+          <PostBodyText text={post.body} />
         </p>
 
         {/* Tags */}

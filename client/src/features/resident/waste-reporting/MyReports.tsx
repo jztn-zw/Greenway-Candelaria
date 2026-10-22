@@ -565,7 +565,7 @@ const ReportDetail = ({
 
   return (
     <div className={reportDetailStyles.page}>
-      <div className="pb-3 md:pb-0"><BackButton onBack={onBack} label="Back to My Reports" className="mb-0" /></div>
+      <ResidentPageHeader backButton={<BackButton onBack={onBack} label="Back to My Reports" className="mb-0" />} title="Report Details" description="Review your waste report, collection updates, and MENRO responses." />
       {isLoading && (
           <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

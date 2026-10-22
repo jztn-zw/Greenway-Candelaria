@@ -1,3 +1,4 @@
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 import { toast } from "@/lib/toast";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useCallback,useRef,useState } from "react";
@@ -126,8 +127,8 @@ export default function ResidentSetup() {
               <span aria-hidden="true" className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border border-border/80 bg-card text-primary shadow-2xs"><SquarePen className="size-3" /></span>
             </button>
             <div className="min-w-0">
-              <h1 id="setup-title" className="font-display text-ui-page font-semibold leading-snug tracking-tight">Complete Your Resident Profile</h1>
-              <p className="mt-1 text-ui-label leading-relaxed text-muted-foreground">Add your name and collection area to get started.</p>
+              <h1 id="setup-title" className={residentPageStyles.title}>Complete Your Resident Profile</h1>
+              <p className={residentPageStyles.description}>Add your name and collection area to get started.</p>
               {user?.username && <p className="mt-2 break-words text-ui-caption text-muted-foreground">Signed in as <span className="font-medium text-foreground">@{user.username}</span></p>}
             </div>
           </div>

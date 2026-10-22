@@ -162,8 +162,14 @@ const ResidentContents = () => {
     );
   };
 
+  const handleBack = () => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    next.delete("post");
+    return next;
+  });
+
   if (isDetailLoading) {
-    return <ResidentPostDetailSkeleton />;
+    return <ResidentPostDetailSkeleton onBack={handleBack} />;
   }
 
   if (postIdParam && detail.isError && (!openPost || inaccessible)) {
@@ -184,11 +190,7 @@ const ResidentContents = () => {
     return (
       <PostDetail
         post={openPost}
-        onBack={() => setSearchParams((previous) => {
-          const next = new URLSearchParams(previous);
-          next.delete("post");
-          return next;
-        })}
+        onBack={handleBack}
         relatedPosts={related.length > 0 ? related : posts.filter((p) => p.id !== openPost.id).slice(0, 3)}
         onOpenPost={handleOpenPost}
         onPostUpdated={handlePostUpdated}

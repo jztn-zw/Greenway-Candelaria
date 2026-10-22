@@ -85,7 +85,8 @@ const openPost = async (post: PostItem) => {
   // Featured titles now provide a keyboard-accessible button inside the heading.
   const target = heading!.querySelector<HTMLButtonElement>("button") || heading as HTMLElement;
   await act(async () => target.click());
-  expect(host.querySelector("h1")).toHaveTextContent(post.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(post.title);
+  expect(host.querySelector("h1")).toHaveTextContent("Post Details");
   expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(`?post=${post.id}`);
 };
 
@@ -106,7 +107,7 @@ it("restores the correct details through history navigation and when switching p
   await openPost(featuredPost);
   await returnToFeed();
   await clickButton("History back");
-  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(featuredPost.title);
   await clickButton("History forward");
   expect(host.querySelector("h1")).toHaveTextContent("Community Posts");
   await openPost(regularPost);
@@ -137,12 +138,12 @@ it("returns from a related post to the feed using the post back button and resto
     await render();
     await openPost(featuredPost);
     await openPost(regularPost);
-    await clickButton("Back");
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Back to Updates"]')!.click());
   expect(host.querySelector("h1")).toHaveTextContent("Community Posts");
     expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(/^\/resident\/contents$/);
     expect(window.scrollTo).toHaveBeenLastCalledWith(0, 420);
     await openPost(regularPost);
-    expect(host.querySelector("h1")).toHaveTextContent(regularPost.title);
+    expect(host.querySelector("article h2")).toHaveTextContent(regularPost.title);
   } finally {
     Object.defineProperty(window, "scrollY", { configurable: true, value: originalScrollY });
   }
@@ -199,7 +200,7 @@ it("changes featured slides without opening an article, then opens the selected 
   await act(async () => previous.click());
   expect(host.querySelector("h2")).toHaveTextContent(featuredPost.title);
   await clickButton("Read Post");
-  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(featuredPost.title);
   expect(postsService.getById).toHaveBeenCalledWith(featuredPost.id);
 });
 
@@ -252,7 +253,7 @@ it("reacts to a related post without navigating, prevents duplicate writes, and 
   expect(relatedReactionButton(true)).toHaveAttribute("aria-pressed", "true");
   expect(relatedReactionButton(true)).toHaveTextContent("1");
   expect(postsService.like).toHaveBeenCalledExactlyOnceWith(regularPost.id);
-  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(featuredPost.title);
   expect(host.querySelector('[data-testid="location"]')).toHaveTextContent(`?post=${featuredPost.id}`);
   await act(async () => relatedReactionButton(true).click());
   expect(postsService.unlike).not.toHaveBeenCalled();
@@ -263,7 +264,7 @@ it("reacts to a related post without navigating, prevents duplicate writes, and 
   await act(async () => relatedReactionButton(true).click());
   expect(postsService.unlike).toHaveBeenCalledExactlyOnceWith(regularPost.id);
   expect(relatedReactionButton(false)).toHaveTextContent("0");
-  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(featuredPost.title);
 });
 
 it.each([false, true])("restores a related post's reaction when a write fails (previously liked: %s)", async (liked) => {
@@ -280,5 +281,5 @@ it.each([false, true])("restores a related post's reaction when a write fails (p
   await act(async () => failWrite());
   expect(relatedReactionButton(liked)).toHaveAttribute("aria-pressed", String(liked));
   expect(relatedReactionButton(liked)).toHaveTextContent(String(originalPost.like_count));
-  expect(host.querySelector("h1")).toHaveTextContent(featuredPost.title);
+  expect(host.querySelector("article h2")).toHaveTextContent(featuredPost.title);
 });

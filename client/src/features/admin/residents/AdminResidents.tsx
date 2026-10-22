@@ -186,13 +186,14 @@ const AdminResidents = () => {
     return (
       <><ResidentProfileView
         resident={viewingResident}
+        onBack={() => setSearchParams(current => { const next = new URLSearchParams(current); next.delete("residentId"); next.delete("residentName"); return next; })}
         onToggleStatus={openStatusConfirmation}
       />{statusDialog}</>
     );
   }
 
   if (residentProfileId) {
-    return <ResidentManagerProfileSkeleton />;
+    return <ResidentManagerProfileSkeleton onBack={() => setSearchParams(current => { const next = new URLSearchParams(current); next.delete("residentId"); next.delete("residentName"); return next; })} />;
   }
 
   if (isInitialLoading) {

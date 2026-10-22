@@ -10,21 +10,25 @@ type ResidentPageHeaderProps = {
   actions?: ReactNode;
   actionsClassName?: string;
   className?: string;
+  backButton?: ReactNode;
 };
 
 export function ResidentPageTitle({ children, className }: { children: ReactNode; className?: string }) {
   return <h1 className={cn(residentPageStyles.title, className)}>{children}</h1>;
 }
 
-export default function ResidentPageHeader({ title, description, titleBadge, actions, actionsClassName, className }: ResidentPageHeaderProps) {
+export default function ResidentPageHeader({ title, description, titleBadge, actions, actionsClassName, className, backButton }: ResidentPageHeaderProps) {
   return (
     <header className={cn(residentPageStyles.header, className)}>
-      <div className={residentPageStyles.heading}>
+      <div className={cn("min-w-0 max-w-full", backButton && "flex items-center gap-3")}>
+        {backButton}
+        <div className={residentPageStyles.heading}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ResidentPageTitle>{title}</ResidentPageTitle>
           {titleBadge}
         </div>
         <p className={residentPageStyles.description}>{description}</p>
+        </div>
       </div>
       {actions && <div className={cn(residentPageStyles.actions, actionsClassName)}>{actions}</div>}
     </header>
@@ -32,7 +36,7 @@ export default function ResidentPageHeader({ title, description, titleBadge, act
 }
 
 /** Uses the same responsive typography and action layout as the loaded header. */
-export function ResidentPageHeaderSkeleton({ title, description, titleClassName = "w-44", descriptionClassName = "w-80", titleBadge, actions, actionsClassName, className }: {
+export function ResidentPageHeaderSkeleton({ title, description, titleClassName = "w-44", descriptionClassName = "w-80", titleBadge, actions, actionsClassName, className, backButton }: {
   title?: ReactNode;
   description?: ReactNode;
   titleClassName?: string;
@@ -41,10 +45,13 @@ export function ResidentPageHeaderSkeleton({ title, description, titleClassName 
   actions?: ReactNode;
   actionsClassName?: string;
   className?: string;
+  backButton?: ReactNode;
 }) {
   return (
-    <header aria-hidden="true" className={cn(residentPageStyles.header, className)}>
-      <div className={residentPageStyles.heading}>
+    <header aria-hidden={backButton ? undefined : true} className={cn(residentPageStyles.header, className)}>
+      <div className={cn("min-w-0 max-w-full", backButton && "flex items-center gap-3")}>
+        {backButton}
+        <div aria-hidden="true" className={residentPageStyles.heading}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Skeleton className={cn(residentPageStyles.title, "max-w-full", title ? "gw-skeleton-text w-fit" : ["h-[1.25em]", titleClassName])}>
             {title && <span className="invisible">{title}</span>}
@@ -54,8 +61,9 @@ export function ResidentPageHeaderSkeleton({ title, description, titleClassName 
         <Skeleton className={cn(residentPageStyles.description, description ? "gw-skeleton-text w-fit" : ["h-[1.625em] max-w-full", descriptionClassName])}>
           {description && <span className="invisible">{description}</span>}
         </Skeleton>
+        </div>
       </div>
-      {actions && <div className={cn(residentPageStyles.actions, actionsClassName)}>{actions}</div>}
+      {actions && <div aria-hidden="true" className={cn(residentPageStyles.actions, actionsClassName)}>{actions}</div>}
     </header>
   );
 }

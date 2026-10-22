@@ -1,3 +1,5 @@
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
+import { BackButton } from "@/components/common/BackButton";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { profileAvatarForAccount,profileAvatarImageSrc } from "@/components/common/profileAvatars";
 import { Badge } from "@/components/ui/badge";
@@ -46,21 +48,15 @@ const residentStatusStyles: Record<string, string> = {
 };
 
 interface Props {
+  onBack?: () => void;
   resident: Resident;
   onToggleStatus?: (resident: Resident) => void | Promise<unknown>;
 }
 
-const ResidentProfileView = ({ resident, onToggleStatus }: Props) => {
+const ResidentProfileView = ({ resident, onToggleStatus, onBack }: Props) => {
   return (
     <div className={styles.page}>
-      <div>
-        <h1 className="gw-heading text-xl sm:text-2xl text-foreground tracking-tight leading-tight">
-          Resident Profile
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Detailed resident verification, account information, and waste report history.
-        </p>
-      </div>
+      <ResidentPageHeader backButton={onBack && <BackButton onBack={onBack} label="Back to Resident Management" className="mb-0" />} className="mb-0" title="Resident Profile" description="Detailed resident verification, account information, and waste report history." />
 
       {/* ── Resident Profile Overview Card ── */}
       <div className={cn(styles.profileCard, "bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-6")}>

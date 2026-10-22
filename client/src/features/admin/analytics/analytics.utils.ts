@@ -1,5 +1,8 @@
 import type { AnalyticsDashboardData } from "./analytics.types";
 
+export const formatCollectionDistance = (kilometers: number | null) => kilometers === null
+  ? "Unavailable" : `${kilometers.toFixed(2)} km`;
+
 export const withDriverChartLabels = (drivers: AnalyticsDashboardData["driverOperations"]) => {
   const nameCounts = new Map<string, number>();
   drivers.forEach((driver) => nameCounts.set(driver.name, (nameCounts.get(driver.name) ?? 0) + 1));

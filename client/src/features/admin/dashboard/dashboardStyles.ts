@@ -1,4 +1,5 @@
 import "./dashboard.css";
+import { residentPageStyles } from "@/components/common/residentPageStyles";
 
 const panel = "admin-dashboard-panel min-w-0 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs";
 
@@ -8,7 +9,7 @@ export const adminDashboardStyles = {
   panel,
   header: `${panel} admin-dashboard-header`,
   headerRow: "admin-dashboard-header-row flex min-w-0 flex-col justify-between gap-4",
-  title: "admin-dashboard-title gw-page-title break-words text-foreground [overflow-wrap:anywhere]",
+  title: `${residentPageStyles.title} admin-dashboard-title break-words [overflow-wrap:anywhere]`,
   headerActions: "admin-dashboard-header-actions flex min-w-0 flex-wrap items-center gap-2 border-t border-border/60 pt-3",
   headerAction: "admin-dashboard-header-action h-8 max-w-full gap-1.5 px-2.5 text-[11px] [&_svg]:size-3.5",
   kpis: "admin-dashboard-kpis grid min-w-0 grid-cols-2 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs",

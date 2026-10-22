@@ -253,9 +253,9 @@ export const CollectorDashboardSkeleton = () => (
     <span className="sr-only">Loading collector dashboard…</span>
     <div aria-hidden="true" className="collector-dashboard-greeting rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs sm:p-4 md:p-5">
       <div className="flex flex-col justify-between gap-2.5 sm:flex-row sm:items-center sm:gap-4">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2"><Skeleton className="h-7 w-48 sm:h-8 sm:w-56" /><Skeleton className="h-5 w-20 rounded-lg" /></div>
-          <Skeleton className="h-3 w-64 max-w-full" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Skeleton className={cn(residentPageStyles.title, "h-[1.25em] w-48 max-w-full sm:w-56")} /><Skeleton className="h-5 w-20 rounded-lg" /></div>
+          <Skeleton className={cn(residentPageStyles.description, "gw-skeleton-text w-fit")}><span className="invisible">Candelaria municipal collection operations</span></Skeleton>
         </div>
         <div className="flex items-center gap-2 border-t border-border/60 pt-2 sm:border-t-0 sm:pt-0"><Skeleton className="h-7 w-36 rounded-lg sm:h-8" /><Skeleton className="h-7 w-28 rounded-lg sm:h-8" /></div>
       </div>
@@ -359,13 +359,13 @@ export const CollectorRouteHistorySkeleton = () => (
 export const CollectorRouteHistoryDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className="resident-page collector-history-page collector-history-detail mx-auto flex w-full max-w-[1200px] flex-col gap-4 pb-8 sm:gap-5">
     <span className="sr-only">Loading route details…</span>
-    {onBack ? <BackButton onBack={onBack} label="Back to Route History" className="mb-0 h-11 w-fit sm:h-9" /> : <Skeleton aria-hidden="true" className="h-11 w-20 sm:h-9" />}
-    <div aria-hidden="true" className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
+    <div className="collector-history-summary rounded-2xl border border-border/80 bg-card shadow-xs">
       <div className="flex min-w-0 items-center gap-3">
-        <Skeleton className="size-10 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1 space-y-1">
-          <Skeleton className="h-[30px] w-80 max-w-full sm:h-[37.5px]" />
-          <Skeleton className="collector-history-detail-title-line h-[30px] w-48 max-w-full" />
+        {onBack ? <BackButton onBack={onBack} label="Back to Route History" className="mb-0" /> : <Skeleton aria-hidden="true" className="size-11 shrink-0 rounded-lg sm:size-9" />}
+        <div aria-hidden="true" className="min-w-0 flex-1 space-y-1">
+          <Skeleton className={cn(residentPageStyles.title, "h-[1.25em] w-80 max-w-full")} />
+          <Skeleton className={cn(residentPageStyles.title, "collector-history-detail-title-line h-[1.25em] w-48 max-w-full")} />
+          <Skeleton className={cn(residentPageStyles.description, "gw-skeleton-text w-fit")}><span className="invisible">Review the collection results, completed stops, and skip reasons for this route.</span></Skeleton>
         </div>
       </div>
       <div className="flex flex-wrap gap-2"><Skeleton className="h-[26px] w-24 rounded-lg" /><Skeleton className="h-[26px] w-32 max-w-full rounded-lg" /></div>
@@ -701,7 +701,7 @@ export const AdminProfileSkeleton = () => (
 /* ─── Resident Settings Page Skeleton (1:1 with ResidentSettings.tsx) ─── */
 export const SettingsSkeleton = () => (
   <div role="status" aria-busy="true" aria-label="Loading resident settings" className={settingsStyles.page}>
-    <ResidentPageHeaderSkeleton titleClassName="w-36" descriptionClassName="w-96" />
+    <ResidentPageHeaderSkeleton title="Settings" description="Manage browser notifications and display preferences" />
     {[1, 3, 0, 2, 2].map((rowCount, sectionIndex) => (
       <section key={sectionIndex} aria-hidden="true" className={settingsStyles.section}>
         <div className={settingsStyles.sectionHeader}>
@@ -1038,7 +1038,7 @@ export const MyReportDetailSkeleton = ({ preview, onBack }: { preview?: MyReport
 
   return (
     <div role="status" aria-busy="true" aria-label="Loading report details" className={reportDetailStyles.page}>
-      {onBack && <div className="pb-3 md:pb-0"><BackButton onBack={onBack} label="Back to My Reports" className="mb-0" /></div>}
+      <ResidentPageHeaderSkeleton backButton={onBack && <BackButton onBack={onBack} label="Back to My Reports" className="mb-0" />} title="Report Details" description="Review your waste report, collection updates, and MENRO responses." />
       <div aria-hidden="true" className={reportDetailStyles.card}>
         <div className={reportDetailStyles.headerSection}>
           <div className={reportDetailStyles.header}>
@@ -1271,7 +1271,7 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
 
 export const AdminPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className={contentStyles.detailPage}>
-    {onBack ? <BackButton onBack={onBack} label="Back to Posts" /> : <Skeleton aria-hidden="true" className="mb-3 h-8 w-16 rounded-lg" />}
+    <ResidentPageHeaderSkeleton backButton={onBack ? <BackButton onBack={onBack} label="Back to Posts" className="mb-0" /> : <Skeleton aria-hidden="true" className="size-11 shrink-0 rounded-lg sm:size-9" />} title="Post Details" description="Review this community post and its publication details." />
     <div aria-hidden="true" className="space-y-6 sm:space-y-8">
       <div className={contentStyles.detailArticle}>
         <div className={contentStyles.detailImage}>
@@ -1314,9 +1314,9 @@ export const AdminPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}
 );
 
 /* ─── Resident Post Detail Skeleton ─── */
-export const ResidentPostDetailSkeleton = () => (
+export const ResidentPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-label="Loading community post" className={contentStyles.detailPage}>
-    <Skeleton className="mb-3 h-8 w-32 rounded-lg" />
+    <ResidentPageHeaderSkeleton backButton={onBack ? <BackButton onBack={onBack} label="Back to Updates" className="mb-0" /> : <Skeleton className="size-11 shrink-0 rounded-lg sm:size-9" />} title="Post Details" description="Read this community post and updates from MENRO." />
     <div className="space-y-6 md:space-y-7 lg:space-y-8">
     <div className={contentStyles.detailArticle}>
     {/* Hero image */}
@@ -1623,11 +1623,11 @@ export const ResidentManagerPageSkeleton = () => (
   </div>
 );
 
-export const ResidentManagerProfileSkeleton = () => (
+export const ResidentManagerProfileSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className={residentManagerStyles.page}>
     <span className="sr-only">Loading resident profile…</span>
+      <ResidentPageHeaderSkeleton backButton={onBack && <BackButton onBack={onBack} label="Back to Resident Management" className="mb-0" />} className="mb-0" title="Resident Profile" description="Detailed resident verification, account information, and waste report history." />
     <div aria-hidden="true" className="pointer-events-none space-y-4 sm:space-y-6">
-      <div><Skeleton className="h-7 w-48" /><Skeleton className="mt-0.5 h-4 w-[490px] max-w-full" /></div>
       <div className={cn(residentManagerStyles.profileCard, "space-y-6 rounded-2xl border border-border/80 bg-card p-6 shadow-2xs sm:p-7")}>
         <div className={cn(residentManagerStyles.profileHeader, "flex flex-col justify-between gap-5 sm:flex-row sm:items-center")}>
           <div className={cn(residentManagerStyles.profileIdentity, "flex items-center gap-4")}>
@@ -1886,11 +1886,11 @@ export const CollectorManagerPageSkeleton = ({ activeTab = "drivers" }: { active
   </div>
 );
 
-export const CollectorManagerProfileSkeleton = ({ kind = "collector" }: { kind?: "collector" | "truck" }) => (
+export const CollectorManagerProfileSkeleton = ({ kind = "collector", onBack }: { kind?: "collector" | "truck"; onBack?: () => void }) => (
   <div role="status" aria-busy="true" className={collectorManagerStyles.detailPage}>
     <span className="sr-only">Loading {kind === "truck" ? "truck details" : "collector profile"}…</span>
+      <ResidentPageHeaderSkeleton backButton={onBack && <BackButton onBack={onBack} label={kind === "truck" ? "Back to Truck Management" : "Back to Collector Management"} className="mb-0" />} className="mb-0" title={kind === "collector" ? "Collector Profile" : "Truck Details"} description={kind === "collector" ? "Detailed collector account information, truck assignment, and collection history." : "Vehicle specifications, operational availability, and assigned driver."} />
     <div aria-hidden="true" className="pointer-events-none space-y-6">
-      <div><Skeleton className="h-7 w-48" /><Skeleton className="mt-0.5 h-4 w-[550px] max-w-full" /></div>
       <div className={collectorManagerStyles.profileCard}>
         <div className={collectorManagerStyles.profileHeader}>
           <div className={collectorManagerStyles.profileIdentity}><Skeleton className={cn("h-14 w-14 shrink-0", kind === "collector" ? "rounded-full" : "rounded-2xl")} /><div className="min-w-0 space-y-1.5"><div className={collectorManagerStyles.profileName}><Skeleton className="h-6 w-40 max-w-full" /><Skeleton className="h-6 w-16 shrink-0 rounded-md" /></div><Skeleton className="h-4 w-28 max-w-full" /></div></div>
@@ -1925,7 +1925,8 @@ export const AnalyticsDashboardSkeleton = ({ title, description }: { title: stri
   <main role="status" aria-busy="true" className={cn(analyticsStyles.page, "space-y-0 sm:space-y-0")}>
     <span className="sr-only">Loading analytics dashboard…</span>
     <div aria-hidden="true" className="pointer-events-none space-y-5 sm:space-y-6">
-      <AdminPageTitleSkeleton title={title} description={description} />
+      <ResidentPageHeaderSkeleton className="admin-module-header" title={title} description={description} actionsClassName="w-full sm:w-auto"
+        actions={<Skeleton className="h-11 w-full rounded-lg sm:h-9 sm:w-[121px]" />} />
 
       <section className={`${analyticsStyles.filters} admin-toolbar admin-toolbar-analytics`}>
         <Skeleton className="h-4 w-60 max-w-full" />

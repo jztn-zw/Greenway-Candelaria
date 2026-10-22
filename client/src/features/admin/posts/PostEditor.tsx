@@ -1,3 +1,5 @@
+import PostBodyEditor from "@/components/common/PostBodyEditor";
+import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import LoadingImage from "@/components/common/LoadingImage";
 import { toast } from "@/lib/toast";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
@@ -25,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { useAdminMutation } from "@/lib/adminQuery";
 import postsService from "@/services/postsService";
@@ -34,7 +35,6 @@ import {
   ChevronLeft,
   Eye,
   Send,
-  Tag,
   Trash2,
   UploadCloud,
   X,
@@ -315,13 +315,6 @@ const PostEditor = ({
     images: uploadedImages,
   });
 
-  const parsedTags = useMemo(() => {
-    return form.tags
-      .split(",")
-      .map((t) => t.trim().replace(/^#/, ""))
-      .filter(Boolean);
-  }, [form.tags]);
-
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // Compute whether the administrator has unsaved progress
@@ -435,16 +428,12 @@ const PostEditor = ({
 
   return (
     <div className="admin-community-editor min-w-0 w-full max-w-[1000px] mx-auto space-y-5 pb-10">
-      <BackButton onBack={handleAttemptBack} label="Back to Posts" disabled={isSaving || isUploading} className="mb-0" />
       {/* ── Section 1: Post Content & Details ── */}
       <section className="admin-community-editor-panel min-w-0 bg-card border border-border/80 rounded-2xl space-y-4 shadow-2xs">
         <div className="pb-3.5 border-b border-border/60">
-          <h1 className="gw-heading text-lg sm:text-xl text-foreground tracking-tight leading-tight">
-            {editingPost ? "Edit Post" : "Create Post"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Compose and publish announcements, waste tips, or event advisories for residents.
-          </p>
+          <ResidentPageHeader className="mb-0" title={editingPost ? "Edit Post" : "Create Post"}
+            description="Compose and publish announcements, waste tips, or event advisories for residents."
+            backButton={<BackButton onBack={handleAttemptBack} label="Back to Posts" disabled={isSaving || isUploading} className="mb-0" />} />
         </div>
 
         <div className="space-y-3.5">
@@ -470,20 +459,18 @@ const PostEditor = ({
 
           {/* Body Content */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">
+            <Label htmlFor="post-body" className="text-xs font-medium text-foreground">
               Post Body
             </Label>
-            <Textarea
+            <PostBodyEditor
               value={form.body}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, body: e.target.value }));
+              onChange={(body) => {
+                setForm((current) => ({ ...current, body }));
                 setErrors((current) => ({ ...current, body: undefined, form: undefined }));
               }}
-              placeholder="Write the full post announcement, guidelines, or event details here. Separate paragraphs with an empty line..."
-              rows={10}
-              aria-invalid={Boolean(errors.body)}
-              aria-describedby={errors.body ? "post-body-error" : undefined}
-              className={`resize-none overflow-y-auto rounded-xl bg-background text-sm leading-relaxed shadow-2xs p-3.5 ${errors.body ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
+              invalid={Boolean(errors.body)}
+              describedBy={errors.body ? "post-body-error" : undefined}
+              className={`rounded-xl bg-background shadow-2xs ${errors.body ? "border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25" : "border-border/80 focus-visible:border-primary"}`}
             />
             {errors.body && <p id="post-body-error" className="text-ui-caption font-medium text-destructive">{errors.body}</p>}
           </div>
@@ -643,7 +630,7 @@ const PostEditor = ({
             Publishing Settings
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Select category, visibility status, scheduled publishing time, and tags.
+            Select category, visibility status, and scheduled publishing time.
           </p>
         </div>
 
@@ -731,34 +718,6 @@ const PostEditor = ({
             </p>
           </div>
         )}
-
-        {/* Tags */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            Tags <span className="text-muted-foreground font-normal">(Optional)</span>
-          </Label>
-          <div className="relative">
-            <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={form.tags}
-              onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-              placeholder="e.g., composting, recycling, clean-up (comma-separated)"
-              className="pl-10 h-10 rounded-xl bg-background border-border/80 text-sm focus-visible:border-primary shadow-2xs"
-            />
-          </div>
-          {parsedTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {parsedTags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/25"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Featured Post Toggle */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-border/80 bg-muted/20 hover:bg-muted/30 transition-colors">

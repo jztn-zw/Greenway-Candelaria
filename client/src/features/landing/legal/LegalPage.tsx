@@ -31,7 +31,7 @@ export default function LegalPage({ policy }: { policy: LegalDocumentId }) {
           </Link>
           <div className="flex items-center gap-2 print:hidden">
             <Button type="button" variant="ghost" size="icon" onClick={toggleThemeMode} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun /> : <Moon />}</Button>
-            <Button asChild variant="outline" className="h-11"><Link to="/"><ArrowLeft aria-hidden="true" /><span className="hidden sm:inline">Back to </span>Home</Link></Button>
+            <Button asChild variant="outline" className="size-11 rounded-lg p-0 sm:size-9"><Link to="/" aria-label="Back to Home" title="Back to Home"><ArrowLeft aria-hidden="true" /></Link></Button>
           </div>
         </div>
       </header>

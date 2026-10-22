@@ -1,3 +1,4 @@
+import { PostBodyText } from "@/components/common/PostBodyText";
 import LoadingImage from "@/components/common/LoadingImage";
 import { useCallback,useEffect,useState } from "react";
 import { ArrowUpRight,Calendar,ChevronLeft,ChevronRight,Star,User } from "lucide-react";
@@ -111,7 +112,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
             </h2>
 
             <p className="max-w-[56ch] break-words text-sm leading-relaxed text-muted-foreground line-clamp-3">
-              {post.body}
+              <PostBodyText text={post.body} />
             </p>
 
             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">

@@ -17,6 +17,10 @@ export interface AnalyticsOverviewData {
 export interface AnalyticsDashboardData {
   range: AnalyticsDateRange;
   overview: AnalyticsOverviewData;
+  collectionRunDistances: Array<{
+    id: string; date: string; route: string; driver: string; truck: string; plate: string;
+    status: "COMPLETED" | "PARTIAL"; distanceKm: number | null; gapCount: number; rejectedPoints: number;
+  }>;
   collectionCompletionTrend: Array<{ period: string; scheduled: number; completed: number; missed: number; rate: number }>;
   missedCollectionsWeekly: Array<{ period: string; missed: number }>;
   driverOperations: Array<{ id: string; name: string; truck: string; assigned: number; completed: number; incomplete: number; missedRoutes: number; cancelled: number; scheduledStops: number; completedStops: number; missedStops: number; rate: number }>;

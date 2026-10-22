@@ -1,0 +1,10 @@
+.gw-post-body-editor[data-empty="true"]::before {
+  content: attr(data-empty-placeholder);
+  position: absolute;
+  color: var(--field-placeholder);
+  pointer-events: none;
+}
+
+.gw-post-body-editor strong {
+  font-weight: 700;
+}

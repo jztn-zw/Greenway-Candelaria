@@ -36,7 +36,7 @@ const DashboardHeader = () => {
           <h1 className={styles.title}>
             {getGreeting()}, <span className="text-primary">{adminName}</span>
           </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="resident-page-description mt-2 flex flex-wrap items-center gap-2 leading-relaxed text-muted-foreground">
             <span>{formatDate(time)}</span>
             <span className="text-muted-foreground/40 font-semibold">·</span>
             <span className="inline-flex items-center rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 tabular-nums font-medium text-foreground">

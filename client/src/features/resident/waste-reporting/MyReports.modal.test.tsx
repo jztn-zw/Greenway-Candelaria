@@ -71,7 +71,8 @@ it("returns from report details through the topbar breadcrumb", async () => {
 it("returns with the shared Back button and preserves the report list filter", async () => {
   listState.showReport = true;
   const backButton = () => host.querySelector<HTMLButtonElement>('button[aria-label="Back to My Reports"]')!;
-  expect(backButton()).toHaveTextContent(/^Back$/);
+  expect(backButton()).toHaveTextContent(/^$/);
+  expect(backButton()).toHaveAttribute("title", "Back to My Reports");
   await act(async () => backButton().click());
   const filters = host.querySelector('[aria-label="Report status filters"]')!;
   const pending = [...filters.querySelectorAll("button")].find((button) => button.querySelector("span")?.textContent === "Pending")!;

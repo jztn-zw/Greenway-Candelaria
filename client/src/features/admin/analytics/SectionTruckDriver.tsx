@@ -2,11 +2,12 @@ import { getStatusBadgeStyle, badgeStyles } from "@/components/ui/badgeStyles";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Truck, UserRoundCog } from "lucide-react";
+import { Route, Truck, UserRoundCog } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAnalyticsData } from "./AnalyticsDataContext";
-import { withDriverChartLabels } from "./analytics.utils";
+import { formatCollectionDistance, withDriverChartLabels } from "./analytics.utils";
+import { formatDateOnly } from "@/utils/date";
 
 const routesConfig = {
   completed: { label: "Completed", color: "hsl(var(--chart-1))" },
@@ -24,7 +25,7 @@ const EmptyState = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionTruckDriver: React.FC = () => {
-  const { driverOperations, fleetStatus } = useAnalyticsData();
+  const { driverOperations, fleetStatus, collectionRunDistances = [] } = useAnalyticsData();
   const outcomeCount = driverOperations.reduce(
     (total, driver) => total + driver.completed + driver.incomplete + driver.missedRoutes + driver.cancelled,
     0,
@@ -57,6 +58,35 @@ const SectionTruckDriver: React.FC = () => {
             </ChartContainer>
           </div>
         )}
+      </section>
+
+      <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs" aria-label="Distance per collection run">
+        <div className="flex items-center gap-2.5 border-b border-border/80 p-4 sm:p-5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary"><Route className="h-4 w-4" /></div>
+          <div><h3 className="gw-heading text-sm text-foreground">Distance per Collection Run</h3><p className="text-xs text-muted-foreground">Kilometres travelled during each finished collection run, estimated from recorded GPS.</p></div>
+        </div>
+        {collectionRunDistances.length === 0 ? <EmptyState>No finished collection runs match this period and barangay.</EmptyState> : (
+          <div className="analytics-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Collection run distances">
+            <Table className="analytics-detail-table min-w-[960px]">
+              <TableHeader><TableRow>
+                <TableHead>Collection Route</TableHead><TableHead>Collection Date</TableHead><TableHead>Driver</TableHead><TableHead>Truck</TableHead>
+                <TableHead>Run Status</TableHead><TableHead className="text-right">Distance Travelled</TableHead><TableHead>GPS Record</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>{collectionRunDistances.map(run => (
+                <TableRow key={run.id}>
+                  <TableCell data-label="Collection route" className="text-xs font-semibold">{run.route}</TableCell>
+                  <TableCell data-label="Collection date" className="text-xs">{formatDateOnly(run.date, { month: "short", day: "numeric", year: "numeric" })}</TableCell>
+                  <TableCell data-label="Driver" className="text-xs">{run.driver}</TableCell>
+                  <TableCell data-label="Truck" className="text-xs"><div>{run.truck}</div><div className="text-muted-foreground">{run.plate}</div></TableCell>
+                  <TableCell data-label="Run status"><Badge variant="outline" className={getStatusBadgeStyle(run.status).className}>{run.status === "COMPLETED" ? "Completed" : "Partial"}</Badge></TableCell>
+                  <TableCell data-label="Distance travelled" className="text-right text-xs font-semibold tabular-nums">{formatCollectionDistance(run.distanceKm)}</TableCell>
+                  <TableCell data-label="GPS record" className="text-xs text-muted-foreground">{run.distanceKm === null ? "Insufficient GPS history" : run.gapCount + run.rejectedPoints > 0 ? "Gaps or unreliable fixes excluded" : "Recorded GPS estimate"}</TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          </div>
+        )}
+        <p className="border-t border-border/60 px-4 py-3 text-ui-caption text-muted-foreground sm:px-5">Each figure covers the full run, including other barangays it served. Missing GPS travel is excluded. These estimates are not vehicle odometer readings.</p>
       </section>
 
       <section className="analytics-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">

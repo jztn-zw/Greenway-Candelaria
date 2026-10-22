@@ -11,7 +11,11 @@ afterEach(cleanup);
 it("returns from an untouched editor using Back", () => {
   const onBack = vi.fn();
   render(<PostEditor editingPost={null} onBack={onBack} onSave={vi.fn()} isSaving={false} />);
-  fireEvent.click(screen.getByRole("button", { name: /^Back to posts$/i }));
+  const back = screen.getByRole("button", { name: /^Back to posts$/i });
+  expect(back).toHaveTextContent(/^$/);
+  expect(back).toHaveAttribute("title", "Back to Posts");
+  expect(back.closest("header")).toContainElement(screen.getByRole("heading", { name: "Create Post", level: 1 }));
+  fireEvent.click(back);
   expect(onBack).toHaveBeenCalledOnce();
 });
 
