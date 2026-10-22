@@ -40,8 +40,9 @@ export default function AppDownloadSection({ content = CONTENT.appDownload }: { 
                 <InstallAppButton className="h-12 w-full px-5 sm:w-auto dark:disabled:opacity-70" />
               </div>
               <p className="mt-3 flex items-center gap-2 text-xs leading-5 text-muted-foreground">
-                <Smartphone aria-hidden="true" className="h-3.5 w-3.5" />Android APK <span aria-hidden="true">•</span> Direct Install
+                <Smartphone aria-hidden="true" className="h-3.5 w-3.5" />Android only <span aria-hidden="true">•</span> APK download
               </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Open the downloaded APK on your Android phone to install GreenWay. If prompted, allow installation from your browser.</p>
             </div>
 
             <figure className="app-download-preview relative m-0 hidden min-w-0 flex-col items-center justify-center gap-5 px-6 py-8 md:flex lg:py-10">

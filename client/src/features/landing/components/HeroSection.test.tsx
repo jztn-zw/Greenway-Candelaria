@@ -20,18 +20,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("does not offer a download before an APK is configured", () => {
+it("downloads the bundled Android APK by default", () => {
   vi.stubEnv("VITE_RESIDENT_APK_URL", "");
   render(<MemoryRouter><HeroSection /></MemoryRouter>);
-  expect(screen.getByRole("button", { name: "Install GreenWay App" })).toBeDisabled();
+  expect(screen.getByRole("link", { name: "Download GreenWay for Android" })).toHaveAttribute("href", "/downloads/greenway-candelaria.apk");
   expect(screen.queryByText("Download available soon.")).not.toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "Install GreenWay App" })).not.toBeInTheDocument();
+  expect(screen.getByText(/Android only/)).toBeInTheDocument();
 });
 
 it("links directly to the configured APK release", () => {
   vi.stubEnv("VITE_RESIDENT_APK_URL", "https://downloads.example.test/resident.apk");
   render(<MemoryRouter><HeroSection /></MemoryRouter>);
-  const download = screen.getByRole("link", { name: "Install GreenWay App" });
+  const download = screen.getByRole("link", { name: "Download GreenWay for Android" });
   expect(download).toHaveAttribute("href", "https://downloads.example.test/resident.apk");
   expect(download).toHaveAttribute("download");
   expect(screen.queryByText("Download available soon.")).not.toBeInTheDocument();

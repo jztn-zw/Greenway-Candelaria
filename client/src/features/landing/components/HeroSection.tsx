@@ -56,7 +56,7 @@ export default function HeroSection({ content = CONTENT.hero }: HeroSectionProps
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-foreground">Get the GreenWay App</h2>
               <p className="mt-1 text-sm leading-5 text-muted-foreground dark:text-foreground/75">Download the Android app to your phone.</p>
-              <p className="mt-1 text-xs text-muted-foreground">Android APK <span aria-hidden="true">•</span> Direct Install</p>
+              <p className="mt-1 text-xs text-muted-foreground">Android only <span aria-hidden="true">•</span> APK download</p>
             </div>
             <InstallAppButton className="hero-app-action h-11 px-4 dark:disabled:opacity-70" />
           </div>
