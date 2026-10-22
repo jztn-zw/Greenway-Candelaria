@@ -1,3 +1,8 @@
+/* Sticky headers need an opaque surface while page content scrolls beneath them. */
+.gw-navigation-topbar {
+  background-color: hsl(var(--topbar-background, var(--background)));
+}
+
 /* Keep mobile breadcrumbs beside the controls and prioritize the current page. */
 @media (max-width: 639px) {
   .gw-navigation-topbar {
@@ -85,13 +90,23 @@
 
 .gw-navigation-collapse.gw-navigation-collapse {
   --action-background: hsl(var(--sidebar-background));
+  --action-foreground: hsl(var(--sidebar-muted-foreground));
+  --action-foreground-hover: hsl(var(--sidebar-foreground));
   --action-hover: hsl(var(--sidebar-accent));
   --action-active: hsl(var(--sidebar-accent));
   --action-border: hsl(var(--sidebar-border));
-  --action-border-hover: hsl(var(--primary) / 0.45);
+  --action-border-hover: hsl(var(--sidebar-ring) / 0.45);
   scale: 1;
   transition: background-color 180ms ease-out, border-color 180ms ease-out,
     color 180ms ease-out, box-shadow 180ms ease-out, scale 120ms ease-out;
+}
+
+/* Sidebar controls keep their contrast against the forest surface in light mode. */
+.gw-navigation-settings.gw-navigation-settings {
+  --action-foreground: hsl(var(--sidebar-muted-foreground));
+  --action-foreground-hover: hsl(var(--sidebar-foreground));
+  --action-hover: hsl(var(--sidebar-accent));
+  --action-active: hsl(var(--sidebar-accent));
 }
 
 .gw-navigation-collapse:active {

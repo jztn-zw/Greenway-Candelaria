@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { toast } from "@/lib/toast";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { getSystemNow } from "@/lib/serverClock";
@@ -504,7 +505,7 @@ const PostEditor = ({
           <div className="space-y-4">
             {/* Primary Cover Image Showcase */}
             <div className="relative w-full aspect-[1080/566] max-h-[380px] rounded-2xl overflow-hidden bg-muted/40 border border-border/70 shadow-sm flex items-center justify-center group">
-              <img
+              <LoadingImage
                 src={uploadedImages[0]}
                 alt="Primary Cover"
                 className="w-full h-full object-cover object-center transition-transform duration-300 "
@@ -532,7 +533,7 @@ const PostEditor = ({
                       key={realIndex}
                       className="relative group w-24 h-16 rounded-xl overflow-hidden border border-border/80 shrink-0 shadow-2xs bg-muted/30"
                     >
-                      <img
+                      <LoadingImage
                         src={url}
                         alt={`Photo ${realIndex + 1}`}
                         className="w-full h-full object-cover"

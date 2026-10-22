@@ -4,6 +4,7 @@ export type TruckStatus = "scheduled" | "on-the-way" | "paused" | "done" | "offl
 
 export interface BarangayStop {
   name: string;
+  barangayName?: string;
   state: "done" | "in-progress" | "not-started" | "skipped";
   completedAt?: string; // time string e.g. "8:15 AM"
   skippedReason?: string;

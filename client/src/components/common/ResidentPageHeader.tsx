@@ -46,12 +46,12 @@ export function ResidentPageHeaderSkeleton({ title, description, titleClassName 
     <header aria-hidden="true" className={cn(residentPageStyles.header, className)}>
       <div className={residentPageStyles.heading}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Skeleton className={cn(residentPageStyles.title, "max-w-full", title ? "w-fit" : ["h-[1.25em]", titleClassName])}>
+          <Skeleton className={cn(residentPageStyles.title, "max-w-full", title ? "gw-skeleton-text w-fit" : ["h-[1.25em]", titleClassName])}>
             {title && <span className="invisible">{title}</span>}
           </Skeleton>
           {titleBadge}
         </div>
-        <Skeleton className={cn(residentPageStyles.description, description ? "w-fit" : ["h-[1.625em] max-w-full", descriptionClassName])}>
+        <Skeleton className={cn(residentPageStyles.description, description ? "gw-skeleton-text w-fit" : ["h-[1.625em] max-w-full", descriptionClassName])}>
           {description && <span className="invisible">{description}</span>}
         </Skeleton>
       </div>

@@ -8,7 +8,9 @@ Use sentence case for descriptions, helper and validation messages, search place
 
 Edit the color variables in `src/index.css` to change the website palette.
 
-The public landing page scopes softer surfaces and a deeper light-mode teal in `src/features/landing/LandingPage.css`. These overrides affect backgrounds, cards, fields, muted text, and primary action states; shared action and category badge recipes keep their system roles. Resident, collector, and admin pages use the global palette.
+The light theme pairs a forest-green sidebar with a pale mint topbar, sage page backgrounds, near-white cards, white fields and popovers, and deep green primary actions. Dark mode retains the original green-charcoal background, quiet card surfaces, neutral text, and restrained green accents. Resident, collector, admin, authentication, and public pages share the theme tokens, including loading skeletons.
+
+The public landing page inherits the global light palette. `src/features/landing/LandingPage.css` retains its original dark surface overrides and decorative accents.
 
 - `:root` defines the light theme and shared color tones.
 - `.dark` overrides surfaces, text, and interactive colors for dark mode.
@@ -16,7 +18,11 @@ The public landing page scopes softer surfaces and a deeper light-mode teal in `
 - `--button-*-hover`, `--button-*-active`, and `--button-tint*` control shared button states. Filled actions use opaque hover colors, while outlined and ghost actions use consistent neutral or semantic tints. Dark mode keeps the same roles with theme-appropriate contrast.
 - `--accent` is the subtle selection background; `--highlight` is the bright green accent.
 - `--background`, `--card`, `--popover`, `--border`, and `--input` control surfaces.
-- `--field-background` and `--field-placeholder` control all shared inputs, text areas, and selects. Light fields use white card-colored surfaces, neutral-gray borders, and readable muted placeholders. Dark fields blend the page background with the card surface and use muted placeholder text at 95% opacity.
+- `--surface-subtle` supplies mint light-mode table headers, and `--surface-raised` supplies quiet KPI surfaces. Modal headers and footers use `--card` to match their body. Both surface tokens resolve to the original card surface in dark mode. Shared tables apply the light palette to live rows and skeletons; dark tables keep their original module surfaces.
+- `--skeleton` supplies all loading bars, including wrapped text placeholders in Settings and Collection Tracking. It stays distinct from both card and muted surfaces.
+- `--sidebar-*` colors are for navigation only. Use sidebar foreground and muted foreground for text on its green surface, sidebar primary/primary foreground for selected links, and sidebar ring for focus. Account popovers retain the normal popover palette. The shared navigation styles cover all three roles, desktop rails, and mobile drawers.
+- `--topbar-background` and `--topbar-border` coordinate portal headers with the page palette. Keep topbar controls and popovers on their shared action/status recipes.
+- `--field-background`, `--field-placeholder`, and `--field-border-hover` control all shared inputs, text areas, and selects. Light fields use white surfaces and solid sage borders. Dark fields retain the original blended surface, softer borders, and muted placeholders. Green focus/hover states follow each theme.
   Autofilled inputs use the same field surface and foreground colors while preserving browser autofill and keyboard focus rings.
 - `--success`, `--warning`, `--info`, and `--destructive` identify statuses. Their foreground tokens are for readable status text.
 - `--badge-*-background`, `--badge-*-foreground`, and `--badge-*-border` control badge colors in both themes. `--badge-tint` and `--badge-border-tint` set the shared tint strength. Use `getStatusBadgeStyle` or `getCategoryBadgeColors` from `src/components/ui/badgeStyles.ts` for labels, and `badgeStyles` for explicit color roles. The same status or category must use the same recipe across admin, collector, resident, cards, tables, and dialogs. Keep badges passive; preserve their existing size and layout.

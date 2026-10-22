@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useResidentResource,useResidentMutation } from "@/lib/residentQuery";
 import { useState,useEffect,useRef } from "react";
@@ -132,7 +133,7 @@ const PostDetail = ({
             <>
               <PostImageBackdrop src={currentImage} />
               {/* Crisp, uncropped, undistorted original image centered */}
-              <img
+              <LoadingImage
                 key={`img-${activeImageIndex}`}
                 src={currentImage}
                 alt={post.title}
@@ -179,7 +180,7 @@ const PostDetail = ({
                       : "gw-action-ghost opacity-65 hover:opacity-100"
                   }`}
                 >
-                  <img
+                  <LoadingImage
                     src={imgUrl}
                     alt={`Thumbnail ${idx + 1}`}
                     className="w-full h-full object-cover object-center"

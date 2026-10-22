@@ -4,7 +4,6 @@ import {
   Clock,
   CheckCircle2,
   Phone,
-  Mail,
   Truck,
   CalendarDays,
   ShieldCheck,
@@ -20,6 +19,8 @@ import { Driver, Truck as TruckType, driverStatusStyles } from "../types";
 import { adminCollectorManagerStyles as styles } from "@/components/common/communityContentStyles";
 import { CollectorManagerActivitySkeleton } from "@/components/loading/PageLoadingSkeletons";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import CollectionRunDetails from "./CollectionRunDetails";
 
 interface DriverDetailViewProps {
   driver: Driver;
@@ -45,6 +46,7 @@ const DriverDetailView = ({
   onToggleStatus,
 }: DriverDetailViewProps) => {
   const truck = trucks.find((t) => t.id === driver.truckId);
+  const [selectedRun, setSelectedRun] = useState<{ driverId: string; runId: string } | null>(null);
 
   return (
     <div className={styles.detailPage}>
@@ -115,7 +117,7 @@ const DriverDetailView = ({
           </div>
         </div>
 
-        {/* ── Structured Information Grid (2 Layers, Typography-Driven) ── */}
+        {/* Collector contact, assignment, and account details */}
         <div className={styles.profileDetails}>
           {/* Layer 1: Primary Contact & Assigned Vehicle */}
           <div className="space-y-1.5">
@@ -125,16 +127,6 @@ const DriverDetailView = ({
             </span>
             <p className="text-xs sm:text-sm font-medium text-foreground font-sans tabular-nums">
               {driver.contactNumber || "N/A"}
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-ui-caption font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-muted-foreground/70" />
-              Email Address
-            </span>
-            <p className="text-xs sm:text-sm font-medium text-foreground truncate" title={driver.email}>
-              {driver.email || "N/A"}
             </p>
           </div>
 
@@ -210,10 +202,21 @@ const DriverDetailView = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {driver.activityLog.map((a, i) => (
+            {driver.activityLog.map((a) => (
               <div
-                key={i}
-                className={cn(styles.activity, "hover:border-primary/30 transition-all duration-200")}
+                key={a.runId}
+                role="button"
+                tabIndex={0}
+                aria-haspopup="dialog"
+                aria-label={`View collection details for ${a.route}, ${a.date}. ${a.status}, ${a.completedStops} of ${a.totalStops} stops. ${a.startTime} to ${a.endTime}.`}
+                onClick={() => setSelectedRun({ driverId: driver.id, runId: a.runId })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedRun({ driverId: driver.id, runId: a.runId });
+                  }
+                }}
+                className={cn(styles.activity, "cursor-pointer hover:border-primary/30 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2")}
               >
                 <div className={styles.activityHeader}>
                   <div className={styles.activityBadges}>
@@ -254,6 +257,8 @@ const DriverDetailView = ({
           </div>
         )}
       </div>
+      {selectedRun?.driverId === driver.id && <CollectionRunDetails key={`${driver.id}:${selectedRun.runId}`}
+        driverId={driver.id} driverName={driver.fullName} runId={selectedRun.runId} onClose={() => setSelectedRun(null)} />}
     </div>
   );
 };

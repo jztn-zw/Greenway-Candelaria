@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { FormDialogHeader } from "@/components/dialogs/FormDialog";
 import { formDialogStyles as modalStyles } from "@/components/dialogs/formDialogStyles";
 import React,{ useEffect,useRef,useState } from "react";
@@ -156,7 +157,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                     key={photo.id}
                     className="relative aspect-square rounded-md overflow-hidden border border-border/80 bg-muted/30 shadow-2xs group"
                   >
-                    <img
+                    <LoadingImage
                       src={recoveredPreviewsRef.current[photo.id] || photo.preview}
                       alt={`Evidence photo ${idx + 1}`}
                       className="w-full h-full object-cover transition-transform duration-200 "

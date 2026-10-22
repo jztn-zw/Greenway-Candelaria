@@ -21,23 +21,24 @@
     --theme-transition-duration: 220ms;
     --theme-transition-easing: ease-in-out;
 
-    /* Modern Green: neutral surfaces, teal actions, restrained mint accents. */
-    --background: 210 40% 98.039%; /* #F8FAFC */
-    --field-background: hsl(var(--card));
+    /* GreenWay light: forest navigation, mint accents, and soft sage surfaces. */
+    --background: 130 21.429% 94.51%; /* #EEF4EF */
+    --field-background: hsl(var(--popover));
     --field-placeholder: hsl(var(--muted-foreground));
-    --foreground: 215 27.907% 16.863%; /* #1F2937 */
-    --card: 0 0% 100%; /* #FFFFFF */
+    --field-border-hover: hsl(var(--primary));
+    --foreground: 153 21.739% 18.039%; /* #24382F */
+    --card: 120 50% 99.216%; /* #FCFEFC */
     --card-foreground: var(--foreground);
-    --popover: var(--card);
+    --popover: 0 0% 100%; /* #FFFFFF */
     --popover-foreground: var(--foreground);
-    --primary: 175.34 77.444% 26.078%; /* #0F766E */
+    --primary: 158.969 70.803% 26.863%; /* #147553 */
     --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary: 151.765 80.952% 95.882%; /* #ECFDF5 */
-    --secondary-foreground: 163.146 88.119% 19.804%; /* #065F46 */
-    --muted: 210 40% 96.078%; /* #F1F5F9 */
-    --muted-foreground: 220 8.936% 46.078%; /* #6B7280 */
-    --accent: 151.765 80.952% 95.882%; /* #ECFDF5 */
-    --accent-foreground: 175.34 77.444% 26.078%; /* #0F766E */
+    --secondary: 142.5 40% 92.157%; /* #E3F3E9 */
+    --secondary-foreground: 157.975 66.387% 23.333%; /* #146346 */
+    --muted: 135 22.222% 89.412%; /* #DEEAE1 */
+    --muted-foreground: 142.857 11.23% 36.667%; /* #53685B */
+    --accent: var(--secondary);
+    --accent-foreground: var(--secondary-foreground);
     --highlight: 160.118 84.08% 39.412%; /* #10B981 */
     --success: var(--success-500);
     --success-foreground: var(--success-600);
@@ -48,9 +49,14 @@
     --error: var(--error-500);
     --destructive: var(--error-600);
     --destructive-foreground: 0 0% 100%; /* #FFFFFF */
-    --border: 195 20.69% 88.627%; /* #DCE5E8 */
-    --input: 216 12.195% 83.922%; /* #D1D5DB */
+    --border: 138.947 19.192% 80.588%; /* #C4D7CA */
+    --input: 141.818 13.924% 53.529%; /* #789984 */
     --ring: var(--primary);
+    /* Shared panel roles keep tables, dialogs, KPIs, and their loaders aligned. */
+    --surface-subtle: 136.364 26.829% 91.961%; /* #E5F0E8 */
+    --surface-raised: 132 33.333% 97.059%; /* #F5FAF6 */
+    --table-header-foreground: 147.5 40% 23.529%; /* #24543A */
+    --skeleton: 138.947 21.839% 82.941%; /* #CADDD0 */
     /* Button states use opaque surfaces so they stay consistent on every page. */
     --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, black);
     --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, black);
@@ -107,14 +113,18 @@
     --sand: var(--accent);
     --canopy: 175.61 80.392% 10%; /* #052E2B */
     --canopy-foreground: 151.765 80.952% 95.882%; /* #ECFDF5 */
-    --sidebar-background: 0 0% 100%; /* #FFFFFF */
-    --sidebar-foreground: var(--foreground);
-    --sidebar-primary: var(--primary);
-    --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
-    --sidebar-border: var(--border);
-    --sidebar-ring: var(--ring);
+    --sidebar-background: 160.909 64.706% 20%; /* #12543F */
+    --sidebar-foreground: 141.818 52.381% 95.882%; /* #EFFAF3 */
+    --sidebar-muted-foreground: 149.091 29.204% 77.843%; /* #B6D7C6 */
+    --sidebar-primary: 140.87 53.488% 91.569%; /* #DEF5E6 */
+    --sidebar-primary-foreground: 159.661 60.825% 19.02%; /* #134E3A */
+    --sidebar-accent: 157.941 48.571% 27.451%; /* #24684F */
+    --sidebar-accent-foreground: var(--sidebar-foreground);
+    --sidebar-border: 156 41.176% 33.333%; /* #32785C */
+    --sidebar-ring: 147.529 59.441% 71.961%; /* #8DE2B4 */
+    --sidebar-destructive: var(--error-200);
+    --topbar-background: var(--surface-raised);
+    --topbar-border: var(--border);
     --chart-1: var(--highlight);
     --chart-2: var(--info-500);
     --chart-3: var(--violet-500);
@@ -131,7 +141,7 @@
     --brand-400: 158.113 64.372% 51.569%; /* #34D399 */
     --brand-500: 160.118 84.08% 39.412%; /* #10B981 */
     --brand-600: 161.379 93.548% 30.392%; /* #059669 */
-    --brand-700: 175.34 77.444% 26.078%; /* #0F766E */
+    --brand-700: 158.969 70.803% 26.863%; /* #147553 */
     --brand-800: 163.146 88.119% 19.804%; /* #065F46 */
     --brand-900: 164.167 85.714% 16.471%; /* #064E3B */
     --brand-950: 175.61 80.392% 10%; /* #052E2B */
@@ -202,17 +212,17 @@
     --violet-950: 261.176 72.65% 22.941%; /* #2E1065 */
 
     /* neutral tones, shared by existing Tailwind color utilities. */
-    --neutral-50: 210 40% 98.039%; /* #F8FAFC */
-    --neutral-100: 210 40% 96.078%; /* #F1F5F9 */
-    --neutral-200: 214.286 31.818% 91.373%; /* #E2E8F0 */
-    --neutral-300: 212.727 26.829% 83.922%; /* #CBD5E1 */
-    --neutral-400: 215 20.225% 65.098%; /* #94A3B8 */
-    --neutral-500: 215.385 16.318% 46.863%; /* #64748B */
-    --neutral-600: 215.294 19.318% 34.51%; /* #475569 */
-    --neutral-700: 215.294 25% 26.667%; /* #334155 */
-    --neutral-800: 215 27.907% 16.863%; /* #1F2937 */
-    --neutral-900: 220.909 39.286% 10.98%; /* #111827 */
-    --neutral-950: 175 35.294% 6.667%; /* #0B1716 */
+    --neutral-50: 135 25% 96.863%; /* #F5F9F6 */
+    --neutral-100: 137.143 20% 93.137%; /* #EAF1EC */
+    --neutral-200: 140 18.182% 87.059%; /* #D8E4DC */
+    --neutral-300: 138 15.873% 75.294%; /* #B6CABC */
+    --neutral-400: 140 11.111% 57.647%; /* #879F8F */
+    --neutral-500: 142.5 11.111% 42.353%; /* #607869 */
+    --neutral-600: 142.5 14.458% 32.549%; /* #475F50 */
+    --neutral-700: 143.478 18.4% 24.51%; /* #334A3C */
+    --neutral-800: 147 21.739% 18.039%; /* #24382D */
+    --neutral-900: 148.421 30.159% 12.353%; /* #16291F */
+    --neutral-950: 146.25 38.095% 8.235%; /* #0D1D14 */
 
     /* Balanced corners: controls 8px, cards 12px, dialogs 14px. */
     --radius: 0.5rem;
@@ -293,8 +303,30 @@
     --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
-  }
-}
+
+    /* Shared components retain the original dark surfaces. */
+    --field-border-hover: hsl(var(--primary) / 0.55);
+    --sidebar-muted-foreground: var(--muted-foreground);
+    --sidebar-destructive: var(--destructive);
+    --topbar-background: var(--background);
+    --topbar-border: var(--border);
+    --surface-subtle: var(--card);
+    --surface-raised: var(--card);
+    --table-header-foreground: var(--muted-foreground);
+    --skeleton: var(--muted);
+    --brand-700: 175.34 77.444% 26.078%;
+    --neutral-50: 210 40% 98.039%;
+    --neutral-100: 210 40% 96.078%;
+    --neutral-200: 214.286 31.818% 91.373%;
+    --neutral-300: 212.727 26.829% 83.922%;
+    --neutral-400: 215 20.225% 65.098%;
+    --neutral-500: 215.385 16.318% 46.863%;
+    --neutral-600: 215.294 19.318% 34.51%;
+    --neutral-700: 215.294 25% 26.667%;
+    --neutral-800: 215 27.907% 16.863%;
+    --neutral-900: 220.909 39.286% 10.98%;
+    --neutral-950: 175 35.294% 6.667%;
+  }}
 
 @layer base {
   * {
@@ -697,6 +729,7 @@ html.theme-switching::view-transition-new(root) {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--surface-subtle));
 }
 
 .gw-topbar-notification-count-label {

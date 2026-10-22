@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { useResidentQuery } from "@/lib/residentQuery";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import { useState,useEffect,useRef } from "react";
@@ -121,16 +122,17 @@ const DashboardPostCarousel = () => {
               {image && !imgFailed ? (
                 <>
                   {/* Blurred ambient backdrop fills the sides for portrait/square images */}
-                  <img
+                  <LoadingImage
                     src={image}
                     alt=""
                     aria-hidden="true"
+                    placeholder={false}
                     className="absolute inset-0 w-full h-full object-cover blur-md scale-125 opacity-70 pointer-events-none select-none transition-all duration-700"
                   />
                   <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-none" />
 
                   {/* Crisp foreground image centered with preserved aspect ratio */}
-                  <img
+                  <LoadingImage
                     key={`${post.id}-img`}
                     src={image}
                     alt={post.title}

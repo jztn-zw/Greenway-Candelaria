@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { formatManilaDateTime } from "@/utils/date";
 import { Star, Eye, Heart, ChevronRight } from "lucide-react";
 import { adminCommunityStyles as postStyles } from "@/components/common/communityContentStyles";
@@ -115,7 +116,7 @@ const PostListView = ({
                       {/* Thumbnail with Featured badge */}
                       <div className="relative w-14 h-10 rounded-xl overflow-hidden shrink-0 border border-border/70 bg-muted/40 shadow-2xs">
                         {hasImage ? (
-                          <img
+                          <LoadingImage
                             src={post.images[0]}
                             alt=""
                             className="w-full h-full object-cover object-center transition-transform duration-300"

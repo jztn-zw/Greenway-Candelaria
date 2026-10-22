@@ -1,4 +1,4 @@
-import { renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
+import { fitTrackingStops, renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
 import TrackingStopControls from "@/components/maps/TrackingStopControls";
 import { bindMapPinScale } from "@/components/maps/mapPinScale";
 import MapAttribution from "@/components/common/MapAttribution";
@@ -201,9 +201,6 @@ const AdminTrackingMap = ({
     }
     return null;
   }, [passedActiveTruck, trucks, focusedTruckId]);
-  useEffect(() => { setSelectedMapStop(null); setShowFullRoute(false); }, [activeTruck?.id]);
-
-
   const isAllCompleted = useMemo(
     () => {
       const trucksWithRoutes = trucks.filter((truck) => truck.totalBarangays > 0);
@@ -234,6 +231,7 @@ const AdminTrackingMap = ({
         barangayId: `${activeTruck.id}-${idx}`,
         stopNumber: idx + 1,
         barangay: s.name,
+        barangayName: s.barangayName,
         status:
           s.state === "done"
             ? "done"
@@ -258,6 +256,11 @@ const AdminTrackingMap = ({
       ? stops.map(stop => ({ ...stop, status: "not-yet" as const }))
       : stops;
   }, [passedAutoRoutedStops, rawStops, activeTruck?.status]);
+  const scheduledStopScope = scheduledStops.map(stop => stop.id).join('|');
+  useEffect(() => {
+    setSelectedMapStop(null);
+    setShowFullRoute(false);
+  }, [activeTruck?.id, scheduledStopScope]);
   const activeStop = passedActiveStop !== undefined
     ? passedActiveStop
     : (scheduledStops.find((s) => s.status === "in-progress") ?? null);
@@ -269,11 +272,18 @@ const AdminTrackingMap = ({
   // reporting GPS. Scheduled/offline trucks may still show their stop pins.
   const isLiveTruckOnline = activeTruck?.status === "on-the-way";
 
-  const selectMapStop = useCallback((id: string) => {
-    const stop = id === 'current-target' ? scheduledStops.find(row => row.status === 'in-progress') : scheduledStops.find(row => row.id === id);
-    setSelectedMapStop(id === 'current-target' ? null : stop?.id ?? null);
-    if (stop && mapRef.current) focusTrackingStop(mapRef.current, stop);
-  }, [scheduledStops]);
+  const changeFullRoute = (value: boolean) => {
+    setSelectedMapStop(null);
+    setShowFullRoute(value);
+    const map = mapRef.current;
+    if (!map) return;
+    map.closePopup();
+    if (value) fitTrackingStops(map, scheduledStops);
+    else {
+      const target = scheduledStops.find(stop => stop.status === 'in-progress');
+      if (target) focusTrackingStop(map, target);
+    }
+  };
 
   // Initialize map
   useEffect(() => {
@@ -304,7 +314,12 @@ const AdminTrackingMap = ({
     mapRef.current = map;
     const unbindPinScale = bindMapPinScale(map, mapElRef.current);
     const syncZoom = () => setMapZoom(map.getZoom());
+    const clearStopSelection = () => {
+      map.closePopup();
+      setSelectedMapStop(null);
+    };
     map.on('zoomend', syncZoom);
+    map.on('click', clearStopSelection);
     syncZoom();
     setIsMapReady(true);
 
@@ -324,6 +339,7 @@ const AdminTrackingMap = ({
     return () => {
       unbindPinScale();
       map.off('zoomend', syncZoom);
+      map.off('click', clearStopSelection);
       resizeObserver.disconnect();
       replayRendererRef.current?.clear();
       replayRendererRef.current = null;
@@ -411,8 +427,8 @@ const AdminTrackingMap = ({
     if (!layer || !map) return;
     if (isReplayMode) { layer.clearLayers(); return; }
     renderTrackingStops({ map, layer, stops: scheduledStops, selectedId: selectedMapStop,
-      showFullRoute, liveCoverage: isLiveTruckOnline, onSelect: selectMapStop });
-  }, [scheduledStops, selectedMapStop, showFullRoute, mapZoom, isReplayMode, isLiveTruckOnline, selectMapStop]);
+      showFullRoute, liveCoverage: isLiveTruckOnline, onSelect: setSelectedMapStop });
+  }, [scheduledStops, selectedMapStop, showFullRoute, mapZoom, isReplayMode, isLiveTruckOnline]);
 
   // Update truck markers
   useEffect(() => {
@@ -868,8 +884,7 @@ const AdminTrackingMap = ({
           aria-label="Live municipal truck tracking map"
         />
         <MapAttribution />
-        {!isReplayMode && <TrackingStopControls stops={scheduledStops} selectedId={selectedMapStop}
-          onSelect={selectMapStop} fullRoute={showFullRoute} onFullRouteChange={setShowFullRoute} />}
+        {!isReplayMode && <TrackingStopControls stops={scheduledStops} fullRoute={showFullRoute} onFullRouteChange={changeFullRoute} />}
 
         {/* Floating Zoom Controls (Top-Right) */}
         <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3 z-[500] flex flex-col bg-card rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">

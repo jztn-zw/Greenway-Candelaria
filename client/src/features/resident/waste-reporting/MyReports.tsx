@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
@@ -740,7 +741,7 @@ const ReportDetail = ({
                   title="View full image in new tab"
                   aria-label={`View evidence photo ${i + 1} in a new tab`}
                 >
-                  <img
+                  <LoadingImage
                     src={url}
                     alt={`Evidence ${i + 1}`}
                     className="w-full h-full object-cover transition-transform duration-200"

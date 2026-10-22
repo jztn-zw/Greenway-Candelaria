@@ -10,7 +10,7 @@
 /* Keep every wrapped text line in the same place during loading. */
 .admin-settings .admin-settings-skeleton-text {
   background-color: transparent;
-  background-image: linear-gradient(to bottom, transparent 0.18em, hsl(var(--muted)) 0.18em, hsl(var(--muted)) 1em, transparent 1em);
+  background-image: linear-gradient(to bottom, transparent 0.18em, hsl(var(--skeleton)) 0.18em, hsl(var(--skeleton)) 1em, transparent 1em);
   background-size: 100% 1lh;
 }
 

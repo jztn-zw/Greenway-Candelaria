@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { formatManilaDateTime } from "@/utils/date";
 import { useState, useEffect, useMemo } from "react";
 import { Eye, Heart, Star, Calendar } from "lucide-react";
@@ -68,7 +69,7 @@ const PostCard = ({
           <>
             <PostImageBackdrop src={currentImage} />
             {/* Crisp centered foreground image */}
-            <img
+            <LoadingImage
               key={`img-${post.id}-${imageIndex}`}
               src={currentImage}
               alt={post.title}

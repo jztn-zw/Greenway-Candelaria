@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { getCategoryBadgeColors } from "@/components/ui/badgeStyles";
 import { useState, useEffect, useRef } from "react";
 import { PostActions, PostMetadata } from "@/components/common/PostDetailInfo";
@@ -91,7 +92,7 @@ const AdminPostDetail = ({
             <>
               <PostImageBackdrop src={currentImage} />
               {/* Crisp original image centered */}
-              <img
+              <LoadingImage
                 key={`img-${activeImageIndex}`}
                 src={currentImage}
                 alt={post.title}
@@ -142,7 +143,7 @@ const AdminPostDetail = ({
                       : "gw-action-ghost opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img
+                  <LoadingImage
                     src={imgUrl}
                     alt={`Thumbnail ${idx + 1}`}
                     className="w-full h-full object-cover object-center"

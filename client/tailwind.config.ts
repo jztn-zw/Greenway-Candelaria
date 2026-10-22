@@ -87,6 +87,11 @@ export default {
           DEFAULT: "var(--field-background)",
           placeholder: "var(--field-placeholder)",
         },
+        surface: {
+          subtle: "hsl(var(--surface-subtle))",
+          raised: "hsl(var(--surface-raised))",
+        },
+        skeleton: "hsl(var(--skeleton))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -135,12 +140,18 @@ export default {
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
+          "muted-foreground": "hsl(var(--sidebar-muted-foreground))",
+          destructive: "hsl(var(--sidebar-destructive))",
           primary: "hsl(var(--sidebar-primary))",
           "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
           accent: "hsl(var(--sidebar-accent))",
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        topbar: {
+          DEFAULT: "hsl(var(--topbar-background))",
+          border: "hsl(var(--topbar-border))",
         },
       },
       borderRadius: {

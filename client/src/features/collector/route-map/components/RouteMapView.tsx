@@ -1,8 +1,8 @@
-import { renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
+import { fitTrackingStops, renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
 import TrackingStopControls from "@/components/maps/TrackingStopControls";
 import { bindMapPinScale } from "@/components/maps/mapPinScale";
 import MapAttribution from "@/components/common/MapAttribution";
-import { useCallback,useEffect,useRef,useState } from "react";
+import { useEffect,useRef,useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteStop } from "../types";
@@ -72,12 +72,22 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   const [selectedMapStop, setSelectedMapStop] = useState<string | null>(null);
   const [showFullRoute, setShowFullRoute] = useState(false);
   const stopScope = stops.map(stop => stop.id).join('|');
-  useEffect(() => { setSelectedMapStop(null); setShowFullRoute(false); }, [stopScope]);
-  const selectMapStop = useCallback((id: string) => {
-    const stop = id === 'current-target' ? stops.find(row => row.status === 'in-progress') : stops.find(row => row.id === id);
-    setSelectedMapStop(id === 'current-target' ? null : stop?.id ?? null);
-    if (stop && mapRef.current) focusTrackingStop(mapRef.current, stop);
-  }, [stops]);
+  useEffect(() => {
+    setSelectedMapStop(null);
+    setShowFullRoute(false);
+  }, [stopScope]);
+  const changeFullRoute = (value: boolean) => {
+    setSelectedMapStop(null);
+    setShowFullRoute(value);
+    const map = mapRef.current;
+    if (!map) return;
+    map.closePopup();
+    if (value) fitTrackingStops(map, stops);
+    else {
+      const target = stops.find(stop => stop.status === 'in-progress');
+      if (target) focusTrackingStop(map, target);
+    }
+  };
 
   // Init map
   useEffect(() => {
@@ -99,9 +109,14 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     const markUserInteracted = () => {
       userInteractedRef.current = true;
     };
+    const clearStopSelection = () => {
+      map.closePopup();
+      setSelectedMapStop(null);
+    };
 
     map.on("dragstart", markUserInteracted);
     map.on("zoomstart", markUserInteracted);
+    map.on('click', clearStopSelection);
 
     map.setMaxBounds(BOUNDS);
     routeLayerRef.current = L.layerGroup().addTo(map);
@@ -117,6 +132,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       map.off('zoomend', syncZoom);
       map.off("dragstart", markUserInteracted);
       map.off("zoomstart", markUserInteracted);
+      map.off('click', clearStopSelection);
       routeLayerRef.current = null;
       layerRef.current = null;
       map.remove();
@@ -184,7 +200,6 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     const layer = layerRef.current;
     const map = mapRef.current;
     if (!layer || !map) return;
-    layer.clearLayers();
 
     const stopsKey = stops
       .map((stop) => `${stop.id}:${stop.coveragePath?.length ?? 0}`)
@@ -197,7 +212,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     const allCoords = stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]);
 
     renderTrackingStops({ map, layer, stops, selectedId: selectedMapStop,
-      showFullRoute, liveCoverage: !preview, onSelect: selectMapStop });
+      showFullRoute, liveCoverage: !preview, onSelect: setSelectedMapStop });
 
     // Truck marker with custom teardrop icon
     const truckIcon = createCollectorTruckPinIcon();
@@ -220,7 +235,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         hasAutoFittedRef.current = true;
       }
     }
-  }, [stops, truckCoords, preview, mapZoom, selectedMapStop, showFullRoute, selectMapStop]);
+  }, [stops, truckCoords, preview, mapZoom, selectedMapStop, showFullRoute]);
 
   const handleRecenter = () => {
     const map = mapRef.current;
@@ -290,8 +305,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     <div className={`collector-route-map relative h-full min-w-0 w-full overflow-hidden bg-card [&_.leaflet-control-attribution]:!hidden ${preview ? "" : "rounded-2xl border border-border shadow-xs"}`}>
       <div ref={mapElRef} className="h-full w-full z-0" />
       <MapAttribution />
-      <TrackingStopControls stops={stops} selectedId={selectedMapStop} onSelect={selectMapStop}
-        fullRoute={showFullRoute} onFullRouteChange={setShowFullRoute} />
+      <TrackingStopControls stops={stops} fullRoute={showFullRoute} onFullRouteChange={changeFullRoute} />
 
       {/* Floating Zoom Controls (Top-Right) */}
       <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[400] flex flex-col bg-card/75 backdrop-blur-md rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">

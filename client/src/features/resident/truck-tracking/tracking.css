@@ -8,8 +8,8 @@
   background-image: linear-gradient(
     to bottom,
     transparent 0.18em,
-    hsl(var(--muted)) 0.18em,
-    hsl(var(--muted)) 1em,
+    hsl(var(--skeleton)) 0.18em,
+    hsl(var(--skeleton)) 1em,
     transparent 1em
   );
   background-size: 100% 1lh;

@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { useCallback,useEffect,useState } from "react";
 import { ArrowUpRight,Calendar,ChevronLeft,ChevronRight,Star,User } from "lucide-react";
 import { communityContentStyles as styles } from "@/components/common/communityContentStyles";
@@ -142,7 +143,7 @@ export default function FeaturedPostCarousel({ posts, onOpenPost }: FeaturedPost
           >
             {image && image !== failedImage ? <>
               <PostImageBackdrop src={image} />
-              <img
+              <LoadingImage
                 key={image}
                 src={image}
                 alt={post.title}

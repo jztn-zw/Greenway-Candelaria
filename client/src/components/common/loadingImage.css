@@ -1,0 +1,9 @@
+@keyframes gw-image-reveal {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gw-loading-image[data-ready="true"] {
+    animation: gw-image-reveal 200ms ease-out;
+  }
+}

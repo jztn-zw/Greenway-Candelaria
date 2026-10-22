@@ -190,12 +190,7 @@ const AdminSidebar = () => {
                 activeClassName=""
               >
                 <item.icon
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-colors",
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )}
+                  className={navigationStyles.itemIcon}
                 />
 
                 <span className={navigationStyles.itemLabel}>
@@ -222,19 +217,17 @@ const AdminSidebar = () => {
         className={navigationStyles.brand}
       >
         <div className={navigationStyles.brandIcon}>
-          <GreenWayLogo className="size-7" />
+          <GreenWayLogo className={navigationStyles.logo} />
         </div>
 
         <div
           className={navigationStyles.brandText}
         >
           <div className="flex items-center gap-1.5">
-            <span className={navigationStyles.brandName}>
-              GreenWay
-            </span>
+            <GreenWayLogo variant="wordmark" alt="GreenWay" className={navigationStyles.brandName} />
           </div>
           <p className={navigationStyles.brandCaption}>
-            MENRO Candelaria
+            Candelaria, Quezon
           </p>
         </div>
       </button>
@@ -262,7 +255,7 @@ const AdminSidebar = () => {
                   <span className={navigationStyles.sectionText}>
                     {navigationSectionTitle(group.label)}
                   </span>
-                  <ChevronDown className="w-3 h-3 text-muted-foreground/40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90 group-hover:text-foreground/70" />
+                  <ChevronDown className="w-3 h-3 text-sidebar-muted-foreground transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
                 </CollapsibleTrigger>
 
                 <CollapsibleContent forceMount className="gw-navigation-group-content">
@@ -285,7 +278,7 @@ const AdminSidebar = () => {
             <div className="relative shrink-0">
               <Avatar className={navigationStyles.avatar}>
                 <AvatarImage src={profileAvatarImageSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "ADMIN"))} alt="" className="object-cover object-center" />
-                <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
+                <AvatarFallback className={navigationStyles.avatarFallback}>
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -298,7 +291,7 @@ const AdminSidebar = () => {
                 <p className={navigationStyles.accountName}>
                   {fullName}
                 </p>
-                <p className="text-ui-caption text-muted-foreground truncate leading-none mt-1">
+                <p className={navigationStyles.accountRole}>
                   Admin
                 </p>
               </div>

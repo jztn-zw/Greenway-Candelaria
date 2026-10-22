@@ -1,0 +1,9 @@
+/* Light tables share a mint header; dark mode keeps the original module surfaces. */
+:root:not(.dark) .gw-table-header,
+:root:not(.dark) .gw-table-header > tr {
+  background-color: hsl(var(--surface-subtle));
+}
+
+:root:not(.dark) .gw-table-header th {
+  color: hsl(var(--table-header-foreground));
+}

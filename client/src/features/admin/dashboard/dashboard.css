@@ -11,6 +11,10 @@
   border-right: 1px solid hsl(var(--border) / 0.7);
 }
 
+.admin-dashboard .admin-dashboard-kpi {
+  background-color: hsl(var(--surface-raised));
+}
+
 .admin-dashboard .admin-dashboard-kpi:nth-child(-n + 2) {
   border-bottom: 1px solid hsl(var(--border) / 0.7);
 }

@@ -124,19 +124,17 @@ const CollectorSidebar = () => {
         className={navigationStyles.brand}
       >
         <div className={navigationStyles.brandIcon}>
-          <GreenWayLogo className="size-7" />
+          <GreenWayLogo className={navigationStyles.logo} />
         </div>
 
         <div
           className={navigationStyles.brandText}
         >
           <div className="flex items-center gap-1.5">
-            <span className={navigationStyles.brandName}>
-              GreenWay
-            </span>
+            <GreenWayLogo variant="wordmark" alt="GreenWay" className={navigationStyles.brandName} />
           </div>
           <p className={navigationStyles.brandCaption}>
-            MENRO Candelaria
+            Candelaria, Quezon
           </p>
         </div>
       </button>
@@ -174,10 +172,7 @@ const CollectorSidebar = () => {
                           activeClassName=""
                         >
                           <item.icon
-                            className={cn(
-                              "h-4 w-4 shrink-0 transition-colors",
-                              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                            )}
+                            className={navigationStyles.itemIcon}
                           />
 
                           <span className={navigationStyles.itemLabel}>
@@ -204,7 +199,7 @@ const CollectorSidebar = () => {
             <div className="relative shrink-0">
               <Avatar className={navigationStyles.avatar}>
                 <AvatarImage src={profileAvatarImageSrc(profileAvatarForCurrentUser(currentUser?.id, currentUser?.avatar_url, "DRIVER"))} alt="" className="object-cover object-center" />
-                <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold rounded-xl">
+                <AvatarFallback className={navigationStyles.avatarFallback}>
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -217,7 +212,7 @@ const CollectorSidebar = () => {
                 <p className={navigationStyles.accountName}>
                   {fullName}
                 </p>
-                <p className="text-ui-caption text-muted-foreground truncate leading-none mt-1">
+                <p className={navigationStyles.accountRole}>
                   Collector
                 </p>
               </div>

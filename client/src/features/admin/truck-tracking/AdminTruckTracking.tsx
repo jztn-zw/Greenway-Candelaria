@@ -463,6 +463,7 @@ const buildTruckList = (
 
         return {
           name: s.stop_name ?? s.barangay_name,
+          barangayName: s.barangay_name,
           state: normaliseStopState(s.status),
           completedAt: s.completed_at ?? undefined,
           skippedReason: s.skipped_reason ?? undefined,
@@ -793,6 +794,7 @@ const AdminTruckTracking = () => {
         barangayId: `${activeTruck.id}-${idx}`,
         stopNumber: idx + 1,
         barangay: s.name,
+        barangayName: s.barangayName,
         status:
           s.state === "done"
             ? "done"

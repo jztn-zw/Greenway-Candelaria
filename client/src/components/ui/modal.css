@@ -57,7 +57,11 @@
   overflow-wrap: anywhere;
 }
 
-.gw-modal .gw-modal-header,
+.gw-modal .gw-modal-header {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.6);
+}
+
 .gw-modal .gw-modal-footer {
   background: hsl(var(--card));
   border-color: hsl(var(--border) / 0.6);

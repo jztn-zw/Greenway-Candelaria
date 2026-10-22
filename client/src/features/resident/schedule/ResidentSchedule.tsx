@@ -281,7 +281,7 @@ const ResidentSchedule = () => {
       .sort((a, b) => ((a.dayIndex + 6) % 7) - ((b.dayIndex + 6) % 7));
   }, [collectionRules]);
 
-  if (isLoading) return <ResidentScheduleSkeleton />;
+  if (isLoading) return <ResidentScheduleSkeleton currentDate={currentDate} />;
   if (calendarError && scheduleError) return <PageErrorState kind="unavailable" description="We couldn't load the calendar and collection schedule. Please try again." onRetry={retrySchedule} retrying={calendarQuery.isFetching || scheduleQuery.isFetching} homeHref="/resident" />;
 
   return (

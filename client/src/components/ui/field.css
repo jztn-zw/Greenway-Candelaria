@@ -1,11 +1,15 @@
 /* One interaction language for form fields across the web app. */
 .gw-field {
   border-radius: var(--radius);
-  border-color: hsl(var(--input) / 0.8);
+  border-color: hsl(var(--input));
   background-color: var(--field-background);
   font-size: 0.875rem;
   outline: none;
   box-shadow: none;
+}
+
+.dark .gw-field {
+  border-color: hsl(var(--input) / 0.8);
 }
 
 .gw-field::placeholder,
@@ -24,7 +28,7 @@
 }
 
 .gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):hover {
-  border-color: hsl(var(--primary) / 0.55);
+  border-color: var(--field-border-hover);
 }
 
 .gw-field:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):is(:focus, :focus-visible, [data-state="open"]),

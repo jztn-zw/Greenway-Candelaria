@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { useCallback } from "react";
 import { Plus,X,Camera } from "lucide-react";
 import type { ReportPhoto } from "./types";
@@ -157,7 +158,7 @@ const PhotoUploadSection = ({ photos, onPhotosChange, showError = false }: Photo
               key={photo.id}
               className="group relative aspect-square min-w-0 overflow-hidden rounded-xl border border-border/80 bg-muted/20"
             >
-              <img
+              <LoadingImage
                 src={photo.preview}
                 alt="Upload preview"
                 className="w-full h-full object-cover transition-transform duration-300 "

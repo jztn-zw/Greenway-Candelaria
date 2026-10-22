@@ -57,9 +57,12 @@ const Navbar = () => {
           : "bg-background/80 backdrop-blur border-b border-transparent"
       }`}>
         <div className="container flex items-center justify-between h-16">
-          <a href="#home" className="font-display font-semibold tracking-tight flex items-center gap-2 text-xl text-primary dark:text-accent-foreground">
-            <GreenWayLogo className="h-8 w-12" />
-            GreenWay
+          <a href="#home" aria-label="GreenWay Home" className="flex items-center gap-2 text-primary dark:text-accent-foreground">
+            <GreenWayLogo alt="" className="h-8 w-12 text-inherit" />
+            <span className="flex flex-col gap-1">
+              <GreenWayLogo variant="wordmark" alt="GreenWay" className="h-4 w-28 text-inherit" />
+              <span className="text-xs leading-none text-muted-foreground">Candelaria, Quezon</span>
+            </span>
           </a>
 
           <div className="hidden lg:flex items-center gap-5 xl:gap-8">

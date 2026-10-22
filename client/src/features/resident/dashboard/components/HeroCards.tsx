@@ -123,7 +123,7 @@ const HeroCards = () => {
       {/* ─── Card 1: Today's Collection Schedule ─── */}
       {scheduleLoading ? <HeroCardSkeleton className={dashboardStyles.collectionColumn} /> : scheduleFailed ? <div className={dashboardStyles.collectionColumn}><PageErrorState kind="unavailable" variant="section" title="Collection Schedule Couldn't Load" onRetry={() => void routesQuery.refetch()} retrying={routesQuery.isFetching} /></div> : <Card
         onClick={() => navigate(scheduleDestination)}
-        className={cn(dashboardStyles.hero, dashboardStyles.collectionColumn, "cursor-pointer border-primary/25 bg-primary/[0.04]")}
+        className={cn(dashboardStyles.hero, dashboardStyles.collectionColumn, "cursor-pointer border-primary/20")}
       >
           <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">

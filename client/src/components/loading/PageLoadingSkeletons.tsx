@@ -8,6 +8,7 @@ import { collectorProfileStyles as collectorProfile } from "@/features/collector
 import { adminAlertOptions, adminSettingsCopy, adminSettingsStyles } from "@/features/admin/settings/adminSettingsStyles";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCalendarLayout, getManilaCalendarDate, type CalendarLayoutOptions } from "@/components/calendar/calendar.utils";
 import { BackButton } from "@/components/common/BackButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ import { residentPageStyles } from "@/components/common/residentPageStyles";
 import { ResidentPageHeaderSkeleton } from "@/components/common/ResidentPageHeader";
 import { myReportsStyles } from "@/features/resident/waste-reporting/myReportsStyles";
 import { notificationStyles } from "@/features/resident/notifications/notificationStyles";
-import { scheduledTrackingContent } from "@/features/resident/truck-tracking/trackingContent";
+import { scheduledTrackingContent, trackingPageContent } from "@/features/resident/truck-tracking/trackingContent";
 import { trackingStyles } from "@/features/resident/truck-tracking/trackingStyles";
 import { dashboardStyles } from "@/features/resident/dashboard/dashboardStyles";
 import { profileStyles } from "@/features/resident/profile/profileStyles";
@@ -135,18 +136,20 @@ export const ReportsTableSkeleton = () => (
       ))}
     </div>
     <div className={adminStyles.reportTable}>
-      <div className="min-w-[560px]">
-        <div className="grid grid-cols-[1.2fr_1.4fr_1fr_0.9fr] sm:grid-cols-[1.2fr_1.4fr_1fr_0.6fr_0.9fr] gap-4 h-10 items-center border-b border-border/60 bg-muted/30 px-3 sm:px-4">
-          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className={cn("h-3.5 w-16 max-w-full", i === 3 && "hidden sm:block")} />)}
-        </div>
+      <Table className="min-w-[560px]">
+        <TableHeader className="border-b border-border/60 bg-muted/30"><TableRow className="hover:bg-transparent">
+          {Array.from({ length: 5 }).map((_, i) => <TableHead key={i} className={cn("h-10 px-3 py-2.5 sm:px-4", i === 3 && "hidden sm:table-cell")}><Skeleton className="h-3.5 w-16 max-w-full" /></TableHead>)}
+        </TableRow></TableHeader>
+        <TableBody>
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-[1.2fr_1.4fr_1fr_0.9fr] sm:grid-cols-[1.2fr_1.4fr_1fr_0.6fr_0.9fr] gap-4 items-center border-b border-border/60 last:border-b-0 px-3 sm:px-4 py-3.5">
+          <TableRow key={i} className="border-border/60 hover:bg-transparent">
             {Array.from({ length: 5 }).map((_, j) => (
-              <Skeleton key={j} className={cn("max-w-full", j === 1 || j === 4 ? "h-6 w-28 rounded-md" : "h-4 w-28", j === 3 && "hidden sm:block")} />
+              <TableCell key={j} className={cn("px-3 py-3.5 sm:px-4", j === 3 && "hidden sm:table-cell")}><Skeleton className={cn("max-w-full", j === 1 || j === 4 ? "h-6 w-28 rounded-md" : "h-4 w-28")} /></TableCell>
             ))}
-          </div>
+          </TableRow>
         ))}
-      </div>
+        </TableBody>
+      </Table>
     </div>
   </div>
 );
@@ -290,14 +293,15 @@ export const CollectorDashboardSkeleton = () => (
 );
 
 /* ─── Collector Schedule Skeletons ─── */
-export const CalendarMonthGridSkeleton = ({ currentDate }: { currentDate: Date }) => {
+export const CalendarMonthGridSkeleton = ({ currentDate, ...options }: { currentDate: Date } & CalendarLayoutOptions) => {
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const days = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const layout = getCalendarLayout(options);
   return (
-    <div role="status" aria-busy="true" className="grid min-h-0 grid-cols-7 gap-1 sm:flex-1 sm:auto-rows-fr sm:gap-1.5">
+    <div role="status" aria-busy="true" className={layout.grid}>
       <span className="sr-only">Loading schedule calendar…</span>
       {Array.from({ length: firstDay + days }).map((_, index) => (
-        <div key={index} aria-hidden="true" className={cn("aspect-square min-h-0 rounded-xl border p-1 sm:aspect-auto sm:h-full sm:p-2", index < firstDay ? "border-transparent bg-muted/20 opacity-30" : "border-border/60")}>
+        <div key={index} aria-hidden="true" className={cn(index < firstDay ? layout.emptyDay : layout.day, "rounded-xl border", index < firstDay ? "border-transparent bg-muted/20 opacity-30" : "flex flex-col justify-between border-border/60")}>
           {index >= firstDay && <><Skeleton className="size-5 rounded-full" /><div className="mt-0.5 min-h-3.5 sm:mt-1 sm:min-h-4" /></>}
         </div>
       ))}
@@ -416,7 +420,7 @@ export const CollectorProfileSkeleton = () => (
             <Skeleton className={collectorProfile.sectionIcon} />
             <div className="min-w-0">
               <Skeleton className="gw-heading w-fit max-w-full text-sm tracking-tight"><span className="invisible">Assigned Vehicle & Equipment</span></Skeleton>
-              <Skeleton className="mt-0.5 w-fit max-w-full text-xs leading-relaxed"><span className="invisible">Current truck assignment and operational truck status</span></Skeleton>
+              <Skeleton className="w-fit max-w-full text-xs"><span className="invisible">Current truck assignment and operational truck status</span></Skeleton>
             </div>
           </div>
           <Skeleton className="h-6 w-32 max-w-full shrink-0 rounded-lg" />
@@ -434,18 +438,17 @@ export const CollectorProfileSkeleton = () => (
           <Skeleton className={collectorProfile.sectionIcon} />
           <div className="min-w-0">
             <Skeleton className="gw-heading w-fit max-w-full text-sm tracking-tight"><span className="invisible">Personal Information</span></Skeleton>
-            <Skeleton className="mt-0.5 w-fit max-w-full text-xs leading-relaxed"><span className="invisible">Manage your profile details and security credentials</span></Skeleton>
+            <Skeleton className="w-fit max-w-full text-xs"><span className="invisible">Manage your profile details and security credentials</span></Skeleton>
           </div>
         </div>
         <div className="divide-y divide-border/50">
-          {Array.from({ length: 5 }).map((_, index) => (
+          {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} className={collectorProfile.row}>
               <div className={collectorProfile.rowContent}>
                 <Skeleton className={collectorProfile.rowIcon} />
                 <div className="min-w-0 flex-1"><Skeleton className={`${collectorProfile.label} h-[1.5em] w-24 max-w-full`} /><Skeleton className={`${collectorProfile.value} h-[1.5em] w-40 max-w-full`} /></div>
               </div>
-              {index === 2 ? <div className={collectorProfile.registeredEmail}><Skeleton className="size-3.5 shrink-0" /><Skeleton className="admin-profile-email-label h-4 w-24 max-w-full" /></div>
-                : <div className={`${collectorProfile.fieldAction} flex items-center`}><Skeleton className={index === 4 ? "h-4 w-11" : "h-4 w-6"} /></div>}
+              <div className={`${collectorProfile.fieldAction} flex items-center gap-1.5`}><Skeleton className="size-3.5 shrink-0" /><Skeleton className="h-4 w-6" /></div>
             </div>
           ))}
         </div>
@@ -463,13 +466,14 @@ export const CollectorProfileSkeleton = () => (
 export const CollectorRouteMapSkeleton = () => (
   <div role="status" aria-busy="true" className="resident-page collector-route-page mx-auto min-w-0 w-full max-w-[1600px] space-y-4 pb-6 sm:space-y-5">
     <span className="sr-only">Loading collection route…</span>
-    <ResidentPageHeaderSkeleton className="admin-module-header" titleClassName="w-64" descriptionClassName="w-80" />
+    <ResidentPageHeaderSkeleton className="admin-module-header" title="Live Route Tracking" description="Review the route and stops before starting collection" />
 
     <div aria-hidden="true" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs sm:px-5">
       <div className="flex min-w-0 flex-wrap items-center gap-2"><Skeleton className="h-5 w-36" /><Skeleton className="h-6 w-28 rounded-lg" /><Skeleton className="h-6 w-20 rounded-lg" /></div>
       <Skeleton className="h-7 w-28 rounded-lg" />
     </div>
 
+    <div className="space-y-4">
     <div aria-hidden="true" className="collector-route-start-card flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div className="flex min-w-0 items-start gap-4">
         <Skeleton className="size-11 shrink-0 rounded-xl" />
@@ -485,6 +489,7 @@ export const CollectorRouteMapSkeleton = () => (
           <Skeleton className="h-7 w-16 rounded-lg" />
         </div>
         <div aria-hidden="true" className="collector-route-map-height relative bg-muted/25">
+          <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
           <div className="absolute right-3 top-3 rounded-xl border border-border/70 bg-card p-0.5">
             <Skeleton className="size-11 rounded-lg" /><Skeleton className="mt-1 size-11 rounded-lg" />
           </div>
@@ -497,6 +502,7 @@ export const CollectorRouteMapSkeleton = () => (
           {Array.from({ length: 10 }).map((_, index) => <div key={index} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1"><Skeleton className="size-8 shrink-0 rounded-lg" /><div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-36 max-w-full" />{index === 0 && <Skeleton className="h-3 w-16" />}</div></div>)}
         </div>
       </section>
+    </div>
     </div>
   </div>
 );
@@ -521,23 +527,23 @@ export const DashboardHeaderSkeleton = () => (
 );
 
 /* ─── Profile Page Skeleton (Resident) ─── */
-const ProfileSectionHeaderSkeleton = ({ action = false }: { action?: boolean }) => (
+const ProfileSectionHeaderSkeleton = ({ title, description, action = false, badge = false }: { title: string; description: string; action?: boolean; badge?: boolean }) => (
   <div className={profileStyles.sectionHeader}>
     <div className={profileStyles.sectionHeading}>
       <Skeleton className="size-8 shrink-0 rounded-lg" />
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <Skeleton className="h-4 w-40 max-w-full" />
-        <Skeleton className="h-3 w-56 max-w-full" />
+      <div className="min-w-0">
+        <Skeleton className={`${profileStyles.sectionTitle} gw-skeleton-text w-fit max-w-full`}><span className="invisible">{title}</span></Skeleton>
+        <Skeleton className={`${profileStyles.sectionDescription} gw-skeleton-text w-fit max-w-full`}><span className="invisible">{description}</span></Skeleton>
       </div>
     </div>
-    {action && <Skeleton className="h-8 w-24 max-w-full rounded-lg" />}
+    {action && <Skeleton className={cn("w-24 max-w-full rounded-lg", badge ? "h-6" : "h-8")} />}
   </div>
 );
 
 export const ProfileSkeleton = () => (
   <div role="status" aria-busy="true" aria-label="Loading resident profile" className={profileStyles.page}>
     <div aria-hidden="true">
-      <ResidentPageHeaderSkeleton />
+      <ResidentPageHeaderSkeleton title="Profile & Account" description="Manage your personal details, collection address, and account security." />
       <div className={profileStyles.stack}>
         <div className={profileStyles.hero}>
           <div className={profileStyles.cover}><Skeleton className="h-full w-full rounded-none" /></div>
@@ -563,24 +569,28 @@ export const ProfileSkeleton = () => (
         </div>
         <div className={profileStyles.body}>
           <section className={profileStyles.personal}>
-            <ProfileSectionHeaderSkeleton />
+            <ProfileSectionHeaderSkeleton title="Personal Information" description="Update your details and account security." />
             <div className="divide-y divide-border/50">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className={profileStyles.fieldRow}>
+              {["Full Name", "Username", "Email Address", "Phone Number", "Barangay & Street", "Security Password"].map((label) => (
+                <div key={label} className={profileStyles.fieldRow}>
                   <div className="flex min-w-0 flex-1 items-start gap-2.5">
                     <Skeleton className="size-8 shrink-0 rounded-lg" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <Skeleton className="h-3 w-24 max-w-full" />
-                      <Skeleton className="h-5 w-40 max-w-full" />
+                    <div className="min-w-0 flex-1">
+                      <Skeleton className={`${profileStyles.fieldLabel} w-fit max-w-full`}><span className="invisible">{label}</span></Skeleton>
+                      <Skeleton className={`${profileStyles.fieldValue} h-[1.625em] w-40 max-w-full`} />
                     </div>
                   </div>
-                  <Skeleton className={index === 2 ? "h-8 w-4 shrink-0" : "h-8 w-12 shrink-0 rounded-lg"} />
+                  <Skeleton className={cn(profileStyles.fieldButton, "w-16 rounded-lg")} />
                 </div>
               ))}
+              <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0"><Skeleton className="h-5 w-28 max-w-full" /><Skeleton className="mt-0.5 h-4 w-64 max-w-full" /></div>
+                <Skeleton className="h-9 w-44 max-w-full rounded-lg" />
+              </div>
             </div>
           </section>
           <section className={profileStyles.panel}>
-            <ProfileSectionHeaderSkeleton action />
+            <ProfileSectionHeaderSkeleton title="Community Impact" description="Your reports and contributions to Candelaria." action />
             <div className={profileStyles.resolution}>
               <div className="flex min-w-0 flex-wrap justify-between gap-2">
                 <Skeleton className="h-4 w-28 max-w-full" /><Skeleton className="h-5 w-24 rounded-md" />
@@ -598,7 +608,7 @@ export const ProfileSkeleton = () => (
             </div>
           </section>
           <section className={profileStyles.panel}>
-            <ProfileSectionHeaderSkeleton action />
+            <ProfileSectionHeaderSkeleton title="Badges & Recognition" description="Recognition for your community activity." action badge />
             <div className={profileStyles.badges}>
               {Array.from({ length: 4 }).map((_, index) => (
                 <div key={index} className={`${profileStyles.badge} border-border/60`}>
@@ -614,14 +624,16 @@ export const ProfileSkeleton = () => (
             </div>
           </section>
         </div>
-        <div className={profileStyles.hero}>
-          <div className="flex min-w-0 items-center justify-between gap-3 p-4">
-            <Skeleton className="size-8 shrink-0 rounded-lg" />
-            <div className="min-w-0 flex-1 space-y-1.5"><Skeleton className="h-4 w-20" /><Skeleton className="h-3 w-52 max-w-full" /></div>
-            <Skeleton className="size-4 shrink-0 rounded-md" />
+        <div className="space-y-3">
+          <div className={`${profileStyles.hero} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}>
+            <div className="min-w-0"><Skeleton className="h-5 w-28 max-w-full" /><Skeleton className="mt-1 h-4 w-64 max-w-full" /></div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <Skeleton className="h-11 w-full rounded-lg sm:h-10 sm:w-28" />
+              <Skeleton className="h-11 w-full rounded-lg sm:h-10 sm:w-32" />
+            </div>
           </div>
+          <div className={profileStyles.privacy}><Skeleton className="mt-0.5 size-3.5 shrink-0" /><Skeleton className="w-fit max-w-full text-[11px] leading-relaxed"><span className="invisible">In compliance with the Philippine Data Privacy Act of 2012 (R.A. 10173)</span></Skeleton></div>
         </div>
-        <Skeleton className="mx-auto h-3 w-80 max-w-full" />
       </div>
     </div>
   </div>
@@ -797,9 +809,9 @@ export const AdminScheduleSkeleton = ({ currentDate, variant = "admin" }: { curr
     <div role="status" aria-busy="true" className="resident-page admin-community admin-schedule mx-auto min-w-0 w-full max-w-[1600px] pb-10">
       <span className="sr-only">{variant === "collector" ? "Loading schedule…" : "Loading internal schedules…"}</span>
       <div aria-hidden="true" className="space-y-4 sm:space-y-6">
-        <ResidentPageHeaderSkeleton className="admin-module-header" title={variant === "collector" ? "MENRO Calendar" : "Schedule Management"} description={variant === "collector" ? "View MENRO events scheduled for this month." : "Plan MENRO activities. Manage resident collection days in Route Manager."}
+        <ResidentPageHeaderSkeleton className="admin-module-header" title={variant === "collector" ? "MENRO Calendar" : "Event Management"} description={variant === "collector" ? "View MENRO events scheduled for this month." : "Manage MENRO activities and resident calendar events. Manage collection days in Route Manager."}
         actionsClassName="admin-module-header-actions"
-        actions={variant === "admin" ? <Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">New Internal Schedule</span></Skeleton> : undefined} />
+        actions={variant === "admin" ? <Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">New Schedule / Event</span></Skeleton> : undefined} />
 
         {variant === "admin" && <AdminKpiSkeleton />}
 
@@ -821,7 +833,7 @@ export const AdminScheduleSkeleton = ({ currentDate, variant = "admin" }: { curr
           <div className={`${scheduleStyles.calendar} rounded-2xl border border-border/80 bg-card shadow-2xs flex flex-col`}>
             <div className="calendar-grid-header mb-3 flex shrink-0 items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
               <div className="calendar-grid-heading flex items-center gap-2 sm:gap-2.5">
-                <Skeleton className="calendar-grid-heading-label h-6 w-44 max-w-full" />
+                <Skeleton className="calendar-grid-heading-label gw-heading w-fit max-w-full text-base tracking-tight sm:text-lg"><span className="invisible">{currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span></Skeleton>
                 <Skeleton className="h-8 w-14 rounded-lg" />
               </div>
               <div className="calendar-grid-navigation flex gap-1"><Skeleton className="h-8 w-8 rounded-lg" /><Skeleton className="h-8 w-8 rounded-lg" /></div>
@@ -875,8 +887,8 @@ export const AdminScheduleSkeleton = ({ currentDate, variant = "admin" }: { curr
 const NotificationFeedSkeleton = ({ role }: { role: "resident" | "admin" | "collector" }) => (
   <div role="status" aria-label="Loading Notifications" className={notificationStyles.page}>
     <ResidentPageHeaderSkeleton
-      title={role !== "resident" ? "Notifications" : undefined}
-      description={role === "admin" ? "Resident reports, collection updates, and driver messages." : role === "collector" ? "Route alerts, dispatch messages, and announcements." : undefined}
+      title="Notifications"
+      description={role === "admin" ? "Resident reports, collection updates, and driver messages." : role === "collector" ? "Route alerts, dispatch messages, and announcements." : "Collection alerts, report updates, and community notices."}
       titleBadge={<Skeleton className="h-5 w-16 rounded-md" />}
       actionsClassName={notificationStyles.headerActions}
       actions={<>
@@ -914,11 +926,12 @@ export const NotificationsListSkeleton = () => (
 export const NotificationsPageSkeleton = ({ role = "resident" }: { role?: "resident" | "collector" | "admin" }) => <NotificationFeedSkeleton role={role} />;
 
 /* ─── Resident Schedule Page Skeleton (1:1 with ResidentSchedule.tsx) ─── */
-export const ResidentScheduleSkeleton = () => (
+export const ResidentScheduleSkeleton = ({ currentDate = getManilaCalendarDate() }: { currentDate?: Date } = {}) => (
   <div role="status" aria-label="Loading resident calendar" className={`${residentPageStyles.page} max-w-[1400px] space-y-4 pb-8 md:space-y-5 md:pb-10 lg:pb-12`}>
     <ResidentPageHeaderSkeleton
       className="resident-page-header-wide"
-      titleClassName="w-60"
+      title="Resident Calendar"
+      description="View collection days and official announcements."
       actionsClassName="resident-page-header-wide-actions"
       actions={<div className="resident-page-header-tabs gap-0.5 rounded-xl border border-border/80 bg-muted/60 p-1">
         <Skeleton className="h-8 w-40 rounded-lg" />
@@ -928,11 +941,14 @@ export const ResidentScheduleSkeleton = () => (
 
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
-        <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-5">
-          <div className="flex items-center justify-between gap-3"><Skeleton className="h-6 w-40 max-w-full" /><div className="flex gap-2"><Skeleton className="size-8 rounded-lg" /><Skeleton className="size-8 rounded-lg" /></div></div>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">{Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="mx-auto h-3 w-6 max-w-full" />)}</div>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">{Array.from({ length: 35 }).map((_, i) => <div key={i} className="aspect-square rounded-xl border border-border/60 p-1.5 sm:aspect-auto sm:min-h-20 sm:p-2"><Skeleton className="size-5 rounded-full" /></div>)}</div>
-          <div className="flex items-center gap-2 border-t border-border/60 pt-3"><Skeleton className="h-3 w-28" /><Skeleton className="h-6 w-36 rounded-lg" /></div>
+        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-6">
+          <div className="calendar-grid-header mb-3 flex shrink-0 items-center justify-between border-b border-border/60 pb-3 sm:mb-4 sm:pb-4">
+            <div className="calendar-grid-heading flex items-center gap-2 sm:gap-2.5"><Skeleton className="calendar-grid-heading-label gw-heading w-fit max-w-full text-base tracking-tight sm:text-lg"><span className="invisible">{currentDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span></Skeleton><Skeleton className="h-7 w-14 shrink-0 rounded-lg" /></div>
+            <div className="calendar-grid-navigation flex shrink-0 gap-1"><Skeleton className="size-8 rounded-lg" /><Skeleton className="size-8 rounded-lg" /></div>
+          </div>
+          <div className="grid shrink-0 grid-cols-7 gap-1 pb-2 text-center">{Array.from({ length: 7 }).map((_, i) => <div key={i} className="py-1"><Skeleton className="mx-auto h-4 w-6 max-w-full" /></div>)}</div>
+          <CalendarMonthGridSkeleton currentDate={currentDate} compactMobileCells />
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3"><Skeleton className="h-4 w-28" /><Skeleton className="h-6 w-36 max-w-full rounded-lg" /></div>
         </div>
       </div>
       <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs lg:col-span-1">
@@ -940,7 +956,7 @@ export const ResidentScheduleSkeleton = () => (
         <div className="space-y-4 p-4 lg:p-5">
           <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-4"><div className="flex justify-between gap-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-5 w-24 rounded-md" /></div><Skeleton className="h-4 w-40" /><div className="flex justify-between"><Skeleton className="h-3 w-24" /><Skeleton className="h-3 w-28" /></div></div>
           <div className="space-y-2.5"><Skeleton className="h-4 w-32" /><div className="space-y-2 rounded-xl border border-dashed border-border/80 p-4"><Skeleton className="mx-auto size-5 rounded-lg" /><Skeleton className="mx-auto h-4 w-32" /><Skeleton className="mx-auto h-3 w-48 max-w-full" /></div></div>
-          <div className="border-t border-border/60 pt-2"><Skeleton className="h-9 w-full rounded-xl" /></div>
+          <div className="space-y-2 border-t border-border/60 pt-2"><Skeleton className="h-9 w-full rounded-xl" /><Skeleton className="h-9 w-full rounded-xl" /></div>
         </div>
       </div>
     </div>
@@ -982,12 +998,14 @@ export const MyReportsListSkeleton = ({ count = 10 }: { count?: number }) => (
 export const MyReportsPageSkeleton = () => (
   <div role="status" aria-label="Loading My Reports" className={myReportsStyles.page}>
     <ResidentPageHeaderSkeleton
+      title="My Reports"
+      description="Track your waste reports and updates from MENRO."
       actionsClassName={myReportsStyles.headerActions}
       actions={<Skeleton className="h-9 w-32 rounded-lg" />}
     />
     <div className="space-y-4">
     <div className="space-y-3">
-      <Skeleton className="h-11 w-full rounded-lg md:h-10" />
+      <Skeleton className="h-11 w-full rounded-lg md:h-9" />
       <div className={myReportsStyles.filterRow}>
         <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
           {["w-16", "w-24", "w-32", "w-24", "w-20"].map((width, index) => (
@@ -1219,12 +1237,14 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
           ))}
         </div>
         <div className={`${postStyles.table} overflow-x-auto`}>
-        <div className="min-w-[850px]">
-          <div className="grid grid-cols-[2.5fr_1fr_1fr_0.8fr_0.6fr_0.6fr_80px] gap-4 h-12 items-center px-4 bg-muted/40 border-b border-border/70">
-            {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-4 w-16 max-w-full" />)}
-          </div>
+        <Table className="min-w-[850px]">
+          <TableHeader><TableRow className="border-border/70 bg-muted/40 hover:bg-transparent">
+            {Array.from({ length: 7 }).map((_, i) => <TableHead key={i} className={cn(i === 0 && "w-[42%]", i === 6 && "w-[80px]")}><Skeleton className={cn("h-4 w-16 max-w-full", i >= 4 && "ml-auto")} /></TableHead>)}
+          </TableRow></TableHeader>
+          <TableBody>
           {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="grid grid-cols-[2.5fr_1fr_1fr_0.8fr_0.6fr_0.6fr_80px] gap-4 items-center px-4 py-3 border-b border-border/50 last:border-0">
+            <TableRow key={i} className="border-border/50 hover:bg-transparent">
+              <TableCell className="py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <Skeleton className="w-14 h-10 shrink-0 rounded-xl" />
                 <div className="min-w-0 flex-1 space-y-1.5">
@@ -1232,15 +1252,17 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
                   <Skeleton className="h-4 w-3/4" />
                 </div>
               </div>
-              <Skeleton className="h-6 w-20 max-w-full rounded-md" />
-              <Skeleton className="h-6 w-20 max-w-full rounded-md" />
-              <Skeleton className="h-4 w-16 max-w-full" />
-              <Skeleton className="h-4 w-8 justify-self-end" />
-              <Skeleton className="h-4 w-8 justify-self-end" />
-              <Skeleton className="h-8 w-8 justify-self-end rounded-xl" />
-            </div>
+              </TableCell>
+              <TableCell className="py-3"><Skeleton className="h-6 w-20 max-w-full rounded-md" /></TableCell>
+              <TableCell className="py-3"><Skeleton className="h-6 w-20 max-w-full rounded-md" /></TableCell>
+              <TableCell className="py-3"><Skeleton className="h-4 w-16 max-w-full" /></TableCell>
+              <TableCell className="py-3"><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+              <TableCell className="py-3"><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+              <TableCell className="py-3"><Skeleton className="ml-auto h-8 w-8 rounded-xl" /></TableCell>
+            </TableRow>
           ))}
-        </div>
+          </TableBody>
+        </Table>
         </div>
       </div>
     )}
@@ -1368,9 +1390,9 @@ export const RouteManagerPageSkeleton = ({ viewMode = "DAY_VIEW" }: { viewMode?:
   <div role="status" aria-busy="true" className="resident-page admin-community admin-routes w-full min-w-0 max-w-[1600px] mx-auto pb-10">
     <span className="sr-only">Loading collection routes…</span>
     <div aria-hidden="true" className="space-y-4 sm:space-y-6">
-      <ResidentPageHeaderSkeleton className="admin-module-header" title="Route Manager" description="Plan collection days, assign trucks, and verify every barangay stop."
+      <ResidentPageHeaderSkeleton className="admin-module-header" title="Route Management" description="Plan collection days, assign trucks, and verify every barangay stop."
         actionsClassName="admin-module-header-actions"
-        actions={<Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">Create route</span></Skeleton>} />
+        actions={<Skeleton className={`${postStyles.action} flex items-center`}><span className="size-3.5 shrink-0" /><span className="invisible">Create Route</span></Skeleton>} />
 
       <AdminKpiSkeleton count={4} />
 
@@ -1420,22 +1442,24 @@ export const RouteManagerPageSkeleton = ({ viewMode = "DAY_VIEW" }: { viewMode?:
         <>
         <div className={routeStyles.compactList}><div className={routeStyles.grid}>{Array.from({ length: 7 }).map((_, i) => <RouteManagerCardSkeleton key={i} showDay />)}</div></div>
         <div className={`${routeStyles.table} overflow-x-auto rounded-2xl border border-border/80 bg-card shadow-2xs`}>
-          <div className="min-w-[900px]">
-            <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_1.2fr_0.7fr_60px] items-center gap-4 border-b border-border/80 bg-muted/30 px-5 py-3.5">
-              {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-4 w-20 max-w-full" />)}
-            </div>
+          <Table className="min-w-[900px]">
+            <TableHeader><TableRow className="border-border/80 bg-muted/30 hover:bg-transparent">
+              {Array.from({ length: 7 }).map((_, i) => <TableHead key={i} className={cn("py-3.5", i === 0 && "pl-5", i === 6 && "pr-5")}><Skeleton className={cn("h-4 w-20 max-w-full", i === 5 && "mx-auto", i === 6 && "ml-auto")} /></TableHead>)}
+            </TableRow></TableHeader>
+            <TableBody>
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr_1.2fr_0.7fr_60px] items-center gap-4 border-b border-border/60 px-5 py-3.5 last:border-0">
-                <div className="space-y-1"><Skeleton className="h-4 w-20" /><Skeleton className="h-5 w-24 rounded-md" /></div>
-                <div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-20" /></div>
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-6 w-16 rounded-md" />
-                <Skeleton className="h-8 w-8 justify-self-end rounded-xl" />
-              </div>
+              <TableRow key={i} className="border-border/60 hover:bg-transparent">
+                <TableCell className="py-3.5 pl-5"><div className="space-y-1"><Skeleton className="h-4 w-20" /><Skeleton className="h-5 w-24 rounded-md" /></div></TableCell>
+                <TableCell className="py-3.5"><div className="space-y-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-20" /></div></TableCell>
+                <TableCell className="py-3.5"><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell className="py-3.5"><Skeleton className="h-4 w-16" /></TableCell>
+                <TableCell className="py-3.5"><Skeleton className="h-4 w-28" /></TableCell>
+                <TableCell className="py-3.5"><Skeleton className="mx-auto h-6 w-16 rounded-md" /></TableCell>
+                <TableCell className="py-3.5 pr-5"><Skeleton className="ml-auto h-8 w-8 rounded-xl" /></TableCell>
+              </TableRow>
             ))}
-          </div>
+            </TableBody>
+          </Table>
         </div>
         </>
       )}
@@ -1574,7 +1598,7 @@ export const ResidentManagerPageSkeleton = () => (
           </div>
           <div className={`${residentManagerStyles.filterRow} admin-toolbar-resident-chips`}>
             <div className={cn(residentManagerStyles.filters, "admin-toolbar-chips flex items-center gap-1.5 overflow-hidden pb-1 sm:pb-0")}>
-              {["w-[110px]", "w-[68px]", "w-[102px]", "w-[74px]"].map((width, i) => <Skeleton key={i} className={cn("resident-manager-filter-placeholder admin-toolbar-chip-placeholder h-8 shrink-0 rounded-lg", width)} />)}
+              {["w-[110px]", "w-[68px]", "w-[74px]"].map((width, i) => <Skeleton key={i} className={cn("resident-manager-filter-placeholder admin-toolbar-chip-placeholder h-8 shrink-0 rounded-lg", width)} />)}
             </div>
           </div>
         </div><div className={residentManagerStyles.list}>
@@ -1873,7 +1897,7 @@ export const CollectorManagerProfileSkeleton = ({ kind = "collector" }: { kind?:
           <div className={collectorManagerStyles.profileActions}><Skeleton className="h-9 w-28 rounded-xl" /><Skeleton className={cn("h-9 rounded-xl", kind === "collector" ? "w-32" : "w-48")} />{kind === "collector" && <Skeleton className="h-9 w-28 rounded-xl" />}</div>
         </div>
         <div className={collectorManagerStyles.profileDetails}>
-          {Array.from({ length: kind === "collector" ? 6 : 5 }).map((_, i) => <div key={i} className="space-y-1.5"><Skeleton className="h-3 w-28 max-w-full" /><Skeleton className="h-4 w-36 max-w-full" /></div>)}
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="space-y-1.5"><Skeleton className="h-3 w-28 max-w-full" /><Skeleton className="h-4 w-36 max-w-full" /></div>)}
         </div>
       </div>
       {kind === "collector" && <div className="space-y-4"><div><Skeleton className="h-6 w-44 max-w-full" /><Skeleton className="mt-0.5 h-4 w-80 max-w-full" /></div><CollectorManagerActivitySkeleton /></div>}
@@ -1927,6 +1951,7 @@ export const AnalyticsDashboardSkeleton = ({ title, description }: { title: stri
           <Skeleton className="h-6 w-48 max-w-full" />
           <Skeleton className="h-4 w-[500px] max-w-full" />
         </div>
+        <div className="space-y-4 sm:space-y-5">
         <div className="analytics-grid grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
           <div className="analytics-card rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
@@ -1954,6 +1979,7 @@ export const AnalyticsDashboardSkeleton = ({ title, description }: { title: stri
             <Skeleton className="h-[150px] w-full rounded-xl max-w-full" />
           </div>
         </div>
+        </div>
       </section>
     </div>
   </main>
@@ -1978,7 +2004,7 @@ export const AuditLogRowsSkeleton = () => (
 
 export const AuditLogCardsSkeleton = () => (
   <>
-    {Array.from({ length: 4 }).map((_, i) => (
+    {Array.from({ length: 10 }).map((_, i) => (
       <div key={i} aria-hidden="true" className={cn(auditStyles.card, "pointer-events-none cursor-default")}>
         <div className={auditStyles.cardHeader}>
           <div className={auditStyles.cardIdentity}>
@@ -2124,22 +2150,24 @@ export const AnnouncementsContentSkeleton = ({ viewMode = "grid" }: { viewMode?:
             {Array.from({ length: 10 }).map((_, i) => <AnnouncementCardSkeleton key={i} compact />)}
           </div>
           <div className={`${postStyles.table} overflow-x-auto`}>
-          <div className="min-w-[850px]">
-            <div className="grid h-12 grid-cols-[2.5fr_1fr_1fr_1fr_0.8fr_0.8fr_70px] items-center gap-4 border-b border-border/70 bg-muted/40 px-4">
-              {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-4 w-16 max-w-full" />)}
-            </div>
+          <Table className="min-w-[850px]">
+            <TableHeader><TableRow className="border-border/70 bg-muted/40 hover:bg-transparent">
+              {Array.from({ length: 7 }).map((_, i) => <TableHead key={i} className={cn(i === 0 && "w-[34%]", i === 6 && "w-[70px]")}><Skeleton className={cn("h-4 w-16 max-w-full", i === 6 && "ml-auto")} /></TableHead>)}
+            </TableRow></TableHeader>
+            <TableBody>
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[2.5fr_1fr_1fr_1fr_0.8fr_0.8fr_70px] items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
-                <div className="min-w-0 space-y-1"><Skeleton className="h-5 w-4/5" /><Skeleton className="h-4 w-full" /></div>
-                <Skeleton className="h-6 w-20 rounded-md" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-14" />
-                <Skeleton className="h-6 w-16 rounded-md" />
-                <Skeleton className="h-7 w-7 justify-self-end rounded-lg" />
-              </div>
+              <TableRow key={i} className="border-border/50 hover:bg-transparent">
+                <TableCell className="py-3"><div className="min-w-0 space-y-1"><Skeleton className="h-5 w-4/5" /><Skeleton className="h-4 w-full" /></div></TableCell>
+                <TableCell className="py-3"><Skeleton className="h-6 w-20 rounded-md" /></TableCell>
+                <TableCell className="py-3"><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell className="py-3"><Skeleton className="h-4 w-16" /></TableCell>
+                <TableCell className="py-3"><Skeleton className="h-4 w-14" /></TableCell>
+                <TableCell className="py-3"><Skeleton className="h-6 w-16 rounded-md" /></TableCell>
+                <TableCell className="py-3"><Skeleton className="ml-auto h-7 w-7 rounded-lg" /></TableCell>
+              </TableRow>
             ))}
-          </div>
+            </TableBody>
+          </Table>
           </div>
         </div>
       )}
@@ -2198,7 +2226,7 @@ export const ResidentDashboardCalendarSkeleton = ({ dayCount, firstDayIndex }: {
     </div>
     <div className={dashboardStyles.calendarDays}>
       {Array.from({ length: dayCount }).map((_, index) => (
-        <div key={index} className="resident-dashboard-calendar-day aspect-square rounded-xl border border-border/60 p-1 sm:aspect-auto sm:p-2">
+        <div key={index} className={cn("resident-dashboard-calendar-day aspect-square rounded-xl border p-1 sm:aspect-auto sm:p-2", index < firstDayIndex ? "border-transparent bg-muted/20 opacity-30" : "border-border/60")}>
           {index >= firstDayIndex && <Skeleton className="h-5 w-5 rounded-full" />}
         </div>
       ))}
@@ -2212,6 +2240,7 @@ export const ResidentDashboardSkeleton = ({ dayCount, firstDayIndex }: { dayCoun
     <ResidentPageHeaderSkeleton
       className={dashboardStyles.greeting}
       titleClassName="w-64"
+      description="Here is your real-time waste collection & community activity summary."
       titleBadge={<Skeleton className="h-6 w-24 rounded-md" />}
       actionsClassName={dashboardStyles.greetingActions}
       actions={<>
@@ -2287,10 +2316,10 @@ export const ContentCardsSkeleton = ({ count = 6 }: { count?: number }) => (
 
 export const ResidentContentsSkeleton = () => (
   <div role="status" aria-label="Loading Community Posts" className={contentStyles.page}>
-    <ResidentPageHeaderSkeleton titleClassName="w-56" descriptionClassName="w-96" />
+    <ResidentPageHeaderSkeleton title="Community Posts" description="Official MENRO guidelines, collection updates, and eco tips." />
     <div className={contentStyles.stack}>
     <div className="space-y-3">
-      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-11 w-full rounded-lg md:h-9" />
       <div className={contentStyles.filterRow}>
         <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
           {["w-11", "w-20", "w-16"].map((width, index) => <Skeleton key={index} className={`h-9 shrink-0 ${width} rounded-lg`} />)}
@@ -2349,7 +2378,7 @@ const TrackingTextSkeleton = ({ className, children }: { className?: string; chi
 
 export const ResidentTrackingSkeleton = ({ residentArea }: { residentArea?: string } = {}) => (
   <div role="status" aria-label="Loading live collection tracking" className={trackingStyles.page}>
-    <ResidentPageHeaderSkeleton />
+    <ResidentPageHeaderSkeleton title={trackingPageContent.title} description={trackingPageContent.description} />
     <div className={trackingStyles.stack}>
       <div className={trackingStyles.schedule}>
         <div className={trackingStyles.scheduleDetails}>

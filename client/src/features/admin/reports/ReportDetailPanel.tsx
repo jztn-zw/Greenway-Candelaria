@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { SearchInput } from "@/components/common/SearchInput";
@@ -498,7 +499,7 @@ const ReportDetailPanel = ({
                   className="relative w-20 h-20 rounded-xl bg-muted/30 border border-border/80 overflow-hidden group block cursor-pointer hover:border-primary/50 transition-all shadow-2xs shrink-0"
                   title="Click to view full photo"
                 >
-                  <img
+                  <LoadingImage
                     src={photo.url}
                     alt={`Evidence photo ${idx + 1}`}
                     className="w-full h-full object-cover transition-transform duration-200"
@@ -636,9 +637,9 @@ const ReportDetailPanel = ({
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="py-2">
+          <div className="relative min-h-48 py-2">
             {previewPhoto && (
-              <img
+              <LoadingImage
                 src={previewPhoto}
                 alt="Evidence preview"
                 className="w-full max-h-[70vh] object-contain rounded-xl bg-muted/40"

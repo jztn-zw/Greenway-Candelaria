@@ -1,3 +1,4 @@
+import LoadingImage from "@/components/common/LoadingImage";
 import React,{ useState,useEffect,useMemo } from "react";
 import { Heart,Calendar,User } from "lucide-react";
 import { communityContentStyles as contentStyles } from "@/components/common/communityContentStyles";
@@ -59,7 +60,7 @@ export const PostCard: React.FC<PostCardProps> = ({
           <>
             <PostImageBackdrop src={currentImage} />
             {/* Crisp foreground image */}
-            <img
+            <LoadingImage
               key={`img-${post.id}-${imageIndex}`}
               src={currentImage}
               alt={post.title}

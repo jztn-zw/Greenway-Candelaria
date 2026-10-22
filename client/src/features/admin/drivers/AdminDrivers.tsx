@@ -382,6 +382,7 @@ const AdminDrivers = () => {
     return (
       <>
         <DriverDetailView
+          key={selectedDriver.id}
           driver={selectedDriver}
           trucks={trucks}
           isActivityLoading={isActivityLoading}

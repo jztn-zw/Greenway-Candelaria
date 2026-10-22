@@ -5,7 +5,7 @@ import { CalendarEvent } from "@/services/scheduleService";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getManilaNow } from "@/utils/date";
-import { indexMonthEvents } from "./calendar.utils";
+import { getCalendarLayout, indexMonthEvents } from "./calendar.utils";
 import { CalendarMonthGridSkeleton } from "@/components/loading/PageLoadingSkeletons";
 
 interface CalendarGridProps {
@@ -65,6 +65,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     : selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const todayStr = getManilaNow().dateKey;
   const eventsByDate = useMemo(() => indexMonthEvents(events, year, month), [events, year, month]);
+  const layout = getCalendarLayout({ compact, embedded, fillHeight, compactMobileCells });
 
   const renderEventDot = (event: CalendarEvent, isMobile = false) => {
     const start = event.event_date ? event.event_date.split("T")[0] : "";
@@ -297,34 +298,14 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         </div>
 
         {/* 7-Column Month Grid */}
-        {isLoading ? <CalendarMonthGridSkeleton currentDate={currentDate} /> : <div
-          className={cn(
-            "calendar-grid-cells grid grid-cols-7",
-            compact ? "gap-1" : "gap-1 sm:gap-1.5",
-            fillHeight && "min-h-0 sm:flex-1 sm:auto-rows-fr",
-            embedded && !compact && "min-h-0 flex-1 auto-rows-fr",
-            compactMobileCells && "min-h-0"
-          )}
-        >
+        {isLoading ? <CalendarMonthGridSkeleton currentDate={currentDate} compact={compact} embedded={embedded} fillHeight={fillHeight} compactMobileCells={compactMobileCells} /> : <div className={layout.grid}>
           {/* Empty slots for offset */}
           {Array.from({ length: firstDayIndex }).map((_, i) => (
             <div
               key={`empty-${i}`}
               className={cn(
-                "calendar-grid-day rounded-xl bg-muted/20 border border-transparent opacity-30",
-                fillHeight
-                  ? compactMobileCells
-                    ? "aspect-square min-h-0 sm:aspect-auto sm:min-h-0 sm:h-full"
-                    : "min-h-0 sm:h-full"
-                  : compact
-                    ? compactMobileCells
-                      ? "aspect-square min-h-0 sm:aspect-auto sm:min-h-[52px]"
-                      : "min-h-[52px]"
-                    : compactMobileCells
-                      ? "aspect-square min-h-0 sm:aspect-auto sm:min-h-[95px]"
-                      : embedded
-                        ? "min-h-0"
-                        : "min-h-[75px] sm:min-h-[95px]"
+                layout.emptyDay,
+                "rounded-xl bg-muted/20 border border-transparent opacity-30"
               )}
             />
           ))}
@@ -347,20 +328,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 aria-pressed={isSelected}
                 aria-current={isToday ? "date" : undefined}
                 className={cn(
-                  "calendar-grid-day relative rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                  fillHeight
-                    ? compactMobileCells
-                      ? "aspect-square min-h-0 p-1 sm:aspect-auto sm:p-2 sm:min-h-0 sm:h-full"
-                      : "min-h-0 sm:h-full p-1.5 sm:p-2"
-                    : compact
-                      ? compactMobileCells
-                        ? "aspect-square min-h-0 p-1 sm:aspect-auto sm:px-1 sm:py-1.5 sm:min-h-[52px]"
-                        : "min-h-[52px] px-1 py-1.5 sm:p-2"
-                      : compactMobileCells
-                        ? "aspect-square min-h-0 p-1 sm:aspect-auto sm:p-2 sm:min-h-[95px]"
-                        : embedded
-                          ? "min-h-0 p-1.5"
-                          : "min-h-[75px] sm:min-h-[95px] p-1.5 sm:p-2",
+                  layout.day,
+                  "relative rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   isSelected
                     ? "border-primary bg-primary/[0.07] dark:bg-primary/10 shadow-2xs ring-1 ring-primary/50"
                     : isToday

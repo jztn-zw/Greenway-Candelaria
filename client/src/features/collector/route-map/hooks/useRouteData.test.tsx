@@ -39,6 +39,7 @@ it("deduplicates route readers while preserving scheduled stop order, coverage p
   expect(state.stops[0].status).toBe("in-progress");
   expect(state.stops[1].coords).toEqual([14.1, 121.4]);
   expect(state.stops[1].barangay).toBe("Next street");
+  expect(state.stops[1].barangayName).toBe("Next barangay");
   expect(state.routeInfo?.collectionStartedAt?.toISOString()).toBe("2026-09-28T01:15:00.000Z");
 });
 

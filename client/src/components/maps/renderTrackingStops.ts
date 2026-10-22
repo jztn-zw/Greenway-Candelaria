@@ -19,6 +19,18 @@ export const focusTrackingStop = (map: L.Map, stop: RouteStop) => {
   else map.setView(point, Math.max(map.getZoom(), 16));
 };
 
+export const fitTrackingStops = (map: L.Map, stops: RouteStop[]) => {
+  const points = stops.filter(stop => stop.hasCoordinates !== false)
+    .flatMap(stop => stop.coveragePath?.length ? stop.coveragePath : [stop.coords]);
+  if (!points.length) return;
+  if (points.length === 1) {
+    map.setView(points[0], Math.min(Math.max(map.getZoom(), 14), 15));
+    return;
+  }
+  const bounds = L.latLngBounds(points);
+  if (bounds.isValid()) map.flyToBounds(bounds, { padding: [48, 48], maxZoom: 15, duration: 0.8 });
+};
+
 interface Options {
   map: L.Map;
   layer: L.LayerGroup;
@@ -40,19 +52,22 @@ export const renderTrackingStops = ({ map, layer, stops, selectedId, showFullRou
   for (const stop of stops) {
     const selected = stop.id === selectedId;
     if (stop.hasCoordinates === false || !stop.coveragePath || stop.coveragePath.length < 2 ||
-      !(showFullRoute || selected || (liveCoverage && stop.status === 'in-progress'))) continue;
+      !(showFullRoute || (liveCoverage && stop.status === 'in-progress'))) continue;
     const active = selected || stop.status === 'in-progress';
     L.polyline(stop.coveragePath, { color: 'hsl(var(--map-inset))', weight: active ? 7 : 4, opacity: 0.8, interactive: false }).addTo(layer);
     L.polyline(stop.coveragePath, { color: presentation(stop).color, weight: active ? 4 : 2,
       opacity: active ? 0.95 : 0.35, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(layer);
   }
 
-  const groups = groupTrackingStops(stops, point => map.project(point, zoom), zoom, selectedId);
+  // Selection controls details only; the toggle controls the visible route.
+  const visibleStops = showFullRoute ? stops : stops.filter(stop => stop.status === 'in-progress');
+  const groups = groupTrackingStops(visibleStops, point => map.project(point, zoom), zoom, selectedId);
   for (const group of groups) {
     if (group.stops.length > 1) {
       const allCompleted = group.stops.every(stop => stop.status === 'done');
       const marker = L.marker(group.point, {
-        title: `${group.stops.length} nearby stops. Zoom in or choose a street.`, opacity: 1,
+        title: `${group.stops.length} nearby stops. Zoom in or select a stop.`, opacity: 1,
+        bubblingMouseEvents: false,
         icon: L.divIcon({ className: '', iconSize: [36, 36], iconAnchor: [18, 18],
           html: `<span style="position:relative;display:flex;width:36px;height:36px;align-items:center;justify-content:center;transform:scale(var(--map-pin-scale,1));transform-origin:center;border:2px solid hsl(var(--map-inset));border-radius:50%;background:${allCompleted ? presentation(group.stops[0]).color : 'hsl(var(--primary))'};color:hsl(var(--map-inset));box-shadow:0 2px 6px #0004;font:600 13px var(--font-ui)">${group.stops.length}${allCompleted ? completedBadge : ''}</span>` }),
       }).addTo(layer);
@@ -63,7 +78,7 @@ export const renderTrackingStops = ({ map, layer, stops, selectedId, showFullRou
         button.type = 'button';
         button.className = 'gw-action-ghost block w-full rounded-md px-2 py-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
         button.textContent = `${stop.stopNumber}. ${stop.barangay}`;
-        button.addEventListener('click', () => onSelect(stop.id));
+        button.addEventListener('click', () => { focusTrackingStop(map, stop); onSelect(stop.id); });
         list.append(button);
       }
       marker.bindPopup(list, { maxWidth: 260, className: 'tracking-popup' });
@@ -82,6 +97,7 @@ export const renderTrackingStops = ({ map, layer, stops, selectedId, showFullRou
     const color = presentation(stop).color;
     const marker = L.marker(group.point, {
       title: `${stop.stopNumber}. ${stop.barangay} — ${presentation(stop).label}`,
+      bubblingMouseEvents: false,
       zIndexOffset: important ? 600 : 100, opacity: 1,
       icon: current ? createTrackingLocationPin(color, stop.status, stop.stopNumber) : L.divIcon({
         className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16],
@@ -96,6 +112,11 @@ export const renderTrackingStops = ({ map, layer, stops, selectedId, showFullRou
     status.textContent = presentation(stop).label;
     const hasCompletionTime = stop.status === 'done' && Boolean(stop.completedAt);
     popup.append(heading);
+    if (stop.barangayName && stop.barangayName !== stop.barangay) {
+      const barangay = document.createElement('p');
+      barangay.textContent = `Barangay: ${stop.barangayName}`;
+      popup.append(barangay);
+    }
     if (!hasCompletionTime) popup.append(status);
     if (stop.completedAt || stop.skippedReason) {
       const detail = document.createElement('p');

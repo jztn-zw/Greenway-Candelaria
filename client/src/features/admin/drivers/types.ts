@@ -1,5 +1,6 @@
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 export interface DriverActivity {
+  runId: string;
   date: string;
   route: string;
   status: "Completed" | "Partial";

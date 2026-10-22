@@ -8,6 +8,7 @@
 }
 
 .admin-kpi-card {
+  background-color: hsl(var(--surface-raised));
   display: flex;
   flex-direction: column;
   justify-content: space-between;

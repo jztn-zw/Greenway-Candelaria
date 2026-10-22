@@ -5,6 +5,7 @@ export interface RouteStop {
   barangayId?: string;
   stopNumber: number;
   barangay: string;
+  barangayName?: string;
   status: StopStatus;
   completedAt?: string;
   skippedReason?: string;

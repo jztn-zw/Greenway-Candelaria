@@ -127,6 +127,7 @@ const mapStops = (
         barangayId: s.barangay_id,
         stopNumber: s.order_index ?? idx + 1,
         barangay: s.stop_name ?? s.barangay_name,
+        barangayName: s.barangay_name,
         status: mapStatus(s.status),
         completedAt: s.completed_at ?? undefined,
         skippedReason: s.skipped_reason ?? undefined,

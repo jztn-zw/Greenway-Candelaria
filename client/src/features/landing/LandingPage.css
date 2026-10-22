@@ -1,21 +1,5 @@
-/* Landing-only tones. Actions and badges retain the shared semantic recipes. */
+/* Public pages share the light palette and retain their original dark surfaces. */
 .landing-page {
-  --background: 155 20% 93%;
-  --card: 150 24% 96%;
-  --popover: var(--card);
-  --muted: 156 18% 88%;
-  --muted-foreground: 166 14% 31%;
-  --primary: 175.34 77.444% 23%;
-  --ring: var(--primary);
-  --button-primary-hover: color-mix(in srgb, hsl(var(--primary)) 92%, black);
-  --button-primary-active: color-mix(in srgb, hsl(var(--primary)) 84%, black);
-  --button-primary-soft-foreground: var(--button-primary-hover);
-  --secondary: 154 22% 88%;
-  --accent: 156 28% 89%;
-  --border: 160 18% 80%;
-  --input: 160 16% 74%;
-  --field-background: hsl(var(--card));
-  --field-placeholder: hsl(var(--muted-foreground));
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
@@ -33,6 +17,9 @@
   --accent: 164 30% 20%;
   --border: 162 19% 28%;
   --input: 162 16% 36%;
+  --popover: var(--card);
+  --field-background: hsl(var(--card));
+  --field-placeholder: hsl(var(--muted-foreground));
 }
 
 .landing-page .landing-surface {

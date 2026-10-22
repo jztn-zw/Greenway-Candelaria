@@ -259,13 +259,14 @@ const AuthModal = ({
             {/* Header - fixed */}
             <div className="shrink-0 px-6 pb-5 pt-6 sm:px-10 sm:pb-6 sm:pt-8">
               <div className="mb-5 flex items-center gap-2.5 sm:mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
-                  <GreenWayLogo />
+                <GreenWayLogo alt="" className="h-8 w-12" />
+                <div className="flex flex-col gap-1">
+                  <GreenWayLogo variant="wordmark" alt="GreenWay" className="h-4 w-28 text-foreground" />
+                  <span className="text-xs leading-none text-muted-foreground">Candelaria, Quezon</span>
                 </div>
-                <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
               <DialogTitle className="gw-heading gw-auth-title text-foreground">
-                {recoveryReceipt ? "Save Your Recovery Code" : recoveryOpen ? "Reset Your Password" : tab === "login" ? "Welcome Back" : "Create an Account"}
+                {recoveryReceipt ? "Save Your Recovery Code" : recoveryOpen ? "Reset Your Password" : tab === "login" ? "Welcome" : "Create an Account"}
                 <span className="text-primary">.</span>
               </DialogTitle>
               {!recoveryReceipt && (
@@ -452,9 +453,7 @@ const AuthModal = ({
 
             <div className="relative z-10 flex w-full flex-col justify-between gap-8 p-8">
               <div>
-                <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-forest-foreground/10 ring-1 ring-forest-foreground/15">
-                  <GreenWayLogo alt="" className="text-forest-foreground" />
-                </div>
+                <GreenWayLogo alt="" className="mb-6 h-8 w-12 text-forest-foreground" />
                 <h3 className="gw-heading text-2xl leading-tight tracking-tight text-balance">
                   Join the green movement today.
                 </h3>

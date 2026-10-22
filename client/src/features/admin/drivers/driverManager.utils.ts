@@ -79,6 +79,7 @@ export const mapDriverRow = (row: DriverApiRow): Driver => ({
 export const mapDriverActivityRow = (
   row: DriverActivityApiRow,
 ): Driver["activityLog"][number] => ({
+  runId: row.route_id,
   date: row.date,
   route: row.route,
   status: row.status === "COMPLETED" ? "Completed" : "Partial",

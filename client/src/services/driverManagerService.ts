@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import type { TruckDistanceSummary } from "./trackingService";
 
 export interface DriverApiRow {
   id: string;
@@ -24,6 +25,38 @@ export interface DriverActivityApiRow {
   start_time: string;
   end_time: string;
 }
+
+export interface DriverActivityDetail {
+  run: {
+    id: string;
+    date: string;
+    route: string;
+    status: "COMPLETED" | "PARTIAL";
+    waste_type: string | null;
+    truck_name: string | null;
+    truck_plate: string | null;
+    scheduled_start: string;
+    started_at: string | null;
+    ended_at: string | null;
+    paused_seconds: number;
+    active_seconds: number | null;
+  };
+  stops: {
+    id: string;
+    stop_order: number;
+    stop_name: string;
+    barangay_name: string | null;
+    status: "DONE" | "MISSED" | "NOT_STARTED" | "IN_PROGRESS";
+    completed_at: string | null;
+    skipped_reason: string | null;
+  }[];
+  distance: Omit<TruckDistanceSummary, "date">;
+}
+
+export const fetchDriverActivityDetail = async (driverId: string, runId: string): Promise<DriverActivityDetail> => {
+  const res = await api.get<{ data: DriverActivityDetail }>(`/drivers/${encodeURIComponent(driverId)}/activity/${encodeURIComponent(runId)}`);
+  return res.data.data;
+};
 
 export interface TruckApiRow {
   id: string;
