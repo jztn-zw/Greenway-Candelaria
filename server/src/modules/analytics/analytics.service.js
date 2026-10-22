@@ -1,4 +1,5 @@
 const { pool } = require("../../config/db");
+const { getRunDistanceSummaries } = require("../tracking/trackingDistance.service");
 
 // ─── Helper: date range filter ─────────────────────────────
 
@@ -809,6 +810,23 @@ const getAnalyticsDashboard = async (filters = {}) => {
     routeStopParams,
   );
 
+  const [distanceRunRows] = await pool.query(
+    `SELECT rr.id AS run_id, rr.run_date, rr.route_name, rr.status,
+       COALESCE(u.full_name, 'Unassigned') AS driver_name,
+       COALESCE(rr.truck_name_snapshot, t.name, 'Historical truck not recorded') AS truck_name,
+       COALESCE(rr.truck_plate_snapshot, t.plate_number, 'Not recorded') AS truck_plate
+     FROM route_runs rr
+     LEFT JOIN drivers d ON d.id = rr.driver_id
+     LEFT JOIN users u ON u.id = d.user_id
+     LEFT JOIN trucks t ON t.id = rr.truck_id
+     WHERE rr.run_date BETWEEN ? AND ? AND rr.status IN ('COMPLETED', 'PARTIAL')
+       AND rr.collection_started_at IS NOT NULL AND rr.ended_at IS NOT NULL
+       ${barangayId ? "AND EXISTS (SELECT 1 FROM route_run_stops selected_stop WHERE selected_stop.route_run_id = rr.id AND selected_stop.barangay_id = ?)" : ""}
+     ORDER BY rr.run_date DESC, rr.route_name ASC, rr.id ASC`,
+    [range.from, range.to, ...(barangayId ? [barangayId] : [])],
+  );
+  const distances = await getRunDistanceSummaries(distanceRunRows.map(row => row.run_id));
+
   const scheduledStops = toNumber(stopSummary.scheduled_stops);
   const completedStops = toNumber(stopSummary.completed_stops);
   const statusCounts = new Map(statusRows.map((row) => [row.status, toNumber(row.count)]));
@@ -842,6 +860,15 @@ const getAnalyticsDashboard = async (filters = {}) => {
     },
     collectionCompletionTrend: collectionTrend,
     missedCollectionsWeekly: collectionTrend.map(({ period, missed }) => ({ period, missed })),
+    collectionRunDistances: distanceRunRows.map(row => {
+      const distance = distances.get(row.run_id);
+      return {
+        id: row.run_id, date: String(row.run_date).slice(0, 10),
+        route: row.route_name || "Collection route", driver: row.driver_name,
+        truck: row.truck_name, plate: row.truck_plate, status: row.status,
+        distanceKm: distance.distance_km, gapCount: distance.gap_count, rejectedPoints: distance.rejected_points,
+      };
+    }),
     driverOperations: driverRows.map((row) => {
       const scheduled = toNumber(row.scheduled_stops);
       const completed = toNumber(row.completed_stops);

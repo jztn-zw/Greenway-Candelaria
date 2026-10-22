@@ -1,7 +1,7 @@
 const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { createDistanceAccumulator } = require("./trackingDistance");
-const { getTodayDistanceSummaries, getRunDistanceSummary } = require("./trackingDistance.service");
+const { getTodayDistanceSummaries, getRunDistanceSummary, getRunDistanceSummaries } = require("./trackingDistance.service");
 const { pool } = require("../../config/db");
 after(() => pool.end());
 
@@ -97,4 +97,45 @@ test("historical run distance reports unavailable rather than zero without usabl
   const result = await getRunDistanceSummary("no-gps", { db: { query: async () => [[]] } });
   assert.equal(result.distance_km, null);
   assert.equal(result.sample_count, 0);
+});
+
+test("batched historical distances keep runs separate and distinguish missing GPS from zero", async () => {
+  const calls = [];
+  const result = await getRunDistanceSummaries(["run-1", "run-2", "no-gps"], { db: { query: async (sql, params) => {
+    calls.push({ sql, params });
+    return [[row(0, 0), row(0.001, 5), row(1, 0, { route_run_id: "run-2" }), row(1, 5, { route_run_id: "run-2" })]];
+  } } });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].params, [["run-1", "run-2", "no-gps"]]);
+  assert.match(calls[0].sql, /tl.truck_id = rr.truck_id/);
+  assert.match(calls[0].sql, /rr.status IN \('COMPLETED', 'PARTIAL'\)/);
+  assert.match(calls[0].sql, /tl.captured_at >= rr.collection_started_at/);
+  assert.match(calls[0].sql, /DATE_ADD\(rr.ended_at, INTERVAL 1 SECOND\)/);
+  assert.ok(Math.abs(result.get("run-1").distance_km - 0.111195) < 0.000001);
+  assert.equal(result.get("run-2").distance_km, 0);
+  assert.equal(result.get("no-gps").distance_km, null);
+});
+
+test("batched run distances retain accumulator state and cursor order across 5000-row pages", async () => {
+  const points = Array.from({ length: 5002 }, (_, i) => ({ ...row(i * 0.0001, 0), id: `ping-${i}`,
+    captured_at: new Date(Date.UTC(2026, 9, 21, 15) + i * 3000).toISOString() }));
+  const calls = [];
+  const result = await getRunDistanceSummaries(["run-1"], { db: { query: async (sql, params) => {
+    calls.push({ sql, params }); return [calls.length === 1 ? points.slice(0, 5000) : points.slice(5000)];
+  } } });
+  assert.equal(calls.length, 2);
+  assert.equal(result.get("run-1").distance_km, summarize(points).distance_km);
+  assert.equal(result.get("run-1").sample_count, 5002);
+  assert.match(calls[1].sql, /tl.route_run_id > \?/);
+  assert.deepEqual(calls[1].params, [["run-1"], "run-1", "run-1", points[4999].captured_at, points[4999].captured_at, points[4999].id]);
+});
+
+test("analytics GPS reads use bounded run-ID batches and skip empty selections", async () => {
+  let calls = 0;
+  const db = { query: async (sql, params) => { calls++; assert.ok(params[0].length <= 200); return [[]]; } };
+  assert.equal((await getRunDistanceSummaries([], { db })).size, 0);
+  assert.equal(calls, 0);
+  const ids = Array.from({ length: 201 }, (_, i) => `run-${i}`);
+  assert.equal((await getRunDistanceSummaries([...ids, ids[0]], { db })).size, 201);
+  assert.equal(calls, 2);
 });

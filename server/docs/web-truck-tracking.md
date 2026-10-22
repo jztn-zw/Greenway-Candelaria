@@ -76,6 +76,24 @@ The map still uses OpenStreetMap tiles. Tile requests reveal the browser's IP an
 
 ### Admin daily distance and stop legend
 
+Analytics **Driver Operations** also lists GPS distance per finished collection
+run. The admin-only dashboard selects completed/partial runs by their saved
+Philippine collection date and, when filtered, by an existing run stop in the
+selected barangay. Each measurement still covers the full run, including any
+other barangays served. Saved truck name/plate take priority over current truck
+records. Runs without usable GPS show unavailable rather than zero.
+
+The batch reader uses the same distance accumulator as tracking and the
+collector's run detail. It processes at most 200 run IDs per query batch and
+follows 5,000-fix cursor pages, retaining separate state per run across pages.
+Start/end boundaries and the assigned truck are checked for every GPS fix;
+overnight runs are not cut at midnight. No GPS coordinates are returned in the
+analytics response. Existing driver/resident mobile contracts and tracking
+subscriptions are unchanged. This is a read-only calculation requiring no schema
+change. Clearing saved GPS also removes it from the next analytics calculation.
+Large date ranges still require reading their saved GPS records; large-history
+performance and authenticated live-data delivery require staging verification.
+
 Admin Collector Management now offers **View Details** on each collection activity
 entry. `GET /drivers/:id/activity/:runId` is admin-only and verifies that the run
 belongs to the selected collector and is completed/partial before loading details.

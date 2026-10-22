@@ -50,4 +50,30 @@ const getRunDistanceSummary = async (runId, { db = pool } = {}) => {
   return state.summary();
 };
 
-module.exports = { getTodayDistanceSummaries, getRunDistanceSummary };
+// Batch the analytics read instead of issuing one GPS query per collection run.
+const getRunDistanceSummaries = async (runIds, { db = pool } = {}) => {
+  const ids = [...new Set(runIds)];
+  const states = new Map(ids.map(id => [id, createDistanceAccumulator()]));
+  for (let offset = 0; offset < ids.length; offset += 200) {
+    const batch = ids.slice(offset, offset + 200);
+    let cursor = null;
+    for (;;) {
+      const [rows] = await db.query(
+        `SELECT tl.id, tl.route_run_id, tl.latitude, tl.longitude, tl.captured_at, rr.gps_expected_since
+         FROM tracking_logs tl JOIN route_runs rr ON rr.id = tl.route_run_id AND tl.truck_id = rr.truck_id
+         WHERE tl.route_run_id IN (?) AND rr.status IN ('COMPLETED', 'PARTIAL')
+           AND tl.captured_at >= rr.collection_started_at
+           AND tl.captured_at < DATE_ADD(rr.ended_at, INTERVAL 1 SECOND)
+           ${cursor ? "AND (tl.route_run_id > ? OR (tl.route_run_id = ? AND (tl.captured_at > ? OR (tl.captured_at = ? AND tl.id > ?))))" : ""}
+         ORDER BY tl.route_run_id ASC, tl.captured_at ASC, tl.id ASC LIMIT 5000`,
+        [batch, ...(cursor ? [cursor.route_run_id, cursor.route_run_id, cursor.captured_at, cursor.captured_at, cursor.id] : [])],
+      );
+      rows.forEach(row => states.get(row.route_run_id)?.add(row));
+      if (rows.length < 5000) break;
+      cursor = rows[rows.length - 1];
+    }
+  }
+  return new Map([...states].map(([id, state]) => [id, state.summary()]));
+};
+
+module.exports = { getTodayDistanceSummaries, getRunDistanceSummary, getRunDistanceSummaries };
