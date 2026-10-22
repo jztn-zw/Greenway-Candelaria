@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://greenway-candelaria.vercel.app/sitemap.xml

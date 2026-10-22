@@ -1,8 +1,11 @@
+import { renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
+import TrackingStopControls from "@/components/maps/TrackingStopControls";
+import { bindMapPinScale } from "@/components/maps/mapPinScale";
+import MapAttribution from "@/components/common/MapAttribution";
 import { parseApiTimestamp } from "@/utils/date";
 import { useSystemTime } from "@/hooks/useSystemTime";
 import { getSystemNow } from "@/lib/serverClock";
 import type { RouteStop } from "@/features/collector/route-map/types";
-import { createTrackingLocationPin } from "@/components/maps/trackingLocationPin";
 import { useAdminFetch } from "@/lib/adminQuery";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +35,7 @@ import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import type { AdminTruck } from "../types";
 import type { ReplayTargetLocation } from "../utils/replayTrip";
 import { createReplayMapRenderer } from "../utils/replayMapRenderer";
+import AdminTrackingLegend from "./AdminTrackingLegend";
 
 const parsePingTimestamp = (value: string | null): Date | null => parseApiTimestamp(value);
 
@@ -95,47 +99,6 @@ const escapeHtml = (value: unknown) =>
     return entities[character];
   });
 
-const statusColor = (status: "done" | "in-progress" | "not-started" | "skipped") => {
-  switch (status) {
-    case "done":
-      return "hsl(var(--primary))";
-    case "in-progress":
-      return "hsl(var(--info))";
-    case "skipped":
-      return "hsl(var(--warning))";
-    default:
-      return "hsl(var(--muted-foreground))";
-  }
-};
-
-const statusLabel = (status: "done" | "in-progress" | "not-started" | "skipped") => {
-  switch (status) {
-    case "done": return "Completed";
-    case "in-progress": return "In Progress";
-    case "skipped": return "Skipped";
-    default: return "Upcoming";
-  }
-};
-
-const coverageColor = (status: "done" | "in-progress" | "not-started" | "skipped") => {
-  switch (status) {
-    case "in-progress": return "hsl(var(--highlight))";
-    case "done": return "hsl(var(--success-700))";
-    case "skipped": return "hsl(var(--warning))";
-    default: return "hsl(var(--neutral-400))";
-  }
-};
-
-const createCoverageOrderIcon = (
-  stopNumber: number,
-  state: "done" | "in-progress" | "not-started" | "skipped",
-) => createTrackingLocationPin(coverageColor(state), state, stopNumber);
-
-const createAdminStopTeardropIcon = (
-  stopNumber: number,
-  state: "done" | "in-progress" | "not-started" | "skipped",
-) => createTrackingLocationPin(statusColor(state), state, stopNumber);
-
 const createAdminTruckPinIcon = (
   isFocused = false,
   state: "live" | "delayed" | "idle" = "live",
@@ -155,7 +118,7 @@ const createAdminTruckPinIcon = (
   return L.divIcon({
     className: "",
     html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35));cursor:pointer;">
+      <div style="position:relative;width:${width}px;height:${height}px;transform:scale(var(--map-pin-scale,1));transform-origin:50% 100%;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35));cursor:pointer;">
         <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
           <path d="M ${cx} 1.5 C ${cx * 0.48} 1.5 1.5 ${cy * 0.48} 1.5 ${cy} C 1.5 ${cy * 1.6} ${cx} ${height - 1.5} ${cx} ${height - 1.5} C ${cx} ${height - 1.5} ${width - 1.5} ${cy * 1.6} ${width - 1.5} ${cy} C ${width - 1.5} ${cy * 0.48} ${cx * 1.52} 1.5 ${cx} 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
           <circle cx="${cx}" cy="${cy}" r="${r}" fill="hsl(var(--map-inset))"/>
@@ -214,6 +177,9 @@ const AdminTrackingMap = ({
   const lastFocusedTruckIdRef = useRef<string | null>(null);  const replayRendererRef = useRef<ReturnType<typeof createReplayMapRenderer> | null>(null);
 
   const [isMapReady, setIsMapReady] = useState(false);
+  const [mapZoom, setMapZoom] = useState(14);
+  const [selectedMapStop, setSelectedMapStop] = useState<string | null>(null);
+  const [showFullRoute, setShowFullRoute] = useState(false);
   const [routeData, setRouteData] = useState<RoadRouteResult | null>(null);  const [isCardCollapsed, setIsCardCollapsed] = useState(false);  const visibleTrucks = useMemo(
     () =>
       trucks.filter(
@@ -235,6 +201,8 @@ const AdminTrackingMap = ({
     }
     return null;
   }, [passedActiveTruck, trucks, focusedTruckId]);
+  useEffect(() => { setSelectedMapStop(null); setShowFullRoute(false); }, [activeTruck?.id]);
+
 
   const isAllCompleted = useMemo(
     () => {
@@ -301,6 +269,12 @@ const AdminTrackingMap = ({
   // reporting GPS. Scheduled/offline trucks may still show their stop pins.
   const isLiveTruckOnline = activeTruck?.status === "on-the-way";
 
+  const selectMapStop = useCallback((id: string) => {
+    const stop = id === 'current-target' ? scheduledStops.find(row => row.status === 'in-progress') : scheduledStops.find(row => row.id === id);
+    setSelectedMapStop(id === 'current-target' ? null : stop?.id ?? null);
+    if (stop && mapRef.current) focusTrackingStop(mapRef.current, stop);
+  }, [scheduledStops]);
+
   // Initialize map
   useEffect(() => {
     if (!mapElRef.current || mapRef.current) return;
@@ -328,6 +302,10 @@ const AdminTrackingMap = ({
     replayRendererRef.current = createReplayMapRenderer(map, replayLayerRef.current, createAdminTruckPinIcon(false, "live"));
     trucksLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    const unbindPinScale = bindMapPinScale(map, mapElRef.current);
+    const syncZoom = () => setMapZoom(map.getZoom());
+    map.on('zoomend', syncZoom);
+    syncZoom();
     setIsMapReady(true);
 
     // The Fleet panel can collapse without a window resize. Keep Leaflet's
@@ -344,6 +322,8 @@ const AdminTrackingMap = ({
     }, 0);
 
     return () => {
+      unbindPinScale();
+      map.off('zoomend', syncZoom);
       resizeObserver.disconnect();
       replayRendererRef.current?.clear();
       replayRendererRef.current = null;
@@ -425,94 +405,14 @@ const AdminTrackingMap = ({
     isRoutePaused,
   ]);
 
-  // Render saved stop pins for the selected route. Draw street coverage paths
-  // only for an online truck, so a scheduled/offline truck doesn't look live.
+  // This display layer never changes the collector's authoritative stop queue.
   useEffect(() => {
-    const layer = stopsLayerRef.current;
-    if (!layer) return;
-    layer.clearLayers();
-
-    if (isReplayMode) return;
-
-    scheduledStops.forEach((stop) => {
-      const isTarget = stop.status === "in-progress";
-      const mappedState = stop.status === "not-yet" ? "not-started" : stop.status;
-
-      if (stop.coveragePath && stop.coveragePath.length >= 2) {
-        if (isLiveTruckOnline) {
-          L.polyline(stop.coveragePath, {
-            color: "hsl(var(--map-inset))",
-            weight: isTarget ? 10 : 8,
-            opacity: 0.9,
-            lineCap: "round",
-            lineJoin: "round",
-            interactive: false,
-          }).addTo(layer);
-
-          const coverageLine = L.polyline(stop.coveragePath, {
-            color: coverageColor(mappedState),
-            weight: isTarget ? 7 : 5,
-            opacity: mappedState === "done" ? 0.68 : 0.95,
-            lineCap: "round",
-            lineJoin: "round",
-          }).addTo(layer);
-
-          const tooltip = document.createElement("div");
-          tooltip.className = "text-xs";
-          const title = document.createElement("strong");
-          title.textContent = `${stop.stopNumber}. ${stop.barangay}`;
-          const status = document.createElement("div");
-          status.textContent = statusLabel(mappedState);
-          status.style.color = coverageColor(mappedState);
-          status.style.fontSize = "11px";
-          tooltip.append(title, status);
-          coverageLine.bindTooltip(tooltip, { sticky: true, direction: "top" });
-        }
-
-        L.marker(stop.coveragePath[0], {
-          icon: createCoverageOrderIcon(stop.stopNumber, mappedState),
-          interactive: false,
-          zIndexOffset: isTarget ? 500 : 100,
-        }).addTo(layer);
-        return;
-      }
-
-      const stopIcon = createAdminStopTeardropIcon(stop.stopNumber, mappedState);
-      const marker = L.marker(stop.coords, {
-        icon: stopIcon,
-        zIndexOffset: isTarget ? 500 : 100,
-      });
-
-      const color = statusColor(mappedState);
-      const popupContent = `
-        <div style="font-family:var(--font-ui);font-variant-numeric:tabular-nums;min-width:180px;max-width:240px;padding:2px 0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="width:28px;height:28px;border-radius:var(--radius);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
-              ${stop.stopNumber}
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:13px;color:inherit">${escapeHtml(stop.barangay)}</div>
-              <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-                <span style="font-size:11px;font-weight:600;color:${color}">${statusLabel(mappedState)}</span>
-              </div>
-            </div>
-          </div>
-          ${stop.completedAt ? `<div style="font-size:11px;opacity:0.7;margin-top:4px">Completed at ${escapeHtml(stop.completedAt)}</div>` : ""}
-          ${stop.skippedReason ? `<div style="font-size:11px;color:hsl(var(--warning-foreground));margin-top:4px">${escapeHtml(stop.skippedReason)}</div>` : ""}
-        </div>`;
-
-      marker.bindPopup(popupContent, {
-        autoClose: true,
-        closeOnClick: true,
-        closeButton: true,
-        className: "tracking-popup",
-        maxWidth: 260,
-        minWidth: 180,
-      });
-
-      marker.addTo(layer);
-    });
-  }, [scheduledStops, isReplayMode, isLiveTruckOnline]);
+    const layer = stopsLayerRef.current, map = mapRef.current;
+    if (!layer || !map) return;
+    if (isReplayMode) { layer.clearLayers(); return; }
+    renderTrackingStops({ map, layer, stops: scheduledStops, selectedId: selectedMapStop,
+      showFullRoute, liveCoverage: isLiveTruckOnline, onSelect: selectMapStop });
+  }, [scheduledStops, selectedMapStop, showFullRoute, mapZoom, isReplayMode, isLiveTruckOnline, selectMapStop]);
 
   // Update truck markers
   useEffect(() => {
@@ -866,7 +766,7 @@ const AdminTrackingMap = ({
                         : "Vehicle offline"}
                     </span>
                     <span className="font-semibold text-foreground">
-                      {scheduledStops.length} Pins Shown
+                      {scheduledStops.length} Stops
                     </span>
                   </div>
                 ) : isRoutePaused ? (
@@ -967,6 +867,9 @@ const AdminTrackingMap = ({
           role="application"
           aria-label="Live municipal truck tracking map"
         />
+        <MapAttribution />
+        {!isReplayMode && <TrackingStopControls stops={scheduledStops} selectedId={selectedMapStop}
+          onSelect={selectMapStop} fullRoute={showFullRoute} onFullRouteChange={setShowFullRoute} />}
 
         {/* Floating Zoom Controls (Top-Right) */}
         <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3 z-[500] flex flex-col bg-card rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">
@@ -1034,18 +937,8 @@ const AdminTrackingMap = ({
         </div>
 
         <div className="admin-tracking-map-legend order-first flex min-w-0 flex-wrap items-center gap-2 text-ui-caption font-medium text-muted-foreground">
-          {isLiveTruckOnline && activeTruck && scheduledStops.some((stop) => (stop.coveragePath?.length ?? 0) >= 2) ? (
-            <>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-600" /> Current
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-900" /> Done
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-slate-400" /> Upcoming
-              </span>
-            </>
+          {!isReplayMode && scheduledStops.length > 0 ? (
+            <AdminTrackingLegend />
           ) : (
             <span>Candelaria, Quezon</span>
           )}

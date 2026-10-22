@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useAdminMutation,useAdminResource } from "@/lib/adminQuery";
 // src/pages/admin/hooks/useRoutes.ts
 import { toast } from "@/lib/toast";
@@ -233,9 +234,7 @@ export const useRoutes = () => {
       toast.success(route.active ? "Route Paused" : "Route enabled");
       return true;
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update route status.",
-      );
+      toast.error("Failed to update route status.", { description: getActionErrorMessage(err) });
       return false;
     }
   }, [setRoutes, updateRoute]);
@@ -249,9 +248,7 @@ export const useRoutes = () => {
       toast.success("Route deleted");
       return true;
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete route.",
-      );
+      toast.error("Failed to delete route.", { description: getActionErrorMessage(err) });
       return false;
     }
   }, [deleteRoute, setRoutes]);

@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -55,6 +56,7 @@ export default function ResidentDeletionDialog({ onClose }: { onClose: () => voi
         toast.success("Your account has been deleted.");
       } catch (err) {
         if (!isCurrent()) return false;
+        toast.error("Could not delete your account", { description: getActionErrorMessage(err) });
         const failure = err as { response?: { status?: number; data?: { retryAfterSeconds?: number; message?: string }; headers?: Record<string, unknown> }; retryAfterSeconds?: number };
         if (failure.response?.status === 429) {
           const wait = getRetryAfterSeconds(failure.retryAfterSeconds ?? failure.response.data?.retryAfterSeconds, failure.response.headers?.["retry-after"]);

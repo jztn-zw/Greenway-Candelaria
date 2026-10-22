@@ -1,4 +1,6 @@
-import { useRef,useState } from "react";
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
+import { useCallback,useRef,useState } from "react";
 import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, SquarePen, Users } from "lucide-react";
@@ -15,6 +17,8 @@ import authService from "@/services/authService";
 import { fetchBarangays,fetchBarangayStreets } from "@/services/barangaysService";
 import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
+import ResidentLocationPicker from "./ResidentLocationPicker";
+import { locationMatchesStreet, type ResidentSetupLocation } from "./residentLocation";
 
 type ClearableSetupInputProps = Omit<React.ComponentProps<typeof Input>, "value"> & {
   value: string;
@@ -46,10 +50,16 @@ export default function ResidentSetup() {
   const [email, setEmail] = useState(user?.email || "");
   const [barangay, setBarangay] = useState("");
   const [street, setStreet] = useState("");
+  const [location, setLocation] = useState<ResidentSetupLocation | null>(null);
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const changeLocation = useCallback((value: ResidentSetupLocation | null, confirmed: boolean) => {
+    setLocation(value); setLocationConfirmed(confirmed);
+    setErrors(previous => ({ ...previous, resident_location: "", form: "" }));
+  }, []);
   // Pending accounts cannot join the full resident socket stream. Reconcile
   // public area choices here until profile completion grants that access.
   const areasQuery = useResidentQuery("barangays", ["locations"], fetchBarangays, { scope: "account", refetchInterval: 60_000 });
-  const streetsQuery = useResidentQuery("barangays", ["streets", barangay], () => fetchBarangayStreets(barangay),
+  const streetsQuery = useResidentQuery("barangays", ["streets", barangay, "setup-location"], () => fetchBarangayStreets(barangay, true),
     { enabled: !!barangay, scope: "account", refetchInterval: 60_000 });
   const barangays = areasQuery.data ?? [];
   const streets = streetsQuery.data?.streets ?? [];
@@ -62,6 +72,10 @@ export default function ResidentSetup() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const clearError = (field: string) => setErrors(previous => ({ ...previous, [field]: "", form: "" }));
+  const chooseStreet = (value: string) => {
+    setStreet(value); changeLocation(null, true); clearError("street_id");
+  };
+  const selectedBarangay = barangays.find(row => row.id === barangay);
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving || areaLoading || streetLoading || areaError || streetError) return;
@@ -74,6 +88,7 @@ export default function ResidentSetup() {
     const selectedStreet = streets.find(row => row.id === street);
     if (barangay && !streets.length) next.street_id = "No streets are listed for this barangay. Contact MENRO to add your street before completing setup.";
     else if (!selectedStreet) next.street_id = "Select your street";
+    if (!location || !locationConfirmed || !locationMatchesStreet(location, selectedStreet)) next.resident_location = "Choose and confirm your location to continue.";
     setErrors(next);
     if (Object.keys(next).length) return;
     const owner = useAuthStore.getState();
@@ -82,16 +97,19 @@ export default function ResidentSetup() {
     try {
       const updated = await completeProfile({ full_name: fullName.trim(), username: username.trim(),
         avatar_url: profileAvatarSrc(avatar),
-        email: email.trim() || null, phone: phone ? `+63${phone}` : null, barangay_id: barangay, street_id: selectedStreet?.id ?? null });
+        email: email.trim() || null, phone: phone ? `+63${phone}` : null, barangay_id: barangay, street_id: selectedStreet?.id ?? null,
+        location_required: true, resident_location: location });
       if (!isCurrent()) return;
       if (updated.id !== owner.user?.id || updated.profile_completed !== true) throw new Error("Couldn't confirm your saved profile. Please retry.");
       useAuthStore.getState().setUser(updated);
+      toast.success("Your resident profile is ready");
       navigate("/resident", { replace: true });
     } catch (error) {
       if (!isCurrent()) return;
+      toast.error("Could not save your resident profile", { description: getActionErrorMessage(error) });
       const response = (error as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } }).response?.data;
       const message = response?.message || (error instanceof Error ? error.message : "Couldn't save your profile. Please retry.");
-      const validation = Object.fromEntries((response?.errors || []).map(issue => [issue.field, issue.message]));
+      const validation = Object.fromEntries((response?.errors || []).map(issue => [issue.field.startsWith("resident_location") ? "resident_location" : issue.field, issue.message]));
       setErrors(message === "Username is already in use" ? { username: message } : Object.keys(validation).length ? validation : { form: message });
     } finally { if (isCurrent()) setSaving(false); }
   };
@@ -133,18 +151,15 @@ export default function ResidentSetup() {
               <section aria-labelledby="setup-area-heading" className="border-t border-border/60 pt-5">
                 <h2 id="setup-area-heading" className="text-sm font-semibold">Collection Area</h2>
                 <p className="mb-4 mt-1 text-xs leading-relaxed text-muted-foreground">Choose your barangay and street in Candelaria.</p>
-                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label className={formDialogStyles.label} htmlFor="setup-barangay">Barangay</Label>
-                    <SearchableSelect className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
+                    <SearchableSelect className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-barangay" aria-label="Barangay" value={barangay} onValueChange={value => { setBarangay(value); setStreet(""); changeLocation(null, false); clearError("barangay_id"); clearError("street_id"); }} options={barangays.map(row => ({ value: row.id, label: row.name }))} placeholder={areaLoading ? "Loading barangays…" : "Select your barangay"} searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" disabled={saving || areaLoading || Boolean(areaError)} {...accessibility("barangay_id")} />
                     {fieldError("barangay_id")}
                   </div>
-                  <div className="space-y-2">
-                    <Label className={formDialogStyles.label} htmlFor="setup-street">Street</Label>
-                    <SearchableSelect className="min-h-11 sm:min-h-9" fieldSize="compact" id="setup-street" aria-label="Street" value={street} onValueChange={value => { setStreet(value); clearError("street_id"); }} options={streets.map(row => ({ value: row.id, label: row.area ? `${row.name} (${row.area})` : row.name }))} placeholder={!barangay ? "Select barangay first" : streetLoading ? "Loading streets…" : !streets.length ? "No streets listed" : "Select your street"} searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" disabled={saving || !barangay || streetLoading || !streets.length || Boolean(streetError)} {...accessibility("street_id")} />
-                    {fieldError("street_id")}
-                  </div>
-                </div>
+                {selectedBarangay && <ResidentLocationPicker key={barangay} barangay={selectedBarangay} streets={streets} streetId={street}
+                  value={location} confirmed={locationConfirmed} disabled={saving || streetLoading || Boolean(streetError)} onChange={changeLocation} onStreetChange={chooseStreet} />}
+                {fieldError("resident_location")}
+                {fieldError("street_id")}
                 {(areaError || streetError) && <div role="alert" className="mt-3 flex items-center justify-between gap-3 text-sm text-destructive"><span>{areaError || streetError}</span><Button variant="outline" type="button" onClick={() => { if (areaError) void areasQuery.refetch(); if (streetError) void streetsQuery.refetch(); }}>Retry</Button></div>}
                 {barangay && !streetLoading && !streetError && !streets.length && <p className="mt-3 text-xs text-muted-foreground">No streets are listed for this barangay. Contact MENRO to add your street before completing setup.</p>}
               </section>

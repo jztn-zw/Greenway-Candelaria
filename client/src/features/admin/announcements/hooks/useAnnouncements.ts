@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { getSystemDate } from "@/lib/serverClock";
 import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
@@ -231,7 +232,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
         return true;
       } catch (err) {
         setAnnouncements(previous);
-        toast.error(err instanceof Error ? err.message : "Failed to archive.");
+        toast.error("Could not archive announcement", { description: getActionErrorMessage(err) });
         return false;
       }
     },
@@ -251,7 +252,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
         return true;
       } catch (err) {
         setAnnouncements(previous);
-        toast.error(err instanceof Error ? err.message : "Action failed.");
+        toast.error(isArchived ? "Could not restore announcement" : "Could not archive announcement", { description: getActionErrorMessage(err) });
         return false;
       }
     },
@@ -268,7 +269,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
         return true;
       } catch (err) {
         setAnnouncements(previous);
-        toast.error(err instanceof Error ? err.message : "Could not permanently delete the announcement.");
+        toast.error("Could not permanently delete the announcement.", { description: getActionErrorMessage(err) });
         return false;
       }
     },
@@ -295,7 +296,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
       toast.success("Duplicated as draft");
       return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to duplicate.");
+      toast.error("Could not duplicate announcement", { description: getActionErrorMessage(err) });
       return false;
     } finally {
       setIsSaving(false);
@@ -310,7 +311,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
       toast.success("Announcement sent!");
       return true;
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to send announcement.");
+        toast.error("Failed to send announcement.", { description: getActionErrorMessage(err) });
         return false;
     }
   }, [updateAnnouncement]);
@@ -339,7 +340,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
         setAnnouncements((prev) =>
           prev.map((a) => (a.id === ann.id ? ann : a)),
         );
-        toast.error("Failed to cancel schedule.");
+        toast.error("Could not cancel announcement schedule", { description: getActionErrorMessage(err) });
         return false;
       }
     },
@@ -357,7 +358,7 @@ export const useAnnouncements = (query: AnnouncementQuery) => {
       }
       return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to resend the announcement.");
+      toast.error("Failed to resend the announcement.", { description: getActionErrorMessage(err) });
       return false;
     } finally {
       setIsSaving(false);

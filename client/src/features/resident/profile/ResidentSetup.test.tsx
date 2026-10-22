@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render as renderUI, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import authService, { type User } from "@/services/authService";
@@ -8,9 +8,13 @@ import useAuthStore from "@/store/authStore";
 import ResidentSetup from "./ResidentSetup";
 import ResidentLayout from "@/app/layouts/resident/ResidentLayout";
 import { fetchBarangays, fetchBarangayStreets } from "@/services/barangaysService";
+vi.mock("./ResidentSetupMap", () => ({ default: function MockLocationMap({ onPin, onAvailability }: { onPin: (point: [number, number]) => void; onAvailability: (ready: boolean) => void }) {
+  useEffect(() => onAvailability(true), [onAvailability]);
+  return <div aria-label="Resident location map"><button type="button" onClick={() => onPin([13.9301, 121.425])}>Place Test Pin</button></div>;
+} }));
 vi.mock("@/services/barangaysService", () => ({
   fetchBarangays: vi.fn().mockResolvedValue([{ id: "barangay-a", name: "Test barangay" }]),
-  fetchBarangayStreets: vi.fn().mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street" }] }),
+  fetchBarangayStreets: vi.fn().mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street", coverage_path: [[13.93, 121.42], [13.93, 121.43]] }] }),
 }));
 vi.mock("@/app/layouts/resident/ResidentSidebar", () => ({ default: () => <p>Resident sidebar</p> }));
 vi.mock("@/app/layouts/resident/ResidentTopbar", () => ({ default: () => null }));
@@ -22,14 +26,14 @@ const render = (ui: ReactNode) => renderUI(ui, { wrapper: ({ children }) => <Que
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   vi.mocked(fetchBarangays).mockResolvedValue([{ id: "barangay-a", name: "Test barangay", latitude: null, longitude: null }]);
-  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street" }] });
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street", coverage_path: [[13.93, 121.42], [13.93, 121.43]] }] });
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   HTMLElement.prototype.scrollIntoView = vi.fn();
   useAuthStore.getState().clearAuth();
   useAuthStore.setState({ user: pending, token: "fixture", isAuthenticated: true });
 });
 afterEach(() => { cleanup(); client.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const fill = async () => {
+const fill = async (withLocation = true) => {
   fireEvent.change(screen.getByLabelText(/^Full name$/i), { target: { value: "Test Resident" } });
   const username = screen.queryByLabelText("Username");
   if (username) fireEvent.change(username, { target: { value: "resident" } });
@@ -37,13 +41,49 @@ const fill = async () => {
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Barangay" })).not.toBeDisabled());
   fireEvent.click(screen.getByRole("combobox", { name: "Barangay" }));
   fireEvent.click(await screen.findByRole("option", { name: "Test barangay" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Choose a Nearby Street Point" })).not.toBeDisabled());
+  fireEvent.click(screen.getByRole("button", { name: "Choose a Nearby Street Point" }));
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Street" })).not.toBeDisabled());
   fireEvent.click(screen.getByRole("combobox", { name: "Street" }));
   fireEvent.click(await screen.findByRole("option", { name: "Main Street" }));
+  if (withLocation) {
+    fireEvent.click(screen.getByRole('button', { name: 'Pin on Map' })); fireEvent.click(screen.getByText('Place Test Pin'));
+    fireEvent.click(screen.getByRole('button', { name: /Main Street.*m$/ }));
+    fireEvent.click(screen.getByRole('checkbox'));
+  }
 };
+it("reveals the map after choosing a barangay and blocks submission without a location", async () => {
+  const save = vi.spyOn(authService, 'completeResidentProfile').mockResolvedValue({ ...pending, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
+  expect(screen.queryByLabelText('Resident location map')).toBeNull();
+  await fill(false);
+  expect(screen.getByLabelText('Resident location map')).toBeInTheDocument();
+  expect(fetchBarangayStreets).toHaveBeenCalledWith('barangay-a', true);
+  fireEvent.click(screen.getByRole('button', { name: /^Save and continue$/i }));
+  expect(await screen.findByText('Choose and confirm your location to continue.')).toBeInTheDocument();
+  expect(save).not.toHaveBeenCalled();
+});
+it("requires pin confirmation and retains the selected home point after a failed save", async () => {
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: 'street-a', name: 'Main Street', coverage_path: [[13.93, 121.42], [13.93, 121.43]] }] });
+  const save = vi.spyOn(authService, 'completeResidentProfile').mockRejectedValueOnce(new Error("Couldn't save your profile. Please retry."))
+    .mockResolvedValue({ ...pending, profile_completed: true });
+  render(<MemoryRouter><ResidentSetup /></MemoryRouter>); await fill();
+  fireEvent.click(screen.getByRole('button', { name: 'Pin on Map' })); fireEvent.click(screen.getByText('Place Test Pin'));
+  fireEvent.click(screen.getByRole('button', { name: /^Save and continue$/i }));
+  expect(await screen.findByText('Choose and confirm your location to continue.')).toBeInTheDocument();
+  expect(save).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('button', { name: /^Save and continue$/i }));
+  await screen.findByText("Couldn't save your profile. Please retry.");
+  expect(screen.getByRole('checkbox')).toBeChecked();
+  expect(screen.getByLabelText(/^Full name$/i)).toHaveValue('Test Resident');
+  fireEvent.click(screen.getByRole('button', { name: /^Save and continue$/i }));
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+  expect(save.mock.calls[1][0].resident_location).toEqual({ method: 'MANUAL_PIN', latitude: 13.9301, longitude: 121.425 });
+});
 it("refreshes area choices through the query cache without losing the setup draft", async () => {
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
-  await fill();
+  await fill(false);
   vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [
     { id: "street-a", name: "Renamed Street" }, { id: "street-b", name: "New Street" },
   ] });
@@ -57,7 +97,7 @@ it("reconciles missed street changes automatically while setup is open", async (
   vi.useFakeTimers({ shouldAdvanceTime: true });
   try {
     render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
-    await fill();
+    await fill(false);
     vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Updated Street" }] });
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
     expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Updated Street");
@@ -67,7 +107,7 @@ it("reconciles missed street changes automatically while setup is open", async (
 it("blocks setup after all previously listed streets are removed", async () => {
   const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...pending, profile_completed: true });
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
-  await fill();
+  await fill(false);
   vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [] });
   await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Street" })).toBeDisabled());
@@ -77,7 +117,7 @@ it("blocks setup after all previously listed streets are removed", async () => {
   fireEvent.submit(screen.getByRole("form", { name: /Complete your resident profile/i }));
   expect(save).not.toHaveBeenCalled();
   expect(useAuthStore.getState().user?.profile_completed).toBe(false);
-  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street" }] });
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: true, streets: [{ id: "street-a", name: "Main Street", coverage_path: [[13.93, 121.42], [13.93, 121.43]] }] });
   await act(async () => { await client.invalidateQueries({ queryKey: ["resident", "resident", "barangays"] }); });
   await waitFor(() => expect(screen.getByRole("button", { name: /^Save and continue$/i })).not.toBeDisabled());
   expect(screen.getByLabelText(/^Full name$/i)).toHaveValue("Test Resident");
@@ -103,11 +143,11 @@ it("retains the draft after failure and completes only after server success", as
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ full_name: "Test Resident", username: "resident", email: "resident@example.test", phone: "+639123456789", barangay_id: "barangay-a", street_id: "street-a" }));
 });
 it("allows selecting a saved street even when collection service is unavailable", async () => {
-  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [{ id: "street-a", name: "Main Street" }] });
+  vi.mocked(fetchBarangayStreets).mockResolvedValue({ collection_service_available: false, streets: [{ id: "street-a", name: "Main Street", coverage_path: [[13.93, 121.42], [13.93, 121.43]] }] });
   const save = vi.spyOn(authService, "completeResidentProfile").mockResolvedValue({ ...pending, profile_completed: true });
   render(<MemoryRouter><ResidentSetup /></MemoryRouter>);
   await fill();
-  expect(screen.getByRole("combobox", { name: "Street" })).toHaveTextContent("Main Street");
+  expect(screen.getByRole("group", { name: "Collection street options" })).toHaveTextContent("Main Street");
   fireEvent.click(screen.getByRole("button", { name: /^Save and continue$/i }));
   await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ barangay_id: "barangay-a", street_id: "street-a" })));
 });

@@ -7,7 +7,7 @@ import useAuthStore from "@/store/authStore";
 import AuthModal from "./AuthModal";
 import { toast } from "@/lib/toast";
 
-vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn() } }));
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/services/barangaysService", () => ({
   fetchBarangays: vi.fn().mockResolvedValue([{ id: "barangay-a", name: "Test barangay" }]),

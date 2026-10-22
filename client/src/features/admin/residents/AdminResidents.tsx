@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
@@ -165,9 +166,7 @@ const AdminResidents = () => {
         setCurrentPage((prev) => prev - 1);
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete resident.",
-      );
+      toast.error("Failed to delete resident.", { description: getActionErrorMessage(err) });
     }
   };
 

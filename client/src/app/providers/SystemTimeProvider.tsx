@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { useEffect, useState, type PropsWithChildren } from "react";
 import api from "@/lib/api";
 import { getServerNow, syncServerClock } from "@/lib/serverClock";
@@ -44,7 +45,7 @@ const SystemTimeProvider = ({ children }: PropsWithChildren) => {
   if (failed) return <PageErrorState fullScreen kind="unavailable" title="Unable to Load GreenWay" description="We couldn't connect to the system. Check your connection and try again." onRetry={() => { setFailed(false); setAttempt(value => value + 1); }} />;
   return (
     <div role="status" className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <img src="/greenway.svg" alt="" aria-hidden="true" width={112} height={112} className="size-20 object-contain sm:size-24 lg:size-28" />
+      <GreenWayLogo alt="" className="size-20 sm:size-24 lg:size-28" />
       <span className="sr-only">Loading GreenWay…</span>
     </div>
   );

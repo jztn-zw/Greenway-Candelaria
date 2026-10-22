@@ -478,7 +478,7 @@ export const CollectorRouteMapSkeleton = () => (
       <Skeleton className="h-12 w-full shrink-0 rounded-xl sm:w-48" />
     </div>
 
-    <div className="collector-route-workspace">
+    <div className="collector-route-workspace collector-route-planned-workspace">
       <section aria-label="Loading planned route map" className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card">
         <div aria-hidden="true" className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3 sm:px-5">
           <div className="space-y-1.5"><Skeleton className="h-5 w-32" /><Skeleton className="h-3 w-52 max-w-full" /></div>
@@ -491,10 +491,10 @@ export const CollectorRouteMapSkeleton = () => (
           <Skeleton className="absolute bottom-3 right-3 size-11 rounded-xl" />
         </div>
       </section>
-      <section aria-label="Loading assigned stop order" className="min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
+      <section aria-label="Loading assigned stop order" className="collector-route-planned-stops collector-route-planned-stops-scrollable min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
         <div aria-hidden="true" className="mb-3 flex items-center justify-between gap-3"><div className="space-y-1.5"><Skeleton className="h-5 w-24" /><Skeleton className="h-3 w-52 max-w-full" /></div><Skeleton className="h-7 w-8 rounded-lg" /></div>
-        <div aria-hidden="true" className="divide-y divide-border/60">
-          {Array.from({ length: 3 }).map((_, index) => <div key={index} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1"><Skeleton className="size-8 shrink-0 rounded-lg" /><div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-36 max-w-full" />{index === 0 && <Skeleton className="h-3 w-16" />}</div></div>)}
+        <div aria-hidden="true" className="collector-route-planned-stop-list divide-y divide-border/60">
+          {Array.from({ length: 10 }).map((_, index) => <div key={index} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1"><Skeleton className="size-8 shrink-0 rounded-lg" /><div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-36 max-w-full" />{index === 0 && <Skeleton className="h-3 w-16" />}</div></div>)}
         </div>
       </section>
     </div>

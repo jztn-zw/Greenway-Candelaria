@@ -1,7 +1,7 @@
 import { useSystemTime } from "@/hooks/useSystemTime";
+import { AdminModal } from "@/components/admin/AdminModal";
 import { Button } from "@/components/ui/button";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
-import { AdminModal as FormDialog } from "@/components/admin/AdminModal";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover,PopoverContent,PopoverTrigger } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -11,11 +11,12 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchTruckHistory,type TruckHistoryData } from "@/services/trackingService";
 import { format } from "date-fns";
-import { CalendarDays,Pause,Play,RotateCcw,Video } from "lucide-react";
+import { CalendarDays,Pause,Play,RotateCcw,Download } from "lucide-react";
 import { useEffect,useMemo,useRef,useState } from "react";
 import type { AdminTruck } from "../types";
 import { buildReplayTrip,formatReplayDuration,formatReplayTime,getReplayCompletedTargetLocations,getReplayDuration,getReplaySkippedTargetLocations,getReplayTargetLocation,getReplayTargetProgress,getReplayTargetStartElapsed,getReplayTargetState,sampleReplayTrip,type ReplayTargetLocation,type ReplayTrip } from "../utils/replayTrip";
-import { exportReplayVideo,REPLAY_VIDEO_SPEEDS } from "../utils/replayVideoExporter";
+import { exportReplayVideo, REPLAY_VIDEO_SPEEDS } from "../utils/replayVideoExporter";
+import { exportReplayKml, exportReplayGpx } from "../utils/replayKmlExporter";
 import { getManilaNow } from "@/utils/date";
 
 interface RouteReplayProps {
@@ -48,10 +49,12 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
   const [loading, setLoading] = useState(false);
   const [loadMessage, setLoadMessage] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
-  const [exportProgress, setExportProgress] = useState<number | null>(null);
+  const [exportFormat, setExportFormat] = useState<"kml" | "mp4" | "gpx">("kml");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSpeed, setExportSpeed] = useState(10);
+  const [exportProgress, setExportProgress] = useState(0);
   const [exportStage, setExportStage] = useState<"map" | "recording" | "encoding" | "finalizing">("map");
+  const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const requestVersionRef = useRef(0);
   const exportAbortRef = useRef<AbortController | null>(null);
@@ -67,18 +70,10 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
   const finished = canPlay && elapsedMs >= durationMs;
   const progress = canPlay ? Math.round((elapsedMs / durationMs) * 100) : 0;
   const sample = trip ? sampleReplayTrip(trip, durationMs > 0 ? elapsedMs / durationMs : 0) : null;
-  const exporting = exportProgress !== null;
   const selectionMatches = loadedSelection?.truckId === selectedTruck && loadedSelection?.dateStr === (date ? format(date, "yyyy-MM-dd") : "");
   const historyQuery = useAdminQuery("tracking", ["history", loadedSelection?.truckId, loadedSelection?.dateStr],
     () => fetchTruckHistory(loadedSelection!.truckId, loadedSelection!.dateStr),
     { enabled: !!loadedSelection && selectionMatches && !playing && !exporting && !loading, refetchInterval: 60_000 });
-  const exportPercent = Math.max(0, Math.min(100, exportProgress ?? 0));
-  const exportStageLabel = {
-    map: "Preparing map…",
-    encoding: "Encoding video…",
-    recording: "Recording video…",
-    finalizing: "Finishing file…",
-  }[exportStage];
   const targetProgress = trip && sample ? getReplayTargetProgress(trip, sample.index, trip.times[0] + elapsedMs) : null;
   const targetLocation = trip && sample ? getReplayTargetLocation(trip, sample.index, trip.times[0] + elapsedMs) : null;
   const targetRows = useMemo(() => trip ? (trip.stops ?? []).map((stop) => ({ stop, elapsed: getReplayTargetStartElapsed(trip, stop) })) : [], [trip]);
@@ -130,6 +125,7 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     setLoadedSelection(null);
     appliedHistoryRef.current = undefined;
     setExportOpen(false);
+    setExportError("");
     elapsedRef.current = 0;
     setElapsedMs(0);
     setLoadMessage("");
@@ -231,36 +227,39 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
     }
   };
 
-  const downloadVideo = async () => {
-    if (!trip || !date || exporting || !canPlay) return;
+  const downloadReplay = async () => {
+    if (!trip || !date || exporting || !selectionMatches || (exportFormat === "mp4" && !canPlay)) return;
     const controller = new AbortController();
     exportAbortRef.current = controller;
     syncClock();
     setPlaying(false);
     setExportError("");
-    setExportStage("map");
+    setExporting(true);
     setExportProgress(0);
+    setExportStage("map");
     try {
-      await exportReplayVideo({
+      const options = {
         truckName: selectedTruckObj?.name ?? "Municipal Truck",
         plateNumber: selectedTruckObj?.plateNumber ?? "",
         dateStr: format(date, "yyyy-MM-dd"),
         trip,
-        speed: exportSpeed,
         signal: controller.signal,
-        onProgress: setExportProgress,
-        onStage: setExportStage,
-      });
+      };
+      if (exportFormat === "mp4") {
+        await exportReplayVideo({ ...options, speed: exportSpeed, mp4Only: true, onProgress: setExportProgress, onStage: setExportStage });
+      } else {
+        await (exportFormat === "gpx" ? exportReplayGpx : exportReplayKml)(options);
+      }
       if (!controller.signal.aborted) {
-        toast.success("Replay video downloaded");
+        toast.success(`Replay ${exportFormat.toUpperCase()} downloaded`);
         setExportOpen(false);
       }
     } catch (error) {
-      if (!controller.signal.aborted) setExportError(error instanceof Error ? error.message : "Could not generate the replay video. Please try again.");
+      if (!controller.signal.aborted) setExportError(error instanceof Error ? error.message : "Could not export the replay. Please try again.");
     } finally {
       if (exportAbortRef.current === controller) {
         exportAbortRef.current = null;
-        setExportProgress(null);
+        setExporting(false);
       }
     }
   };
@@ -397,50 +396,44 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
             ) : <p className="text-xs text-muted-foreground">Target streets were not recorded.</p>}
           </div>
           <div className="space-y-3 border-t border-border/60 pt-3">
-            {canPlay && <div className="space-y-1.5">
-              <Button variant="outline" disabled={exporting} onClick={() => { setExportError(""); setExportOpen(true); }} className="h-9 w-full gap-2 rounded-md text-xs font-semibold">
-                <Video className="size-3.5" />
-                Download Video
+            <div className="space-y-1.5">
+              <fieldset disabled={exporting} className="space-y-2">
+                <legend className="text-xs font-medium">File Format</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["kml", "mp4", "gpx"] as const).map(value => <label key={value} className="cursor-pointer">
+                    <input type="radio" name="replay-format" value={value} checked={exportFormat === value} onChange={() => { setExportFormat(value); setExportError(""); }} className="peer sr-only" />
+                    <span className="flex h-9 items-center justify-center rounded-md border border-border text-xs font-semibold peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:opacity-60">{value.toUpperCase()}</span>
+                  </label>)}
+                </div>
+              </fieldset>
+              <Button variant="outline" disabled={exporting || !selectionMatches || (exportFormat === "mp4" && !canPlay)} onClick={() => exportFormat === "mp4" ? setExportOpen(true) : void downloadReplay()} loading={exporting && exportFormat !== "mp4"} loadingLabel="Preparing file…" className="h-9 w-full gap-2 rounded-md text-xs font-semibold">
+                <Download className="size-3.5" />
+                Download {exportFormat.toUpperCase()}
               </Button>
-              <p className="text-ui-caption text-muted-foreground">Save the full map replay at your chosen speed.</p>
-            </div>}
+              <p className="text-ui-caption text-muted-foreground">{exportFormat === "kml" ? "GPS history and target streets for Google Earth." : exportFormat === "gpx" ? "Timestamped GPS tracks for mapping and route replay apps." : canPlay ? "A video of the map replay at your chosen speed." : "MP4 requires at least two GPS records with different times."}</p>
+              {exportError && !exportOpen && <p role="alert" className="text-xs text-destructive">{exportError}</p>}
+            </div>
           </div>
         </>
       )}
-      <FormDialog open={exportOpen} onOpenChange={setExportOpen} pending={exporting}
-        title="Download Replay Video" description="Choose your playback speed." icon={<Video className="size-5" />}
+      <AdminModal open={exportOpen} onOpenChange={setExportOpen} pending={exporting} title="Download MP4 Replay" description="Choose the video playback speed." icon={<Download className="size-5" />}
         footer={<>
           <Button variant="outline" onClick={() => { exportAbortRef.current?.abort(); setExportOpen(false); }}>Cancel</Button>
-          <Button className="min-w-[12.5rem]" disabled={exporting || !canPlay} onClick={() => void downloadVideo()} loading={exporting} loadingLabel={exportStageLabel}>
-
-            Create Video
-          </Button>
+          <Button disabled={exporting || !canPlay} onClick={() => void downloadReplay()} loading={exporting} loadingLabel={{ map: "Preparing map…", encoding: "Encoding video…", recording: "Recording video…", finalizing: "Finishing file…" }[exportStage]}>Create MP4</Button>
         </>}>
-        <div className="space-y-4">
-          <fieldset disabled={exporting} className="space-y-2">
-            <legend className="mb-2 text-sm font-semibold">Video Speed</legend>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-              {REPLAY_VIDEO_SPEEDS.map((value) => <label key={value} className="cursor-pointer">
-                <input type="radio" name="replay-video-speed" value={value} checked={exportSpeed === value} onChange={() => setExportSpeed(value)} className="peer sr-only" />
-                <span className="flex h-10 items-center justify-center rounded-md border border-border bg-muted/20 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:opacity-60">{value}×</span>
-              </label>)}
-            </div>
-          </fieldset>
-          <div className="rounded-md border border-border bg-muted/20 p-3 text-sm">
-            <p className="font-medium">Video length: {formatReplayDuration(durationMs / exportSpeed)}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Candelaria map with the truck route and target streets.</p>
+        <fieldset disabled={exporting} className="space-y-2">
+          <legend className="mb-2 text-sm font-semibold">Video Speed</legend>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {REPLAY_VIDEO_SPEEDS.map(value => <label key={value} className="cursor-pointer">
+              <input type="radio" name="replay-video-speed" value={value} checked={exportSpeed === value} onChange={() => setExportSpeed(value)} className="peer sr-only" />
+              <span className="flex h-10 items-center justify-center rounded-md border border-border text-sm font-semibold peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-disabled:opacity-60">{value}×</span>
+            </label>)}
           </div>
-          {exporting && <div role="progressbar" aria-label="Video export progress" aria-valuemin={0} aria-valuemax={100}
-            aria-valuenow={exportStage === "map" ? undefined : exportPercent}
-            aria-valuetext={exportStage === "map" ? "Preparing route map" : exportStage === "finalizing" ? "Finishing video" : `${exportPercent}% ${exportStage === "encoding" ? "encoded" : "recorded"}`}
-            className={cn("h-2.5 overflow-hidden rounded-full bg-primary/15", exportStage === "map" && "motion-safe:animate-pulse")}>
-            {exportStage !== "map" && <div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
-              style={{ width: `${exportPercent}%` }} />}
-          </div>}
-          <p className="text-xs leading-relaxed text-muted-foreground">{exporting ? "Keep this tab open until the download begins." : "Keep this tab open. Export time depends on the route and your device."}</p>
-          {exportError && <p role="alert" className="text-sm text-destructive">{exportError}</p>}
-        </div>
-      </FormDialog>
+        </fieldset>
+        <p className="mt-4 text-xs text-muted-foreground">Video length: {formatReplayDuration(durationMs / exportSpeed)}. Keep this tab open until the download begins.</p>
+        {exporting && <p role="status" className="mt-2 text-xs text-muted-foreground">{exportStage === "map" ? "Loading route map…" : `${Math.round(exportProgress)}%`}</p>}
+        {exportError && <p role="alert" className="mt-2 text-sm text-destructive">{exportError}</p>}
+      </AdminModal>
     </section>
   );
 };

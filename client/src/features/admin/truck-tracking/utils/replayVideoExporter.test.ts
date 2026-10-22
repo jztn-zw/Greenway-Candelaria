@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { exportReplayVideo } from "./replayVideoExporter";
+import { exportReplayVideo, getSupportedVideoMimeType } from "./replayVideoExporter";
 import type { ReplayTrip } from "./replayTrip";
 
 const encodedFrames = vi.hoisted(() => vi.fn(async (_timestamp: number, _duration: number) => {}));
@@ -180,4 +180,9 @@ it("can cancel while waiting for map tiles without starting a recorder", async (
   expect((await result as Error).name).toBe("AbortError");
   expect(recordStart).not.toHaveBeenCalled();
   expect(vi.getTimerCount()).toBe(0);
+});
+
+it("rejects a WebM-only recorder when MP4 was explicitly selected", () => {
+  expect(getSupportedVideoMimeType().extension).toBe("webm");
+  expect(() => getSupportedVideoMimeType(true)).toThrow("MP4 export is unavailable");
 });

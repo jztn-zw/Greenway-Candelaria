@@ -1,3 +1,5 @@
+import { bindMapPinScale } from "@/components/maps/mapPinScale";
+import MapAttribution from "@/components/common/MapAttribution";
 import { useEffect,useMemo,useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -22,7 +24,7 @@ const DEFAULT_CENTER: L.LatLngExpression = [13.93, 121.42];
 const createOrderBadge = (stopNumber: number) =>
   L.divIcon({
     className: "",
-    html: `<div style="width:26px;height:26px;border-radius:var(--radius-full);border:2px solid hsl(var(--map-inset));background:hsl(var(--primary));color:hsl(var(--map-inset));display:flex;align-items:center;justify-content:center;font:600 12px var(--font-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 7px rgba(0,0,0,.32);">${stopNumber}</div>`,
+    html: `<div style="width:26px;height:26px;transform:scale(var(--map-pin-scale,1));transform-origin:center;border-radius:var(--radius-full);border:2px solid hsl(var(--map-inset));background:hsl(var(--primary));color:hsl(var(--map-inset));display:flex;align-items:center;justify-content:center;font:600 12px var(--font-ui);font-variant-numeric:tabular-nums;box-shadow:0 2px 7px rgba(0,0,0,.32);">${stopNumber}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
@@ -55,7 +57,7 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
       zoom: 14,
       zoomControl: false,
       attributionControl: false,
-      scrollWheelZoom: false,
+      scrollWheelZoom: true,
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -101,9 +103,12 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
     map.fitBounds(L.latLngBounds(allPoints), { padding: [28, 28], maxZoom: 17 });
 
     mapRef.current = map;
-    requestAnimationFrame(() => map.invalidateSize());
+    const unbindPinScale = bindMapPinScale(map, elementRef.current);
+    const resizeFrame = requestAnimationFrame(() => map.invalidateSize());
 
     return () => {
+      cancelAnimationFrame(resizeFrame);
+      unbindPinScale();
       map.remove();
       mapRef.current = null;
     };
@@ -132,6 +137,7 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
   return (
     <div className="relative overflow-hidden rounded-xl border border-border/80 bg-muted/20">
       <div ref={elementRef} className={`${className} z-0 w-full`} aria-label="Ordered street coverage route map" />
+      <MapAttribution />
       <div className="pointer-events-auto absolute right-2.5 top-2.5 z-[500] flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card/80 p-0.5 shadow-2xs backdrop-blur-md">
         <button
           type="button"
@@ -153,7 +159,7 @@ const RouteStopsMap = ({ stops, className = "h-52" }: RouteStopsMapProps) => {
           <Minus className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[400] flex flex-wrap items-end justify-between gap-1.5">
+      <div className="pointer-events-none absolute bottom-10 left-2 right-2 z-[400] flex flex-wrap items-end justify-between gap-1.5">
       <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/95 px-2 py-1 text-ui-overline text-muted-foreground shadow-sm">
         <span className="h-1 w-5 rounded-full bg-green-600" />
         Street Coverage

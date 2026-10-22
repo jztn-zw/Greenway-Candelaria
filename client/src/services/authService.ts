@@ -9,6 +9,8 @@ export interface RegisterData {
   terms_accepted: boolean;
 }
 export interface ResidentSetupData {
+  location_required?: true;
+  resident_location?: import("@/types/residentLocation").ResidentSetupLocation | null;
   avatar_url?: string;
   full_name: string;
   username?: string;

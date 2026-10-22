@@ -3,6 +3,7 @@ import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import type { RouteStop } from "../types";
 import { CheckCircle2,Circle,Navigation,AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatManilaDateTime } from "@/utils/date";
 
 interface StopListItemProps {
   stop: RouteStop;
@@ -30,6 +31,10 @@ const statusConfig = {
     badgeClass: getStatusBadgeStyle("Upcoming").className,
   },
 };
+
+const completionLabel = (value: string) => /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(value)
+  ? formatManilaDateTime(value, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) || value
+  : value;
 
 const StopListItem = ({ stop }: StopListItemProps) => {
   const config = statusConfig[stop.status];
@@ -94,7 +99,7 @@ const StopListItem = ({ stop }: StopListItemProps) => {
           </Badge>
           {stop.completedAt && (
             <span className="text-ui-overline text-muted-foreground tabular-nums font-medium">
-              at {stop.completedAt}
+              {completionLabel(stop.completedAt)}
             </span>
           )}
           {stop.status === "skipped" && stop.skippedReason && (

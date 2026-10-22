@@ -10,13 +10,14 @@ import type TrackingMap from "./TrackingMap";
 import { getManilaNow } from "@/utils/date";
 
 type MapProps = Parameters<typeof TrackingMap>[0];
-const mocks = vi.hoisted(() => ({ live: vi.fn(), trucks: vi.fn(), routes: vi.fn(), barangays: vi.fn(), templates: vi.fn(), map: vi.fn(), handlers: new Map<string, (rows?: unknown[]) => void>(), disconnect: vi.fn() }));
+const mocks = vi.hoisted(() => ({ profile: vi.fn(), live: vi.fn(), trucks: vi.fn(), routes: vi.fn(), barangays: vi.fn(), templates: vi.fn(), map: vi.fn(), handlers: new Map<string, (rows?: unknown[]) => void>(), disconnect: vi.fn() }));
 vi.mock("socket.io-client", () => ({ io: () => ({
   on: (name: string, fn: (rows?: unknown[]) => void) => mocks.handlers.set(name, fn),
   emit: vi.fn(), connect: vi.fn(), disconnect: mocks.disconnect,
 }) }));
 vi.mock("@/services/trackingService", () => ({ fetchAllTrucks: () => mocks.trucks(), fetchTodayRoutes: () => mocks.routes(), fetchLiveTrucks: () => mocks.live() }));
 vi.mock("@/services/barangaysService", () => ({ fetchBarangays: () => mocks.barangays() }));
+vi.mock("@/services/profileService", () => ({ fetchProfile: () => mocks.profile() }));
 vi.mock("@/services/routesService", () => ({ fetchRoutes: () => mocks.templates() }));
 vi.mock("./TrackingMap", () => ({ default: (props: MapProps) => { mocks.map(props); return <div>Tracking Map</div>; } }));
 
@@ -27,6 +28,7 @@ describe("resident tracking queries and GPS", () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     useAuthStore.setState({ user: { id: "resident-a", role: "RESIDENT", barangay_id: "b1", street_id: "s1" } as never, token: "session-a" });
     client = new QueryClient(); host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
+    mocks.profile.mockReset().mockResolvedValue({ id: "resident-a", resident_location: null });
     mocks.handlers.clear(); mocks.disconnect.mockClear();
     mocks.map.mockClear(); mocks.live.mockReset().mockResolvedValue([]);
     mocks.trucks.mockReset().mockResolvedValue([]); mocks.routes.mockReset().mockResolvedValue([]);
@@ -48,6 +50,31 @@ describe("resident tracking queries and GPS", () => {
     }]);
   };
   const ping = (lastPing = new Date().toISOString()) => ({ truck_id: "truck-a", truck_status: "ON_THE_WAY", latitude: 13.934, longitude: 121.421, last_ping: lastPing });
+
+  it("uses the owner pin for the map and 500m proximity instead of the barangay or coverage midpoint", async () => {
+    setupCollection(); mocks.live.mockResolvedValue([ping()]);
+    mocks.profile.mockResolvedValue({ id: "resident-a", resident_location: {
+      method: "MANUAL_PIN", latitude: 13.9341, longitude: 121.421,
+      barangayId: "b1", streetId: "s1",
+    } });
+    await render();
+    expect(mapProps().residentBarangayCoords).toEqual([13.9341, 121.421]);
+    expect(mapProps().trucks[0].distanceKm).toBeLessThan(0.5);
+    expect(mapProps().trucks[0].arrivedAtResident).toBe(true);
+  });
+
+  it("does not use a previous address pin or another account's profile", async () => {
+    setupCollection();
+    mocks.profile.mockResolvedValue({ id: "resident-a", resident_location: {
+      method: "MANUAL_PIN", latitude: 13.94, longitude: 121.43, barangayId: "b1", streetId: "old-street",
+    } });
+    await render();
+    expect(mapProps().residentBarangayCoords).toEqual([13.931, 121.422]);
+    await act(async () => { client.setQueryData(residentKey("resident-a", "profile", "account", "me"), {
+      id: "other", resident_location: { method: "MANUAL_PIN", latitude: 13.94, longitude: 121.43, barangayId: "b1", streetId: "s1" },
+    }); });
+    expect(mapProps().residentBarangayCoords).toEqual([13.931, 121.422]);
+  });
 
   it("keeps a socket snapshot when an older HTTP read finishes late", async () => {
     let finish!: (value: unknown[]) => void;

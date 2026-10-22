@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import React,{ useState,useEffect,useMemo } from "react";
 import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
 import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -144,7 +146,9 @@ export const EventModal: React.FC<EventModalProps> = ({
       onClose();
     } catch (err) {
       console.error("Failed to submit schedule event", err);
-      setErrors({ form: "Unable to save the schedule. Please try again." });
+      const message = getActionErrorMessage(err, "Unable to save the event. Please try again.");
+      toast.error("Could not save event", { description: message });
+      setErrors({ form: message });
     } finally {
       setIsSubmitting(false);
     }

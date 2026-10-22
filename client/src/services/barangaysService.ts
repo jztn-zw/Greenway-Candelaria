@@ -24,6 +24,7 @@ export interface CoverageEdit {
 }
 
 export interface BarangayStreetRow {
+  location_points?: [number, number][] | null;
   id: string;
   barangay_id?: string;
   name: string;
@@ -98,6 +99,7 @@ const withNormalizedCoverage = <T extends BarangayStreetRow>(street: T): T => ({
   ...street,
   coverage_path: normalizeCoveragePath(street.coverage_path),
   coverage_edit: normalizeCoverageEdit(street.coverage_edit),
+  ...(street.location_points === undefined ? {} : { location_points: normalizeCoveragePath(street.location_points) }),
 });
 
 export const fetchBarangays = async (filters?: { status: "ACTIVE" | "INACTIVE" }): Promise<BarangayLocationRow[]> => {
@@ -110,8 +112,9 @@ export const fetchBarangaysAdmin = async (): Promise<BarangayAdminRow[]> => {
   return data.data ?? [];
 };export const fetchBarangayStreets = async (
   id: string,
+  includeLocationPoints = false,
 ): Promise<BarangayStreetsResponse> => {
-  const { data } = await api.get<{ data: BarangayStreetsResponse }>(`/barangays/${id}/streets`);
+  const { data } = await api.get<{ data: BarangayStreetsResponse }>(`/barangays/${id}/streets`, includeLocationPoints ? { params: { location_points: '1' } } : undefined);
   return {
     ...data.data,
     streets: (data.data.streets ?? []).map(withNormalizedCoverage),

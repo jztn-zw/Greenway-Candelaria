@@ -1,3 +1,5 @@
+import type { TruckDistanceSummary } from "@/services/trackingService";
+
 export type TruckStatus = "scheduled" | "on-the-way" | "paused" | "done" | "offline";
 
 export interface BarangayStop {
@@ -20,6 +22,7 @@ export interface DriverMessage {
 }
 
 export interface AdminTruck {
+  distanceToday?: TruckDistanceSummary | null;
   id: string;
   driverId: string | null;
   routeId: string | null;

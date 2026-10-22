@@ -1,4 +1,18 @@
 import { formatManilaDateTime } from "@/utils/date";
+import type { UserProfile } from "@/services/profileService";
+
+export const residentPinCoordinates = (profile: UserProfile | undefined, userId: string | undefined,
+  barangayId: string | null, streetId: string | null): [number, number] | null => {
+  if (!profile || profile.id !== userId || !barangayId || !streetId) return null;
+  try {
+    const pin = typeof profile.resident_location === "string" ? JSON.parse(profile.resident_location) : profile.resident_location;
+    if (!pin || pin.barangayId !== barangayId || pin.streetId !== streetId ||
+      !["CURRENT_LOCATION", "MANUAL_PIN", "STREET_POINT"].includes(pin.method) ||
+      !Number.isFinite(pin.latitude) || !Number.isFinite(pin.longitude) ||
+      Math.abs(pin.latitude) > 90 || Math.abs(pin.longitude) > 180) return null;
+    return [pin.latitude, pin.longitude];
+  } catch { return null; }
+};
 
 export const formatCollectionTime = (value?: string | null) => {
   if (!value) return "-";

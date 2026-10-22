@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useResidentResource,useResidentMutation } from "@/lib/residentQuery";
 import { useState,useEffect,useRef } from "react";
 import { PostActions,PostMetadata } from "@/components/common/PostDetailInfo";
@@ -81,7 +82,9 @@ const PostDetail = ({
       } else {
         await unlike(post.id);
       }
-    } catch {
+      toast.success(nextLiked ? "Post liked" : "Like removed");
+    } catch (error) {
+      toast.error("Could not update your like", { description: getActionErrorMessage(error) });
       // Revert if error
       const reverted = {
         ...post,

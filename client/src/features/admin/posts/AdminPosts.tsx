@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { formatManilaDateTime } from "@/utils/date";
 import { AdminFilterDialog, AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
@@ -304,8 +305,8 @@ const AdminPosts = () => {
           ? "Post published successfully!"
           : "Post unpublished",
       );
-    } catch {
-      toast.error("Failed to update post status");
+    } catch (error) {
+      toast.error("Failed to update post status", { description: getActionErrorMessage(error) });
     }
   };
 
@@ -325,8 +326,8 @@ const AdminPosts = () => {
           ? "Post featured on resident carousel"
           : "Post unfeatured from resident carousel",
       );
-    } catch {
-      toast.error("Failed to update featured status");
+    } catch (error) {
+      toast.error("Failed to update featured status", { description: getActionErrorMessage(error) });
     }
   };
 
@@ -341,8 +342,8 @@ const AdminPosts = () => {
         setViewingPost(mapped);
       }
       toast.success(isArchived ? "Post restored to drafts" : "Post archived");
-    } catch {
-      toast.error(post.status === "Archived" ? "Failed to restore post" : "Failed to archive post");
+    } catch (error) {
+      toast.error(post.status === "Archived" ? "Failed to restore post" : "Failed to archive post", { description: getActionErrorMessage(error) });
     }
   };
 
@@ -353,9 +354,7 @@ const AdminPosts = () => {
       setPosts((prev) => [mapped, ...prev.filter((item) => item.id !== mapped.id)]);
       toast.success("Post duplicated as draft");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to duplicate post",
-      );
+      toast.error("Failed to duplicate post", { description: getActionErrorMessage(error) });
     }
   };
 
@@ -370,8 +369,8 @@ const AdminPosts = () => {
       }
       toast.success("Post deleted");
       setDeleteTarget(null);
-    } catch {
-      toast.error("Failed to delete post");
+    } catch (error) {
+      toast.error("Failed to delete post", { description: getActionErrorMessage(error) });
     } finally {
       setIsDeleting(false);
     }

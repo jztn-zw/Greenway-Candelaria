@@ -22,6 +22,8 @@ export const createReplayTargetIcon = (state: TargetState) => {
   root.className = "relative drop-shadow-[0_3px_6px_rgba(0,0,0,0.32)]";
   root.style.width = width + "px";
   root.style.height = height + "px";
+  root.style.transform = "scale(var(--map-pin-scale,1))";
+  root.style.transformOrigin = "50% 100%";
   // Match the live tracking teardrop silhouette. Markup contains only static
   // glyphs; street names and reasons are inserted as text nodes in popups.
   root.innerHTML = `<svg aria-hidden="true" width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;color:${color}">

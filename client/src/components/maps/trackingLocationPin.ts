@@ -26,7 +26,7 @@ export const createTrackingLocationPin = (color: string, state: StopPinState, st
 
   return L.divIcon({
     className: "",
-    html: `<div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));">
+    html: `<div style="position:relative;width:${width}px;height:${height}px;transform:scale(var(--map-pin-scale,1));transform-origin:50% 100%;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));">
       <svg aria-hidden="true" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
         <path d="M ${cx} 1.5 C ${cx * 0.48} 1.5 1.5 ${cy * 0.48} 1.5 ${cy} C 1.5 ${cy * 1.6} ${cx} ${height - 1.5} ${cx} ${height - 1.5} C ${cx} ${height - 1.5} ${width - 1.5} ${cy * 1.6} ${width - 1.5} ${cy} C ${width - 1.5} ${cy * 0.48} ${cx * 1.52} 1.5 ${cx} 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
         <circle cx="${cx}" cy="${cy}" r="${radius}" fill="hsl(var(--map-inset))"/>

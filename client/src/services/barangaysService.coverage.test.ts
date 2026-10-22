@@ -1,9 +1,18 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { fetchManagedStreets, updateBarangayStreetCoverage } from "./barangaysService";
+import { fetchBarangayStreets, fetchManagedStreets, updateBarangayStreetCoverage } from "./barangaysService";
 
 const api = vi.hoisted(() => ({ get: vi.fn(), put: vi.fn() }));
 vi.mock("@/lib/api", () => ({ default: api }));
 beforeEach(() => vi.clearAllMocks());
+
+it("requests setup control points explicitly and normalizes only usable saved points", async () => {
+  const points = [[14, 121], [14.002, 121.002]];
+  api.get.mockResolvedValue({ data: { data: { streets: [{ id: 's', name: 'Main', location_points: points }, { id: 'bad', location_points: [[91, 121]] }] } } });
+  const result = await fetchBarangayStreets('b', true);
+  expect(api.get).toHaveBeenCalledWith('/barangays/b/streets', { params: { location_points: '1' } });
+  expect(result.streets[0].location_points).toEqual(points);
+  expect(result.streets[1].location_points).toBeNull();
+});
 
 it("reads persisted pins separately from geometry, including JSON strings from the database", async () => {
   const points = [[14, 121], [14.002, 121.002]];

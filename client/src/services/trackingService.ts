@@ -21,12 +21,22 @@ export interface LiveRow {
   last_ping: string; // ISO datetime
 }
 
+export interface TruckDistanceSummary {
+  date: string;
+  distance_km: number | null;
+  sample_count: number;
+  segment_count: number;
+  gap_count: number;
+  rejected_points: number;
+}
+
 export interface TruckRow {
   id: string;
   name: string;
   plate_number?: string;
   status: string;
   waste_type?: string;
+  distance_today?: TruckDistanceSummary;
 }
 
 export interface DriverRow {

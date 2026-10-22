@@ -3,8 +3,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import useAuthStore from "@/store/authStore";
 import { useBrowserNotificationSettings } from "./useBrowserNotificationSettings";
 import { readBrowserNotificationSettings } from "@/services/residentBrowserNotifications";
+import { toast } from "@/lib/toast";
+
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
   localStorage.clear();
   vi.stubGlobal("isSecureContext", true);
   vi.stubGlobal("navigator", {});
@@ -21,6 +25,7 @@ it("a denied enable request leaves browser delivery off and exposes a recoverabl
   expect(result.current.settings.enabled).toBe(false);
   expect(result.current.error).toMatch(/site settings/);
   expect(result.current.busy).toBe(false);
+  expect(toast.error).toHaveBeenCalledWith("Could not save notification preferences", expect.objectContaining({ description: expect.stringMatching(/site settings/) }));
 });
 
 it("late permission responses cannot save to another account or a replaced session", async () => {
@@ -35,6 +40,7 @@ it("late permission responses cannot save to another account or a replaced sessi
     await act(async () => { finish("granted"); await pending; });
     expect(readBrowserNotificationSettings("resident-a").enabled).toBe(false);
     expect(readBrowserNotificationSettings("resident-b").enabled).toBe(false);
+    expect(toast.success).not.toHaveBeenCalled();
     unmount();
   }
 });

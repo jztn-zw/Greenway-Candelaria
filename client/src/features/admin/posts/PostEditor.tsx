@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { getSystemNow } from "@/lib/serverClock";
 import { toManilaCalendarDate, fromManilaCalendarDate } from "@/utils/date";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
@@ -273,8 +275,10 @@ const PostEditor = ({
       urls.forEach((url) => pendingUploadsRef.current.add(url));
       if (urls.length > 0) {
         setUploadedImages((prev) => [...prev, ...urls]);
+        toast.success(`${urls.length} image${urls.length === 1 ? "" : "s"} uploaded`);
       }
       if (results.some((result) => result.status === "rejected")) {
+        toast.error("Some images could not be uploaded", { description: "Uploaded images were kept. Retry the remaining images." });
         setErrors((current) => ({
           ...current,
           form: "One or more images could not be uploaded. Please try again.",
@@ -393,6 +397,7 @@ const PostEditor = ({
       pendingUploadsRef.current.clear();
       onBack();
     } catch (err) {
+      toast.error("Could not save post", { description: getActionErrorMessage(err) });
       setErrors({ form: err instanceof Error ? err.message : "Unable to save the post. Please try again." });
     }
   };
@@ -415,6 +420,7 @@ const PostEditor = ({
         onBack();
       })
       .catch((err: unknown) => {
+        toast.error("Could not save draft", { description: getActionErrorMessage(err) });
         setErrors({ form: err instanceof Error ? err.message : "Unable to save the post. Please try again." });
       });
   };

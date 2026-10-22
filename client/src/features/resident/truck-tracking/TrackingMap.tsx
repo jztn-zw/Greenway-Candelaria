@@ -1,3 +1,5 @@
+import { updateMapPinScale } from "@/components/maps/mapPinScale";
+import MapAttribution from "@/components/common/MapAttribution";
 import { useSystemTime } from "@/hooks/useSystemTime";
 import { trackingStyles } from "./trackingStyles";
 import { scheduledTrackingContent } from "./trackingContent";
@@ -5,6 +7,7 @@ import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentFetch } from "@/lib/residentQuery";
 import { useEffect,useMemo,useRef,useState } from "react";
 import L from "leaflet";
+import { createResidentPinIcon as createBarangayPinIcon } from "@/components/common/residentMapPin";
 import "leaflet/dist/leaflet.css";
 import type { Truck,CollectionDayStatus } from "./types";
 import {
@@ -92,40 +95,6 @@ const getBarangayPopupContent = (
   return root;
 };
 
-const createBarangayPinIcon = (isCompleted = false, isMissed = false) => {
-  const width = 36;
-  const height = 48;
-  const color = isMissed ? "hsl(var(--destructive))" : "hsl(var(--primary))";
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.32));cursor:pointer;">
-        <svg width="${width}" height="${height}" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
-          <path d="M 18 1.5 C 8.8 1.5 1.5 8.8 1.5 18 C 1.5 29.5 18 46.5 18 46.5 C 18 46.5 34.5 29.5 34.5 18 C 34.5 8.8 27.2 1.5 18 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="18" cy="18" r="11" fill="hsl(var(--map-inset))"/>
-          <g transform="translate(10, 10) scale(0.667)">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
-          </g>
-        </svg>
-        ${
-          isCompleted
-            ? `<div style="position:absolute;top:-1px;right:-1px;width:15px;height:15px;border-radius:50%;background:hsl(var(--success-600));border:2px solid hsl(var(--map-inset));display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.35);pointer-events:none;">
-                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--map-inset))" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                   <polyline points="20 6 9 17 4 12"></polyline>
-                 </svg>
-               </div>`
-            : ""
-        }
-      </div>
-    `,
-    iconSize: [width, height],
-    iconAnchor: [18, 48],
-    popupAnchor: [0, -48],
-  });
-};
-
 const createTruckPinIcon = (isFocused = false, status: Truck["status"] = "on-the-way") => {
   const width = isFocused ? 42 : 36;
   const height = isFocused ? 54 : 48;
@@ -140,7 +109,7 @@ const createTruckPinIcon = (isFocused = false, status: Truck["status"] = "on-the
   return L.divIcon({
     className: "",
     html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35));cursor:pointer;">
+      <div style="position:relative;width:${width}px;height:${height}px;transform:scale(var(--map-pin-scale,1));transform-origin:50% 100%;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35));cursor:pointer;">
         <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
           <path d="M ${cx} 1.5 C ${cx * 0.48} 1.5 1.5 ${cy * 0.48} 1.5 ${cy} C 1.5 ${cy * 1.6} ${cx} ${height - 1.5} ${cx} ${height - 1.5} C ${cx} ${height - 1.5} ${width - 1.5} ${cy * 1.6} ${width - 1.5} ${cy} C ${width - 1.5} ${cy * 0.48} ${cx * 1.52} 1.5 ${cx} 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
           <circle cx="${cx}" cy="${cy}" r="${r}" fill="hsl(var(--map-inset))"/>
@@ -186,7 +155,6 @@ const TrackingMap = ({
   const mapRef = useRef<L.Map | null>(null);
   const residentLayerRef = useRef<L.Marker | null>(null);
   const trucksLayerRef = useRef<L.LayerGroup | null>(null);
-  const coverageLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const lastViewModeRef = useRef<"bounds" | "focused" | "barangay" | "route" | null>(null);
   const lastFocusedTruckIdRef = useRef<string | null>(null);
@@ -253,7 +221,6 @@ const TrackingMap = ({
     () => trucks.find((truck) => truck.isResidentTruck && truck.status === "offline" && truck.collectionStarted) ?? null,
     [trucks],
   );
-  const coverageTruck = hasResidentCollectionOutcome ? null : residentTruck;
 
   // Selected or primary active truck heading towards resident
   const targetTruck = useMemo(() => {
@@ -270,6 +237,8 @@ const TrackingMap = ({
   const mapTruck = hasResidentCollectionOutcome ? null : targetTruck ?? pausedResidentTruck ?? unavailableResidentTruck;
 
   const stopsBeforeResident = targetTruck?.barangaysAway ?? 0;
+  const isResidentTarget = targetTruck?.isResidentTruck === true && targetTruck.barangaysAway === 0 &&
+    (targetTruck.residentStopStatus === "in-progress" || targetTruck.residentStopStatus === "not-started");
   // Other areas' coordinates are private. This estimates direct travel only.
   const arrivalWaypoints = useMemo((): [number, number][] =>
     targetTruck?.coords && residentBarangayCoords ? [targetTruck.coords, residentBarangayCoords] : [],
@@ -294,15 +263,19 @@ const TrackingMap = ({
       worldCopyJump: false,
     });
     mapRef.current = map;
+    const resizePins = () => {
+      if (mapElementRef.current) updateMapPinScale(mapElementRef.current, map.getZoom());
+    };
+    map.on("zoomend", resizePins);
 
     map.fitBounds(BOUNDS, { padding: DEFAULT_PADDING });
+    resizePins();
     map.setMaxBounds(BOUNDS);
 
     L.tileLayer(OSM_URL, {
       maxZoom: MAX_ZOOM,
     }).addTo(map);
 
-    coverageLayerRef.current = L.layerGroup().addTo(map);
     routeLayerRef.current = L.layerGroup().addTo(map);
     trucksLayerRef.current = L.layerGroup().addTo(map);
     const resizeObserver = new ResizeObserver(() => {
@@ -324,8 +297,8 @@ const TrackingMap = ({
       lastResidentPositionRef.current = null;
       residentLayerRef.current = null;
       trucksLayerRef.current = null;
-      coverageLayerRef.current = null;
       routeLayerRef.current = null;
+      map.off("zoomend", resizePins);
       map.remove();
       mapRef.current = null;
     };
@@ -359,46 +332,6 @@ const TrackingMap = ({
     residentMarker.setPopupContent(popup);
   }, [residentAreaName, residentBarangayName, residentBarangayCoords, isResidentCompleted, isResidentMissed, residentCompletedAt]);
 
-  // Street paths are snapshotted with the route run. They show what has been
-  // served already without changing when an admin later edits a street path.
-  useEffect(() => {
-    const layer = coverageLayerRef.current;
-    if (!layer) return;
-    layer.clearLayers();
-
-    coverageTruck?.routeStops
-      .filter((stop) => stop.isResidentBarangay)
-      .forEach((stop) => {
-        if (!stop.coveragePath || stop.coveragePath.length < 2) return;
-
-        const color = stop.status === "in-progress"
-          ? "hsl(var(--warning))"
-          : stop.status === "done"
-            ? "hsl(var(--success-700))"
-            : stop.status === "skipped"
-              ? "hsl(var(--destructive))"
-              : "hsl(var(--neutral-400))";
-
-        L.polyline(stop.coveragePath, {
-          color: "hsl(var(--map-inset))",
-          weight: stop.status === "in-progress" ? 9 : 7,
-          opacity: 0.9,
-          lineCap: "round",
-          lineJoin: "round",
-          interactive: false,
-        }).addTo(layer);
-
-        L.polyline(stop.coveragePath, {
-          color,
-          weight: stop.status === "in-progress" ? 6 : 4.5,
-          opacity: stop.status === "done" ? 0.68 : 0.95,
-          lineCap: "round",
-          lineJoin: "round",
-          interactive: false,
-        }).addTo(layer);
-      });
-  }, [coverageTruck?.id, coverageTruck?.routeStops]);
-
   // Road snapping route calculation and polyline rendering
   useEffect(() => {
     const routeLayer = routeLayerRef.current;
@@ -430,7 +363,9 @@ const TrackingMap = ({
         setRouteData(result);
         onRouteCalculated?.(targetTruckId, result);
 
-        if (result.coordinates && result.coordinates.length > 1) {
+        // A travel estimate can be useful while waiting, but a line to the
+        // resident's home implies their street is the current collection target.
+        if (isResidentTarget && result.coordinates && result.coordinates.length > 1) {
           // Outer glow road line
           L.polyline(result.coordinates, {
             color: "hsl(var(--success-600))",
@@ -465,6 +400,7 @@ const TrackingMap = ({
     targetTruckId,
     targetTruckLatitude,
     targetTruckLongitude,
+    isResidentTarget,
     residentLatitude,
     residentLongitude,
     onRouteCalculated,
@@ -622,17 +558,7 @@ const TrackingMap = ({
 
   const handleFitRouteBounds = () => {
     if (!mapRef.current) return;
-    const coveragePoints = coverageTruck?.routeStops
-      .filter((stop) => stop.isResidentBarangay)
-      .flatMap(
-      (stop) => stop.coveragePath ?? [],
-    ) ?? [];
-    if (coveragePoints.length > 1) {
-      mapRef.current.fitBounds(L.latLngBounds(coveragePoints), {
-        padding: [48, 48],
-        maxZoom: 16,
-      });
-    } else if (routeData && routeData.coordinates.length > 1) {
+    if (routeData && routeData.coordinates.length > 1) {
       const latLngs = routeData.coordinates.map(([lat, lng]) => L.latLng(lat, lng));
       mapRef.current.fitBounds(L.latLngBounds(latLngs), {
         padding: [48, 48],
@@ -731,6 +657,7 @@ const TrackingMap = ({
     <div className={trackingStyles.mapShell}>
       <div className={trackingStyles.mapCanvas}>
         <div ref={mapElementRef} className="h-full w-full z-0" />
+        <MapAttribution />
 
         {/* Floating Zoom Controls (Top-Right) */}
         <div className={trackingStyles.zoom}>
@@ -925,24 +852,6 @@ const TrackingMap = ({
             {isResidentCompleted && <CheckCircle2 aria-label="Collection completed" className="size-3.5 text-[hsl(var(--success-600))]" />}
           </span>
         )}
-        {coverageTruck?.routeStops.some((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2) && (
-          <div className={trackingStyles.legend} aria-label="Street collection status">
-            <span>Street Coverage:</span>
-            <span className="flex items-center gap-1">
-              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-warning" /> Collecting
-            </span>
-            <span className="flex items-center gap-1">
-              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-[hsl(var(--success-700))]" /> Completed
-            </span>
-            <span className="flex items-center gap-1">
-              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-[hsl(var(--neutral-400))]" /> Pending
-            </span>
-            <span className="flex items-center gap-1">
-              <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-destructive" /> Skipped
-            </span>
-          </div>
-        )}
-
         {/* Floating Map Action Controls (Bottom-Right) */}
         <div className={trackingStyles.actions}>
           {mapTruck?.coords && (

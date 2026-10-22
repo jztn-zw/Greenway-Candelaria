@@ -128,13 +128,7 @@ const mapStops = (
         stopNumber: s.order_index ?? idx + 1,
         barangay: s.stop_name ?? s.barangay_name,
         status: mapStatus(s.status),
-        completedAt: s.completed_at
-          ? parseRouteStartedAt(s.completed_at).toLocaleTimeString("en-US", {
-              timeZone: "Asia/Manila",
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : undefined,
+        completedAt: s.completed_at ?? undefined,
         skippedReason: s.skipped_reason ?? undefined,
         coords,
         hasCoordinates: Boolean(coveragePath?.length || (stopLat !== null && stopLng !== null)),

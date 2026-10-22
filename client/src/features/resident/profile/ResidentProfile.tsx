@@ -1,7 +1,8 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import KpiValue from "@/components/common/KpiValue";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useResidentQuery,useResidentResource,useResidentMutation } from "@/lib/residentQuery";
-import { useState,useEffect } from "react";
+import { useState,useEffect,useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
 Mail,Phone,Lock,User,Award,Calendar,
@@ -29,6 +30,8 @@ import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
 import { AccountRecovery } from "@/features/landing/components/AccountRecovery";
 import ResidentDeletionDialog from "./ResidentDeletionDialog";
+import ResidentLocationPicker from "./ResidentLocationPicker";
+import { locationMatchesStreet, readResidentLocation, type ResidentSetupLocation } from "./residentLocation";
 import {
 fetchProfile,
 updateProfile,
@@ -133,16 +136,28 @@ const ResidentProfile = () => {
     streetId: "",
     initialBarangayId: "",
     initialStreetId: "",
+    location: null as ResidentSetupLocation | null,
+    initialLocation: null as ResidentSetupLocation | null,
+    confirmed: false,
     saving: false,
     error: "",
   });
 
   const barangaysQuery = useResidentQuery("barangays", ["locations"], fetchBarangays);
   const barangays = barangaysQuery.data ?? [];
-  const streetsQuery = useResidentQuery("barangays", ["streets", addressModal.barangayId],
-    () => fetchBarangayStreets(addressModal.barangayId), { enabled: addressModal.open && !!addressModal.barangayId });
+  const streetsQuery = useResidentQuery("barangays", ["streets", addressModal.barangayId, "location-points"],
+    () => fetchBarangayStreets(addressModal.barangayId, true), { enabled: addressModal.open && !!addressModal.barangayId });
   const streetOptions = streetsQuery.data?.streets ?? [];
   const streetsLoading = streetsQuery.isLoading;
+  const selectedBarangay = barangays.find(row => row.id === addressModal.barangayId);
+  const addressLocationValid = !!addressModal.location && addressModal.confirmed && !streetsQuery.isError &&
+    locationMatchesStreet(addressModal.location, streetOptions.find(row => row.id === addressModal.streetId));
+  const changeAddressLocation = useCallback((location: ResidentSetupLocation | null, confirmed: boolean) => {
+    setAddressModal(state => ({ ...state, location, confirmed, error: "" }));
+  }, []);
+  const changeAddressStreet = useCallback((streetId: string) => {
+    setAddressModal(state => ({ ...state, streetId, location: null, confirmed: false, error: "" }));
+  }, []);
   useEffect(() => {
     if (streetsQuery.isError) setAddressModal((state) => ({ ...state, error: "Could not load streets for this barangay." }));
   }, [streetsQuery.isError]);
@@ -168,19 +183,21 @@ const ResidentProfile = () => {
   const openAddressEditor = async () => {
     if (!profile) return;
     const barangayId = profile.barangay_id ?? "";
+    const location = readResidentLocation(profile.resident_location, barangayId, profile.street_id ?? "");
     setAddressModal({
       open: true,
       barangayId,
       streetId: profile.street_id ?? "",
       initialBarangayId: barangayId,
       initialStreetId: profile.street_id ?? "",
+      location, initialLocation: location, confirmed: false,
       saving: false,
       error: "",
     });
   };
 
   const changeAddressBarangay = (barangayId: string) => {
-    setAddressModal((state) => ({ ...state, barangayId, streetId: "", error: "" }));
+    setAddressModal((state) => ({ ...state, barangayId, streetId: "", location: null, confirmed: false, error: "" }));
   };
 
   const saveAddress = async () => {
@@ -193,20 +210,32 @@ const ResidentProfile = () => {
       setAddressModal((state) => ({ ...state, error: "Please select your street." }));
       return;
     }
+    if (!addressLocationValid || !addressModal.location) {
+      setAddressModal(state => ({ ...state, error: "Choose and confirm your collection location." })); return;
+    }
+    const ownerId = authUser?.id;
+    const sessionToken = useAuthStore.getState().token;
 
     setAddressModal((state) => ({ ...state, saving: true, error: "" }));
     try {
       const updated = await saveProfile({
         barangay_id: addressModal.barangayId,
         street_id: addressModal.streetId,
+        resident_location: addressModal.location,
       });
+      const session = useAuthStore.getState();
+      if (session.user?.id !== ownerId || updated.id !== ownerId || session.token !== sessionToken) {
+        setAddressModal(state => ({ ...state, open: false, saving: false, location: null, confirmed: false })); return;
+      }
       setProfile(updated);
-      if (authUser) setUser({ ...authUser, ...updated } as typeof authUser);
+      setUser({ ...session.user, barangay_id: updated.barangay_id, barangay_name: updated.barangay_name,
+        street_id: updated.street_id, street_name: updated.street_name, street_area: updated.street_area });
       setDiscardTarget(null);
       setAddressModal((state) => ({ ...state, open: false, saving: false }));
       toast.success("Collection address updated successfully.");
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Could not update your collection address.";
+      toast.error("Could not update your collection address", { description: getActionErrorMessage(err) });
       setAddressModal((state) => ({ ...state, saving: false, error: message }));
     }
   };
@@ -238,6 +267,7 @@ const ResidentProfile = () => {
       setEditModal((p) => ({ ...p, open: false, saving: false }));
       toast.success(`${editModal.field} updated successfully!`);
     } catch (err: unknown) {
+      toast.error("Could not update your profile", { description: getActionErrorMessage(err) });
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? "Failed to update. Please try again.";
       setEditModal((p) => ({ ...p, error: msg, saving: false }));
@@ -265,12 +295,15 @@ const ResidentProfile = () => {
       setDiscardTarget(null);
       setPwModal({ open: false, oldPw: "", newPw: "", confirmPw: "", showOld: false, showNew: false, saving: false, error: "" });
       toast.success("Password changed. Please log in again.");
-      await logout();
     } catch (err: unknown) {
+      toast.error("Could not change your password", { description: getActionErrorMessage(err) });
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? "Failed to change password.";
       setPwModal((p) => ({ ...p, error: msg, saving: false }));
+      return;
     }
+    // Sign-out owns its feedback; a revocation failure cannot undo the saved password.
+    await logout().catch(() => undefined);
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -292,7 +325,8 @@ const ResidentProfile = () => {
     if (pending) return;
     const dirty = target === "profile" ? editModal.value !== editModal.initialValue
       : target === "password" ? Boolean(pwModal.oldPw || pwModal.newPw || pwModal.confirmPw)
-      : addressModal.barangayId !== addressModal.initialBarangayId || addressModal.streetId !== addressModal.initialStreetId;
+      : addressModal.barangayId !== addressModal.initialBarangayId || addressModal.streetId !== addressModal.initialStreetId ||
+        JSON.stringify(addressModal.location) !== JSON.stringify(addressModal.initialLocation);
     if (dirty) setDiscardTarget(target);
     else closeEditor(target);
   };
@@ -323,8 +357,8 @@ const ResidentProfile = () => {
       setAvatarId(selectedId);
       setAvatarModal(false);
       toast.success("Avatar updated");
-    } catch {
-      toast.error("Could not update your avatar. Please try again.");
+    } catch (error) {
+      toast.error("Could not update your avatar. Please try again.", { description: getActionErrorMessage(error) });
     } finally {
       setSavingAvatarId(null);
     }
@@ -684,12 +718,12 @@ const ResidentProfile = () => {
 
       </div>
       <FormDialog open={addressModal.open} onOpenChange={(open) => { if (!open) requestCloseEditor("address"); }}
-        className="resident-profile-dialog"
-        title="Edit Collection Address" description="Choose your barangay and street." icon={<MapPin />} pending={addressModal.saving}
+        className="resident-profile-dialog sm:max-w-2xl"
+        title="Edit Collection Address" description="Choose your barangay and confirm your location." icon={<MapPin />} pending={addressModal.saving}
         footer={<>
           <Button type="button" variant="outline" onClick={() => requestCloseEditor("address")} disabled={addressModal.saving} className={modalStyles.cancelButton}>Cancel</Button>
           <Button type="button" onClick={() => void saveAddress()} className={modalStyles.primaryButton}
-            disabled={addressModal.saving || streetsLoading || !addressModal.barangayId || !addressModal.streetId || streetOptions.length === 0} loading={addressModal.saving} loadingLabel="Saving…">
+            disabled={addressModal.saving || streetsLoading || !selectedBarangay || !addressLocationValid} loading={addressModal.saving} loadingLabel="Saving…">
             Save Address
           </Button>
         </>}
@@ -701,15 +735,13 @@ const ResidentProfile = () => {
             placeholder="Select barangay" searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…" emptyMessage="No barangays available."
             disabled={addressModal.saving} className={modalStyles.select} />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="resident-address-street" className={modalStyles.label}>Street</Label>
-          <SearchableSelect id="resident-address-street" value={addressModal.streetId}
-            onValueChange={(streetId) => setAddressModal((p) => ({ ...p, streetId, error: "" }))}
-            options={streetOptions.map((street) => ({ value: street.id, label: `${street.name}${street.area ? ` (${street.area})` : ""}` }))}
-            placeholder={!addressModal.barangayId ? "Select a barangay first" : streetsLoading ? "Loading streets..." : streetOptions.length ? "Select street" : "No streets available yet"}
-            searchPlaceholder="Search by street or area…" compactSearchPlaceholder="Street or area…" emptyMessage="No streets found."
-            disabled={!addressModal.barangayId || streetsLoading || streetOptions.length === 0 || addressModal.saving} className={modalStyles.select} />
-        </div>
+        {selectedBarangay && <ResidentLocationPicker key={selectedBarangay.id} barangay={selectedBarangay}
+          streets={streetOptions} streetId={addressModal.streetId} value={addressModal.location} confirmed={addressModal.confirmed}
+          disabled={addressModal.saving || streetsLoading || streetsQuery.isError}
+          onStreetChange={changeAddressStreet} onChange={changeAddressLocation} />}
+        {selectedBarangay && !streetsLoading && !streetsQuery.isError && !streetOptions.length &&
+          <p role="status" className="text-xs text-muted-foreground">No streets are listed for this barangay. Contact MENRO to add your street before changing your address.</p>}
+        {streetsQuery.isError && <Button type="button" variant="outline" size="sm" disabled={addressModal.saving || streetsQuery.isFetching} onClick={() => void streetsQuery.refetch()}>Retry Streets</Button>}
         {addressModal.error && <p role="alert" className="text-xs leading-relaxed text-destructive">{addressModal.error}</p>}
       </FormDialog>
 

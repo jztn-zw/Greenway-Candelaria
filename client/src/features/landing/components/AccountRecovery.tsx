@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect,useRef,useState } from "react";
 import authService from "@/services/authService";
 import { Button } from "@/components/ui/button";
@@ -17,8 +19,8 @@ export const RecoveryCodeReceipt = ({ code, onContinue, continueLabel = "Continu
     <p className="text-sm text-muted-foreground">Keep this code private. Anyone with it can recover your account.</p>
     <code className="block select-all break-all rounded-lg border border-border bg-background p-4 text-center font-mono text-base tracking-wide">{code}</code>
     <Button type="button" variant="outline" className="w-full" onClick={async () => {
-      try { await navigator.clipboard.writeText(code); setCopyStatus("Code copied. Keep it somewhere safe."); }
-      catch { setCopyStatus("Select the code above and copy it manually."); }
+      try { await navigator.clipboard.writeText(code); setCopyStatus("Code copied. Keep it somewhere safe."); toast.success("Recovery code copied. Keep it private."); }
+      catch { setCopyStatus("Select the code above and copy it manually."); toast.error("Could not copy the recovery code. Select it and copy it manually."); }
     }}>Copy Recovery Code</Button>
     {copyStatus && <p role="status" className="text-sm text-muted-foreground">{copyStatus}</p>}
     <div className="flex items-center gap-2">
@@ -73,8 +75,10 @@ export const AccountRecovery = ({ mode = "reset", onBack }: { mode?: "reset" | "
       if (!active.current) return;
       if (generate && authService.getToken() !== originalToken) throw new Error("Your session changed. Log in and try again.");
       setReceipt(result.recovery_code); setPassword(""); setConfirmation(""); setCode("");
+      toast.success(generate ? "Recovery code replaced. Save the new code." : "Password reset. Save your new recovery code.");
     } catch (failure) {
       if (!active.current) return;
+      toast.error(generate ? "Could not replace your recovery code" : "Could not reset your password", { description: getActionErrorMessage(failure) });
       const response = (failure as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } }).response?.data;
       const fieldNames: Record<string, string> = { recovery_code: "code", new_password: "password", confirm_password: "confirmation" };
       const mapped: Record<string, string> = {};

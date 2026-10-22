@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { collectorBadgeClassName } from "@/features/collector/components/collectorBadgeStyles";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 import { useState,useEffect } from "react";
@@ -32,7 +33,7 @@ import useLogout from "@/hooks/useLogout";
 import {
 fetchProfile,
 updateProfile,
-UserProfile,
+type UpdateProfilePayload,
 } from "@/services/profileService";
 import {
 fetchDriverMe,
@@ -165,7 +166,7 @@ const CollectorProfile = () => {
     }
     try {
       setEditModal((m) => ({ ...m, saving: true, error: "" }));
-      const payload: Partial<UserProfile> = {
+      const payload: UpdateProfilePayload = {
         [editModal.field]: editModal.value.trim(),
       };
       await runProfileAction(async () => {
@@ -179,6 +180,7 @@ const CollectorProfile = () => {
       setDiscardTarget(null);
       setEditModal((m) => ({ ...m, open: false, saving: false }));
     } catch (err: unknown) {
+      toast.error("Could not update your profile", { description: getActionErrorMessage(err) });
       const errMsg =
         typeof err === "object" &&
         err !== null &&
@@ -234,8 +236,8 @@ const CollectorProfile = () => {
       setAvatarId(selectedId);
       setAvatarOpen(false);
       toast.success("Avatar updated");
-    } catch {
-      toast.error("Could not update your avatar. Please try again.");
+    } catch (error) {
+      toast.error("Could not update your avatar. Please try again.", { description: getActionErrorMessage(error) });
     } finally {
       setSavingAvatarId(null);
     }

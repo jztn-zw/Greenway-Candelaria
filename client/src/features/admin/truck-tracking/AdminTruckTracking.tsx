@@ -486,6 +486,7 @@ const buildTruckList = (
 
     return {
       id: truck.id,
+      distanceToday: truck.distance_today ?? null,
       driverId:
         route ? (route.driver_id ?? null) : (assignedDriver?.id ?? null),
       routeId: route?.route_id ?? null,

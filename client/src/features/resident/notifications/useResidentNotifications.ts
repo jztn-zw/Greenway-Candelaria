@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useResidentMutation,useResidentQuery } from "@/lib/residentQuery";
 import { toast } from "@/lib/toast";
 import notificationsService,{ type NotificationFilters } from "@/services/notificationsService";
@@ -17,18 +18,18 @@ const useResidentNotifications = (filters: NotificationFilters = {}) => {
   const clear = useResidentMutation(notificationsService.clearAllNotifications, "notifications");
   const markContent = useResidentMutation(notificationsService.markContentNotificationsAsRead, "notifications");
   const markContentAsRead = useCallback(async (postId: string) => {
-    try { await markContent(postId); } catch { toast.error("Could not mark notification as read"); }
+    try { await markContent(postId); } catch (error) { toast.error("Could not mark notification as read", { description: getActionErrorMessage(error) }); }
   }, [markContent]);
   const markAsRead = useCallback(async (id: string) => {
-    try { await markRead(id); } catch { toast.error("Could not mark notification as read"); }
+    try { await markRead(id); } catch (error) { toast.error("Could not mark notification as read", { description: getActionErrorMessage(error) }); }
   }, [markRead]);
   const markAllAsRead = useCallback(async () => {
     try { await markAll(); toast.success("All notifications marked as read"); }
-    catch { toast.error("Could not mark all notifications as read"); }
+    catch (error) { toast.error("Could not mark all notifications as read", { description: getActionErrorMessage(error) }); }
   }, [markAll]);
   const clearAll = useCallback(async () => {
     try { await clear(); toast.success("Notification history cleared"); }
-    catch { toast.error("Could not clear notification history"); }
+    catch (error) { toast.error("Could not clear notification history", { description: getActionErrorMessage(error) }); }
   }, [clear]);
   const notifications = query.data?.notifications ?? [];
   return {

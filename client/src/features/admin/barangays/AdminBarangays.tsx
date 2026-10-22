@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminKpiCard, AdminKpiGrid } from "@/components/admin/AdminKpiCards";
@@ -219,6 +220,7 @@ const AdminBarangays = () => {
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       const message = errorMessage(error);
+      toast.error("Could not save street", { description: getActionErrorMessage(error) });
       if (status === 400 || status === 409 || /street and area already exist/i.test(message)) {
         if (status === 400 && /^area\b/i.test(message)) setStreetAreaError(message);
         else setStreetNameError(message);
@@ -237,7 +239,7 @@ const AdminBarangays = () => {
       toast.success(available ? "Collection service enabled." : "Collection service marked unavailable.");
 
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error("Could not update collection availability", { description: getActionErrorMessage(error) });
     } finally {
       setIsSavingAvailability(false);
     }
@@ -258,7 +260,7 @@ const AdminBarangays = () => {
       toast.success("Street deleted.");
 
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error("Could not delete street", { description: getActionErrorMessage(error) });
     } finally {
       setIsDeletingStreet(false);
     }

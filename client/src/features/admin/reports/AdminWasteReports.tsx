@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { WasteReportsPageSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import PageErrorState from "@/components/feedback/PageErrorState";
@@ -206,19 +207,9 @@ const AdminWasteReports = () => {
     if (!selectedId) return;
     const reportId = selectedId;
     const detailVersion = detailVersionRef.current;
-    try {
-      const updated = await updateAdminReportStatus(reportId, {
-        status,
-      });
-      const mapped = mapAdminReport(updated);
-      if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
-      toast.success(`Report status updated to ${mapped.status}`);
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update report status",
-      );
-      throw err;
-    }
+    const updated = await updateAdminReportStatus(reportId, { status });
+    const mapped = mapAdminReport(updated);
+    if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
   };
 
   // Quick status change from table dropdown
@@ -232,9 +223,7 @@ const AdminWasteReports = () => {
         setSelectedReport(mapped);
       }
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update status",
-      );
+      toast.error("Failed to update status", { description: getActionErrorMessage(err) });
     }
   };
 
@@ -293,9 +282,7 @@ const AdminWasteReports = () => {
         setPage(page - 1);
       }
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete report",
-      );
+      toast.error("Failed to delete report", { description: getActionErrorMessage(err) });
       throw err;
     }
   };

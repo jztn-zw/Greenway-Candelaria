@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import React,{ useState,useMemo,useEffect } from "react";
 import { AdminModalContent as DialogContent } from "@/components/admin/AdminModal";
 import { Dialog, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -166,6 +168,7 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
       setErrors({});
       await onSave();
     } catch (err) {
+      toast.error("Could not save collection route", { description: getActionErrorMessage(err) });
       setErrors({
         form: err instanceof Error ? err.message : "Unable to save this route. Please try again.",
       });
@@ -274,17 +277,15 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
                 </div>
               </div>
 
-              {/* Header actions */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleRequestClose}
-                  className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-                  title="Close modal"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="gw-action-ghost w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                title="Close modal"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {/* ── Modal Content (Scrollable Split Body) ── */}

@@ -1,23 +1,28 @@
-import { act } from "react";
+import { act, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { changePassword, updateProfile } from "@/services/profileService";
+import { changePassword, updateProfile, type UserProfile } from "@/services/profileService";
 import useAuthStore from "@/store/authStore";
 import ResidentProfile from "./ResidentProfile";
 import authService from "@/services/authService";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { toast } from "@/lib/toast";
 
 const mocks = vi.hoisted(() => ({
   profile: { id: "resident", full_name: "Test Resident", username: "test_resident", email: "resident@example.com",
     phone: null, role: "RESIDENT", status: "ACTIVE", avatar_url: null, two_factor: false,
     barangay_id: "poblacion", barangay_name: "Poblacion", street_id: "street-1", street_name: "Gonzales St", street_area: null,
-    created_at: "2026-09-01 00:00:00", last_login_at: null },
+    created_at: "2026-09-01 00:00:00", last_login_at: null, resident_location: null as UserProfile["resident_location"] },
   barangays: [{ id: "poblacion", name: "Poblacion" }, { id: "masin", name: "Masin" }],
-  streets: [{ id: "street-1", name: "Gonzales St" }, { id: "street-2", name: "New Street" }],
+  streets: [{ id: "street-1", name: "Gonzales St", coverage_path: [[14, 121], [14.001, 121]], location_points: [[14, 121], [14.001, 121]] }, { id: "street-2", name: "New Street", coverage_path: [[14, 121], [14.001, 121]], location_points: [[14, 121], [14.001, 121]] }],
   stats: { total: 0, resolved: 0, pending: 0, in_progress: 0, under_review: 0 }, setProfile: vi.fn(),
 }));
+vi.mock("./ResidentSetupMap", () => ({ default: function MockLocationMap({ onAvailability }: { onAvailability: (ready: boolean) => void }) {
+  useEffect(() => onAvailability(true), [onAvailability]);
+  return <div aria-label="Resident location map" />;
+} }));
 vi.mock("@/lib/residentQuery", () => ({
   useResidentResource: () => ({ data: mocks.profile, setData: mocks.setProfile, isLoading: false, isError: false, refetch: vi.fn() }),
   useResidentMutation: (action: unknown) => action,
@@ -29,11 +34,12 @@ vi.mock("@/components/ui/searchable-select", () => ({
     <select id={id} value={value} disabled={disabled} onChange={e => onValueChange(e.target.value)}><option value="" />{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
   ),
 }));
-vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 let host: HTMLDivElement; let root: Root;
 beforeEach(async () => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks(); localStorage.removeItem("greenway:resident-avatar:resident");
+  mocks.profile.resident_location = null;
   useAuthStore.setState({ user: { ...mocks.profile } as never, token: "session", isAuthenticated: true });
   vi.mocked(updateProfile).mockResolvedValue(mocks.profile); vi.mocked(changePassword).mockResolvedValue(undefined);
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
@@ -108,11 +114,25 @@ it("keeps entered passwords until discard and resets visibility on reopening", a
   expect(document.getElementById("resident-password-oldPw")).toHaveAttribute("type", "password");
 });
 it("resets the street after a barangay change and guards the address draft", async () => {
-  await openField(3); change("resident-address-barangay", "masin"); expect(document.getElementById("resident-address-street")).toHaveValue("");
-  change("resident-address-street", "street-2"); await click("Cancel"); expect(document.body.textContent).toContain("Discard Address Changes?");
-  await click("Keep Editing"); expect(document.getElementById("resident-address-street")).toHaveValue("street-2");
-  await click("Save Address"); expect(updateProfile).toHaveBeenLastCalledWith({ barangay_id: "masin", street_id: "street-2" });
+  await openField(3); change("resident-address-barangay", "masin"); await click("Choose a Nearby Street Point"); expect(document.getElementById("setup-street")).toHaveValue("");
+  change("setup-street", "street-2"); await click("Cancel"); expect(document.body.textContent).toContain("Discard Address Changes?");
+  await click("Keep Editing"); expect(document.getElementById("setup-street")).toHaveValue("street-2");
+  await click("Point 1");
+  expect(button("Save Address")).toBeDisabled();
+  await act(async () => document.querySelector<HTMLButtonElement>('[role="checkbox"]')!.click());
+  await click("Save Address"); expect(updateProfile).toHaveBeenLastCalledWith({ barangay_id: "masin", street_id: "street-2",
+    resident_location: { method: "STREET_POINT", latitude: 14, longitude: 121, pointIndex: 0 } });
   expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
+it("keeps the collection address draft and explains a rejected save", async () => {
+  await openField(3); await click("Choose a Nearby Street Point");
+  change("setup-street", "street-2");
+  await click("Point 1");
+  await act(async () => document.querySelector<HTMLButtonElement>('[role="checkbox"]')!.click());
+  vi.mocked(updateProfile).mockRejectedValueOnce(new Error("Network Error"));
+  await click("Save Address");
+  expect(document.getElementById("setup-street")).toHaveValue("street-2");
+  expect(toast.error).toHaveBeenCalledWith("Could not update your collection address", { description: "Cannot connect to GreenWay. Check your internet connection and try again." });
 });
 it("validates password changes and signs out after a successful update", async () => {
   const logout = vi.spyOn(useAuthStore.getState(), "logout").mockResolvedValue(undefined);
@@ -120,6 +140,21 @@ it("validates password changes and signs out after a successful update", async (
     await click("Change"); await click("Change Password"); expect(document.querySelector('[role="alert"]')).toHaveTextContent("All fields are required");
     change("resident-password-oldPw", "old-secret"); change("resident-password-newPw", "new-secret"); change("resident-password-confirmPw", "new-secret");
     await click("Change Password"); expect(changePassword).toHaveBeenCalledWith({ old_password: "old-secret", new_password: "new-secret" }); expect(logout).toHaveBeenCalledOnce();
+  } finally { logout.mockRestore(); }
+});
+it("does not report password failure when subsequent server sign-out fails", async () => {
+  const logout = vi.spyOn(useAuthStore.getState(), "logout").mockImplementation(async () => {
+    useAuthStore.setState({ token: null, isAuthenticated: false });
+    throw new Error("Network Error");
+  });
+  try {
+    await click("Change");
+    change("resident-password-oldPw", "old-secret"); change("resident-password-newPw", "new-secret"); change("resident-password-confirmPw", "new-secret");
+    await click("Change Password");
+    expect(changePassword).toHaveBeenCalledOnce();
+    expect(toast.success).toHaveBeenCalledWith("Password changed. Please log in again.");
+    expect(toast.warning).toHaveBeenCalledWith("Signed out on this browser", expect.any(Object));
+    expect(toast.error).not.toHaveBeenCalled();
   } finally { logout.mockRestore(); }
 });
 it("requires confirmation before logging out from the resident profile", async () => {
@@ -170,4 +205,47 @@ it("clears avatar saving feedback after a failure and allows another attempt", a
   expect(button("Select Man with styled hair on blue avatar")).not.toBeDisabled();
   expect(localStorage.getItem("greenway:resident-avatar:resident")).toBeNull();
   expect(useAuthStore.getState().user?.avatar_url).toBeNull();
+});
+
+it("requires a confirmed location and cancels a pin draft without saving", async () => {
+  await openField(3);
+  expect(button("Save Address")).toBeDisabled();
+  expect(document.getElementById("resident-address-street")).toBeNull();
+  await click("Choose a Nearby Street Point"); await click("Point 1");
+  expect(button("Save Address")).toBeDisabled();
+  await click("Cancel");
+  expect(document.body.textContent).toContain("Discard Address Changes?");
+  await click("Discard Changes");
+  expect(updateProfile).not.toHaveBeenCalled();
+  await openField(3);
+  expect(document.querySelector('[role="checkbox"]')).toBeNull();
+});
+
+it("restores the saved pin without requesting GPS and strips its server fields from the save payload", async () => {
+  mocks.profile.resident_location = { method: "STREET_POINT", latitude: 14, longitude: 121, pointIndex: 0,
+    barangayId: "poblacion", streetId: "street-1" };
+  await openField(3);
+  expect(document.getElementById("setup-street")).toBeNull();
+  expect(document.querySelector('[aria-label="Location method"] [aria-pressed="true"]')).toBeNull();
+  expect(document.querySelector('[role="checkbox"]')).toBeNull();
+  expect(button("Save Address")).toBeDisabled();
+  await click("Choose a Nearby Street Point");
+  await click("Point 1");
+  await act(async () => document.querySelector<HTMLButtonElement>('[role="checkbox"]')!.click());
+  await click("Save Address");
+  expect(updateProfile).toHaveBeenLastCalledWith({ barangay_id: "poblacion", street_id: "street-1",
+    resident_location: { method: "STREET_POINT", latitude: 14, longitude: 121, pointIndex: 0 } });
+});
+
+it("does not overwrite another session when an address save finishes late", async () => {
+  await openField(3); await click("Choose a Nearby Street Point"); await click("Point 1");
+  await act(async () => document.querySelector<HTMLButtonElement>('[role="checkbox"]')!.click());
+  let finish!: (profile: UserProfile) => void;
+  vi.mocked(updateProfile).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await click("Save Address");
+  expect(button("Cancel")).toBeDisabled();
+  await act(async () => { useAuthStore.setState({ user: { ...mocks.profile, id: "other-resident" } as never, token: "other-session" }); });
+  await act(async () => finish(mocks.profile));
+  expect(useAuthStore.getState().user?.id).toBe("other-resident");
+  expect(mocks.setProfile).not.toHaveBeenCalled();
 });

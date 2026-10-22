@@ -1,6 +1,7 @@
 import axios,{ AxiosError } from "axios";
 import { clearAuthStorage,getAuthStorage } from "./authStorage";
 import { getRetryAfterSeconds } from "./rateLimit";
+import { getActionErrorMessage, safeFeedbackMessage } from "./feedbackMessages";
 
 const api = axios.create({
   timeout: 15000,
@@ -74,7 +75,17 @@ api.interceptors.response.use(
       validation: error.response?.data?.errors?.map(({ field, message: detail }) => ({ field, message: detail })),
     });
 
-    error.message = message;
+    const publicMessage = getActionErrorMessage(error);
+    error.message = validationMessage && status && status >= 400 && status < 500
+      ? safeFeedbackMessage(validationMessage) : publicMessage;
+    if (error.response && (!error.response.data || typeof error.response.data !== "object" || Array.isArray(error.response.data))) {
+      // Proxies can return HTML/plain text instead of the API's JSON envelope.
+      error.response.data = { message: error.message };
+    } else if (error.response?.data) {
+      error.response.data.message = error.message;
+      if (error.response.data.errors) error.response.data.errors = status && status < 500
+        ? error.response.data.errors.map(issue => ({ ...issue, message: safeFeedbackMessage(issue.message) })) : [];
+    }
     return Promise.reject(error);
   },
 );

@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { BatteryFull, CalendarDays, ClipboardList, MapPin, Signal, Smartphone, Truck, Wifi } from "lucide-react";
 import { CONTENT, type AppDownloadContent } from "../landingContent";
 import InstallAppButton from "./InstallAppButton";
@@ -57,7 +58,7 @@ export default function AppDownloadSection({ content = CONTENT.appDownload }: { 
                   </div>
                   <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-2">
                     <div className="flex items-center gap-2 text-sm font-semibold text-primary dark:text-accent-foreground">
-                      <img src="/greenway.svg" alt="" width={24} height={24} loading="lazy" />GreenWay
+                      <GreenWayLogo alt="" className="h-6 w-9" />GreenWay
                     </div>
                     <div className="app-download-screen-placeholder mt-4 flex min-h-32 flex-1 flex-col items-center justify-center rounded-xl border border-primary/15 px-3 py-5 text-center">
                       <Smartphone className="mb-3 h-8 w-8 text-primary dark:text-accent-foreground" strokeWidth={1.5} />

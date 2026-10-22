@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +111,7 @@ const TruckEditorModal = ({
       await onSave({ name: formName.trim(), model: formModel.trim(), plateNumber: formPlate.trim(), status: formStatus });
       handleOpenChange(false);
     } catch (error) {
+      toast.error("Could not save truck", { description: getActionErrorMessage(error) });
       setErrors({ form: error instanceof Error ? error.message : "Unable to save this truck. Please try again." });
     }
   };

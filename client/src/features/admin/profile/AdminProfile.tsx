@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import { AdminUnsavedChangesDialog as UnsavedChangesDialog } from "@/components/admin/AdminModal";
 import { FormDialogHeader } from "@/components/dialogs/FormDialog";
@@ -117,8 +118,9 @@ const AdminProfile = () => {
       localStorage.setItem(`greenway:admin-avatar:${profile.id}`, selectedId);
       setAvatarId(selectedId);
       setAvatarOpen(false);
-    } catch {
-      toast.error("Could not update your avatar. Please try again.");
+      toast.success("Avatar updated");
+    } catch (error) {
+      toast.error("Could not update your avatar", { description: getActionErrorMessage(error) });
     } finally {
       setSavingAvatarId(null);
     }
@@ -143,6 +145,7 @@ const AdminProfile = () => {
       setEdit(null);
       toast.success("Profile updated.");
     } catch (error) {
+      toast.error("Could not update your profile", { description: getActionErrorMessage(error) });
       setEdit((current) => current && { ...current, saving: false, error: errorMessage(error, "Could not update your profile.") });
     }
   };
@@ -162,6 +165,7 @@ const AdminProfile = () => {
       clearAuth();
       navigate("/", { replace: true });
     } catch (error) {
+      toast.error("Could not change your password", { description: getActionErrorMessage(error) });
       setPasswordError(errorMessage(error, "Could not change your password."));
     } finally { setSavingPassword(false); }
   };

@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useResidentQuery,useResidentMutation } from "@/lib/residentQuery";
 import useAuthStore from "@/store/authStore";
 import { useState,useMemo,useEffect,useCallback,useRef } from "react";
@@ -224,9 +225,7 @@ const ResidentSubmitReport = () => {
       setReviewModalOpen(false);
       toast.success("Report submitted successfully!");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to submit report. Please try again.";
-      toast.error(message);
+      toast.error("Could not submit waste report", { description: getActionErrorMessage(err) });
     } finally {
       setIsSubmitting(false);
       setSubmissionStage(null);

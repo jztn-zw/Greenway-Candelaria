@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Moon, ShieldCheck, Sun } from "lucide-react";
@@ -26,7 +27,7 @@ export default function LegalPage({ policy }: { policy: LegalDocumentId }) {
       <header className="border-b border-border/70 bg-card/80">
         <div className="container flex min-h-20 items-center justify-between gap-4 py-3">
           <Link to="/" className="flex items-center gap-2.5 rounded-lg font-display text-xl font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <img src="/greenway.svg" width={36} height={36} alt="" />GreenWay
+            <GreenWayLogo alt="" className="h-9 w-12" />GreenWay
           </Link>
           <div className="flex items-center gap-2 print:hidden">
             <Button type="button" variant="ghost" size="icon" onClick={toggleThemeMode} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun /> : <Moon />}</Button>

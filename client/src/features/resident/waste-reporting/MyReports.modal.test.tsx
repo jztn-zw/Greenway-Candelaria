@@ -109,7 +109,7 @@ it("withdraws only the confirmed owned report and blocks duplicate actions while
 it("keeps the withdrawal confirmation open after failure and allows a retry", async () => {
   vi.mocked(deleteReport).mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ id: report.id, reference_number: report.reference_number });
   await openConfirmation(); await click("Yes, Cancel Report");
-  expect(toast.error).toHaveBeenCalledWith("Offline");
+  expect(toast.error).toHaveBeenCalledWith("Failed to cancel report", { description: "Cannot connect to GreenWay. Check your internet connection and try again." });
   expect(document.querySelector('[role="dialog"]')).toHaveTextContent("GW-123");
   await click("Yes, Cancel Report");
   expect(deleteReport).toHaveBeenCalledTimes(2);

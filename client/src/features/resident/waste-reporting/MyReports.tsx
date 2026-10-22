@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import { BackButton } from "@/components/common/BackButton";
@@ -199,9 +200,7 @@ const MyReports = () => {
       closeDetail();
       setPage(1);
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to cancel report",
-      );
+      toast.error("Failed to cancel report", { description: getActionErrorMessage(err) });
       throw err;
     }
   };

@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { WasteReportDetailBodySkeleton } from "@/components/loading/PageLoadingSkeletons";
@@ -179,8 +180,8 @@ const ReportDetailPanel = ({
       await onUpdateStatus(backendStatus);
       toast.success(`Status updated to ${newStatus}`);
       return true;
-    } catch {
-      toast.error("Failed to update status");
+    } catch (error) {
+      toast.error("Could not update report status", { description: getActionErrorMessage(error) });
       return false;
     } finally {
       setIsUpdatingStatus(false);
@@ -202,8 +203,8 @@ const ReportDetailPanel = ({
       await onAddNote(internalNote.trim());
       setInternalNote("");
       toast.success("Internal note added");
-    } catch {
-      toast.error("Failed to add note");
+    } catch (error) {
+      toast.error("Could not add the internal note", { description: getActionErrorMessage(error) });
     } finally {
       setIsSavingNote(false);
     }
@@ -217,7 +218,7 @@ const ReportDetailPanel = ({
       toast.success(payload.is_false ? "Report closed as invalid" : payload.is_duplicate ? "Duplicate report closed" : "Report flag updated");
       return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update flag");
+      toast.error("Failed to update flag", { description: getActionErrorMessage(err) });
       return false;
     } finally {
       setIsFlagging(false);
@@ -279,9 +280,9 @@ const ReportDetailPanel = ({
               </span>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(report.referenceNumber);
-                  toast.success("Reference copied");
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(report.referenceNumber); toast.success("Reference copied"); }
+                  catch { toast.error("Could not copy the report reference. Select it and copy it manually."); }
                 }}
                 className="gw-action-ghost shrink-0 p-1 rounded transition-colors cursor-pointer"
                 title="Copy reference number"

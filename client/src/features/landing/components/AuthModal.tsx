@@ -1,3 +1,5 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { getManilaNow } from "@/utils/date";
 import authService from "@/services/authService";
 import { AccountRecovery,RecoveryCodeReceipt } from "./AccountRecovery";
@@ -168,7 +170,9 @@ const AuthModal = ({
       setTab("login");
       resetRegisterForm();
       setErrors({});
+      toast.success("Account created. Save your recovery code before signing in.");
     } catch (err: unknown) {
+      toast.error("Could not create your account", { description: getActionErrorMessage(err) });
       if (registerCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } };
       const message = responseError.response?.data?.message;
@@ -206,7 +210,9 @@ const AuthModal = ({
       const result = await login(identifier.trim(), loginPassword, rememberMe);
       finishLogin();
       if (result?.reactivated) toast.success("Welcome back! Your account has been reactivated.");
+      else toast.success("Signed in successfully");
     } catch (err: unknown) {
+      toast.error("Could not sign in", { description: getActionErrorMessage(err) });
       if (loginCooldown.start(err)) { setErrors({}); return; }
       const responseError = err as { response?: { data?: { message?: string } } };
       setErrors({ form: responseError.response?.data?.message || "Invalid username or password" });
@@ -254,7 +260,7 @@ const AuthModal = ({
             <div className="shrink-0 px-6 pb-5 pt-6 sm:px-10 sm:pb-6 sm:pt-8">
               <div className="mb-5 flex items-center gap-2.5 sm:mb-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/25">
-                  <img src="/greenway.svg" alt="GreenWay Logo" className="h-8 w-8" />
+                  <GreenWayLogo />
                 </div>
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">GreenWay</span>
               </div>
@@ -447,7 +453,7 @@ const AuthModal = ({
             <div className="relative z-10 flex w-full flex-col justify-between gap-8 p-8">
               <div>
                 <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-forest-foreground/10 ring-1 ring-forest-foreground/15">
-                  <Leaf className="h-5 w-5" />
+                  <GreenWayLogo alt="" className="text-forest-foreground" />
                 </div>
                 <h3 className="gw-heading text-2xl leading-tight tracking-tight text-balance">
                   Join the green movement today.

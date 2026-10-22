@@ -3,11 +3,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fetchTruckHistory, type HistoryRow, type RouteStopHistoryItem } from "@/services/trackingService";
 import { exportReplayVideo } from "../utils/replayVideoExporter";
+import { exportReplayKml, exportReplayGpx } from "../utils/replayKmlExporter";
 import type { AdminTruck } from "../types";
 import RouteReplay from "./RouteReplay";
 
 vi.mock("@/lib/adminQuery", () => ({ useAdminFetch: () => (_domain: string, _key: unknown, request: () => unknown) => request(), useAdminQuery: () => ({ data: undefined, isError: false }) }));
 vi.mock("@/services/trackingService", () => ({ fetchTruckHistory: vi.fn() }));
+vi.mock("../utils/replayKmlExporter", () => ({ exportReplayKml: vi.fn(async () => {}), exportReplayGpx: vi.fn(async () => {}) }));
 vi.mock("../utils/replayVideoExporter", () => ({ exportReplayVideo: vi.fn(async () => {}), REPLAY_VIDEO_SPEEDS: [1, 2, 5, 10, 30, 60] }));
 vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/ui/searchable-select", () => ({
@@ -105,13 +107,15 @@ it("shows useful empty and retry states without a fake route", async () => {
   await click("Try Again"); expect(button("Pause")).toBeTruthy();
 });
 
-it("shows a lone recorded position without playback or video controls", async () => {
+it("shows a lone recorded position without playback but permits KML export", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs: logs.slice(0, 1), stops: [] });
   await load();
   expect(onPath).toHaveBeenLastCalledWith([[14, 121]]);
   expect(host.textContent).toContain("Only one GPS record");
   expect(host.querySelector('input[type="range"]')).toBeNull();
-  expect(host.textContent).not.toContain("Download Video");
+  expect(button("Download KML").disabled).toBe(false);
+  await click("Download KML");
+  expect(vi.mocked(exportReplayKml).mock.calls[0][0].trip.path).toHaveLength(1);
 });
 
 it("lists every target immediately and updates its state while playback remains continuous", async () => {
@@ -147,65 +151,27 @@ it("lists every target immediately and updates its state while playback remains 
   expect(host.textContent).not.toContain("Completed barangays");
 });
 
-it("exports the full trip and aborts video work when the panel closes", async () => {
-  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new Error("Aborted")))));
-  await load(); await click("Download Video");
-  expect(exportReplayVideo).not.toHaveBeenCalled();
-  await act(async () => (document.querySelector('input[name="replay-video-speed"][value="5"]') as HTMLInputElement).click());
-  await click("Create Video");
-  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
-  expect(options.speed).toBe(5);
+it("exports the complete GPS snapshot directly as KML and aborts on unmount", async () => {
+  vi.mocked(exportReplayKml).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+  await load(); await click("Download KML");
+  const options = vi.mocked(exportReplayKml).mock.calls[0][0];
   expect(options.trip.path).toHaveLength(4);
-  expect(options).not.toHaveProperty("legs");
+  expect(options.truckName).toBe("Truck 1");
+  expect(options).not.toHaveProperty("speed");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(host.querySelector("select")!.disabled).toBe(true);
   await act(async () => root.unmount());
   expect(options.signal!.aborted).toBe(true);
   expect(onPath).toHaveBeenLastCalledWith(undefined);
-  expect(onIndex).toHaveBeenLastCalledWith(undefined);
 });
 
-it("shows accurate video export stages and progress while keeping cancel available", async () => {
-  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
-  await load(); await click("Download Video"); await click("Create Video");
-  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
-  const progress = () => document.querySelector('[role="progressbar"][aria-label="Video export progress"]');
-  const loadingButton = () => document.querySelector('button[data-loading="true"]');
-  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Preparing map…");
-  expect(document.querySelector('.gw-action-loader')).toBeTruthy();
-  expect(progress()?.hasAttribute("aria-valuenow")).toBe(false);
-
-  await act(async () => { options.onStage?.("encoding"); options.onProgress?.(17); });
-  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Encoding video…");
-  expect(progress()?.getAttribute("aria-valuenow")).toBe("17");
-  expect(progress()?.firstElementChild?.getAttribute("style")).toContain("width: 17%");
-
-  await act(async () => { options.onStage?.("recording"); options.onProgress?.(42); });
-  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Recording video…");
-  expect(progress()?.getAttribute("aria-valuenow")).toBe("42");
-
-  await act(async () => { options.onStage?.("finalizing"); });
-  expect(loadingButton()?.getAttribute("data-loading-label")).toBe("Finishing file…");
-  expect(progress()?.getAttribute("aria-valuenow")).toBe("42");
-  await click("Cancel");
-  expect(options.signal?.aborted).toBe(true);
-});
-
-it("cancels a video export from the popup and allows another attempt", async () => {
-  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
-  await load(); await click("Download Video"); await click("Create Video");
-  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
-  await click("Cancel");
-  expect(options.signal!.aborted).toBe(true);
-  expect(host.querySelector("select")!.disabled).toBe(false);
-  await click("Download Video");
-  expect(button("Create Video").disabled).toBe(false);
-});
-
-it("shows a failed map export in the popup and lets the user retry", async () => {
-  vi.mocked(exportReplayVideo).mockRejectedValueOnce(new Error("Could not load the map. Please check your connection and try again."));
-  await load(); await click("Download Video"); await click("Create Video");
-  expect(document.querySelector('[role="alert"]')?.textContent).toContain("Could not load the map");
-  expect(button("Create Video").disabled).toBe(false);
+it("shows a failed KML export and permits retry", async () => {
+  vi.mocked(exportReplayKml).mockRejectedValueOnce(new Error("Could not export KML."));
+  await load(); await click("Download KML");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not export KML");
+  expect(button("Download KML").disabled).toBe(false);
+  await click("Download KML");
+  expect(host.querySelector('[role="alert"]')).toBeNull();
 });
 
 it("uses real recorded time gaps at 1× and keeps the clock accurate through pause and speed changes", async () => {
@@ -381,4 +347,25 @@ it("retains skipped map locations through playback and clears future skips on re
   await click("Restart replay"); expect(onSkippedTargets).toHaveBeenLastCalledWith([]);
   await tick(30000); expect(onSkippedTargets).toHaveBeenLastCalledWith([skipped]);
   await select("two"); expect(onSkippedTargets).toHaveBeenLastCalledWith([]);
+});
+
+const chooseFormat = async (value: string) => act(async () => (host.querySelector(`input[name="replay-format"][value="${value}"]`) as HTMLInputElement).click());
+it("downloads GPX with the full recorded snapshot", async () => {
+  await load(); await chooseFormat("gpx"); await click("Download GPX");
+  expect(exportReplayGpx).toHaveBeenCalledOnce();
+  expect(vi.mocked(exportReplayGpx).mock.calls[0][0].trip.path).toHaveLength(4);
+  expect(exportReplayVideo).not.toHaveBeenCalled();
+});
+it("offers video speed and cancels MP4 without changing the replay snapshot", async () => {
+  vi.mocked(exportReplayVideo).mockImplementationOnce(({ signal }) => new Promise((_, reject) => signal!.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+  await load(); await chooseFormat("mp4"); await click("Download MP4");
+  expect(exportReplayVideo).not.toHaveBeenCalled();
+  await act(async () => (document.querySelector('input[name="replay-video-speed"][value="5"]') as HTMLInputElement).click());
+  await click("Create MP4");
+  const options = vi.mocked(exportReplayVideo).mock.calls[0][0];
+  expect(options.speed).toBe(5); expect(options.mp4Only).toBe(true);
+  expect(options.trip.path).toHaveLength(4);
+  await click("Cancel");
+  expect(options.signal?.aborted).toBe(true);
+  expect(host.querySelector("select")!.disabled).toBe(false);
 });

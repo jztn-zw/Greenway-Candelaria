@@ -26,23 +26,37 @@ it("does not leave an empty description when it contained only emojis", () => {
   expect(sonner.success).toHaveBeenCalledWith("Account created", expect.objectContaining({ description: undefined }));
 });
 
-it("preserves existing routine-success and information suppression", () => {
+it("shows routine success and information feedback", () => {
   toast.success("Profile updated ✅");
   toast.info("Collection reminder enabled");
-  expect(sonner.success).not.toHaveBeenCalled();
-  expect(sonner.info).not.toHaveBeenCalled();
+  expect(sonner.success).toHaveBeenCalledWith("Profile updated", undefined);
+  expect(sonner.info).toHaveBeenCalledWith("Collection reminder enabled", undefined);
 });
 
 it("keeps validation instructions and safe error wording", () => {
   toast.error("Please enter a reason ⚠️");
-  expect(sonner.error).toHaveBeenCalledWith("Please enter a reason");
+  expect(sonner.error).toHaveBeenCalledWith("Please enter a reason", expect.any(Object));
   toast.error("SQL error: sensitive internal details");
-  expect(sonner.error).toHaveBeenLastCalledWith("Could not complete that action. Please try again.");
+  expect(sonner.error).toHaveBeenLastCalledWith("Could not complete that action. Please try again.", expect.any(Object));
 });
 
-it("keeps warning descriptions hidden and available-item notices intact", () => {
-  toast.warning("Stop skipped ⚠️", { description: "Private details" });
-  expect(sonner.warning).toHaveBeenCalledWith("Stop skipped", expect.objectContaining({ description: undefined }));
+it("shows useful warning descriptions and available-item notices", () => {
+  toast.warning("Stop skipped ⚠️", { description: "The stop was skipped because the road is blocked." });
+  expect(sonner.warning).toHaveBeenCalledWith("Stop skipped", expect.objectContaining({ description: "The stop was skipped because the road is blocked." }));
   toast.info("This announcement is no longer available. 📣");
   expect(sonner.info).toHaveBeenCalledWith("This announcement is no longer available.", undefined);
+});
+
+it("preserves the action, business reason and retry controls on errors", () => {
+  const retry = vi.fn();
+  toast.error("Could not save collection route", { description: "This truck is assigned to another route.", duration: 6000, action: { label: "Retry", onClick: retry } });
+  expect(sonner.error).toHaveBeenCalledWith("Could not save collection route", expect.objectContaining({ description: "This truck is assigned to another route.", duration: 6000, action: { label: "Retry", onClick: retry } }));
+});
+
+it("sanitizes technical descriptions and deduplicates repeated errors", () => {
+  toast.error("Could not save truck", { description: "ER_DUP_ENTRY SQL password=fixture" });
+  const first = sonner.error.mock.calls[0][1];
+  expect(first.description).toBe("Could not complete that action. Please try again.");
+  toast.error("Could not save truck", { description: "ER_DUP_ENTRY SQL password=fixture" });
+  expect(sonner.error.mock.calls[1][1].id).toBe(first.id);
 });

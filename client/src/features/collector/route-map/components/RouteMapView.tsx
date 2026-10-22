@@ -1,5 +1,8 @@
-import { useEffect,useRef,useState } from "react";
-import { createTrackingLocationPin } from "@/components/maps/trackingLocationPin";
+import { renderTrackingStops, focusTrackingStop } from "@/components/maps/renderTrackingStops";
+import TrackingStopControls from "@/components/maps/TrackingStopControls";
+import { bindMapPinScale } from "@/components/maps/mapPinScale";
+import MapAttribution from "@/components/common/MapAttribution";
+import { useCallback,useEffect,useRef,useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteStop } from "../types";
@@ -24,56 +27,6 @@ const MAX_ZOOM = 17;
 const TRUCK_FOCUS_ZOOM = 16;
 const FOCUS_TOLERANCE_METERS = 20;
 
-const statusColor = (status: RouteStop["status"]) => {
-  switch (status) {
-    case "done":
-      return "hsl(var(--primary))";
-    case "in-progress":
-      return "hsl(var(--info))";
-    case "skipped":
-      return "hsl(var(--warning))";
-    default:
-      return "hsl(var(--muted-foreground))";
-  }
-};
-
-const coverageColor = (status: RouteStop["status"]) => {
-  switch (status) {
-    case "in-progress":
-      return "hsl(var(--highlight))";
-    case "done":
-      return "hsl(var(--success-700))";
-    case "skipped":
-      return "hsl(var(--warning))";
-    default:
-      return "hsl(var(--neutral-400))";
-  }
-};
-
-const statusLabel = (status: RouteStop["status"]) => {
-  switch (status) {
-    case "done": return "Completed";
-    case "in-progress": return "In Progress";
-    case "skipped": return "Skipped";
-    default: return "Upcoming";
-  }
-};
-
-const escapeHtml = (value: string) => {
-  const element = document.createElement("span");
-  element.textContent = value;
-  return element.innerHTML;
-};
-const formatDistance = (distanceKm: number) =>
-  distanceKm > 0 ? `${distanceKm.toFixed(1)} km away` : "At current location";
-
-const createStopTeardropIcon = (stop: RouteStop) =>
-  createTrackingLocationPin(statusColor(stop.status), stop.status, stop.stopNumber);
-
-const createCoverageOrderIcon = (stop: RouteStop) =>
-  createTrackingLocationPin(coverageColor(stop.status), stop.status, stop.stopNumber);
-
-// Teardrop Pin Marker for Collector Truck
 const createCollectorTruckPinIcon = () => {
   const width = 42;
   const height = 54;
@@ -82,7 +35,7 @@ const createCollectorTruckPinIcon = () => {
   return L.divIcon({
     className: "",
     html: `
-      <div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));cursor:pointer;">
+      <div style="position:relative;width:${width}px;height:${height}px;transform:scale(var(--map-pin-scale,1));transform-origin:50% 100%;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));cursor:pointer;">
         <svg width="${width}" height="${height}" viewBox="0 0 42 54" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:100%;">
           <path d="M 21 1.5 C 10.2 1.5 1.5 10.2 1.5 21 C 1.5 33.5 21 52.5 21 52.5 C 21 52.5 40.5 33.5 40.5 21 C 40.5 10.2 31.8 1.5 21 1.5 Z" fill="${color}" stroke="hsl(var(--map-inset))" stroke-width="2" stroke-linejoin="round"/>
           <circle cx="21" cy="21" r="12" fill="hsl(var(--map-inset))"/>
@@ -115,6 +68,16 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   const lastStopsKeyRef = useRef("");
   const userInteractedRef = useRef(false);
   const [activeRoute, setActiveRoute] = useState<RoadRouteResult | null>(null);
+  const [mapZoom, setMapZoom] = useState(14);
+  const [selectedMapStop, setSelectedMapStop] = useState<string | null>(null);
+  const [showFullRoute, setShowFullRoute] = useState(false);
+  const stopScope = stops.map(stop => stop.id).join('|');
+  useEffect(() => { setSelectedMapStop(null); setShowFullRoute(false); }, [stopScope]);
+  const selectMapStop = useCallback((id: string) => {
+    const stop = id === 'current-target' ? stops.find(row => row.status === 'in-progress') : stops.find(row => row.id === id);
+    setSelectedMapStop(id === 'current-target' ? null : stop?.id ?? null);
+    if (stop && mapRef.current) focusTrackingStop(mapRef.current, stop);
+  }, [stops]);
 
   // Init map
   useEffect(() => {
@@ -144,8 +107,14 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     routeLayerRef.current = L.layerGroup().addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
+    const unbindPinScale = bindMapPinScale(map, mapElRef.current);
+    const syncZoom = () => setMapZoom(map.getZoom());
+    map.on('zoomend', syncZoom);
+    syncZoom();
 
     return () => {
+      unbindPinScale();
+      map.off('zoomend', syncZoom);
       map.off("dragstart", markUserInteracted);
       map.off("zoomstart", markUserInteracted);
       routeLayerRef.current = null;
@@ -227,88 +196,8 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     const allCoords = stops.filter((stop) => stop.hasCoordinates !== false).flatMap((stop) => stop.coveragePath ?? [stop.coords]);
 
-    // Render full street coverage with location pins at each street's start.
-    stops.forEach((stop) => {
-      if (stop.hasCoordinates === false) return;
-      const isActive = stop.status === "in-progress";
-      const color = statusColor(stop.status);
-
-      if (stop.coveragePath && stop.coveragePath.length >= 2) {
-        L.polyline(stop.coveragePath, {
-          color: "hsl(var(--map-inset))",
-          weight: isActive ? 10 : 8,
-          opacity: 0.9,
-          lineCap: "round",
-          lineJoin: "round",
-          interactive: false,
-        }).addTo(layer);
-
-        const coverageLine = L.polyline(stop.coveragePath, {
-          color: coverageColor(stop.status),
-          weight: isActive ? 7 : 5,
-          opacity: stop.status === "done" ? 0.68 : 0.95,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(layer);
-
-        const tooltip = document.createElement("div");
-        tooltip.className = "text-xs";
-        const title = document.createElement("strong");
-        title.textContent = `${stop.stopNumber}. ${stop.barangay}`;
-        const status = document.createElement("div");
-        status.textContent = statusLabel(stop.status);
-        status.style.color = coverageColor(stop.status);
-        status.style.fontSize = "11px";
-        tooltip.append(title, status);
-        coverageLine.bindTooltip(tooltip, { sticky: true, direction: "top" });
-
-        L.marker(stop.coveragePath[0], {
-          icon: createCoverageOrderIcon(stop),
-          interactive: false,
-          zIndexOffset: isActive ? 500 : 0,
-        }).addTo(layer);
-        return;
-      }
-
-      const pinIcon = createStopTeardropIcon(stop);
-
-      const marker = L.marker(stop.coords, { icon: pinIcon, zIndexOffset: isActive ? 500 : 0 });
-
-      const progressInfo = stop.status === "done" && stop.completedAt
-        ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.7;margin-top:4px">Completed at ${escapeHtml(stop.completedAt)}</div>`
-        : stop.status === "skipped" && stop.skippedReason
-        ? `<div style="font-size:11px;color:hsl(var(--warning-foreground));margin-top:4px">${escapeHtml(stop.skippedReason)}</div>`
-        : stop.status === "not-yet" && stop.distanceKm > 0
-        ? `<div style="font-size:11px;opacity:0.6;margin-top:4px">${formatDistance(stop.distanceKm)}</div>`
-        : "";
-
-      const popupContent = `
-        <div style="font-family:var(--font-ui);font-variant-numeric:tabular-nums;min-width:180px;max-width:240px;padding:2px 0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="width:28px;height:28px;border-radius:var(--radius);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-size:12px;font-weight:700">
-              ${stop.stopNumber}
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:13px;color:inherit">${escapeHtml(stop.barangay)}</div>
-              <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
-                <span style="font-size:11px;font-weight:600;color:${color}">${statusLabel(stop.status)}</span>
-              </div>
-            </div>
-          </div>
-          ${progressInfo}
-        </div>`;
-
-      marker.bindPopup(popupContent, {
-        autoClose: false,
-        closeOnClick: false,
-        closeButton: true,
-        className: "tracking-popup",
-        maxWidth: 260,
-        minWidth: 180,
-      });
-
-      marker.addTo(layer);
-    });
+    renderTrackingStops({ map, layer, stops, selectedId: selectedMapStop,
+      showFullRoute, liveCoverage: !preview, onSelect: selectMapStop });
 
     // Truck marker with custom teardrop icon
     const truckIcon = createCollectorTruckPinIcon();
@@ -331,7 +220,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         hasAutoFittedRef.current = true;
       }
     }
-  }, [stops, truckCoords, preview]);
+  }, [stops, truckCoords, preview, mapZoom, selectedMapStop, showFullRoute, selectMapStop]);
 
   const handleRecenter = () => {
     const map = mapRef.current;
@@ -400,6 +289,9 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   return (
     <div className={`collector-route-map relative h-full min-w-0 w-full overflow-hidden bg-card [&_.leaflet-control-attribution]:!hidden ${preview ? "" : "rounded-2xl border border-border shadow-xs"}`}>
       <div ref={mapElRef} className="h-full w-full z-0" />
+      <MapAttribution />
+      <TrackingStopControls stops={stops} selectedId={selectedMapStop} onSelect={selectMapStop}
+        fullRoute={showFullRoute} onFullRouteChange={setShowFullRoute} />
 
       {/* Floating Zoom Controls (Top-Right) */}
       <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-[400] flex flex-col bg-card/75 backdrop-blur-md rounded-xl border border-border/70 shadow-2xs overflow-hidden p-0.5 pointer-events-auto">
@@ -424,7 +316,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="collector-route-map-legend absolute left-2.5 top-2.5 z-[400] flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3 sm:top-3">
+      <div className="collector-route-map-legend absolute left-2.5 top-16 z-[400] hidden sm:flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-ui-overline font-semibold text-muted-foreground shadow-2xs sm:left-3">
         {preview ? (
           <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Planned Stops</span>
         ) : (
@@ -437,7 +329,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       </div>
 
       {/* Floating Map Action Controls (Bottom-Right) */}
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-lg border border-border/70 shadow-2xs">
+      <div className="absolute bottom-10 right-2.5 sm:right-3 z-[400] flex items-center gap-1 sm:gap-1.5 bg-card/75 backdrop-blur-md p-1 rounded-lg border border-border/70 shadow-2xs">
         {!preview && (
           <button
             type="button"
@@ -463,7 +355,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
         </button>
       </div>
 
-      <div className="collector-route-map-caption absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center min-w-0">
+      <div className="collector-route-map-caption absolute bottom-10 left-2.5 sm:left-3 z-[400] bg-card/75 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-border/70 shadow-2xs flex items-center min-w-0">
         <span className="text-ui-overline sm:text-ui-caption font-body font-semibold text-foreground break-words">
           {preview ? "Route Preview · GPS Off" : activeRoute?.source === "haversine" ? "Estimated Straight-Line Path" : "Candelaria, Quezon"}
         </span>

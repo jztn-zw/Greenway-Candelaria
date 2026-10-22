@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useSystemTime } from "@/hooks/useSystemTime";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
@@ -114,7 +115,7 @@ const AdminCollectionSchedule: React.FC = () => {
         setViewingDetailEvent(null);
       }
       } catch (err) {
-      toast.error("Failed to delete event");
+      toast.error("Could not delete event", { description: getActionErrorMessage(err) });
     } finally {
       setIsDeleting(false);
     }

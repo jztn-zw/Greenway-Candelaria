@@ -72,6 +72,9 @@ const AdminTruckCard = ({
 }: AdminTruckCardProps) => {
   const [routeExpanded, setRouteExpanded] = useState(false);
   const status = statusConfig[truck.status];
+  const distance = truck.distanceToday?.date === getManilaNow().dateKey ? truck.distanceToday : null;
+  const distanceKm = distance?.distance_km;
+  const hasDistance = typeof distanceKm === "number" && Number.isFinite(distanceKm);
   const isNear = truck.barangaysAway !== null && truck.barangaysAway <= 3 && truck.status === "on-the-way";
   const progressPct = truck.totalBarangays > 0
     ? Math.min(100, Math.max(0, Math.round((truck.completedBarangays / truck.totalBarangays) * 100)))
@@ -168,6 +171,19 @@ const AdminTruckCard = ({
               )}
             </div>
           )}
+
+          <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2 text-ui-caption">
+              <span className="font-medium text-muted-foreground">Distance Today</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                {hasDistance ? `${distanceKm.toFixed(2)} km` : "Not enough GPS data"}
+              </span>
+            </div>
+            <p className="mt-1 text-ui-overline text-muted-foreground">
+              {hasDistance ? "GPS estimate" : "Needs consecutive GPS samples"}
+              {distance && distance.gap_count + distance.rejected_points > 0 ? " · Gaps or unreliable fixes excluded" : ""}
+            </p>
+          </div>
 
           {isSelected && (
             <>

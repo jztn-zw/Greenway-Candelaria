@@ -3,8 +3,9 @@ import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { expect, it, vi } from "vitest";
 import TruckBreakdownDialog from "./TruckBreakdownDialog";
+import { toast } from "@/lib/toast";
 
-vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn() } }));
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 it("requires a location and sends the selected breakdown details", async () => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -55,6 +56,7 @@ it("protects an unsent breakdown draft and retains it after a failed submission"
     await click("Cancel"); expect(onOpenChange).not.toHaveBeenCalled(); expect(document.body.textContent).toContain("Discard Breakdown Report?");
     await click("Keep Editing"); expect(document.querySelector("textarea")).toHaveValue("Flat tire near chapel");
     await click("Send Report"); expect(document.querySelector('[role="alert"]')).toHaveTextContent("The report could not be sent");
+    expect(toast.error).toHaveBeenCalledWith("Could not send breakdown report", expect.objectContaining({ description: expect.any(String) }));
     expect(document.querySelector("textarea")).toHaveAttribute("aria-invalid", "false");
     expect(document.querySelector("textarea")).not.toHaveAttribute("aria-errormessage");
     expect(document.querySelector("textarea")).toHaveValue("Flat tire near chapel"); expect(onOpenChange).not.toHaveBeenCalled();

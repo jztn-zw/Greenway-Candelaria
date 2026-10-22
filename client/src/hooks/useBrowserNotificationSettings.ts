@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import useAuthStore from "@/store/authStore";
 import { browserNotificationPermission, browserNotificationSnapshot, enableBrowserNotifications,
@@ -26,8 +28,13 @@ export function useBrowserNotificationSettings() {
       if (field === "enabled" && enabled) await enableBrowserNotifications();
       if (!current()) return;
       saveBrowserNotificationSettings(userId, { [field]: enabled });
+      toast.success("Browser notification preferences saved");
     } catch (cause) {
-      if (current()) setError(cause instanceof Error ? cause.message : "Could not save browser notification preferences.");
+      if (current()) {
+        const message = getActionErrorMessage(cause, "Could not save browser notification preferences.");
+        setError(message);
+        toast.error("Could not save notification preferences", { description: message });
+      }
     } finally {
       if (current()) { pending.current = false; setBusy(false); }
     }

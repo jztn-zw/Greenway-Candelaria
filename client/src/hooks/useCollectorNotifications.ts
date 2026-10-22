@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useInfiniteQuery,useIsMutating,useQuery,useQueryClient } from "@tanstack/react-query";
 import useAuthStore from "@/store/authStore";
 import notificationsService,{ type NotificationFilters } from "@/services/notificationsService";
@@ -25,9 +26,11 @@ export const useCollectorNotifications = () => {
   const runAction = useCollectorAction("notifications");
   const markingAll = usePendingAction();
   const isMutating = useIsMutating({ predicate: (mutation) => mutation.meta?.collectorUserId === user?.id && Array.isArray(mutation.meta?.collectorDomains) && mutation.meta.collectorDomains.includes("notifications") }) > 0;
-  const perform = async (action: () => Promise<void>, success?: string) => {
+  const perform = async (action: () => Promise<void>, failure: string, success?: string) => {
     try { await runAction(action); if (success && useAuthStore.getState().user?.id === user?.id) toast.success(success); }
-    catch { toast.error("Could not update notifications. Please try again."); }
+    catch (error) {
+      if (useAuthStore.getState().user?.id === user?.id) toast.error(failure, { description: getActionErrorMessage(error) });
+    }
   };
   const fetchNotifications = async (filters: NotificationFilters = {}) => {
     if (filters.category && filters.category !== category) { client.setQueryData(categoryKey, filters.category); return; }
@@ -44,12 +47,12 @@ export const useCollectorNotifications = () => {
     error: feed.error || unread.error || recent.error ? "Notifications could not be loaded. Please try again." : null,
     nextCursor: feed.hasNextPage ? feed.data?.pages[feed.data.pages.length - 1]?.next_cursor ?? null : null,
     loadMore: async () => { if (feed.hasNextPage && !feed.isFetching) await feed.fetchNextPage(); }, fetchNotifications,
-    markAsRead: (id: string) => perform(() => notificationsService.markNotificationAsRead(id)),
+    markAsRead: (id: string) => perform(() => notificationsService.markNotificationAsRead(id), "Could not mark notification as read"),
     isMarkingAll: markingAll.isPending,
     markAllAsRead: () => {
       if (isMutating) return;
-      return markingAll.run(() => perform(() => notificationsService.markAllNotificationsAsRead(), "All notifications marked as read"));
+      return markingAll.run(() => perform(() => notificationsService.markAllNotificationsAsRead(), "Could not mark all notifications as read", "All notifications marked as read"));
     },
-    clearAll: () => perform(() => notificationsService.clearAllNotifications(), "Notification history cleared"),
+    clearAll: () => perform(() => notificationsService.clearAllNotifications(), "Could not clear notification history", "Notification history cleared"),
   };
 };

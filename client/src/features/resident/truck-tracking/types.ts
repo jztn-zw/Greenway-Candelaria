@@ -27,6 +27,7 @@ export interface Truck {
   collectionStarted?: boolean;
   eta: number | null; // minutes
   roadDistanceKm?: number | null;
+  distanceKm?: number | null; // direct distance to the resident's saved location
   isResidentTruck: boolean;
   barangaysAway: number | null;
   routeStops: RouteStopInfo[];

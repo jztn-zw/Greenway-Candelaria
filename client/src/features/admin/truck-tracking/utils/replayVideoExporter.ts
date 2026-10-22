@@ -11,12 +11,13 @@ export interface ExportVideoOptions {
   dateStr: string;
   trip: ReplayTrip;
   speed: number;
+  mp4Only?: boolean;
   signal?: AbortSignal;
   onProgress?: (percent: number) => void;
   onStage?: (stage: "map" | "recording" | "encoding" | "finalizing") => void;
 }
 
-export const getSupportedVideoMimeType = (): { mimeType: string; extension: string } => {
+export const getSupportedVideoMimeType = (mp4Only = false): { mimeType: string; extension: string } => {
   if (typeof MediaRecorder === "undefined") throw new Error("Video recording is not supported by this browser.");
   const candidates = [
     { mimeType: "video/mp4;codecs=avc1", extension: "mp4" },
@@ -25,13 +26,13 @@ export const getSupportedVideoMimeType = (): { mimeType: string; extension: stri
     { mimeType: "video/webm;codecs=vp8", extension: "webm" },
     { mimeType: "video/webm", extension: "webm" },
   ];
-  const supported = candidates.find(({ mimeType }) => MediaRecorder.isTypeSupported(mimeType));
-  if (!supported) throw new Error("No supported video format is available.");
+  const supported = candidates.find(({ mimeType, extension }) => (!mp4Only || extension === "mp4") && MediaRecorder.isTypeSupported(mimeType));
+  if (!supported) throw new Error(mp4Only ? "MP4 export is unavailable in this browser. Try Chrome or Edge, or download KML or GPX." : "No supported video format is available.");
   return supported;
 };
 
 // Render the full recorded trip at the chosen speed over the tracking basemap.
-export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip, speed, signal, onProgress, onStage }: ExportVideoOptions): Promise<void> => {
+export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip, speed, signal, onProgress, onStage, mp4Only = false }: ExportVideoOptions): Promise<void> => {
   if (trip.path.length < 2) throw new Error("At least two GPS records are required.");
   if (!REPLAY_VIDEO_SPEEDS.some((value) => value === speed)) throw new Error("Choose a supported video speed.");
   const videoDuration = getReplayDuration(trip) / speed;
@@ -210,12 +211,12 @@ export const exportReplayVideo = async ({ truckName, plateNumber, dateStr, trip,
     window.setTimeout(() => URL.revokeObjectURL(url), 15000);
     onProgress?.(100);
   };
-  const encoded = await encodeReplayVideoFast(canvas, videoDuration, drawFrame, { signal, onProgress, onStage });
+  const encoded = await encodeReplayVideoFast(canvas, videoDuration, drawFrame, { signal, onProgress, onStage, mp4Only });
   checkAbort();
   if (encoded) { download(encoded.video, encoded.extension); return; }
 
   // Keep a compatible recording path for browsers without a supported encoder.
-  const { mimeType, extension } = getSupportedVideoMimeType();
+  const { mimeType, extension } = getSupportedVideoMimeType(mp4Only);
   if (typeof canvas.captureStream !== "function") throw new Error("Video capture is unavailable.");
   const stream = canvas.captureStream(30);
   let recorder: MediaRecorder | undefined;

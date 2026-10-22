@@ -9,8 +9,9 @@ const ProximityAlert = ({ truck }: ProximityAlertProps) => {
   if (
     !truck.isResidentTruck ||
     truck.status !== "on-the-way" ||
-    !truck.barangaysAway ||
-    truck.barangaysAway > 3
+    truck.barangaysAway !== 0 ||
+    truck.distanceKm == null ||
+    truck.distanceKm > 0.5
   ) {
     return null;
   }

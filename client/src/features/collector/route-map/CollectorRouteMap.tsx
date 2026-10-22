@@ -614,7 +614,7 @@ const CollectorRouteMap = () => {
       {!hasStartedRoute ? (
         <div className="space-y-4">
           {renderActiveStopCard()}
-          <div className="collector-route-workspace">
+          <div className="collector-route-workspace collector-route-planned-workspace">
             <section aria-label="Planned route map" className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3 sm:px-5">
                 <div>
@@ -635,7 +635,7 @@ const CollectorRouteMap = () => {
                 )}
               </div>
             </section>
-            <section aria-label="Assigned stop order" className="min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5">
+            <section aria-label="Assigned stop order" className={cn("collector-route-planned-stops min-w-0 rounded-2xl border border-border/80 bg-card p-4 sm:p-5", autoRoutedStops.length > 0 && "collector-route-planned-stops-scrollable")}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="gw-heading text-sm text-foreground sm:text-base">Stop Order</h2>
@@ -644,7 +644,7 @@ const CollectorRouteMap = () => {
                 <span className="shrink-0 rounded-lg bg-muted/60 px-2.5 py-1 tabular-nums text-xs font-semibold tabular-nums text-foreground">{autoRoutedStops.length}</span>
               </div>
               {autoRoutedStops.length > 0 ? (
-                <ol className="max-h-[360px] divide-y divide-border/60 overflow-y-auto pr-1 lg:max-h-[424px]">
+                <ol className="collector-route-planned-stop-list divide-y divide-border/60">
                   {autoRoutedStops.map((stop, index) => (
                     <li key={stop.id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
                       <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg tabular-nums text-xs font-semibold", index === 0 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{stop.stopNumber}</span>

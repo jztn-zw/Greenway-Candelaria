@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
@@ -125,7 +127,9 @@ const ResidentContents = () => {
       } else {
         await unlike(targetPost.id);
       }
-    } catch {
+      toast.success(nextLiked ? "Post liked" : "Like removed");
+    } catch (error) {
+      toast.error("Could not update your like", { description: getActionErrorMessage(error) });
       setPosts((prev) =>
         prev.map((p) =>
           p.id === targetPost.id

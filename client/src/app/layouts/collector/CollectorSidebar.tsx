@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { navigationStyles, navigationSectionTitle } from "../navigationStyles";
 import {
   LayoutDashboard,
@@ -123,7 +124,7 @@ const CollectorSidebar = () => {
         className={navigationStyles.brand}
       >
         <div className={navigationStyles.brandIcon}>
-          <img src="/greenway.svg" alt="GreenWay Logo" className="w-5 h-5 object-contain" />
+          <GreenWayLogo className="size-7" />
         </div>
 
         <div

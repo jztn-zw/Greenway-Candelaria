@@ -1,3 +1,7 @@
+import { bindMapPinScale } from "@/components/maps/mapPinScale";
+import MapAttribution from "@/components/common/MapAttribution";
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ActionButtonLoader from "@/components/common/ActionButtonLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
@@ -186,6 +190,7 @@ const StreetCoverageEditor = ({
     }).addTo(map);
     const initialView = initialViewRef.current;
     map.setView((initialView.initialPath?.[0] ?? initialView.center ?? DEFAULT_CENTER) as L.LatLngExpression, initialView.initialPath?.length ? 17 : 16);
+    const unbindPinScale = bindMapPinScale(map, mapContainer);
 
     const addPoint = (event: L.LeafletMouseEvent) => {
       if (savingRef.current) return;
@@ -210,6 +215,7 @@ const StreetCoverageEditor = ({
       window.clearTimeout(resizeTimer);
       resizeObserver?.disconnect();
       map.off("click", addPoint);
+      unbindPinScale();
       map.remove();
       mapRef.current = null;
       pointsLayerRef.current = null;
@@ -244,7 +250,7 @@ const StreetCoverageEditor = ({
         draggable: !saving,
         icon: L.divIcon({
           className: "!border-0 !bg-transparent",
-          html: `<span class="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-white bg-primary text-[10px] font-bold text-primary-foreground shadow-md">${index + 1}</span>`,
+          html: `<span style="transform:scale(var(--map-pin-scale,1));transform-origin:center;" class="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-white bg-primary text-[10px] font-bold text-primary-foreground shadow-md">${index + 1}</span>`,
           iconSize: [26, 26],
           iconAnchor: [13, 13],
         }),
@@ -317,6 +323,7 @@ const StreetCoverageEditor = ({
       else await onSave(null);
       onOpenChange(false);
     } catch (saveError) {
+      toast.error("Could not save street coverage", { description: getActionErrorMessage(saveError) });
       setError(isAxiosError(saveError) && (!saveError.response || saveError.response.status >= 500)
         ? "We couldn't save your path right now. Your changes are kept in this window. Please try Save path again."
         : saveError instanceof Error ? saveError.message : "Could not save the street path.");
@@ -423,14 +430,7 @@ const StreetCoverageEditor = ({
                 <Minus className="h-4 w-4" />
               </button>
             </div>
-            <a
-              href="https://www.openstreetmap.org/copyright"
-              target="_blank"
-              rel="noreferrer"
-              className="absolute bottom-1.5 right-2 z-[400] text-[9px] leading-none text-muted-foreground/70 transition-colors hover:text-primary"
-            >
-              © OpenStreetMap
-            </a>
+            <MapAttribution />
           </div>
 
         </div>

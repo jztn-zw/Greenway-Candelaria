@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { ArrowRight, Leaf, Mail, MapPin, Phone } from "lucide-react";
 import { CONTENT, type ContactContent, type FooterContent } from "../landingContent";
 import "./Footer.css";
@@ -17,7 +18,7 @@ export default function Footer({ content = CONTENT.footer, contactContent = CONT
         <div className="sm:col-span-2 lg:col-span-1">
           <p className="mb-4 text-xs font-medium tracking-wide text-canopy-foreground/75">MENRO Candelaria, Quezon</p>
           <a href="#home" aria-label="GreenWay Home" className="inline-flex items-center gap-3 rounded-lg font-display text-3xl font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy-foreground sm:text-4xl">
-            <span className="landing-footer-logo flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-canopy-foreground/95"><img src="/greenway.svg" alt="" width={34} height={34} loading="lazy" /></span>GreenWay
+            <span className="landing-footer-logo flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-canopy-foreground/95"><GreenWayLogo alt="" className="size-9 text-canopy" /></span>GreenWay
           </a>
           <p className="mt-4 max-w-xs text-pretty text-sm leading-6 text-canopy-foreground/80">{content.tagline}</p>
         </div>

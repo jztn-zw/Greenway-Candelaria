@@ -26,6 +26,14 @@
   overscroll-behavior: contain;
 }
 
+.collector-route-planned-stops {
+  min-width: 0;
+}
+
+.collector-route-planned-stop-list {
+  min-width: 0;
+}
+
 .collector-route-map-legend {
   max-width: calc(100% - 80px);
 }
@@ -62,6 +70,22 @@
   .collector-route-workspace > .collector-route-map-height {
     height: auto;
     min-height: 600px;
+  }
+  .collector-route-planned-workspace {
+    align-items: start;
+  }
+  .collector-route-planned-stops-scrollable {
+    display: flex;
+    min-height: 0;
+    height: 650px;
+    flex-direction: column;
+  }
+  .collector-route-planned-stop-list {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.25rem;
   }
   .collector-route-sidebar .collector-route-stop-list {
     flex: 1;

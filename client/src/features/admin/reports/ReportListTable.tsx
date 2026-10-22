@@ -61,10 +61,12 @@ const ReportListTable = ({
   onPageChange,
   onQuickStatusChange,
 }: ReportListTableProps) => {
-  const handleCopyRef = (e: React.MouseEvent, refNumber: string) => {
+  const handleCopyRef = async (e: React.MouseEvent, refNumber: string) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(refNumber);
-    toast.success(`Reference ${refNumber} copied`);
+    try {
+      await navigator.clipboard.writeText(refNumber);
+      toast.success(`Reference ${refNumber} copied`);
+    } catch { toast.error("Could not copy the report reference. Select it and copy it manually."); }
   };
 
   return (

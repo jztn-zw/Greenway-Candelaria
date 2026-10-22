@@ -1,6 +1,9 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import DriverEditorModal from "./DriverEditorModal";
+import { toast } from "@/lib/toast";
+
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 afterEach(cleanup);
 it("allows editing a collector username and preserves the draft after a duplicate error", async () => {
@@ -15,6 +18,7 @@ it("allows editing a collector username and preserves the draft after a duplicat
   expect(screen.getByLabelText("Username")).toHaveValue("collector.new");
   expect(screen.getByLabelText("Username")).toHaveAttribute("aria-invalid", "true");
   expect(screen.getByText("Username already taken. Choose another username.")).toBeInTheDocument();
+  expect(toast.error).toHaveBeenCalledWith("Could not save collector", { description: "Username already taken" });
 });
 it("rejects contacts outside the Philippine 09 mobile format", async () => {
   const save = vi.fn();

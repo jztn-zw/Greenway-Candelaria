@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +146,7 @@ const DriverEditorModal = ({
       });
       handleOpenChange(false);
     } catch (error) {
+      toast.error("Could not save collector", { description: getActionErrorMessage(error) });
       const response = (error as { response?: { data?: { message?: string } } }).response?.data;
       const message = response?.message || (error instanceof Error ? error.message : "Unable to save this collector. Please try again.");
       setErrors(message === "Username already taken" ? { username: "Username already taken. Choose another username." } : { form: message });

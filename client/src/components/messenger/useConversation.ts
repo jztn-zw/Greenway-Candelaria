@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useCallback, useRef, useState } from "react";
 import { useInfiniteQuery, useIsMutating, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { fetchConversation, sendConversationMessage, markAdminMessagesAsRead, type ConversationPage, type WebMessage } from "@/services/messengerService";
@@ -100,8 +102,15 @@ export const useConversation = (driverId?: string, enabled = true) => {
     const text = value.trim();
     if (!text || text.length > 1000 || sendLock.current) return false;
     sendLock.current = true;
-    try { await sendMutation.mutateAsync({ text, userId: user?.id, token }); return true; }
-    catch { setError("Message could not be sent. Retry to safely resend the same message."); return false; }
+    try {
+      await sendMutation.mutateAsync({ text, userId: user?.id, token });
+      if (useAuthStore.getState().user?.id === user?.id && useAuthStore.getState().token === token) toast.success("Message sent");
+      return true;
+    } catch (failure) {
+      if (useAuthStore.getState().user?.id === user?.id && useAuthStore.getState().token === token)
+        toast.error("Message could not be sent", { description: getActionErrorMessage(failure) });
+      setError("Message could not be sent. Retry to safely resend the same message."); return false;
+    }
     finally { sendLock.current = false; }
   };
   const readMessage = readMutation.mutateAsync;

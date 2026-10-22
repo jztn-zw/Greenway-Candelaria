@@ -13,6 +13,7 @@ import type { Truck,CollectionDayStatus,CollectionSchedule } from "./types";
 import { ResidentTrackingSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { fetchBarangays } from "@/services/barangaysService";
+import { fetchProfile } from "@/services/profileService";
 import { fetchRoutes,type ApiRoute } from "@/services/routesService";
 import useAuthStore from "@/store/authStore";
 import { residentKey,useResidentQuery,useResidentResource } from "@/lib/residentQuery";
@@ -29,6 +30,7 @@ calculateDistanceInKilometers,
 formatCollectionTime,
 normaliseId,
 parseCoordinate,
+residentPinCoordinates,
 } from "./truckTracking.utils";
 import type { RoadRouteResult } from "@/services/roadRoutingService";
 import { getManilaNow,parseApiTimestamp } from "@/utils/date";
@@ -306,6 +308,9 @@ const ResidentTruckTracking = () => {
   const [residentCoords, setResidentCoords] = useState<[number, number] | null>(null);
   const residentBarangayId = normaliseId(currentUser?.barangay_id);
   const residentStreetId = normaliseId(currentUser?.street_id);
+  const profileQuery = useResidentQuery("profile", ["me"], fetchProfile, { scope: "account" });
+  const savedPin = useMemo(() => residentPinCoordinates(profileQuery.data, currentUser?.id,
+    residentBarangayId, residentStreetId), [profileQuery.data, currentUser?.id, residentBarangayId, residentStreetId]);
   const [focusedTruckId, setFocusedTruckId] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [hasInitialSnapshot, setHasInitialSnapshot] = useState(false);
@@ -322,8 +327,8 @@ const ResidentTruckTracking = () => {
   const setLive = liveQuery.setData;
   const refetchPlan = planQuery.refetch;
   const refetchLive = liveQuery.refetch;
-  const isLoading = planQuery.isLoading || liveQuery.isLoading;
-  const queryError = planQuery.isError || liveQuery.isError;
+  const isLoading = planQuery.isLoading || liveQuery.isLoading || profileQuery.isLoading;
+  const queryError = planQuery.isError || liveQuery.isError || profileQuery.isError;
   useEffect(() => {
     if (queryError) setTrackingError("Tracking could not be refreshed. Last known information may be outdated.");
   }, [queryError]);
@@ -356,9 +361,8 @@ const ResidentTruckTracking = () => {
           : [residentLat, residentLng],
       );
     }
-    const effectiveResidentCoords: [number, number] | null = hasResidentCoords
-      ? [residentLat, residentLng]
-      : residentCoords;
+    const effectiveResidentCoords: [number, number] | null = savedPin ?? (hasResidentCoords
+      ? [residentLat, residentLng] : null);
 
     const liveByTruckId = new Map(liveRows.map((row) => [row.truck_id, row]));
     const barangayCoordsById = new Map(
@@ -440,9 +444,10 @@ const ResidentTruckTracking = () => {
         lastPing: parseBackendDate(live?.last_ping) !== null ? live?.last_ping : undefined,
         collectionStarted: Boolean(route?.collection_started_at),
         eta,
+        distanceKm,
         isResidentTruck,
         barangaysAway,
-        arrivedAtResident: Boolean(distanceKm !== null && distanceKm <= 0.2),
+        arrivedAtResident: Boolean(barangaysAway === 0 && distanceKm !== null && distanceKm <= 0.2),
         routeStops,
         routeClosedForTheDay: isRouteClosedForTheDay(route),
         residentStopStatus: residentStop ? residentStop.status : null,
@@ -453,7 +458,7 @@ const ResidentTruckTracking = () => {
     setTrucks(mappedTrucks);
     setRouteTemplates(allRoutes);
     if (!isLoading) setHasInitialSnapshot(true);
-  }, [residentBarangayId, residentStreetId, residentStreetLabel, residentCoords, planQuery.data, liveQuery.data, queryError, isLoading]);
+  }, [residentBarangayId, residentStreetId, residentStreetLabel, savedPin, planQuery.data, liveQuery.data, queryError, isLoading]);
 
   // Keep socket event handlers current without recreating a connection when
   // location/profile data changes during the page's initial load.
@@ -523,6 +528,7 @@ const ResidentTruckTracking = () => {
     [trucks],
   );
   const residentTrackingCoords = useMemo<[number, number] | null>(() => {
+    if (savedPin) return savedPin;
     const residentCoverage = residentTrucks
       .flatMap((truck) => truck.routeStops)
       .find((stop) => stop.isResidentBarangay && (stop.coveragePath?.length ?? 0) >= 2)
@@ -531,7 +537,7 @@ const ResidentTruckTracking = () => {
       return residentCoverage[Math.floor(residentCoverage.length / 2)] ?? residentCoords;
     }
     return residentCoords;
-  }, [residentCoords, residentTrucks]);
+  }, [residentCoords, residentTrucks, savedPin]);
 
   const hasActiveTrucks = residentTrucks.some((t) => t.status === "on-the-way");
   const residentCollectionFinalized = residentTrucks.some(
@@ -619,9 +625,9 @@ const ResidentTruckTracking = () => {
 
       <div className={trackingStyles.stack}>
 
-      {displayedTrackingError && <DataRefreshNotice message={displayedTrackingError} onRetry={() => { void refetchPlan(); void refetchLive(); }} retrying={planQuery.isFetching || liveQuery.isFetching} />}
+      {displayedTrackingError && <DataRefreshNotice message={displayedTrackingError} onRetry={() => { void refetchPlan(); void refetchLive(); void profileQuery.refetch(); }} retrying={planQuery.isFetching || liveQuery.isFetching || profileQuery.isFetching} />}
 
-      {!residentCoords && !displayedTrackingError && (
+      {!residentTrackingCoords && !displayedTrackingError && (
         <div className="flex items-center gap-2 rounded-2xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           Your barangay location is not configured yet, so distance and arrival estimates are unavailable.

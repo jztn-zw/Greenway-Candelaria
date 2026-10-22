@@ -7,7 +7,7 @@ import useAuthStore from "@/store/authStore";
 import ResidentDeletionDialog from "./ResidentDeletionDialog";
 
 vi.mock("@/services/authService", () => ({ default: { deleteAccount: vi.fn(), logout: vi.fn() } }));
-vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn() } }));
+vi.mock("@/lib/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const Location = () => <span data-testid="location">{useLocation().pathname}</span>;
 let client: QueryClient;
 beforeEach(() => {

@@ -1,4 +1,5 @@
 import { residentPageStyles } from "@/components/common/residentPageStyles";
+import { mapControlStyles } from "@/components/common/mapControlStyles";
 import "./tracking.css";
 
 // Keep the tracking screen and its loading state on the same responsive layout.
@@ -19,8 +20,8 @@ export const trackingStyles = {
   statusCard: "resident-tracking-status-card min-w-0 space-y-2.5",
   statusHeading: "gw-heading break-words text-sm leading-snug text-foreground tracking-tight",
   statusDescription: "text-xs leading-relaxed text-muted-foreground",
-  zoom: "absolute right-3 top-3 z-[500] flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card/95 p-0.5 shadow-sm backdrop-blur-md",
-  zoomButton: "gw-action-ghost flex h-9 w-9 touch-manipulation select-none items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  zoom: mapControlStyles.zoom,
+  zoomButton: mapControlStyles.zoomButton,
   mapFooter: "resident-tracking-map-footer order-3 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border/60 bg-card px-3 py-2",
   legend: "resident-tracking-legend flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-medium text-muted-foreground",
   actions: "resident-tracking-map-actions ml-auto flex items-center gap-1",

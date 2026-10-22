@@ -1,4 +1,5 @@
 interface FastVideoOptions {
+  mp4Only?: boolean;
   signal?: AbortSignal;
   onProgress?: (percent: number) => void;
   onStage?: (stage: "encoding" | "finalizing") => void;
@@ -10,7 +11,7 @@ export const encodeReplayVideoFast = async (
   canvas: HTMLCanvasElement,
   durationMs: number,
   drawFrame: (progress: number) => void,
-  { signal, onProgress, onStage }: FastVideoOptions,
+  { signal, onProgress, onStage, mp4Only = false }: FastVideoOptions,
 ): Promise<{ video: Blob; extension: string } | null> => {
   if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") return null;
   const checkAbort = () => {
@@ -24,6 +25,7 @@ export const encodeReplayVideoFast = async (
   const candidates = ["avc", "vp9", "vp8"] as const;
   let codec: typeof candidates[number] | null = null;
   for (const candidate of candidates) {
+    if (mp4Only && candidate !== "avc") continue;
     checkAbort();
     if (await canEncodeVideo(candidate, { width: canvas.width, height: canvas.height, frameRate, quality })) {
       codec = candidate;

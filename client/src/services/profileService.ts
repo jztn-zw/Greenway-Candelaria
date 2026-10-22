@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { ResidentSetupLocation } from '@/types/residentLocation';
 
 export interface UserProfile {
   id: string;
@@ -15,6 +16,7 @@ export interface UserProfile {
   street_id: string | null;
   street_name: string | null;
   street_area: string | null;
+  resident_location?: (ResidentSetupLocation & { barangayId: string; streetId: string }) | string | null;
   created_at: string;
   last_login_at: string | null;
 }
@@ -26,6 +28,7 @@ export interface UpdateProfilePayload {
   phone?: string;
   barangay_id?: string;
   street_id?: string | null;
+  resident_location?: ResidentSetupLocation;
   two_factor?: boolean;
   avatar_url?: string;
 }

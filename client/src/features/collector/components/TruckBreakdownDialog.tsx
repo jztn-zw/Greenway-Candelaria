@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { useEffect,useId,useState,type FormEvent } from "react";
 import { Truck,Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,9 @@ const TruckBreakdownDialog = ({
       await onSubmit({ category, description: details, urgent });
       toast.success("Breakdown report sent to MENRO dispatch");
       onOpenChange(false);
-    } catch {
+    } catch (error) {
+      const message = getActionErrorMessage(error, "The report could not be sent. Please try again.");
+      toast.error("Could not send breakdown report", { description: message });
       setSubmissionError("The report could not be sent. Please try again.");
     } finally {
       setSubmitting(false);

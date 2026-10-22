@@ -1,3 +1,4 @@
+import GreenWayLogo from "@/components/common/GreenWayLogo";
 import { useEffect,useRef,useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { toggleThemeMode } from "@/lib/theme";
@@ -57,7 +58,7 @@ const Navbar = () => {
       }`}>
         <div className="container flex items-center justify-between h-16">
           <a href="#home" className="font-display font-semibold tracking-tight flex items-center gap-2 text-xl text-primary dark:text-accent-foreground">
-            <img src="/greenway.svg" alt="GreenWay Logo" className="w-8 h-8 dark:brightness-125" />
+            <GreenWayLogo className="h-8 w-12" />
             GreenWay
           </a>
 

@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { AdminSettingsSkeleton } from "@/components/loading/PageLoadingSkeletons";
 import PageErrorState from "@/components/feedback/PageErrorState";
@@ -17,9 +18,6 @@ const defaultAlerts: AdminAlertSettings = {
   notif_admin_route_issues: true,
   notif_admin_driver_messages: true,
 };
-
-const errorMessage = (error: unknown, fallback: string) =>
-  (error as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
 
 const Section = ({ title, subtitle, icon: Icon, children }: {
   title: string;
@@ -62,9 +60,10 @@ const AdminSettings = () => {
         return updateAdminAlertSettings(nextAlerts);
       });
       setAlerts(updated);
+      toast.success("Alert preferences saved");
     } catch (error) {
       setAlerts(previousAlerts);
-      toast.error(errorMessage(error, "Could not save alert preferences."));
+      toast.error("Could not save alert preferences", { description: getActionErrorMessage(error) });
     } finally {
       setSavingAlerts(false);
     }

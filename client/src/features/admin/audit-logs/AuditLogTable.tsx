@@ -57,10 +57,12 @@ const AuditLogTable = ({
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const handleCopy = (e: React.MouseEvent, text: string, label: string) => {
+  const handleCopy = async (e: React.MouseEvent, text: string, label: string) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard`);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied to clipboard`);
+    } catch { toast.error("Could not copy this value. Select it and copy it manually."); }
   };
 
   const isDestructiveState = (val?: string) => {

@@ -1,3 +1,5 @@
+import { toast } from "@/lib/toast";
+import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import { toManilaCalendarDate, fromManilaCalendarDate } from "@/utils/date";
 import { getSystemDate } from "@/lib/serverClock";
 import { SearchInput } from "@/components/common/SearchInput";
@@ -201,6 +203,7 @@ const AnnouncementEditor = ({
     try {
       await onSave(candidate);
     } catch (error) {
+      toast.error("Could not save announcement", { description: getActionErrorMessage(error) });
       setErrors({ form: error instanceof Error ? error.message : "Unable to save this announcement. Please try again." });
     }
   };
