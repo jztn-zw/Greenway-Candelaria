@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const generateId = require('../../utils/generateId');
+const { validateResidentLocation } = require('../users/residentLocation');
 
 const completeResidentProfile = async (userId, data) => {
   const connection = await pool.getConnection();
@@ -14,6 +15,9 @@ const completeResidentProfile = async (userId, data) => {
     }
     // Repeated submits must not overwrite a completed profile.
     if (user.profile_completed === 0 || user.profile_completed === false) {
+      if (data.location_required && !data.resident_location) {
+        throw { statusCode: 400, message: 'Choose and confirm your location to continue.', field: 'resident_location' };
+      }
       const username = user.username || data.username;
       if (!username) throw { statusCode: 400, message: 'Choose a username', field: 'username' };
       if (user.username && data.username && data.username !== user.username)
@@ -32,11 +36,22 @@ const completeResidentProfile = async (userId, data) => {
       if (!data.street_id) {
         throw { statusCode: 400, message: 'Select your street', field: 'street_id' };
       }
+      let location;
+      if (data.resident_location != null) {
+        const [selected] = await connection.query(
+          'SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE',
+          [data.street_id, data.barangay_id],
+        );
+        location = validateResidentLocation(data.resident_location, selected[0]);
+      }
       await connection.query(
         'UPDATE users SET full_name = ?, username = ?, phone = ?, barangay_id = ?, street_id = ?, email = ?, avatar_url = COALESCE(?, avatar_url), profile_completed = 1 WHERE id = ?',
         [data.full_name, username, data.phone === undefined ? user.phone || null : data.phone, data.barangay_id, data.street_id || null,
           data.email === undefined ? user.email || null : data.email, data.avatar_url || null, userId],
       );
+      if (location) {
+        await connection.query('UPDATE users SET resident_location = ? WHERE id = ?', [JSON.stringify(location), userId]);
+      }
       await connection.query(
         'INSERT INTO user_settings (id, user_id, primary_barangay_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE primary_barangay_id = VALUES(primary_barangay_id)',
         [generateId(), userId, data.barangay_id],

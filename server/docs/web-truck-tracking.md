@@ -40,7 +40,7 @@ The map still uses OpenStreetMap tiles. Tile requests reveal the browser's IP an
 8. If a sample belongs to a paused, ended, unstarted, unavailable, reassigned or previous-day run, it is rejected. It cannot change truck status or reopen a route.
 9. If a sample repeats an ID, is older than the latest accepted capture, or arrives less than three seconds after it, it does not create another accepted position. Captures older than two minutes or more than five seconds in the future are rejected.
 10. If the collector loses internet, the web app waits for a fresh GPS fix after reconnection. It does not replay an old offline trail as current movement.
-11. If the truck comes within 750 metres of its next pending stop's street path (or legacy barangay point), eligible residents of that stop receive one “Truck Approaching” notification.
+11. When a fresh accepted GPS sample is within 500 metres of a resident's saved personal pin, and their registered barangay/street is the current pending target, that resident receives one approaching notice per run. Residents without a valid, address-matching pin retain the stop street-path (or legacy barangay-coordinate) fallback at 500 metres. Each recipient is checked on later samples, so the first notice does not suppress residents farther along the same street. Durable run/resident receipts survive inbox deletion and commit with GPS and inbox rows.
 12. If the collector comes within 150 metres of the current street path, the collector page shows the proximity indicator using actual fresh GPS distance. This indicator does not automatically complete the stop.
 13. If the collector marks the current stop done, it records the completion time and eligible residents of that stop receive “Collection Completed.” They do not have to wait for the entire truck route to finish.
 14. If a stop is street-specific, only active residents registered to that barangay AND street are eligible. A whole-barangay stop applies to active registered residents throughout that barangay.
@@ -74,6 +74,38 @@ The map still uses OpenStreetMap tiles. Tile requests reveal the browser's IP an
 
 ## Verification and limits
 
+### Admin daily distance and stop legend
+
+The admin tracking overview includes `trucks[].distance_today`, computed on the
+server from saved GPS fixes for today's dated collection runs in Philippine
+time. The read is admin-only; collector/resident live payloads are unchanged.
+It includes finished/offline trucks and refreshes with the existing overview
+reconciliation (15 seconds when connected, 8 seconds on the fallback).
+No migration or database write is needed. Clearing a truck's GPS history also
+removes that history from its next calculated daily total; this is not a
+permanent vehicle odometer.
+
+The calculation processes cursor pages of 5,000 rows without truncating a long
+shift. It checks route start/end boundaries, separates runs, breaks gaps longer
+than 30 seconds and the most recently saved resume boundary, rejects invalid
+fixes and jumps implying more than 120 km/h, and accumulates slow movement
+against a 15-metre anchor to reduce stationary drift. Duplicate/out-of-order
+captures cannot add distance. Missing usable consecutive samples produce
+`null`, while recorded stationary samples can produce a genuine zero.
+
+The UI labels the result as a GPS estimate, rounds only its display to two
+decimal places, and flags excluded gaps/unreliable fixes. It measures straight
+segments between recorded fixes, not the planned route or an inferred road
+path. Recording gaps, GPS drift, turns between fixes, and movement below the
+noise threshold can change the estimate. Historical GPS accuracy measurements
+and earlier pause/resume boundaries were not stored; they cannot be recovered
+or used to guarantee an odometer-accurate total. No missing travel is invented.
+
+The stop legend remains visible whenever the selected truck has displayed
+stop pins, regardless of online/offline status or saved street paths. Its
+Current, Completed, Upcoming, and Skipped colors share the marker/coverage
+presentation. Replay keeps its separate recorded-trail presentation.
+
 Local results: 60 server tests and 14 client tests pass. The client TypeScript check, tracking-scoped ESLint check, server JavaScript syntax checks and web production build pass. Repository-wide `npm run lint` still reports errors outside the modified tracking files. The production build reports existing bundle-size, browser-data-age and CSS utility warnings.
 
 Regression tests cover terminal-action idempotency, stop ordering, notification rollback, pause/end serialization, invalid/duplicate/old GPS, repeated outage/recovery, role-scoped output, history pagination, session revocation, and browser GPS callback cleanup. Related resident/admin/report tests are also run.
@@ -81,3 +113,27 @@ Regression tests cover terminal-action idempotency, stop ordering, notification 
 Transaction and query behavior is covered by fixture-based tests. After applying the migration to the configured database, the admin overview and admin live-snapshot service queries succeeded; all 7,486 existing GPS history rows and four route runs were preserved, and every history row had its capture time backfilled. The scoped lifecycle, tracking, and socket regression suite passed all 20 tests. Authenticated HTTP delivery, real device GPS, browser background throttling, and real multi-user sockets still require a staging smoke test. Browser coordinates are supplied by the device/client and are not cryptographic proof of a truck's physical location.
 
 Suggested staging sequence: use two residents on different streets, one collector and one admin; start a run, send GPS near the first street, pause/reload/resume, complete one street, skip another, verify each resident's distinct notices, then repeat the terminal request and verify that no duplicate notice is saved. Disconnect/reconnect GPS twice and revoke one connected session. Replay a day with more than 5,000 saved points.
+
+Resident web tracking reads the owner profile through the existing account-scoped profile query. A valid address-matching personal pin takes priority for its marker, direct proximity distance and travel-estimate destination. The approach banner uses the 500-metre direct radius only for the current target; the existing 200-metre arrival indicator is separate. Road travel estimates still use the configured driving router and may differ from the direct notification radius. Home pins do not become route stops or change the collector route. Missing/invalid pins retain the previous street/barangay map reference. Shared backend notices use the same inbox/socket/push contract for web and mobile; no native tracking UI was changed.
+
+The resident's home-directed road line appears only for their assigned active
+truck when their pending street has zero stops before it. Other waiting streets
+can still see a travel estimate, without a line implying they are the current
+target. Target changes clear the line and discard stale routing responses.
+
+### Focused stop display
+
+Admin and collector web tracking now group nearby non-current stops at overview
+zooms. At street zoom, individual numbered circles appear; overlapping markers
+retain a selectable member list. The current target and a manually focused stop
+remain separate highlighted pins. Completed stops use solid green markers with
+check badges; completed groups retain their count and check badge. Clicking a
+group zooms closer, including at street zoom. The street picker
+only changes map focus, never the authoritative target or collection outcome.
+
+The default view draws current/selected street coverage. Show Full Route restores
+all saved coverage with thinner, subdued lines. Inactive admin trucks do not show
+a live corridor; explicit selection/full-route display can preview saved street
+coverage. Replay rendering, driving routes/ETA, GPS lifecycle, authorization and
+resident proximity alerts retain their existing behavior. No new provider,
+dependency, API contract or database migration is introduced.

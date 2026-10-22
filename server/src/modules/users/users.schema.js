@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const { residentLocationSchema } = require("./residentLocation");
 
 const updateProfileSchema = z.object({
   email: z.preprocess(value => typeof value === "string" ? value.trim().toLowerCase() || null : value,
@@ -16,8 +17,16 @@ const updateProfileSchema = z.object({
   phone: z.string().trim().max(20).regex(/^[0-9+()\-\s]*$/, "Invalid phone number").optional(),
   barangay_id: z.string().uuid().optional(),
   street_id: z.string().uuid().nullable().optional(),
+  resident_location: residentLocationSchema.unwrap().optional(),
   avatar_url: z.string().regex(/^\/profile-avatars\/avatar-(?:[1-9]|10)\.png$/, "Choose one of the available avatars").optional(),
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  if (data.resident_location === undefined) return;
+  if (!data.barangay_id || !data.street_id) ctx.addIssue({ code: z.ZodIssueCode.custom,
+    message: "Choose your barangay, street and location together.", path: ["resident_location"] });
+  if (Object.keys(data).some(key => !["barangay_id", "street_id", "resident_location"].includes(key))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Save collection address changes separately from other profile changes.", path: ["resident_location"] });
+  }
+});
 
 const changePasswordSchema = z.object({
   old_password: z.string().min(1, "Old password is required").max(128),

@@ -39,6 +39,8 @@ const usernameRegisterSchema = z.object({
 }).strict().refine(data => data.password === data.confirm_password, { message: "Passwords do not match", path: ["confirm_password"] });
 const registerSchema = z.union([usernameRegisterSchema, accountRegisterSchema, legacyRegisterSchema]);
 const residentSetupSchema = z.object({
+  location_required: z.literal(true).optional(),
+  resident_location: require('../users/residentLocation').residentLocationSchema.optional(),
   avatar_url: z.string().regex(/^\/profile-avatars\/avatar-(?:[1-9]|10)\.png$/, "Choose one of the available avatars").optional(),
   full_name: z.string().trim().min(2, "Enter your full name").max(100),
   username: usernameSchema.optional(),
@@ -47,7 +49,9 @@ const residentSetupSchema = z.object({
     z.string().regex(/^\+639\d{9}$/, "Enter a valid Philippine mobile number").nullable().optional()),
   barangay_id: z.string().uuid("Select your barangay"),
   street_id: z.string().uuid("Select your street").nullable().optional(),
-}).strict();
+}).strict().refine(data => !data.location_required || data.resident_location != null, {
+  message: 'Choose and confirm your location to continue.', path: ['resident_location'],
+});
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(1, "Username is required").max(50).regex(/^[^\s@]+$/, "Enter your username"),

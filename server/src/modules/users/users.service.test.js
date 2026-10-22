@@ -7,6 +7,19 @@ const service = require("./users.service");
 const { changePasswordSchema, updateAdminSettingsSchema } = require("./users.schema");
 
 after(() => pool.end());
+test('optional coordinates are selected only for the owner profile and omitted from auth responses', async () => {
+  const original = pool.query;
+  const location = { method: 'MANUAL_PIN', latitude: 13.93, longitude: 121.42 };
+  const statements = [];
+  pool.query = async sql => { statements.push(sql); return [[{ id: 'resident', role: 'RESIDENT', resident_location: location }]]; };
+  try {
+    assert.deepEqual((await service.getProfile('resident')).resident_location, location);
+    assert.match(statements[0], /u\.resident_location/);
+    await service.getById('resident'); assert.doesNotMatch(statements[1], /resident_location/);
+    const me = await require('../auth/auth.service').getMe('resident');
+    assert.equal(Object.hasOwn(me, 'resident_location'), false);
+  } finally { pool.query = original; }
+});
 test("admin resident details include the assigned street name", async () => {
   const original = pool.query;
   let statement = "";
@@ -155,15 +168,16 @@ for (const next of ["barangay-new", null, "barangay-old"]) {
   test(`settings address change to ${next} preserves only a street in the same barangay`, async () => {
     const original = pool.query;
     const originalConnection = pool.getConnection;
-    const resident = { barangay_id: "barangay-old", street_id: "street-old" };
+    const resident = { barangay_id: "barangay-old", street_id: "street-old", resident_location: { method: 'MANUAL_PIN' } };
     pool.query = async (sql, params) => {
       if (sql.includes("FROM users") && sql.includes("FOR UPDATE")) return [[{ id: "resident" }]];
       if (sql.includes("FROM barangays")) return [[{ id: next }]];
       if (sql.startsWith("UPDATE users SET")) {
         if (sql.includes("street_id")) {
           assert.match(sql, /CASE WHEN barangay_id <=> \? THEN street_id ELSE NULL END/);
-          assert.deepEqual(params, [next, next, "resident"]);
-          if (resident.barangay_id !== next) resident.street_id = null;
+          assert.match(sql, /resident_location = CASE WHEN barangay_id <=> \? THEN resident_location ELSE NULL END/);
+          assert.deepEqual(params, [next, next, next, "resident"]);
+          if (resident.barangay_id !== next) { resident.street_id = null; resident.resident_location = null; }
         }
         resident.barangay_id = next;
         return [{ affectedRows: 1 }];
@@ -176,6 +190,7 @@ for (const next of ["barangay-new", null, "barangay-old"]) {
     try {
       await service.updateUserSettings("resident", { primary_barangay_id: next });
       assert.equal(resident.street_id, next === "barangay-old" ? "street-old" : null);
+      assert.deepEqual(resident.resident_location, next === "barangay-old" ? { method: 'MANUAL_PIN' } : null);
       assert.equal(resident.barangay_id, next);
     } finally { pool.query = original; pool.getConnection = originalConnection; }
   });

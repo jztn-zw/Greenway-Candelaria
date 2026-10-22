@@ -32,7 +32,7 @@ const getById = async (req, res, next) => {
 
 const getStreets = async (req, res, next) => {
   try {
-    const streets = await service.getStreets(req.params.id);
+    const streets = await service.getStreets(req.params.id, req.query?.location_points === '1');
     return success(res, streets, "Barangay streets fetched successfully");
   } catch (err) {
     next(err);

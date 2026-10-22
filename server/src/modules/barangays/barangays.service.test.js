@@ -5,6 +5,20 @@ const service = require("./barangays.service");
 
 after(() => pool.end());
 
+test('setup street lookup returns only saved public control points, not admin editing metadata', async () => {
+  const original = pool.query;
+  const points = [[13.93, 121.42], [13.93, 121.43]];
+  pool.query = async sql => sql.includes('FROM barangays WHERE') ? [[{ id: 'b', collection_service_available: 1 }]]
+    : [[{ id: 's', name: 'Argao', area: 'Ilaya', coverage_path: points, coverage_edit: JSON.stringify({ mode: 'ROAD', points }) },
+      { id: 'old', name: 'Legacy', coverage_edit: null }]];
+  try {
+    const result = await service.getStreets('b', true);
+    assert.deepEqual(result.streets[0].location_points, points);
+    assert.deepEqual(result.streets[1].location_points, []);
+    assert.equal(Object.hasOwn(result.streets[0], 'coverage_edit'), false);
+  } finally { pool.query = original; }
+});
+
 test("street lookup returns saved streets independently of collection service availability", async () => {
   const original = pool.query;
   const streets = [{ id: "street-1", barangay_id: "barangay-1", name: "Main Street", area: "Zone A" }];

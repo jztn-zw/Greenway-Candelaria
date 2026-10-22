@@ -100,10 +100,12 @@ test("admin overview retains dated routes and scopes general messages per collec
     await withQueries(async (sql) => {
       if (sql.includes("FROM tracking_latest tl")) return [[]];
       if (sql.includes("FROM driver_messages dm")) return [[]];
+      if (sql.includes("FROM tracking_logs tl")) return [[]];
       throw new Error(`Unexpected query: ${sql}`);
     }, async (queries) => {
       const overview = await tracking.getAdminOverview();
       assert.equal(overview.routes[0].route_id, "run-1");
+      assert.equal(overview.trucks[0].distance_today.distance_km, null);
       assert.deepEqual(queries[1].params, [["driver-1"]]);
       assert.match(queries[1].sql, /PARTITION BY dm\.driver_id/);
       assert.match(queries[1].sql, /recent\.message_rank <= 50/);

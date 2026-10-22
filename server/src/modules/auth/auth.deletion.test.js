@@ -9,7 +9,7 @@ after(() => pool.end());
 
 const fixture = async (options, run) => {
   const password = await bcrypt.hash("CurrentPassword123!", 4);
-  let user = { id: "resident", full_name: "Resident", username: "resident", email: "resident@example.test", phone: "+639123456789", avatar_url: "/avatar.png", barangay_id: "barangay", street_id: "street", role: "RESIDENT", status: "ACTIVE", deleted_at: null, password, self_deactivated_at: null, profile_completed: 1, ...options.user };
+  let user = { id: "resident", full_name: "Resident", username: "resident", email: "resident@example.test", phone: "+639123456789", avatar_url: "/avatar.png", barangay_id: "barangay", street_id: "street", resident_location: { method: 'MANUAL_PIN', latitude: 13.93, longitude: 121.42 }, role: "RESIDENT", status: "ACTIVE", deleted_at: null, password, self_deactivated_at: null, profile_completed: 1, ...options.user };
   let sessions = options.sessions ?? ["old-session"]; let audits = []; let snapshot;
   const statements = []; const state = { committed: false, rolledBack: false };
   const original = { query: pool.query, connection: pool.getConnection, secret: process.env.JWT_SECRET };
@@ -21,6 +21,8 @@ const fixture = async (options, run) => {
     }
     if (sql.trimStart().startsWith("SELECT")) return [[{ ...user }]];
     if (sql.includes("deleted_at = UTC_TIMESTAMP()")) {
+      assert.match(sql, /resident_location = NULL/);
+      user.resident_location = null;
       Object.assign(user, { deleted_at: "2026-10-15", full_name: "Deleted Resident", username: null, email: null, phone: null, avatar_url: null, barangay_id: null, street_id: null, recovery_code_hash: null, password: params[0] });
     }
     if (sql.includes("status = 'DEACTIVATED'")) user.status = "DEACTIVATED";
@@ -61,7 +63,7 @@ test("resident deletion anonymizes the profile, preserves reports, and revokes s
     assert.equal(user().status, "DEACTIVATED");
     assert.ok(user().deleted_at);
     assert.equal(user().full_name, "Deleted Resident");
-    for (const field of ["username", "email", "phone", "avatar_url", "barangay_id", "street_id", "recovery_code_hash"]) assert.equal(user()[field], null);
+    for (const field of ["username", "email", "phone", "avatar_url", "barangay_id", "street_id", "resident_location", "recovery_code_hash"]) assert.equal(user()[field], null);
     assert.equal(await bcrypt.compare("CurrentPassword123!", user().password), false);
     assert.deepEqual(sessions(), []);
     assert.deepEqual(audits(), ["DELETE_USER"]);

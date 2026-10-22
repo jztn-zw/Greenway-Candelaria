@@ -2,6 +2,8 @@ const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../config/db");
 const auditService = require("../audit/audit.service");
+const { validateResidentLocation } = require("./residentLocation");
+const { updateProfileSchema } = require("./users.schema");
 
 // Serialize settings creation and area writes with account deletion. A request
 // authenticated on another device may still be waiting when deletion commits.
@@ -24,7 +26,7 @@ const getProfile = async (userId) => {
   const [users] = await pool.query(
     `SELECT 
        u.id, u.full_name, u.username, u.email, u.phone,
-       u.role, u.status, u.avatar_url, u.two_factor,
+       u.role, u.status, u.avatar_url, u.two_factor, u.resident_location,
        u.created_at, u.last_login_at,
        b.name AS barangay_name,
        b.id   AS barangay_id,
@@ -46,8 +48,36 @@ const getProfile = async (userId) => {
 };
 
 const updateProfile = async (userId, data) => {
+  if (data.resident_location !== undefined) {
+    const address = updateProfileSchema.parse(data);
+    await withActiveAccount(userId, async connection => {
+      const [[owner]] = await connection.query("SELECT role FROM users WHERE id = ?", [userId]);
+      if (owner?.role !== "RESIDENT") throw { statusCode: 403, message: "Collection locations are available for resident accounts only" };
+      const [[street]] = await connection.query(
+        "SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE",
+        [address.street_id, address.barangay_id],
+      );
+      const location = validateResidentLocation(address.resident_location, street);
+      await connection.query("UPDATE users SET barangay_id = ?, street_id = ?, resident_location = ? WHERE id = ? AND deleted_at IS NULL",
+        [address.barangay_id, address.street_id, JSON.stringify(location), userId]);
+      await connection.query(
+        "INSERT INTO user_settings (id, user_id, primary_barangay_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE primary_barangay_id = VALUES(primary_barangay_id)",
+        [uuidv4(), userId, address.barangay_id],
+      );
+    });
+    return getProfile(userId);
+  }
   const fields = [];
   const params = [];
+
+  // Optional onboarding coordinates cannot follow a later address change.
+  // Evaluate the original address before assigning any new IDs below.
+  if (data.barangay_id || data.street_id !== undefined) {
+    const matches = [];
+    if (data.barangay_id) { matches.push('barangay_id <=> ?'); params.push(data.barangay_id); }
+    if (data.street_id !== undefined || data.barangay_id) { matches.push('street_id <=> ?'); params.push(data.street_id || null); }
+    fields.push(`resident_location = CASE WHEN ${matches.map(value => `(${value})`).join(' AND ')} THEN resident_location ELSE NULL END`);
+  }
 
   if (data.full_name) {
     fields.push("full_name = ?");
@@ -339,7 +369,7 @@ const softDelete = async (id, adminId, ip) => {
 
   // 2. Soft delete
   await pool.query(
-    `UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `UPDATE users SET resident_location = NULL, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [id],
   );
 
@@ -440,7 +470,8 @@ const updateUserSettings = (userId, data) => withActiveAccount(userId, async (co
     // Evaluate the previous barangay before assigning the new one. Re-saving
     // the same barangay keeps its street; changing or clearing it cannot leave
     // an address pointing to a street in another barangay.
-    await connection.query("UPDATE users SET street_id = CASE WHEN barangay_id <=> ? THEN street_id ELSE NULL END, barangay_id = ? WHERE id = ? AND deleted_at IS NULL", [
+    await connection.query("UPDATE users SET resident_location = CASE WHEN barangay_id <=> ? THEN resident_location ELSE NULL END, street_id = CASE WHEN barangay_id <=> ? THEN street_id ELSE NULL END, barangay_id = ? WHERE id = ? AND deleted_at IS NULL", [
+      data.primary_barangay_id || null,
       data.primary_barangay_id || null,
       data.primary_barangay_id || null,
       userId,

@@ -42,7 +42,7 @@ const getById = async (id) => {
   return rows[0];
 };
 
-const getStreets = async (barangayId) => {
+const getStreets = async (barangayId, includeLocationPoints = false) => {
   const [barangays] = await pool.query(
     "SELECT id, collection_service_available FROM barangays WHERE id = ?",
     [barangayId],
@@ -53,7 +53,7 @@ const getStreets = async (barangayId) => {
   }
 
   const [streets] = await pool.query(
-    `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, b.latitude, b.longitude
+    `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, b.latitude, b.longitude${includeLocationPoints ? ', bs.coverage_edit' : ''}
      FROM barangay_streets bs
      JOIN barangays b ON b.id = bs.barangay_id
      WHERE bs.barangay_id = ?
@@ -63,7 +63,9 @@ const getStreets = async (barangayId) => {
 
   return {
     collection_service_available: Boolean(barangays[0].collection_service_available),
-    streets,
+    streets: includeLocationPoints ? streets.map(({ coverage_edit, ...street }) => ({
+      ...street, location_points: require('../users/residentLocation').savedStreetPoints(coverage_edit),
+    })) : streets,
   };
 };
 

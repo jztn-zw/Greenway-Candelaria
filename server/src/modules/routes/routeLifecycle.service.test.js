@@ -15,7 +15,7 @@ const fixture = async (options, exercise) => {
       ...options.run,
     },
     stops: options.stops || [{ id: "first", status: "NOT_STARTED", barangay_id: "brgy", street_id: "street", location: "Main Street" }],
-    notifications: [], logs: [], latest: null, truckStatus: "ON_THE_WAY",
+    notifications: [], receipts: [], logs: [], latest: null, truckStatus: "ON_THE_WAY",
   };
   const originalQuery = pool.query, originalConnection = pool.getConnection;
   let queue = Promise.resolve();
@@ -62,6 +62,15 @@ const fixture = async (options, exercise) => {
         if (sql.includes("COUNT(*) AS total")) return [[{ total: local.stops.length, completed: local.stops.filter((s) => s.status === "DONE").length }]];
         if (sql.includes("SELECT u.id FROM users")) {
           return [sql.includes("u.role = 'ADMIN'") ? [{ id: "admin" }] : Array.from({ length: options.residents || 1 }, (_, i) => ({ id: "resident-" + i }))];
+        }
+        if (sql.includes("u.resident_location FROM users")) {
+          return [Array.from({ length: options.residents || 1 }, (_, i) => ({ id: "resident-" + i }))
+            .filter(user => !local.receipts.some(row => row[1] === user.id))];
+        }
+        if (sql.startsWith("INSERT INTO route_run_proximity_receipts")) {
+          if (options.failReceipt) throw new Error("receipt insert failed");
+          local.receipts.push(...params[0]);
+          return [{ affectedRows: params[0].length }];
         }
         if (sql.includes("INSERT INTO notifications")) {
           local.notifications.push(...params[0]);
@@ -201,3 +210,31 @@ test("GPS outage notices deduplicate, clear on recovery, and can alert on a seco
 
 // Release the idle database-pool timer after mocked database tests.
 after(() => pool.end());
+
+for (const failure of ["failDelivery", "failReceipt"]) {
+  test(`approaching ${failure} rolls back GPS, every inbox chunk and receipts`, async () => {
+    await fixture({ [failure]: true, residents: 501,
+      stops: [{ id: "first", status: "IN_PROGRESS", barangay_id: "brgy", street_id: "street", location: "Main Street", coverage_path: [[14, 121], [14.001, 121]] }],
+    }, async (state, counts) => {
+      await assert.rejects(tracking.ping("collector", {
+        truck_id: "truck", latitude: 14, longitude: 121, sample_id: "approaching", captured_at: new Date().toISOString(),
+      }), /insert failed/);
+      assert.equal(state().logs.length, 0);
+      assert.equal(state().latest, null);
+      assert.equal(state().notifications.length, 0);
+      assert.equal(state().receipts.length, 0);
+      assert.equal(counts().rollbacks, 1);
+    });
+  });
+}
+
+test("concurrent accepted GPS samples create one approaching receipt per resident", async () => {
+  await fixture({ stops: [{ id: "first", status: "IN_PROGRESS", barangay_id: "brgy", street_id: "street", location: "Main Street", coverage_path: [[14, 121], [14.001, 121]] }] }, async (state) => {
+    const sample = { truck_id: "truck", latitude: 14, longitude: 121, sample_id: "first", captured_at: new Date(Date.now() - 5000).toISOString() };
+    await Promise.all([tracking.ping("collector", sample), tracking.ping("collector", {
+      ...sample, sample_id: "second", captured_at: new Date().toISOString(),
+    })]);
+    assert.equal(state().receipts.length, 1);
+    assert.equal(state().notifications.filter(row => row[2] === "TRUCK_IS_NEAR").length, 1);
+  });
+});

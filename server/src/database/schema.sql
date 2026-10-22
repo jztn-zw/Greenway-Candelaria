@@ -91,6 +91,7 @@ CREATE TABLE `users` (
   `avatar_url` varchar(500) DEFAULT NULL,
   `barangay_id` varchar(36) DEFAULT NULL,
   `street_id` varchar(36) DEFAULT NULL,
+  `resident_location` json DEFAULT NULL,
   `two_factor` tinyint(1) DEFAULT '0',
   `ban_reason` varchar(255) DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
@@ -342,6 +343,17 @@ CREATE TABLE `route_run_stops` (
   KEY `idx_route_run_stops_street` (`street_id`),
   CONSTRAINT `fk_route_run_stops_run` FOREIGN KEY (`route_run_id`) REFERENCES `route_runs` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_route_run_stops_street` FOREIGN KEY (`street_id`) REFERENCES `barangay_streets` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- route_run_proximity_receipts
+CREATE TABLE `route_run_proximity_receipts` (
+  `route_run_id` varchar(36) NOT NULL,
+  `user_id` varchar(36) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`route_run_id`,`user_id`),
+  KEY `idx_proximity_receipt_user` (`user_id`),
+  CONSTRAINT `fk_proximity_receipt_run` FOREIGN KEY (`route_run_id`) REFERENCES `route_runs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_proximity_receipt_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- schedules

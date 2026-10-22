@@ -24,7 +24,7 @@ const deleteResident = async (userId, password, token, ip) => {
     await connection.query(
       `UPDATE users SET deleted_at = UTC_TIMESTAMP(), status = 'DEACTIVATED',
        full_name = 'Deleted Resident', username = NULL, email = NULL, phone = NULL,
-       avatar_url = NULL, barangay_id = NULL, street_id = NULL, last_login_at = NULL,
+       avatar_url = NULL, barangay_id = NULL, street_id = NULL, resident_location = NULL, last_login_at = NULL,
        two_factor = 0, password = ?, recovery_code_hash = NULL WHERE id = ?`,
       [unusablePassword, userId],
     );

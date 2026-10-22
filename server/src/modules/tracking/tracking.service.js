@@ -2,9 +2,10 @@ const { pool } = require("../../config/db");
 const generateId = require("../../utils/generateId");
 const { fetchStreetCoverageRoute } = require("./streetCoverage.service");
 const {
-  notifyBarangayResidents,
   notifyAdmins,
+  sendToMany,
 } = require("../notifications/notifications.service");
+const { residentLocationSchema } = require("../users/residentLocation");
 
 const STALE_GPS_SECONDS = 120;
 
@@ -43,7 +44,7 @@ const parseCoveragePath = (value) => {
 
 // Approximate the shortest distance from a GPS point to a street segment.
 // The local projection is accurate enough for the small municipal distances
-// used by the 750-meter notification radius.
+// used by the 500-meter notification radius.
 const distanceToSegmentKm = (latitude, longitude, start, end) => {
   const latitudeKm = 110.574;
   const longitudeKm = 111.32 * Math.cos((latitude * Math.PI) / 180);
@@ -97,9 +98,22 @@ const sqlTime = (date) => date.toISOString().slice(0, 23).replace("T", " ");
 const utcTime = (value) => new Date(typeof value === "string" ? value.replace(" ", "T").replace(/Z?$/, "Z") : value);
 const reject = (message, statusCode = 409) => { throw { statusCode, message }; };
 
-// Notification rows and their once-per-stop flag commit with the accepted GPS sample.
+const residentPin = (resident) => {
+  try {
+    const saved = typeof resident.resident_location === "string"
+      ? JSON.parse(resident.resident_location) : resident.resident_location;
+    if (!saved || saved.barangayId !== resident.barangay_id || saved.streetId !== resident.street_id) return null;
+    const { barangayId, streetId, ...location } = saved;
+    const result = residentLocationSchema.safeParse(location);
+    return result.success ? result.data : null;
+  } catch { return null; }
+};
+
+// Recipient receipts survive inbox deletion and commit with the accepted GPS sample.
+// withRun serializes all GPS/lifecycle writes for the truck and run.
 const checkProximityAndNotify = async (context, latitude, longitude) => {
   const { db, run, notifications } = context;
+  if (run.status !== "ACTIVE" || !run.collection_started_at) return;
   const [stops] = await db.query(
     `SELECT rs.*, COALESCE(rs.stop_name, b.name) AS location,
        b.latitude, b.longitude FROM route_run_stops rs
@@ -107,22 +121,38 @@ const checkProximityAndNotify = async (context, latitude, longitude) => {
      WHERE rs.route_run_id = ? AND rs.status IN ('NOT_STARTED','IN_PROGRESS')
      ORDER BY rs.stop_order, rs.id LIMIT 1 FOR UPDATE`, [run.id]);
   const stop = stops[0];
-  if (!stop || stop.notified_at) return;
+  if (!stop) return;
   const path = parseCoveragePath(stop.coverage_path);
-  if (!path.length && (stop.latitude == null || stop.longitude == null)) return;
-  const distance = path.length ? calculateCoverageDistanceKm(latitude, longitude, path)
-    : calculateHaversineDistanceKm(latitude, longitude, Number(stop.latitude), Number(stop.longitude));
-  if (!Number.isFinite(distance) || distance > 0.75) return;
-  const delivery = await notifyBarangayResidents({
-    barangay_id: stop.barangay_id, street_id: stop.street_id, type: "TRUCK_IS_NEAR",
+  const fallbackDistance = path.length ? calculateCoverageDistanceKm(latitude, longitude, path)
+    : stop.latitude != null && stop.longitude != null
+      ? calculateHaversineDistanceKm(latitude, longitude, Number(stop.latitude), Number(stop.longitude)) : Infinity;
+  const [residents] = await db.query(
+    `SELECT u.id, u.barangay_id, u.street_id, u.resident_location FROM users u
+     WHERE u.barangay_id = ? ${stop.street_id ? "AND u.street_id = ?" : ""}
+       AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM route_run_proximity_receipts receipt
+         WHERE receipt.route_run_id = ? AND receipt.user_id = u.id)`,
+    [stop.barangay_id, ...(stop.street_id ? [stop.street_id] : []), run.id]);
+  const userIds = residents.filter(resident => {
+    const pin = residentPin(resident);
+    const distance = pin ? calculateHaversineDistanceKm(latitude, longitude, pin.latitude, pin.longitude) : fallbackDistance;
+    return Number.isFinite(distance) && distance <= 0.5;
+  }).map(resident => resident.id);
+  if (!userIds.length) return;
+  const delivery = await sendToMany({
+    user_ids: userIds, type: "TRUCK_IS_NEAR",
     title: `Truck Approaching: ${stop.location}`,
-    body: `The collection truck is nearby at ${stop.location}. Please prepare your segregated waste.`,
+    body: `The collection truck is within 500 metres of your collection location in ${stop.location}. Please prepare your segregated waste.`,
     ref_id: run.id, ref_module: "tracking",
     metadata: { route_run_id: run.id, stop_id: stop.id, street_id: stop.street_id },
     db, emit: false,
   });
+  for (let index = 0; index < userIds.length; index += 500) {
+    await db.query("INSERT INTO route_run_proximity_receipts (route_run_id, user_id) VALUES ?",
+      [userIds.slice(index, index + 500).map(id => [run.id, id])]);
+  }
   notifications.push(...delivery.notifications);
-  await db.query("UPDATE route_run_stops SET notified_at = UTC_TIMESTAMP() WHERE id = ?", [stop.id]);
+  await db.query("UPDATE route_run_stops SET notified_at = COALESCE(notified_at, UTC_TIMESTAMP()) WHERE id = ?", [stop.id]);
 };
 
 const ping = async (userId, sample) => {
@@ -328,6 +358,7 @@ const getHistory = async (truckId, filters = {}) => {
 // One bounded payload for the Admin Tracking workspace. Queries are kept
 // sequential to avoid a connection burst against the remote database.
 const getAdminOverview = async () => {
+  const { getTodayDistanceSummaries } = require("./trackingDistance.service");
   const trucksService = require("../trucks/trucks.service");
   const routeRunsService = require("../routes/routeRuns.service");
   const driversService = require("../drivers/drivers.service");
@@ -351,7 +382,8 @@ const getAdminOverview = async () => {
       ORDER BY recent.created_at ASC, recent.id ASC`, [driverIds]);
   }
 
-  return { trucks, routes, live, drivers, messages };
+  const distances = await getTodayDistanceSummaries(trucks.map(truck => truck.id));
+  return { trucks: trucks.map(truck => ({ ...truck, distance_today: distances.get(truck.id) })), routes, live, drivers, messages };
 };
 
 // --- Clear history for a specific truck -------------------

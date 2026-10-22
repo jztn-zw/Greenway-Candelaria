@@ -1,5 +1,79 @@
 # GreenWay database
 
+## Resident approaching alerts upgrade
+
+The approaching check now uses each resident's saved pin within 500 metres,
+only while their registered barangay/street is the current pending target.
+Missing, malformed or address-mismatched pins use the existing stop coverage
+or barangay coordinate fallback at the same 500-metre threshold.
+
+Before starting the updated API, apply
+`migrations/2026-10-21-resident-proximity-receipts.sql` through
+`node scripts/migrate-resident-proximity.cjs --apply` with explicit database
+approval. Without `--apply`, the runner only previews. It checksum-verifies a
+backup of the related table definitions, creates the new receipt table, seeds
+previously broadcast approaching alerts, and verifies its primary key. No
+existing account, route, stop, GPS or notification records are rewritten.
+Run the upgrade before deploying the updated API. If seeding or verification
+fails, keep the updated API stopped and resolve the seed before deployment;
+an existing table alone does not prove a previous failed upgrade completed.
+
+Receipts are unique per run/resident, written in the same transaction as the
+accepted GPS and inbox rows. Clearing an inbox cannot trigger another alert.
+Retain these receipts with route history. Do not drop the table while this API
+version is running. Applied with explicit user approval on 2026-10-21 after the user confirmed
+API instances/workers were stopped. The checksum-verified definitions backup is
+`backups/resident-proximity-2026-10-21T15-56-42.196Z/tracking-schemas.sql`, SHA-256
+`fc23da8a8993e42a4cb6b303a036f02e46b755b64f93bd7ad4d0125c3bc5dc94`.
+The receipt primary key, both foreign keys and zero missing legacy receipts were
+verified. Three legacy receipts were seeded. Verification counted 7 accounts,
+2 runs, 24 stops, 571 GPS records and 44 inbox records; the migration issued no
+writes to those existing tables. The API was not restarted by the migration.
+
+## Resident Complete Profile location upgrade
+
+The website Complete Profile flow now requires a confirmed location. Its request
+sets `location_required: true`; schema and setup validation reject missing/null
+locations for this contract. Older mobile setup requests remain compatible until
+their own rollout. GPS fixes above 50m reported accuracy or with no nearby saved
+street are rejected without displaying a candidate pin; the website directs the
+resident to manual pinning or a saved street point. The street dropdown is hidden
+in GPS mode, where a clear nearby match is selected automatically and ambiguous
+sections remain explicit choices. This uses street proximity, not a boundary check.
+
+The website Profile address editor reuses the same location picker. It restores
+an address-matching saved pin and requires confirmation before submitting the
+barangay, street and pin together. The existing owner profile endpoint validates
+coverage and saved control points again on the server, locks the account and
+street, and commits all three address fields plus the primary-barangay setting
+in one transaction. Other profile fields are saved separately. Existing mobile
+profile payloads remain compatible. This editor requires no additional migration.
+
+`migrations/2026-10-21-resident-location.sql` adds nullable `users.resident_location`
+JSON for the optional website setup pin. Existing accounts retain NULL. Saved
+coordinates are self-reported GPS/manual positions or an approximate saved street
+point; they do not establish verified barangay boundaries. Collection eligibility
+continues to use the existing barangay/street IDs. Only the owner profile response
+includes this field; authentication, public lists and realtime delivery omit it.
+Changing an address clears incompatible coordinates; account deletion clears them.
+
+Before deploying, run `node scripts/migrate-resident-location.cjs` for a read-only
+preview. After explicit approval, `--apply` checksum-verifies a users schema backup
+in ignored `backups/`, adds only the missing compatible field, and verifies its
+type, nullability and account counts. It executes no account, route or GPS DML.
+Do not re-import the baseline. Rollback requires disabling location writes first
+and backing up new location values before dropping the column. Mobile setup
+and existing clients may continue submitting profiles without this optional field.
+
+Applied to the configured database with explicit user approval on 2026-10-21.
+The users table definition was backed up at
+`backups/resident-location-2026-10-21T15-02-37.325Z/users-schema.sql`, SHA-256
+`68ed27a33311dbf2b2bb87c8fc10d86497f333eaceac39c35f8b0fb4a7481645`.
+The backup checksum and INFORMATION_SCHEMA type, nullability and default were
+verified. All 7 accounts retained exactly the same original fields, verified by
+before/after content hashes; the new field was NULL for all accounts. No account
+records, street geometry, routes or tracking history were rewritten.
+
 ## Push registration recovery upgrade
 
 `migrations/2026-10-20-push-registration-recovery.sql` adds three nullable fields to
@@ -22,7 +96,7 @@ preserved. Other database environments still require an authorized, backed-up
 upgrade before deploying the matching API.
 
 `schema.sql` is the complete baseline for an empty TiDB/MySQL-compatible database.
-It contains 33 active tables, their indexes, defaults and relationships. Tables
+It contains 34 active tables, their indexes, defaults and relationships. Tables
 are ordered by dependency, so foreign-key checks remain enabled during import.
 Historical SQL migrations have been consolidated into this baseline and removed.
 The baseline contains no accounts, sample content, credentials or tracking data.
