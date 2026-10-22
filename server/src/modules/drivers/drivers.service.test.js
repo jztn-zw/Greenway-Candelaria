@@ -165,6 +165,57 @@ test("activity shows separate dated runs and completed stop totals", async () =>
   }
 });
 
+test("admin collection details keep saved stop outcomes and isolate GPS to the selected run", async () => {
+  const original = pool.query;
+  const calls = [];
+  pool.query = async (sql, params) => {
+    calls.push({ sql, params });
+    if (sql.includes("FROM route_runs rr")) return [[{ id: "run-1", driver_id: "driver-1", truck_id: "truck-1", run_date: "2026-10-21", route_name: "Saved route", status: "PARTIAL", collection_started_at: "2026-10-21 04:36:00", ended_at: "2026-10-21 16:00:00", total_paused_seconds: 60, truck_name: "Saved truck", truck_plate: "ABC-123" }]];
+    if (sql.includes("FROM route_run_stops")) return [[
+      { id: "stop-1", stop_order: 1, stop_name: "Saved street", barangay_name: "Barangay A", status: "DONE", completed_at: "2026-10-21 05:00:00", skipped_reason: null },
+      { id: "stop-2", stop_order: 2, stop_name: "Skipped street", barangay_name: "Barangay A", status: "MISSED", completed_at: "2026-10-21 05:10:00", skipped_reason: "Road blocked" },
+    ]];
+    if (sql.includes("FROM tracking_logs")) return [[
+      { id: "gps-1", route_run_id: "run-1", latitude: 0, longitude: 0, captured_at: "2026-10-21 04:36:00" },
+      { id: "gps-2", route_run_id: "run-1", latitude: 0.001, longitude: 0, captured_at: "2026-10-21 04:36:05" },
+    ]];
+    throw Error(`Unexpected query: ${sql}`);
+  };
+  try {
+    const result = await service.getActivityDetail("driver-1", "run-1");
+    assert.equal(result.run.id, "run-1");
+    assert.equal(result.run.truck_name, "Saved truck");
+    assert.equal(result.run.started_at, "2026-10-21T04:36:00.000Z");
+    assert.equal(result.stops[0].status, "DONE");
+    assert.equal(result.stops[1].skipped_reason, "Road blocked");
+    assert.ok(Math.abs(result.distance.distance_km - 0.111195) < 0.000001);
+    assert.deepEqual(calls[0].params, ["run-1", "driver-1"]);
+    assert.match(calls[0].sql, /rr.status IN \('COMPLETED', 'PARTIAL'\)/);
+    assert.match(calls[0].sql, /truck_name_snapshot/);
+    assert.match(calls[1].sql, /LEFT JOIN barangays/);
+    assert.deepEqual(calls[1].params, ["run-1"]);
+    assert.match(calls[2].sql, /tl.route_run_id = \?/);
+    assert.match(calls[2].sql, /rr.collection_started_at/);
+    assert.match(calls[2].sql, /rr.ended_at/);
+    assert.doesNotMatch(calls[2].sql, /rr.run_date =/);
+  } finally { pool.query = original; }
+});
+
+test("missing, foreign and unfinished collection details return 404 before reading stops or GPS", async () => {
+  const original = pool.query;
+  let calls = 0;
+  pool.query = async (sql, params) => {
+    calls++;
+    assert.match(sql, /rr.driver_id = \?/);
+    assert.deepEqual(params, ["foreign-run", "driver-1"]);
+    return [[]];
+  };
+  try {
+    await assert.rejects(service.getActivityDetail("driver-1", "foreign-run"), error => error.statusCode === 404);
+    assert.equal(calls, 1);
+  } finally { pool.query = original; }
+});
+
 test("truck assignment is audited once with the real admin and both trucks", async () => {
   const originalQuery = pool.query;
   const originalAudit = auditService.logInTransaction;

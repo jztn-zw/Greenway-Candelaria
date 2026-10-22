@@ -38,17 +38,32 @@ test("configured proxy CIDRs expose individual IPs and rate-limit headers to web
   });
 });
 
-test("rotating IPv6 addresses in one /56 cannot bypass the credential failure quota", async () => {
+test("rotating IPv6 addresses and usernames in one /56 cannot bypass the IP failure quota", async () => {
   await withApp("127.0.0.1/32", async (_, base) => {
-    const login = async ip => {
+    const login = async (ip, identifier) => {
       const res = await fetch(base + "/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json", "X-Forwarded-For": ip },
-        body: JSON.stringify({ identifier: "ipv6-fixture", password: "fixture" }),
+        body: JSON.stringify({ identifier, password: "fixture" }),
       });
       await res.text(); return res.status;
     };
-    for (let i = 0; i < 10; i++) assert.equal(await login("2001:db8:1234:aa00::1"), 401);
-    assert.equal(await login("2001:db8:1234:aa01::2"), 429);
-    assert.equal(await login("2001:db8:1234:bb00::1"), 401);
+    for (let i = 0; i < 10; i++) assert.equal(await login("2001:db8:1234:aa00::1", `fixture-${i}`), 401);
+    assert.equal(await login("2001:db8:1234:aa01::2", "another-username"), 429);
+    assert.equal(await login("2001:db8:1234:bb00::1", "fixture-0"), 401);
+  });
+});
+
+test("a blocked IP cannot change usernames or device headers to bypass login limits; another IP can log in", async () => {
+  await withApp("127.0.0.1/32", async (_, base) => {
+    const login = async (ip, identifier, device) => {
+      const res = await fetch(base + "/api/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json", "X-Forwarded-For": ip, "X-Device-ID": device },
+        body: JSON.stringify({ identifier, password: "fixture" }),
+      });
+      await res.text(); return res.status;
+    };
+    for (let i = 0; i < 10; i++) assert.equal(await login("203.0.113.10", `user-${i}`, `device-${i}`), 401);
+    assert.equal(await login("203.0.113.10", "different-user", "different-device"), 429);
+    assert.equal(await login("203.0.113.11", "user-0", "device-0"), 401);
   });
 });

@@ -16,6 +16,8 @@ messenger.getConversation = async () => ({ items: [], target: null, nextCursor: 
 messenger.sendMessage = async () => ({ id: "saved", message: "Hello" });
 messenger.getAdminUnread = async () => ({ unreadCount: 2, byDriver: [] });
 const reads = [];
+const activityReads = [];
+require("./drivers.service").getActivityDetail = async (...args) => { activityReads.push(args); return { run: { id: args[1] }, stops: [], distance: { distance_km: null } }; };
 messenger.markAdminRead = async (...args) => { reads.push(args); return { read: true }; };
 const app = express(); app.use(express.json()); app.use("/drivers", require("./drivers.routes"));
 let server; let base;
@@ -30,6 +32,19 @@ test("web messenger refuses anonymous and resident access", async () => {
   assert.equal((await request("/drivers/me/messages/conversation", "RESIDENT")).status, 403);
   assert.equal((await request("/drivers/other/messages/conversation", "DRIVER")).status, 403);
 });
+test("collection run details are admin-only and select the named collector and run", async () => {
+  activityReads.length = 0;
+  for (const role of [undefined, "RESIDENT", "DRIVER"]) {
+    const response = await request("/drivers/driver-1/activity/run-1", role);
+    assert.equal(response.status, role ? 403 : 401);
+  }
+  assert.deepEqual(activityReads, []);
+  const response = await request("/drivers/driver-1/activity/run-1", "ADMIN");
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).data.run.id, "run-1");
+  assert.deepEqual(activityReads, [["driver-1", "run-1"]]);
+});
+
 test("collector read requests always resolve their own driver despite supplied IDs", async () => {
   calls.length = 0;
   const response = await request("/drivers/me/messages/conversation?driver_id=other", "DRIVER");

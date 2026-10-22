@@ -9,10 +9,9 @@ records, notifications and existing duplicate/terminal-action guards stay intact
 | Action | Limit | Counter |
 | --- | --- | --- |
 | Login burst | 60 requests/minute, including successful requests | IP/subnet |
-| Login failures | 10/15 minutes | IP/subnet + normalized attempted identifier |
-| Login failures across identifiers | 100/15 minutes | IP/subnet |
+| Login failures, across all submitted usernames/emails | 10/15 minutes | IP/subnet |
 | Registration | 20 attempts/hour, including successful requests | IP/subnet |
-| Password recovery | 5 attempts/15 minutes; 20 across identifiers | IP/subnet + identifier; IP/subnet |
+| Password recovery | 5 attempts/15 minutes; additional 20/15-minute outer ceiling | IP/subnet |
 | Replace recovery code | 5 attempts/15 minutes | Account |
 | Change password | 10 attempts/15 minutes | Account |
 | Profile/setup writes | 30/minute | Account |
@@ -29,6 +28,12 @@ records, notifications and existing duplicate/terminal-action guards stay intact
 The numbers are initial operational limits, not a guarantee against all spam.
 Review false positives and traffic before tightening them. Shared public Wi-Fi
 still shares public signup/IP ceilings; signed-in residents have separate quotas.
+Login failures on the same public IP also share a cooldown, including different
+usernames and devices on that network. A different IP has its own quota even for
+the same username. Successful logins do not consume the failure quota, but a
+blocked IP must wait before any further login attempt. Submitted device IDs and
+usernames never determine login counter keys. IP-only limits cannot prevent a
+distributed attack using many unrelated IPs.
 Dashboard/search/realtime polling and route lifecycle endpoints have no new quota.
 No automatic account bans, CAPTCHA or new infrastructure are introduced.
 
@@ -72,8 +77,8 @@ Leave `TRUST_PROXY` unset for direct connections. Behind a reverse proxy, set it
 only to that deployment's actual proxy IPs/CIDR ranges (comma-separated). Do not
 trust arbitrary forwarded headers or use `true`/a guessed hop count. An incorrect
 setting can either group all visitors under the proxy IP or permit IP spoofing.
-IPv6 IP limits use the library's default /56 subnet grouping; attempted identities
-are normalized and HMAC hashed with a process-local key for login/recovery counters.
+IPv6 IP limits use the library's default /56 subnet grouping. Login, registration
+and recovery keys do not contain attempted identities or passwords.
 
 Tests use fixture controllers/database writes and a temporary localhost server.
 They cover successful signup limits, auth quota separation, rotating login targets,

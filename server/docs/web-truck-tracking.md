@@ -76,6 +76,21 @@ The map still uses OpenStreetMap tiles. Tile requests reveal the browser's IP an
 
 ### Admin daily distance and stop legend
 
+Admin Collector Management now offers **View Details** on each collection activity
+entry. `GET /drivers/:id/activity/:runId` is admin-only and verifies that the run
+belongs to the selected collector and is completed/partial before loading details.
+It reads saved run stops, outcomes, reasons and timestamps, plus the run's saved
+truck identity (falling back to its linked truck for older runs without snapshots).
+The web modal shows Philippine AM/PM dates/times, pause-adjusted active duration,
+and explicitly labels missing timestamps or reasons as unrecorded.
+
+The run distance uses the same GPS accumulator as today's total, but reads only
+that run's saved fixes between collection start and end. It follows 5,000-row
+cursor pages and does not impose a calendar-midnight cutoff, so an overnight run
+is not truncated. The modal distinguishes unavailable GPS from a measured zero,
+labels kilometers as an estimate, and notes excluded gaps/unreliable fixes. No
+route lifecycle, mobile contract, database records or schema are changed.
+
 The admin tracking overview includes `trucks[].distance_today`, computed on the
 server from saved GPS fixes for today's dated collection runs in Philippine
 time. The read is admin-only; collector/resident live payloads are unchanged.

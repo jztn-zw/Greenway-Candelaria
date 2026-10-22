@@ -1,15 +1,8 @@
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
-const { createHmac, randomBytes } = require("node:crypto");
 const { recordRateLimit } = require("./rateLimitAudit");
-const hashKey = randomBytes(32);
 const minute = 60_000;
 const accountKey = (req) => req.user.id;
 const ipKey = (req) => ipKeyGenerator(req.ip);
-const credentialKey = (req) => {
-  const identifier = typeof req.body?.identifier === "string" ? req.body.identifier.trim().toLowerCase() : "";
-  // Keep attempted identities and passwords out of counter keys and audit logs.
-  return `${ipKey(req)}:${createHmac("sha256", hashKey).update(identifier).digest("hex")}`;
-};
 
 // Separate stores prevent one type of activity from exhausting another's quota.
 // Counters are process-local; multiple API instances require a shared store.
@@ -30,8 +23,8 @@ const createLimiter = (policy, { windowMs, limit, keyGenerator = accountKey, ...
 });
 
 const loginBurstLimiter = createLimiter("login-burst", { windowMs: minute, limit: 60, keyGenerator: ipKey });
-const loginIpLimiter = createLimiter("login-ip", { windowMs: 15 * minute, limit: 100, keyGenerator: ipKey, skipSuccessfulRequests: true });
-const loginLimiter = createLimiter("login", { windowMs: 15 * minute, limit: 10, keyGenerator: credentialKey, skipSuccessfulRequests: true });
+// Changing username or a client-supplied device ID must not reset this quota.
+const loginLimiter = createLimiter("login", { windowMs: 15 * minute, limit: 10, keyGenerator: ipKey, skipSuccessfulRequests: true });
 const registrationLimiter = createLimiter("registration", { windowMs: 60 * minute, limit: 20, keyGenerator: ipKey });
 const recoveryIpLimiter = createLimiter("recovery-ip", { windowMs: 15 * minute, limit: 20, keyGenerator: ipKey });
 const recoveryLimiter = createLimiter("recovery", { windowMs: 15 * minute, limit: 5, keyGenerator: ipKey });
@@ -48,7 +41,7 @@ const breakdownLimiter = createLimiter("breakdowns", { windowMs: minute, limit: 
 const collectorStatusLimiter = createLimiter("collector-status", { windowMs: minute, limit: 30 });
 
 module.exports = {
-  createLimiter, loginBurstLimiter, loginIpLimiter, loginLimiter, registrationLimiter,
+  createLimiter, loginBurstLimiter, loginLimiter, registrationLimiter,
   recoveryIpLimiter, recoveryLimiter, recoveryCodeLimiter, passwordChangeLimiter, accountDeletionLimiter,
   profileWriteLimiter, settingsWriteLimiter, uploadLimiter, reportBurstLimiter,
   reportCreationLimiter, messageLimiter, breakdownLimiter, collectorStatusLimiter,

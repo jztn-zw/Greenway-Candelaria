@@ -190,6 +190,15 @@ const getActivityLog = async (req, res, next) => {
   }
 };
 
+const getActivityDetail = async (req, res, next) => {
+  try {
+    const result = await service.getActivityDetail(req.params.id, req.params.runId);
+    return success(res, result, "Collector collection details fetched successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
 const resetPassword = async (req, res, next) => {
   try {
     const { password } = resetDriverPasswordSchema.parse(req.body);
@@ -225,6 +234,7 @@ module.exports = {
   markMyMessagesAsRead,
   sendMessageToDriver,
   getActivityLog,
+  getActivityDetail,
   resetPassword,
   getMyHistory,
   remove,

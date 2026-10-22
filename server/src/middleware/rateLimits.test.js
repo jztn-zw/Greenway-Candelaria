@@ -50,9 +50,11 @@ test("successful registrations consume their own quota without blocking login", 
   assert.equal((await request("/api/auth/register", { email: "extra@example.com" })).status, 429);
   assert.equal(calls.get("auth:register"), before);
   assert.equal((await request("/api/auth/login", { identifier: "other" })).status, 200);
+  // Successful logins must not consume the failure quota used by the next test.
+  for (let i = 0; i < 12; i++) assert.equal((await request("/api/auth/login", { identifier: `successful-${i}` })).status, 200);
 });
 
-test("login failures use normalized IP/account pairs and a structured cooldown", async () => {
+test("login failures use an IP quota independent of username and a structured cooldown", async () => {
   for (let i = 0; i < 10; i++) assert.equal((await request("/api/auth/login", { identifier: "FixtureLogin", fail: true })).status, 401);
   const before = calls.get("auth:login");
   const blocked = await request("/api/auth/login", { identifier: "fixturelogin", fail: true });
@@ -63,7 +65,7 @@ test("login failures use normalized IP/account pairs and a structured cooldown",
   assert.equal(body.requestId, "fixture-request");
   assert.ok(body.retryAfterSeconds > 0 && body.retryAfterSeconds <= 900);
   assert.equal(Number(blocked.headers.get("retry-after")), body.retryAfterSeconds);
-  assert.equal((await request("/api/auth/login", { identifier: "another-account", fail: true })).status, 401);
+  assert.equal((await request("/api/auth/login", { identifier: "another-account", fail: true })).status, 429);
   assert.equal((await request("/api/auth/recover", { identifier: "fixturelogin", fail: true })).status, 401);
 });
 
@@ -134,11 +136,10 @@ test("blocked requests are batched as audit summaries, never one write per reque
   assert.ok(!JSON.stringify(summaries).includes("FixtureLogin"));
 });
 
-test("rotating login identifiers still hits the broader IP quota", async () => {
+test("rotating login identifiers cannot bypass the same IP quota", async () => {
   limits.loginBurstLimiter.resetKey("127.0.0.1");
-  limits.loginIpLimiter.resetKey("127.0.0.1");
-  for (let i = 0; i < 100; i++) {
-    if (i === 60) limits.loginBurstLimiter.resetKey("127.0.0.1");
+  limits.loginLimiter.resetKey("127.0.0.1");
+  for (let i = 0; i < 10; i++) {
     assert.equal((await request("/api/auth/login", { identifier: `rotating-fixture-${i}`, fail: true })).status, 401);
   }
   const before = calls.get("auth:login");

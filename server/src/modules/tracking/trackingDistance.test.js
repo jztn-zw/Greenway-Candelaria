@@ -1,7 +1,7 @@
 const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { createDistanceAccumulator } = require("./trackingDistance");
-const { getTodayDistanceSummaries } = require("./trackingDistance.service");
+const { getTodayDistanceSummaries, getRunDistanceSummary } = require("./trackingDistance.service");
 const { pool } = require("../../config/db");
 after(() => pool.end());
 
@@ -73,4 +73,28 @@ test("keeps a truck's distance state across pages and uses Philippine day bounda
 test("empty fleets do not query GPS history", async () => {
   const result = await getTodayDistanceSummaries([], { db: { query: () => { throw Error("Unexpected query"); } } });
   assert.equal(result.size, 0);
+});
+
+test("historical run distance keeps its accumulator across pages without a daily cutoff", async () => {
+  const points = Array.from({ length: 5002 }, (_, index) => ({ ...row(index * 0.0001, 0), id: String(index),
+    captured_at: new Date(Date.UTC(2026, 9, 21, 15) + index * 3000).toISOString() }));
+  const calls = [];
+  const result = await getRunDistanceSummary("run-1", { db: { query: async (sql, params) => {
+    calls.push({ sql, params }); return [calls.length === 1 ? points.slice(0, 5000) : points.slice(5000)];
+  } } });
+  assert.equal(calls.length, 2);
+  assert.equal(result.distance_km, summarize(points).distance_km);
+  assert.equal(result.sample_count, 5002);
+  assert.deepEqual(calls[0].params, ["run-1"]);
+  assert.match(calls[0].sql, /tl.truck_id = rr.truck_id/);
+  assert.match(calls[0].sql, /tl.captured_at >= rr.collection_started_at/);
+  assert.match(calls[0].sql, /DATE_ADD\(rr.ended_at, INTERVAL 1 SECOND\)/);
+  assert.doesNotMatch(calls[0].sql, /run_date =/);
+  assert.deepEqual(calls[1].params, ["run-1", points[4999].captured_at, points[4999].captured_at, points[4999].id]);
+});
+
+test("historical run distance reports unavailable rather than zero without usable GPS", async () => {
+  const result = await getRunDistanceSummary("no-gps", { db: { query: async () => [[]] } });
+  assert.equal(result.distance_km, null);
+  assert.equal(result.sample_count, 0);
 });

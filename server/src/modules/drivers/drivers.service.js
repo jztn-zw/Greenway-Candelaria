@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { pool } = require("../../config/db");
 const routeRunsService = require("../routes/routeRuns.service");
+const { getRunDistanceSummary } = require("../tracking/trackingDistance.service");
 const generateId = require("../../utils/generateId");
 const { avatarUrlForAccount } = require("../../utils/profileAvatar");
 const auditService = require("../audit/audit.service");
@@ -628,6 +629,48 @@ const getActivityLog = async (driverId, limit = 30) => {
   }));
 };
 
+const getActivityDetail = async (driverId, runId) => {
+  const [runs] = await pool.query(
+    `SELECT rr.id, DATE_FORMAT(rr.run_date, '%Y-%m-%d') AS run_date,
+       rr.route_name, rr.status, rr.waste_type, rr.scheduled_start_time,
+       rr.collection_started_at, rr.ended_at, rr.total_paused_seconds,
+       COALESCE(rr.truck_name_snapshot, t.name) AS truck_name,
+       COALESCE(rr.truck_plate_snapshot, t.plate_number) AS truck_plate
+     FROM route_runs rr LEFT JOIN trucks t ON t.id = rr.truck_id
+     WHERE rr.id = ? AND rr.driver_id = ? AND rr.status IN ('COMPLETED', 'PARTIAL')`,
+    [runId, driverId],
+  );
+  if (!runs.length) throw { statusCode: 404, message: "Collection history not found for this collector" };
+  const run = runs[0];
+  const [stops] = await pool.query(
+    `SELECT rrs.id, rrs.stop_order, rrs.status, rrs.completed_at, rrs.skipped_reason,
+       COALESCE(rrs.stop_name, b.name, 'Unknown checkpoint') AS stop_name, b.name AS barangay_name
+     FROM route_run_stops rrs LEFT JOIN barangays b ON b.id = rrs.barangay_id
+     WHERE rrs.route_run_id = ? ORDER BY rrs.stop_order ASC, rrs.id ASC`, [runId],
+  );
+  const started = parseStoredUtcDate(run.collection_started_at);
+  const ended = parseStoredUtcDate(run.ended_at);
+  return {
+    run: {
+      id: run.id,
+      date: formatHistoryDate(`${run.run_date}T12:00:00Z`),
+      route: run.route_name || `Route ${run.id.slice(0, 6)}`,
+      status: run.status,
+      waste_type: run.waste_type || null,
+      truck_name: run.truck_name || null,
+      truck_plate: run.truck_plate || null,
+      scheduled_start: formatTimeLabel(run.scheduled_start_time),
+      started_at: started?.toISOString() || null,
+      ended_at: ended?.toISOString() || null,
+      paused_seconds: Number(run.total_paused_seconds) || 0,
+      active_seconds: started && ended && ended >= started
+        ? Math.max(0, (ended - started) / 1000 - (Number(run.total_paused_seconds) || 0)) : null,
+    },
+    stops: stops.map(stop => ({ ...stop, completed_at: parseStoredUtcDate(stop.completed_at)?.toISOString() || null })),
+    distance: await getRunDistanceSummary(runId),
+  };
+};
+
 const getMyHistory = async (userId, limit = 50, filters = {}) => {
   return routeRunsService.getHistoryForUser(userId, limit, filters);
 };
@@ -684,6 +727,7 @@ module.exports = {
   getMessagesForAdmin,
   markMyMessagesAsRead,
   getActivityLog,
+  getActivityDetail,
   getMyHistory,
   remove,
 };

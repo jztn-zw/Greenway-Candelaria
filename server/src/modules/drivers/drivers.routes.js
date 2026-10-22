@@ -68,6 +68,13 @@ router.get(
   controller.getActivityLog,
 );
 
+router.get(
+  "/:id/activity/:runId",
+  authenticate,
+  authorize("ADMIN"),
+  controller.getActivityDetail,
+);
+
 router.post(
   "/:id/reset-password",
   authenticate,
