@@ -303,7 +303,7 @@ const getHistory = async (truckId, filters = {}) => {
   params.push(safeLimit + 1);
   const [rows] = await pool.query(
     `SELECT
-       tl.*, tl.captured_at AS created_at,
+       tl.*, tl.captured_at AS created_at, rr.gps_expected_since,
        t.name         AS truck_name,
        t.plate_number AS truck_plate,
        u.full_name    AS driver_name
@@ -311,6 +311,7 @@ const getHistory = async (truckId, filters = {}) => {
      JOIN trucks  t ON t.id = tl.truck_id
      JOIN drivers d ON d.id = tl.driver_id
      JOIN users   u ON u.id = d.user_id
+     LEFT JOIN route_runs rr ON rr.id = tl.route_run_id AND rr.truck_id = tl.truck_id
      WHERE tl.truck_id = ?
        ${dateClause}
      ORDER BY tl.captured_at ASC, tl.id ASC
