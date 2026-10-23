@@ -90,6 +90,7 @@ export interface HistoryRow {
   id: string;
   truck_id: string;
   route_run_id?: string | null;
+  gps_expected_since?: string | null;
   latitude: number;
   longitude: number;
   created_at: string;

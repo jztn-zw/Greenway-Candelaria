@@ -24,6 +24,9 @@ export interface ReplayTrip {
   /** Start a new trail at this record; never interpolate from the previous one. */
   breakBefore?: boolean[];
   distanceKm: number;
+  distanceAvailable?: boolean;
+  excludedPoints?: number;
+  gapCount?: number;
   stops?: ReplayStop[];
 }
 
@@ -64,46 +67,77 @@ const distanceKm = (from: [number, number], to: [number, number]) => {
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
 };
 
-// Web GPS polls every 5 seconds with a 10-second acquisition timeout. Allow
-// brief delays, but do not invent travel through longer recording outages.
+// Match the server's trackingDistance accumulator: 30 s gaps, 120 km/h jump
+// rejection and a 15 m movement anchor. Neither calculation is an odometer.
 const MAX_REPLAY_GPS_GAP_MS = 30_000;
+const MAX_REPLAY_SPEED_KMH = 120;
 
 // Preserve the recorded trail independently of street boundaries or stop outcomes.
 export const buildReplayTrip = (logs: HistoryRow[], stops: RouteStopHistoryItem[] = []): ReplayTrip | null => {
-  const points = logs.flatMap((log) => {
+  const records = logs.map((log) => {
     const lat = coordinate(log.latitude);
     const lng = coordinate(log.longitude);
     const time = parseApiTimestamp(log.created_at)?.getTime() ?? NaN;
-    if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || !Number.isFinite(time)) return [];
-    return [{ coords: [lat, lng] as [number, number], timestamp: log.created_at, time, runId: log.route_run_id }];
-  }).sort((a, b) => a.time - b.time);
-  if (!points.length) return null;
-
-  const path = points.map((point) => point.coords);
-  const breakBefore = points.map((point, index) => {
-    if (index === 0) return false;
-    const previous = points[index - 1];
-    return point.time - previous.time > MAX_REPLAY_GPS_GAP_MS
-      || Boolean(point.runId && previous.runId && point.runId !== previous.runId);
-  });
-  let total = 0;
-  let anchor = path[0];
-  for (let index = 1; index < path.length; index++) {
-    const point = path[index];
-    if (breakBefore[index]) {
-      const remainder = distanceKm(anchor, path[index - 1]);
-      if (remainder >= 0.005) total += remainder;
-      anchor = point;
+    const coords = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+      ? [lat, lng] as [number, number] : null;
+    return { coords, timestamp: log.created_at, time, runId: log.route_run_id,
+      resumedAt: parseApiTimestamp(log.gps_expected_since)?.getTime() ?? NaN };
+  }).sort((a, b) => (Number.isFinite(a.time) ? a.time : Infinity) - (Number.isFinite(b.time) ? b.time : Infinity));
+  type Point = Omit<typeof records[number], "coords"> & { coords: [number, number] };
+  const points: Point[] = [];
+  const breakBefore: boolean[] = [];
+  let previous: Point | null = null;
+  let anchor: [number, number] | null = null;
+  let total = 0, segments = 0, excludedPoints = 0, gapCount = 0;
+  let lastTime = -Infinity;
+  for (const record of records) {
+    if (!record.coords || !Number.isFinite(record.time)) {
+      previous = null;
+      anchor = null;
+      excludedPoints++;
       continue;
     }
-    const step = distanceKm(anchor, point);
-    if (step >= 0.015) {
-      total += step;
-      anchor = point;
+    // A second coordinate at the same instant cannot describe more travel.
+    if (record.time <= lastTime) continue;
+    lastTime = record.time;
+    const point = record as Point;
+    let interrupted = points.length > 0 && !previous;
+    if (previous) {
+      const elapsed = point.time - previous.time;
+      interrupted = elapsed > MAX_REPLAY_GPS_GAP_MS
+        || point.runId !== previous.runId
+        || (Number.isFinite(point.resumedAt) && previous.time < point.resumedAt && point.time >= point.resumedAt);
+      if (interrupted) gapCount++;
+      else if (distanceKm(previous.coords, point.coords) / elapsed * 3_600_000 > MAX_REPLAY_SPEED_KMH) {
+        // Omit the bad fix and restart after it. Never draw/count either leg
+        // of a GPS teleport, including the return from the rejected position.
+        excludedPoints++;
+        if (points.length === 1 || breakBefore[points.length - 1]) {
+          // An isolated seed has no verified segment; do not let it stretch
+          // the map bounds when its only neighbouring fix is impossible.
+          points.pop();
+          breakBefore.pop();
+          excludedPoints++;
+        }
+        previous = null;
+        anchor = null;
+        continue;
+      } else {
+        segments++;
+        const step = distanceKm(anchor!, point.coords);
+        if (step >= 0.015) {
+          total += step;
+          anchor = point.coords;
+        }
+      }
     }
+    if (!previous || interrupted) anchor = point.coords;
+    breakBefore.push(points.length > 0 && interrupted);
+    points.push(point);
+    previous = point;
   }
-  const remainder = distanceKm(anchor, path[path.length - 1]);
-  if (remainder >= 0.005) total += remainder;
+  if (!points.length) return null;
+  const path = points.map((point) => point.coords);
 
   const routes = new Map<string, ReplayStop[]>();
   for (const stop of stops) {
@@ -144,7 +178,8 @@ export const buildReplayTrip = (logs: HistoryRow[], stops: RouteStopHistoryItem[
     })
     .sort((a, b) => (a[0].startedAt ?? Infinity) - (b[0].startedAt ?? Infinity))
     .flat();
-  return { path, timestamps: points.map((point) => point.timestamp), times: points.map((point) => point.time), breakBefore, distanceKm: total, stops: replayStops };
+  return { path, timestamps: points.map((point) => point.timestamp), times: points.map((point) => point.time), breakBefore,
+    distanceKm: total, distanceAvailable: segments > 0, excludedPoints, gapCount, stops: replayStops };
 };
 
 const isTerminal = (stop: ReplayStop) => ["DONE", "MISSED", "SKIPPED"].includes(stop.status);

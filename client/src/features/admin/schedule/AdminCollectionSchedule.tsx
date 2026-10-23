@@ -206,6 +206,7 @@ const AdminCollectionSchedule: React.FC = () => {
             <SelectedDayPanel
               className={scheduleStyles.dayPanel}
               variant="admin"
+              showAudience
               selectedDateStr={selectedDateStr}
               events={selectedDayEvents}
               scheduleColorById={scheduleColorById}

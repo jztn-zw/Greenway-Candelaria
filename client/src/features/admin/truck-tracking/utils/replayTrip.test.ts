@@ -75,12 +75,12 @@ describe("full-trip GPS replay", () => {
 
   it("samples the full trail for video and reaches the actual last record", () => {
     const trip = buildReplayTrip([
-      log(14, 121, "2026-09-28T01:00:00Z"), log(15, 122, "2026-09-28T01:00:05Z"),
-      log(16, 123, "2026-09-28T01:00:10Z"),
+      log(14, 121, "2026-09-28T01:00:00Z"), log(14.001, 121, "2026-09-28T01:00:05Z"),
+      log(14.002, 121, "2026-09-28T01:00:10Z"),
     ])!;
-    expect(sampleReplayTrip(trip, 0.25).coords).toEqual([14.5, 121.5]);
-    expect(sampleReplayTrip(trip, 0.5).coords).toEqual([15, 122]);
-    expect(sampleReplayTrip(trip, 1)).toEqual({ index: 2, position: 2, coords: [16, 123], timestamp: "2026-09-28T01:00:10.000Z" });
+    expect(sampleReplayTrip(trip, 0.25).coords[0]).toBeCloseTo(14.0005, 10);
+    expect(sampleReplayTrip(trip, 0.5).coords).toEqual([14.001, 121]);
+    expect(sampleReplayTrip(trip, 1)).toEqual({ index: 2, position: 2, coords: [14.002, 121], timestamp: "2026-09-28T01:00:10.000Z" });
     expect(formatReplayTime("2026-09-28T01:00:00Z")).toBe("09:00 AM");
   });
 
@@ -132,10 +132,10 @@ describe("full-trip GPS replay", () => {
   it("handles simultaneous GPS records without adding imaginary playback time", () => {
     const trip = buildReplayTrip([
       log(14, 121, "2026-09-28 01:00:00"), log(14.001, 121, "2026-09-28 01:00:00"),
-      log(14.003, 121, "2026-09-28 01:00:02"),
+      log(14.0003, 121, "2026-09-28 01:00:02"),
     ])!;
-    expect(sampleReplayTrip(trip, 0).position).toBe(1);
-    expect(sampleReplayTrip(trip, 0.5).coords[0]).toBeCloseTo(14.002, 10);
+    expect(sampleReplayTrip(trip, 0).position).toBe(0);
+    expect(sampleReplayTrip(trip, 0.5).coords[0]).toBeCloseTo(14.00015, 10);
     expect(sampleReplayTrip(trip, 0.5).coords[1]).toBe(121);
     expect(sampleReplayTrip(trip, 0.5).timestamp).toBe("2026-09-28T01:00:01.000Z");
   });

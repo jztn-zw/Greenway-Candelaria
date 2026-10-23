@@ -253,24 +253,24 @@ export const CONTENT = {
   appDownload: {
     sectionLabel: "Get the GreenWay App",
     heading: "Your Community, Always Within Reach",
-    description: "Keep your collection routine close. Access GreenWay on your Android phone and stay connected with MENRO wherever you are.",
+    description: "Manage your household's waste collection with GreenWay Candelaria. Check schedules, follow available truck updates, and send waste concerns to MENRO from your phone.",
     benefits: [
       {
         id: "schedule",
         title: "Prepare for Collection",
-        description: "Check your regular collection days and the waste type to set out.",
+        description: "View collection days and waste types for your registered area.",
         previewLabel: "Collection Schedule",
       },
       {
         id: "tracking",
         title: "Follow Your Collection Truck",
-        description: "View available live truck locations and collection progress for your area.",
+        description: "Follow available truck locations and collection progress during active collection.",
         previewLabel: "Truck Tracking",
       },
       {
         id: "reports",
         title: "Send a Waste Concern",
-        description: "Share details and photos with MENRO, then follow your report's status.",
+        description: "Submit photos and location details to MENRO, then check your report's status.",
         previewLabel: "Waste Reports",
       },
     ],

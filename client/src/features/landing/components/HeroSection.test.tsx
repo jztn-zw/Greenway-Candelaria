@@ -25,7 +25,11 @@ it("downloads the bundled Android APK by default", () => {
   render(<MemoryRouter><HeroSection /></MemoryRouter>);
   expect(screen.getByRole("link", { name: "Download GreenWay for Android" })).toHaveAttribute("href", "/downloads/greenway-candelaria.apk");
   expect(screen.queryByText("Download available soon.")).not.toBeInTheDocument();
-  expect(screen.getByText(/Android only/)).toBeInTheDocument();
+  expect(screen.queryByText(/Android only/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/APK download/)).not.toBeInTheDocument();
+  const iosDownload = screen.getByRole("button", { name: "iOS download not available" });
+  expect(iosDownload).toBeDisabled();
+  expect(iosDownload).toHaveTextContent("Not available");
 });
 
 it("links directly to the configured APK release", () => {

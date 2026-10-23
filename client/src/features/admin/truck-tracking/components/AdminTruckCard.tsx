@@ -204,7 +204,7 @@ const AdminTruckCard = ({
 
             <div className="rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2 min-w-0">
               <p className="flex items-center gap-1 text-ui-overline font-medium text-muted-foreground">
-                <User className="w-3 h-3 shrink-0" /> Driver
+                <User className="w-3 h-3 shrink-0" /> Collector
               </p>
               <p className={cn(
                 "mt-0.5 truncate text-xs font-semibold",

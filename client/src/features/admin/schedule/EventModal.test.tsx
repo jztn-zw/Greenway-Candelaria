@@ -25,7 +25,7 @@ it.each([["Residents Only", "PUBLIC"], ["MENRO & Residents", "SHARED"]])("create
   fireEvent.click(screen.getByRole("combobox", { name: "Resident area" }));
   fireEvent.change(screen.getByPlaceholderText("Search by barangay name…"), { target: { value: "Buenavista" } });
   fireEvent.click(screen.getByRole("option", { name: "Buenavista East" }));
-  fireEvent.click(screen.getByRole("button", { name: "Create Schedule" }));
+  fireEvent.click(screen.getByRole("button", { name: "Create Event" }));
 
   await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
     title: "Community clean-up",
@@ -40,7 +40,8 @@ it("keeps new schedules private to MENRO by default", async () => {
   render(<EventModal isOpen onClose={vi.fn()} event={null} defaultDate="2099-01-01" barangayOptions={[]} onSubmit={onSubmit} />);
 
   fireEvent.change(screen.getByPlaceholderText("e.g. Monthly staff review"), { target: { value: "Staff briefing" } });
-  fireEvent.click(screen.getByRole("button", { name: "Create Schedule" }));
+  expect(screen.getByRole("heading", { name: "Create Event" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Create Event" }));
 
   await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
     title: "Staff briefing",

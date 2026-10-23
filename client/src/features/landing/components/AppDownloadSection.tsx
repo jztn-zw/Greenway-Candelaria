@@ -1,7 +1,8 @@
-import GreenWayLogo from "@/components/common/GreenWayLogo";
-import { BatteryFull, CalendarDays, ClipboardList, MapPin, Signal, Smartphone, Truck, Wifi } from "lucide-react";
+import { CalendarDays, ClipboardList, Truck } from "lucide-react";
 import { CONTENT, type AppDownloadContent } from "../landingContent";
 import InstallAppButton from "./InstallAppButton";
+import IosDownloadButton from "./IosDownloadButton";
+import ResidentAppPreview from "./ResidentAppPreview";
 import "./AppDownloadSection.css";
 
 const benefitIcons = [CalendarDays, Truck, ClipboardList];
@@ -36,59 +37,14 @@ export default function AppDownloadSection({ content = CONTENT.appDownload }: { 
                 })}
               </ul>
 
-              <div className="mt-7">
-                <InstallAppButton className="h-12 w-full px-5 sm:w-auto dark:disabled:opacity-70" />
+              <div className="mt-7 flex flex-wrap gap-2">
+                <InstallAppButton className="h-12 px-5" />
+                <IosDownloadButton className="h-12" />
               </div>
-              <p className="mt-3 flex items-center gap-2 text-xs leading-5 text-muted-foreground">
-                <Smartphone aria-hidden="true" className="h-3.5 w-3.5" />Android only <span aria-hidden="true">•</span> APK download
-              </p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Open the downloaded APK on your Android phone to install GreenWay. If prompted, allow installation from your browser.</p>
+              <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">Download and open the APK on your Android phone. If prompted, allow your browser to install the app.</p>
             </div>
 
-            <figure className="app-download-preview relative m-0 hidden min-w-0 flex-col items-center justify-center gap-5 px-6 py-8 md:flex lg:py-10">
-              <div aria-hidden="true" className="app-download-orbit pointer-events-none absolute rounded-full border border-primary/15" />
-              <div aria-hidden="true" className="app-download-phone relative w-full max-w-60 p-2">
-                <span className="app-download-phone-switch absolute rounded-full" />
-                <span className="app-download-phone-volume absolute rounded-full" />
-                <span className="app-download-phone-power absolute rounded-full" />
-                <div className="app-download-phone-screen relative flex h-full flex-col overflow-hidden bg-background">
-                  <div className="relative flex h-12 shrink-0 items-center justify-between px-4 text-foreground">
-                    <span className="text-[10px] font-semibold tabular-nums">9:41</span>
-                    <span className="app-download-phone-island absolute left-1/2 top-2.5 flex h-5 w-20 -translate-x-1/2 items-center justify-end rounded-full pr-2"><span className="app-download-phone-camera h-1.5 w-1.5 rounded-full" /></span>
-                    <span className="flex items-center gap-0.5"><Signal className="h-2.5 w-2.5" /><Wifi className="h-2.5 w-2.5" /><BatteryFull className="h-3.5 w-3.5" /></span>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-primary dark:text-accent-foreground">
-                      <GreenWayLogo alt="" className="h-6 w-9" />GreenWay
-                    </div>
-                    <div className="app-download-screen-placeholder mt-4 flex min-h-32 flex-1 flex-col items-center justify-center rounded-xl border border-primary/15 px-3 py-5 text-center">
-                      <Smartphone className="mb-3 h-8 w-8 text-primary dark:text-accent-foreground" strokeWidth={1.5} />
-                      <p className="text-sm font-semibold text-foreground">App Preview</p>
-                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Your GreenWay screen goes here</p>
-                    </div>
-                    <div className="mt-4 space-y-2.5">
-                      {content.benefits.map((benefit, index) => {
-                        const Icon = benefitIcons[index % benefitIcons.length];
-                        return (
-                          <div key={benefit.id} className="flex items-center gap-2.5 rounded-lg border border-border/70 bg-card px-3 py-3">
-                            <Icon className="h-4 w-4 shrink-0 text-primary dark:text-accent-foreground" strokeWidth={1.8} />
-                            <div className="flex-1 space-y-1.5">
-                              <span className="block h-1.5 w-3/4 rounded-full bg-muted-foreground/20" />
-                              <span className="block h-1 w-1/2 rounded-full bg-muted-foreground/10" />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="mx-auto mb-2.5 h-1 w-20 shrink-0 rounded-full bg-foreground/75" />
-                </div>
-              </div>
-              <figcaption className="relative rounded-lg bg-card/95 px-4 py-2 text-center text-xs leading-5 text-muted-foreground">
-                <span className="mb-1 flex items-center justify-center gap-1.5 font-medium text-foreground"><MapPin aria-hidden="true" className="h-3.5 w-3.5 text-primary dark:text-accent-foreground" />Made for Candelaria</span>
-                Placeholder app design
-              </figcaption>
-            </figure>
+            <ResidentAppPreview />
           </div>
         </div>
       </div>

@@ -462,7 +462,7 @@ const AdminTrackingMap = ({
 
       const safeTruckName = escapeHtml(truck.name);
       const safePlateNumber = escapeHtml(truck.plateNumber);
-      const safeDriver = escapeHtml(truck.driver || "No driver assigned");
+      const safeDriver = escapeHtml(truck.driver || "No collector assigned");
       const safeBarangay = escapeHtml(truck.currentBarangay || "No route assigned");
       const safeWasteType = escapeHtml(truck.wasteType);
       const safeLatestMessage = escapeHtml(

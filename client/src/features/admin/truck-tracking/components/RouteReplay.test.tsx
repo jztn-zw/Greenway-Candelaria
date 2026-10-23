@@ -177,8 +177,8 @@ it("shows a failed KML export and permits retry", async () => {
 it("uses real recorded time gaps at 1× and keeps the clock accurate through pause and speed changes", async () => {
   vi.mocked(fetchTruckHistory).mockResolvedValueOnce({ logs: [
     { latitude: 14, longitude: 121, created_at: "2026-09-28 01:00:00" },
-    { latitude: 14.001, longitude: 121, created_at: "2026-09-28 01:00:02" },
-    { latitude: 14.003, longitude: 121, created_at: "2026-09-28 01:00:10" },
+    { latitude: 14.0003, longitude: 121, created_at: "2026-09-28 01:00:02" },
+    { latitude: 14.0015, longitude: 121, created_at: "2026-09-28 01:00:10" },
   ] as HistoryRow[], stops: [] });
   await load(); await click("1×");
   await tick(1000);

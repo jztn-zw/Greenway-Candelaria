@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import AppDownloadSection from "./AppDownloadSection";
 
-afterEach(() => { cleanup(); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 it.each(["", "   "])("downloads the supplied APK when no external release is configured (%j)", (url) => {
   vi.stubEnv("VITE_RESIDENT_APK_URL", url);
@@ -12,7 +12,7 @@ it.each(["", "   "])("downloads the supplied APK when no external release is con
   expect(download).toHaveClass("android-download-button");
   expect(download).toHaveAttribute("href", "/downloads/greenway-candelaria.apk");
   expect(download).toHaveAttribute("download", "GreenWay-Candelaria.apk");
-  expect(screen.getByText(/Android only/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "iOS download not available" })).toBeDisabled();
   expect(screen.queryByText("Download available soon.")).not.toBeInTheDocument();
 });
 

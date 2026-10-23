@@ -16,6 +16,7 @@
 }
 
 .landing-page .app-download-phone {
+  max-width: 15rem;
   aspect-ratio: 9 / 19.5;
   border-radius: calc(var(--radius-card) * 3);
   background: hsl(var(--neutral-950));
@@ -32,9 +33,30 @@
   background: hsl(var(--neutral-950));
 }
 
-.landing-page .app-download-phone-camera {
-  background: hsl(var(--neutral-800));
-  box-shadow: inset 0 0 0 1px hsl(var(--neutral-600) / 0.5);
+.landing-page .app-preview-capture { opacity: 0; }
+.landing-page .app-preview-capture.is-active { opacity: 1; }
+
+.landing-page .app-preview-tap {
+  position: absolute;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: -0.625rem;
+  border: 2px solid hsl(var(--primary));
+  border-radius: 50%;
+  background: hsl(var(--primary) / 0.18);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-page .app-preview-capture { transition: opacity 180ms ease; }
+  .landing-page .app-preview-tap { animation: greenway-app-tap 4200ms linear; }
+}
+
+@keyframes greenway-app-tap {
+  0%, 82% { opacity: 0; transform: scale(0.6); }
+  89% { opacity: 1; transform: scale(1); }
+  98%, 100% { opacity: 0; transform: scale(1.7); }
 }
 
 .landing-page :is(.app-download-phone-switch, .app-download-phone-volume, .app-download-phone-power) {
@@ -45,10 +67,6 @@
 .landing-page .app-download-phone-switch { left: -3px; top: 15%; height: 1rem; }
 .landing-page .app-download-phone-volume { left: -3px; top: 22%; height: 3rem; }
 .landing-page .app-download-phone-power { right: -3px; top: 28%; height: 2.5rem; }
-
-.landing-page .app-download-screen-placeholder {
-  background-image: radial-gradient(ellipse at top right, hsl(var(--primary) / 0.12), transparent 75%);
-}
 
 .dark .landing-page .app-download-panel {
   background-image:
@@ -61,17 +79,8 @@
   background-image: radial-gradient(ellipse at center, hsl(var(--primary) / 0.06), transparent 65%);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .landing-page .app-download-phone { animation: greenway-app-float 8.5s ease-in-out infinite; }
-}
-
-@keyframes greenway-app-float {
-  0%, 100% { transform: translateY(0) rotate(-5deg); }
-  50% { transform: translateY(-6px) rotate(-4deg); }
-}
-
 @media (max-width: 767px) {
-  .landing-page .app-download-phone { animation: none; }
+  .landing-page .app-download-phone { transform: none; }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {

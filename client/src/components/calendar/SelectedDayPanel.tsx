@@ -20,6 +20,12 @@ import { SelectedDayEventsSkeleton } from "@/components/loading/PageLoadingSkele
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
 
+const audienceLabels: Record<CalendarEvent["visibility"], string> = {
+  PUBLIC: "Residents Only",
+  PRIVATE: "MENRO Only",
+  SHARED: "MENRO & Residents",
+};
+
 interface SelectedDayPanelProps {
   selectedDateStr: string;
   events: CalendarEvent[];
@@ -30,6 +36,7 @@ interface SelectedDayPanelProps {
   isLoading?: boolean;
   error?: string | null;
   variant?: "default" | "admin";
+  showAudience?: boolean;
 }
 
 export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
@@ -42,6 +49,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
   isLoading = false,
   error = null,
   variant = "default",
+  showAudience = false,
 }) => {
   const dateObj = new Date(selectedDateStr + "T00:00:00");
   const formattedDate = !isNaN(dateObj.getTime())
@@ -77,7 +85,7 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
             {formattedDate}
           </h3>
           <p className="text-ui-caption text-muted-foreground mt-0.5">
-            {isLoading ? "Loading internal events…" : error ? "Schedule Unavailable" : `${events.length} internal event${events.length === 1 ? "" : "s"} on this date`}
+            {isLoading ? (showAudience ? "Loading events…" : "Loading internal events…") : error ? "Schedule Unavailable" : `${events.length} ${showAudience ? "" : "internal "}event${events.length === 1 ? "" : "s"} on this date`}
           </p>
         </div>
       </div>
@@ -92,9 +100,9 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
               <CalendarIcon className="w-5 h-5" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground">No internal events scheduled</p>
+              <p className="text-xs font-bold text-foreground">{showAudience ? "No events scheduled" : "No internal events scheduled"}</p>
               <p className="text-ui-caption text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
-                {onEditEvent
+                {showAudience ? 'Click "New Schedule / Event" above to add an event.' : onEditEvent
                   ? 'Click "New Internal Schedule" above to add an event for admin and collectors.'
                   : "Admin has not added an internal event for this date."}
               </p>
@@ -142,9 +150,16 @@ export const SelectedDayPanel: React.FC<SelectedDayPanelProps> = ({
 
                 {isAdmin && (
                   <div className="space-y-2">
-                    <Badge className={cn("text-ui-overline", getStatusBadgeStyle(evt.status).className)}>
-                      {evt.status === "ONGOING" ? "In Progress" : evt.status.charAt(0) + evt.status.slice(1).toLowerCase()}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className={cn("text-ui-overline", getStatusBadgeStyle(evt.status).className)}>
+                        {evt.status === "ONGOING" ? "In Progress" : evt.status.charAt(0) + evt.status.slice(1).toLowerCase()}
+                      </Badge>
+                      {showAudience && (
+                        <Badge variant="outline" className="text-ui-overline" aria-label={`Audience: ${audienceLabels[evt.visibility]}`}>
+                          {audienceLabels[evt.visibility]}
+                        </Badge>
+                      )}
+                    </div>
                     {(evt.start_time || evt.location || evt.barangay_name) && (
                       <div className="space-y-1.5 text-ui-caption text-muted-foreground">
                         {evt.start_time && <p className="flex items-start gap-2"><Clock3 className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /><span>{evt.start_time.slice(0, 5)}{evt.end_time ? ` – ${evt.end_time.slice(0, 5)}` : ""}</span></p>}

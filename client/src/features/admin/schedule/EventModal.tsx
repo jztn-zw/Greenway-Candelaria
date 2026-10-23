@@ -218,7 +218,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <DialogTitle className="gw-heading text-sm sm:text-base text-foreground tracking-tight break-words">
-                    {isEditing ? "Edit Schedule Event" : "Create Schedule / Event"}
+                    {isEditing ? "Edit Schedule Event" : "Create Event"}
                   </DialogTitle>
                   <DialogDescription className="text-ui-label text-muted-foreground leading-relaxed break-words mt-0.5">
                     {isEditing
@@ -458,7 +458,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               loadingLabel={isEditing ? "Saving schedule…" : "Creating schedule…"}
             >
 
-              {isEditing ? "Save Changes" : "Create Schedule"}
+              {isEditing ? "Save Changes" : "Create Event"}
             </Button>
           </div>
         </form>

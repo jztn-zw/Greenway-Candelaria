@@ -6,6 +6,7 @@ import { CONTENT, type HeroContent } from "../landingContent";
 import { handleLandingNavigation } from "../utils/navigation";
 import HeroNeighborhood from "./HeroNeighborhood";
 import InstallAppButton from "./InstallAppButton";
+import IosDownloadButton from "./IosDownloadButton";
 
 const featureIcons = [CalendarDays, Truck, Leaf];
 
@@ -55,10 +56,12 @@ export default function HeroSection({ content = CONTENT.hero }: HeroSectionProps
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-foreground">Get the GreenWay App</h2>
-              <p className="mt-1 text-sm leading-5 text-muted-foreground dark:text-foreground/75">Download the Android app to your phone.</p>
-              <p className="mt-1 text-xs text-muted-foreground">Android only <span aria-hidden="true">•</span> APK download</p>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground dark:text-foreground/75">Access collection updates and resident services from your phone.</p>
             </div>
-            <InstallAppButton className="hero-app-action h-11 px-4 dark:disabled:opacity-70" />
+            <div className="hero-app-action flex flex-wrap gap-2">
+              <InstallAppButton className="h-11 px-4" />
+              <IosDownloadButton />
+            </div>
           </div>
 
           <ul className="hero-highlights mt-6 border-t border-border/60 pt-5 sm:pt-6 lg:mt-4 lg:pt-4">
@@ -80,12 +83,13 @@ export default function HeroSection({ content = CONTENT.hero }: HeroSectionProps
         </div>
 
         <div className="hero-neighborhood-slot relative hidden min-w-0 lg:block">
-          <HeroNeighborhood />
+          <HeroNeighborhood>
           <ul aria-label="GreenWay features" className="hero-scene-labels hidden sm:block">
             <li className="hero-scene-label hero-scene-label--tracking"><MapPin aria-hidden="true" /><span>Real-Time Tracking</span></li>
             <li className="hero-scene-label hero-scene-label--schedule"><CalendarDays aria-hidden="true" /><span>Collection Schedule</span></li>
             <li className="hero-scene-label hero-scene-label--community"><Truck aria-hidden="true" /><span>Cleaner Community</span></li>
           </ul>
+          </HeroNeighborhood>
         </div>
       </div>
     </section>

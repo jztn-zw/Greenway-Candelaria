@@ -356,13 +356,14 @@ const RouteReplay = ({ trucks, onReplayPath, onReplayBreaks, onReplayIndex, onRe
           <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
             <div className="space-y-1">
               <p className="text-ui-caption text-muted-foreground">Estimated trip distance</p>
-              <p className="text-sm font-semibold tabular-nums text-foreground">{trip.distanceKm.toFixed(1)} km</p>
+              <p className="text-sm font-semibold tabular-nums text-foreground">{trip.distanceAvailable === false ? "Not enough GPS data" : `${trip.distanceKm.toFixed(2)} km`}</p>
             </div>
             <div className="space-y-1">
               <p className="text-ui-caption text-muted-foreground">Recorded duration</p>
               <p className="text-sm font-semibold tabular-nums text-foreground">{formatReplayDuration(durationMs)}</p>
             </div>
           </div>
+          {Boolean(trip.excludedPoints || trip.gapCount) && <p className="text-ui-caption leading-relaxed text-muted-foreground">GPS estimate · Gaps or unreliable fixes excluded.</p>}
           <div className="space-y-2">
             <h4 className="gw-heading text-xs text-foreground">Target Streets</h4>
             {targetRows.length ? (
