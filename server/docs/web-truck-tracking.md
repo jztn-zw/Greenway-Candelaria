@@ -61,6 +61,18 @@ The map still uses OpenStreetMap tiles. Tile requests reveal the browser's IP an
 29. If an admin reassigns a collector with an active, paused or today's scheduled run, the change is rejected until the run is finished/cancelled. Truck availability also cannot be changed while an applicable run remains.
 30. If an account is deactivated, authentication and subsequent socket deliveries are revoked. The monitor cancels unstarted unavailable runs or closes started unavailable runs, preserving completed stops and marking unfinished stops missed.
 31. If the collection day changes, old unstarted runs are cancelled and unfinished started runs are finalized. Yesterday's paused run cannot keep blocking current-day GPS indefinitely.
+    For an expired, unstarted run, the cancellation and one `ROUTE_NOT_STARTED`
+    system notice per eligible admin/assigned collector are saved in the same
+    transaction, using the existing truck-then-run lock order. Admin route-issue
+    preferences still apply. Inbox/socket delivery and the collector's existing
+    mobile push pipeline run after commit. The notice includes the saved route
+    name and original Philippine collection date. It opens notification details,
+    never an unrelated current route. It does not notify residents, create stop
+    outcomes, or change the separate daily assignment/start-time reminders.
+    The minute-based monitor handles eligible past runs after midnight (or when
+    the server resumes); provider/device delivery may occur later. Existing
+    cancellations are not backfilled, and a failed notification insert rolls
+    back cancellation so the monitor can retry without duplicate inbox notices.
 32. If an admin changes the recurring schedule, dated completed history stays intact. A started run cannot have its stop plan replaced underneath collection.
     A replacement template cannot create another run on the same Philippine date for a truck or collector that already has a scheduled, started, completed, or partial run. Unstarted cancelled assignments may be replaced. After collection ends, a changed weekly plan takes effect on its next matching date. Starting an already-created duplicate is also rejected after another trip has ended that day. No additional-trip action is offered.
 33. If a resident opens tracking, the server limits trucks/routes/stops to their registered area, omits collector identity and truck plates, and sends no unrelated fleet-wide socket payload.

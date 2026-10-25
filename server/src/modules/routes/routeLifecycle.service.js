@@ -1,6 +1,6 @@
 const { pool } = require("../../config/db");
 const { todaySql } = require("../tracking/trackingAccess");
-const { notifyBarangayResidents, notifyAdmins, emitStoredNotifications } = require("../notifications/notifications.service");
+const { notifyBarangayResidents, notifyAdmins, sendToMany, emitStoredNotifications } = require("../notifications/notifications.service");
 const { emitNotificationReferenceRemoved } = require("../../sockets/notifications.socket");
 const terminal = (status) => ["DONE", "MISSED"].includes(status);
 const ended = (status) => ["COMPLETED", "PARTIAL", "CANCELLED"].includes(status);
@@ -19,7 +19,7 @@ const withRun = async (runId, actor, action) => {
     const [rows] = await db.query(
       `SELECT rr.*, d.user_id, d.truck_id AS assigned_truck_id,
         t.name AS truck_name, t.availability_status,
-        collector.status AS driver_status, collector.deleted_at AS driver_deleted_at,
+        collector.status AS driver_status, collector.role AS driver_role, collector.deleted_at AS driver_deleted_at,
         (rr.run_date = ${todaySql}) AS is_today,
         (rr.run_date < ${todaySql}) AS is_past,
         (TIME(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')) >= rr.scheduled_start_time) AS is_due
@@ -204,15 +204,50 @@ const endRoute = (id, actor, recheckMonitor = false) => withRun(id, actor, async
   await closeRun(context);
   return { routeId: id, status: run.status };
 });
+// The locked status transition is the claim: notifications and cancellation
+// commit together, so another monitor/retry cannot announce this run twice.
+const expireUnstartedRoute = (id) => withRun(id, { role: "ADMIN" }, async ({ db, run, notifications }) => {
+  if (!Number(run.is_past) || run.collection_started_at || ended(run.status)) return false;
+  const date = String(run.run_date).slice(0, 10);
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric",
+  }).format(new Date(`${date}T00:00:00+08:00`));
+  const routeName = run.route_name || "Collection route";
+  const truckName = run.truck_name_snapshot || run.truck_name;
+  const notice = {
+    type: "SYSTEM", title: `Route not started — ${dateLabel}`,
+    body: `${routeName}${truckName ? ` (${truckName})` : ""} was not started on ${dateLabel}.`,
+    ref_id: run.id, ref_module: "routes",
+    metadata: { notification_kind: "ROUTE_NOT_STARTED", destination: "notifications",
+      run_id: run.id, collection_date: date, route_name: routeName, truck_name: truckName },
+    db, emit: false,
+  };
+  await db.query("UPDATE route_runs SET status = 'CANCELLED' WHERE id = ?", [run.id]);
+  const adminDelivery = await notifyAdmins({ ...notice, category: "route_issues" });
+  notifications.push(...adminDelivery.notifications);
+  if (run.user_id && run.driver_role === "DRIVER" && run.driver_status === "ACTIVE" && !run.driver_deleted_at) {
+    const collectorDelivery = await sendToMany({ ...notice, user_ids: [run.user_id] });
+    notifications.push(...collectorDelivery.notifications);
+  }
+  return true;
+});
+
 const finalizeCompletedRoutes = async () => {
 
   // Revocation still succeeds immediately; the monitor then reconciles operations.
   const unavailable = `NOT EXISTS (SELECT 1 FROM drivers d JOIN users u ON u.id = d.user_id
     JOIN trucks t ON t.id = d.truck_id WHERE d.id = rr.driver_id AND d.truck_id = rr.truck_id
       AND u.status = 'ACTIVE' AND u.deleted_at IS NULL AND t.availability_status = 'ACTIVE')`;
+  const [expired] = await pool.query(`SELECT rr.id FROM route_runs rr
+    WHERE rr.status IN ('SCHEDULED','ACTIVE','PAUSED') AND rr.collection_started_at IS NULL
+      AND rr.run_date < ${todaySql}`);
+  const cancelled = [];
+  for (const row of expired) {
+    if (await expireUnstartedRoute(row.id)) cancelled.push(row.id);
+  }
   await pool.query(`UPDATE route_runs rr SET status = 'CANCELLED'
     WHERE rr.status IN ('SCHEDULED','ACTIVE','PAUSED') AND rr.collection_started_at IS NULL
-      AND (rr.run_date < ${todaySql} OR ${unavailable})`);
+      AND rr.run_date >= ${todaySql} AND ${unavailable}`);
   const [rows] = await pool.query(
     `SELECT rr.id FROM route_runs rr WHERE rr.status IN ('ACTIVE','PAUSED')
      AND rr.collection_started_at IS NOT NULL
@@ -220,6 +255,6 @@ const finalizeCompletedRoutes = async () => {
        (EXISTS (SELECT 1 FROM route_run_stops s WHERE s.route_run_id = rr.id)
         AND NOT EXISTS (SELECT 1 FROM route_run_stops s WHERE s.route_run_id = rr.id AND s.status NOT IN ('DONE','MISSED'))))`);
   for (const row of rows) await endRoute(row.id, { role: "ADMIN" }, true);
-  return rows.map((row) => row.id);
+  return [...cancelled, ...rows.map((row) => row.id)];
 };
 module.exports = { startRoute, setRoutePaused, updateStopStatus, endRoute, finalizeCompletedRoutes, withRun };
