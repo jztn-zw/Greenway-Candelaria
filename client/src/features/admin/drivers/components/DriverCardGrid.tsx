@@ -32,7 +32,6 @@ interface DriverCardGridProps {
   drivers: Driver[];
   trucks: TruckType[];
   search: string;
-  statusFilter: string;
   assignmentFilter: "all" | "assigned" | "unassigned";
   onView: (d: Driver) => void;
   onEdit: (d: Driver) => void;
@@ -47,7 +46,6 @@ const DriverCardGrid = ({
   drivers,
   trucks,
   search,
-  statusFilter,
   assignmentFilter,
   onView,
   onEdit,
@@ -67,19 +65,17 @@ const DriverCardGrid = ({
         d.username.toLowerCase().includes(search.toLowerCase()) ||
         d.email.toLowerCase().includes(search.toLowerCase()) ||
         d.contactNumber.includes(search);
-      const matchesStatus =
-        statusFilter === "all" || d.status === statusFilter;
       const matchesAssignment =
         assignmentFilter === "all" ||
         (assignmentFilter === "assigned" ? Boolean(d.truckId) : !d.truckId);
-      return matchesSearch && matchesStatus && matchesAssignment;
+      return matchesSearch && matchesAssignment;
     });
-  }, [drivers, search, statusFilter, assignmentFilter]);
+  }, [drivers, search, assignmentFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
 
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, assignmentFilter]);
+  useEffect(() => { setCurrentPage(1); }, [search, assignmentFilter]);
   useEffect(() => { setCurrentPage((page) => Math.min(page, totalPages)); }, [totalPages]);
 
   const paginated = useMemo(() => {
@@ -93,8 +89,8 @@ const DriverCardGrid = ({
       {/* ── Cards Grid ── */}
       {paginated.length === 0 ? (
         <ListEmptyState icon={Users} title="No Collectors Found"
-          description={search || statusFilter !== "all"
-                ? "No collectors match your search query or status filter."
+          description={search || assignmentFilter !== "all"
+                ? "No collectors match your search or assignment filter."
                 : "No collector personnel registered yet."} />
       ) : (
         <div className={styles.grid}>

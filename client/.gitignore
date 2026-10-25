@@ -20,6 +20,8 @@ dist-ssr
 coverage/
 playwright-report/
 test-results/
+vite.config.*.timestamp-*.mjs
+vitest.config.*.timestamp-*.mjs
 
 # Editor directories and files
 .vscode/*

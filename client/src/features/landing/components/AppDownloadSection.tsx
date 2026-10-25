@@ -1,18 +1,18 @@
-import { CalendarDays, ClipboardList, Truck } from "lucide-react";
+import { Bell, Camera, Smartphone } from "lucide-react";
 import { CONTENT, type AppDownloadContent } from "../landingContent";
 import InstallAppButton from "./InstallAppButton";
 import IosDownloadButton from "./IosDownloadButton";
-import ResidentAppPreview from "./ResidentAppPreview";
+import ResidentAppVideo from "./ResidentAppVideo";
 import "./AppDownloadSection.css";
 
-const benefitIcons = [CalendarDays, Truck, ClipboardList];
+const benefitIcons = [Bell, Smartphone, Camera];
 
 export default function AppDownloadSection({ content = CONTENT.appDownload }: { content?: AppDownloadContent }) {
   return (
     <section id="greenway-app" aria-labelledby="greenway-app-heading" className="app-download bg-background py-12 sm:py-16">
       <div className="container">
         <div className="app-download-panel relative isolate overflow-hidden rounded-2xl border border-primary/20 bg-card">
-          <div className="grid items-center md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <div className="grid items-center lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)]">
             <div className="relative z-10 min-w-0 p-5 sm:p-8 lg:p-10">
               <p className="mb-4 flex items-center gap-3 text-xs font-semibold tracking-wide text-forest dark:text-accent-foreground">
                 <span aria-hidden="true" className="h-px w-8 bg-primary/60" />{content.sectionLabel}
@@ -36,15 +36,17 @@ export default function AppDownloadSection({ content = CONTENT.appDownload }: { 
                   );
                 })}
               </ul>
+              <p className="mt-5 max-w-lg border-l-2 border-primary/30 pl-3 text-xs leading-5 text-muted-foreground">
+                Browser alerts work while GreenWay is open, including background tabs. Your notification inbox is available on both the app and website.
+              </p>
 
               <div className="mt-7 flex flex-wrap gap-2">
                 <InstallAppButton className="h-12 px-5" />
                 <IosDownloadButton className="h-12" />
               </div>
-              <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">Download and open the APK on your Android phone. If prompted, allow your browser to install the app.</p>
             </div>
 
-            <ResidentAppPreview />
+            <ResidentAppVideo />
           </div>
         </div>
       </div>

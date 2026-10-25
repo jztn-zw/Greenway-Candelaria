@@ -22,7 +22,6 @@ import { scheduledTrackingContent, trackingPageContent } from "@/features/reside
 import { trackingStyles } from "@/features/resident/truck-tracking/trackingStyles";
 import { dashboardStyles } from "@/features/resident/dashboard/dashboardStyles";
 import { profileStyles } from "@/features/resident/profile/profileStyles";
-import { settingsStyles } from "@/features/resident/settings/settingsStyles";
 import { reportDetailStyles } from "@/features/resident/waste-reporting/reportDetailStyles";
 import { adminDashboardStyles as adminStyles } from "@/features/admin/dashboard/dashboardStyles";
 import { adminWasteReportStyles as wasteReportStyles } from "@/components/common/communityContentStyles";
@@ -695,47 +694,6 @@ export const AdminProfileSkeleton = () => (
 
       <div className={adminProfile.logout}><div className="flex min-w-0 items-center gap-3"><Skeleton className="size-10 shrink-0 rounded-xl" /><div className="min-w-0"><Skeleton className="h-5 w-16 max-w-full" /><Skeleton className="h-4 w-36 max-w-full" /></div></div><Skeleton className="size-4 shrink-0" /></div>
     </div>
-  </div>
-);
-
-/* ─── Resident Settings Page Skeleton (1:1 with ResidentSettings.tsx) ─── */
-export const SettingsSkeleton = () => (
-  <div role="status" aria-busy="true" aria-label="Loading resident settings" className={settingsStyles.page}>
-    <ResidentPageHeaderSkeleton title="Settings" description="Manage browser notifications and display preferences" />
-    {[1, 3, 0, 2, 2].map((rowCount, sectionIndex) => (
-      <section key={sectionIndex} aria-hidden="true" className={settingsStyles.section}>
-        <div className={settingsStyles.sectionHeader}>
-          <Skeleton className={settingsStyles.icon} />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Skeleton className="h-4 w-40 max-w-full" />
-            <Skeleton className="h-3 w-64 max-w-full" />
-          </div>
-        </div>
-        {sectionIndex === 2 ? (
-          <div className="space-y-2">
-            <div className={settingsStyles.themeHeading}><Skeleton className="h-4 w-24 max-w-full" /><Skeleton className="h-3 w-28 max-w-full" /></div>
-            <div className={settingsStyles.themeGrid}><Skeleton className={settingsStyles.themeSkeleton} /><Skeleton className={settingsStyles.themeSkeleton} /></div>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {Array.from({ length: rowCount }).map((_, rowIndex) => (
-              <div key={rowIndex} className={settingsStyles.row}>
-                <div className={settingsStyles.rowContent}>
-                  <Skeleton className={settingsStyles.icon} />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-36 max-w-full" />
-                    <Skeleton className="h-3 w-64 max-w-full" />
-                    <Skeleton className="resident-settings-skeleton-second-line h-3 w-4/5 max-w-full" />
-                  </div>
-                </div>
-                <Skeleton className={sectionIndex <= 1 ? "h-6 w-11 shrink-0 rounded-full" : "size-4 shrink-0 rounded-md"} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    ))}
-    <div className={settingsStyles.footer} aria-hidden="true"><Skeleton className="mx-auto h-3 w-80 max-w-full" /></div>
   </div>
 );
 
@@ -1845,11 +1803,11 @@ export const CollectorManagerPageSkeleton = ({ activeTab = "drivers" }: { active
 
       <AdminKpiSkeleton />
 
-      <section className="admin-toolbar min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-2xs">
+      <section className={cn("admin-toolbar min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-2xs", activeTab === "drivers" && "admin-toolbar-collectors")}>
         <div className={`${collectorManagerStyles.primary} admin-toolbar-primary`}>
-          <div className={cn(collectorManagerStyles.filters, "admin-toolbar-chips flex items-center gap-1.5 overflow-hidden pb-1 sm:pb-0")}>
-            {(activeTab === "drivers" ? ["w-[112px]", "w-[75px]", "w-[105px]"] : ["w-[100px]", "w-[108px]", "w-[105px]"]).map((width, i) => <Skeleton key={i} className={cn("collector-manager-filter-placeholder admin-toolbar-chip-placeholder h-[34px] shrink-0 rounded-lg", width)} />)}
-          </div>
+          {activeTab === "trucks" && <div className={cn(collectorManagerStyles.filters, "admin-toolbar-chips flex items-center gap-1.5 overflow-hidden pb-1 sm:pb-0")}>
+            {["w-[100px]", "w-[108px]", "w-[105px]"].map((width, i) => <Skeleton key={i} className={cn("collector-manager-filter-placeholder admin-toolbar-chip-placeholder h-[34px] shrink-0 rounded-lg", width)} />)}
+          </div>}
           <div className="admin-toolbar-desktop-only">
             <div className={cn(collectorManagerStyles.view, "inline-flex items-center gap-0.5 rounded-xl border border-border/80 bg-muted/60 p-1")}>
               <Skeleton className="h-8 w-28 rounded-lg" />

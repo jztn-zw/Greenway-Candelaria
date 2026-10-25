@@ -53,7 +53,11 @@ export default function Footer({ content = CONTENT.footer, contactContent = CONT
         <div aria-hidden="true" className="landing-footer-divider h-px" />
         <div className="flex flex-col gap-2 py-5 text-xs leading-5 text-canopy-foreground/75 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <p>{content.copyright}</p>
-          <p>{content.bottomTagline}</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <p>{content.bottomTagline}</p>
+            <a href={`${import.meta.env.BASE_URL}media/greenway-resident-demo-v9-credits.html`} target="_blank" rel="noreferrer"
+              className="inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-canopy-foreground">Video Credits</a>
+          </div>
         </div>
       </div>
     </footer>

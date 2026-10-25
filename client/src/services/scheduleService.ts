@@ -50,15 +50,6 @@ export interface CollectionScheduleDay {
   updated_at?: string;
 }
 
-export type PublicCollectionScheduleDay = Pick<CollectionScheduleDay, "day_of_week" | "waste_type" | "start_time">;
-
-export const fetchPublicCollectionSchedule = async (barangayId: string, streetId: string): Promise<PublicCollectionScheduleDay[]> => {
-  const { data } = await api.get<{ data: PublicCollectionScheduleDay[] }>("/schedule/public", {
-    params: { barangay_id: barangayId, street_id: streetId },
-  });
-  return data.data ?? [];
-};
-
 export const fetchCalendarEvents = async (params?: {
   view?: "collector";
   month?: string;

@@ -11,8 +11,6 @@ export type NotificationType =
   | "report-update"
   | "new-content";
 
-export type NotificationCategory = "all" | "collection" | "reports" | "content" | "announcements";
-
 export interface ResidentNotification {
   id: string;
   type: NotificationType;

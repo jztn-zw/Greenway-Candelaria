@@ -96,6 +96,7 @@ export const getNotificationIconAndStyle = (notification: NotificationRow) => {
 };
 
 export const getAdminNotificationDestination = (notification: NotificationRow): string | null => {
+  if (getAdminNotificationMetadata(notification).notification_kind === "ROUTE_NOT_STARTED") return null;
   if (notification.ref_module === "truck-breakdowns") return null;
   const category = getAdminCategory(notification);
   const id = notification.ref_id ? encodeURIComponent(notification.ref_id) : null;

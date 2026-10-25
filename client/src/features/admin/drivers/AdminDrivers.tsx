@@ -68,7 +68,6 @@ const AdminDrivers = () => {
   const [activeTab, setActiveTab] = useState<Tab>("drivers");
 
   const [driverSearch, setDriverSearch] = useState("");
-  const [driverStatusFilter, setDriverStatusFilter] = useState("all");
   const [driverAssignmentFilter, setDriverAssignmentFilter] = useState<"all" | "assigned" | "unassigned">("all");
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedDriverId = searchParams.get("collectorId");
@@ -155,15 +154,6 @@ const AdminDrivers = () => {
     (t) => t.assignedDriverId !== null,
   ).length;
 
-  const driverStatusTabs: FilterPillItem[] = useMemo(
-    () => [
-      { id: "all", label: "All Collectors", count: driversError ? undefined : totalCollectors },
-      { id: "Active", label: "Active", count: driversError ? undefined : activeCollectors },
-      { id: "Deactivated", label: "Deactivated", count: driversError ? undefined : deactivatedCollectors },
-    ],
-    [totalCollectors, activeCollectors, deactivatedCollectors, driversError]
-  );
-
   const truckStatusTabs: FilterPillItem[] = useMemo(
     () => [
       { id: "all", label: "All Trucks", count: trucksError ? undefined : totalTrucks },
@@ -184,7 +174,6 @@ const AdminDrivers = () => {
   const hasActiveFilters =
     activeTab === "drivers"
       ? driverSearch.trim() !== "" ||
-        driverStatusFilter !== "all" ||
         driverAssignmentFilter !== "all"
       : truckSearch.trim() !== "" ||
         truckStatusFilter !== "all" ||
@@ -193,7 +182,6 @@ const AdminDrivers = () => {
   const handleResetFilters = () => {
     if (activeTab === "drivers") {
       setDriverSearch("");
-      setDriverStatusFilter("all");
       setDriverAssignmentFilter("all");
     } else {
       setTruckSearch("");
@@ -298,12 +286,6 @@ const AdminDrivers = () => {
 
   const openTruckEditor = (truck?: TruckType) => {
     setEditingTruck(truck || null);
-    setTruckEditorOpen(true);
-  };
-
-  const openTruckEditorFromDetail = (truck: TruckType) => {
-    closeTruckProfile();
-    setEditingTruck(truck);
     setTruckEditorOpen(true);
   };
 
@@ -422,19 +404,28 @@ const AdminDrivers = () => {
 
   if (selectedTruck) {
     return (
-      <TruckDetailView
-        truck={selectedTruck}
-        onBack={closeTruckProfile}
-        drivers={drivers}
-        onEdit={openTruckEditorFromDetail}
-        onToggleStatus={(truck) => {
-          void toggleTruckStatus(truck).catch((err) => {
-            toast.error("Failed to update truck status", {
-              description: err instanceof Error ? err.message : "Please try again.",
+      <>
+        <TruckDetailView
+          truck={selectedTruck}
+          onBack={closeTruckProfile}
+          drivers={drivers}
+          onEdit={openTruckEditor}
+          onToggleStatus={(truck) => {
+            void toggleTruckStatus(truck).catch((err) => {
+              toast.error("Failed to update truck status", {
+                description: err instanceof Error ? err.message : "Please try again.",
+              });
             });
-          });
-        }}
-      />
+          }}
+        />
+        <TruckEditorModal
+          open={truckEditorOpen}
+          onOpenChange={setTruckEditorOpen}
+          editingTruck={editingTruck}
+          isSaving={isSavingTruck}
+          onSave={handleSaveTruck}
+        />
+      </>
     );
   }
 
@@ -506,17 +497,10 @@ const AdminDrivers = () => {
       </AdminKpiGrid>
 
       {/* ── Standardized 2-Tier Filter Card Container ── */}
-        <section className="admin-toolbar min-w-0 rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden">
+        <section className={cn("admin-toolbar min-w-0 rounded-2xl border border-border/80 bg-card/60 shadow-2xs overflow-hidden", activeTab === "drivers" && "admin-toolbar-collectors")}>
           {/* Tier 1: Primary Status Filter Tabs + Entity View Switcher */}
           <div className={`${styles.primary} admin-toolbar-primary`}>
-            {activeTab === "drivers" ? (
-              <FilterPillTabs
-                items={driverStatusTabs}
-                activeId={driverStatusFilter}
-                onChange={setDriverStatusFilter}
-                className={`${styles.filters} admin-toolbar-chips`}
-              />
-            ) : (
+            {activeTab === "trucks" && (
               <FilterPillTabs
                 items={truckStatusTabs}
                 activeId={truckStatusFilter}
@@ -672,7 +656,6 @@ const AdminDrivers = () => {
           drivers={drivers}
           trucks={trucks}
           search={driverSearch}
-          statusFilter={driverStatusFilter}
           assignmentFilter={driverAssignmentFilter}
           onView={openDriverProfile}
           onEdit={openDriverEditor}

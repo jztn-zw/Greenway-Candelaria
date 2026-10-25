@@ -109,6 +109,7 @@
 @container collector-manager (min-width: 45rem) {
   .collector-manager .collector-manager-primary { flex-direction: row; align-items: center; }
   .collector-manager .collector-manager-switch { align-self: auto; }
+  .collector-manager .collector-manager-primary .collector-manager-switch { margin-left: auto; }
   .collector-manager .collector-manager-secondary { grid-template-columns: minmax(0, 1fr) auto; }
   .collector-manager .collector-manager-fields { grid-column: auto; grid-template-columns: minmax(0, 24rem) auto; }
   .collector-manager .collector-manager-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -851,6 +852,14 @@
   .admin-toolbar .admin-toolbar-search-section {
     border-top: 0;
     padding: 0 0.75rem 0.75rem;
+  }
+
+  .admin-toolbar-collectors .admin-toolbar-primary {
+    display: none;
+  }
+
+  .admin-toolbar-collectors .admin-toolbar-search-section {
+    padding-top: 0.75rem;
   }
 
   .admin-toolbar-resident-controls {

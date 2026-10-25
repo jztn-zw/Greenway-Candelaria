@@ -37,11 +37,11 @@ const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/residents": "Resident Management",
   "/admin/drivers": "Collector Management",
   "/admin/tracking": "Live Truck Tracking",
-  "/admin/analytics": "Analytics & Reports",
+  "/admin/analytics": "Analytics Dashboard",
   "/admin/audit-logs": "Audit Logs",
   "/admin/notifications": "Notifications",
-  "/admin/settings": "System Settings",
-  "/admin/profile": "Admin Profile",
+  "/admin/settings": "Settings",
+  "/admin/profile": "Profile & Account",
 };
 
 const getAdminPageTitle = (pathname: string) => {
@@ -156,7 +156,7 @@ const AdminTopBar = () => {
                 }}
                 className="hover:text-foreground transition-colors text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
               >
-                Collector Manager
+                {pageTitle}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className={`${navigationStyles.currentPage} max-w-[120px] sm:max-w-[200px] md:max-w-[300px]`}>
@@ -177,7 +177,7 @@ const AdminTopBar = () => {
                 }}
                 className="hover:text-foreground transition-colors text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
               >
-                Collector Manager
+                {pageTitle}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className={`${navigationStyles.currentPage} max-w-[120px] sm:max-w-[200px] md:max-w-[300px]`}>
@@ -198,7 +198,7 @@ const AdminTopBar = () => {
                 }}
                 className="hover:text-foreground transition-colors text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
               >
-                Resident Accounts
+                {pageTitle}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className={`${navigationStyles.currentPage} max-w-[120px] sm:max-w-[200px] md:max-w-[300px]`}>
@@ -223,7 +223,7 @@ const AdminTopBar = () => {
                 }}
                 className="hover:text-foreground transition-colors text-muted-foreground font-medium truncate shrink-0 cursor-pointer"
               >
-                Community Posts
+                {pageTitle}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" aria-hidden="true" />
               {isPreview ? (

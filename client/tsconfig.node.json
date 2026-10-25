@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true
   },
   /* Update this array to include your config files */
-  "include": ["vite.config.ts", "vitest.config.ts", "tailwind.config.ts"]
+  "include": ["vite.config.ts", "tailwind.config.ts"]
 }

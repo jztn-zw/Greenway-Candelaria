@@ -34,12 +34,12 @@ const COLLECTOR_PAGE_TITLES: Record<string, string> = {
   "/collector/schedule": "MENRO Calendar",
   "/collector/route-history": "Route History",
   "/collector/notifications": "Notifications",
-  "/collector/profile": "Driver Profile",
+  "/collector/profile": "Profile & Account",
 };
 
 const getCollectorPageTitle = (pathname: string) => {
   if (COLLECTOR_PAGE_TITLES[pathname]) return COLLECTOR_PAGE_TITLES[pathname];
-  return "Driver Portal";
+  return "Collector Portal";
 };
 
 import CollectorNotificationModal from "@/features/collector/notifications/CollectorNotificationModal";
@@ -114,7 +114,7 @@ const CollectorTopBar = () => {
                 onClick={() => navigate("/collector/route-history")}
                 className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Route History
+                {pageTitle}
               </button>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span className={navigationStyles.currentPage}>

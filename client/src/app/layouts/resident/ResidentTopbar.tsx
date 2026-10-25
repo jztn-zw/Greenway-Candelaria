@@ -116,10 +116,10 @@ const getNotificationIconAndStyle = (n: NotificationRow) => {
 
 const RESIDENT_PAGE_TITLES: Record<string, string> = {
   "/resident": "Resident Dashboard",
-  "/resident/schedule": "Collection Schedule",
+  "/resident/schedule": "Resident Calendar",
   "/resident/tracking": "Live Collection Tracking",
   "/resident/my-reports": "My Reports",
-  "/resident/report": "Submit Report",
+  "/resident/report": "Submit a Waste Report",
   "/resident/contents": "Community Posts",
   "/resident/notifications": "Notifications",
   "/resident/profile": "Profile & Account",
@@ -220,7 +220,7 @@ const ResidentTopBar = () => {
                 aria-label="Back to My Reports"
                 className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                My Reports
+                {pageTitle}
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span aria-current="page" className="font-sans tabular-nums font-semibold text-foreground truncate tracking-tight">
@@ -234,7 +234,7 @@ const ResidentTopBar = () => {
                 aria-label="Back to Community Posts"
                 className="rounded-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Community Posts
+                {pageTitle}
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
               <span aria-current="page" className={navigationStyles.currentPage}>
