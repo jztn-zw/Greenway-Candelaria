@@ -12,11 +12,9 @@ export default function useLogout() {
     flushSync(() => navigate("/", { replace: true }));
     try {
       await logout();
-      if (!useAuthStore.getState().token) toast.success("Signed out successfully");
+      if (!useAuthStore.getState().token) toast.success("Signed out of this tab");
     } catch (error) {
-      if (!useAuthStore.getState().token) toast.warning("Signed out on this browser", {
-        description: "GreenWay could not confirm server sign-out. Check your connection and sign in again if needed.",
-      });
+      toast.error("Could not sign out of this tab. Please try again.");
       throw error;
     }
   };

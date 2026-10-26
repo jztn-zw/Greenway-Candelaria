@@ -18,6 +18,7 @@ router.post("/recovery-code", authenticate, recoveryCodeLimiter, authJsonOnly, c
 router.post("/logout", authenticate, controller.logout);
 router.post("/delete-account", authenticate, authorize("RESIDENT"), accountDeletionLimiter, authJsonOnly, controller.deleteResident);
 router.get("/me", authenticate, controller.getMe);
+router.get("/session", authenticate, (req, res) => res.json({ success: true, data: { active: true } }));
 router.put("/resident-profile", authenticate, profileWriteLimiter, authJsonOnly, controller.completeResidentProfile);
 
 module.exports = router;

@@ -358,11 +358,11 @@ const AdminSidebar = () => {
           kind="dialog"
           open={showLogoutModal}
           onOpenChange={setShowLogoutModal}
-          title="Log Out of GreenWay?"
-          description="Are you sure you want to end your active session? You will need your credentials to sign back in."
+          title="Sign Out of This Tab?"
+          description="You can sign in again here. Other tabs will stay signed in."
           icon={<LogOut />}
           variant="destructive"
-          confirmLabel="Log Out"
+          confirmLabel="Sign Out"
           onConfirm={handleLogout}
           pendingLabel="Logging out…"
         />

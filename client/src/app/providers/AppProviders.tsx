@@ -6,6 +6,8 @@ import { useEffect, useMemo, type PropsWithChildren } from "react";
 import SystemTimeProvider from "./SystemTimeProvider";
 import { shouldRetryQuery } from "@/lib/rateLimit";
 import ConnectionStatus from "./ConnectionStatus";
+import SessionMonitor from "./SessionMonitor";
+import BrowserSessionSync from "./BrowserSessionSync";
 
 let nextSessionKey = 0;
 const createSessionCache = (_token: string | null, _identity: string) => ({ queryClient: new QueryClient({ defaultOptions: { queries: { retry: shouldRetryQuery } } }), sessionKey: ++nextSessionKey });
@@ -17,9 +19,10 @@ const AppProviders = ({ children }: PropsWithChildren) => {
   const { queryClient, sessionKey } = useMemo(() => createSessionCache(token, identity), [token, identity]);
   useEffect(() => () => queryClient.clear(), [queryClient]);
   return (
-  <>
+  <BrowserSessionSync>
   <Sonner />
   <ConnectionStatus />
+  <SessionMonitor />
   <SystemTimeProvider>
   <QueryClientProvider key={sessionKey} client={queryClient}>
     <TooltipProvider>
@@ -27,7 +30,7 @@ const AppProviders = ({ children }: PropsWithChildren) => {
     </TooltipProvider>
   </QueryClientProvider>
   </SystemTimeProvider>
-  </>
+  </BrowserSessionSync>
   );
 };
 

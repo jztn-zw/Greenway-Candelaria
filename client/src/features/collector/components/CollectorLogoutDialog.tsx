@@ -9,8 +9,8 @@ interface Props {
 
 const CollectorLogoutDialog = ({ open, onOpenChange, onConfirm }: Props) => (
   <ConfirmationDialog kind="dialog" open={open} onOpenChange={onOpenChange}
-    title="Log Out of GreenWay?" description="Sign out of your current collector session?"
-    icon={<LogOut />} variant="destructive" confirmLabel="Log Out" onConfirm={onConfirm} pendingLabel="Logging out…" />
+    title="Sign Out of This Tab?" description="You can sign in again here. Other tabs will stay signed in."
+    icon={<LogOut />} variant="destructive" confirmLabel="Sign Out" onConfirm={onConfirm} pendingLabel="Logging out…" />
 );
 
 export default CollectorLogoutDialog;

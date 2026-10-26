@@ -53,4 +53,4 @@ const authenticateSocketUser = async (socket, allowedRoles = null) => {
   }
 };
 
-module.exports = { authenticateSocketUser };
+module.exports = { authenticateSocketUser, getHandshakeToken };

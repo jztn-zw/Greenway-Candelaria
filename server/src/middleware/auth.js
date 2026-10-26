@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const { pool } = require("../config/db");
 const { error } = require("../utils/apiResponse");
 const hashSessionToken = require("../utils/hashSessionToken");
+const { hasNewerSession } = require("../modules/sessions/sessions.service");
 
 const authenticate = async (req, res, next) => {
   try {
@@ -18,11 +19,15 @@ const authenticate = async (req, res, next) => {
     // Check if session exists and not expired
     const [sessions] = await pool.query(
       `SELECT * FROM sessions 
-       WHERE token IN (?, ?) AND expires_at > NOW()`,
-      [hashSessionToken(token), token],
+       WHERE token IN (?, ?) AND user_id = ? AND expires_at > NOW()`,
+      [hashSessionToken(token), token, decoded.id],
     );
 
     if (sessions.length === 0) {
+      if (await hasNewerSession(decoded.id, decoded.iat)) {
+        return res.status(401).json({ success: false, code: "SESSION_REPLACED",
+          message: "You have been signed out because this account was signed in on another browser or device. Sign in again to continue here." });
+      }
       return error(res, "Session expired or invalid", 401);
     }
 

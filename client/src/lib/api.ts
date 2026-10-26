@@ -1,7 +1,12 @@
 import axios,{ AxiosError } from "axios";
-import { clearAuthStorage,getAuthStorage } from "./authStorage";
+import { clearAuthStorage,getAuthStorage,isBrowserSignInPending } from "./authStorage";
 import { getRetryAfterSeconds } from "./rateLimit";
 import { getActionErrorMessage, safeFeedbackMessage } from "./feedbackMessages";
+import { endReplacedSession } from "./sessionReplaced";
+
+let readSessionToken: (() => string | null) | undefined;
+let signingIn: (() => boolean) | undefined;
+export function configureWebApiSession(read: () => string | null, readSigningIn?: () => boolean) { readSessionToken = read; signingIn = readSigningIn; }
 
 const api = axios.create({
   timeout: 15000,
@@ -14,6 +19,7 @@ const api = axios.create({
 // ─── Request: Attach Token ─────────────────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const token = getAuthStorage().getItem("token");
+  if (readSessionToken && readSessionToken() !== token) throw new axios.CanceledError("Browser account changed before request dispatch");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +29,8 @@ api.interceptors.request.use((config) => {
 // ─── Response: Normalize Errors ───────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string; requestId?: string; retryAfterSeconds?: number; errors?: Array<{ field?: string; message?: string }> }>) => {
+  (error: AxiosError<{ message?: string; code?: string; requestId?: string; retryAfterSeconds?: number; errors?: Array<{ field?: string; message?: string }> }>) => {
+    if (axios.isCancel(error)) return Promise.reject(error);
     const isAuthRoute =
       error.config?.url?.includes("/auth/login") ||
       error.config?.url?.includes("/auth/recover") ||
@@ -48,7 +55,11 @@ api.interceptors.response.use(
       const requestToken = error.config?.headers?.Authorization;
       // A revoked request from the previous account must not sign out the
       // account that has since logged in on this browser.
-      if (requestToken !== (currentToken ? `Bearer ${currentToken}` : undefined)) {
+      if (!currentToken || requestToken !== `Bearer ${currentToken}`) {
+        return Promise.reject(error);
+      }
+      if (currentToken && error.response?.data?.code === "SESSION_REPLACED") {
+        if (!signingIn?.() && !isBrowserSignInPending()) endReplacedSession(currentToken);
         return Promise.reject(error);
       }
       clearAuthStorage();

@@ -9,6 +9,7 @@ const { createRecoveryCode, recoverPassword, replaceRecoveryCode } = require("./
 const { pool } = require("../../config/db");
 const { deleteResident } = require("./auth.deletion");
 const { emitAdminDataChanged } = require("../../sockets/adminChanges.socket");
+const { emitSessionsReplaced } = require("../../sockets/session.socket");
 
 const register = async ({
   full_name,
@@ -176,6 +177,7 @@ const createLoginSession = async (user, req, loginContext) => {
   const connection = await pool.getConnection();
   let token;
   let reactivated = false;
+  let previousTokens = [];
   try {
     await connection.beginTransaction();
     const [rows] = await connection.query(
@@ -207,7 +209,7 @@ const createLoginSession = async (user, req, loginContext) => {
     token = jwt.sign({ id: user.id, role: user.role, jti: generateId() }, process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await SessionService.createSession({ userId: user.id, token,
+    previousTokens = await SessionService.replaceSessions({ userId: user.id, token,
       device: req?.headers?.["user-agent"], ip: req?.ip, expiresAt }, connection);
     await connection.query("UPDATE users SET last_login_at = NOW() WHERE id = ?", [user.id]);
     await connection.commit();
@@ -215,6 +217,8 @@ const createLoginSession = async (user, req, loginContext) => {
     await connection.rollback();
     throw error;
   } finally { connection.release(); }
+
+  void emitSessionsReplaced(previousTokens);
 
   if (reactivated) emitAdminDataChanged(["residents", "dashboard", "analytics", "audit"], { residents: false, collectors: false });
 

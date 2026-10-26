@@ -12,8 +12,8 @@ interface LogoutConfirmModalProps {
   descriptionInHeader?: boolean;
 }
 
-const LogoutConfirmModal = ({ open, onOpenChange, onConfirm, title = "Log Out of GreenWay?",
-  description = "Sign out of your current session?", confirmLabel = "Log Out", isLoggingOut = false,
+const LogoutConfirmModal = ({ open, onOpenChange, onConfirm, title = "Sign Out of This Tab?",
+  description = "You can sign in again here. Other tabs will stay signed in.", confirmLabel = "Sign Out", isLoggingOut = false,
 }: LogoutConfirmModalProps) => (
   <ConfirmationDialog kind="dialog" open={open} onOpenChange={onOpenChange} title={title} description={description}
     icon={<LogOut />} variant="destructive" confirmLabel={confirmLabel} onConfirm={onConfirm}
