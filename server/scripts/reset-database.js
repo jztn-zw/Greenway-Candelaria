@@ -12,7 +12,7 @@ const digest = (value) => crypto.createHash("sha256").update(value).digest("hex"
 const rowDigest = (rows) => digest(rows.map((row) => JSON.stringify(row)).sort().join("\n"));
 const schemaStatements = (source) => {
   const statements = [...source.matchAll(/CREATE TABLE\s+`?(\w+)`?\s*\([\s\S]*?\) ENGINE[^;]*;/g)];
-  if (statements.length !== 32) throw new Error("Unexpected baseline schema");
+  if (statements.length !== 34) throw new Error("Unexpected baseline schema");
   const created = new Set();
   for (const [sql, name] of statements) {
     identifier(name);
@@ -114,7 +114,7 @@ const verifyBackupAndSchema = async (db, state, backup, baseline) => {
 };
 
 const seedAdmin = async (db, admin) => {
-  const preserved = ["id", "full_name", "username", "email", "phone", "password", "recovery_code_hash", "avatar_url", "two_factor"];
+  const preserved = ["id", "full_name", "username", "email", "phone", "password", "recovery_code_hash", "avatar_url"];
   await db.query(`INSERT INTO users (${preserved.map(identifier).join(", ")}, role, status, profile_completed)
     VALUES (${preserved.map(() => "?").join(", ")}, 'ADMIN', 'ACTIVE', 1)`, preserved.map((column) => admin[column] ?? null));
   await db.query("INSERT INTO user_settings (id, user_id) VALUES (?, ?)", [crypto.randomUUID(), admin.id]);

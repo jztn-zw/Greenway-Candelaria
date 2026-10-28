@@ -57,7 +57,7 @@ const DashboardHeader = () => {
           <Button
             size="sm"
             className={styles.headerAction}
-            onClick={() => navigate("/admin/truck-tracking")}
+            onClick={() => navigate("/admin/tracking")}
           >
             <MapPin className="w-4 h-4" />
             <span>Live Trucks</span>

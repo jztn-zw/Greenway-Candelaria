@@ -26,7 +26,7 @@ const getProfile = async (userId) => {
   const [users] = await pool.query(
     `SELECT 
        u.id, u.full_name, u.username, u.email, u.phone,
-       u.role, u.status, u.avatar_url, u.two_factor, u.resident_location,
+       u.role, u.status, u.avatar_url, 0 AS two_factor, u.resident_location,
        u.created_at, u.last_login_at,
        b.name AS barangay_name,
        b.id   AS barangay_id,
@@ -146,10 +146,6 @@ const updateProfile = async (userId, data) => {
   if (data.avatar_url !== undefined) {
     fields.push("avatar_url = ?");
     params.push(data.avatar_url);
-  }
-  if (data.two_factor !== undefined) {
-    fields.push("two_factor = ?");
-    params.push(data.two_factor);
   }
 
   if (fields.length === 0) {
@@ -299,7 +295,7 @@ const getById = async (id) => {
     `SELECT 
        u.id, u.full_name, u.username, u.email, u.phone,
        u.role, u.status, u.profile_completed, u.ban_reason, u.avatar_url,
-       u.two_factor, u.created_at, u.last_login_at,
+       0 AS two_factor, u.created_at, u.last_login_at,
        b.name AS barangay_name,
        b.id   AS barangay_id,
        bs.name AS street_name

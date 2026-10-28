@@ -1,5 +1,75 @@
 # GreenWay database
 
+## Eight legacy template/profile columns (October 28, 2026)
+
+The compatible server source no longer reads/writes stored `users.two_factor`,
+`routes.collection_started_at`, or the recurring template's `route_stops.status`,
+`completed_at`, `notified_at`, `collection_done_notified_at`,
+`collection_skipped_notified_at`, `skipped_reason`. The empty-database baseline
+omits them. Existing profile/template responses retain the same zero, NULL and
+NOT_STARTED compatibility values. All actual dated run/stop statuses, reasons,
+notifications, capture times and GPS behavior remain on their existing tables.
+
+Preview from `server/`:
+
+```powershell
+node scripts/remove-legacy-template-columns.cjs
+```
+
+The user's removal request authorizes these eight columns. Applying the prepared
+`migrations/2026-10-28-remove-legacy-template-columns.sql` still requires an
+operational maintenance window: stop **every** local/deployed API and worker,
+and restart only with the compatible source. Do not drop while an older API is
+running; it still contains queries against the retired columns. Do not run the
+SQL file directly. After confirming the actual database and stopped writers:
+
+```powershell
+node scripts/remove-legacy-template-columns.cjs --apply --database <confirmed-database-name> --maintenance-confirmed
+```
+
+The runner rejects non-default legacy values (including NULL flags/status),
+unexpected column types, generated/index/FK dependencies and database programs
+requiring review. It uses the existing private full schema/data backup writer
+under ignored `server/backups/legacy-storage-*/`, verifies the restore-file
+checksum, and checks that retained data did not change during backup. It then
+compares retained table content hashes and row counts after each table's drop,
+and all unaffected table definitions/content at the end. Names, passwords,
+GPS coordinates and report content are never printed. Keep backups private.
+
+MySQL/TiDB DDL cannot be rolled back as an application transaction. The compatible
+source works before, during and after the three-table drop, and the runner can
+resume from remaining columns after a partial failure. Keep writers stopped
+after any error and review the saved backup before retrying. For rollback, add
+only missing retired columns with their original definitions from the verified
+backup; all removed values were required to be their defaults. Never restore
+an entire old database over newer production data. The full backup preserves
+original definitions and values for controlled recovery.
+
+No deployment or schema application is implied by editing the baseline. Existing
+installations remain unchanged until the runner is explicitly applied.
+
+Applied to the configured database with the user's explicit removal authorization
+on 2026-10-28, after the user confirmed that all APIs/workers were stopped and
+would restart with updated code. The private full schema/data backup is
+`backups/legacy-storage-2026-10-28T13-08-41-999Z/restore.sql`, SHA-256
+`edd25aea03fd64921981080ac81cca3b501b6ced762a8956cdcd3146a33f2466`.
+Its checksum and all retained-data hashes were verified; all 34 tables, retained
+column definitions, indexes and foreign-key rules matched after removal. The
+configured database now has 306 columns. All 12 accounts, 14 route templates,
+156 template stops, 16 dated runs, 180 dated stops, 184 inbox records, 7,977 GPS
+logs and 4 push registrations were preserved, together with the other tables.
+No account, schedule, GPS, collection outcome or notification row was rewritten.
+The migration left every API/worker stopped; deploy/restart the compatible server
+source before resuming traffic. It did not build/install mobile apps.
+
+Verification: five modified JavaScript files passed syntax checks; web, Resident
+and Collector type checks passed; 12 fixture migration checks covered preview,
+non-default/NULL rejection, dependency protection, backup/application, protected
+data and repeat application. Twelve actual source SELECT execution plans passed
+against the reduced database, including admin/collector/resident route scopes.
+Execution plans do not exercise authenticated end-to-end UI, GPS or push delivery;
+those flows still need a smoke check after services restart.
+
 ## Resident approaching alerts upgrade
 
 The approaching check now uses each resident's saved pin within 500 metres,

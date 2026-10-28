@@ -30,63 +30,6 @@ const getTodayRouteContext = () => {
   return { weekday, currentTime };
 };
 
-// ─── Helper: group flat SQL rows into nested JSON ──────────────────────────
-const formatRouteData = (rows) => {
-  const routesMap = new Map();
-
-  for (const row of rows) {
-    // A recurring route keeps its template record between collection days. Its
-    // previous stop results must never appear as progress for a new day before
-    // the collector starts today's run.
-    const hasStartedToday = isSameCalendarDay(row.collection_started_at);
-
-    if (!routesMap.has(row.route_id)) {
-      routesMap.set(row.route_id, {
-        route_id: row.route_id,
-        route_status: row.route_status ?? null,
-        truck_id: row.truck_id,
-        truck_name: row.truck_name,
-        driver_id: row.driver_id ?? null,
-        driver_user_id: row.driver_user_id ?? null,
-        driver_name: row.driver_name,
-        route_name: row.route_name ?? null,
-        waste_type: row.waste_type ?? null,
-        started_at: row.started_at,
-        collection_started_at: hasStartedToday ? row.collection_started_at : null,
-        stops: [],
-        total_stops: 0,
-        completed_stops: 0,
-      });
-    }
-
-    const route = routesMap.get(row.route_id);
-
-    if (row.stop_id) {
-      route.stops.push({
-        id: row.stop_id,
-        barangay_id: row.barangay_id,
-        barangay_name: row.barangay_name,
-        street_id: row.street_id ?? null,
-        stop_name: row.stop_name ?? row.barangay_name,
-        order_index: row.order_index,
-        status: hasStartedToday ? row.stop_status || "NOT_STARTED" : "NOT_STARTED",
-        completed_at: hasStartedToday ? row.completed_at : null,
-        skipped_reason: hasStartedToday ? row.skipped_reason ?? null : null,
-        latitude: row.latitude,
-        longitude: row.longitude,
-        distance_km: row.distance_km ?? 0,
-      });
-
-      route.total_stops += 1;
-      if (hasStartedToday && row.stop_status === "DONE") {
-        route.completed_stops += 1;
-      }
-    }
-  }
-
-  return Array.from(routesMap.values());
-};
-
 const getStopKey = (stop) => {
   if (stop.street_id) {
     return `street:${String(stop.street_id).trim()}`;
@@ -293,24 +236,6 @@ const resolveAssignedTruckId = async (driverId, providedTruckId, executor = pool
   return assignedTruckId;
 };
 
-const isSameCalendarDay = (left, right = new Date()) => {
-  const leftDate = new Date(left);
-  const rightDate = new Date(right);
-
-  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) {
-    return false;
-  }
-
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: APP_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  return formatter.format(leftDate) === formatter.format(rightDate);
-};
-
 const getManilaDateContext = () => {
   const now = new Date();
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -378,61 +303,6 @@ const syncTodayScheduledRun = async (connection, routeId, routeSnapshot) => {
   }
 };
 
-const reactivateRouteStops = async (connection, routeId, routeUpdatedAt) => {
-  const [stopRows] = await connection.query(
-    `SELECT id, status
-     FROM route_stops
-     WHERE route_id = ?`,
-    [routeId],
-  );
-
-  if (stopRows.length === 0) {
-    return "empty";
-  }
-
-  const statuses = stopRows.map((row) => String(row.status || "").toUpperCase());
-  const isNextCycleReset = !isSameCalendarDay(routeUpdatedAt);
-
-  if (isNextCycleReset) {
-    await connection.query(
-      `UPDATE route_stops
-        SET status = 'NOT_STARTED',
-            completed_at = NULL,
-            skipped_reason = NULL,
-            notified_at = NULL,
-            collection_done_notified_at = NULL,
-            collection_skipped_notified_at = NULL
-       WHERE route_id = ?`,
-      [routeId],
-    );
-    return "full-reset";
-  }
-
-  const needsResumeReset = statuses.some(
-    (status) =>
-      status === "MISSED" || status === "SKIPPED" || status === "IN_PROGRESS",
-  );
-
-  if (!needsResumeReset) {
-    return "resume-noop";
-  }
-
-  await connection.query(
-    `UPDATE route_stops
-     SET status = 'NOT_STARTED',
-         completed_at = NULL,
-          skipped_reason = NULL,
-          notified_at = NULL,
-          collection_done_notified_at = NULL,
-          collection_skipped_notified_at = NULL
-     WHERE route_id = ?
-       AND status IN ('MISSED', 'SKIPPED', 'IN_PROGRESS')`,
-    [routeId],
-  );
-
-  return "resume-reset";
-};
-
 const getCollectorUserIdForRoute = async (routeId) => {
   const [rows] = await pool.query(
     `SELECT d.user_id
@@ -479,6 +349,8 @@ const assertNoRouteTruckDayConflict = async (
 };
 
 // ─── Get by ID ────────────────────────────────────────────────────────────
+// Template progress is always unstarted. Keep the legacy response keys for
+// existing web/mobile consumers; operational progress comes from dated runs.
 const getById = async (id, viewer = null) => {
   const viewerRole = String(viewer?.role || "ADMIN").toUpperCase();
   const accessClause = viewerRole === "RESIDENT"
@@ -491,7 +363,7 @@ const getById = async (id, viewer = null) => {
   const accessParams = accessClause ? [viewer.id] : [];
   const [rows] = await pool.query(
     `SELECT
-       r.*,
+       r.*, NULL AS collection_started_at,
        t.name         AS truck_name,
        t.plate_number AS truck_plate,
        u.full_name    AS driver_name
@@ -523,7 +395,8 @@ const getById = async (id, viewer = null) => {
     : "";
   const [stops] = await pool.query(
     `SELECT
-       rs.*,
+       rs.*, 'NOT_STARTED' AS status, NULL AS completed_at, NULL AS skipped_reason,
+       NULL AS notified_at, NULL AS collection_done_notified_at, NULL AS collection_skipped_notified_at,
        b.name AS barangay_name,
        COALESCE(
          CASE WHEN bs.area IS NULL THEN bs.name
@@ -548,7 +421,7 @@ const getById = async (id, viewer = null) => {
 const getAll = async (filters = {}, viewer = null) => {
   let query = `
     SELECT
-      r.*,
+      r.*, NULL AS collection_started_at,
       t.name         AS truck_name,
       t.plate_number AS truck_plate,
       u.full_name    AS driver_name
@@ -602,7 +475,9 @@ const getAll = async (filters = {}, viewer = null) => {
       : "";
     const [stops] = await pool.query(
       `SELECT
-         rs.*, b.name AS barangay_name,
+         rs.*, 'NOT_STARTED' AS status, NULL AS completed_at, NULL AS skipped_reason,
+         NULL AS notified_at, NULL AS collection_done_notified_at, NULL AS collection_skipped_notified_at,
+         b.name AS barangay_name,
          COALESCE(
            CASE WHEN bs.area IS NULL THEN bs.name
                 ELSE CONCAT(bs.name, ' (', bs.area, ')') END,
@@ -759,7 +634,7 @@ const update = async (id, data, adminId) => {
 
     if (resolvedStops) {
       const [existingStops] = await connection.query(
-        `SELECT id, barangay_id, street_id, status
+        `SELECT id, barangay_id, street_id, 'NOT_STARTED' AS status
          FROM route_stops
          WHERE route_id = ?`,
         [id],
@@ -810,8 +685,6 @@ const update = async (id, data, adminId) => {
     }
 
     if (wasInactive && String(nextStatus).toUpperCase() === "ACTIVE") {
-      await reactivateRouteStops(connection, id, existingRoute.updated_at);
-
       await connection.query(
         `UPDATE trucks
          SET status = 'SCHEDULED'
@@ -820,10 +693,6 @@ const update = async (id, data, adminId) => {
              AND (status IN ('COMPLETED','PARTIAL') OR collection_started_at IS NOT NULL)
          )`,
         [resolvedTruckId || existingRoute.truck_id, getManilaDateContext().date, resolvedTruckId || existingRoute.truck_id, nextDriverId],
-      );
-      await connection.query(
-        "UPDATE routes SET collection_started_at = NULL WHERE id = ?",
-        [id],
       );
     }
 
