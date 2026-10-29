@@ -13,7 +13,6 @@ import { useAdminMutation, useAdminQuery } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import {
   addAdminReportNote as apiaddAdminReportNote,
-  deleteReport as apideleteReport,
   flagAdminReport as apiflagAdminReport,
   updateAdminReportStatus as apiupdateAdminReportStatus,
   fetchAdminReportById,
@@ -82,7 +81,6 @@ const AdminWasteReports = () => {
   const updateAdminReportStatus = useAdminMutation(apiupdateAdminReportStatus, "reports", "residents", "notifications");
   const addAdminReportNote = useAdminMutation(apiaddAdminReportNote, "audit");
   const flagAdminReport = useAdminMutation(apiflagAdminReport, "reports", "residents", "notifications");
-  const deleteReport = useAdminMutation(apideleteReport, "reports", "residents", "notifications");
   const [searchParams] = useSearchParams();
 
   // List data
@@ -269,24 +267,6 @@ const AdminWasteReports = () => {
     if (detailVersion === detailVersionRef.current) setSelectedReport(mapped);
   };
 
-  // Delete report
-  const handleDeleteReport = async (id: string) => {
-    const detailVersion = detailVersionRef.current;
-    try {
-      const res = await deleteReport(id);
-      toast.success(`Report ${res.reference_number || "item"} removed from active lists`);
-      if (selectedId === id && detailVersion === detailVersionRef.current) {
-        closeReport();
-      }
-      if (reports.length === 1 && reports[0].id === id && page > 1) {
-        setPage(page - 1);
-      }
-    } catch (err: unknown) {
-      toast.error("Failed to delete report", { description: getActionErrorMessage(err) });
-      throw err;
-    }
-  };
-
   if (isInitialLoading) {
     return <WasteReportsPageSkeleton title={pageTitle} description={pageDescription} />;
   }
@@ -380,7 +360,6 @@ const AdminWasteReports = () => {
               onAddNote={handleAddNote}
               onFlagReport={handleFlagReport}
               onFlagDialogOpenChange={setIsFlagDialogOpen}
-              onDeleteReport={handleDeleteReport}
               onPrevious={selectPreviousReport}
               onNext={selectNextReport}
               hasPrevious={selectedReportIndex > 0}

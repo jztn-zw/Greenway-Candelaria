@@ -1,10 +1,11 @@
 # Resident web server state
 
-Report removal now distinguishes submitted withdrawal from resolved personal-history
+Report removal now distinguishes permanent deletion of untouched submissions from resolved personal-history
 removal. Both use the existing account-scoped report mutation and private owner
 hint; history/detail/count queries refresh together. Under-review and dispatched
 reports have no resident delete action. The API's locked-row status check remains
-authoritative if an older screen still offers withdrawal. Resolved removal leaves
+authoritative if an older screen still offers deletion. Admin review work also
+blocks permanent deletion while a report still shows Submitted. Resolved removal leaves
 admin records intact and makes the resident detail return 404. Resolved removal
 requires `2026-10-30-resident-report-history.sql`, applied to the configured
 database with user approval on October 30, 2026. Other environments still need

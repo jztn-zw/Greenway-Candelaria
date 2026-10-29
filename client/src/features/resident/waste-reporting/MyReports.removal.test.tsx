@@ -29,11 +29,12 @@ it.each(["UNDER_REVIEW", "DISPATCHED"])("does not allow resident deletion of %s 
   expect(screen.queryByRole("button", { name: /withdraw|remove from history|delete report/i })).not.toBeInTheDocument();
 });
 
-it("keeps submitted withdrawal available and requires confirmation", async () => {
+it("requires confirmation before permanently deleting an untouched submission", async () => {
   open("SUBMITTED");
-  fireEvent.click(screen.getByRole("button", { name: /Cancel & Withdraw Report/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^Delete Report/i }));
+  expect(screen.getByRole("dialog")).toHaveTextContent(/permanently delete/i);
   expect(fixture.remove).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Yes, Cancel Report" }));
+  fireEvent.click(screen.getByRole("button", { name: "Yes, Delete Report" }));
   await waitFor(() => expect(fixture.remove).toHaveBeenCalledWith("report"));
 });
 
@@ -48,7 +49,7 @@ it("explains that removing resolved history retains MENRO records", async () => 
 
 it("closes the confirmation when a refreshed submission enters review", () => {
   const view = open("SUBMITTED");
-  fireEvent.click(screen.getByRole("button", { name: /Cancel & Withdraw Report/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^Delete Report/i }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   fixture.status = "UNDER_REVIEW";
   view.rerender(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={["/resident/my-reports?report=report"]}><MyReports /></MemoryRouter>);

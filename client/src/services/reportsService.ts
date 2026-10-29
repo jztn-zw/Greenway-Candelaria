@@ -320,7 +320,7 @@ export const addAdminReportNote = async (
   return data.data;
 };
 
-// ─── Admin / Resident: delete (or cancel) report ──────────
+// ─── Resident owner: delete untouched submission or hide resolved history ───
 
 export const deleteReport = async (id: string): Promise<{ id: string; reference_number: string }> => {
   const { data } = await api.delete<{ data: { id: string; reference_number: string } }>(

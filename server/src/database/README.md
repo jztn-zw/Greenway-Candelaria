@@ -8,13 +8,20 @@ checksum the reports definition/data, then apply once with database authorizatio
 to enable resolved-history removal. Do not re-import the baseline into an existing
 database. Existing reports retain NULL; no municipal records are rewritten.
 
-Residents can withdraw SUBMITTED reports using the existing soft deletion.
+Only the resident owner can remove reports. An untouched SUBMITTED report is
+permanently deleted, with its attached photo rows and initial history removed by
+the existing cascade constraints. Unreferenced owned Cloudinary evidence is
+cleaned up after commit; external cleanup failure is logged without turning a
+committed deletion into a failed API response. A report with admin notes, review
+history, a response, flags or linked duplicates cannot be permanently deleted.
 UNDER_REVIEW and DISPATCHED reports cannot be deleted. Removing a RESOLVED report
 sets only the personal-history marker (UTC), preserving its original update time,
 status, evidence, history, admin lists/details and municipal counts. Resident
 list/detail/stat reads exclude the marker; private owner hints refresh both
 clients. The same locked-row endpoint enforces ownership and status. Repeated
-resolved-history removal is a no-op. Admin soft deletion remains unchanged.
+resolved-history removal is a no-op. Admin deletion is prohibited for every status
+by both route authorization and the service. Admin review/status/flag/note actions
+remain available. No retrospective deletion or restoration of old records runs.
 
 Deploy the updated API before updated clients. Device/navigation/realtime smoke
 checks require a migrated test environment. Other database environments still

@@ -198,11 +198,11 @@ const MyReports = () => {
     const historyOnly = selectedReport.status === "resolved";
     try {
       await cancelReport(id);
-      toast.success(historyOnly ? "Report removed from your history" : "Report cancelled successfully");
+      toast.success(historyOnly ? "Report removed from your history" : "Report permanently deleted");
       closeDetail();
       setPage(1);
     } catch (err: unknown) {
-      toast.error(historyOnly ? "Failed to remove report from history" : "Failed to cancel report", { description: getActionErrorMessage(err) });
+      toast.error(historyOnly ? "Failed to remove report from history" : "Failed to delete report", { description: getActionErrorMessage(err) });
       throw err;
     }
   };
@@ -868,10 +868,10 @@ const ReportDetail = ({
               </div>
               <div className="text-left min-w-0">
                 <span className={`${reportDetailStyles.actionTitle} group-hover:text-destructive transition-colors`}>
-                  {historyOnly ? "Remove from History" : "Cancel & Withdraw Report"}
+                  {historyOnly ? "Remove from History" : "Delete Report"}
                 </span>
                 <span className={reportDetailStyles.actionDescription}>
-                  {historyOnly ? "Remove from your history; MENRO retains its records" : "Remove this submission from MENRO's review queue"}
+                  {historyOnly ? "Remove from your history; MENRO retains its records" : "Permanently delete this submission before MENRO starts review"}
                 </span>
               </div>
             </div>
@@ -883,9 +883,9 @@ const ReportDetail = ({
 
       {/* Cancel Confirmation Modal */}
       <ConfirmationDialog kind="dialog" open={showCancelModal && canRemove} onOpenChange={setShowCancelModal}
-        title={historyOnly ? "Remove from History" : "Cancel Report Submission"} icon={<Trash2 />} variant="destructive" cancelLabel="Keep Report"
-        description={historyOnly ? <>Remove report <strong className="text-foreground">{report.referenceNumber}</strong> from your history? MENRO will retain the report and its records.</> : <>Withdraw report <strong className="text-foreground">{report.referenceNumber}</strong> from MENRO's queue?</>}
-        confirmLabel={historyOnly ? "Yes, Remove from History" : "Yes, Cancel Report"} isPending={isCancelling} pendingLabel={historyOnly ? "Removing..." : "Cancelling..."}
+        title={historyOnly ? "Remove from History" : "Permanently Delete Report"} icon={<Trash2 />} variant="destructive" cancelLabel="Keep Report"
+        description={historyOnly ? <>Remove report <strong className="text-foreground">{report.referenceNumber}</strong> from your history? MENRO will retain the report and its records.</> : <>Permanently delete report <strong className="text-foreground">{report.referenceNumber}</strong> and its attached photos? This action cannot be undone.</>}
+        confirmLabel={historyOnly ? "Yes, Remove from History" : "Yes, Delete Report"} isPending={isCancelling} pendingLabel={historyOnly ? "Removing..." : "Deleting..."}
         confirmDisabled={!onCancelReport || !canRemove}
         onConfirm={async () => {
           if (!onCancelReport || isCancelling || !canRemove) return;

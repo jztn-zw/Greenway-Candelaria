@@ -4,17 +4,26 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function fixture(status = 'RESOLVED', overrides = {}, { legacySchema = false, unrelatedMissingColumn = false } = {}) {
+function fixture(status = 'RESOLVED', overrides = {}, { legacySchema = false, unrelatedMissingColumn = false, reviewed = false, linked = false } = {}) {
   const row = { id: 'report', reference_number: 'RPT-2026-00001', user_id: 'owner',
     status, deleted_at: null, resident_hidden_at: null, ...overrides };
   const events = [], audits = [], writes = [], transactions = [];
   let failUpdate = false;
+  let removed = false;
   const query = async (sql, params = []) => {
     if ((legacySchema && sql.includes('resident_hidden_at')) || unrelatedMissingColumn) {
       const error = new Error(`Unknown column '${unrelatedMissingColumn ? 'barangay_name' : 'r.resident_hidden_at'}' in 'where clause'`);
       error.code = 'ER_BAD_FIELD_ERROR';
       throw error;
     }
+    if (sql.startsWith('DELETE FROM reports')) {
+      writes.push(sql);
+      if (failUpdate) throw new Error('write failed');
+      assert.deepEqual(Array.from(params), ['report']);
+      removed = true;
+      return [{ affectedRows: 1 }];
+    }
+    if (sql.includes('AS has_review_history')) return [[{ has_notes: Number(reviewed), has_review_history: Number(reviewed), has_linked_reports: Number(linked) }]];
     if (sql.startsWith('UPDATE reports')) {
       writes.push(sql);
       if (failUpdate) throw new Error('write failed');
@@ -24,10 +33,10 @@ function fixture(status = 'RESOLVED', overrides = {}, { legacySchema = false, un
     }
     if (sql.includes('FROM report_photos') || sql.includes('FROM report_status_history') || sql.includes('FROM report_notes')) return [[]];
     if (sql.includes('FROM reports')) {
-      const visible = !row.deleted_at && (!sql.includes('resident_hidden_at IS NULL') || !row.resident_hidden_at);
+      const visible = !removed && !row.deleted_at && (!sql.includes('resident_hidden_at IS NULL') || !row.resident_hidden_at);
       if (sql.includes('FOR UPDATE')) {
         assert.equal(transactions.at(-1), 'begin');
-        return [row.deleted_at ? [] : [{ ...row }]];
+        return [removed || row.deleted_at ? [] : [{ ...row }]];
       }
       if (sql.includes('COUNT(*)')) {
         if (sql.includes("SUM(status = 'RESOLVED')")) return [[{ total: Number(visible), resolved: Number(visible) }]];
@@ -54,7 +63,7 @@ function fixture(status = 'RESOLVED', overrides = {}, { legacySchema = false, un
     if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);
     return dependencies[name];
   }, module, module.exports);
-  return { service: module.exports, row, events, audits, writes, transactions, fail: () => { failUpdate = true; } };
+  return { service: module.exports, row, events, audits, writes, transactions, removed: () => removed, fail: () => { failUpdate = true; } };
 }
 const owner = { id: 'owner', role: 'RESIDENT' };
 
@@ -77,12 +86,14 @@ test('removing resolved history hides resident reads but preserves admin records
   assert.equal(f.audits.length, 1);
 });
 
-test('submitted reports retain withdrawal behavior', async () => {
+test('untouched submitted reports are permanently deleted by their owner', async () => {
   for (const status of ['SUBMITTED', 'PENDING']) {
     const f = fixture(status);
     await f.service.softDelete('report', owner);
-    assert.ok(f.row.deleted_at);
+    assert.equal(f.removed(), true);
+    assert.equal(f.row.deleted_at, null);
     assert.equal(f.row.resident_hidden_at, null);
+    await assert.rejects(f.service.getById('report'), e => e.statusCode === 404);
   }
 });
 
@@ -96,7 +107,7 @@ test('active and unknown statuses reject deletion without writes or events', asy
   }
 });
 
-test('only the resident owner or admin can delete reports', async () => {
+test('only the resident owner can delete reports', async () => {
   for (const user of [{ id: 'other', role: 'RESIDENT' }, { id: 'owner', role: 'DRIVER' }]) {
     const f = fixture('SUBMITTED');
     await assert.rejects(f.service.softDelete('report', user), e => e.statusCode === 403);
@@ -104,21 +115,42 @@ test('only the resident owner or admin can delete reports', async () => {
   }
 });
 
-test('admins can still soft-delete hidden resolved reports', async () => {
-  const f = fixture('RESOLVED', { resident_hidden_at: '2026-10-29 01:00:00' });
-  await f.service.softDelete('report', { id: 'admin', role: 'ADMIN' });
-  assert.ok(f.row.deleted_at);
-  assert.equal(f.audits[0].action, 'REPORT_DELETED');
+test('admins cannot delete any report, even their own or hidden resolved reports', async () => {
+  for (const status of ['SUBMITTED', 'UNDER_REVIEW', 'DISPATCHED', 'RESOLVED']) {
+    const f = fixture(status, { user_id: 'admin', resident_hidden_at: status === 'RESOLVED' ? '2026-10-29 01:00:00' : null });
+    await assert.rejects(f.service.softDelete('report', { id: 'admin', role: 'ADMIN' }), e => e.statusCode === 403);
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.events.length, 0);
+    assert.equal(f.audits.length, 0);
+  }
+});
+
+test('submitted reports with admin work or linked reports cannot be permanently deleted', async () => {
+  for (const options of [{ reviewed: true }, { linked: true }]) {
+    const f = fixture('SUBMITTED', {}, options);
+    await assert.rejects(f.service.softDelete('report', owner), e => e.statusCode === 409);
+    assert.equal(f.removed(), false);
+    assert.equal(f.writes.length, 0);
+  }
+  for (const fields of [{ admin_response: '' }, { is_false: 1 }, { is_duplicate: 1 }, { false_flagged_at: '2026-10-30 01:00:00' }]) {
+    const f = fixture('SUBMITTED', fields);
+    await assert.rejects(f.service.softDelete('report', owner), e => e.statusCode === 409);
+    assert.equal(f.removed(), false);
+    assert.equal(f.writes.length, 0);
+  }
 });
 
 test('failed removals roll back and never emit success events or audits', async () => {
-  const f = fixture();
-  f.fail();
-  await assert.rejects(f.service.softDelete('report', owner), /write failed/);
-  assert.ok(f.transactions.includes('rollback'));
-  assert.ok(!f.transactions.includes('commit'));
-  assert.equal(f.events.length, 0);
-  assert.equal(f.audits.length, 0);
+  for (const status of ['SUBMITTED', 'RESOLVED']) {
+    const f = fixture(status);
+    f.fail();
+    await assert.rejects(f.service.softDelete('report', owner), /write failed/);
+    assert.ok(f.transactions.includes('rollback'));
+    assert.ok(!f.transactions.includes('commit'));
+    assert.equal(f.removed(), false);
+    assert.equal(f.events.length, 0);
+    assert.equal(f.audits.length, 0);
+  }
 });
 
 test('unmigrated databases still load resident history, details and stats', async () => {
@@ -127,7 +159,7 @@ test('unmigrated databases still load resident history, details and stats', asyn
   assert.equal((await f.service.getMyReportById('report', 'owner')).id, 'report');
   assert.equal((await f.service.getMyStats('owner')).total, 1);
   await f.service.softDelete('report', owner);
-  assert.ok(f.row.deleted_at);
+  assert.equal(f.removed(), true);
 });
 
 test('unmigrated resolved removal returns a clear unavailable error without deleting admin records', async () => {

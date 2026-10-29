@@ -15,10 +15,11 @@ function policy() {
   return module.exports.getReportRemoval;
 }
 
-test('mobile report actions allow withdrawal and describe personal-history removal', () => {
+test('mobile report actions explain permanent submitted deletion and personal-history removal', () => {
   const action = policy();
   const report = { id: 'report', reference_number: 'RPT-2026-00001' };
   assert.equal(action({ ...report, status: 'SUBMITTED' }).title, 'Delete Report');
+  assert.match(action({ ...report, status: 'SUBMITTED' }).message, /permanently delete/i);
   assert.equal(action({ ...report, status: 'PENDING' }).title, 'Delete Report');
   const resolved = action({ ...report, status: 'RESOLVED' });
   assert.equal(resolved.title, 'Remove from History');

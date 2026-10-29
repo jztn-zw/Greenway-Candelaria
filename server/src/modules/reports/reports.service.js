@@ -976,11 +976,13 @@ const getMyStats = async (userId) => {
   };
 };
 
-// ─── Withdraw submissions or hide resolved resident history ─
+// ─── Delete untouched submissions or hide resolved resident history ─
 const softDelete = async (id, user, ip = null) => {
+  if (user.role !== "RESIDENT") throw { statusCode: 403, message: "Admins cannot delete reports. Only the resident who submitted a report can remove it." };
   const conn = await pool.getConnection();
   let report;
   let historyOnly = false;
+  let photoUrls = [];
   try {
     await conn.beginTransaction();
     const [rows] = await conn.query(
@@ -989,18 +991,16 @@ const softDelete = async (id, user, ip = null) => {
     );
     if (!rows.length) throw { statusCode: 404, message: "Report not found" };
     report = rows[0];
-    if (user.role !== "ADMIN") {
-      if (user.role !== "RESIDENT" || report.user_id !== user.id) {
-        throw { statusCode: 403, message: "You do not have permission to delete this report" };
-      }
-      if (!["SUBMITTED", "PENDING", "RESOLVED"].includes(report.status)) {
-        throw { statusCode: 400, message: "Reports under review or dispatched cannot be deleted" };
-      }
-      historyOnly = report.status === "RESOLVED";
-      if (historyOnly && report.resident_hidden_at) {
-        await conn.commit();
-        return { id: report.id, reference_number: report.reference_number };
-      }
+    if (report.user_id !== user.id) {
+      throw { statusCode: 403, message: "You do not have permission to delete this report" };
+    }
+    if (!["SUBMITTED", "PENDING", "RESOLVED"].includes(report.status)) {
+      throw { statusCode: 400, message: "Reports under review or dispatched cannot be deleted" };
+    }
+    historyOnly = report.status === "RESOLVED";
+    if (historyOnly && report.resident_hidden_at) {
+      await conn.commit();
+      return { id: report.id, reference_number: report.reference_number };
     }
     if (historyOnly) {
       try {
@@ -1010,7 +1010,24 @@ const softDelete = async (id, user, ip = null) => {
         throw { statusCode: 503, message: "Removing resolved reports from history requires a database upgrade. Your report is unchanged; please try again after the upgrade." };
       }
     } else {
-      await conn.query("UPDATE reports SET deleted_at = NOW() WHERE id = ?", [id]);
+      // Admin writes take this same report lock. Protect any review work or
+      // duplicate links even when the visible status is still SUBMITTED.
+      const [[review]] = await conn.query(
+        `SELECT
+           EXISTS(SELECT 1 FROM report_notes WHERE report_id = ?) AS has_notes,
+           EXISTS(SELECT 1 FROM report_status_history WHERE report_id = ? AND (status <> 'SUBMITTED' OR changed_by <> ?)) AS has_review_history,
+           EXISTS(SELECT 1 FROM reports WHERE duplicate_of_id = ?) AS has_linked_reports`,
+        [id, id, user.id, id],
+      );
+      if (review.has_notes || review.has_review_history || review.has_linked_reports
+        || report.admin_response != null || report.is_false || report.is_duplicate
+        || report.false_flagged_at || report.duplicate_flagged_at) {
+        throw { statusCode: 409, message: "MENRO has already acted on this report. It can no longer be permanently deleted." };
+      }
+      const [photos] = await conn.query("SELECT url FROM report_photos WHERE report_id = ?", [id]);
+      photoUrls = photos.map(photo => photo.url);
+      // Photos, initial status history and notes use existing ON DELETE CASCADE.
+      await conn.query("DELETE FROM reports WHERE id = ?", [id]);
     }
     await conn.commit();
   } catch (error) {
@@ -1023,7 +1040,7 @@ const softDelete = async (id, user, ip = null) => {
   // Audit log
   auditService.log({
     user_id: user.id,
-    action: historyOnly ? "REPORT_HIDDEN_BY_RESIDENT" : "REPORT_DELETED",
+    action: historyOnly ? "REPORT_HIDDEN_BY_RESIDENT" : "REPORT_PERMANENTLY_DELETED",
     module: "reports",
     record_id: report.id,
     ip_address: ip,
@@ -1036,14 +1053,16 @@ const softDelete = async (id, user, ip = null) => {
     },
     new_value: {
       deleted_by_role: user.role,
-      reason:
-        user.role === "ADMIN"
-          ? "Admin soft-delete"
-          : historyOnly ? "Resident removed resolved report from personal history" : "Resident cancelled submission",
+      reason: historyOnly ? "Resident removed resolved report from personal history" : "Resident permanently deleted an untouched submission",
     },
   }).catch(() => {});
 
   emitResidentDataChanged(["reports"], report.user_id);
+  if (!historyOnly && photoUrls.length) {
+    void cleanupUnattachedReportPhotos(photoUrls).catch(error =>
+      console.error("[Reports] Deleted report photo cleanup failed:", error.code || error.name),
+    );
+  }
   return { id: report.id, reference_number: report.reference_number };
 };
 

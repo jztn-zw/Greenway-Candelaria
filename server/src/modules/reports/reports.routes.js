@@ -106,11 +106,11 @@ router.get(
   controller.getStatusHistory,
 );
 
-// Admin deletion; resident withdrawal or resolved-history removal
+// Resident owner only — permanent untouched-submission deletion or history removal
 router.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN", "RESIDENT"),
+  authorize("RESIDENT"),
   controller.softDelete,
 );
 

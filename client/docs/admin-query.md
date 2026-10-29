@@ -16,7 +16,7 @@ dialogs, map rendering, and replay playback remain component state.
 | Barangays | Service availability, streets, coverage paths; management actions |
 | Residents | Filtered pages, counts, profile/reports; status changes and deletion |
 | Collectors and trucks | Lists, profiles, driver activity; management and password reset |
-| Waste reports | Filtered pages, details, duplicate lookup; status, notes, flags, deletion |
+| Waste reports | Filtered pages, details, duplicate lookup; status, notes and flags; admins cannot delete reports |
 | Truck tracking | Overview, missed collections, replay history, road route lookup, dispatch messages |
 | Analytics | Filtered dashboard and barangay options |
 | Audit logs | Filtered pages and summary counts |

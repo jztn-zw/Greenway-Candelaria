@@ -17,7 +17,7 @@ import { useAdminFetch } from "@/lib/adminQuery";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchAdminReports, type AdminReportItem } from "@/services/reportsService";
-import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Trash2, X } from "lucide-react";
+import { AlertOctagon, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   ReportStatus,
@@ -42,7 +42,6 @@ interface ReportDetailPanelProps {
     resolve?: boolean;
   }) => Promise<void>;
   onFlagDialogOpenChange?: (open: boolean) => void;
-  onDeleteReport?: (id: string) => Promise<void>;
   onPrevious?: () => void;
   onNext?: () => void;
   hasPrevious?: boolean;
@@ -60,7 +59,6 @@ const ReportDetailPanel = ({
   onAddNote,
   onFlagReport,
   onFlagDialogOpenChange,
-  onDeleteReport,
   onPrevious,
   onNext,
   hasPrevious = false,
@@ -79,8 +77,6 @@ const ReportDetailPanel = ({
   const [isSearchingDuplicates, setIsSearchingDuplicates] = useState(false);
   const [hasSearchedDuplicates, setHasSearchedDuplicates] = useState(false);
   const [duplicateSearchFailed, setDuplicateSearchFailed] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const reportId = report?.id;
@@ -608,17 +604,6 @@ const ReportDetailPanel = ({
           )}
         </div>
 
-        {onDeleteReport && (
-          <Button
-            variant="destructive-ghost"
-            size="sm"
-            disabled={isLoading || isDeleting}
-            onClick={() => setShowDeleteModal(true)}
-            className="h-8 text-xs px-3 rounded-xl font-semibold border cursor-pointer ml-auto transition-colors"
-          >
-            Delete
-          </Button>
-        )}
       </div>
 
       {/* ── Photo Lightbox Modal ── */}
@@ -793,32 +778,6 @@ const ReportDetailPanel = ({
         <p>Confirm only after the issue has been fully handled. To prevent incorrect records, resolved reports cannot be reopened or moved to another status.</p>
       </ConfirmationDialog>
 
-      {/* ── Delete Confirmation Modal ── */}
-      <ConfirmationDialog
-        kind="dialog"
-        open={showDeleteModal}
-        onOpenChange={(open) => !open && setShowDeleteModal(false)}
-        title="Remove Waste Report?"
-        icon={<Trash2 />}
-        variant="destructive"
-        description={<>Are you sure you want to remove report <strong className="font-semibold text-foreground">{report.referenceNumber}</strong>? It will be removed from active lists, and the action will be recorded in the Audit Log.</>}
-        confirmLabel="Remove Report"
-        isPending={isDeleting}
-        pendingLabel="Removing..."
-        onConfirm={async () => {
-          if (!onDeleteReport) return;
-          try {
-            setIsDeleting(true);
-            await onDeleteReport(report.id);
-            setShowDeleteModal(false);
-            if (onClose) onClose();
-          } catch {
-            // The parent displays the error; keep the confirmation open for retry.
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
-      />
     </div>
   );
 };
