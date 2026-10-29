@@ -2,7 +2,7 @@
 
 ## Resident report history removal (October 30, 2026)
 
-Prepared, not applied: `migrations/2026-10-30-resident-report-history.sql` adds
+`migrations/2026-10-30-resident-report-history.sql` adds
 nullable `reports.resident_hidden_at`. Review INFORMATION_SCHEMA, back up and
 checksum the reports definition/data, then apply once with database authorization
 to enable resolved-history removal. Do not re-import the baseline into an existing
@@ -17,8 +17,23 @@ clients. The same locked-row endpoint enforces ownership and status. Repeated
 resolved-history removal is a no-op. Admin soft deletion remains unchanged.
 
 Deploy the updated API before updated clients. Device/navigation/realtime smoke
-checks require a migrated test environment. This source change does not apply a
-migration or alter the configured database.
+checks require a migrated test environment. Other database environments still
+need the authorized upgrade.
+
+Applied to the configured database on October 30, 2026 (Philippine time), with
+explicit user approval. The repeat-safe runner is
+`node scripts/migrate-resident-report-history.cjs --apply`; omit `--apply` to
+preview. It reuses only the private backup export helper from `reset-database.js`,
+never its reset workflow. The verified reports schema/data backup is
+`backups/resident-report-history-2026-10-29T16-57-04-370Z/restore.sql`, SHA-256
+`50cdd7abcdac1a09c68abc7ee63aaf6df3d61db74843166934713051f7cd85b0`.
+The backup directory remains Git-ignored. Existing report column definitions,
+constraints and all original field hashes matched after the additive DDL; all
+11 reports remain, with zero history markers initially set. No report was deleted
+or hidden during verification. Report reads and the history-removal UPDATE's
+execution plan passed against the database; 14 fixture tests and runner syntax
+checks passed. Authenticated deletion from a device/browser remains a user smoke
+check; verification did not perform that mutation on a real report.
 
 The API also supports pre-migration installations: resident history, detail and
 count reads retry without the optional marker only when MySQL reports that exact

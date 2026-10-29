@@ -6,8 +6,9 @@ hint; history/detail/count queries refresh together. Under-review and dispatched
 reports have no resident delete action. The API's locked-row status check remains
 authoritative if an older screen still offers withdrawal. Resolved removal leaves
 admin records intact and makes the resident detail return 404. Resolved removal
-requires the prepared `2026-10-30-resident-report-history.sql` migration; it has
-not been applied by this source change. Before migration, history/detail/count
+requires `2026-10-30-resident-report-history.sql`, applied to the configured
+database with user approval on October 30, 2026. Other environments still need
+the upgrade. Before migration, history/detail/count
 reads remain compatible, and resolved removal returns an upgrade-required error
 without changing the report.
 
