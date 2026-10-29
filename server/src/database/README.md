@@ -1,5 +1,34 @@
 # GreenWay database
 
+## Resident report history removal (October 30, 2026)
+
+Prepared, not applied: `migrations/2026-10-30-resident-report-history.sql` adds
+nullable `reports.resident_hidden_at`. Review INFORMATION_SCHEMA, back up and
+checksum the reports definition/data, then apply once with database authorization
+to enable resolved-history removal. Do not re-import the baseline into an existing
+database. Existing reports retain NULL; no municipal records are rewritten.
+
+Residents can withdraw SUBMITTED reports using the existing soft deletion.
+UNDER_REVIEW and DISPATCHED reports cannot be deleted. Removing a RESOLVED report
+sets only the personal-history marker (UTC), preserving its original update time,
+status, evidence, history, admin lists/details and municipal counts. Resident
+list/detail/stat reads exclude the marker; private owner hints refresh both
+clients. The same locked-row endpoint enforces ownership and status. Repeated
+resolved-history removal is a no-op. Admin soft deletion remains unchanged.
+
+Deploy the updated API before updated clients. Device/navigation/realtime smoke
+checks require a migrated test environment. This source change does not apply a
+migration or alter the configured database.
+
+The API also supports pre-migration installations: resident history, detail and
+count reads retry without the optional marker only when MySQL reports that exact
+column is missing. Submitted withdrawal and active-report protection still work.
+Resolved-history removal returns a clear 503 upgrade-required error and leaves all
+records untouched until the migration exists. Other database errors remain errors;
+there is no fallback that deletes municipal records. The column check is retried
+on subsequent reads, so applying the migration enables filtering without a cached
+schema flag or API restart solely to discover the column.
+
 ## Eight legacy template/profile columns (October 28, 2026)
 
 The compatible server source no longer reads/writes stored `users.two_factor`,

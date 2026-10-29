@@ -8,6 +8,20 @@ const {
 } = require("../notifications/notifications.service");
 const auditService = require("../audit/audit.service");
 
+const isMissingResidentHistoryColumn = (error) => error?.code === "ER_BAD_FIELD_ERROR"
+  && /\bresident_hidden_at\b/.test(error.sqlMessage || error.message || "");
+
+// Keep existing installations readable during the additive migration rollout.
+// Only this optional marker can be omitted; other schema/query errors still fail.
+const queryResidentReports = async (sql, params) => {
+  try {
+    return await pool.query(sql, params);
+  } catch (error) {
+    if (!isMissingResidentHistoryColumn(error)) throw error;
+    return pool.query(sql.replace(/ AND (?:r\.)?resident_hidden_at IS NULL/g, ""), params);
+  }
+};
+
 // ─── Generate RPT-YYYY-NNNNN (atomic, year-resetting) ──────
 
 const generateSequentialRef = async (conn) => {
@@ -269,7 +283,7 @@ const getMyReports = async (userId, filters = {}) => {
   const requestedPage = Math.max(1, parseInt(filters.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(filters.limit) || 10));
 
-  const where  = ["r.user_id = ?", "r.deleted_at IS NULL"];
+  const where  = ["r.user_id = ?", "r.deleted_at IS NULL", "r.resident_hidden_at IS NULL"];
   const params = [userId];
 
   // Status filter (backend enum: SUBMITTED, UNDER_REVIEW, DISPATCHED, RESOLVED)
@@ -294,7 +308,7 @@ const getMyReports = async (userId, filters = {}) => {
   const order = filters.sort === "oldest" ? "ASC" : "DESC";
 
   // Count total matching rows
-  const [countRows] = await pool.query(
+  const [countRows] = await queryResidentReports(
     "SELECT COUNT(*) AS total FROM reports r " + whereClause,
     params,
   );
@@ -304,7 +318,7 @@ const getMyReports = async (userId, filters = {}) => {
   const offset = (page - 1) * limit;
 
   // Fetch page of reports
-  const [reports] = await pool.query(
+  const [reports] = await queryResidentReports(
     "SELECT r.*, b.name AS barangay_name, NULL AS barangay_zone " +
     "FROM reports r " +
     "JOIN barangays b ON b.id = r.barangay_id " +
@@ -353,11 +367,11 @@ const getMyReports = async (userId, filters = {}) => {
 // ─── Get single resident report (ownership enforced) ──────
 
 const getMyReportById = async (reportId, userId) => {
-  const [rows] = await pool.query(
+  const [rows] = await queryResidentReports(
     "SELECT r.*, b.name AS barangay_name, NULL AS barangay_zone " +
     "FROM reports r " +
     "JOIN barangays b ON b.id = r.barangay_id " +
-    "WHERE r.id = ? AND r.deleted_at IS NULL",
+    "WHERE r.id = ? AND r.deleted_at IS NULL AND r.resident_hidden_at IS NULL",
     [reportId],
   );
 
@@ -939,7 +953,7 @@ const getStatusHistory = async (reportId) => {
 
 // ─── Get resident's own report statistics ──────────────────
 const getMyStats = async (userId) => {
-  const [rows] = await pool.query(
+  const [rows] = await queryResidentReports(
     `SELECT
        COUNT(*)                                              AS total,
        SUM(status = 'RESOLVED')                             AS resolved,
@@ -947,7 +961,7 @@ const getMyStats = async (userId) => {
        SUM(status = 'UNDER_REVIEW')                         AS under_review,
        SUM(status IN ('DISPATCHED','IN_PROGRESS'))          AS in_progress
      FROM reports
-     WHERE user_id = ? AND deleted_at IS NULL`,
+     WHERE user_id = ? AND deleted_at IS NULL AND resident_hidden_at IS NULL`,
     [userId],
   );
 
@@ -962,10 +976,11 @@ const getMyStats = async (userId) => {
   };
 };
 
-// ─── Soft-delete a report (Admin or Resident pending only) ─
+// ─── Withdraw submissions or hide resolved resident history ─
 const softDelete = async (id, user, ip = null) => {
   const conn = await pool.getConnection();
   let report;
+  let historyOnly = false;
   try {
     await conn.beginTransaction();
     const [rows] = await conn.query(
@@ -975,14 +990,28 @@ const softDelete = async (id, user, ip = null) => {
     if (!rows.length) throw { statusCode: 404, message: "Report not found" };
     report = rows[0];
     if (user.role !== "ADMIN") {
-      if (report.user_id !== user.id) {
+      if (user.role !== "RESIDENT" || report.user_id !== user.id) {
         throw { statusCode: 403, message: "You do not have permission to delete this report" };
       }
-      if (!["SUBMITTED", "PENDING"].includes(report.status)) {
-        throw { statusCode: 400, message: "Only pending reports can be cancelled or deleted" };
+      if (!["SUBMITTED", "PENDING", "RESOLVED"].includes(report.status)) {
+        throw { statusCode: 400, message: "Reports under review or dispatched cannot be deleted" };
+      }
+      historyOnly = report.status === "RESOLVED";
+      if (historyOnly && report.resident_hidden_at) {
+        await conn.commit();
+        return { id: report.id, reference_number: report.reference_number };
       }
     }
-    await conn.query("UPDATE reports SET deleted_at = NOW() WHERE id = ?", [id]);
+    if (historyOnly) {
+      try {
+        await conn.query("UPDATE reports SET resident_hidden_at = UTC_TIMESTAMP(), updated_at = updated_at WHERE id = ?", [id]);
+      } catch (error) {
+        if (!isMissingResidentHistoryColumn(error)) throw error;
+        throw { statusCode: 503, message: "Removing resolved reports from history requires a database upgrade. Your report is unchanged; please try again after the upgrade." };
+      }
+    } else {
+      await conn.query("UPDATE reports SET deleted_at = NOW() WHERE id = ?", [id]);
+    }
     await conn.commit();
   } catch (error) {
     await conn.rollback();
@@ -994,7 +1023,7 @@ const softDelete = async (id, user, ip = null) => {
   // Audit log
   auditService.log({
     user_id: user.id,
-    action: "REPORT_DELETED",
+    action: historyOnly ? "REPORT_HIDDEN_BY_RESIDENT" : "REPORT_DELETED",
     module: "reports",
     record_id: report.id,
     ip_address: ip,
@@ -1010,7 +1039,7 @@ const softDelete = async (id, user, ip = null) => {
       reason:
         user.role === "ADMIN"
           ? "Admin soft-delete"
-          : "Resident cancelled submission",
+          : historyOnly ? "Resident removed resolved report from personal history" : "Resident cancelled submission",
     },
   }).catch(() => {});
 

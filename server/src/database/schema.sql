@@ -245,6 +245,7 @@ CREATE TABLE `reports` (
   `pin_lat` decimal(10,8) DEFAULT NULL,
   `pin_lng` decimal(11,8) DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
+  `resident_hidden_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `reference_number` (`reference_number`),
   KEY `fk_1` (`user_id`),

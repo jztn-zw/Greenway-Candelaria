@@ -106,10 +106,11 @@ router.get(
   controller.getStatusHistory,
 );
 
-// Admin or Resident (pending only) — soft-delete report
+// Admin deletion; resident withdrawal or resolved-history removal
 router.delete(
   "/:id",
   authenticate,
+  authorize("ADMIN", "RESIDENT"),
   controller.softDelete,
 );
 

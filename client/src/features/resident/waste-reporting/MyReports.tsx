@@ -32,7 +32,6 @@ FileText,
 AlertCircle,
 MapPin,
 Camera,MessageSquare,
-RefreshCw,
 SortAsc,
 Loader2,
 Trash2,
@@ -195,13 +194,15 @@ const MyReports = () => {
   };
 
   const handleCancelReport = async (id: string) => {
+    if (!selectedReport || selectedReport.id !== id || !["submitted", "resolved"].includes(selectedReport.status)) return;
+    const historyOnly = selectedReport.status === "resolved";
     try {
       await cancelReport(id);
-      toast.success("Report cancelled successfully");
+      toast.success(historyOnly ? "Report removed from your history" : "Report cancelled successfully");
       closeDetail();
       setPage(1);
     } catch (err: unknown) {
-      toast.error("Failed to cancel report", { description: getActionErrorMessage(err) });
+      toast.error(historyOnly ? "Failed to remove report from history" : "Failed to cancel report", { description: getActionErrorMessage(err) });
       throw err;
     }
   };
@@ -225,10 +226,6 @@ const MyReports = () => {
         onBack={closeDetail}
         isLoading={isLoadingDetail}
         onCancelReport={handleCancelReport}
-        onResubmit={() => {
-          navigate("/resident/report");
-          toast.info("Navigate to Submit a Report to file a new report.");
-        }}
       />
       </>
     );
@@ -523,17 +520,17 @@ const ReportDetail = ({
   onBack,
   isLoading,
   onCancelReport,
-  onResubmit,
 }: {
   report: SubmittedReport;
   onBack: () => void;
   isLoading: boolean;
   onCancelReport?: (id: string) => Promise<void>;
-  onResubmit: () => void;
 }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const historyOnly = report.status === "resolved";
+  const canRemove = report.status === "submitted" || historyOnly;
 
   const handleCopyReference = async (refNum: string) => {
     try {
@@ -858,7 +855,7 @@ const ReportDetail = ({
 
       {/* Action Buttons */}
       <div className={reportDetailStyles.actions}>
-        {report.status === "submitted" && onCancelReport && (
+        {canRemove && onCancelReport && (
           <button
             type="button"
             onClick={() => setShowCancelModal(true)}
@@ -871,10 +868,10 @@ const ReportDetail = ({
               </div>
               <div className="text-left min-w-0">
                 <span className={`${reportDetailStyles.actionTitle} group-hover:text-destructive transition-colors`}>
-                  Cancel & Withdraw Report
+                  {historyOnly ? "Remove from History" : "Cancel & Withdraw Report"}
                 </span>
                 <span className={reportDetailStyles.actionDescription}>
-                  Remove this submission from MENRO's review queue
+                  {historyOnly ? "Remove from your history; MENRO retains its records" : "Remove this submission from MENRO's review queue"}
                 </span>
               </div>
             </div>
@@ -882,38 +879,16 @@ const ReportDetail = ({
           </button>
         )}
 
-        {report.status === "resolved" && (
-          <button
-            type="button"
-            onClick={onResubmit}
-            className={`${reportDetailStyles.action} hover:bg-[var(--button-neutral-hover)] hover:border-foreground/20 transition-all duration-200 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-          >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className={`${reportDetailStyles.actionIcon} group-hover:text-foreground transition-colors`}>
-                <RefreshCw className="w-4 h-4" />
-              </div>
-              <div className="text-left min-w-0">
-                <span className={`${reportDetailStyles.actionTitle} group-hover:text-foreground transition-colors`}>
-                  Report This Issue Again
-                </span>
-                <span className={reportDetailStyles.actionDescription}>
-                  File a new report with this location and issue category
-                </span>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
-          </button>
-        )}
       </div>
 
       {/* Cancel Confirmation Modal */}
-      <ConfirmationDialog kind="dialog" open={showCancelModal} onOpenChange={setShowCancelModal}
-        title="Cancel Report Submission" icon={<Trash2 />} variant="destructive" cancelLabel="Keep Report"
-        description={<>Withdraw report <strong className="text-foreground">{report.referenceNumber}</strong> from MENRO's queue?</>}
-        confirmLabel="Yes, Cancel Report" isPending={isCancelling} pendingLabel="Cancelling..."
-        confirmDisabled={!onCancelReport}
+      <ConfirmationDialog kind="dialog" open={showCancelModal && canRemove} onOpenChange={setShowCancelModal}
+        title={historyOnly ? "Remove from History" : "Cancel Report Submission"} icon={<Trash2 />} variant="destructive" cancelLabel="Keep Report"
+        description={historyOnly ? <>Remove report <strong className="text-foreground">{report.referenceNumber}</strong> from your history? MENRO will retain the report and its records.</> : <>Withdraw report <strong className="text-foreground">{report.referenceNumber}</strong> from MENRO's queue?</>}
+        confirmLabel={historyOnly ? "Yes, Remove from History" : "Yes, Cancel Report"} isPending={isCancelling} pendingLabel={historyOnly ? "Removing..." : "Cancelling..."}
+        confirmDisabled={!onCancelReport || !canRemove}
         onConfirm={async () => {
-          if (!onCancelReport || isCancelling) return;
+          if (!onCancelReport || isCancelling || !canRemove) return;
           try { setIsCancelling(true); await onCancelReport(report.id); setShowCancelModal(false); }
           catch { /* The parent shows the request error; keep this dialog open for retry. */ }
           finally { setIsCancelling(false); }

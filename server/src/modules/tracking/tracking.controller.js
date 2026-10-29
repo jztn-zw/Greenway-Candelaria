@@ -10,7 +10,7 @@ const ping = async (req, res, next) => {
 
     // Broadcast to authenticated tracking subscribers.
     const io = req.app.get("io");
-    broadcastLiveUpdate(io);
+    if (log.accepted) broadcastLiveUpdate(io);
 
     return success(res, log, "Location pinged successfully", 201);
   } catch (err) {

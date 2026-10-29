@@ -46,13 +46,22 @@ export const useLiveTracking = ({ truckId, routeId, isRouteEnded, isTrackingEnab
         // The browser's sensor timestamp uses its device clock. Measure sample
         // age on that same clock, then preserve the age against trusted UTC.
         const sampleAge = Date.now() - timestamp;
-        if (!Number.isFinite(sampleAge) || sampleAge < -1000 || sampleAge > 120000) { setGpsError("GPS location is outdated. Waiting for a fresh fix."); next(); return; }
+        if (!Number.isFinite(sampleAge) || sampleAge < -1000 || sampleAge > 30000) { setGpsError("GPS location is outdated. Waiting for a fresh fix."); next(); return; }
+        if (!Number.isFinite(coords.accuracy) || coords.accuracy < 0 || coords.accuracy > 50) {
+          setGpsError("GPS accuracy is low. Enable precise location or move to an open area."); next(); return;
+        }
         const capturedAt = getSystemNow() - Math.max(0, sampleAge);
         try {
-          await pingLocation(truckId, coords.latitude, coords.longitude, {
+          const receipt = await pingLocation(truckId, coords.latitude, coords.longitude, {
             route_run_id: routeId, sample_id: crypto.randomUUID(), captured_at: new Date(capturedAt).toISOString(),
+            accuracy_meters: coords.accuracy,
           }, abort.signal);
           if (cancelled) return;
+          if (receipt?.accepted !== true) {
+            if (receipt?.reason === "gps_jump") setGpsError("GPS jump ignored. Waiting for a stable location.");
+            else if (receipt?.reason === "gps_accuracy") setGpsError("GPS accuracy is low. Waiting for a more accurate fix.");
+            next(); return;
+          }
           setTruckCoords([coords.latitude, coords.longitude]);
           setLastPing(capturedAt);
           setGpsError(null);

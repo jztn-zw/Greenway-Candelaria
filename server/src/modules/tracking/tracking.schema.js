@@ -4,6 +4,7 @@ const pingSchema = z.object({
   route_run_id: z.string().uuid().optional(),
   sample_id: z.string().uuid().optional(),
   captured_at: z.string().datetime().optional(),
+  accuracy_meters: z.number().min(0).max(100000).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   truck_id: z.string().min(1, "Truck ID is required"),

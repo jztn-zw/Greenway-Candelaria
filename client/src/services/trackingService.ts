@@ -237,16 +237,19 @@ export const pingLocation = async (
   truckId: string,
   latitude: number,
   longitude: number,
-  sample?: { route_run_id: string; sample_id: string; captured_at: string },
+  sample?: { route_run_id: string; sample_id: string; captured_at: string; accuracy_meters?: number },
   signal?: AbortSignal,
-): Promise<void> => {
+): Promise<{ accepted: boolean; reason?: string }> => {
   const currentUser = authService.getCurrentUser();
   const role = String(currentUser?.role ?? "").toUpperCase();
   if (role !== "DRIVER") {
-    return;
+    return { accepted: false, reason: "not_driver" };
   }
 
-  await api.post("/tracking/ping", { truck_id: truckId, latitude, longitude, ...sample }, { signal });
+  const response = await api.post<{ data: { accepted: boolean; reason?: string } }>(
+    "/tracking/ping", { truck_id: truckId, latitude, longitude, ...sample }, { signal },
+  );
+  return response.data.data;
 };
 
 /** Pause or resume the authenticated collector's current route. */

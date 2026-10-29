@@ -1,6 +1,44 @@
 # Web truck tracking: behavior and deployment
 
-Scope: the web client and shared server. No mobile app files were changed or tested.
+Scope: the web client and shared server. The GPS sample quality section also
+covers the Collector mobile app's foreground and screen-lock uploads.
+
+## GPS sample quality (October 30, 2026)
+
+Collector native and browser tracking now wait for a fix no more than 30 seconds
+old with a reported accuracy radius of at most 50 metres. Missing, invalid or
+imprecise accuracy is not treated as precise. Native cached fixes must additionally
+be no more than 15 seconds old; an unsuitable cache falls through to the existing
+fresh sensor request. Both native upload paths use the same quality helper and
+send optional `accuracy_meters` to the authenticated endpoint.
+
+The server rejects a supplied accuracy worse than 50 metres before any GPS or
+proximity write. In the existing truck/run transaction, movement above 120 km/h
+between accepted fixes at most 30 seconds apart returns
+`{ accepted: false, reason: "gps_jump" }`. A recording gap over 30 seconds, a new
+run or the saved pause/resume boundary permits a fresh anchor. This matches the
+existing replay/distance continuity rules and avoids permanently locking a truck
+onto a bad initial fix. Rejections do not save history/latest coordinates, clear
+outage alerts, evaluate proximity notifications or schedule a live broadcast.
+Collectors keep retrying fresh fixes and move their local marker/confirm an upload
+only after server acceptance. Permission, account, assignment and route-state
+guards are retained.
+
+Older clients may omit accuracy and remain compatible. The endpoint's existing
+two-minute transport freshness check remains; updated collectors apply the tighter
+30-second acquisition check before sending. Accuracy is not stored in history and
+no schema change is required. Saved GPS records are not rewritten. Replay and
+distance retain their existing gap/jump rejection; plausible drift below the
+speed threshold cannot be reliably identified from old coordinates alone.
+No road snapping or missing travel is invented. Device accuracy estimates can
+themselves be wrong, including with mock location providers.
+
+Fixture checks cover native foreground/background selection, receipt handling,
+web cleanup/retry, server quality rejection without side effects, legacy payloads,
+run guards and replay/distance gaps. Real-device driving, weak-signal and
+screen-lock behavior still require a smoke test. Deploy the compatible server and
+web client and distribute an updated Collector build for all checks to apply;
+Resident receives the accepted shared GPS feed and needs no app source change.
 
 ## Deployment
 

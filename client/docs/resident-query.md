@@ -1,5 +1,16 @@
 # Resident web server state
 
+Report removal now distinguishes submitted withdrawal from resolved personal-history
+removal. Both use the existing account-scoped report mutation and private owner
+hint; history/detail/count queries refresh together. Under-review and dispatched
+reports have no resident delete action. The API's locked-row status check remains
+authoritative if an older screen still offers withdrawal. Resolved removal leaves
+admin records intact and makes the resident detail return 404. Resolved removal
+requires the prepared `2026-10-30-resident-report-history.sql` migration; it has
+not been applied by this source change. Before migration, history/detail/count
+reads remain compatible, and resolved removal returns an upgrade-required error
+without changing the report.
+
 Resident dashboard, report submission/lookups, My Reports and report details,
 community posts/details/reactions, schedules, notifications, profile, settings,
 and tracking HTTP reads now use TanStack Query. Resident setup also uses account-

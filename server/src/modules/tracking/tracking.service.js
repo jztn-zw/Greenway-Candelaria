@@ -176,12 +176,24 @@ const ping = async (userId, sample) => {
     const age = Date.now() - captured.getTime();
     if (!Number.isFinite(age) || age > 120000 || age < -5000) reject("GPS sample is expired or has an invalid capture time", 422);
     if (captured.getTime() < utcTime(run.gps_expected_since || run.collection_started_at).getTime()) reject("GPS sample predates this route", 422);
+    // Optional for older clients. New collectors send the sensor's uncertainty;
+    // a fresh timestamp alone does not make an imprecise fix safe for proximity.
+    if (sample.accuracy_meters !== undefined && sample.accuracy_meters > 50) {
+      return { accepted: false, reason: "gps_accuracy" };
+    }
     const [latest] = await db.query("SELECT * FROM tracking_latest WHERE truck_id = ? FOR UPDATE", [truck_id]);
     if (latest[0]?.route_run_id === run.id) {
       if (latest[0].sample_id === sample_id || captured <= utcTime(latest[0].captured_at)) {
         return { accepted: false, reason: "duplicate_or_older" };
       }
-      if (captured - utcTime(latest[0].captured_at) < 3000) return { accepted: false, reason: "sample_interval" };
+      const elapsed = captured - utcTime(latest[0].captured_at);
+      if (elapsed < 3000) return { accepted: false, reason: "sample_interval" };
+      // Match replay/distance's 120 km/h ceiling and 30 s continuity window.
+      // Outages and pauses permit reacquisition instead of locking onto a bad seed.
+      const sameTrackingInterval = utcTime(latest[0].captured_at) >= utcTime(run.gps_expected_since || run.collection_started_at);
+      if (sameTrackingInterval && elapsed <= 30000 && calculateHaversineDistanceKm(
+        Number(latest[0].latitude), Number(latest[0].longitude), latitude, longitude,
+      ) / elapsed * 3600000 > 120) return { accepted: false, reason: "gps_jump" };
     }
     const id = generateId();
     const sampleId = sample_id || id;
