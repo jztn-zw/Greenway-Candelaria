@@ -170,6 +170,9 @@ const AdminTrackingMap = ({
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const trucksLayerRef = useRef<L.LayerGroup | null>(null);
+  const truckMarkersRef = useRef(new Map<string, { marker: L.Marker; iconKey: string }>());
+  const markerClickRef = useRef(onMarkerClick);
+  markerClickRef.current = onMarkerClick;
   const stopsLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const replayLayerRef = useRef<L.LayerGroup | null>(null);
@@ -287,6 +290,7 @@ const AdminTrackingMap = ({
 
   // Initialize map
   useEffect(() => {
+    const truckMarkers = truckMarkersRef.current;
     if (!mapElRef.current || mapRef.current) return;
 
     const map = L.map(mapElRef.current, {
@@ -345,6 +349,7 @@ const AdminTrackingMap = ({
       replayRendererRef.current = null;
       setIsMapReady(false);
       trucksLayerRef.current = null;
+      truckMarkers.clear();
       stopsLayerRef.current = null;
       replayLayerRef.current = null;
       routeLayerRef.current = null;
@@ -434,7 +439,11 @@ const AdminTrackingMap = ({
   useEffect(() => {
     const layer = trucksLayerRef.current;
     if (!layer) return;
-    layer.clearLayers();
+    const retained = truckMarkersRef.current;
+    const visibleIds = new Set(isReplayMode ? [] : visibleTrucks.map(truck => truck.id));
+    for (const [id, entry] of retained) {
+      if (!visibleIds.has(id)) { entry.marker.remove(); retained.delete(id); }
+    }
 
     if (isReplayMode) return;
 
@@ -458,7 +467,17 @@ const AdminTrackingMap = ({
         isLive ? "live" : isDone ? "live" : isPaused || isDelayed ? "delayed" : "idle",
       );
 
-      const marker = L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
+      const iconKey = `${isFocused}:${isLive || isDone ? 'live' : isPaused || isDelayed ? 'delayed' : 'idle'}`;
+      const existing = retained.get(truck.id);
+      const marker = existing?.marker ?? L.marker(truck.coords!, { icon: truckIcon, zIndexOffset: 1000 });
+      if (existing) {
+        const point = marker.getLatLng();
+        if (point.lat !== truck.coords![0] || point.lng !== truck.coords![1]) marker.setLatLng(truck.coords!);
+        if (existing.iconKey !== iconKey) { marker.setIcon(truckIcon); existing.iconKey = iconKey; }
+      } else {
+        retained.set(truck.id, { marker, iconKey });
+        marker.on("click", () => markerClickRef.current(truck.id));
+      }
 
       const safeTruckName = escapeHtml(truck.name);
       const safePlateNumber = escapeHtml(truck.plateNumber);
@@ -533,7 +552,8 @@ const AdminTrackingMap = ({
           </div>` : ''}
         </div>`;
 
-      marker.bindPopup(popupContent, {
+      if (marker.getPopup()) marker.setPopupContent(popupContent);
+      else marker.bindPopup(popupContent, {
         autoClose: true,
         closeOnClick: true,
         closeButton: true,
@@ -542,8 +562,7 @@ const AdminTrackingMap = ({
         minWidth: 240,
       });
 
-      marker.on("click", () => onMarkerClick(truck.id));
-      marker.addTo(layer);
+      if (!existing) marker.addTo(layer);
     });
   }, [visibleTrucks, focusedTruckId, activeTruck?.id, onMarkerClick, replayPath, isReplayMode]);
 

@@ -64,6 +64,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
+  const truckMarkerRef = useRef<L.Marker | null>(null);
   const hasAutoFittedRef = useRef(false);
   const lastStopsKeyRef = useRef("");
   const userInteractedRef = useRef(false);
@@ -135,6 +136,7 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
       map.off('click', clearStopSelection);
       routeLayerRef.current = null;
       layerRef.current = null;
+      truckMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -195,7 +197,23 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
     };
   }, [truckCoords, activeStopCoords, onActiveRouteChange]);
 
-  // Update markers
+  // The GPS pin belongs to the map, never the route/stop redraw layer.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const marker = truckMarkerRef.current;
+    if (!truckCoords) { marker?.remove(); truckMarkerRef.current = null; return; }
+    if (!marker) {
+      truckMarkerRef.current = L.marker(truckCoords, {
+        icon: createCollectorTruckPinIcon(), interactive: false, zIndexOffset: 1000,
+      }).addTo(map);
+    } else {
+      const point = marker.getLatLng();
+      if (point.lat !== truckCoords[0] || point.lng !== truckCoords[1]) marker.setLatLng(truckCoords);
+    }
+  }, [truckCoords]);
+
+  // Update stop markers
   useEffect(() => {
     const layer = layerRef.current;
     const map = mapRef.current;
@@ -213,10 +231,6 @@ const RouteMapView = ({ stops, truckCoords, activeStopCoords, onActiveRouteChang
 
     renderTrackingStops({ map, layer, stops, selectedId: selectedMapStop,
       showFullRoute, liveCoverage: !preview, onSelect: setSelectedMapStop });
-
-    // Truck marker with custom teardrop icon
-    const truckIcon = createCollectorTruckPinIcon();
-    if (truckCoords) L.marker(truckCoords, { icon: truckIcon, interactive: false, zIndexOffset: 1000 }).addTo(layer);
 
     // On smaller screens, preserve the collector's map position instead of
     // automatically moving the viewport as route data refreshes. The manual

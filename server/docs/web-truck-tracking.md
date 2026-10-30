@@ -5,6 +5,33 @@ covers the Collector mobile app's foreground and screen-lock uploads.
 
 ## GPS sample quality (October 30, 2026)
 
+### Device position and suggested roads
+
+The truck marker always uses the accepted device coordinates; OSRM supplies only
+the suggested driving line and travel estimate. A road start/end snapped by the
+router must never replace a GPS fix or enter tracking history. Off-road device
+positions therefore remain off-road. Changing the suggested road is not evidence
+that a truck travelled along it; replay continues to use recorded GPS samples.
+
+Admin and Collector web maps now retain each live truck marker across refreshes
+instead of clearing and rebuilding it. Coordinates are written only when their
+numeric latitude/longitude changes. Stop layers, popups, focus styling and replay
+visibility keep their existing behavior. Native Collector reuses its GPS
+annotation across OSRM updates; Resident keeps stable GPS coordinate props for its
+memoized native pin. Both mobile browser maps and Collector's embedded map also
+leave the device marker untouched on road-only updates. Routing cannot substitute
+a road endpoint when GPS is unavailable, and route redraws do not recenter the
+camera. Existing explicit Fit/Recenter controls remain available.
+
+Fixture checks cover pin lifetime, identical GPS values in new arrays, true GPS
+movement, GPS loss, replay cleanup, stop visibility, native annotation reuse and
+stale/live styling. Device animation and real signal quality still need a phone
+smoke test. Ship the updated web client and both mobile apps for these rendering
+changes. Debug apps can reload the JavaScript; installed APKs require a new build.
+No server contract or database change is part of this rendering adjustment.
+
+### Sample validation
+
 Collector native and browser tracking now wait for a fix no more than 30 seconds
 old with a reported accuracy radius of at most 50 metres. Missing, invalid or
 imprecise accuracy is not treated as precise. Native cached fixes must additionally
