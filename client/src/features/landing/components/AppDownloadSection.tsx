@@ -1,7 +1,6 @@
 import { Bell, Camera, Smartphone } from "lucide-react";
 import { CONTENT, type AppDownloadContent } from "../landingContent";
 import InstallAppButton from "./InstallAppButton";
-import IosDownloadButton from "./IosDownloadButton";
 import ResidentAppVideo from "./ResidentAppVideo";
 import "./AppDownloadSection.css";
 
@@ -42,7 +41,6 @@ export default function AppDownloadSection({ content = CONTENT.appDownload }: { 
 
               <div className="mt-7 flex flex-wrap gap-2">
                 <InstallAppButton className="h-12 px-5" />
-                <IosDownloadButton className="h-12" />
               </div>
             </div>
 

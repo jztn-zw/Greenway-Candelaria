@@ -6,7 +6,6 @@ import { CONTENT, type HeroContent } from "../landingContent";
 import { handleLandingNavigation } from "../utils/navigation";
 import HeroNeighborhood from "./HeroNeighborhood";
 import InstallAppButton from "./InstallAppButton";
-import IosDownloadButton from "./IosDownloadButton";
 
 const featureIcons = [CalendarDays, Truck, Leaf];
 
@@ -60,7 +59,6 @@ export default function HeroSection({ content = CONTENT.hero }: HeroSectionProps
             </div>
             <div className="hero-app-action flex flex-wrap gap-2">
               <InstallAppButton className="h-11 px-4" />
-              <IosDownloadButton />
             </div>
           </div>
 
