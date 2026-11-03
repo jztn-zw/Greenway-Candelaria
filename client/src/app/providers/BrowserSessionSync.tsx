@@ -18,6 +18,9 @@ export default function BrowserSessionSync({ children }: PropsWithChildren) {
       const previous = useAuthStore.getState();
       if (!previous.syncBrowserSession(markerId, snapshot)) return;
       setReady(true);
+      // Joining an existing session in an empty tab must retain its pasted
+      // pathname, query and hash. ProtectedRoute still verifies role/session.
+      if (snapshot && !previous.token && !previous.user) return;
       // A full navigation drops every previous account's local selection/cache;
       // drafts already saved under their account keys remain available.
       redirecting = true;

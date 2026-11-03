@@ -139,15 +139,16 @@ export function adoptBrowserAuthSnapshot(snapshot: BrowserAuthSnapshot) {
   return true;
 }
 
-// Only tabs with an existing login participate in account changes. An anonymous
-// or newly opened tab must sign in itself, even if a peer remembers its login.
-// Keep the tab's membership on reload so active tabs can reconcile a missed switch.
+// New tabs may join this browser's active session. Remembered credentials can
+// hydrate immediately; temporary credentials arrive only from an open peer.
+// Explicit tab logout remains sticky, including on reload or a pasted URL.
 const saved = getBrowserSessionMarker();
 if (saved) {
   const hadTabSession = !!sessionStorage.getItem(TAB_SESSION_KEY);
-  if (!hadTabSession || !saved.active) sessionStorage.setItem(TAB_SIGNED_OUT_KEY, "true");
+  if (!saved.active) sessionStorage.setItem(TAB_SIGNED_OUT_KEY, "true");
   if (!saved.active || saved.remembered || sessionStorage.getItem(TAB_SESSION_KEY) !== saved.id) removeCredentials(sessionStorage);
-  if (hadTabSession && (saved.remembered || !saved.active)) sessionStorage.setItem(TAB_SESSION_KEY, saved.id);
+  if ((saved.active && saved.remembered && !isTabSignedOut()) || (hadTabSession && !saved.active))
+    sessionStorage.setItem(TAB_SESSION_KEY, saved.id);
 } else if (sessionStorage.getItem("token") || localStorage.getItem("token")) {
   publish({ id: nextSessionId(), active: true, remembered: !sessionStorage.getItem("token") });
 } else {
