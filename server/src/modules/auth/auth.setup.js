@@ -26,7 +26,7 @@ const completeResidentProfile = async (userId, data) => {
         'SELECT id, collection_service_available FROM barangays WHERE id = ?', [data.barangay_id],
       );
       if (!barangays.length) throw { statusCode: 400, message: 'Select a valid barangay', field: 'barangay_id' };
-      const [streets] = await connection.query('SELECT id FROM barangay_streets WHERE barangay_id = ?', [data.barangay_id]);
+      const [streets] = await connection.query('SELECT id FROM barangay_streets WHERE barangay_id = ? AND deleted_at IS NULL', [data.barangay_id]);
       if (!streets.length) {
         throw { statusCode: 400, message: 'No streets are listed for this barangay. Contact MENRO to add your street before completing setup.', field: 'street_id' };
       }
@@ -39,7 +39,7 @@ const completeResidentProfile = async (userId, data) => {
       let location;
       if (data.resident_location != null) {
         const [selected] = await connection.query(
-          'SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE',
+          'SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL FOR UPDATE',
           [data.street_id, data.barangay_id],
         );
         location = validateResidentLocation(data.resident_location, selected[0]);

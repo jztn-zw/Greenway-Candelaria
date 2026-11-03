@@ -57,7 +57,7 @@ const register = async ({
 
   if (street_id) {
     const [streetRows] = await queryWithRetry(
-      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ?",
+      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL",
       [street_id, barangay_id],
     );
     if (streetRows.length === 0) {

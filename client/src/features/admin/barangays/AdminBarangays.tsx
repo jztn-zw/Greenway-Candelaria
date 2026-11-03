@@ -529,7 +529,11 @@ const AdminBarangays = () => {
                               : "No streets match your search."} />
                         ) : (
                           visibleStreets.map((street) => {
-                            const inUse = street.account_link_count + street.route_plan_count + street.route_run_record_count > 0;
+                            const deleteRestriction = street.account_link_count > 0
+                              ? `Cannot delete: ${street.account_link_count} existing account(s) still use this street, including banned or deactivated accounts.`
+                              : street.route_plan_count > 0
+                                ? "Cannot delete: remove this street from its route plans first."
+                                : null;
                             const displayName = street.area ? `${street.name} (${street.area})` : street.name;
                             return (
                               <div
@@ -584,14 +588,15 @@ const AdminBarangays = () => {
                                     variant="destructive-ghost"
                                     size="icon"
                                     className="h-8 w-8 rounded-lg cursor-pointer"
-                                    title={
-                                      inUse
-                                        ? "Cannot delete: linked to an account or route record"
-                                        : `Delete ${street.name}`
-                                    }
+                                    title={`Delete ${street.name}`}
                                     aria-label={`Delete ${street.name}`}
-                                    disabled={inUse}
-                                    onClick={() => setDeletingStreet(street)}
+                                    onClick={() => {
+                                      if (deleteRestriction) {
+                                        toast.error("Could not delete street", { description: deleteRestriction });
+                                        return;
+                                      }
+                                      setDeletingStreet(street);
+                                    }}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -603,9 +608,6 @@ const AdminBarangays = () => {
                       </div>
                 </div>
 
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Streets linked to user accounts, route plans, or saved route runs can be renamed but cannot be deleted.
-                </p>
               </div>
             </>
           )}
@@ -681,7 +683,7 @@ const AdminBarangays = () => {
         title={<>Delete {deletingStreet?.name}{deletingStreet?.area && <> ({deletingStreet.area})</>}?</>}
         icon={<Trash2 />}
         variant="destructive"
-        description={<>This removes the street from Barangay {selectedBarangay?.name}. Streets linked to user accounts, route plans, or saved route runs cannot be deleted.</>}
+        description={<>This removes the street from Barangay {selectedBarangay?.name} and future location selections. Past collection records and their history will be preserved.</>}
         confirmLabel="Delete Street"
         isPending={isDeletingStreet}
         pendingLabel="Deleting…"

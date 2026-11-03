@@ -1,5 +1,27 @@
 # GreenWay database
 
+## Street deletion while preserving collection history (November 3, 2026)
+
+`migrations/2026-11-03-street-history-preserving-deletion.sql` adds nullable
+`barangay_streets.deleted_at` and a generated `live_identity` unique-key member.
+Deletion archives the street identity without rewriting any route run, stop name,
+coverage snapshot, outcome, timestamp, GPS sample or notification. Archived streets
+are excluded from current street lists, service counts, registration, profile setup,
+address changes, public schedules and new route validation. Current accounts, route
+plans and nonterminal runs still prevent deletion. Terminal history does not.
+Names remain unique among current streets; a replacement gets its own ID.
+
+Preview from `server/`: `node scripts/migrate-street-deletion.cjs`.
+After explicit database approval, stop all APIs/workers and run
+`node scripts/migrate-street-deletion.cjs --apply --maintenance-confirmed`.
+The runner verifies a private schema/data backup and compares all original street,
+run and stop data before/after migration. Restart only with the compatible API.
+Deploy migration before this API: pre-migration schemas lack the required columns.
+No migration has been applied merely by editing these files. Rollback must preserve
+archive markers and reconcile duplicate archived names before restoring the old key;
+never restore an old full backup over newer records. Historical street IDs must not
+be nulled: null represents barangay-wide coverage in existing access checks.
+
 ## Resident report history removal (October 30, 2026)
 
 `migrations/2026-10-30-resident-report-history.sql` adds

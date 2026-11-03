@@ -438,7 +438,7 @@ const getPublicSchedule = async ({ barangay_id, street_id }) => {
   const [areas] = await pool.query(
     `SELECT b.collection_service_available
      FROM barangays b JOIN barangay_streets bs ON bs.barangay_id = b.id
-     WHERE b.id = ? AND bs.id = ? AND b.status = 'ACTIVE'`,
+     WHERE b.id = ? AND bs.id = ? AND b.status = 'ACTIVE' AND bs.deleted_at IS NULL`,
     [barangay_id, street_id],
   );
   if (!areas.length) throw { statusCode: 404, message: "Street not found in this barangay" };

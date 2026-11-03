@@ -54,7 +54,7 @@ const updateProfile = async (userId, data) => {
       const [[owner]] = await connection.query("SELECT role FROM users WHERE id = ?", [userId]);
       if (owner?.role !== "RESIDENT") throw { statusCode: 403, message: "Collection locations are available for resident accounts only" };
       const [[street]] = await connection.query(
-        "SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE",
+        "SELECT id, barangay_id, coverage_path, coverage_edit FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL FOR UPDATE",
         [address.street_id, address.barangay_id],
       );
       const location = validateResidentLocation(address.resident_location, street);
@@ -126,14 +126,14 @@ const updateProfile = async (userId, data) => {
     if (data.street_id) {
       const [streets] = data.barangay_id
         ? await pool.query(
-            `SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ?`,
+            `SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL`,
             [data.street_id, data.barangay_id],
           )
         : await pool.query(
             `SELECT bs.id
              FROM barangay_streets bs
              JOIN users u ON u.id = ?
-             WHERE bs.id = ? AND bs.barangay_id = u.barangay_id`,
+             WHERE bs.id = ? AND bs.barangay_id = u.barangay_id AND bs.deleted_at IS NULL`,
             [userId, data.street_id],
           );
       if (streets.length === 0) {

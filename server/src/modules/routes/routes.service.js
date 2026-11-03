@@ -76,7 +76,7 @@ const resolveRouteStops = async (executor, stops = []) => {
        FROM barangay_streets bs
        JOIN barangays b ON b.id = bs.barangay_id
        WHERE bs.id IN (${streetIds.map(() => "?").join(", ")})
-         AND b.collection_service_available = 1`,
+         AND b.collection_service_available = 1 AND bs.deleted_at IS NULL`,
       streetIds,
     );
     streets.forEach((street) => streetById.set(street.id, street));
@@ -113,6 +113,10 @@ const resolveRouteStops = async (executor, stops = []) => {
     resolved.push({ ...stop, barangay_id: barangayId, street_id: null, stop_name: barangays[0].name });
   }
 
+  // Resolve street ownership from the database before enforcing this rule.
+  if (new Set(resolved.map((stop) => stop.barangay_id)).size > 1) {
+    throw { statusCode: 400, message: "A route can contain only one barangay. Create a separate route for another barangay." };
+  }
   return resolved;
 };
 

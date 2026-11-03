@@ -34,7 +34,7 @@ const assertCollectionReadyForStops = async (connection, stops) => {
   if (!streetIds.length) return;
   const [streets] = await connection.query(
     `SELECT id, barangay_id, name, area, coverage_path FROM barangay_streets
-     WHERE id IN (${streetIds.map(() => "?").join(", ")}) ORDER BY id FOR UPDATE`,
+     WHERE id IN (${streetIds.map(() => "?").join(", ")}) AND deleted_at IS NULL ORDER BY id FOR UPDATE`,
     streetIds,
   );
   const streetById = new Map(streets.map((street) => [street.id, street]));

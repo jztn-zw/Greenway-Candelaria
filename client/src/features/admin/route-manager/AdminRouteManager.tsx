@@ -192,19 +192,21 @@ const AdminRouteManager: React.FC = () => {
 
   // ── Barangay sequence management ──
   const addBarangay = (street: BarangayStreetRow) => {
-    if (!form.barangays.find((x) => x.id === street.id)) {
-      setForm((prev) => ({
+    setForm((prev) => {
+      const barangayId = street.barangay_id ?? prev.selectedBarangayId;
+      if (prev.barangays.some((stop) => stop.id === street.id || stop.barangayId !== barangayId)) return prev;
+      return {
         ...prev,
         barangays: [...prev.barangays, {
           id: street.id,
           name: `${street.name}${street.area ? ` (${street.area})` : ""}`,
-          barangayId: street.barangay_id ?? prev.selectedBarangayId,
+          barangayId,
           latitude: street.latitude,
           longitude: street.longitude,
           coveragePath: street.coverage_path ?? null,
         }],
-      }));
-    }
+      };
+    });
   };
 
   const removeBarangay = (id: string) => {
@@ -566,7 +568,8 @@ const AdminRouteManager: React.FC = () => {
         savedStreetCount={availableStreets.length}
         isLoadingStopPoints={isLoadingStreets}
         isCollectionAvailable={isCollectionAvailable}
-        onSelectBarangay={(selectedBarangayId) => setForm((previous) => ({ ...previous, selectedBarangayId }))}
+        onSelectBarangay={(selectedBarangayId) => setForm((previous) => previous.barangays.length > 0
+          ? previous : { ...previous, selectedBarangayId })}
         onAddBarangay={addBarangay}
         onRemoveBarangay={removeBarangay}
         onMoveBarangay={moveBarangay}

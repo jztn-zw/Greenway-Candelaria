@@ -56,7 +56,7 @@ const getStreets = async (barangayId, includeLocationPoints = false) => {
     `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, b.latitude, b.longitude${includeLocationPoints ? ', bs.coverage_edit' : ''}
      FROM barangay_streets bs
      JOIN barangays b ON b.id = bs.barangay_id
-     WHERE bs.barangay_id = ?
+     WHERE bs.barangay_id = ? AND bs.deleted_at IS NULL
      ORDER BY bs.name ASC, bs.area ASC`,
     [barangayId],
   );
@@ -84,7 +84,7 @@ const normalizeStreet = (data) => {
 const assertUniqueStreet = async (executor, barangayId, street, excludeId = null) => {
   const [duplicates] = await executor.query(
     `SELECT id FROM barangay_streets
-     WHERE barangay_id = ?
+     WHERE barangay_id = ? AND deleted_at IS NULL
        AND LOWER(TRIM(name)) = LOWER(?)
        AND LOWER(COALESCE(TRIM(area), '')) = LOWER(?)
        AND (? IS NULL OR id <> ?)
@@ -109,7 +109,7 @@ const getManagerOverview = async () => {
              WHERE rrs.barangay_id = b.id AND rr.run_date >= ?
                AND rr.status IN ('SCHEDULED', 'ACTIVE', 'PAUSED')) AS live_run_count
      FROM barangays b
-     LEFT JOIN barangay_streets bs ON bs.barangay_id = b.id
+     LEFT JOIN barangay_streets bs ON bs.barangay_id = b.id AND bs.deleted_at IS NULL
      GROUP BY b.id, b.name, b.status, b.collection_service_available, b.latitude, b.longitude
      ORDER BY b.name ASC`,
     [getLocalDate()],
@@ -130,11 +130,11 @@ const getManagerStreets = async (barangayId) => {
     `SELECT bs.id, bs.barangay_id, bs.name, bs.area, bs.coverage_path, bs.coverage_edit,
             (SELECT COUNT(*) FROM users u WHERE u.street_id = bs.id
               AND u.role = 'RESIDENT' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL) AS active_resident_count,
-            (SELECT COUNT(*) FROM users u WHERE u.street_id = bs.id) AS account_link_count,
+            (SELECT COUNT(*) FROM users u WHERE u.street_id = bs.id AND u.deleted_at IS NULL) AS account_link_count,
             (SELECT COUNT(DISTINCT rs.route_id) FROM route_stops rs WHERE rs.street_id = bs.id) AS route_plan_count,
             (SELECT COUNT(*) FROM route_run_stops rrs WHERE rrs.street_id = bs.id) AS route_run_record_count
      FROM barangay_streets bs
-     WHERE bs.barangay_id = ?
+     WHERE bs.barangay_id = ? AND bs.deleted_at IS NULL
      ORDER BY bs.name ASC, bs.area ASC`,
     [barangayId],
   );
@@ -167,7 +167,7 @@ const updateCollectionService = async (barangayId, available) => {
         throw { statusCode: 409, message: "Activate this barangay before enabling collection service" };
       }
       const [[{ street_count }]] = await connection.query(
-        "SELECT COUNT(*) AS street_count FROM barangay_streets WHERE barangay_id = ?",
+        "SELECT COUNT(*) AS street_count FROM barangay_streets WHERE barangay_id = ? AND deleted_at IS NULL",
         [barangayId],
       );
       if (Number(street_count) === 0) {
@@ -242,7 +242,7 @@ const updateStreet = async (barangayId, streetId, data) => {
     const [barangays] = await connection.query("SELECT id FROM barangays WHERE id = ? FOR UPDATE", [barangayId]);
     if (!barangays.length) throw { statusCode: 404, message: "Barangay not found" };
     const [existing] = await connection.query(
-      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ?",
+      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL",
       [streetId, barangayId],
     );
     if (!existing.length) throw { statusCode: 404, message: "Street not found in this barangay" };
@@ -330,7 +330,7 @@ const updateStreetCoverage = async (barangayId, streetId, coveragePath, coverage
     const [barangays] = await connection.query("SELECT id FROM barangays WHERE id = ? FOR UPDATE", [barangayId]);
     if (!barangays.length) throw { statusCode: 404, message: "Barangay not found" };
     const [streets] = await connection.query(
-      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE",
+      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL FOR UPDATE",
       [streetId, barangayId],
     );
     if (!streets.length) throw { statusCode: 404, message: "Street not found in this barangay" };
@@ -385,7 +385,7 @@ const deleteStreet = async (barangayId, streetId) => {
     );
     if (!barangays.length) throw { statusCode: 404, message: "Barangay not found" };
     const [streets] = await connection.query(
-      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? FOR UPDATE",
+      "SELECT id FROM barangay_streets WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL FOR UPDATE",
       [streetId, barangayId],
     );
     if (!streets.length) {
@@ -393,17 +393,28 @@ const deleteStreet = async (barangayId, streetId) => {
     }
     const [[usage]] = await connection.query(
       `SELECT
-         (SELECT COUNT(*) FROM users WHERE street_id = ?) AS residents,
-         (SELECT COUNT(*) FROM route_stops WHERE street_id = ?) AS route_stops,
-         (SELECT COUNT(*) FROM route_run_stops WHERE street_id = ?) AS route_run_stops`,
-      [streetId, streetId, streetId],
+         (SELECT COUNT(*) FROM users WHERE street_id = ? AND deleted_at IS NULL) AS residents,
+         (SELECT COUNT(*) FROM route_stops WHERE street_id = ?) AS route_stops`,
+      [streetId, streetId],
     );
-    if (Number(usage.residents) + Number(usage.route_stops) + Number(usage.route_run_stops) > 0) {
-      throw { statusCode: 409, message: "Street is linked to residents or routes and cannot be deleted" };
+    if (Number(usage.residents) > 0) {
+      throw { statusCode: 409, message: "Street is linked to existing accounts and cannot be deleted. Deleted accounts do not block removal." };
+    }
+    if (Number(usage.route_stops) > 0) {
+      throw { statusCode: 409, message: "Remove this street from its route plans before deleting it" };
+    }
+    const [runs] = await connection.query(
+      `SELECT rr.id, rr.status FROM route_run_stops rrs
+       JOIN route_runs rr ON rr.id = rrs.route_run_id
+       WHERE rrs.street_id = ? ORDER BY rr.id FOR UPDATE`,
+      [streetId],
+    );
+    if (runs.some((run) => !['COMPLETED', 'PARTIAL', 'CANCELLED'].includes(run.status))) {
+      throw { statusCode: 409, message: "Finish or cancel scheduled and ongoing route runs using this street before deleting it" };
     }
     if (barangays[0].collection_service_available) {
       const [[{ street_count }]] = await connection.query(
-        "SELECT COUNT(*) AS street_count FROM barangay_streets WHERE barangay_id = ?",
+        "SELECT COUNT(*) AS street_count FROM barangay_streets WHERE barangay_id = ? AND deleted_at IS NULL",
         [barangayId],
       );
       if (Number(street_count) === 1) {
@@ -411,7 +422,9 @@ const deleteStreet = async (barangayId, streetId) => {
       }
     }
     await connection.query(
-      "DELETE FROM barangay_streets WHERE id = ? AND barangay_id = ?",
+      // Retain identity and every run snapshot; NULL must never turn a street
+      // stop into a barangay-wide stop in resident authorization queries.
+      "UPDATE barangay_streets SET deleted_at = UTC_TIMESTAMP() WHERE id = ? AND barangay_id = ? AND deleted_at IS NULL",
       [streetId, barangayId],
     );
     await connection.commit();

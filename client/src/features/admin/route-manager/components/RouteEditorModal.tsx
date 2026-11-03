@@ -153,6 +153,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
     }
     if (form.barangays.length === 0) {
       nextErrors.stops = "Add at least one street collection stop.";
+    } else if (new Set(form.barangays.map((stop) => stop.barangayId)).size > 1) {
+      nextErrors.stops = "A route can contain only one barangay. Remove streets from other barangays before saving.";
     }
     if (stopsMissingCoverage.length > 0) {
       nextErrors.coverage = `${stopsMissingCoverage.length} selected ${
@@ -210,7 +212,8 @@ export const RouteEditorModal: React.FC<RouteEditorModalProps> = ({
     setForm((prev) => {
       const existingIds = new Set(prev.barangays.map((b) => b.id));
       const additions = points
-        .filter((street) => !existingIds.has(street.id))
+        .filter((street) => !existingIds.has(street.id) &&
+          (street.barangay_id ?? prev.selectedBarangayId) === (prev.barangays[0]?.barangayId ?? prev.selectedBarangayId))
         .map((street) => ({
           id: street.id,
           name: `${street.name}${street.area ? ` (${street.area})` : ""}`,

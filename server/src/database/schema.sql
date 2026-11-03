@@ -30,12 +30,14 @@ CREATE TABLE `barangay_streets` (
   `area` varchar(100) DEFAULT NULL,
   `name_key` varchar(150) GENERATED ALWAYS AS (LOWER(TRIM(`name`))) VIRTUAL,
   `area_key` varchar(100) GENERATED ALWAYS AS (LOWER(COALESCE(TRIM(`area`), ''))) VIRTUAL,
+  `deleted_at` datetime DEFAULT NULL,
+  `live_identity` tinyint GENERATED ALWAYS AS (IF(`deleted_at` IS NULL, 1, NULL)) VIRTUAL,
   `coverage_path` json DEFAULT NULL,
   `coverage_edit` json DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_barangay_street_identity` (`barangay_id`,`name_key`,`area_key`),
+  UNIQUE KEY `uq_barangay_street_identity` (`barangay_id`,`name_key`,`area_key`,`live_identity`),
   CONSTRAINT `fk_barangay_streets_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 

@@ -116,13 +116,18 @@ export const BarangayOrderList: React.FC<BarangayOrderListProps> = ({
                 setStreetFilter("");
                 onSelectBarangay(val);
               }}
-              disabled={isLoadingBarangays}
+              disabled={isLoadingBarangays || form.barangays.length > 0}
               options={barangays.map((barangay) => ({ value: barangay.id, label: barangay.name }))}
               placeholder={isLoadingBarangays ? "Loading barangays..." : "Select a barangay"}
               searchPlaceholder="Search by barangay name…" compactSearchPlaceholder="Barangay name…"
               leadingIcon={<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
               className="h-10 rounded-xl border-border/80 bg-background text-xs shadow-2xs focus:ring-primary/20"
             />
+            {form.barangays.length > 0 && (
+              <p className="text-ui-caption text-muted-foreground">
+                One barangay per route. Clear Stops to choose another barangay.
+              </p>
+            )}
           </div>
 
           {/* Available Streets Selector */}
