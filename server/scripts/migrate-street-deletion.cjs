@@ -19,19 +19,30 @@ async function migrate(db, { apply = false, maintenanceConfirmed = false,
   const live = columns.find(c => c.Field === 'live_identity');
   const identity = indexes.filter(i => i.Key_name === 'uq_barangay_street_identity')
     .sort((a, b) => a.Seq_in_index - b.Seq_in_index).map(i => i.Column_name);
+  const liveIndex = indexes.filter(i => i.Key_name === 'uq_barangay_street_live_identity')
+    .sort((a, b) => a.Seq_in_index - b.Seq_in_index);
+  const liveKey = liveIndex.map(i => i.Column_name);
   const oldKey = ['barangay_id', 'name_key', 'area_key'];
   const newKey = [...oldKey, 'live_identity'];
-  if (deleted || live) {
+  const parentIndex = indexes.filter(i => i.Key_name === 'idx_barangay_streets_barangay');
+  if (parentIndex.length && (parentIndex.length !== 1 || parentIndex[0].Column_name !== 'barangay_id'))
+    throw Error('Unexpected street parent index');
+  if (deleted && (deleted.Type.toLowerCase() !== 'datetime' || deleted.Null !== 'YES' || deleted.Default !== null))
+    throw Error('Unexpected existing street deletion marker');
+  if (live) {
     const [[definition]] = await db.query('SHOW CREATE TABLE barangay_streets');
     const ddl = definition['Create Table'].toLowerCase().replace(/[`\s()]/g, '');
     if (!deleted || deleted.Type.toLowerCase() !== 'datetime' || deleted.Null !== 'YES' || deleted.Default !== null
       || !live?.Type.toLowerCase().startsWith('tinyint') || !live.Extra.includes('VIRTUAL GENERATED')
-      || !(ddl.includes('ifdeleted_atisnull,1,null') || ddl.includes('ifisnulldeleted_at,1,null'))
-      || JSON.stringify(identity) !== JSON.stringify(newKey)) throw Error('Unexpected existing street deletion schema');
-    return { mode: 'already_current' };
+      || !(ddl.includes('ifdeleted_atisnull,1,null') || ddl.includes('ifisnulldeleted_at,1,null')))
+      throw Error('Unexpected existing street deletion schema');
   }
-  if (JSON.stringify(identity) !== JSON.stringify(oldKey)) throw Error('Unexpected street identity index');
-  if (!apply) return { mode: 'preview', additions: ['deleted_at', 'live_identity'], history: 'retained without rewriting' };
+  if (liveKey.length && (!live || JSON.stringify(liveKey) !== JSON.stringify(newKey) || liveIndex.some(i => Number(i.Non_unique) !== 0)))
+    throw Error('Unexpected live street identity index');
+  if (identity.length && JSON.stringify(identity) !== JSON.stringify(oldKey)) throw Error('Unexpected street identity index');
+  if (!identity.length && !liveKey.length) throw Error('Missing street identity index');
+  if (deleted && live && liveKey.length && !identity.length && parentIndex.length) return { mode: 'already_current' };
+  if (!apply) return { mode: 'preview', additions: [...(!deleted ? ['deleted_at'] : []), 'live_identity'], history: 'retained without rewriting' };
   if (!maintenanceConfirmed) throw Error('Stop all APIs/workers and pass --maintenance-confirmed');
   const originalNames = columns.map(c => c.Field);
   const snapshots = async () => {
@@ -54,8 +65,21 @@ async function migrate(db, { apply = false, maintenanceConfirmed = false,
     || JSON.stringify(readyIndexes.map(({ Cardinality, ...index }) => index)) !== JSON.stringify(indexes.map(({ Cardinality, ...index }) => index)))
     throw Error('Street schema changed during backup');
   const sql = await fs.readFile(path.resolve(__dirname, '../src/database/migrations/2026-11-03-street-history-preserving-deletion.sql'), 'utf8');
-  const statement = sql.split('\n').filter(line => !line.trimStart().startsWith('--')).join('\n').trim();
-  await db.query(statement);
+  const statements = sql.split('\n').filter(line => !line.trimStart().startsWith('--')).join('\n')
+    .split(';').map(statement => statement.trim()).filter(Boolean);
+  try {
+    for (const statement of statements) {
+      if (deleted && /ADD COLUMN deleted_at/.test(statement)) continue;
+      if (parentIndex.length && /ADD KEY idx_barangay_streets_barangay/.test(statement)) continue;
+      if (live && /ADD COLUMN live_identity/.test(statement)) continue;
+      if (liveKey.length && /ADD UNIQUE KEY uq_barangay_street_live_identity/.test(statement)) continue;
+      if (!identity.length && /DROP INDEX uq_barangay_street_identity/.test(statement)) continue;
+      await db.query(statement);
+    }
+  } catch (error) {
+    // Only this fixed schema statement is reported, never record SQL or values.
+    throw Error(`Street schema alteration failed: ${error.code || 'unknown'} (${error.sqlMessage || 'no database detail'})`);
+  }
   const current = await migrate(db);
   const after = await snapshots();
   if (current.mode !== 'already_current' || JSON.stringify(before) !== JSON.stringify(after))

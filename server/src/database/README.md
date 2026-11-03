@@ -17,7 +17,18 @@ After explicit database approval, stop all APIs/workers and run
 The runner verifies a private schema/data backup and compares all original street,
 run and stop data before/after migration. Restart only with the compatible API.
 Deploy migration before this API: pre-migration schemas lack the required columns.
-No migration has been applied merely by editing these files. Rollback must preserve
+Applied to the configured database on November 3, 2026 (Philippine time), after
+explicit user approval and stopping the local API watcher/worker. TiDB required
+separate column/index statements and a standalone barangay foreign-key index.
+The runner supports resuming those intermediate schema states. The final verified
+backup is `backups/street-deletion-2026-11-03T08-33-24-987Z/restore.sql`, SHA-256
+`e78e5ae8584b729295f6fb318e5bb60a48d8651401216c2ea7bba8b9492cd322`.
+A separate comparison against the first pre-change backup confirmed all original
+data unchanged: 26 streets, 24 route runs and 275 run stops. No street was archived
+during migration; Cemetery retains its four PARTIAL and five CANCELLED historical
+stops. Other configured environments still need the authorized upgrade.
+
+Rollback must preserve
 archive markers and reconcile duplicate archived names before restoring the old key;
 never restore an old full backup over newer records. Historical street IDs must not
 be nulled: null represents barangay-wide coverage in existing access checks.

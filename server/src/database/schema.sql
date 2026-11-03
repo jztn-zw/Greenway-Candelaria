@@ -37,7 +37,8 @@ CREATE TABLE `barangay_streets` (
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_barangay_street_identity` (`barangay_id`,`name_key`,`area_key`,`live_identity`),
+  UNIQUE KEY `uq_barangay_street_live_identity` (`barangay_id`,`name_key`,`area_key`,`live_identity`),
+  KEY `idx_barangay_streets_barangay` (`barangay_id`),
   CONSTRAINT `fk_barangay_streets_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
