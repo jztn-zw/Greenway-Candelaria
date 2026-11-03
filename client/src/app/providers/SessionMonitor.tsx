@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import useAuthStore from "@/store/authStore";
 import api from "@/lib/api";
 import { getAuthStorage, isBrowserSignInPending } from "@/lib/authStorage";
-import { endReplacedSession, SESSION_REPLACED_MESSAGE, SESSION_REPLACED_NOTICE } from "@/lib/sessionReplaced";
+import { endReplacedSession, hasSessionReplacementNotice, SESSION_REPLACED_MESSAGE, SESSION_REPLACED_NOTICE, SESSION_REPLACED_NOTICE_CHANGED } from "@/lib/sessionReplaced";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function SessionMonitor() {
+  const navigate = useNavigate();
   const token = useAuthStore(state => state.token);
-  const [notice, setNotice] = useState(() => sessionStorage.getItem(SESSION_REPLACED_NOTICE) === "true" && !getAuthStorage().getItem("token"));
+  const [notice, setNotice] = useState(hasSessionReplacementNotice);
 
   useEffect(() => {
     if (!token) return;
@@ -47,6 +49,8 @@ export default function SessionMonitor() {
   const dismiss = () => {
     sessionStorage.removeItem(SESSION_REPLACED_NOTICE);
     setNotice(false);
+    window.dispatchEvent(new Event(SESSION_REPLACED_NOTICE_CHANGED));
+    navigate("/login", { replace: true });
   };
 
   return <AlertDialog open={notice} onOpenChange={open => { if (!open) dismiss(); }}>

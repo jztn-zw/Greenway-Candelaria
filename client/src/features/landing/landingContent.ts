@@ -148,7 +148,6 @@ export interface FooterContent {
   tagline: string;
   links: { label: string; href: string }[];
   copyright: string;
-  bottomTagline: string;
 }
 
 // ─── Static Content ──────────────────────────────────────────────────────────
@@ -512,6 +511,5 @@ export const CONTENT = {
       { label: "Contact", href: "#contact" },
     ],
     copyright: "© 2026 GreenWay | MENRO Candelaria, Quezon. All rights reserved.",
-    bottomTagline: "Built for a cleaner, smarter community.",
   } satisfies FooterContent,
 } as const;

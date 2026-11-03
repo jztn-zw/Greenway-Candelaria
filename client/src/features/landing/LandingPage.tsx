@@ -33,7 +33,7 @@ const Index = () => {
         <ContactSection content={CONTENT.contact} />
       </AnimatedSection>
       <AnimatedSection animation="fade-in">
-        <Footer content={CONTENT.footer} contactContent={CONTENT.contact} />
+        <Footer content={CONTENT.footer} />
       </AnimatedSection>
     </div>
   );

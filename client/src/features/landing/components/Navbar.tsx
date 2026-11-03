@@ -6,6 +6,7 @@ import { useLocation,useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu,X,Moon,Sun } from "lucide-react";
 import AuthModal from "./AuthModal";
+import { hasSessionReplacementNotice, SESSION_REPLACED_NOTICE_CHANGED } from "@/lib/sessionReplaced";
 
 const Navbar = () => {
   const location = useLocation();
@@ -15,6 +16,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const dark = useThemeMode() === "dark";
   const [authOpen, setAuthOpen] = useState(false);
+  const [replacementPending, setReplacementPending] = useState(hasSessionReplacementNotice);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
 
   useEffect(() => {
@@ -29,15 +31,17 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    if (location.pathname === "/login") {
-      setAuthTab("login");
-      setAuthOpen(true);
-      return;
-    }
-
-    if (authOpen) {
-      setAuthOpen(false);
-    }
+    const syncLogin = () => {
+      const pending = hasSessionReplacementNotice();
+      setReplacementPending(pending);
+      if (location.pathname === "/login" && !pending) {
+        setAuthTab("login");
+        setAuthOpen(true);
+      } else setAuthOpen(false);
+    };
+    syncLogin();
+    window.addEventListener(SESSION_REPLACED_NOTICE_CHANGED, syncLogin);
+    return () => window.removeEventListener(SESSION_REPLACED_NOTICE_CHANGED, syncLogin);
   }, [location.pathname]);
 
   const links = [
@@ -142,7 +146,7 @@ const Navbar = () => {
       </nav>
 
       <AuthModal
-        open={authOpen}
+        open={authOpen && !replacementPending}
         onOpenChange={(nextOpen) => {
           setAuthOpen(nextOpen);
           if (!nextOpen && location.pathname === "/login") {
