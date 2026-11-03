@@ -22,12 +22,12 @@ import { changePassword, fetchProfile, updateProfile, type UpdateProfilePayload,
 import useAuthStore from "@/store/authStore";
 import useLogout from "@/hooks/useLogout";
 import { formatManilaDateTime } from "@/utils/date";
-import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, Mail, Phone, ShieldCheck, SquarePen, User, Users } from "lucide-react";
+import { AtSign, Calendar, ChevronRight, Clock3, Eye, EyeOff, Lock, LogOut, ShieldCheck, SquarePen, User, Users } from "lucide-react";
 import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-type EditableField = "full_name" | "username" | "phone";
-const fieldLabels: Record<EditableField, string> = { full_name: "Full Name", username: "Username", phone: "Phone Number" };
+type EditableField = "full_name" | "username";
+const fieldLabels: Record<EditableField, string> = { full_name: "Full Name", username: "Username" };
 const errorMessage = (error: unknown, fallback: string) =>
   (error as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
 
@@ -60,15 +60,14 @@ const Section = ({ title, description, icon: Icon, children }: {
 );
 
 const ProfileField = ({ label, value, icon: Icon, onEdit, action = "Edit" }: {
-  label: string; value: string | null | undefined; icon: ElementType; onEdit?: () => void; action?: string;
+  label: string; value: string | null | undefined; icon: ElementType; onEdit: () => void; action?: string;
 }) => (
   <div className={styles.row}>
     <div className={styles.rowContent}>
       <div className={styles.rowIcon}><Icon className="size-4" /></div>
       <div className="min-w-0 flex-1"><p className={styles.label}>{label}</p><p className={styles.value}>{value || <span className="font-normal italic text-muted-foreground/60">Not provided</span>}</p></div>
     </div>
-    {onEdit ? <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action === "Edit" && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}{action}</Button>
-      : <span className={styles.registeredEmail} title="Registered Email"><ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" /><span className="admin-profile-email-label" aria-hidden="true">Registered Email</span><span className="sr-only">Registered Email</span></span>}
+    <Button type="button" variant="primary-outline" size="sm" onClick={onEdit} aria-label={`${action} ${label.toLowerCase()}`} className={styles.fieldAction}>{action === "Edit" && <SquarePen aria-hidden="true" className="size-3.5 shrink-0" />}{action}</Button>
   </div>
 );
 
@@ -130,10 +129,9 @@ const AdminProfile = () => {
     if (!edit || !profile || edit.saving) return;
     const value = edit.value.trim();
     const invalid = edit.field === "full_name" ? value.length < 2
-      : edit.field === "username" ? !/^[a-zA-Z0-9_]{3,50}$/.test(value)
-      : value.length > 20 || !/^[0-9+()\-\s]*$/.test(value);
+      : !/^[a-zA-Z0-9_]{3,50}$/.test(value);
     if (invalid) {
-      setEdit({ ...edit, error: edit.field === "username" ? "Use 3–50 letters, numbers, or underscores." : edit.field === "phone" ? "Enter a valid phone number." : "Enter at least 2 characters." });
+      setEdit({ ...edit, error: edit.field === "username" ? "Use 3–50 letters, numbers, or underscores." : "Enter at least 2 characters." });
       return;
     }
     setEdit({ ...edit, saving: true, error: "" });
@@ -223,8 +221,6 @@ const AdminProfile = () => {
           <div className="divide-y divide-border/50">
             <ProfileField label="Full Name" value={profile.full_name} icon={User} onEdit={() => setEdit({ field: "full_name", value: profile.full_name, error: "", saving: false })} />
             <ProfileField label="Username" value={profile.username} icon={AtSign} onEdit={() => setEdit({ field: "username", value: profile.username, error: "", saving: false })} />
-            <ProfileField label="Email Address" value={profile.email ?? ""} icon={Mail} />
-            <ProfileField label="Phone Number" value={profile.phone} icon={Phone} onEdit={() => setEdit({ field: "phone", value: profile.phone ?? "", error: "", saving: false })} />
             <ProfileField label="Security Password" value="••••••••" icon={Lock} action="Change" onEdit={() => setPasswordOpen(true)} />
           </div>
         </Section>

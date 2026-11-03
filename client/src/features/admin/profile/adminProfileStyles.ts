@@ -24,7 +24,6 @@ export const adminProfileStyles = {
   fieldAction: "admin-profile-field-action h-8 shrink-0 rounded-xl px-3 text-xs font-semibold shadow-none",
   label: "admin-profile-field-label text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground",
   value: "admin-profile-field-value mt-0.5 break-words text-ui-label font-medium text-foreground [overflow-wrap:anywhere]",
-  registeredEmail: "admin-profile-registered-email inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-muted/70 px-2.5 py-1.5 text-ui-caption font-medium text-muted-foreground",
   overview: "admin-profile-overview grid min-w-0 gap-3",
   overviewCard: "admin-profile-overview-card min-w-0 rounded-xl border border-border/80 bg-muted/20 p-3.5",
   overviewLabel: "text-ui-overline font-semibold uppercase tracking-wider text-muted-foreground",

@@ -100,6 +100,8 @@ const updateProfile = async (userId, data) => {
     params.push(data.username);
   }
   if (data.phone !== undefined) {
+    const [owners] = await pool.query("SELECT role FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
+    if (owners[0]?.role === "ADMIN") throw { statusCode: 403, message: "Administrator accounts do not use phone numbers" };
     fields.push("phone = ?");
     params.push(data.phone || null);
   }

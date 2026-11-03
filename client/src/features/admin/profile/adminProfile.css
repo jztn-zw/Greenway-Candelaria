@@ -21,8 +21,7 @@
   }
 
   .admin-profile .admin-profile-field > button,
-  .admin-profile .admin-profile-field-action,
-  .admin-profile .admin-profile-registered-email {
+  .admin-profile .admin-profile-field-action {
     margin-left: 3rem;
   }
 }
@@ -124,11 +123,8 @@
   .admin-profile .admin-profile-field-label { font-size: 0.75rem; line-height: 1rem; font-weight: 500; text-transform: none; letter-spacing: normal; }
   .admin-profile .admin-profile-field-label.animate-pulse { height: 1rem; }
   .admin-profile .admin-profile-field-value { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.5; }
-  .admin-profile .admin-profile-field > button, .admin-profile .admin-profile-field-action,
-  .admin-profile .admin-profile-registered-email { margin-left: 0; }
+  .admin-profile .admin-profile-field > button, .admin-profile .admin-profile-field-action { margin-left: 0; }
   .admin-profile .admin-profile-field-action { padding-inline: 0.625rem; border-radius: 0.5rem; }
-  .admin-profile .admin-profile-registered-email { height: 2rem; padding: 0; border: 0; background: transparent; }
-  .admin-profile .admin-profile-email-label { display: none; }
   .admin-profile .admin-profile-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
   .admin-profile .admin-profile-overview-card { padding: 0.75rem; }
   .admin-profile .admin-profile-overview-card:last-child { grid-column: 1 / -1; }

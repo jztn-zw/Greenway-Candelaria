@@ -1,5 +1,27 @@
 # GreenWay database
 
+## Multiple admin accounts without contacts (November 3, 2026)
+
+User-authorized provisioning retained the existing `admin` ID and added `admin1`
+and `admin2`. All three accounts are active and their password hashes were verified
+against the supplied maintenance password. No plaintext password is stored in this
+repository. Admin email/phone values were cleared; the shared contact columns remain
+available to residents and collectors. Existing admin sessions were revoked.
+
+`migrations/2026-11-03-multiple-admin-accounts.sql` removes the obsolete single-admin
+generated column/index. The repeatable private maintenance runner is
+`scripts/provision-admin-accounts.cjs`; preview is read-only, while apply requires
+`--apply --maintenance-confirmed` and `GREENWAY_ADMIN_PASSWORD` supplied privately.
+Stop API workers before apply. No public admin registration endpoint was introduced.
+
+Applied to the configured database after stopping its local API. Verified backup:
+`backups/admin-accounts-2026-11-03T10-26-17-450Z/restore.sql`, SHA-256
+`9a942a4e3b196900b207c43fc33554699e917e11b40033523ffcc88d297cc04c`.
+All non-admin account fields and collection run/stop history hashes matched before
+and after provisioning. Other database environments still require their own approved
+upgrade. Restoring the singleton constraint requires resolving multiple admins first;
+never restore the old backup over newer user or collection data.
+
 ## Street deletion while preserving collection history (November 3, 2026)
 
 `migrations/2026-11-03-street-history-preserving-deletion.sql` adds nullable

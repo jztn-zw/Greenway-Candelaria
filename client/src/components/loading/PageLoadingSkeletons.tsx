@@ -669,14 +669,13 @@ export const AdminProfileSkeleton = () => (
           <div className="min-w-0 space-y-1"><Skeleton className="h-4 w-40 max-w-full" /><Skeleton className="h-4 w-64 max-w-full" /></div>
         </div>
         <div className="divide-y divide-border/50">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={adminProfile.row}>
               <div className={adminProfile.rowContent}>
                 <Skeleton className={adminProfile.rowIcon} />
                 <div className="min-w-0 flex-1"><Skeleton className={`${adminProfile.label} h-[1.5em] w-24 max-w-full`} /><Skeleton className={`${adminProfile.value} h-[1.5em] w-40 max-w-full`} /></div>
               </div>
-              {i === 2 ? <div className={adminProfile.registeredEmail}><Skeleton className="size-3.5 shrink-0" /><Skeleton className="admin-profile-email-label h-4 w-24 max-w-full" /></div>
-                : <div className={`${adminProfile.fieldAction} flex items-center`}><Skeleton className={i === 4 ? "h-4 w-11" : "h-4 w-6"} /></div>}
+              <div className={`${adminProfile.fieldAction} flex items-center`}><Skeleton className={i === 2 ? "h-4 w-11" : "h-4 w-6"} /></div>
             </div>
           ))}
         </div>
