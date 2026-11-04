@@ -1,10 +1,8 @@
-import { getActionErrorMessage } from "@/lib/feedbackMessages";
 import ListEmptyState from "@/components/common/ListEmptyState";
 import { AdminFilterDialog,AdminFilterField } from "@/components/admin/AdminFilterDialog";
 import ResidentPageHeader from "@/components/common/ResidentPageHeader";
 import { SearchInput } from "@/components/common/SearchInput";
 import { getStatusBadgeStyle } from "@/components/ui/badgeStyles";
-import { AdminConfirmationDialog as ConfirmationDialog } from "@/components/admin/AdminModal";
 import PageErrorState from "@/components/feedback/PageErrorState";
 import DataRefreshNotice from "@/components/feedback/DataRefreshNotice";
 import PaginationControls from "@/components/common/PaginationControls";
@@ -20,7 +18,6 @@ import {
 DropdownMenu,
 DropdownMenuContent,
 DropdownMenuItem,
-DropdownMenuSeparator,
 DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -37,7 +34,6 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { fetchBarangaysAdmin } from "@/services/barangaysService";
 import {
-deleteResident as apideleteResidentAccount,
 updateResidentStatus as apiupdateResidentStatus,
 fetchResidentById,
 fetchResidentReports,
@@ -52,7 +48,6 @@ MapPin,
 MoreHorizontal,
 Eye,
 Phone,
-Trash2,
 Users,
 UserCheck,
 UserX,
@@ -76,7 +71,6 @@ const residentStatusStyles: Record<string, string> = {
 };
 
 const AdminResidents = () => {
-  const deleteResidentAccount = useAdminMutation(apideleteResidentAccount, "residents", "reports");
   const updateResidentStatus = useAdminMutation(apiupdateResidentStatus, "residents", "reports");
   const [residents, setResidents] = useState<Resident[]>([]);
   const [search, setSearch] = useState("");
@@ -94,7 +88,6 @@ const AdminResidents = () => {
   const [barangayOptions, setBarangayOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
   const [statusTarget, setStatusTarget] = useState<Resident | null>(null);
   const [viewingResident, setViewingResident] = useState<Resident | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -155,20 +148,6 @@ const AdminResidents = () => {
   const statusDialog = statusTarget && <ResidentBanDialog
     key={`${statusTarget.id}:${statusTarget.status}`} resident={statusTarget}
     onClose={() => setStatusTarget(null)} onConfirm={confirmStatusChange} />;
-
-  const deleteResident = async () => {
-    if (!deleteTarget) return;
-    try {
-      await deleteResidentAccount(deleteTarget.id);
-      toast.success(`${deleteTarget.fullName} removed from the manager`);
-      setDeleteTarget(null);
-      if (residents.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1);
-      }
-    } catch (err) {
-      toast.error("Failed to delete resident.", { description: getActionErrorMessage(err) });
-    }
-  };
 
   const openResidentProfile = (resident: Resident) => {
     setSearchParams((current) => {
@@ -497,14 +476,6 @@ const AdminResidents = () => {
                               )}
                               {r.status === "Active" ? "Ban Resident" : "Unban Resident"}
                             </DropdownMenuItem>}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setDeleteTarget(r)}
-                              className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive gap-2"
-                            >
-                              <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
-                              Delete Account
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -527,19 +498,6 @@ const AdminResidents = () => {
       </div>
 
       {statusDialog}
-      {/* ── Delete Resident Confirmation Modal ── */}
-      <ConfirmationDialog
-        kind="dialog"
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Remove Resident Account?"
-        icon={<Trash2 />}
-        variant="destructive"
-        description={<>Remove <strong className="font-semibold text-foreground">{deleteTarget?.fullName}</strong>&apos;s account (@{deleteTarget?.username}) from the manager? The account will be disabled and hidden; existing reports remain on record.</>}
-        confirmLabel="Remove Account"
-        onConfirm={deleteResident}
-        pendingLabel="Removing account…"
-      />
     </div>
   );
 };
