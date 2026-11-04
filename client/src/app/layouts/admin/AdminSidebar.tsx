@@ -71,13 +71,13 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Community Posts", url: "/admin/posts", icon: FileText },
       { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
+      { title: "Event Management", url: "/admin/schedule", icon: CalendarDays },
     ],
   },
   {
     label: "COLLECTION OPERATIONS",
     collapsible: true,
     items: [
-      { title: "Event Management", url: "/admin/schedule", icon: CalendarDays },
       { title: "Route Management", url: "/admin/routes", icon: Route },
       { title: "Barangay Management", url: "/admin/barangays", icon: MapPinned },
     ],
