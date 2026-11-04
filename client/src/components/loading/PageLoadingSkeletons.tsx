@@ -1226,6 +1226,20 @@ export const AdminPostsContentSkeleton = ({ viewMode = "grid" }: { viewMode?: "g
   </div>
 );
 
+const PostDetailBodySkeleton = () => (
+  <div className={contentStyles.detailBody} aria-hidden="true">
+    {Array.from({ length: 4 }).map((_, paragraph) => (
+      <div key={paragraph}>
+        {["w-full", "w-full", "w-3/4"].map((width, line) => (
+          <div key={line} className="flex h-[1.75em] items-center">
+            <Skeleton className={`h-[1em] ${width}`} />
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+);
+
 export const AdminPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}) => (
   <div role="status" aria-busy="true" className={contentStyles.detailPage}>
     <ResidentPageHeaderSkeleton backButton={onBack ? <BackButton onBack={onBack} label="Back to Posts" className="mb-0" /> : <Skeleton aria-hidden="true" className="size-11 shrink-0 rounded-lg sm:size-9" />} title="Post Details" description="Review this community post and its publication details." />
@@ -1252,15 +1266,7 @@ export const AdminPostDetailSkeleton = ({ onBack }: { onBack?: () => void } = {}
           </div>
         </div>
         <div className="border-t border-border/60" />
-        <div className={contentStyles.detailBody}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-5 sm:h-6 w-full" />
-              <Skeleton className="h-5 sm:h-6 w-full" />
-              <Skeleton className="h-5 sm:h-6 w-3/4" />
-            </div>
-          ))}
-        </div>
+        <PostDetailBodySkeleton />
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border/60">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-7 w-20 rounded-lg" />)}
         </div>
@@ -1295,15 +1301,7 @@ export const ResidentPostDetailSkeleton = ({ onBack }: { onBack?: () => void } =
     <div className="border-t border-border/60" />
 
     {/* Body */}
-    <div className={contentStyles.detailBody}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
-      ))}
-    </div>
+    <PostDetailBodySkeleton />
 
     {/* Tags */}
     <div className="flex flex-wrap gap-2 pt-2">

@@ -410,7 +410,7 @@
   display: grid;
   gap: 1rem;
   width: 100%;
-  max-width: 68ch;
+  max-width: none;
   font-size: 0.9375rem;
   line-height: 1.75;
   overflow-wrap: anywhere;

@@ -78,8 +78,8 @@ const navGroups: NavGroup[] = [
     label: "COLLECTION OPERATIONS",
     collapsible: true,
     items: [
-      { title: "Route Management", url: "/admin/routes", icon: Route },
       { title: "Barangay Management", url: "/admin/barangays", icon: MapPinned },
+      { title: "Route Management", url: "/admin/routes", icon: Route },
     ],
   },
   {
