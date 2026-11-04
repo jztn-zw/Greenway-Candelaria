@@ -22,7 +22,11 @@ function loginFixture({ failInsert = false, currentPassword = "password", role =
   let sequence = 0;
   let commits = 0;
   const notices = [];
-  const pool = { async getConnection() {
+  const pool = { async query(sql, values) {
+    assert.equal(sql, 'DELETE FROM sessions WHERE token IN (?, ?)');
+    sessions = sessions.filter(row => !values.includes(row.token));
+    return [{}];
+  }, async getConnection() {
     let snapshot, release;
     return {
       async beginTransaction() { const wait = lock; lock = new Promise(resolve => { release = resolve; }); await wait; snapshot = sessions.map(row => ({ ...row })); },
@@ -57,14 +61,21 @@ function loginFixture({ failInsert = false, currentPassword = "password", role =
     "../../sockets/adminChanges.socket": { emitAdminDataChanged() {} },
     "../../sockets/session.socket": { emitSessionsReplaced(tokens) { assert.ok(commits > 0, "must notify after commit"); notices.push([...tokens]); return Promise.resolve(); } },
   });
-  return { login: password => auth.login({ identifier: "demo", password }, { headers: {} }), sessions: () => sessions, notices };
+  return { login: password => auth.login({ identifier: "demo", password }, { headers: {} }), logout: token => auth.logout(token, user.id), sessions: () => sessions, notices };
 }
 
-for (const role of ["ADMIN", "RESIDENT", "DRIVER"]) test(`a successful ${role} login leaves only its new session`, async () => {
+test('admin login retains the existing single-session rule', async () => {
+  const fixture = loginFixture({ role: 'ADMIN' });
+  const result = await fixture.login('password');
+  assert.deepEqual(fixture.sessions(), [{ user_id: 'owner', token: hash(result.token) }]);
+  assert.deepEqual(fixture.notices, [[hash('old-token')]]);
+});
+
+for (const role of ["RESIDENT", "DRIVER"]) test(`a successful ${role} login preserves the other device session`, async () => {
   const fixture = loginFixture({ role });
   const result = await fixture.login("password");
-  assert.deepEqual(fixture.sessions(), [{ user_id: "owner", token: hash(result.token) }]);
-  assert.deepEqual(fixture.notices, [[hash("old-token")]]);
+  assert.deepEqual(fixture.sessions(), [{ user_id: "owner", token: hash('old-token') }, { user_id: "owner", token: hash(result.token) }]);
+  assert.deepEqual(fixture.notices, [[]]);
 });
 
 test("bad credentials do not revoke the current sign-in", async () => {
@@ -88,12 +99,19 @@ test("a password changed after verification cannot replace the session", async (
   assert.equal(fixture.notices.length, 0);
 });
 
-test("concurrent successful logins serialize; the final login is the active one", async () => {
+test("concurrent resident logins serialize and both remain active", async () => {
   const fixture = loginFixture();
   const results = await Promise.all([fixture.login("password"), fixture.login("password")]);
-  assert.equal(fixture.sessions().length, 1);
-  assert.equal(fixture.sessions()[0].token, hash(results[1].token));
-  assert.deepEqual(fixture.notices, [[hash("old-token")], [hash(results[0].token)]]);
+  assert.equal(fixture.sessions().length, 3);
+  assert.ok(results.every(result => fixture.sessions().some(row => row.token === hash(result.token))));
+  assert.deepEqual(fixture.notices, [[], []]);
+});
+
+for (const role of ['RESIDENT', 'DRIVER']) test(`${role} logout revokes only that device and never writes truck state`, async () => {
+  const fixture = loginFixture({ role });
+  const result = await fixture.login('password');
+  await fixture.logout(result.token);
+  assert.deepEqual(fixture.sessions(), [{ user_id: 'owner', token: hash('old-token') }]);
 });
 
 function middlewareFixture({ sessions = [], newer = false, jwtError } = {}) {

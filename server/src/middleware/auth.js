@@ -54,6 +54,7 @@ const authenticate = async (req, res, next) => {
 
     req.user = user;
     req.token = token;
+    req.sessionId = sessions[0].id;
 
     if (user.role === "RESIDENT" && (user.profile_completed === 0 || user.profile_completed === false) &&
         req.baseUrl !== "/api/auth" && req.baseUrl !== "/api/barangays") {

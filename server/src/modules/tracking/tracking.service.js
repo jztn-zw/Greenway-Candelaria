@@ -155,7 +155,7 @@ const checkProximityAndNotify = async (context, latitude, longitude) => {
   await db.query("UPDATE route_run_stops SET notified_at = COALESCE(notified_at, UTC_TIMESTAMP()) WHERE id = ?", [stop.id]);
 };
 
-const ping = async (userId, sample) => {
+const ping = async (userId, sample, sessionId) => {
   const { latitude, longitude, truck_id, route_run_id, sample_id, captured_at } = sample;
   // Older clients can omit sample metadata; web always supplies all three.
   const [runs] = await pool.query(
@@ -199,6 +199,23 @@ const ping = async (userId, sample) => {
     const sampleId = sample_id || id;
     const [duplicate] = await db.query("SELECT id FROM tracking_logs WHERE sample_id = ? LIMIT 1", [sampleId]);
     if (duplicate.length) return { accepted: false, reason: "duplicate" };
+    // The truck/run lock serializes claims. Viewing the route never claims GPS.
+    if (sessionId) {
+      if (!Object.hasOwn(run, "gps_session_id")) reject("Tracking requires the multi-device session upgrade", 503);
+      const [sessions] = await db.query(
+        "SELECT id FROM sessions WHERE user_id = ? AND expires_at > NOW() AND id IN (?, ?) FOR UPDATE",
+        [userId, sessionId, run.gps_session_id || sessionId],
+      );
+      if (!sessions.some(session => session.id === sessionId)) reject("Tracking session is no longer active", 401);
+      const ownerIsSending = latest[0]?.route_run_id === run.id &&
+        Date.now() - utcTime(latest[0].received_at || latest[0].captured_at).getTime() < 120000;
+      if (run.gps_session_id && run.gps_session_id !== sessionId && ownerIsSending && sessions.some(session => session.id === run.gps_session_id)) {
+        return { accepted: false, reason: "gps_device_in_use" };
+      }
+      if (run.gps_session_id !== sessionId) {
+        await db.query("UPDATE route_runs SET gps_session_id = ? WHERE id = ?", [sessionId, run.id]);
+      }
+    }
     await db.query(
       "INSERT INTO tracking_logs (id, truck_id, driver_id, latitude, longitude, route_run_id, sample_id, captured_at) VALUES (?,?,?,?,?,?,?,?)",
       [id, truck_id, run.driver_id, latitude, longitude, run.id, sampleId, sqlTime(captured)]);

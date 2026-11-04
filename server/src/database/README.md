@@ -1,5 +1,22 @@
 # GreenWay database
 
+## Multi-device Collector GPS ownership (November 4, 2026)
+
+Resident and Collector login sessions now coexist across web/mobile. Admin retains
+its single-session policy. No logout-all UI was added. Route GPS ownership uses
+the nullable `route_runs.gps_session_id` column; see `server/docs/single-active-session.md`.
+Normal session expiry and security revocations remain enforced.
+
+Migration `2026-11-04-multi-device-gps-owner.sql` was applied to the configured
+database with explicit approval after the owner confirmed APIs/workers stopped.
+The runner checksum-verified a schema backup at
+`backups/multi-device-gps-2026-11-04T13-37-15.809Z/route_runs-schema.sql`, SHA-256
+`935bf6c6dd4975734bfc7136f0068220f998a3549906ff51218a613bf5f20f55`.
+All 26 run rows remain; the new field is NULL on every existing row. No DML was
+executed. Other database environments require their own approved upgrade before
+starting updated APIs. Preview with `node scripts/migrate-multi-device-gps.cjs`;
+apply requires `--apply --maintenance-confirmed` and a verified backup.
+
 ## Multiple admin accounts without contacts (November 3, 2026)
 
 User-authorized provisioning retained the existing `admin` ID and added `admin1`

@@ -24,7 +24,9 @@ const replaceSessions = async (session, connection) => {
 const hasNewerSession = async (userId, issuedAt) => {
   if (!Number.isFinite(issuedAt)) return false;
   const [rows] = await pool.query(
-    "SELECT id FROM sessions WHERE user_id = ? AND expires_at > NOW() AND created_at >= FROM_UNIXTIME(?) LIMIT 1",
+    `SELECT s.id FROM sessions s JOIN users u ON u.id = s.user_id
+     WHERE s.user_id = ? AND u.role = 'ADMIN' AND s.expires_at > NOW()
+       AND s.created_at >= FROM_UNIXTIME(?) LIMIT 1`,
     [userId, issuedAt],
   );
   return rows.length > 0;

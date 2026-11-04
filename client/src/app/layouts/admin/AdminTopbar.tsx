@@ -37,7 +37,7 @@ const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin/residents": "Resident Management",
   "/admin/drivers": "Collector Management",
   "/admin/tracking": "Live Truck Tracking",
-  "/admin/analytics": "Analytics Dashboard",
+  "/admin/analytics": "Analytics",
   "/admin/audit-logs": "Audit Logs",
   "/admin/notifications": "Notifications",
   "/admin/settings": "Settings",

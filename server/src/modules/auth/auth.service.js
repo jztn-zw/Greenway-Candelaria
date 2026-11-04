@@ -209,8 +209,10 @@ const createLoginSession = async (user, req, loginContext) => {
     token = jwt.sign({ id: user.id, role: user.role, jti: generateId() }, process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    previousTokens = await SessionService.replaceSessions({ userId: user.id, token,
-      device: req?.headers?.["user-agent"], ip: req?.ip, expiresAt }, connection);
+    const session = { userId: user.id, token,
+      device: req?.headers?.["user-agent"], ip: req?.ip, expiresAt };
+    if (user.role === "ADMIN") previousTokens = await SessionService.replaceSessions(session, connection);
+    else await SessionService.createSession(session, connection);
     await connection.query("UPDATE users SET last_login_at = NOW() WHERE id = ?", [user.id]);
     await connection.commit();
   } catch (error) {
@@ -244,19 +246,7 @@ const createLoginSession = async (user, req, loginContext) => {
 
 const logout = async (token, userId) => {
   await SessionService.revokeSession(token);
-
-  if (!userId) return;
-
-  const [driverRows] = await queryWithRetry(
-    "SELECT id, truck_id FROM drivers WHERE user_id = ?",
-    [userId],
-  );
-
-  if (driverRows.length > 0 && driverRows[0].truck_id) {
-    await queryWithRetry("UPDATE trucks SET status = 'OFFLINE' WHERE id = ?", [
-      driverRows[0].truck_id,
-    ]);
-  }
+  // Truck state follows its route and accepted GPS, not another device's logout.
 };
 
 const changePassword = async (userId, { current_password, new_password }) => {

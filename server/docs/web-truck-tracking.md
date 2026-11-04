@@ -3,6 +3,23 @@
 Scope: the web client and shared server. The GPS sample quality section also
 covers the Collector mobile app's foreground and screen-lock uploads.
 
+## New route assignment alerts
+
+Creating an enabled weekly route with an assigned active Collector saves one
+`SYSTEM` / `routes` notification in the route transaction. Its title is
+“New Route Assigned”; its body includes the saved route name, weekday, Philippine
+start time, stop count and waste type. Inactive or unassigned templates do not
+send an assignment alert. Existing templates are not backfilled.
+
+After commit, the existing notification dispatcher delivers the same saved notice
+to the Collector web/app inbox, authorized sockets and eligible phone push devices.
+It opens assignment details because the new weekly template may not have a dated
+run yet. It never opens an unrelated current run. Daily/start-time reminders and
+route execution rules remain separate. Deploy/restart the updated server; this
+uses the existing clients and schema. Fixture tests cover commit/rollback,
+recipient selection and the inbox/socket/push dispatch contract; actual provider
+delivery and device presentation still require a live smoke check.
+
 ## GPS sample quality (October 30, 2026)
 
 ### Device position and suggested roads

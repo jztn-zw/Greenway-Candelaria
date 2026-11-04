@@ -307,6 +307,7 @@ CREATE TABLE `route_runs` (
   `total_paused_seconds` int NOT NULL DEFAULT 0,
   `gps_expected_since` datetime(3) DEFAULT NULL,
   `gps_alert_at` datetime(3) DEFAULT NULL,
+  `gps_session_id` varchar(36) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

@@ -510,6 +510,7 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
     throw { statusCode: 400, message: "Assign a collector before enabling this route" };
   }
 
+  let delivery = { notifications: [] };
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -536,6 +537,28 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
         [generateId(), routeId, stop.barangay_id, stop.street_id, stop.stop_order],
       );
     }
+    if (routeStatus === "ACTIVE" && driver_id) {
+      const [collectors] = await connection.query(
+        `SELECT u.id FROM drivers d JOIN users u ON u.id = d.user_id
+         WHERE d.id = ? AND u.role = 'DRIVER' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL`,
+        [driver_id],
+      );
+      const day = day_of_week.charAt(0) + day_of_week.slice(1).toLowerCase();
+      const [hours, minutes] = start_time.split(":");
+      const time = `${Number(hours) % 12 || 12}:${minutes} ${Number(hours) >= 12 ? "PM" : "AM"}`;
+      delivery = await sendToMany({
+        user_ids: collectors.map(collector => collector.id),
+        type: "SYSTEM",
+        title: "New Route Assigned",
+        body: `MENRO assigned you ${name?.trim() ? `“${name.trim()}”` : "a new collection route"} every ${day} at ${time} · ${resolvedStops.length} stop${resolvedStops.length === 1 ? "" : "s"}${waste_type ? ` · ${waste_type}` : ""}.`,
+        ref_id: routeId,
+        ref_module: "routes",
+        metadata: { destination: "notification", notification_kind: "ROUTE_ASSIGNED", route_name: name || null,
+          day_of_week, start_time, route_ids: [routeId] },
+        db: connection,
+        emit: false,
+      });
+    }
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -544,6 +567,7 @@ const create = async ({ truck_id, driver_id, day_of_week, start_time, name, wast
     connection.release();
   }
 
+  emitStoredNotifications(delivery.notifications);
   const route = await getById(routeId);
   await auditService.log({ user_id: adminId, action: "CREATE_ROUTE", module: "routes", record_id: routeId, new_value: route });
   return route;

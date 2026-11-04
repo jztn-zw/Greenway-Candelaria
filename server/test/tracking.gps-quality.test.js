@@ -28,7 +28,7 @@ const fix = overrides => ({ truck_id: 'truck', route_run_id: 'run', latitude: 14
 const previous = overrides => ({ route_run_id: 'run', latitude: 14, longitude: 121,
   captured_at: timestamp(-11000), sample_id: 'previous', ...overrides });
 
-function fixture({ latest = previous(), route = {}, stops = [] } = {}) {
+function fixture({ latest = previous(), route = {}, stops = [], sessions = [{ id: 'phone' }, { id: 'web' }] } = {}) {
   const queries = [];
   const notices = [];
   let clears = 0;
@@ -36,6 +36,7 @@ function fixture({ latest = previous(), route = {}, stops = [] } = {}) {
     queries.push(sql);
     if (sql.startsWith('SELECT * FROM tracking_latest')) return [latest ? [latest] : []];
     if (sql.startsWith('SELECT id FROM tracking_logs')) return [[]];
+    if (sql.startsWith('SELECT id FROM sessions')) return [sessions];
     if (sql.includes('FROM route_run_stops')) return [stops];
     if (sql.includes('FROM users u')) return [[{ id: 'resident', barangay_id: 'area', street_id: null }]];
     if (/^(INSERT|UPDATE|DELETE)/.test(sql)) return [{}];
@@ -54,6 +55,38 @@ function fixture({ latest = previous(), route = {}, stops = [] } = {}) {
   });
   return { ping: service.ping, queries, notices, clears: () => clears };
 }
+
+test('only one active session can own a run GPS source', async () => {
+  const f = fixture({ route: { gps_session_id: 'phone' } });
+  const result = await f.ping('user', fix(), 'web');
+  assert.equal(result.accepted, false);
+  assert.equal(result.reason, 'gps_device_in_use');
+  assertUntouched(f);
+  assert.equal((await f.ping('user', fix(), 'phone')).accepted, true);
+});
+
+test('first accepted GPS claims a run; expired or signed-out owners allow switching', async () => {
+  for (const owner of [null, 'old-phone']) {
+    const f = fixture({ route: { gps_session_id: owner } });
+    assert.equal((await f.ping('user', fix(), 'web')).accepted, true);
+    assert.ok(f.queries.some(sql => sql.startsWith('UPDATE route_runs SET gps_session_id')));
+  }
+});
+
+test('GPS ownership survives reconnects but allows switching after a two-minute upload gap', async () => {
+  const f = fixture({ route: { gps_session_id: 'phone' }, latest: previous({ captured_at: timestamp(-121000) }) });
+  assert.equal((await f.ping('user', fix(), 'web')).accepted, true);
+  assert.ok(f.queries.some(sql => sql.startsWith('UPDATE route_runs SET gps_session_id')));
+});
+
+test('unmigrated tracking fails closed and revoked sessions cannot claim GPS', async () => {
+  let f = fixture();
+  await assert.rejects(f.ping('user', fix(), 'web'), error => error.statusCode === 503);
+  assertUntouched(f);
+  f = fixture({ route: { gps_session_id: null }, sessions: [] });
+  await assert.rejects(f.ping('user', fix(), 'web'), error => error.statusCode === 401);
+  assertUntouched(f);
+});
 
 function assertUntouched(f) {
   assert.equal(f.queries.some(sql => /^(INSERT|UPDATE|DELETE)/.test(sql)), false);

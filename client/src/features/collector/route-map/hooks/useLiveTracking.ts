@@ -58,7 +58,8 @@ export const useLiveTracking = ({ truckId, routeId, isRouteEnded, isTrackingEnab
           }, abort.signal);
           if (cancelled) return;
           if (receipt?.accepted !== true) {
-            if (receipt?.reason === "gps_jump") setGpsError("GPS jump ignored. Waiting for a stable location.");
+            if (receipt?.reason === "gps_device_in_use") setGpsError("Another device is sharing GPS. Stop tracking there and wait two minutes before switching.");
+            else if (receipt?.reason === "gps_jump") setGpsError("GPS jump ignored. Waiting for a stable location.");
             else if (receipt?.reason === "gps_accuracy") setGpsError("GPS accuracy is low. Waiting for a more accurate fix.");
             next(); return;
           }

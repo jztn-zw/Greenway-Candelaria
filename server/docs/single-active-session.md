@@ -1,5 +1,34 @@
 # One active sign-in per account
 
+## Resident and Collector update (November 4, 2026)
+
+The policy below now applies to Admin accounts only. Resident and Collector logins
+create independent sessions without revoking earlier web/mobile logins. Normal
+expiry, password resets, account status/deletion checks, owner-scoped sockets,
+query cleanup and session-bound push eligibility remain enforced. No new logout-all
+button or screen is added. Native logout revokes its credential; the existing
+web tab-local logout behavior is preserved. Logout no longer forces truck status
+offline while another device may be tracking; route/GPS lifecycle determines it.
+
+Collector GPS uses a nullable `route_runs.gps_session_id` field. The first accepted
+fix claims the GPS source under the existing truck/run locks. Other live sessions
+may view and manage the authorized route but cannot write competing locations.
+Ownership survives API restarts and reconnects. A valid session may claim after
+the owner expires/signs out or stops uploading accepted fixes for two minutes.
+Rejected fixes neither refresh ownership nor trigger proximity alerts. Pause/end,
+terminal outcomes and existing GPS quality checks remain authoritative.
+
+Before deploying the API, preview `node scripts/migrate-multi-device-gps.cjs`.
+Applying requires explicit approval, stopped writers and
+`--apply --maintenance-confirmed`. The runner checksum-verifies a schema backup,
+adds only the nullable field and verifies row counts. No run history, stops or
+GPS coordinates are rewritten. Apply the upgrade before starting updated APIs;
+unmigrated GPS requests fail closed. Existing clients support the session change;
+deploy the web client and rebuild Collector to show the specific competing-GPS
+message. Resident requires no new build for the session policy.
+
+## Previous policy / current Admin behavior
+
 Each successful sign-in replaces prior sessions for the same account across
 the website, resident app and collector app. The existing locked user row
 serializes concurrent logins and password/account changes. Session deletion

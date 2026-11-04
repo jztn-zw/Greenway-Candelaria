@@ -6,7 +6,7 @@ const { broadcastLiveUpdate } = require("../../sockets/tracking.socket");
 const ping = async (req, res, next) => {
   try {
     const data = pingSchema.parse(req.body);
-    const log = await service.ping(req.user.id, data);
+    const log = await service.ping(req.user.id, data, req.sessionId);
 
     // Broadcast to authenticated tracking subscribers.
     const io = req.app.get("io");
