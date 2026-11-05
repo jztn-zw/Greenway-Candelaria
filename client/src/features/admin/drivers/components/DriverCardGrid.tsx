@@ -5,7 +5,6 @@ import {
   Phone,
   Clock,
   MoreHorizontal,
-  Mail,
   Users,
   Eye,
   SquarePen,
@@ -174,11 +173,6 @@ const DriverCardGrid = ({
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
                     <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span className="truncate font-sans tabular-nums">{d.contactNumber}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-muted-foreground truncate">
-                    <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="truncate">{d.email}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground truncate">
