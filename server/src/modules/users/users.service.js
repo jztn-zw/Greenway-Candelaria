@@ -365,9 +365,11 @@ const softDelete = async (id, adminId, ip) => {
   // 1. Fetch old state BEFORE deleting
   const user = await getById(id);
 
-  // 2. Soft delete
+  // 2. Retain the account ID for history and release deleted Resident/Collector usernames.
   await pool.query(
-    `UPDATE users SET resident_location = NULL, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `UPDATE users SET resident_location = NULL, deleted_at = CURRENT_TIMESTAMP,
+       username = CASE WHEN role IN ('RESIDENT', 'DRIVER') THEN NULL ELSE username END
+     WHERE id = ? AND deleted_at IS NULL`,
     [id],
   );
 

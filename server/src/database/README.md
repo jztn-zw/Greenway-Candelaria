@@ -1,5 +1,29 @@
 # GreenWay database
 
+## Reusing usernames after account deletion (November 16, 2026)
+
+Deleting a Resident or Collector account releases its username while retaining
+its account ID for municipal history. Deactivation and bans still reserve the
+username, as do all accounts that have not been deleted. The existing unique
+index continues to prevent duplicate usernames. Email uniqueness is unchanged.
+
+For older deleted accounts, use `migrations/2026-11-16-release-deleted-account-usernames.sql`.
+The change is data only and can be rerun safely. After approval, stop all API
+writers and verify a private backup of the affected rows' original `id` and
+`username` values. Use the predicate below for that backup and the preview.
+Apply the migration in a transaction, then rerun the preview; it should return
+zero rows to update before committing. Deploy the updated API before resuming
+account deletion. Restoring the old names after reuse can conflict with new
+accounts; never restore them over a new account's username.
+
+```sql
+SELECT COUNT(*) AS reserved_usernames
+FROM users
+WHERE deleted_at IS NOT NULL
+  AND username IS NOT NULL
+  AND role IN ('RESIDENT', 'DRIVER');
+```
+
 ## Multi-device Collector GPS ownership (November 4, 2026)
 
 Resident and Collector login sessions now coexist across web/mobile. Admin retains

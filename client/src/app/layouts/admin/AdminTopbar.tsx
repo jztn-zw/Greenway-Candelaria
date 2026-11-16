@@ -28,7 +28,7 @@ import { useNotificationTime } from "@/hooks/useNotificationTime";
 
 const ADMIN_PAGE_TITLES: Record<string, string> = {
   "/admin": "Admin Dashboard",
-  "/admin/reports": "Waste Reports Management",
+  "/admin/reports": "Waste Reports",
   "/admin/posts": "Community Posts",
   "/admin/announcements": "Announcements",
   "/admin/schedule": "Event Management",

@@ -695,8 +695,8 @@ const remove = async (id, adminUserId, ipAddress = null) => {
       });
     }
 
-    // Soft delete the user — sets deleted_at.
-    await connection.query("UPDATE users SET deleted_at = NOW() WHERE id = ?", [
+    // Keep the account ID for route history and free the username for a new account.
+    await connection.query("UPDATE users SET deleted_at = NOW(), username = NULL WHERE id = ? AND deleted_at IS NULL", [
       driver.user_id,
     ]);
 
