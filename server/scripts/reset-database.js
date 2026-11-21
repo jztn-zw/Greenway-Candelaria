@@ -100,12 +100,14 @@ const verifyBackupAndSchema = async (db, state, backup, baseline) => {
       const [rows] = await db.query(`SELECT ${expected.columns.map(identifier).join(", ")} FROM ${identifier(name)}`);
       if (rowDigest(rows) !== expected.sha256) throw new Error("Backup restore content verification failed");
     }
-    await db.query("SET FOREIGN_KEY_CHECKS = 0");
-    for (const name of state.tables) await db.query(`DROP TABLE ${identifier(name)}`);
-    await db.query("SET FOREIGN_KEY_CHECKS = 1");
-    for (const table of baseline) await db.query(table.sql);
-    const [tables] = await db.query("SHOW TABLES");
-    if (tables.length !== baseline.length) throw new Error("Baseline schema import verification failed");
+    if (baseline) {
+      await db.query("SET FOREIGN_KEY_CHECKS = 0");
+      for (const name of state.tables) await db.query(`DROP TABLE ${identifier(name)}`);
+      await db.query("SET FOREIGN_KEY_CHECKS = 1");
+      for (const table of baseline) await db.query(table.sql);
+      const [tables] = await db.query("SHOW TABLES");
+      if (tables.length !== baseline.length) throw new Error("Baseline schema import verification failed");
+    }
   } finally {
     await db.query(`USE ${identifier(state.database)}`);
     await db.query("SET FOREIGN_KEY_CHECKS = 1");
@@ -188,4 +190,4 @@ if (require.main === module) {
   }).finally(() => pool.end());
 }
 
-module.exports = { schemaStatements, inspect, exportBackup, verifyBackupAndSchema, seedAdmin, resetDatabase };
+module.exports = { identifier, rowDigest, schemaStatements, inspect, exportBackup, verifyBackupAndSchema, seedAdmin, resetDatabase };

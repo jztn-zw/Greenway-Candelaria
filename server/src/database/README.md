@@ -407,6 +407,28 @@ been applied by the code change.
 
 ## Authorized reset
 
+To retain one existing admin and the barangay directory, use the data-only
+command. It keeps the schema and clears all other rows, including streets,
+street coverage and pins, sessions, and settings. It clears the selected admin's
+street link if present. The admin will need to sign in again; default settings
+are created when needed. Preview and review the exact target and counts:
+
+```powershell
+node scripts/reset-database-preserve-areas.cjs --database greenway_db --admin admin
+```
+
+Add `--backup-only` to save and checksum a private snapshot without changing any
+database records. Apply always takes a fresh snapshot after writers are stopped.
+
+After explicit approval and stopping every API instance and database writer, add
+`--apply --maintenance-confirmed`. The command checks the private backup and
+verifies a scratch restore before deleting rows. The deletes run in one
+transaction with foreign keys enabled. Before committing, the command verifies
+that barangay rows and the remaining admin's identity and credentials are
+preserved and all other tables are empty.
+
+### Full schema rebuild
+
 From `server/`, a read-only preview is the default:
 
 ```powershell
